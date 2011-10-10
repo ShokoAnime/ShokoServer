@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{D777636B-F927-4C7D-9D00-4A7858E75F3E}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>JMMContracts</RootNamespace>
+    <AssemblyName>JMMContracts</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Contract_AniDBAnime.cs" />
+    <Compile Include="Contract_AniDBReleaseGroup.cs" />
+    <Compile Include="Contract_AniDBVote.cs" />
+    <Compile Include="Contract_AniDB_AnimeCrossRefs.cs" />
+    <Compile Include="Contract_AniDB_Anime_DefaultImage.cs" />
+    <Compile Include="Contract_AnimeCategory.cs" />
+    <Compile Include="Contract_AnimeEpisode.cs" />
+    <Compile Include="Contract_AnimeGroup.cs" />
+    <Compile Include="Contract_AnimeGroupDetailed.cs" />
+    <Compile Include="Contract_AnimeGroup_Save.cs" />
+    <Compile Include="Contract_AnimeGroup_SaveResponse.cs" />
+    <Compile Include="Contract_AnimeSeries.cs" />
+    <Compile Include="Contract_AniDB_AnimeDetailed.cs" />
+    <Compile Include="Contract_AnimeSeries_Save.cs" />
+    <Compile Include="Contract_AnimeSeries_SaveResponse.cs" />
+    <Compile Include="Contract_AnimeTag.cs" />
+    <Compile Include="Contract_AnimeTitle.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_Other.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_OtherResult.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_Trakt.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_TraktResult.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_TvDB.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_TvDBResult.cs" />
+    <Compile Include="Contract_DuplicateFile.cs" />
+    <Compile Include="Contract_GroupFilter.cs" />
+    <Compile Include="Contract_GroupFilterCondition.cs" />
+    <Compile Include="Contract_GroupFilterExtended.cs" />
+    <Compile Include="Contract_GroupFilter_SaveResponse.cs" />
+    <Compile Include="Contract_GroupVideoQuality.cs" />
+    <Compile Include="Contract_ImportFolder.cs" />
+    <Compile Include="Contract_ImportFolder_SaveResponse.cs" />
+    <Compile Include="Contract_JMMUser.cs" />
+    <Compile Include="Contract_MovieDBMovieSearchResult.cs" />
+    <Compile Include="Contract_MovieDB_Fanart.cs" />
+    <Compile Include="Contract_MovieDB_Movie.cs" />
+    <Compile Include="Contract_MovieDB_Poster.cs" />
+    <Compile Include="Contract_ReleaseGroup.cs" />
+    <Compile Include="Contract_ServerSettings.cs" />
+    <Compile Include="Contract_ServerSettings_SaveResponse.cs" />
+    <Compile Include="Contract_ServerStatus.cs" />
+    <Compile Include="Contract_ToggleWatchedStatusOnEpisode_Response.cs" />
+    <Compile Include="Contract_TraktTVShowResponse.cs" />
+    <Compile Include="Contract_Trakt_Episode.cs" />
+    <Compile Include="Contract_Trakt_ImageFanart.cs" />
+    <Compile Include="Contract_Trakt_ImagePoster.cs" />
+    <Compile Include="Contract_Trakt_Season.cs" />
+    <Compile Include="Contract_Trakt_Show.cs" />
+    <Compile Include="Contract_TVDBSeriesSearchResult.cs" />
+    <Compile Include="Contract_TvDB_Episode.cs" />
+    <Compile Include="Contract_TvDB_ImageFanart.cs" />
+    <Compile Include="Contract_TvDB_ImagePoster.cs" />
+    <Compile Include="Contract_TvDB_ImageWideBanner.cs" />
+    <Compile Include="Contract_TvDB_Series.cs" />
+    <Compile Include="Contract_VideoDetailed.cs" />
+    <Compile Include="Contract_VideoLocal.cs" />
+    <Compile Include="Contract_VideoLocalManualLink.cs" />
+    <Compile Include="Hashes.cs" />
+    <Compile Include="IJMMServer.cs" />
+    <Compile Include="IJMMServerImage.cs" />
+    <Compile Include="MediaInfoResult.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

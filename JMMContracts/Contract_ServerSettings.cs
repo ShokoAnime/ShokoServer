@@ -1,0 +1,76 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace JMMContracts
+{
+	public class Contract_ServerSettings
+	{
+		public string AniDB_Username { get; set; }
+		public string AniDB_Password { get; set; }
+		public string AniDB_ServerAddress { get; set; }
+		public string AniDB_ServerPort { get; set; }
+		public string AniDB_ClientPort { get; set; }
+
+		public bool AniDB_DownloadRelatedAnime { get; set; }
+		public bool AniDB_DownloadSimilarAnime { get; set; }
+		public bool AniDB_DownloadCharactersCreators { get; set; }
+		public bool AniDB_DownloadReviews { get; set; }
+		public bool AniDB_DownloadReleaseGroups { get; set; }
+
+		public bool AniDB_MyList_AddFiles { get; set; }
+		public int AniDB_MyList_StorageState { get; set; }
+		// these two are used when you add a file on an import, or when you do a mylist sync
+		public bool AniDB_MyList_ReadWatched { get; set; } // update local to watched if anidb is watched
+		public bool AniDB_MyList_ReadUnwatched { get; set; } // update local to un-watched if anidb is un-watched
+		// these two are used when you watch a video, or manually mark a file as watched/unwatched
+		public bool AniDB_MyList_SetWatched { get; set; } // set anidb watched if local state is watched
+		public bool AniDB_MyList_SetUnwatched { get; set; } // set anidb un-watched if local state is un-watched
+
+		public int AniDB_MyList_UpdateFrequency { get; set; }
+		public int AniDB_Calendar_UpdateFrequency { get; set; }
+		public int AniDB_Anime_UpdateFrequency { get; set; }
+
+		// Web Cache
+		public string WebCache_Address { get; set; }
+		public bool WebCache_Anonymous { get; set; }
+		public bool WebCache_FileHashes_Get { get; set; }
+		public bool WebCache_FileHashes_Send { get; set; }
+		public bool WebCache_XRefFileEpisode_Get { get; set; }
+		public bool WebCache_XRefFileEpisode_Send { get; set; }
+		public bool WebCache_TvDB_Get { get; set; }
+		public bool WebCache_TvDB_Send { get; set; }
+
+		// TvDB
+		public bool TvDB_AutoFanart { get; set; }
+		public int TvDB_AutoFanartAmount { get; set; }
+		public bool TvDB_AutoWideBanners { get; set; }
+		public bool TvDB_AutoPosters { get; set; }
+		public int TvDB_UpdateFrequency { get; set; }
+
+		// MovieDB
+		public bool MovieDB_AutoFanart { get; set; }
+		public int MovieDB_AutoFanartAmount { get; set; }
+		public bool MovieDB_AutoPosters { get; set; }
+
+		// Import settings
+		public string VideoExtensions { get; set; }
+		public bool WatchForNewFiles { get; set; }
+		public bool RunImportOnStart { get; set; }
+		public bool Hash_CRC32 { get; set; }
+		public bool Hash_MD5 { get; set; }
+		public bool Hash_SHA1 { get; set; }
+		public bool Import_UseExistingFileWatchedStatus { get; set; }
+
+		// Language
+		public string LanguagePreference { get; set; }
+		public bool LanguageUseSynonyms { get; set; }
+
+		// Trakt
+		public string Trakt_Username { get; set; }
+		public string Trakt_Password { get; set; }
+		public int Trakt_UpdateFrequency { get; set; }
+		public int Trakt_SyncFrequency { get; set; }
+	}
+}

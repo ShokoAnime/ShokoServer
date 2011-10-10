@@ -1,0 +1,91 @@
+﻿<UserControl x:Class="JMMServer.ImportFolderAdmin"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:JMMServer"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300">
+
+    <StackPanel Orientation="Vertical">
+
+        <StackPanel.Resources>
+
+            <ResourceDictionary>
+                <ResourceDictionary.MergedDictionaries>
+                    <ResourceDictionary Source="/UI/UIStyles.xaml" />
+                </ResourceDictionary.MergedDictionaries>
+
+                <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+                <!-- ImportFolderTemplate -->
+                <DataTemplate x:Key="ImportFolderTemplate">
+
+                    <StackPanel Orientation="Horizontal" Height="25">
+                        <Button HorizontalAlignment="Left" Name="btnScanFolder" Margin="5,0,0,0" Style="{DynamicResource FlatButtonStyle}" Width="Auto"
+                            Command="{DynamicResource ScanFolderCommand}" CommandParameter="{Binding}" 
+                            ToolTip="Scan Folder">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
+                                <Image Height="16" Width="16" Source="/Images/32_import.png" Margin="0,0,0,0"/>
+
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Margin="5,0,10,0" Text="{Binding Path=ImportFolderLocation}" VerticalAlignment="Center" FontWeight="DemiBold"/>
+                        <TextBlock Margin="0,0,2,0" Text="(" VerticalAlignment="Center"/>
+                        <TextBlock Margin="0,0,2,0" Text="{Binding Path=ImportFolderName}" VerticalAlignment="Center"/>
+                        <TextBlock Margin="0,0,5,0" Text=")" VerticalAlignment="Center"/>
+                        <Image Height="22" Width="23" Source="/Images/32_folder_down.png" VerticalAlignment="Center" Margin="0,0,5,0"
+                               Visibility="{Binding Path=FolderIsDropSource, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Image.ToolTip>
+                                <TextBlock Text="Drop Source"/>
+                            </Image.ToolTip>
+                        </Image>
+                        <Image Height="22" Width="23" Source="/Images/32_folder_up.png" VerticalAlignment="Center" Margin="0,0,5,0"
+                               Visibility="{Binding Path=FolderIsDropDestination, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Image.ToolTip>
+                                <TextBlock Text="Drop Destination"/>
+                            </Image.ToolTip>
+                        </Image>
+                    </StackPanel>
+                </DataTemplate>
+
+                
+            </ResourceDictionary>
+
+
+        </StackPanel.Resources>
+
+        
+        <StackPanel Orientation="Horizontal">
+            <StackPanel Orientation="Vertical">
+                <TextBlock Text="Server Path" Margin="10,10,0,10" FontWeight="DemiBold"></TextBlock>
+                <ListBox Margin="10,0,0,10" Name="lbImportFolders" BorderThickness="0" Background="AntiqueWhite"
+                                 HorizontalAlignment="Left" VerticalAlignment="Top" ItemTemplate="{DynamicResource ImportFolderTemplate}" 
+                                 ItemContainerStyle="{DynamicResource ListBoxItemStyleFolders}"
+                                 ItemsSource="{Binding Source={x:Static local:ServerInfo.Instance},Path=ImportFolders}">
+
+
+                </ListBox>
+            </StackPanel>
+
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal">
+            <Button HorizontalAlignment="Left" Name="btnDeleteImportFolder" Margin="10,0,0,0" Style="{DynamicResource FlatButtonStyle}" Width="Auto">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
+                    <Image Height="16" Width="16" Source="/Images/32_Delete.png" Margin="0,0,5,0"/>
+                    <TextBlock VerticalAlignment="Center" Text="Delete" Margin="0,0,5,0"/>
+                </StackPanel>
+            </Button>
+
+            <Button HorizontalAlignment="Left" Name="btnAddImportFolder" Margin="10,0,0,0" Style="{DynamicResource FlatButtonStyle}" Width="Auto">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
+                    <Image Height="16" Width="16" Source="/Images/32_add.png" Margin="0,0,5,0"/>
+                    <TextBlock VerticalAlignment="Center" Text="New Folder" Margin="0,0,5,0"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+    </StackPanel>
+
+</UserControl>
