@@ -365,6 +365,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		bool GetSeriesExistingForAnime(int animeID);
+
+		[OperationContract]
+		List<Contract_AniDB_Anime_Similar> GetSimilarAnimeLinks(int animeID, int userID);
 	}
 
 }

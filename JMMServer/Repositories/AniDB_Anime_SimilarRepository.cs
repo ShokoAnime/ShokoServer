@@ -50,6 +50,7 @@ namespace JMMServer.Repositories
 				var cats = session
 					.CreateCriteria(typeof(AniDB_Anime_Similar))
 					.Add(Restrictions.Eq("AnimeID", id))
+					.AddOrder(Order.Desc("Approval"))
 					.List<AniDB_Anime_Similar>();
 
 				return new List<AniDB_Anime_Similar>(cats);

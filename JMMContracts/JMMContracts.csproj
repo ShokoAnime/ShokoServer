@@ -64,6 +64,7 @@
     <Compile Include="Contract_AniDBVote.cs" />
     <Compile Include="Contract_AniDB_AnimeCrossRefs.cs" />
     <Compile Include="Contract_AniDB_Anime_DefaultImage.cs" />
+    <Compile Include="Contract_AniDB_Anime_Similar.cs" />
     <Compile Include="Contract_AnimeCategory.cs" />
     <Compile Include="Contract_AnimeEpisode.cs" />
     <Compile Include="Contract_AnimeGroup.cs" />

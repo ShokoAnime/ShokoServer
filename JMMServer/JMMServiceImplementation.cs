@@ -4534,6 +4534,44 @@ namespace JMMServer
 
 			return "";
 		}
+
+		public List<Contract_AniDB_Anime_Similar> GetSimilarAnimeLinks(int animeID, int userID)
+		{
+			List<Contract_AniDB_Anime_Similar> links = new List<Contract_AniDB_Anime_Similar>();
+			try
+			{
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+				AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+				if (anime == null) return links;
+
+				JMMUserRepository repUsers = new JMMUserRepository();
+				JMMUser juser = repUsers.GetByID(userID);
+				if (juser == null) return links;
+
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+				foreach (AniDB_Anime_Similar link in anime.SimilarAnime)
+				{
+					AniDB_Anime animeLink = repAnime.GetByAnimeID(link.SimilarAnimeID);
+					if (animeLink != null)
+					{
+						if (!juser.AllowedAnime(animeLink)) continue;
+					}
+
+					// check if this anime has a series
+					AnimeSeries ser = repSeries.GetByAnimeID(link.SimilarAnimeID);
+
+					links.Add(link.ToContract(animeLink, ser, userID));
+				}
+
+				return links;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return links;
+			}
+		}
 	}
 
 	
