@@ -511,6 +511,27 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public decimal AniDBRating
+		{
+			get
+			{
+				try
+				{
+
+					if (AniDBTotalVotes == 0)
+						return 0;
+					else
+						return AniDBTotalRating / (decimal)AniDBTotalVotes;
+
+				}
+				catch (Exception ex)
+				{
+					logger.Error("Error in  AniDBRating: {0}", ex.ToString());
+					return 0;
+				}
+			}
+		}
+
 		[XmlIgnore]
 		public decimal AniDBTotalRating
 		{

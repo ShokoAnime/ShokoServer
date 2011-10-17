@@ -224,7 +224,8 @@ namespace JMMServer
 		AudioLanguage = 23,
 		SubtitleLanguage = 24,
 		AssignedTvDBOrMovieDBInfo = 25,
-		AssignedMovieDBInfo = 26
+		AssignedMovieDBInfo = 26,
+		UserVotedAny = 27
 	}
 
 	public enum GroupFilterOperator

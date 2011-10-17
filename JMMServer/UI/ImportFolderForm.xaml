@@ -27,22 +27,18 @@
                     <RowDefinition />
                     <RowDefinition />
                     <RowDefinition />
-                    <RowDefinition />
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Column="0" Grid.Row="0" Margin="0,0,10,5" FontWeight="Bold" Padding="5" Text="Server Details" />
 
-                <TextBlock Grid.Column="0" Grid.Row="1" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5" Text="Import Folder Name"/>
-                <TextBox Name="txtImportFolderName" HorizontalAlignment="Left" Grid.Column="1" Grid.Row="1" Width="400" Margin="0,5,0,5"></TextBox>
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5" Text="Import Folder Path"/>
+                <TextBox Name="txtImportFolderLocation" HorizontalAlignment="Left" Grid.Column="1" Grid.Row="1" Width="400"  Margin="0,5,0,5"></TextBox>
 
-                <TextBlock Grid.Column="0" Grid.Row="2" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5" Text="Import Folder Path"/>
-                <TextBox Name="txtImportFolderLocation" HorizontalAlignment="Left" Grid.Column="1" Grid.Row="2" Width="400"  Margin="0,5,0,5"></TextBox>
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5" Text="Drop Source"/>
+                <CheckBox Name="chkDropSource" Grid.Column="1" Grid.Row="2" VerticalAlignment="Center"></CheckBox>
 
-                <TextBlock Grid.Column="0" Grid.Row="3" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5" Text="Drop Source"/>
-                <CheckBox Name="chkDropSource" Grid.Column="1" Grid.Row="3" VerticalAlignment="Center"></CheckBox>
-
-                <TextBlock Grid.Column="0" Grid.Row="4" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5" Text="Drop Destination"/>
-                <CheckBox Name="chkDropDestination" Grid.Column="1" Grid.Row="4" VerticalAlignment="Center"></CheckBox>
+                <TextBlock Grid.Column="0" Grid.Row="3" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5" Text="Drop Destination"/>
+                <CheckBox Name="chkDropDestination" Grid.Column="1" Grid.Row="3" VerticalAlignment="Center"></CheckBox>
 
             </Grid>
 

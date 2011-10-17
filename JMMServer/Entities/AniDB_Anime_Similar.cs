@@ -15,6 +15,15 @@ namespace JMMServer.Entities
 		public int Approval { get; set; }
 		public int Total { get; set; }
 
+		public double ApprovalPercentage
+		{
+			get
+			{
+				if (Total == 0) return (double)0;
+				return (double)Approval / (double)Total * (double)100;
+			}
+		}
+
 
 		public void Populate(Raw_AniDB_SimilarAnime rawSim)
 		{

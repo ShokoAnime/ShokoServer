@@ -50,11 +50,7 @@ namespace JMMServer
 					return;
 				}
 
-				if (string.IsNullOrEmpty(txtImportFolderName.Text))
-					importFldr.ImportFolderName = "NA";
-				else
-					importFldr.ImportFolderName = txtImportFolderName.Text.Trim();
-
+				importFldr.ImportFolderName = "";
 				importFldr.ImportFolderLocation = txtImportFolderLocation.Text.Trim();
 				importFldr.IsDropDestination = chkDropDestination.IsChecked.Value ? 1 : 0;
 				importFldr.IsDropSource = chkDropSource.IsChecked.Value ? 1 : 0;
@@ -86,11 +82,10 @@ namespace JMMServer
 				importFldr = ifldr;
 
 				txtImportFolderLocation.Text = importFldr.ImportFolderLocation;
-				txtImportFolderName.Text = importFldr.ImportFolderName;
 				chkDropDestination.IsChecked = importFldr.IsDropDestination == 1;
 				chkDropSource.IsChecked = importFldr.IsDropSource == 1;
 
-				txtImportFolderName.Focus();
+				txtImportFolderLocation.Focus();
 			}
 			catch (Exception ex)
 			{

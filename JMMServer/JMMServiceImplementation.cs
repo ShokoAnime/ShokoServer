@@ -4572,6 +4572,208 @@ namespace JMMServer
 				return links;
 			}
 		}
+
+		public List<Contract_AniDB_Anime_Relation> GetRelatedAnimeLinks(int animeID, int userID)
+		{
+			List<Contract_AniDB_Anime_Relation> links = new List<Contract_AniDB_Anime_Relation>();
+			try
+			{
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+				AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+				if (anime == null) return links;
+
+				JMMUserRepository repUsers = new JMMUserRepository();
+				JMMUser juser = repUsers.GetByID(userID);
+				if (juser == null) return links;
+
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+				foreach (AniDB_Anime_Relation link in anime.RelatedAnime)
+				{
+					AniDB_Anime animeLink = repAnime.GetByAnimeID(link.RelatedAnimeID);
+					if (animeLink != null)
+					{
+						if (!juser.AllowedAnime(animeLink)) continue;
+					}
+
+					// check if this anime has a series
+					AnimeSeries ser = repSeries.GetByAnimeID(link.RelatedAnimeID);
+
+					links.Add(link.ToContract(animeLink, ser, userID));
+				}
+
+				return links;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return links;
+			}
+		}
+
+		/// <summary>
+		/// Returns a list of recommendations based on the users votes
+		/// </summary>
+		/// <param name="maxResults"></param>
+		/// <param name="userID"></param>
+		/// <param name="recommendationType">1 = to watch, 2 = to download</param>
+		public List<Contract_Recommendation> GetRecommendations(int maxResults, int userID, int recommendationType)
+		{
+			List<Contract_Recommendation> recs = new List<Contract_Recommendation>();
+
+			try
+			{
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+				AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+				JMMUserRepository repUsers = new JMMUserRepository();
+				JMMUser juser = repUsers.GetByID(userID);
+				if (juser == null) return recs;
+
+				// find all the series which the user has rated
+				List<AniDB_Vote> allVotes = repVotes.GetAll();
+				if (allVotes.Count == 0) return recs;
+
+				// sort by the highest rated
+				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+				sortCriteria.Add(new SortPropOrFieldAndDirection("VoteValue", true, SortType.eInteger));
+				allVotes = Sorting.MultiSort<AniDB_Vote>(allVotes, sortCriteria);
+
+				Dictionary<int, Contract_Recommendation> dictRecs = new Dictionary<int, Contract_Recommendation>();
+
+				List<AniDB_Vote> animeVotes = new List<AniDB_Vote>();
+				foreach (AniDB_Vote vote in allVotes)
+				{
+					if (vote.VoteType != (int)enAniDBVoteType.Anime && vote.VoteType != (int)enAniDBVoteType.AnimeTemp) continue;
+
+					// check if the user has this anime
+					AniDB_Anime anime = repAnime.GetByAnimeID(vote.EntityID);
+					if (anime == null) continue;
+
+					// get similar anime
+					List<AniDB_Anime_Similar> simAnime = anime.SimilarAnime;
+					// sort by the highest approval
+					sortCriteria = new List<SortPropOrFieldAndDirection>();
+					sortCriteria.Add(new SortPropOrFieldAndDirection("ApprovalPercentage", true, SortType.eDoubleOrFloat));
+					simAnime = Sorting.MultiSort<AniDB_Anime_Similar>(simAnime, sortCriteria);
+
+					foreach (AniDB_Anime_Similar link in simAnime)
+					{
+						AniDB_Anime animeLink = repAnime.GetByAnimeID(link.SimilarAnimeID);
+						if (animeLink != null)
+							if (!juser.AllowedAnime(animeLink)) continue;
+
+						// don't recommend to watch anime that the user doesn't have
+						if (animeLink == null && recommendationType == 1) continue;
+
+						// don't recommend to watch series that the user doesn't have
+						AnimeSeries ser = repSeries.GetByAnimeID(link.SimilarAnimeID);
+						if (ser == null && recommendationType == 1) continue;
+
+						
+
+						if (ser != null)
+						{
+							// don't recommend to watch series that the user has already started watching
+							AnimeSeries_User userRecord = ser.GetUserRecord(userID);
+							if (userRecord != null)
+							{
+								if (userRecord.WatchedEpisodeCount > 0 && recommendationType == 1) continue;
+							}
+
+							// don't recommend to download anime that the user has files for
+							if (ser.LatestLocalEpisodeNumber > 0 && recommendationType == 2) continue;
+						}
+
+						Contract_Recommendation rec = new Contract_Recommendation();
+						rec.BasedOnAnimeID = anime.AnimeID;
+						rec.RecommendedAnimeID = link.SimilarAnimeID;
+
+						// if we don't have the anime locally. lets assume the anime has a high rating
+						decimal animeRating = 850;
+						if (animeLink != null) animeRating = animeLink.AniDBRating;
+
+						rec.Score = CalculateRecommendationScore(vote.VoteValue, link.ApprovalPercentage, animeRating);
+						rec.BasedOnVoteValue = vote.VoteValue;
+						rec.RecommendedApproval = link.ApprovalPercentage;
+
+						// check if we have added this recommendation before
+						// this might happen where animes are recommended based on different votes
+						// and could end up with different scores
+						if (dictRecs.ContainsKey(rec.RecommendedAnimeID))
+						{
+							if (rec.Score < dictRecs[rec.RecommendedAnimeID].Score) continue;
+						}
+
+						rec.Recommended_AniDB_Anime = null;
+						if (animeLink != null)
+							rec.Recommended_AniDB_Anime = animeLink.ToContract();
+
+						rec.BasedOn_AniDB_Anime = anime.ToContract();
+
+						rec.Recommended_AnimeSeries = null;
+						if (ser != null)
+							rec.Recommended_AnimeSeries = ser.ToContract(ser.GetUserRecord(userID));
+
+						AnimeSeries serBasedOn = repSeries.GetByAnimeID(anime.AnimeID);
+						if (serBasedOn == null) continue;
+
+						rec.BasedOn_AnimeSeries = serBasedOn.ToContract(serBasedOn.GetUserRecord(userID));
+
+						dictRecs[rec.RecommendedAnimeID] = rec;
+					}
+				}
+
+				List<Contract_Recommendation> tempRecs = new List<Contract_Recommendation>();
+				foreach (Contract_Recommendation rec in dictRecs.Values)
+					tempRecs.Add(rec);
+
+				// sort by the highest score
+				sortCriteria = new List<SortPropOrFieldAndDirection>();
+				sortCriteria.Add(new SortPropOrFieldAndDirection("Score", true, SortType.eDoubleOrFloat));
+				tempRecs = Sorting.MultiSort<Contract_Recommendation>(tempRecs, sortCriteria);
+
+				int numRecs = 0;
+				foreach (Contract_Recommendation rec in tempRecs)
+				{
+					if (numRecs == maxResults) break;
+					recs.Add(rec);
+					numRecs++;
+				}
+
+				if (recs.Count == 0) return recs;
+
+				return recs;
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return recs;
+			}
+		}
+
+		private double CalculateRecommendationScore(int userVoteValue, double approvalPercentage, decimal animeRating)
+		{
+			double score = (double)userVoteValue;
+
+			score = score + approvalPercentage;
+
+			if (approvalPercentage > 90) score = score + 100;
+			if (approvalPercentage > 80) score = score + 100;
+			if (approvalPercentage > 70) score = score + 100;
+			if (approvalPercentage > 60) score = score + 100;
+			if (approvalPercentage > 50) score = score + 100;
+
+			if (animeRating > 900) score = score + 100;
+			if (animeRating > 800) score = score + 100;
+			if (animeRating > 700) score = score + 100;
+			if (animeRating > 600) score = score + 100;
+			if (animeRating > 500) score = score + 100;
+
+			return score;
+		}
 	}
 
 	

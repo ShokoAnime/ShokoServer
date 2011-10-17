@@ -63,6 +63,7 @@ namespace JMMServer.Databases
 					SQLite.CreateDatabase();
 					SQLite.CreateInitialSchema();
 					SQLite.UpdateSchema();
+					SQLite.PopulateInitialData();
 
 					return true;
 				}
@@ -73,5 +74,7 @@ namespace JMMServer.Databases
 				return false;
 			}
 		}
+
+		
 	}
 }

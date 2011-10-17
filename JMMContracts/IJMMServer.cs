@@ -368,6 +368,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AniDB_Anime_Similar> GetSimilarAnimeLinks(int animeID, int userID);
+
+		[OperationContract]
+		List<Contract_AniDB_Anime_Relation> GetRelatedAnimeLinks(int animeID, int userID);
+
+		[OperationContract]
+		List<Contract_Recommendation> GetRecommendations(int maxResults, int userID, int recommendationType);
 	}
 
 }

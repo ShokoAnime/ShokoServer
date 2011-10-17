@@ -160,7 +160,8 @@ namespace JMMServer
 			//AnimeEpisodeRepository rep = new AnimeEpisodeRepository();
 			//AnimeEpisode ep = rep.GetByAniDBEpisodeID(85084);
 			//TraktTVHelper.MarkEpisodeWatched(ep);
-
+			//JMMServiceImplementation imp = new JMMServiceImplementation();
+			//imp.GetRecommendations(100, 1, 1);
 		}
 
 

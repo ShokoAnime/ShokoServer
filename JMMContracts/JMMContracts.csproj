@@ -64,6 +64,7 @@
     <Compile Include="Contract_AniDBVote.cs" />
     <Compile Include="Contract_AniDB_AnimeCrossRefs.cs" />
     <Compile Include="Contract_AniDB_Anime_DefaultImage.cs" />
+    <Compile Include="Contract_AniDB_Anime_Relation.cs" />
     <Compile Include="Contract_AniDB_Anime_Similar.cs" />
     <Compile Include="Contract_AnimeCategory.cs" />
     <Compile Include="Contract_AnimeEpisode.cs" />
@@ -96,6 +97,7 @@
     <Compile Include="Contract_MovieDB_Fanart.cs" />
     <Compile Include="Contract_MovieDB_Movie.cs" />
     <Compile Include="Contract_MovieDB_Poster.cs" />
+    <Compile Include="Contract_Recommendation.cs" />
     <Compile Include="Contract_ReleaseGroup.cs" />
     <Compile Include="Contract_ServerSettings.cs" />
     <Compile Include="Contract_ServerSettings_SaveResponse.cs" />
