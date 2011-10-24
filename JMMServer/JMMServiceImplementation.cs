@@ -25,92 +25,6 @@ namespace JMMServer
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		/*public List<Contract_AnimeGroup> GetAllGroups()
-		{
-			List<Contract_AnimeGroup> grps = new List<Contract_AnimeGroup>();
-			try
-			{
-				DateTime start = DateTime.Now;
-				AnimeGroupRepository repGroups = new AnimeGroupRepository();
-				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-				AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
-				AniDB_Anime_CategoryRepository repAnimeCat = new AniDB_Anime_CategoryRepository();
-				AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
-
-				List<AnimeGroup> allGrps = repGroups.GetAll();
-				TimeSpan ts = DateTime.Now - start;
-				logger.Info("GetAllGroups (Database) in {0} ms", ts.TotalMilliseconds);
-				start = DateTime.Now;
-
-				// anime
-				List<AniDB_Anime> allAnime = repAnime.GetAll();
-				Dictionary<int, AniDB_Anime> allAnimeDict = new Dictionary<int, AniDB_Anime>();
-				foreach (AniDB_Anime anime in allAnime)
-					allAnimeDict[anime.AnimeID] = anime;
-
-				// categories
-				List<AniDB_Category> allCatgeories = repCats.GetAll();
-				Dictionary<int, AniDB_Category> allCatgeoriesDict = new Dictionary<int, AniDB_Category>();
-				foreach (AniDB_Category cat in allCatgeories)
-					allCatgeoriesDict[cat.CategoryID] = cat;
-
-
-				List<AniDB_Anime_Category> allAnimeCatgeories = repAnimeCat.GetAll();
-				Dictionary<int, List<int>> allAnimeCatgeoriesDict = new Dictionary<int, List<int>>(); // animeid / list of category id's
-				foreach (AniDB_Anime_Category aniCat in allAnimeCatgeories)
-				{
-					if (!allAnimeCatgeoriesDict.ContainsKey(aniCat.AnimeID))
-						allAnimeCatgeoriesDict[aniCat.AnimeID] = new List<int>();
-
-					allAnimeCatgeoriesDict[aniCat.AnimeID].Add(aniCat.CategoryID);
-				}
-
-				// titles
-				List<AniDB_Anime_Title> allTitles = repTitles.GetAll();
-				Dictionary<int, List<AniDB_Anime_Title>> allTitlesDict = new Dictionary<int, List<AniDB_Anime_Title>>(); // animeid / list of titles
-				foreach (AniDB_Anime_Title aniTitle in allTitles)
-				{
-					if (!allTitlesDict.ContainsKey(aniTitle.AnimeID))
-						allTitlesDict[aniTitle.AnimeID] = new List<AniDB_Anime_Title>();
-
-					allTitlesDict[aniTitle.AnimeID].Add(aniTitle);
-				}
-
-				// user votes
-				AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
-				List<AniDB_Vote> allVotes = repVotes.GetAll();
-
-				List<AnimeSeries> allSeries = repSeries.GetAll();
-
-				ts = DateTime.Now - start;
-				logger.Info("GetAllGroups (Stats Data) in {0} ms", ts.TotalMilliseconds);
-				start = DateTime.Now;
-
-				foreach (AnimeGroup ag in allGrps)
-				{
-					// calculate stats
-					Contract_AnimeGroup contract = ag.ToContract();
-					GroupStatsCalculator.CalculateStats(ref contract, ag, allSeries, allAnimeDict, allCatgeoriesDict, allAnimeCatgeoriesDict, allTitlesDict, allVotes);
-
-					grps.Add(contract);
-				}
-
-				
-
-
-				grps.Sort();
-				ts = DateTime.Now - start;
-				logger.Info("GetAllGroups (Contracts) in {0} ms", ts.TotalMilliseconds);
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-			}
-			return grps;
-		}*/
-
 		public List<Contract_AnimeGroup> GetAllGroups(int userID)
 		{
 			List<Contract_AnimeGroup> grps = new List<Contract_AnimeGroup>();
@@ -1233,6 +1147,10 @@ namespace JMMServer
 						cmd.Save();
 					}
 				}
+
+				// update group status information
+				CommandRequest_GetReleaseGroupStatus cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID, true);
+				cmdStatus.Save();
 
 			}
 			catch (Exception ex)
@@ -2401,7 +2319,7 @@ namespace JMMServer
 				if (series == null) return relGroups;
 
 				// get a list of all the release groups the user is collecting
-				List<int> userReleaseGroups = new List<int>();
+				Dictionary<int, int> userReleaseGroups = new Dictionary<int, int>();
 				foreach (AnimeEpisode ep in series.AnimeEpisodes)
 				{
 					List<VideoLocal> vids = ep.VideoLocals;
@@ -2410,7 +2328,10 @@ namespace JMMServer
 						AniDB_File anifile = vid.AniDBFile;
 						if (anifile != null)
 						{
-							if (!userReleaseGroups.Contains(anifile.GroupID)) userReleaseGroups.Add(anifile.GroupID);
+							if (!userReleaseGroups.ContainsKey(anifile.GroupID))
+								userReleaseGroups[anifile.GroupID] = 0;
+
+							userReleaseGroups[anifile.GroupID] = userReleaseGroups[anifile.GroupID] + 1;
 						}
 					}
 				}
@@ -2420,13 +2341,16 @@ namespace JMMServer
 				List<AniDB_GroupStatus> grpStatuses = repGrpStatus.GetByAnimeID(aniEp.AnimeID);
 				foreach (AniDB_GroupStatus gs in grpStatuses)
 				{
-					if (userReleaseGroups.Contains(gs.GroupID))
+					if (userReleaseGroups.ContainsKey(gs.GroupID))
 					{
 						if (gs.HasGroupReleasedEpisode(aniEp.EpisodeNumber))
 						{
 							Contract_AniDBReleaseGroup contract = new Contract_AniDBReleaseGroup();
 							contract.GroupID = gs.GroupID;
 							contract.GroupName = gs.GroupName;
+							contract.UserCollecting = true;
+							contract.EpisodeRange = gs.EpisodeRange;
+							contract.FileCount = userReleaseGroups[gs.GroupID];
 							relGroups.Add(contract);
 						}
 					}
@@ -4773,6 +4697,66 @@ namespace JMMServer
 			if (animeRating > 500) score = score + 100;
 
 			return score;
+		}
+
+		public List<Contract_AniDBReleaseGroup> GetReleaseGroupsForAnime(int animeID)
+		{
+			List<Contract_AniDBReleaseGroup> relGroups = new List<Contract_AniDBReleaseGroup>();
+
+			try
+			{
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				AnimeSeries series = repSeries.GetByAnimeID(animeID);
+				if (series == null) return relGroups;
+
+				// get a list of all the release groups the user is collecting
+				//List<int> userReleaseGroups = new List<int>();
+				Dictionary<int, int> userReleaseGroups = new Dictionary<int, int>();
+				foreach (AnimeEpisode ep in series.AnimeEpisodes)
+				{
+					List<VideoLocal> vids = ep.VideoLocals;
+					foreach (VideoLocal vid in vids)
+					{
+						AniDB_File anifile = vid.AniDBFile;
+						if (anifile != null)
+						{
+							if (!userReleaseGroups.ContainsKey(anifile.GroupID))
+								userReleaseGroups[anifile.GroupID] = 0;
+
+							userReleaseGroups[anifile.GroupID] = userReleaseGroups[anifile.GroupID] + 1;
+						}
+					}
+				}
+
+				// get all the release groups for this series
+				AniDB_GroupStatusRepository repGrpStatus = new AniDB_GroupStatusRepository();
+				List<AniDB_GroupStatus> grpStatuses = repGrpStatus.GetByAnimeID(animeID);
+				foreach (AniDB_GroupStatus gs in grpStatuses)
+				{
+					Contract_AniDBReleaseGroup contract = new Contract_AniDBReleaseGroup();
+					contract.GroupID = gs.GroupID;
+					contract.GroupName = gs.GroupName;
+					contract.EpisodeRange = gs.EpisodeRange;
+
+					if (userReleaseGroups.ContainsKey(gs.GroupID))
+					{
+						contract.UserCollecting = true;
+						contract.FileCount = userReleaseGroups[gs.GroupID];
+					}
+					else
+					{
+						contract.UserCollecting = false;
+						contract.FileCount = 0;
+					}
+						
+					relGroups.Add(contract);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return relGroups;
 		}
 	}
 

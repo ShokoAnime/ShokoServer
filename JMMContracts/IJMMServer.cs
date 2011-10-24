@@ -374,6 +374,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_Recommendation> GetRecommendations(int maxResults, int userID, int recommendationType);
+
+		[OperationContract]
+		List<Contract_AniDBReleaseGroup> GetReleaseGroupsForAnime(int animeID);
 	}
 
 }
