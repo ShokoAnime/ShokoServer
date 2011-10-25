@@ -57,6 +57,7 @@ namespace JMMContracts
 		// Import settings
 		public string VideoExtensions { get; set; }
 		public bool WatchForNewFiles { get; set; }
+		public bool AutoGroupSeries { get; set; }
 		public bool RunImportOnStart { get; set; }
 		public bool Hash_CRC32 { get; set; }
 		public bool Hash_MD5 { get; set; }

@@ -1244,13 +1244,16 @@ namespace JMMServer.Entities
 			// check if there are any existing groups we could add this series to
 			bool createNewGroup = true;
 
-			List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(ser.AniDB_ID);
-
-			// only use if there is just one result
-			if (grps != null && grps.Count > 0)
+			if (ServerSettings.AutoGroupSeries)
 			{
-				ser.AnimeGroupID = grps[0].AnimeGroupID;
-				createNewGroup = false;
+				List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(ser.AniDB_ID);
+
+				// only use if there is just one result
+				if (grps != null && grps.Count > 0)
+				{
+					ser.AnimeGroupID = grps[0].AnimeGroupID;
+					createNewGroup = false;
+				}
 			}
 
 			if (createNewGroup)

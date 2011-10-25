@@ -358,9 +358,8 @@ namespace JMMServer.Entities
 				{
 					if (vid.VideoLocalID != this.VideoLocalID)
 					{
-						destFolder = vid.ImportFolder;
 						// make sure this folder is not the drop source
-						if (destFolder.IsDropSource == 1) continue;
+						if (vid.ImportFolder.IsDropSource == 1) continue;
 
 						string thisFileName = vid.FullServerPath;
 						string folderName = Path.GetDirectoryName(thisFileName);

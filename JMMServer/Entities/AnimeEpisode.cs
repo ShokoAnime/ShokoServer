@@ -284,9 +284,15 @@ namespace JMMServer.Entities
 
 					AnimeEpisode_User userRecord = this.GetUserRecord(userID);
 					if (userRecord == null)
+					{
 						contract.VideoLocal_IsWatched = 0;
+						contract.VideoLocal_WatchedDate = null;
+					}
 					else
+					{
 						contract.VideoLocal_IsWatched = 1;
+						contract.VideoLocal_WatchedDate = userRecord.WatchedDate;
+					}
 					contract.VideoLocal_IsIgnored = vid.IsIgnored;
 
 					// Import Folder

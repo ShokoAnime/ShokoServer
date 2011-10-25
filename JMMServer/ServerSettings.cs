@@ -779,6 +779,21 @@ namespace JMMServer
 
 		#endregion
 
+		public static bool AutoGroupSeries
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool val = false;
+				bool.TryParse(appSettings["AutoGroupSeries"], out val);
+				return val;
+			}
+			set
+			{
+				UpdateSetting("AutoGroupSeries", value.ToString());
+			}
+		}
+
 		public static string LanguagePreference
 		{
 			get
@@ -932,6 +947,7 @@ namespace JMMServer
 			// Import settings
 			contract.VideoExtensions = ServerSettings.VideoExtensions;
 			contract.WatchForNewFiles = ServerSettings.WatchForNewFiles;
+			contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
 			contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
 			contract.RunImportOnStart = ServerSettings.RunImportOnStart;
 			contract.Hash_CRC32 = ServerSettings.Hash_CRC32;
