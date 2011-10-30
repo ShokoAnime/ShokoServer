@@ -1886,6 +1886,28 @@ namespace JMMServer
 			return null;
 		}
 
+		public Contract_AnimeSeries GetSeriesForAnime(int animeID, int userID)
+		{
+			AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
+
+			try
+			{
+				AnimeSeries series = repAnimeSer.GetByAnimeID(animeID);
+				if (series == null) return null;
+
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+				AniDB_Anime anime = repAnime.GetByAnimeID(series.AniDB_ID);
+				if (anime == null) return null;
+
+				return series.ToContract(anime, series.CrossRefTvDB, series.CrossRefMovieDB, series.GetUserRecord(userID));
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return null;
+		}
+
 		public bool GetSeriesExistingForAnime(int animeID)
 		{
 			AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
@@ -4241,6 +4263,51 @@ namespace JMMServer
 				if (user == null) return animeList;
 
 				List<AniDB_Anime> animes = repAnime.GetForDate(DateTime.Today.AddDays(0 - numberOfDays), DateTime.Today.AddDays(numberOfDays));
+				foreach (AniDB_Anime anime in animes)
+				{
+					bool useAnime = true;
+
+					string[] cats = user.HideCategories.ToLower().Split(',');
+					string[] animeCats = anime.AllCategories.ToLower().Split('|');
+					foreach (string cat in cats)
+					{
+						if (!string.IsNullOrEmpty(cat) && animeCats.Contains(cat))
+						{
+							useAnime = false;
+							break;
+						}
+					}
+
+					if (useAnime)
+						animeList.Add(anime.ToContract());
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return animeList;
+		}
+
+		public List<Contract_AniDBAnime> GetAnimeForMonth(int jmmuserID, int month, int year)
+		{
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			JMMUserRepository repUsers = new JMMUserRepository();
+
+			// get all the series
+			List<Contract_AniDBAnime> animeList = new List<Contract_AniDBAnime>();
+
+			try
+			{
+				JMMUser user = repUsers.GetByID(jmmuserID);
+				if (user == null) return animeList;
+
+				DateTime startDate = new DateTime(year, month, 1, 0, 0, 0);
+				DateTime endDate = startDate.AddMonths(1);
+				endDate = endDate.AddMinutes(-10);
+
+				List<AniDB_Anime> animes = repAnime.GetForDate(startDate, endDate);
 				foreach (AniDB_Anime anime in animes)
 				{
 					bool useAnime = true;

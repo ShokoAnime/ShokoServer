@@ -377,6 +377,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AniDBReleaseGroup> GetReleaseGroupsForAnime(int animeID);
+
+		[OperationContract]
+		List<Contract_AniDBAnime> GetAnimeForMonth(int jmmuserID, int month, int year);
+
+		[OperationContract]
+		Contract_AnimeSeries GetSeriesForAnime(int animeID, int userID);
 	}
 
 }
