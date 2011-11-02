@@ -47,6 +47,34 @@ namespace JMMServer
 						return null;
 					}
 
+				case JMMImageType.AniDB_Character:
+
+					AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
+					AniDB_Character chr = repChar.GetByID(int.Parse(entityID));
+					if (chr == null) return null;
+
+					if (File.Exists(chr.PosterPath))
+						return File.ReadAllBytes(chr.PosterPath);
+					else
+					{
+						logger.Trace("Could not find AniDB_Character image: {0}", chr.PosterPath);
+						return null;
+					}
+
+				case JMMImageType.AniDB_Creator:
+
+					AniDB_CreatorRepository repCreator = new AniDB_CreatorRepository();
+					AniDB_Creator creator = repCreator.GetByID(int.Parse(entityID));
+					if (creator == null) return null;
+
+					if (File.Exists(creator.PosterPath))
+						return File.ReadAllBytes(creator.PosterPath);
+					else
+					{
+						logger.Trace("Could not find AniDB_Creator image: {0}", creator.PosterPath);
+						return null;
+					}
+
 				case JMMImageType.TvDB_Cover:
 
 					TvDB_ImagePoster poster = repPosters.GetByID(int.Parse(entityID));

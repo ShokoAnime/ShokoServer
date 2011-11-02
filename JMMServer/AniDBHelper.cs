@@ -738,6 +738,7 @@ namespace JMMServer
 				anime.PopulateAndSaveFromHTTP(getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Categories, getAnimeCmd.Tags,
 					getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, downloadRelations);
 
+				// Request an image download
 				CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID, JMMImageType.AniDB_Cover, false);
 				cmd.Save();
 				// create AnimeEpisode records for all episodes in this anime
@@ -751,11 +752,22 @@ namespace JMMServer
 
 				// update cached stats
 				StatsCache.Instance.UpdateUsingAnime(anime.AnimeID);
+
+				// download character images
+				foreach (AniDB_Anime_Character animeChar in anime.AnimeCharacters)
+				{
+					AniDB_Character chr = animeChar.Character;
+					if (chr == null || string.IsNullOrEmpty(chr.PosterPath)) continue;
+
+					if (File.Exists(chr.PosterPath)) continue;
+
+					cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
+					cmd.Save();
+				}
 				
 				//OnGotAnimeInfoEvent(new GotAnimeInfoEventArgs(getAnimeCmd.Anime.AnimeID));
 
-				// Request an image download
-				//MainWindow.imageDownloader.DownloadAniDBCover(getAnimeCmd.Anime.AnimeID, false);
+				
 			}
 
 

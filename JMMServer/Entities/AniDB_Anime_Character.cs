@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using AniDBAPI;
+using JMMContracts;
+using JMMServer.Repositories;
 
 namespace JMMServer.Entities
 {
@@ -20,6 +22,28 @@ namespace JMMServer.Entities
 			this.AnimeID = rawChar.AnimeID;
 			this.CharType = rawChar.CharType;
 			this.EpisodeListRaw = rawChar.EpisodeListRaw;
+		}
+
+		public AniDB_Character Character
+		{
+			get
+			{
+				AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
+				return repChar.GetByCharID(CharID);
+			}
+		}
+
+		public Contract_AniDB_Anime_Character ToContract()
+		{
+			Contract_AniDB_Anime_Character contract = new Contract_AniDB_Anime_Character();
+
+			contract.AniDB_Anime_CharacterID = this.AniDB_Anime_CharacterID;
+			contract.AnimeID = this.AnimeID;
+			contract.CharID = this.CharID;
+			contract.CharType = this.CharType;
+			contract.EpisodeListRaw = this.EpisodeListRaw;
+
+			return contract;
 		}
 	}
 }

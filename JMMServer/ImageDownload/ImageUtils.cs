@@ -29,6 +29,26 @@ namespace JMMServer.ImageDownload
 			return filePath;
 		}
 
+		public static string GetBaseAniDBCharacterImagesPath()
+		{
+			string filePath = Path.Combine(GetBaseImagesPath(), "AniDB_Char");
+
+			if (!Directory.Exists(filePath))
+				Directory.CreateDirectory(filePath);
+
+			return filePath;
+		}
+
+		public static string GetBaseAniDBCreatorImagesPath()
+		{
+			string filePath = Path.Combine(GetBaseImagesPath(), "AniDB_Creator");
+
+			if (!Directory.Exists(filePath))
+				Directory.CreateDirectory(filePath);
+
+			return filePath;
+		}
+
 		public static string GetBaseTvDBImagesPath()
 		{
 			string filePath = Path.Combine(GetBaseImagesPath(), "TvDB");
@@ -62,6 +82,40 @@ namespace JMMServer.ImageDownload
 		public static string GetImagesTempFolder()
 		{
 			string filePath = Path.Combine(GetBaseImagesPath(), "_Temp_");
+
+			if (!Directory.Exists(filePath))
+				Directory.CreateDirectory(filePath);
+
+			return filePath;
+		}
+
+		public static string GetAniDBCharacterImagePath(int charID)
+		{
+			string subFolder = "";
+			string sid = charID.ToString();
+			if (sid.Length == 1)
+				subFolder = sid;
+			else
+				subFolder = sid.Substring(0, 2);
+
+			string filePath = Path.Combine(GetBaseAniDBCharacterImagesPath(), subFolder);
+
+			if (!Directory.Exists(filePath))
+				Directory.CreateDirectory(filePath);
+
+			return filePath;
+		}
+
+		public static string GetAniDBCreatorImagePath(int creatorID)
+		{
+			string subFolder = "";
+			string sid = creatorID.ToString();
+			if (sid.Length == 1)
+				subFolder = sid;
+			else
+				subFolder = sid.Substring(0, 2);
+
+			string filePath = Path.Combine(GetBaseAniDBCreatorImagesPath(), subFolder);
 
 			if (!Directory.Exists(filePath))
 				Directory.CreateDirectory(filePath);

@@ -383,6 +383,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		Contract_AnimeSeries GetSeriesForAnime(int animeID, int userID);
+
+		[OperationContract]
+		List<Contract_AniDB_Character> GetCharactersForAnime(int animeID);
+
+		[OperationContract]
+		void UpdateCharactersAndCreators(int animeID);
 	}
 
 }

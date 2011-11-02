@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
+using System.IO;
 
 namespace JMMServer.Commands
 {
@@ -54,6 +55,12 @@ namespace JMMServer.Commands
 				{
 					// redownload anime details from http ap so we can get an update character list
 					creator = JMMService.AnidbProcessor.GetCreatorInfoUDP(CreatorID);
+				}
+
+				if (creator != null || !string.IsNullOrEmpty(creator.PosterPath) && !File.Exists(creator.PosterPath))
+				{
+					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(creator.AniDB_CreatorID, JMMImageType.AniDB_Creator, false);
+					cmd.Save();
 				}
 
 			}

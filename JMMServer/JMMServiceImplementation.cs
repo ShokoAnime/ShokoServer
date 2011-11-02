@@ -4826,6 +4826,48 @@ namespace JMMServer
 			}
 			return relGroups;
 		}
+
+		public List<Contract_AniDB_Character> GetCharactersForAnime(int animeID)
+		{
+			List<Contract_AniDB_Character> chars = new List<Contract_AniDB_Character>();
+
+			try
+			{
+				AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
+				AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
+
+				List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(animeID);
+				if (animeChars == null || animeChars.Count == 0) return chars;
+
+				foreach (AniDB_Anime_Character animeChar in animeChars)
+				{
+					AniDB_Character chr = repChar.GetByCharID(animeChar.CharID);
+					if (chr != null)
+						chars.Add(chr.ToContract(animeChar));
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return chars;
+		}
+
+		public void UpdateCharactersAndCreators(int animeID)
+		{
+			try
+			{
+				JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, false);
+
+				CommandRequest_GetCharactersCreators cmd = new CommandRequest_GetCharactersCreators(animeID, false);
+				cmd.Save();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			
+		}
 	}
 
 	

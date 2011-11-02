@@ -159,6 +159,22 @@ namespace JMMServer.Commands
 
 						req = new ImageDownloadRequest(EntityTypeEnum, traktEp, ForceDownload);
 						break;
+
+					case JMMImageType.AniDB_Character:
+						AniDB_CharacterRepository repChars = new AniDB_CharacterRepository();
+						AniDB_Character chr = repChars.GetByID(EntityID);
+						if (chr == null) return;
+
+						req = new ImageDownloadRequest(EntityTypeEnum, chr, ForceDownload);
+						break;
+
+					case JMMImageType.AniDB_Creator:
+						AniDB_CreatorRepository repCreator = new AniDB_CreatorRepository();
+						AniDB_Creator creator = repCreator.GetByID(EntityID);
+						if (creator == null) return;
+
+						req = new ImageDownloadRequest(EntityTypeEnum, creator, ForceDownload);
+						break;
 				}
 
 				if (req == null) return;
@@ -313,6 +329,14 @@ namespace JMMServer.Commands
 					Trakt_Episode traktEp = req.ImageData as Trakt_Episode;
 					return traktEp.EpisodeImage;
 
+				case JMMImageType.AniDB_Character:
+					AniDB_Character chr = req.ImageData as AniDB_Character;
+					return string.Format(Constants.URLS.AniDB_Images, chr.PicName);
+
+				case JMMImageType.AniDB_Creator:
+					AniDB_Creator creator = req.ImageData as AniDB_Creator;
+					return string.Format(Constants.URLS.AniDB_Images, creator.PicName);
+
 				default:
 					return "";
 
@@ -372,6 +396,14 @@ namespace JMMServer.Commands
 				case JMMImageType.Trakt_Episode:
 					Trakt_Episode traktEp = req.ImageData as Trakt_Episode;
 					return traktEp.FullImagePath;
+
+				case JMMImageType.AniDB_Character:
+					AniDB_Character chr = req.ImageData as AniDB_Character;
+					return chr.PosterPath;
+
+				case JMMImageType.AniDB_Creator:
+					AniDB_Creator creator = req.ImageData as AniDB_Creator;
+					return creator.PosterPath;
 
 				default:
 					return "";

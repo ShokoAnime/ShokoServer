@@ -162,6 +162,12 @@ namespace JMMServer
 			//TraktTVHelper.MarkEpisodeWatched(ep);
 			//JMMServiceImplementation imp = new JMMServiceImplementation();
 			//imp.GetRecommendations(100, 1, 1);
+
+			//CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(7656, true, false);
+			//cmd.Save();
+
+			//CommandRequest_GetCharactersCreators cmd = new CommandRequest_GetCharactersCreators(6751, false);
+			//cmd.Save();
 		}
 
 
