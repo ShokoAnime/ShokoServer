@@ -56,7 +56,7 @@ namespace JMMServer.Commands
 		public override void ProcessCommand()
 		{
 			logger.Info("Processing CommandRequest_DownloadImage: {0}", EntityID);
-
+			string downloadURL = "";
 			try
 			{
 				ImageDownloadRequest req = null;
@@ -169,8 +169,8 @@ namespace JMMServer.Commands
 						break;
 
 					case JMMImageType.AniDB_Creator:
-						AniDB_CreatorRepository repCreator = new AniDB_CreatorRepository();
-						AniDB_Creator creator = repCreator.GetByID(EntityID);
+						AniDB_SeiyuuRepository repCreator = new AniDB_SeiyuuRepository();
+						AniDB_Seiyuu creator = repCreator.GetByID(EntityID);
 						if (creator == null) return;
 
 						req = new ImageDownloadRequest(EntityTypeEnum, creator, ForceDownload);
@@ -200,7 +200,7 @@ namespace JMMServer.Commands
 				for (int i = 0; i < fileNames.Count; i++)
 				{
 					string fileName = fileNames[i];
-					string downloadURL = downloadURLs[i];
+					downloadURL = downloadURLs[i];
 
 					bool downloadImage = true;
 					bool fileExists = File.Exists(fileName);
@@ -275,7 +275,7 @@ namespace JMMServer.Commands
 			}
 			catch (Exception ex)
 			{
-				logger.Error("Error processing CommandRequest_DownloadImage: {0} - {1}", EntityID, ex.ToString());
+				logger.Error("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL, EntityID, ex.ToString());
 				return;
 			}
 		}
@@ -334,7 +334,7 @@ namespace JMMServer.Commands
 					return string.Format(Constants.URLS.AniDB_Images, chr.PicName);
 
 				case JMMImageType.AniDB_Creator:
-					AniDB_Creator creator = req.ImageData as AniDB_Creator;
+					AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
 					return string.Format(Constants.URLS.AniDB_Images, creator.PicName);
 
 				default:
@@ -402,7 +402,7 @@ namespace JMMServer.Commands
 					return chr.PosterPath;
 
 				case JMMImageType.AniDB_Creator:
-					AniDB_Creator creator = req.ImageData as AniDB_Creator;
+					AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
 					return creator.PosterPath;
 
 				default:

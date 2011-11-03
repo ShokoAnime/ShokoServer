@@ -51,14 +51,6 @@ namespace JMMServer.Commands
 			{
 				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 				AniDB_Anime anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
-
-				// download character / creator information
-				// the HTTP api only contains info about the characters, but not the creators associated with the character
-				if (ServerSettings.AniDB_DownloadCharactersCreators)
-				{
-					CommandRequest_GetCharactersCreators cmdChars = new CommandRequest_GetCharactersCreators(AnimeID, false);
-					cmdChars.Save();
-				}
 				
 				// NOTE - related anime are downloaded when the relations are created
 				

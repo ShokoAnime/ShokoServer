@@ -144,6 +144,7 @@
     <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyMessage.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_RelatedAnime.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Review.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Seiyuu.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_SimilarAnime.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Tag.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Vote.cs" />
@@ -164,9 +165,6 @@
     <Compile Include="Commands\AniDB\CommandRequest_GetAniDBTitles.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetAnimeHTTP.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetCalendar.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetCharacter.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetCharactersCreators.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetCreator.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetReleaseGroup.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetReleaseGroupStatus.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetReviews.cs" />
@@ -217,8 +215,8 @@
     <Compile Include="Entities\AniDB_Anime_Title.cs" />
     <Compile Include="Entities\AniDB_Category.cs" />
     <Compile Include="Entities\AniDB_Character.cs" />
-    <Compile Include="Entities\AniDB_Character_Creator.cs" />
-    <Compile Include="Entities\AniDB_Creator.cs" />
+    <Compile Include="Entities\AniDB_Character_Seiyuu.cs" />
+    <Compile Include="Entities\AniDB_Seiyuu.cs" />
     <Compile Include="Entities\AniDB_Episode.cs" />
     <Compile Include="Entities\AniDB_File.cs" />
     <Compile Include="Entities\AniDB_GroupStatus.cs" />
@@ -283,8 +281,8 @@
     <Compile Include="Mappings\AniDB_Anime_TitleMap.cs" />
     <Compile Include="Mappings\AniDB_CategoryMap.cs" />
     <Compile Include="Mappings\AniDB_CharacterMap.cs" />
-    <Compile Include="Mappings\AniDB_Character_CreatorMap.cs" />
-    <Compile Include="Mappings\AniDB_CreatorMap.cs" />
+    <Compile Include="Mappings\AniDB_Character_SeiyuuMap.cs" />
+    <Compile Include="Mappings\AniDB_SeiyuuMap.cs" />
     <Compile Include="Mappings\AniDB_EpisodeMap.cs" />
     <Compile Include="Mappings\AniDB_FileMap.cs" />
     <Compile Include="Mappings\AniDB_GroupStatusMap.cs" />
@@ -366,8 +364,8 @@
     <Compile Include="Repositories\AniDB_Anime_TitleRepository.cs" />
     <Compile Include="Repositories\AniDB_CategoryRepository.cs" />
     <Compile Include="Repositories\AniDB_CharacterRepository.cs" />
-    <Compile Include="Repositories\AniDB_Character_CreatorRepository.cs" />
-    <Compile Include="Repositories\AniDB_CreatorRepository.cs" />
+    <Compile Include="Repositories\AniDB_Character_SeiyuuRepository.cs" />
+    <Compile Include="Repositories\AniDB_SeiyuuRepository.cs" />
     <Compile Include="Repositories\AniDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\AniDB_FileRepository.cs" />
     <Compile Include="Repositories\AniDB_GroupStatusRepository.cs" />

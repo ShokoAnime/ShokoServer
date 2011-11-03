@@ -67,8 +67,8 @@ namespace JMMServer.Commands
 						pauseTime = null;
 					}
 
-					ServerInfo.Instance.HasherQueuePaused = paused;
-					ServerInfo.Instance.HasherQueueRunning = !paused;
+					ServerInfo.Instance.ImagesQueuePaused = paused;
+					ServerInfo.Instance.ImagesQueueRunning = !paused;
 				}
 			}
 		}
@@ -144,7 +144,7 @@ namespace JMMServer.Commands
 			// if the worker is busy, it will pick up the next command from the DB
 			if (processingCommands)
 			{
-				//logger.Trace("NotifyOfNewCommand (hasher) exiting, worker already busy");
+				logger.Trace("NotifyOfNewCommand (images) exiting, worker already busy");
 				return;
 			}
 			
@@ -203,7 +203,7 @@ namespace JMMServer.Commands
 
 				logger.Trace("Deleting command request (images): {0}", crdb.CommandID);
 				repCR.Delete(crdb.CommandRequestID);
-				QueueCount = repCR.GetQueuedCommandCountHasher();
+				QueueCount = repCR.GetQueuedCommandCountImages();
 			}
 		}
 	}

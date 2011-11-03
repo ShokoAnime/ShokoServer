@@ -451,7 +451,8 @@ namespace JMMServer
 			return chr;
 		}
 
-		public AniDB_Creator GetCreatorInfoUDP(int creatorID)
+		// NO LONGER USED
+		/*public AniDB_Seiyuu GetCreatorInfoUDP(int creatorID)
 		{
 			if (!Login()) return null;
 
@@ -466,19 +467,19 @@ namespace JMMServer
 				ev = getCreatorCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
 			}
 
-			AniDB_Creator chr = null;
+			AniDB_Seiyuu chr = null;
 			if (ev == enHelperActivityType.GotCreatorInfo && getCreatorCmd.CreatorInfo != null)
 			{
 				AniDB_CreatorRepository repCreator = new AniDB_CreatorRepository();
 				chr = repCreator.GetByCreatorID(creatorID);
-				if (chr == null) chr = new AniDB_Creator();
+				if (chr == null) chr = new AniDB_Seiyuu();
 
 				chr.Populate(getCreatorCmd.CreatorInfo);
 				repCreator.Save(chr);
 			}
 
 			return chr;
-		}
+		}*/
 
 		public AniDB_ReleaseGroup GetReleaseGroupUDP(int groupID)
 		{
@@ -757,12 +758,25 @@ namespace JMMServer
 				foreach (AniDB_Anime_Character animeChar in anime.AnimeCharacters)
 				{
 					AniDB_Character chr = animeChar.Character;
-					if (chr == null || string.IsNullOrEmpty(chr.PosterPath)) continue;
+					if (chr == null) continue;
 
-					if (File.Exists(chr.PosterPath)) continue;
+					if (!string.IsNullOrEmpty(chr.PosterPath) && !File.Exists(chr.PosterPath))
+					{
+						logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName, chr.CharID, chr.PosterPath);
+						cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
+						cmd.Save();
+					}
 
-					cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
-					cmd.Save();
+					AniDB_Seiyuu seiyuu = chr.Seiyuu;
+					if (seiyuu == null || string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
+
+					if (!File.Exists(seiyuu.PosterPath))
+					{
+						logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle, seiyuu.SeiyuuName, seiyuu.SeiyuuID, seiyuu.PosterPath);
+						cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
+						cmd.Save();
+					}
+
 				}
 				
 				//OnGotAnimeInfoEvent(new GotAnimeInfoEventArgs(getAnimeCmd.Anime.AnimeID));

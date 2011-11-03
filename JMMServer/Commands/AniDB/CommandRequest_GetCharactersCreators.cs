@@ -69,9 +69,9 @@ namespace JMMServer.Commands
 					cmdChar.Save();
 
 					// for each of the creators for this character
-					foreach (AniDB_Character_Creator aac in repCharCreators.GetByCharID(animeChar.CharID))
+					foreach (AniDB_Character_Seiyuu aac in repCharCreators.GetByCharID(animeChar.CharID))
 					{
-						CommandRequest_GetCreator cmdCreators = new CommandRequest_GetCreator(aac.CreatorID, ForceRefresh);
+						CommandRequest_GetCreator cmdCreators = new CommandRequest_GetCreator(aac.SeiyuuID, ForceRefresh);
 						cmdCreators.Save();
 					}
 				}

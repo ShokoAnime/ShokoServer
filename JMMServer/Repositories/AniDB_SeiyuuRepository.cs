@@ -7,9 +7,9 @@ using NHibernate.Criterion;
 
 namespace JMMServer.Repositories
 {
-	public class AniDB_Character_CreatorRepository
+	public class AniDB_SeiyuuRepository
 	{
-		public void Save(AniDB_Character_Creator obj)
+		public void Save(AniDB_Seiyuu obj)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -22,37 +22,23 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public AniDB_Character_Creator GetByID(int id)
+		public AniDB_Seiyuu GetByID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return session.Get<AniDB_Character_Creator>(id);
+				return session.Get<AniDB_Seiyuu>(id);
 			}
 		}
 
-		public AniDB_Character_Creator GetByCharIDAndCreatorID(int animeid, int catid)
+		public AniDB_Seiyuu GetBySeiyuuID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_Character_Creator cr = session
-					.CreateCriteria(typeof(AniDB_Character_Creator))
-					.Add(Restrictions.Eq("CharID", animeid))
-					.Add(Restrictions.Eq("CreatorID", catid))
-					.UniqueResult<AniDB_Character_Creator>();
+				AniDB_Seiyuu cr = session
+					.CreateCriteria(typeof(AniDB_Seiyuu))
+					.Add(Restrictions.Eq("SeiyuuID", id))
+					.UniqueResult<AniDB_Seiyuu>();
 				return cr;
-			}
-		}
-
-		public List<AniDB_Character_Creator> GetByCharID(int id)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				var objs = session
-					.CreateCriteria(typeof(AniDB_Character_Creator))
-					.Add(Restrictions.Eq("CharID", id))
-					.List<AniDB_Character_Creator>();
-
-				return new List<AniDB_Character_Creator>(objs);
 			}
 		}
 
@@ -63,7 +49,7 @@ namespace JMMServer.Repositories
 				// populate the database
 				using (var transaction = session.BeginTransaction())
 				{
-					AniDB_Character_Creator cr = GetByID(id);
+					AniDB_Seiyuu cr = GetByID(id);
 					if (cr != null)
 					{
 						session.Delete(cr);

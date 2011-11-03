@@ -51,8 +51,6 @@ namespace JMMServer.Commands
 		//------
 		// Pri 9
 		//------
-		// CommandRequest_GetCharacter
-		// CommandRequest_GetCreator
 		// CommandRequest_WebCacheSendFileHash
 		// CommandRequest_GetReviews
 		// CommandRequest_GetReleaseGroup
@@ -237,21 +235,6 @@ namespace JMMServer.Commands
 					CommandRequest_UpdateMyListFileStatus cr_umlf = new CommandRequest_UpdateMyListFileStatus();
 					cr_umlf.LoadFromDBCommand(crdb);
 					return (ICommandRequest)cr_umlf;
-
-				case CommandRequestType.AniDB_GetCharsCreators:
-					CommandRequest_GetCharactersCreators cr_chars = new CommandRequest_GetCharactersCreators();
-					cr_chars.LoadFromDBCommand(crdb);
-					return (ICommandRequest)cr_chars;
-
-				case CommandRequestType.AniDB_GetCharacter:
-					CommandRequest_GetCharacter cr_char = new CommandRequest_GetCharacter();
-					cr_char.LoadFromDBCommand(crdb);
-					return (ICommandRequest)cr_char;
-
-				case CommandRequestType.AniDB_GetCreator:
-					CommandRequest_GetCreator cr_creators = new CommandRequest_GetCreator();
-					cr_creators.LoadFromDBCommand(crdb);
-					return (ICommandRequest)cr_creators;
 
 				case CommandRequestType.WebCache_SendFileHash:
 					CommandRequest_WebCacheSendFileHash cr_SendFileHash = new CommandRequest_WebCacheSendFileHash();

@@ -190,21 +190,6 @@ namespace JMMServer
 			}
 		}
 
-		public static bool AniDB_DownloadCharactersCreators
-		{
-			get
-			{
-				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				bool download = false;
-				bool.TryParse(appSettings["AniDB_DownloadCharactersCreators"], out download);
-				return download;
-			}
-			set
-			{
-				UpdateSetting("AniDB_DownloadCharactersCreators", value.ToString());
-			}
-		}
-
 		public static bool AniDB_DownloadReviews
 		{
 			get
@@ -907,7 +892,6 @@ namespace JMMServer
 
 			contract.AniDB_DownloadRelatedAnime = ServerSettings.AniDB_DownloadRelatedAnime;
 			contract.AniDB_DownloadSimilarAnime = ServerSettings.AniDB_DownloadSimilarAnime;
-			contract.AniDB_DownloadCharactersCreators = ServerSettings.AniDB_DownloadCharactersCreators;
 			contract.AniDB_DownloadReviews = ServerSettings.AniDB_DownloadReviews;
 			contract.AniDB_DownloadReleaseGroups = ServerSettings.AniDB_DownloadReleaseGroups;
 

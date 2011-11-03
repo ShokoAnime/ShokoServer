@@ -149,8 +149,8 @@ namespace JMMServer.Databases
 			commands.AddRange(CreateTableString_AniDB_Anime_Title());
 			commands.AddRange(CreateTableString_AniDB_Category());
 			commands.AddRange(CreateTableString_AniDB_Character());
-			commands.AddRange(CreateTableString_AniDB_Character_Creator());
-			commands.AddRange(CreateTableString_AniDB_Creator());
+			commands.AddRange(CreateTableString_AniDB_Character_Seiyuu());
+			commands.AddRange(CreateTableString_AniDB_Seiyuu());
 			commands.AddRange(CreateTableString_AniDB_Episode());
 			commands.AddRange(CreateTableString_AniDB_File());
 			commands.AddRange(CreateTableString_AniDB_GroupStatus());
@@ -420,42 +420,35 @@ namespace JMMServer.Databases
 			return cmds;
 		}
 
-		public static List<string> CreateTableString_AniDB_Character_Creator()
+		public static List<string> CreateTableString_AniDB_Character_Seiyuu()
 		{
 			List<string> cmds = new List<string>();
 
-			cmds.Add("CREATE TABLE AniDB_Character_Creator ( " +
-				" AniDB_Character_CreatorID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+			cmds.Add("CREATE TABLE AniDB_Character_Seiyuu ( " +
+				" AniDB_Character_SeiyuuID INTEGER PRIMARY KEY AUTOINCREMENT, " +
 				" CharID int NOT NULL, " +
-				" CreatorID int NOT NULL " +
+				" SeiyuuID int NOT NULL " +
 				" ); ");
 
-			cmds.Add("CREATE INDEX IX_AniDB_Character_Creator_CharID on AniDB_Character_Creator(CharID);");
-			cmds.Add("CREATE INDEX IX_AniDB_Character_Creator_CreatorID on AniDB_Character_Creator(CreatorID);");
-			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Character_Creator_CharID_CreatorID ON AniDB_Character_Creator(CharID, CreatorID);");
+			cmds.Add("CREATE INDEX IX_AniDB_Character_Seiyuu_CharID on AniDB_Character_Seiyuu(CharID);");
+			cmds.Add("CREATE INDEX IX_AniDB_Character_Seiyuu_SeiyuuID on AniDB_Character_Seiyuu(SeiyuuID);");
+			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Character_Seiyuu_CharID_SeiyuuID ON AniDB_Character_Seiyuu(CharID, SeiyuuID);");
 
 			return cmds;
 		}
 
-		public static List<string> CreateTableString_AniDB_Creator()
+		public static List<string> CreateTableString_AniDB_Seiyuu()
 		{
 			List<string> cmds = new List<string>();
 
-			cmds.Add("CREATE TABLE AniDB_Creator ( " +
-				" AniDB_CreatorID INTEGER PRIMARY KEY AUTOINCREMENT, " +
-				" CreatorID int NOT NULL, " +
-				" CreatorName text NOT NULL, " +
-				" PicName text NOT NULL, " +
-				" CreatorKanjiName text NOT NULL, " +
-				" CreatorDescription text NOT NULL, " +
-				" CreatorType int NOT NULL, " +
-				" URLEnglish text NOT NULL, " +
-				" URLJapanese text NOT NULL, " +
-				" URLWikiEnglish text NOT NULL, " +
-				" URLWikiJapanese text NOT NULL " +
+			cmds.Add("CREATE TABLE AniDB_Seiyuu ( " +
+				" AniDB_SeiyuuID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" SeiyuuID int NOT NULL, " +
+				" SeiyuuName text NOT NULL, " +
+				" PicName text NOT NULL " +
 				" ); ");
 
-			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Creator_CreatorID ON AniDB_Creator(CreatorID);");
+			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Seiyuu_SeiyuuID ON AniDB_Seiyuu(SeiyuuID);");
 
 
 			return cmds;

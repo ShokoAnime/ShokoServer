@@ -922,49 +922,53 @@ namespace JMMServer.Entities
 
 			AniDB_CharacterRepository repChars = new AniDB_CharacterRepository();
 			AniDB_Anime_CharacterRepository repAnimeChars = new AniDB_Anime_CharacterRepository();
-			AniDB_Character_CreatorRepository repCharCreators = new AniDB_Character_CreatorRepository();
+			AniDB_Character_SeiyuuRepository repCharSeiyuu = new AniDB_Character_SeiyuuRepository();
+			AniDB_SeiyuuRepository repSeiyuu = new AniDB_SeiyuuRepository();
 
 			// delete all the existing cross references just in case one has been removed
 			List<AniDB_Anime_Character> animeChars = repAnimeChars.GetByAnimeID(AnimeID);
 			foreach (AniDB_Anime_Character xref in animeChars)
-			{
 				repAnimeChars.Delete(xref.AniDB_Anime_CharacterID);
-			}
+			
 
 			foreach (Raw_AniDB_Character rawchar in chars)
 			{
 				AniDB_Character chr = repChars.GetByCharID(rawchar.CharID);
-				if (chr == null) chr = new AniDB_Character();
+				if (chr == null)
+					chr = new AniDB_Character();
+
+				// delete existing relationships to seiyuu's
+				List<AniDB_Character_Seiyuu> allCharSei = repCharSeiyuu.GetByCharID(rawchar.CharID);
+				foreach (AniDB_Character_Seiyuu xref in allCharSei)
+					repCharSeiyuu.Delete(xref.AniDB_Character_SeiyuuID);
 
 				chr.PopulateFromHTTP(rawchar);
 				repChars.Save(chr);
 
 				// create cross ref's between anime and character, but don't actually download anything
 				AniDB_Anime_Character anime_char = new AniDB_Anime_Character();
-
 				anime_char.Populate(rawchar);
 				repAnimeChars.Save(anime_char);
 
-				// create cross ref's between character and creator, but don't actually download anything
-				if (chr.CreatorListRaw.Trim().Length > 0)
+				foreach (Raw_AniDB_Seiyuu rawSeiyuu in rawchar.Seiyuus)
 				{
-					string[] creatorids = chr.CreatorListRaw.Split(',');
-					foreach (string crid in creatorids)
+					// save the link between character and seiyuu
+					AniDB_Character_Seiyuu acc = repCharSeiyuu.GetByCharIDAndSeiyuuID(rawchar.CharID, rawSeiyuu.SeiyuuID);
+					if (acc == null)
 					{
-						int cid = 0;
-						int.TryParse(crid, out cid);
-						if (cid > 0)
-						{
-							AniDB_Character_Creator acc = repCharCreators.GetByCharIDAndCreatorID(rawchar.CharID, cid);
-							if (acc == null)
-							{
-								acc = new AniDB_Character_Creator();
-								acc.CharID = chr.CharID;
-								acc.CreatorID = cid;
-								repCharCreators.Save(acc);
-							}
-						}
+						acc = new AniDB_Character_Seiyuu();
+						acc.CharID = chr.CharID;
+						acc.SeiyuuID = rawSeiyuu.SeiyuuID;
+						repCharSeiyuu.Save(acc);
 					}
+
+					// save the seiyuu
+					AniDB_Seiyuu seiyuu = repSeiyuu.GetBySeiyuuID(rawSeiyuu.SeiyuuID);
+					if (seiyuu == null) seiyuu = new AniDB_Seiyuu();
+					seiyuu.PicName = rawSeiyuu.PicName;
+					seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
+					seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
+					repSeiyuu.Save(seiyuu);
 				}
 			}
 		}

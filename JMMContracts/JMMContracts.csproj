@@ -68,8 +68,8 @@
     <Compile Include="Contract_AniDB_Anime_Relation.cs" />
     <Compile Include="Contract_AniDB_Anime_Similar.cs" />
     <Compile Include="Contract_AniDB_Character.cs" />
-    <Compile Include="Contract_AniDB_Character_Creator.cs" />
-    <Compile Include="Contract_AniDB_Creator.cs" />
+    <Compile Include="Contract_AniDB_Character_Seiyuu.cs" />
+    <Compile Include="Contract_AniDB_Seiyuu.cs" />
     <Compile Include="Contract_AnimeCategory.cs" />
     <Compile Include="Contract_AnimeEpisode.cs" />
     <Compile Include="Contract_AnimeGroup.cs" />

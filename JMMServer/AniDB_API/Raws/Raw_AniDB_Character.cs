@@ -21,6 +21,8 @@ namespace AniDBAPI
 		public string CreatorListRaw { get; set; }
 		public string EpisodeListRaw { get; set; }
 
+		public List<Raw_AniDB_Seiyuu> Seiyuus { get; set; }
+
 		public Raw_AniDB_Character()
 		{
 			InitFields();
@@ -37,11 +39,14 @@ namespace AniDBAPI
 
 			CreatorListRaw = string.Empty;
 			EpisodeListRaw = string.Empty;
+
+			Seiyuus = new List<Raw_AniDB_Seiyuu>();
 		}
 
 
 		/// <summary>
 		/// From UDP API
+		/// NO LONGER USED
 		/// </summary>
 		/// <param name="sRecMessage"></param>
 		public Raw_AniDB_Character(string sRecMessage)
@@ -89,14 +94,24 @@ namespace AniDBAPI
 			{
 				if (nodeChild.Name == "seiyuu")
 				{
+					Raw_AniDB_Seiyuu seiyuu = new Raw_AniDB_Seiyuu();
+					 
 					if (nodeChild.Attributes["id"] != null)
 					{
+						
 						string creatorid = nodeChild.Attributes["id"].Value;
+						seiyuu.SeiyuuID = int.Parse(creatorid);
+
 						if (CreatorListRaw.Length > 0)
 							CreatorListRaw += ",";
 						CreatorListRaw += creatorid.Trim();
 					}
-					
+
+					if (nodeChild.Attributes["picture"] != null)
+						seiyuu.PicName = nodeChild.Attributes["picture"].Value;
+
+					seiyuu.SeiyuuName = nodeChild.InnerText;
+					Seiyuus.Add(seiyuu);
 				}
 			}
 

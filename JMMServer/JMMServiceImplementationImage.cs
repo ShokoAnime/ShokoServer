@@ -63,8 +63,8 @@ namespace JMMServer
 
 				case JMMImageType.AniDB_Creator:
 
-					AniDB_CreatorRepository repCreator = new AniDB_CreatorRepository();
-					AniDB_Creator creator = repCreator.GetByID(int.Parse(entityID));
+					AniDB_SeiyuuRepository repCreator = new AniDB_SeiyuuRepository();
+					AniDB_Seiyuu creator = repCreator.GetByID(int.Parse(entityID));
 					if (creator == null) return null;
 
 					if (File.Exists(creator.PosterPath))

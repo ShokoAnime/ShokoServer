@@ -2090,7 +2090,6 @@ namespace JMMServer
 				ServerSettings.AniDB_ServerPort = contractIn.AniDB_ServerPort;
 				ServerSettings.AniDB_Username = contractIn.AniDB_Username;
 
-				ServerSettings.AniDB_DownloadCharactersCreators = contractIn.AniDB_DownloadCharactersCreators;
 				ServerSettings.AniDB_DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
 				ServerSettings.AniDB_DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;
 				ServerSettings.AniDB_DownloadReviews = contractIn.AniDB_DownloadReviews;
@@ -4851,22 +4850,6 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 			}
 			return chars;
-		}
-
-		public void UpdateCharactersAndCreators(int animeID)
-		{
-			try
-			{
-				JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, false);
-
-				CommandRequest_GetCharactersCreators cmd = new CommandRequest_GetCharactersCreators(animeID, false);
-				cmd.Save();
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-			}
-			
 		}
 	}
 

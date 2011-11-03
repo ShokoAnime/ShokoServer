@@ -192,8 +192,8 @@ namespace JMMServer.Databases
 			commands.AddRange(CreateTableString_AniDB_Anime_Title());
 			commands.AddRange(CreateTableString_AniDB_Category());
 			commands.AddRange(CreateTableString_AniDB_Character());
-			commands.AddRange(CreateTableString_AniDB_Character_Creator());
-			commands.AddRange(CreateTableString_AniDB_Creator());
+			commands.AddRange(CreateTableString_AniDB_Character_Seiyuu());
+			commands.AddRange(CreateTableString_AniDB_Seiyuu());
 			commands.AddRange(CreateTableString_AniDB_Episode());
 			commands.AddRange(CreateTableString_AniDB_File());
 			commands.AddRange(CreateTableString_AniDB_GroupStatus());
@@ -517,48 +517,41 @@ namespace JMMServer.Databases
 			return cmds;
 		}
 
-		public static List<string> CreateTableString_AniDB_Character_Creator()
+		public static List<string> CreateTableString_AniDB_Character_Seiyuu()
 		{
 			List<string> cmds = new List<string>();
-			cmds.Add("CREATE TABLE AniDB_Character_Creator ( " +
-				" AniDB_Character_CreatorID int IDENTITY(1,1) NOT NULL, " +
+			cmds.Add("CREATE TABLE AniDB_Character_Seiyuu ( " +
+				" AniDB_Character_SeiyuuID int IDENTITY(1,1) NOT NULL, " +
 				" CharID int NOT NULL, " +
-				" CreatorID int NOT NULL " +
-				" CONSTRAINT [PK_AniDB_Character_Creator] PRIMARY KEY CLUSTERED  " +
+				" SeiyuuID int NOT NULL " +
+				" CONSTRAINT [PK_AniDB_Character_Seiyuu] PRIMARY KEY CLUSTERED  " +
 				" ( " +
-				" AniDB_Character_CreatorID ASC " +
+				" AniDB_Character_SeiyuuID ASC " +
 				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
 				" ) ON [PRIMARY] ");
 
-			cmds.Add("CREATE INDEX IX_AniDB_Character_Creator_CharID on AniDB_Character_Creator(CharID)");
-			cmds.Add("CREATE INDEX IX_AniDB_Character_Creator_CreatorID on AniDB_Character_Creator(CreatorID)");
-			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Character_Creator_CharID_CreatorID ON AniDB_Character_Creator(CharID, CreatorID)");
+			cmds.Add("CREATE INDEX IX_AniDB_Character_Seiyuu_CharID on AniDB_Character_Seiyuu(CharID)");
+			cmds.Add("CREATE INDEX IX_AniDB_Character_Seiyuu_SeiyuuID on AniDB_Character_Seiyuu(SeiyuuID)");
+			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Character_Seiyuu_CharID_SeiyuuID ON AniDB_Character_Seiyuu(CharID, SeiyuuID)");
 
 			return cmds;
 		}
 
-		public static List<string> CreateTableString_AniDB_Creator()
+		public static List<string> CreateTableString_AniDB_Seiyuu()
 		{
 			List<string> cmds = new List<string>();
-			cmds.Add("CREATE TABLE AniDB_Creator ( " +
-				" AniDB_CreatorID int IDENTITY(1,1) NOT NULL, " +
-				" CreatorID int NOT NULL, " +
-				" CreatorName nvarchar(200) NOT NULL, " +
+			cmds.Add("CREATE TABLE AniDB_Seiyuu ( " +
+				" AniDB_SeiyuuID int IDENTITY(1,1) NOT NULL, " +
+				" SeiyuuID int NOT NULL, " +
+				" SeiyuuName nvarchar(200) NOT NULL, " +
 				" PicName varchar(100) NOT NULL, " +
-				" CreatorKanjiName nvarchar(max) NOT NULL, " +
-				" CreatorDescription nvarchar(max) NOT NULL, " +
-				" CreatorType int NOT NULL, " +
-				" URLEnglish nvarchar(max) NOT NULL, " +
-				" URLJapanese nvarchar(max) NOT NULL, " +
-				" URLWikiEnglish nvarchar(max) NOT NULL, " +
-				" URLWikiJapanese nvarchar(max) NOT NULL, " +
-				" CONSTRAINT [PK_AniDB_Creator] PRIMARY KEY CLUSTERED  " +
+				" CONSTRAINT [PK_AniDB_Seiyuu] PRIMARY KEY CLUSTERED  " +
 				" ( " +
-				" AniDB_CreatorID ASC " +
+				" AniDB_SeiyuuID ASC " +
 				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
 				" ) ON [PRIMARY] ");
 
-			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Creator_CreatorID ON AniDB_Creator(CreatorID)");
+			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Seiyuu_SeiyuuID ON AniDB_Seiyuu(SeiyuuID)");
 
 
 			return cmds;

@@ -18,6 +18,6 @@ namespace JMMContracts
 		// from AniDB_Anime_Character
 		public string CharType { get; set; }
 
-		public Contract_AniDB_Creator Creator { get; set; }
+		public Contract_AniDB_Seiyuu Seiyuu { get; set; }
 	}
 }

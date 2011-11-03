@@ -83,22 +83,32 @@ namespace JMMServer.Entities
 			contract.CharKanjiName = this.CharKanjiName;
 			contract.CharDescription = this.CharDescription;
 
-			contract.CharType = charRel.CharType; 
+			contract.CharType = charRel.CharType;
 
-			AniDB_Character_CreatorRepository repCharCre = new AniDB_Character_CreatorRepository();
-			List<AniDB_Character_Creator> charCreators = repCharCre.GetByCharID(CharID);
-
-			contract.Creator = null;
-			if (charCreators.Count > 0)
-			{
-				// just use the first creator
-				AniDB_CreatorRepository repCreators = new AniDB_CreatorRepository();
-				AniDB_Creator creator = repCreators.GetByCreatorID(charCreators[0].CreatorID);
-				if (creator != null)
-					contract.Creator = creator.ToContract();
-			}
+			contract.Seiyuu = null;
+			AniDB_Seiyuu seiyuu = this.Seiyuu;
+			if (seiyuu != null)
+				contract.Seiyuu = seiyuu.ToContract();
 
 			return contract;
+		}
+
+		public AniDB_Seiyuu Seiyuu
+		{
+			get
+			{
+				AniDB_Character_SeiyuuRepository repCharSeiyuu = new AniDB_Character_SeiyuuRepository();
+				List<AniDB_Character_Seiyuu> charSeiyuus = repCharSeiyuu.GetByCharID(CharID);
+
+				if (charSeiyuus.Count > 0)
+				{
+					// just use the first creator
+					AniDB_SeiyuuRepository repCreators = new AniDB_SeiyuuRepository();
+					return repCreators.GetBySeiyuuID(charSeiyuus[0].SeiyuuID);
+				}
+
+				return null;
+			}
 		}
 	}
 }

@@ -53,6 +53,7 @@ namespace JMMServer
 		private static BackgroundWorker workerScanFolder = new BackgroundWorker();
 		private static BackgroundWorker workerRemoveMissing = new BackgroundWorker();
 		private static System.Timers.Timer autoUpdateTimer = null;
+		private static System.Timers.Timer autoUpdateTimerShort = null;
 		private static List<FileSystemWatcher> watcherVids = null;
 
 		BackgroundWorker downloadImagesWorker = new BackgroundWorker();
@@ -401,9 +402,16 @@ namespace JMMServer
 				// timer for automatic updates
 				autoUpdateTimer = new System.Timers.Timer();
 				autoUpdateTimer.AutoReset = true;
-				autoUpdateTimer.Interval = 10 * 60 * 1000; // 5 minutes * 60 seconds
+				autoUpdateTimer.Interval = 10 * 60 * 1000; // 10 minutes * 60 seconds
 				autoUpdateTimer.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimer_Elapsed);
 				autoUpdateTimer.Start();
+
+				// timer for automatic updates
+				autoUpdateTimerShort = new System.Timers.Timer();
+				autoUpdateTimerShort.AutoReset = true;
+				autoUpdateTimerShort.Interval = 15 * 1000; // 15 seconds
+				autoUpdateTimerShort.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimerShort_Elapsed);
+				autoUpdateTimerShort.Start();
 
 				StartWatchingFiles();
 
@@ -420,6 +428,11 @@ namespace JMMServer
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
+		}
+
+		void autoUpdateTimerShort_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+		{
+			JMMService.CmdProcessorImages.NotifyOfNewCommand();
 		}
 
 		#region Tray Minimize

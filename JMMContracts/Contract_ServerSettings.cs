@@ -15,7 +15,6 @@ namespace JMMContracts
 
 		public bool AniDB_DownloadRelatedAnime { get; set; }
 		public bool AniDB_DownloadSimilarAnime { get; set; }
-		public bool AniDB_DownloadCharactersCreators { get; set; }
 		public bool AniDB_DownloadReviews { get; set; }
 		public bool AniDB_DownloadReleaseGroups { get; set; }
 

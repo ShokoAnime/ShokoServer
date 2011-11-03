@@ -49,7 +49,7 @@ namespace JMMServer.Commands
 			try
 			{
 				AniDB_CreatorRepository repCreator = new AniDB_CreatorRepository();
-				AniDB_Creator creator = repCreator.GetByCreatorID(CreatorID);
+				AniDB_Seiyuu creator = repCreator.GetByCreatorID(CreatorID);
 
 				if (ForceRefresh || creator == null)
 				{
@@ -59,7 +59,7 @@ namespace JMMServer.Commands
 
 				if (creator != null || !string.IsNullOrEmpty(creator.PosterPath) && !File.Exists(creator.PosterPath))
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(creator.AniDB_CreatorID, JMMImageType.AniDB_Creator, false);
+					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(creator.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
 					cmd.Save();
 				}
 
