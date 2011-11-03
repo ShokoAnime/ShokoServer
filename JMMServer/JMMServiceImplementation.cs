@@ -2274,7 +2274,7 @@ namespace JMMServer
 			}
 		}
 
-		public Contract_VideoDetailed GetVideoDetailed(int videoLocalID)
+		public Contract_VideoDetailed GetVideoDetailed(int videoLocalID, int userID)
 		{
 			try
 			{
@@ -2283,7 +2283,7 @@ namespace JMMServer
 				if (vid == null)
 					return null;
 
-				return null;
+				return vid.ToContractDetailed(userID);
 			}
 			catch (Exception ex)
 			{

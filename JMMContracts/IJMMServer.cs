@@ -106,7 +106,7 @@ namespace JMMContracts
 		Contract_ToggleWatchedStatusOnEpisode_Response ToggleWatchedStatusOnEpisode(int animeEpisodeID, bool watchedStatus, int userID);
 
 		[OperationContract]
-		Contract_VideoDetailed GetVideoDetailed(int videoLocalID);
+		Contract_VideoDetailed GetVideoDetailed(int videoLocalID, int userID);
 
 		[OperationContract]
 		Contract_ImportFolder_SaveResponse SaveImportFolder(Contract_ImportFolder contract);
