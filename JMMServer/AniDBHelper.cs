@@ -836,7 +836,7 @@ namespace JMMServer
 				IPHostEntry remoteHostEntry = Dns.GetHostEntry(serverName);
 				remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], Convert.ToInt32(serverPort));
 
-				logger.Info("BindToRemotePort: Bound to local address: " + remoteIpEndPoint.Address.ToString() + " : " +
+				logger.Info("BindToRemotePort: Bound to remote address: " + remoteIpEndPoint.Address.ToString() + " : " +
 					remoteIpEndPoint.Port.ToString());
 
 				return true;

@@ -17,6 +17,9 @@ namespace JMMContracts
 		public int FileCountSpecials { get; set; }
 		public bool SpecialsComplete { get; set; }
 
+		public List<int> NormalEpisodeNumbers { get; set; }
+		public string NormalEpisodeNumberSummary { get; set; }
+
 		public int CompareTo(Contract_GroupVideoQuality obj)
 		{
 			return Ranking.CompareTo(obj.Ranking) * -1;
