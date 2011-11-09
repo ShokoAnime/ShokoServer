@@ -199,14 +199,15 @@ namespace JMMServer.Entities
 
 					repAniFile.Save(aniFile);
 
-					if (updateOnline)
+					
+				}
+
+				if (updateOnline)
+				{
+					if ((watched && ServerSettings.AniDB_MyList_SetWatched) || (!watched && ServerSettings.AniDB_MyList_SetUnwatched))
 					{
-						if ((watched && ServerSettings.AniDB_MyList_SetWatched) ||
-							(!watched && ServerSettings.AniDB_MyList_SetUnwatched))
-						{
-							CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(this.Hash, watched);
-							cmd.Save();
-						}
+						CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(this.Hash, watched);
+						cmd.Save();
 					}
 				}
 			}

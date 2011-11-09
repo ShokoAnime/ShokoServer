@@ -56,9 +56,21 @@ namespace JMMServer.Commands
 				VideoLocal vid = repVids.GetByHash(this.Hash);
 				if (vid != null)
 				{
-					JMMService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched);
+					bool isManualLink = false;
+					List<CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
+					if (xrefs.Count > 0)
+						isManualLink = xrefs[0].CrossRefSource != (int)CrossRefSource.AniDB;
 
-					logger.Info("Updating file list status: {0} - {1}", vid.ToString(), this.Watched);
+					if (isManualLink)
+					{
+						JMMService.AnidbProcessor.UpdateMyListFileStatus(xrefs[0].AnimeID, xrefs[0].Episode.EpisodeNumber, this.Watched);
+						logger.Info("Updating file list status (GENERIC): {0} - {1}", vid.ToString(), this.Watched);
+					}
+					else
+					{
+						JMMService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched);
+						logger.Info("Updating file list status: {0} - {1}", vid.ToString(), this.Watched);
+					}
 
 					// update watched stats
 					List<AnimeEpisode> eps = repEpisodes.GetByHash(vid.ED2KHash);
