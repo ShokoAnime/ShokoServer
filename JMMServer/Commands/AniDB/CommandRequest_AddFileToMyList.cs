@@ -60,9 +60,19 @@ namespace JMMServer.Commands
 					// when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
 					// if the file is already on the user's list
 
+					bool isManualLink = false;
+					List<CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
+					if (xrefs.Count > 0)
+						isManualLink = xrefs[0].CrossRefSource != (int)CrossRefSource.AniDB;
+
 					// mark the video file as watched
 					DateTime? watchedDate = null;
-					bool newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate);
+					bool newWatchedStatus = false;
+
+					if (isManualLink)
+						newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID, xrefs[0].Episode.EpisodeNumber, ref watchedDate);
+					else
+						newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate);
 
 					// do for all AniDB users
 					JMMUserRepository repUsers = new JMMUserRepository();

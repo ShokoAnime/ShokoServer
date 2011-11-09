@@ -124,11 +124,31 @@ namespace JMMServer.Commands
 						pct = (double)totalItems / (double)cmd.MyListItems.Count * (double)100;
 						string spct = pct.ToString("#0.0");
 
+						string hash = string.Empty;
+
 						AniDB_File anifile = repAniFile.GetByFileID(myitem.FileID);
 						if (anifile != null)
+							hash = anifile.Hash;
+						else
+						{
+							// look for manually linked files
+							CrossRef_File_EpisodeRepository repFileEp = new CrossRef_File_EpisodeRepository();
+							List<CrossRef_File_Episode> xrefs = repFileEp.GetByEpisodeID(myitem.EpisodeID);
+							foreach (CrossRef_File_Episode xref in xrefs)
+							{
+								if (xref.CrossRefSource != (int)CrossRefSource.AniDB)
+								{
+									hash = xref.Hash;
+									break;
+								}
+							}
+						}
+
+
+						if (!string.IsNullOrEmpty(hash))
 						{
 							// find the video associated with this record
-							VideoLocal vl = repVidLocals.GetByHash(anifile.Hash);
+							VideoLocal vl = repVidLocals.GetByHash(hash);
 							if (vl == null) continue;
 
 							foreach (JMMUser juser in aniDBUsers)
