@@ -199,6 +199,21 @@ namespace JMMServer.Databases
 			gfc.ConditionParameter = "10";
 			gfc.GroupFilterID = gf.GroupFilterID;
 			repGFC.Save(gfc);
+
+			// TvDB/MovieDB Link Missing
+			gf = new GroupFilter();
+			gf.GroupFilterName = "TvDB/MovieDB Link Missing";
+			gf.ApplyToSeries = 0;
+			gf.BaseCondition = 1;
+
+			repFilters.Save(gf);
+
+			gfc = new GroupFilterCondition();
+			gfc.ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
+			gfc.ConditionOperator = (int)GroupFilterOperator.Exclude;
+			gfc.ConditionParameter = "";
+			gfc.GroupFilterID = gf.GroupFilterID;
+			repGFC.Save(gfc);
 		}
 
 		

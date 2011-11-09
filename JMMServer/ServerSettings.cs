@@ -6,11 +6,25 @@ using System.Collections.Specialized;
 using System.Configuration;
 using AniDBAPI;
 using JMMContracts;
+using System.IO;
 
 namespace JMMServer
 {
 	public class ServerSettings
 	{
+		public static void CreateDefaultConfig()
+		{
+			System.Reflection.Assembly assm = System.Reflection.Assembly.GetExecutingAssembly();
+			// check if the app config file exists
+
+			string appConfigPath = assm.Location + ".config";
+			string defaultConfigPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(assm.Location), "default.config");
+			if (!File.Exists(appConfigPath) && File.Exists(defaultConfigPath))
+			{
+				File.Copy(defaultConfigPath, appConfigPath);
+			}
+		}
+
 		#region Database
 
 		public static string DatabaseType

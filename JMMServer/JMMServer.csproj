@@ -40,6 +40,10 @@
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>
+    </StartupObject>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Antlr3.Runtime">
       <HintPath>..\Dependencies\Antlr3.Runtime.dll</HintPath>
@@ -492,6 +496,9 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="app.manifest" />
+    <None Include="default.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -563,6 +570,7 @@
 xcopy "$(TargetDir)*.exe" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\Server\" /S /R /I /Y
 xcopy "$(TargetDir)*.pdb" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\Server\" /S /R /I /Y
 xcopy "$(TargetDir)*.manifest" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\Server\" /S /R /I /Y
+xcopy "$(TargetDir)default.config" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\Server\" /S /R /I /Y
 
 </PostBuildEvent>
   </PropertyGroup>
