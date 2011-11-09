@@ -11,6 +11,7 @@ using JMMFileHelper;
 using JMMServer.Providers.TvDB;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Providers.TraktTV;
+using System.Threading;
 
 namespace JMMServer
 {
@@ -390,6 +391,53 @@ namespace JMMServer
 			}
 
 			UpdateAllStats();
+		}
+
+		public static string DeleteImportFolder(int importFolderID)
+		{
+			try
+			{
+				ImportFolderRepository repNS = new ImportFolderRepository();
+				ImportFolder ns = repNS.GetByID(importFolderID);
+
+				if (ns == null) return "Could not find Import Folder ID: " + importFolderID;
+
+				// first delete all the files attached  to this import folder
+				Dictionary<int, AnimeSeries> affectedSeries = new Dictionary<int, AnimeSeries>();
+
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				foreach (VideoLocal vid in repVids.GetByImportFolder(importFolderID))
+				{
+					//Thread.Sleep(5000);
+					logger.Info("Deleting video local record: {0}", vid.FullServerPath);
+
+					AnimeSeries ser = null;
+					if (vid.AnimeEpisodes.Count > 0)
+					{
+						ser = vid.AnimeEpisodes[0].AnimeSeries;
+						if (ser != null && !affectedSeries.ContainsKey(ser.AnimeSeriesID))
+							affectedSeries.Add(ser.AnimeSeriesID, ser);
+					}
+
+					repVids.Delete(vid.VideoLocalID);
+				}
+
+				repNS.Delete(importFolderID);
+				ServerInfo.Instance.RefreshImportFolders();
+
+				foreach (AnimeSeries ser in affectedSeries.Values)
+				{
+					ser.UpdateStats(true, true, true);
+					StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
+				}
+
+				return "";
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
 		}
 
 		public static void UpdateAllStats()

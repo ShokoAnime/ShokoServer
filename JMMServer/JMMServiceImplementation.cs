@@ -847,6 +847,9 @@ namespace JMMServer
 					repGroups.Save(grp);
 				}
 
+				CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
+				cmdAddFile.Save();
+
 				// lets also try adding to the users trakt collecion by sync'ing the series
 				if (ser != null)
 				{
@@ -2505,23 +2508,8 @@ namespace JMMServer
 
 		public string DeleteImportFolder(int importFolderID)
 		{
-			try
-			{
-				ImportFolderRepository repNS = new ImportFolderRepository();
-				ImportFolder ns = null;
-
-				ns = repNS.GetByID(importFolderID);
-				if (ns == null) return "Could not find Import Folder ID: " + importFolderID;
-
-				repNS.Delete(importFolderID);
-
-				return "";
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-				return ex.Message;
-			}
+			MainWindow.DeleteImportFolder(importFolderID);
+			return "";
 		}
 
 		public void RunImport()
@@ -4926,6 +4914,19 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 			}
 			return chars;
+		}
+
+		public void ForceAddFileToMyList(string hash)
+		{
+			try
+			{
+				CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(hash);
+				cmdAddFile.Save();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
 		}
 	}
 
