@@ -147,6 +147,18 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<VideoLocal> GetByImportFolder(int importFolderID)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var vidfiles = session
+					.CreateCriteria(typeof(VideoLocal))
+					.Add(Restrictions.Eq("ImportFolderID", importFolderID))
+					.List<VideoLocal>();
+				return new List<VideoLocal>(vidfiles);
+			}
+		}
+
 		public List<VideoLocal> GetAll()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

@@ -56,14 +56,15 @@ namespace JMMServer
 					MessageBoxResult res = MessageBox.Show(string.Format("Are you sure you want to delete the Import Folder: {0}", ns.ImportFolderLocation), "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question);
 					if (res == MessageBoxResult.Yes)
 					{
-						ImportFolderRepository repFolders = new ImportFolderRepository();
-						repFolders.Delete(ns.ImportFolderID);
-						ServerInfo.Instance.RefreshImportFolders();
+						this.Cursor = Cursors.Wait;
+						Importer.DeleteImportFolder(ns.ImportFolderID);
+						this.Cursor = Cursors.Arrow;
 					}
 				}
 			}
 			catch (Exception ex)
 			{
+				this.Cursor = Cursors.Arrow;
 				Utils.ShowErrorMessage(ex);
 			}
 		}

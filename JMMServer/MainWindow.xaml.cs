@@ -52,6 +52,7 @@ namespace JMMServer
 		private static BackgroundWorker workerImport = new BackgroundWorker();
 		private static BackgroundWorker workerScanFolder = new BackgroundWorker();
 		private static BackgroundWorker workerRemoveMissing = new BackgroundWorker();
+		private static BackgroundWorker workerDeleteImportFolder = new BackgroundWorker();
 		private static System.Timers.Timer autoUpdateTimer = null;
 		private static System.Timers.Timer autoUpdateTimerShort = null;
 		private static List<FileSystemWatcher> watcherVids = null;
@@ -298,6 +299,10 @@ namespace JMMServer
 				workerRemoveMissing.WorkerSupportsCancellation = true;
 				workerRemoveMissing.DoWork += new DoWorkEventHandler(workerRemoveMissing_DoWork);
 
+				workerDeleteImportFolder.WorkerReportsProgress = false;
+				workerDeleteImportFolder.WorkerSupportsCancellation = true;
+				workerDeleteImportFolder.DoWork += new DoWorkEventHandler(workerDeleteImportFolder_DoWork);
+
 				if (!DatabaseHelper.InitDB()) return;
 
 				//init session factory
@@ -427,6 +432,8 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 			}
 		}
+
+		
 
 		void autoUpdateTimerShort_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
 		{
@@ -607,11 +614,30 @@ namespace JMMServer
 			Importer.CheckForMyListSyncUpdate(true);
 		}
 
+		public static void DeleteImportFolder(int importFolderID)
+		{
+			if (!workerDeleteImportFolder.IsBusy)
+				workerDeleteImportFolder.RunWorkerAsync(importFolderID);
+		}
+
 		static void workerRemoveMissing_DoWork(object sender, DoWorkEventArgs e)
 		{
 			try
 			{
 				Importer.RemoveRecordsWithoutPhysicalFiles();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.Message, ex);
+			}
+		}
+
+		void workerDeleteImportFolder_DoWork(object sender, DoWorkEventArgs e)
+		{
+			try
+			{
+				int importFolderID = int.Parse(e.Argument.ToString());
+				Importer.DeleteImportFolder(importFolderID);
 			}
 			catch (Exception ex)
 			{
