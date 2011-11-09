@@ -91,5 +91,16 @@ namespace AniDBAPI.Commands
 			commandText += "&viewed=0";
 			commandText += "&state=" + (int)FileStatus;
 		}
+
+		public void Init(int animeID, int episodeNumber, AniDBFileStatus FileStatus)
+		{
+			// MYLISTADD aid={int4 aid}&generic=1&epno={int4 episode number}
+
+			commandText = "MYLISTADD aid=" + animeID.ToString();
+			commandText += "&generic=1";
+			commandText += "&epno=" + episodeNumber.ToString();
+			commandText += "&viewed=0";
+			commandText += "&state=" + (int)FileStatus;
+		}
 	}
 }
