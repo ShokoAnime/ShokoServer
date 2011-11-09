@@ -76,5 +76,16 @@ namespace AniDBAPI.Commands
 			commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
 			commandText += "&edit=1";
 		}
+
+		public void Init(int animeID, int episodeNumber, bool watched)
+		{
+			IsWatched = watched;
+
+			commandText = "MYLISTADD aid=" + animeID.ToString();
+			commandText += "&generic=1";
+			commandText += "&epno=" + episodeNumber.ToString();
+			commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
+			commandText += "&edit=1";
+		}
 	}
 }

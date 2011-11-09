@@ -323,6 +323,22 @@ namespace JMMServer
 			}
 		}
 
+		public void UpdateMyListFileStatus(int animeID, int episodeNumber, bool watched)
+		{
+			if (!ServerSettings.AniDB_MyList_AddFiles) return;
+
+			if (!Login()) return;
+
+			lock (lockAniDBConnections)
+			{
+				Pause();
+
+				AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
+				cmdUpdateFile.Init(animeID, episodeNumber, watched);
+				enHelperActivityType ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+			}
+		}
+
 		public bool AddFileToMyList(IHash fileDataLocal, ref DateTime? watchedDate)
 		{
 			if (!ServerSettings.AniDB_MyList_AddFiles) return false;
@@ -338,6 +354,35 @@ namespace JMMServer
 
 				cmdAddFile = new AniDBCommand_AddFile();
 				cmdAddFile.Init(fileDataLocal, ServerSettings.AniDB_MyList_StorageState);
+				ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+			}
+
+			// if the user already has this file on 
+			if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null)
+			{
+				watchedDate = cmdAddFile.WatchedDate;
+				return cmdAddFile.ReturnIsWatched;
+
+			}
+
+			return false;
+		}
+
+		public bool AddFileToMyList(int animeID, int episodeNumber, ref DateTime? watchedDate)
+		{
+			if (!ServerSettings.AniDB_MyList_AddFiles) return false;
+
+			if (!Login()) return false;
+
+			enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+			AniDBCommand_AddFile cmdAddFile = null;
+
+			lock (lockAniDBConnections)
+			{
+				Pause();
+
+				cmdAddFile = new AniDBCommand_AddFile();
+				cmdAddFile.Init(animeID, episodeNumber, ServerSettings.AniDB_MyList_StorageState);
 				ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
 			}
 
