@@ -63,8 +63,6 @@ namespace JMMServer
 		{
 			InitializeComponent();
 
-			ConfigurationItemFactory.Default.Targets.RegisterDefinition("InternalCache", typeof(JMMServer.CachedNLogTarget));
-
 			//Create an instance of the NotifyIcon Class
 			TippuTrayNotify = new System.Windows.Forms.NotifyIcon();
 
