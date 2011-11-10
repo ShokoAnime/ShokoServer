@@ -74,7 +74,7 @@ namespace JMMServer.Commands
 				AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
 				cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
 				enHelperActivityType ev = cmd.Process();
-				if (ev == enHelperActivityType.GotMyListHTTP)
+				if (ev == enHelperActivityType.GotMyListHTTP && cmd.MyListItems.Count > 1)
 				{
 					int totalItems = 0;
 					int watchedItems = 0;
@@ -113,6 +113,7 @@ namespace JMMServer.Commands
 					List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
 
 					VideoLocal_UserRepository repVidUsers = new VideoLocal_UserRepository();
+					CrossRef_File_EpisodeRepository repFileEp = new CrossRef_File_EpisodeRepository();
 
 					// 1 . sync mylist items
 					foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
@@ -132,7 +133,6 @@ namespace JMMServer.Commands
 						else
 						{
 							// look for manually linked files
-							CrossRef_File_EpisodeRepository repFileEp = new CrossRef_File_EpisodeRepository();
 							List<CrossRef_File_Episode> xrefs = repFileEp.GetByEpisodeID(myitem.EpisodeID);
 							foreach (CrossRef_File_Episode xref in xrefs)
 							{

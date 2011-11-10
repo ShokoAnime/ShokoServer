@@ -11,6 +11,7 @@ namespace AniDBAPI.Commands
 	{
 		public string Hash = "";
 		public long FileSize = 0;
+		public int FileID = 0;
 
 		public string GetKey()
 		{
@@ -59,11 +60,23 @@ namespace AniDBAPI.Commands
 		{
 			Hash = hash;
 			FileSize = fileSize;
+			FileID = 0;
 
 			commandID = "Deleting File: " + Hash;
 
 			commandText = "MYLISTDEL size=" + FileSize.ToString();
 			commandText += "&ed2k=" + Hash;
+		}
+
+		public void Init(int fileID)
+		{
+			Hash = "";
+			FileSize = 0;
+			FileID = fileID;
+
+			commandID = "Deleting File: " + fileID.ToString();
+
+			commandText = "MYLISTDEL fid=" + fileID.ToString();
 		}
 	}
 }

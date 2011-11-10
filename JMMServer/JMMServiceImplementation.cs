@@ -17,6 +17,7 @@ using JMMServer.Providers.TvDB;
 using JMMServer.Providers.MovieDB;
 using BinaryNorthwest;
 using JMMServer.Providers.TraktTV;
+using AniDBAPI.Commands;
 
 namespace JMMServer
 {
@@ -169,7 +170,7 @@ namespace JMMServer
 
 				foreach (AnimeSeries ser in grp.AllSeries)
 				{
-					DeleteAnimeSeries(ser.AnimeSeriesID, deleteFiles);
+					DeleteAnimeSeries(ser.AnimeSeriesID, deleteFiles, false);
 				}
 
 				// delete all sub groups
@@ -4173,7 +4174,7 @@ namespace JMMServer
 		/// <param name="animeSeriesID"></param>
 		/// <param name="deleteFiles">also delete the physical files</param>
 		/// <returns></returns>
-		public string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles)
+		public string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup)
 		{
 			try
 			{
@@ -4211,8 +4212,15 @@ namespace JMMServer
 				AnimeGroup grp = repGroups.GetByID(animeGroupID);
 				if (grp != null)
 				{
-					grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
-					StatsCache.Instance.UpdateUsingGroup(grp.TopLevelAnimeGroup.AnimeGroupID);
+					if (grp.AllSeries.Count == 0)
+					{
+						DeleteAnimeGroup(grp.AnimeGroupID, false);
+					}
+					else
+					{
+						grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
+						StatsCache.Instance.UpdateUsingGroup(grp.TopLevelAnimeGroup.AnimeGroupID);
+					}
 				}
 
 				return "";
@@ -4927,6 +4935,168 @@ namespace JMMServer
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
+		}
+
+		public List<Contract_MissingFile> GetMyListFilesForRemoval(int userID)
+		{
+
+			List<Contract_MissingFile> contracts = new List<Contract_MissingFile>();
+
+			/*Contract_MissingFile missingFile2 = new Contract_MissingFile();
+			missingFile2.AnimeID = 1;
+			missingFile2.AnimeTitle = "Gundam Age";
+			missingFile2.EpisodeID = 2;
+			missingFile2.EpisodeNumber = 7;
+			missingFile2.FileID = 8;
+			missingFile2.AnimeSeries = null;
+			contracts.Add(missingFile2);
+
+			Thread.Sleep(5000);
+
+			return contracts;*/
+
+			AniDB_FileRepository repAniFile = new AniDB_FileRepository();
+			CrossRef_File_EpisodeRepository repFileEp = new CrossRef_File_EpisodeRepository();
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			AniDB_EpisodeRepository repEpisodes = new AniDB_EpisodeRepository();
+			VideoLocalRepository repVids = new VideoLocalRepository();
+			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+			Dictionary<int, AniDB_Anime> animeCache = new Dictionary<int, AniDB_Anime>();
+			Dictionary<int, AnimeSeries> animeSeriesCache = new Dictionary<int, AnimeSeries>();
+
+			try
+			{
+				AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
+				cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
+				enHelperActivityType ev = cmd.Process();
+				if (ev == enHelperActivityType.GotMyListHTTP)
+				{
+					foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
+					{
+						// let's check if the file on AniDB actually exists in the user's local collection
+						string hash = string.Empty;
+
+						AniDB_File anifile = repAniFile.GetByFileID(myitem.FileID);
+						if (anifile != null)
+							hash = anifile.Hash;
+						else
+						{
+							// look for manually linked files
+							List<CrossRef_File_Episode> xrefs = repFileEp.GetByEpisodeID(myitem.EpisodeID);
+							foreach (CrossRef_File_Episode xref in xrefs)
+							{
+								if (xref.CrossRefSource != (int)CrossRefSource.AniDB)
+								{
+									hash = xref.Hash;
+									break;
+								}
+							}
+						}
+
+						bool fileMissing = false;
+						if (string.IsNullOrEmpty(hash))
+							fileMissing = true;
+						else
+						{
+							// now check if the file actually exists on disk
+							VideoLocal vid = repVids.GetByHash(hash);
+
+							if (vid != null && !File.Exists(vid.FullServerPath))
+								fileMissing = true;
+						}
+
+						if (fileMissing)
+						{
+							
+							// this means we can't find the file
+							AniDB_Anime anime = null;
+							if (animeCache.ContainsKey(myitem.AnimeID))
+								anime = animeCache[myitem.AnimeID];
+							else
+							{
+								anime = repAnime.GetByAnimeID(myitem.AnimeID);
+								animeCache[myitem.AnimeID] = anime;
+							}
+
+							AnimeSeries ser = null;
+							if (animeSeriesCache.ContainsKey(myitem.AnimeID))
+								ser = animeSeriesCache[myitem.AnimeID];
+							else
+							{
+								ser = repSeries.GetByAnimeID(myitem.AnimeID);
+								animeSeriesCache[myitem.AnimeID] = ser;
+							}
+
+
+							Contract_MissingFile missingFile = new Contract_MissingFile();
+							missingFile.AnimeID = myitem.AnimeID;
+							missingFile.AnimeTitle = "Data Missing";
+							if (anime != null) missingFile.AnimeTitle = anime.MainTitle;
+							missingFile.EpisodeID = myitem.EpisodeID;
+							AniDB_Episode ep = repEpisodes.GetByEpisodeID(myitem.EpisodeID);
+							missingFile.EpisodeNumber = -1;
+							if (ep != null) missingFile.EpisodeNumber = ep.EpisodeNumber;
+							missingFile.FileID = myitem.FileID;
+
+							if (ser == null) missingFile.AnimeSeries = null;
+							else missingFile.AnimeSeries = ser.ToContract(ser.GetUserRecord(userID));
+
+							contracts.Add(missingFile);
+						}
+					}
+				}
+
+				if (contracts.Count > 0)
+				{
+					List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+					sortCriteria.Add(new SortPropOrFieldAndDirection("AnimeTitle", false, SortType.eString));
+					sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeID", false, SortType.eInteger));
+					contracts = Sorting.MultiSort<Contract_MissingFile>(contracts, sortCriteria);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return contracts;
+		}
+
+		public void RemoveMissingMyListFiles(List<Contract_MissingFile> myListFiles)
+		{
+			foreach (Contract_MissingFile missingFile in myListFiles)
+			{
+				CommandRequest_DeleteFileFromMyList cmd = new CommandRequest_DeleteFileFromMyList(missingFile.FileID);
+				cmd.Save();
+			}
+		}
+
+		public List<Contract_AnimeSeries> GetSeriesWithoutAnyFiles(int userID)
+		{
+			List<Contract_AnimeSeries> contracts = new List<Contract_AnimeSeries>();
+
+			//AniDB_FileRepository repAniFile = new AniDB_FileRepository();
+			//CrossRef_File_EpisodeRepository repFileEp = new CrossRef_File_EpisodeRepository();
+			//AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			//AniDB_EpisodeRepository repEpisodes = new AniDB_EpisodeRepository();
+			VideoLocalRepository repVids = new VideoLocalRepository();
+			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+			try
+			{
+				foreach (AnimeSeries ser in repSeries.GetAll())
+				{
+					if (repVids.GetByAniDBAnimeID(ser.AniDB_ID).Count == 0)
+					{
+						contracts.Add(ser.ToContract(ser.GetUserRecord(userID)));
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return contracts;
 		}
 	}
 

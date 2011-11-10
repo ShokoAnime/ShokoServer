@@ -97,6 +97,7 @@
     <Compile Include="Contract_ImportFolder.cs" />
     <Compile Include="Contract_ImportFolder_SaveResponse.cs" />
     <Compile Include="Contract_JMMUser.cs" />
+    <Compile Include="Contract_MissingFile.cs" />
     <Compile Include="Contract_MovieDBMovieSearchResult.cs" />
     <Compile Include="Contract_MovieDB_Fanart.cs" />
     <Compile Include="Contract_MovieDB_Movie.cs" />

@@ -292,7 +292,7 @@ namespace JMMContracts
 		List<Contract_AnimeEpisode> GetEpisodesToWatch_RecentlyWatched(int maxRecords, int jmmuserID);
 
 		[OperationContract]
-		string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles);
+		string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup);
 
 		[OperationContract]
 		string DeleteAnimeGroup(int animeGroupID, bool deleteFiles);
@@ -389,6 +389,15 @@ namespace JMMContracts
 
 		[OperationContract]
 		void ForceAddFileToMyList(string hash);
+
+		[OperationContract]
+		List<Contract_MissingFile> GetMyListFilesForRemoval(int userID);
+
+		[OperationContract]
+		void RemoveMissingMyListFiles(List<Contract_MissingFile> myListFiles);
+
+		[OperationContract]
+		List<Contract_AnimeSeries> GetSeriesWithoutAnyFiles(int userID);
 	}
 
 }

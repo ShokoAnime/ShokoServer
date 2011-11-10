@@ -13,6 +13,7 @@ namespace JMMServer.Commands
 	{
 		public string Hash { get; set; }
 		public long FileSize { get; set; }
+		public int FileID { get; set; }
 
 		public CommandRequestPriority DefaultPriority
 		{
@@ -23,7 +24,7 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Deleting file from MyList: {0}", Hash);
+				return string.Format("Deleting file from MyList: {0}_{1}", Hash, FileID);
 			}
 		}
 
@@ -35,6 +36,18 @@ namespace JMMServer.Commands
 		{
 			this.Hash = hash;
 			this.FileSize = fileSize;
+			this.FileID = -1;
+			this.CommandType = (int)CommandRequestType.AniDB_DeleteFileUDP;
+			this.Priority = (int)DefaultPriority;
+
+			GenerateCommandID();
+		}
+
+		public CommandRequest_DeleteFileFromMyList(int fileID)
+		{
+			this.Hash = "";
+			this.FileSize = 0;
+			this.FileID = fileID;
 			this.CommandType = (int)CommandRequestType.AniDB_DeleteFileUDP;
 			this.Priority = (int)DefaultPriority;
 
@@ -43,16 +56,20 @@ namespace JMMServer.Commands
 
 		public override void ProcessCommand()
 		{
-			logger.Info("Processing CommandRequest_DeleteFileFromMyList: {0}", Hash);
+			logger.Info("Processing CommandRequest_DeleteFileFromMyList: {0}_{1}", Hash, FileID);
 
 			try
 			{
-				JMMService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
-				logger.Info("Deleting file from list: {0}", Hash);
+				if (FileID > 0)
+					JMMService.AnidbProcessor.DeleteFileFromMyList(FileID);
+				else
+					JMMService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
+
+				logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
 			}
 			catch (Exception ex)
 			{
-				logger.Error("Error processing CommandRequest_AddFileToMyList: {0} - {1}", Hash, ex.ToString());
+				logger.Error("Error processing CommandRequest_AddFileToMyList: {0}_{1} - {2}", Hash, FileID, ex.ToString());
 				return;
 			}
 		}
@@ -63,7 +80,7 @@ namespace JMMServer.Commands
 		/// </summary>
 		public override void GenerateCommandID()
 		{
-			this.CommandID = string.Format("CommandRequest_DeleteFileFromMyList{0}", Hash);
+			this.CommandID = string.Format("CommandRequest_DeleteFileFromMyList_{0}_{1}", Hash, FileID);
 		}
 
 		public override bool LoadFromDBCommand(CommandRequest cq)
@@ -84,6 +101,7 @@ namespace JMMServer.Commands
 				// populate the fields
 				this.Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "Hash");
 				this.FileSize = long.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileSize"));
+				this.FileID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileID"));
 			}
 
 			if (this.Hash.Trim().Length > 0)

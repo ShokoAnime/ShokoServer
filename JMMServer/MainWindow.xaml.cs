@@ -168,6 +168,9 @@ namespace JMMServer
 
 			//CommandRequest_GetCharactersCreators cmd = new CommandRequest_GetCharactersCreators(6751, false);
 			//cmd.Save();
+
+			//JMMServiceImplementation imp = new JMMServiceImplementation();
+			//imp.GetSeriesWithoutAnyFiles(1);
 		}
 
 

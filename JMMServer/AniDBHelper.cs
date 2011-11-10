@@ -418,6 +418,27 @@ namespace JMMServer
 			return true;
 		}
 
+		public bool DeleteFileFromMyList(int fileID)
+		{
+			if (!ServerSettings.AniDB_MyList_AddFiles) return false;
+
+			if (!Login()) return false;
+
+			enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+			AniDBCommand_DeleteFile cmdDelFile = null;
+
+			lock (lockAniDBConnections)
+			{
+				Pause();
+
+				cmdDelFile = new AniDBCommand_DeleteFile();
+				cmdDelFile.Init(fileID);
+				ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+			}
+
+			return true;
+		}
+
 		public AniDB_Anime GetAnimeInfoUDP(int animeID, bool forceRefresh)
 		{
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
