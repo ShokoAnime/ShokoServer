@@ -13,6 +13,7 @@ using System.Windows.Shapes;
 using JMMServer.Entities;
 using JMMServer;
 using JMMServer.Repositories;
+using JMMContracts;
 
 namespace JMMServer
 {
@@ -45,20 +46,27 @@ namespace JMMServer
 				// The import folder location cannot be blank. Enter a valid path on OMM Server
 				if (string.IsNullOrEmpty(txtImportFolderLocation.Text))
 				{
-					MessageBox.Show("The import folder location cannot be blank. Enter a valid path on OMM Server", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+					MessageBox.Show("The import folder location cannot be blank. Enter a valid path on JMM Server", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 					txtImportFolderLocation.Focus();
 					return;
 				}
 
-				importFldr.ImportFolderName = "";
-				importFldr.ImportFolderLocation = txtImportFolderLocation.Text.Trim();
-				importFldr.IsDropDestination = chkDropDestination.IsChecked.Value ? 1 : 0;
-				importFldr.IsDropSource = chkDropSource.IsChecked.Value ? 1 : 0;
+				Contract_ImportFolder contract = new Contract_ImportFolder();
+				if (importFldr.ImportFolderID == 0)
+					contract.ImportFolderID = null;
+				else
+					contract.ImportFolderID = importFldr.ImportFolderID;
+				contract.ImportFolderName = "NA";
+				contract.ImportFolderLocation = txtImportFolderLocation.Text.Trim();
+				contract.IsDropDestination = chkDropDestination.IsChecked.Value ? 1 : 0;
+				contract.IsDropSource = chkDropSource.IsChecked.Value ? 1 : 0;
 
-				ImportFolderRepository repFolders = new ImportFolderRepository();
-				repFolders.Save(importFldr);
+				JMMServiceImplementation imp = new JMMServiceImplementation();
+				Contract_ImportFolder_SaveResponse response = imp.SaveImportFolder(contract);
+				if (!string.IsNullOrEmpty(response.ErrorMessage))
+					MessageBox.Show(response.ErrorMessage, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
-				//JMMServerVM.Instance.RefreshImportFolders();
+				ServerInfo.Instance.RefreshImportFolders();
 			}
 			catch (Exception ex)
 			{

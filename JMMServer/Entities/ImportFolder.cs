@@ -3,37 +3,82 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using JMMContracts;
+using System.ComponentModel;
 
 namespace JMMServer.Entities
 {
-	public class ImportFolder
+	public class ImportFolder : INotifyPropertyChanged
 	{
 		public int ImportFolderID { get; private set; }
 		public int ImportFolderType { get; set; }
 		public string ImportFolderName { get; set; }
 		public string ImportFolderLocation { get; set; }
-		public int IsDropSource { get; set; }
-		public int IsDropDestination { get; set; }
-
-		public bool FolderIsDropSource
-		{
-			get
-			{
-				return IsDropSource == 1;
-			}
-		}
-
-		public bool FolderIsDropDestination
-		{
-			get
-			{
-				return IsDropDestination == 1;
-			}
-		}
 
 		public override string ToString()
 		{
 			return string.Format("{0} - {1} ({2})", ImportFolderName, ImportFolderLocation, ImportFolderID);
+		}
+
+		public ImportFolder()
+		{
+			FolderIsDropSource = IsDropSource == 1;
+			FolderIsDropDestination = IsDropDestination == 1;
+		}
+
+		public event PropertyChangedEventHandler PropertyChanged;
+		private void NotifyPropertyChanged(String propertyName)
+		{
+			if (PropertyChanged != null)
+			{
+				var args = new PropertyChangedEventArgs(propertyName);
+				PropertyChanged(this, args);
+			}
+		}
+
+		private Boolean folderIsDropSource = true;
+		public Boolean FolderIsDropSource
+		{
+			get { return folderIsDropSource; }
+			set
+			{
+				folderIsDropSource = value;
+				NotifyPropertyChanged("FolderIsDropSource");
+			}
+		}
+
+		private Boolean folderIsDropDestination = true;
+		public Boolean FolderIsDropDestination
+		{
+			get { return folderIsDropDestination; }
+			set
+			{
+				folderIsDropDestination = value;
+				NotifyPropertyChanged("FolderIsDropDestination");
+			}
+		}
+
+		private int isDropSource = 0;
+		public int IsDropSource
+		{
+			get { return isDropSource; }
+			set
+			{
+				isDropSource = value;
+				NotifyPropertyChanged("IsDropSource");
+				FolderIsDropSource = IsDropSource == 1;
+			}
+		}
+
+		private int isDropDestination = 0;
+		public int IsDropDestination
+		{
+			get { return isDropDestination; }
+			set
+			{
+				isDropDestination = value;
+				NotifyPropertyChanged("IsDropDestination");
+				FolderIsDropDestination = IsDropDestination == 1;
+			}
 		}
 
 		public Contract_ImportFolder ToContract()
@@ -45,6 +90,8 @@ namespace JMMServer.Entities
 			contract.ImportFolderName = this.ImportFolderName;
 			contract.IsDropSource = this.IsDropSource;
 			contract.IsDropDestination = this.IsDropDestination;
+
+
 			return contract;
 		}
 	}
