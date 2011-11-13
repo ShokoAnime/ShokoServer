@@ -3774,9 +3774,9 @@ namespace JMMServer
 			List<Contract_TraktTVShowResponse> results = new List<Contract_TraktTVShowResponse>();
 			try
 			{
-				List<TraktTVShowResponse> traktResults = TraktTVHelper.SearchShow(criteria);
+				List<TraktTVShow> traktResults = TraktTVHelper.SearchShow(criteria);
 
-				foreach (TraktTVShowResponse res in traktResults)
+				foreach (TraktTVShow res in traktResults)
 					results.Add(res.ToContract());
 
 				return results;
@@ -5036,7 +5036,12 @@ namespace JMMServer
 							missingFile.EpisodeID = myitem.EpisodeID;
 							AniDB_Episode ep = repEpisodes.GetByEpisodeID(myitem.EpisodeID);
 							missingFile.EpisodeNumber = -1;
-							if (ep != null) missingFile.EpisodeNumber = ep.EpisodeNumber;
+							missingFile.EpisodeType = 1;
+							if (ep != null)
+							{
+								missingFile.EpisodeNumber = ep.EpisodeNumber;
+								missingFile.EpisodeType = ep.EpisodeType;
+							}
 							missingFile.FileID = myitem.FileID;
 
 							if (ser == null) missingFile.AnimeSeries = null;
@@ -5075,10 +5080,6 @@ namespace JMMServer
 		{
 			List<Contract_AnimeSeries> contracts = new List<Contract_AnimeSeries>();
 
-			//AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-			//CrossRef_File_EpisodeRepository repFileEp = new CrossRef_File_EpisodeRepository();
-			//AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-			//AniDB_EpisodeRepository repEpisodes = new AniDB_EpisodeRepository();
 			VideoLocalRepository repVids = new VideoLocalRepository();
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
@@ -5091,6 +5092,94 @@ namespace JMMServer
 						contracts.Add(ser.ToContract(ser.GetUserRecord(userID)));
 					}
 				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return contracts;
+		}
+
+		public void DeleteFileFromMyList(int fileID)
+		{
+			CommandRequest_DeleteFileFromMyList cmd = new CommandRequest_DeleteFileFromMyList(fileID);
+			cmd.Save();
+		}
+
+		public List<Contract_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly)
+		{
+
+			List<Contract_MissingEpisode> contracts = new List<Contract_MissingEpisode>();
+			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+			Dictionary<int, AniDB_Anime> animeCache = new Dictionary<int, AniDB_Anime>();
+			Dictionary<int, List<Contract_GroupVideoQuality>> gvqCache = new Dictionary<int, List<Contract_GroupVideoQuality>>();
+
+			try
+			{
+				foreach (AnimeSeries ser in repSeries.GetAll())
+				{
+					int missingEps = ser.MissingEpisodeCount;
+					if (onlyMyGroups) missingEps = ser.MissingEpisodeCountGroups;
+					
+					if (missingEps > 0)
+					{
+						// find the missing episodes
+						foreach (AnimeEpisode aep in ser.AnimeEpisodes)
+						{
+							if (regularEpisodesOnly && aep.EpisodeTypeEnum != enEpisodeType.Episode) continue;
+
+							if (aep.VideoLocals.Count == 0)
+							{
+								Contract_MissingEpisode contract = new Contract_MissingEpisode();
+								contract.AnimeID = ser.AniDB_ID;
+								contract.AnimeSeries = ser.ToContract(ser.GetUserRecord(userID));
+
+								AniDB_Anime anime = null;
+								if (animeCache.ContainsKey(ser.AniDB_ID))
+									anime = animeCache[ser.AniDB_ID];
+								else
+								{
+									anime = ser.Anime;
+									animeCache[ser.AniDB_ID] = anime;
+								}
+
+								contract.AnimeTitle = anime.MainTitle;
+
+								contract.GroupFileSummary = "";
+								List<Contract_GroupVideoQuality> summ = null;
+								if (gvqCache.ContainsKey(ser.AniDB_ID))
+									summ = gvqCache[ser.AniDB_ID];
+								else
+								{
+									summ = GetGroupVideoQualitySummary(anime.AnimeID);
+									gvqCache[ser.AniDB_ID] = summ;
+								}
+
+								foreach (Contract_GroupVideoQuality gvq in summ)
+								{
+									if (contract.GroupFileSummary.Length > 0)
+										contract.GroupFileSummary += " --- ";
+
+									contract.GroupFileSummary += string.Format("{0} - {1}/{2} ({3})", gvq.GroupNameShort, gvq.Resolution, gvq.VideoSource, gvq.NormalEpisodeNumberSummary);
+								}
+
+								AniDB_Episode ep = aep.AniDB_Episode;
+								contract.EpisodeID = ep.EpisodeID;
+								contract.EpisodeNumber = ep.EpisodeNumber;
+								contract.EpisodeType = ep.EpisodeType;
+								contracts.Add(contract);
+							}
+						}
+					}
+				}
+
+				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+				sortCriteria.Add(new SortPropOrFieldAndDirection("AnimeTitle", false, SortType.eString));
+				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
+				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
+				contracts = Sorting.MultiSort<Contract_MissingEpisode>(contracts, sortCriteria);
+
 			}
 			catch (Exception ex)
 			{

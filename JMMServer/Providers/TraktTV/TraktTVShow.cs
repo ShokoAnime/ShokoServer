@@ -8,9 +8,9 @@ using JMMContracts;
 namespace JMMServer.Providers.TraktTV
 {
 	[DataContract]
-	public class TraktTVShowResponse
+	public class TraktTVShow
 	{
-		public TraktTVShowResponse() { }
+		public TraktTVShow() { }
 
 		[DataMember]
 		public string title { get; set; }
@@ -34,10 +34,10 @@ namespace JMMServer.Providers.TraktTV
 		public string tvdb_id { get; set; }
 
 		[DataMember]
-		public TraktTVImagesResponse images { get; set; }
+		public TraktTVImages images { get; set; }
 
 		[DataMember]
-		public List<TraktTVSeasonResponse> seasons { get; set; }
+		public List<TraktTVSeason> seasons { get; set; }
 
 		public string TraktID
 		{

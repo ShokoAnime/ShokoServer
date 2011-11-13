@@ -398,6 +398,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AnimeSeries> GetSeriesWithoutAnyFiles(int userID);
+
+		[OperationContract]
+		void DeleteFileFromMyList(int fileID);
+
+		[OperationContract]
+		List<Contract_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly);
 	}
 
 }

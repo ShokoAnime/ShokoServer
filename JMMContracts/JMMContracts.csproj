@@ -97,6 +97,7 @@
     <Compile Include="Contract_ImportFolder.cs" />
     <Compile Include="Contract_ImportFolder_SaveResponse.cs" />
     <Compile Include="Contract_JMMUser.cs" />
+    <Compile Include="Contract_MissingEpisode.cs" />
     <Compile Include="Contract_MissingFile.cs" />
     <Compile Include="Contract_MovieDBMovieSearchResult.cs" />
     <Compile Include="Contract_MovieDB_Fanart.cs" />
@@ -110,10 +111,12 @@
     <Compile Include="Contract_ToggleWatchedStatusOnEpisode_Response.cs" />
     <Compile Include="Contract_TraktTVShowResponse.cs" />
     <Compile Include="Contract_Trakt_Episode.cs" />
+    <Compile Include="Contract_Trakt_Friend.cs" />
     <Compile Include="Contract_Trakt_ImageFanart.cs" />
     <Compile Include="Contract_Trakt_ImagePoster.cs" />
     <Compile Include="Contract_Trakt_Season.cs" />
     <Compile Include="Contract_Trakt_Show.cs" />
+    <Compile Include="Contract_Trakt_WatchedEpisode.cs" />
     <Compile Include="Contract_TVDBSeriesSearchResult.cs" />
     <Compile Include="Contract_TvDB_Episode.cs" />
     <Compile Include="Contract_TvDB_ImageFanart.cs" />

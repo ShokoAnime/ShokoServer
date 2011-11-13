@@ -131,6 +131,7 @@ namespace JMMServer
 		{
 			public static readonly string APIKey = "f9db01de75fcc4c26f26245262c7715803e376d1";
 			public static readonly string URLGetShowExtended = @"http://api.trakt.tv/show/summary.json/{0}/{1}/extended"; // apiKey/ tvdb id or trakt id
+			public static readonly string URLGetFriends = @"http://api.trakt.tv/user/friends.json/{0}/{1}"; // apiKey/ username
 			public static readonly string URLSearchShow = @"http://api.trakt.tv/search/shows.json/{0}/{1}"; // apiKey/ search criteria
 
 			public static readonly string URLPostShowScrobble = @"http://api.trakt.tv/show/scrobble/{0}"; // apiKey

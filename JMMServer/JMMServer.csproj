@@ -340,10 +340,12 @@
     <Compile Include="Providers\MovieDB\MovieDBHelper.cs" />
     <Compile Include="Providers\MovieDB\MovieDB_Image_Result.cs" />
     <Compile Include="Providers\MovieDB\MovieDB_Movie_Result.cs" />
-    <Compile Include="Providers\TraktTV\TraktTVEpisodeResponse.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVEpisode.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVEpisodeUser.cs" />
     <Compile Include="Providers\TraktTV\TraktTVGenericResponse.cs" />
     <Compile Include="Providers\TraktTV\TraktTVHelper.cs" />
-    <Compile Include="Providers\TraktTV\TraktTVImagesResponse.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVImages.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVImagesUserEpisode.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_AccountTest.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowEpisodeLibrary.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowEpisodeSeen.cs" />
@@ -351,8 +353,10 @@
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowScrobble.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowWatching.cs" />
     <Compile Include="Providers\TraktTV\TraktTVSeasonEpisode.cs" />
-    <Compile Include="Providers\TraktTV\TraktTVSeasonResponse.cs" />
-    <Compile Include="Providers\TraktTV\TraktTVShowResponse.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVSeason.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVShow.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVUser.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVWatched.cs" />
     <Compile Include="Providers\TvDB\TvDBHelper.cs" />
     <Compile Include="Providers\TvDB\TVDBSeriesSearchResult.cs" />
     <Compile Include="Repositories\AdhocRepository.cs" />

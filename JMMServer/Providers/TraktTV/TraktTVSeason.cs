@@ -7,9 +7,9 @@ using System.Runtime.Serialization;
 namespace JMMServer.Providers.TraktTV
 {
 	[DataContract]
-	public class TraktTVSeasonResponse
+	public class TraktTVSeason
 	{
-		public TraktTVSeasonResponse() { }
+		public TraktTVSeason() { }
 
 		[DataMember]
 		public string season { get; set; }
@@ -18,10 +18,10 @@ namespace JMMServer.Providers.TraktTV
 		public string url { get; set; }
 
 		[DataMember]
-		public TraktTVImagesResponse images { get; set; }
+		public TraktTVImages images { get; set; }
 
 		[DataMember]
-		public List<TraktTVEpisodeResponse> episodes { get; set; }
+		public List<TraktTVEpisode> episodes { get; set; }
 
 		public override string ToString()
 		{

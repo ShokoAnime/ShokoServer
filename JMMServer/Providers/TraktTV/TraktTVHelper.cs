@@ -10,6 +10,7 @@ using JMMServer.Commands;
 using System.IO;
 using System.Net;
 using BinaryNorthwest;
+using JMMContracts;
 
 namespace JMMServer.Providers.TraktTV
 {
@@ -17,9 +18,9 @@ namespace JMMServer.Providers.TraktTV
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public static TraktTVShowResponse GetShowInfo(string traktID)
+		public static TraktTVShow GetShowInfo(string traktID)
 		{
-			TraktTVShowResponse tvshow = new TraktTVShowResponse();
+			TraktTVShow tvshow = new TraktTVShow();
 
 			try
 			{
@@ -31,7 +32,7 @@ namespace JMMServer.Providers.TraktTV
 
 				if (json.Trim().Length == 0) return null;
 
-				tvshow = JSONHelper.Deserialize<TraktTVShowResponse>(json);
+				tvshow = JSONHelper.Deserialize<TraktTVShow>(json);
 
 				// save this data to the DB for use later
 				SaveExtendedShowInfo(tvshow);
@@ -46,7 +47,36 @@ namespace JMMServer.Providers.TraktTV
 			return tvshow;
 		}
 
-		public static void SaveExtendedShowInfo(TraktTVShowResponse tvshow)
+		public static List<TraktTVUser> GetFriends()
+		{
+			List<TraktTVUser> friends = new List<TraktTVUser>();
+
+			try
+			{
+				string url = string.Format(Constants.TraktTvURLs.URLGetFriends, Constants.TraktTvURLs.APIKey, ServerSettings.Trakt_Username);
+				//string url = string.Format(Constants.TraktTvURLs.URLGetFriends, Constants.TraktTvURLs.APIKey, "lwerndly");
+				logger.Trace("GetFriends: {0}", url);
+
+				// Search for a series
+				string json = Utils.DownloadWebPage(url);
+
+				if (json.Trim().Length == 0) return null;
+
+				friends = JSONHelper.Deserialize<List<TraktTVUser>>(json);
+
+				Contract_Trakt_Friend fr = friends[0].ToContract();
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktTVHelper.GetFriends: " + ex.ToString(), ex);
+				return null;
+			}
+
+			return friends;
+		}
+
+		public static void SaveExtendedShowInfo(TraktTVShow tvshow)
 		{ 
 			try
 			{
@@ -90,7 +120,7 @@ namespace JMMServer.Providers.TraktTV
 				Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
 				Trakt_ImagePosterRepository repPosters = new Trakt_ImagePosterRepository();
 
-				foreach (TraktTVSeasonResponse sea in tvshow.seasons)
+				foreach (TraktTVSeason sea in tvshow.seasons)
 				{
 					Trakt_Season season = repSeasons.GetByShowIDAndSeason(show.Trakt_ShowID, int.Parse(sea.season));
 					if (season == null)
@@ -119,7 +149,7 @@ namespace JMMServer.Providers.TraktTV
 						}
 					}
 
-					foreach (TraktTVEpisodeResponse ep in sea.episodes)
+					foreach (TraktTVEpisode ep in sea.episodes)
 					{
 						Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, int.Parse(ep.season), int.Parse(ep.episode));
 						if (episode == null)
@@ -144,7 +174,7 @@ namespace JMMServer.Providers.TraktTV
 			}
 		}
 
-		public static void SaveShowInfo(TraktTVShowResponse tvshow)
+		public static void SaveShowInfo(TraktTVShow tvshow)
 		{
 			try
 			{
@@ -188,7 +218,7 @@ namespace JMMServer.Providers.TraktTV
 			}
 		}
 
-		public static TraktTVShowResponse GetShowInfo(int tvDBID)
+		public static TraktTVShow GetShowInfo(int tvDBID)
 		{
 			return GetShowInfo(tvDBID.ToString());
 		}
@@ -202,7 +232,7 @@ namespace JMMServer.Providers.TraktTV
 			if (traktShow == null)
 			{
 				// we download the series info here
-				TraktTVShowResponse tvshow = GetShowInfo(traktID);
+				TraktTVShow tvshow = GetShowInfo(traktID);
 				if (tvshow == null) return;
 			}
 
@@ -245,9 +275,9 @@ namespace JMMServer.Providers.TraktTV
 			req.Save();
 		}
 
-		public static List<TraktTVShowResponse> SearchShow(string criteria)
+		public static List<TraktTVShow> SearchShow(string criteria)
 		{
-			List<TraktTVShowResponse> results = new List<TraktTVShowResponse>();
+			List<TraktTVShow> results = new List<TraktTVShow>();
 
 			try
 			{
@@ -261,9 +291,9 @@ namespace JMMServer.Providers.TraktTV
 				// Search for a series
 				string json = Utils.DownloadWebPage(url);
 
-				if (json.Trim().Length == 0) return new List<TraktTVShowResponse>();
+				if (json.Trim().Length == 0) return new List<TraktTVShow>();
 
-				results = JSONHelper.Deserialize<List<TraktTVShowResponse>>(json);
+				results = JSONHelper.Deserialize<List<TraktTVShow>>(json);
 
 				// save this data for later use
 				//foreach (TraktTVShowResponse tvshow in results)
@@ -289,7 +319,7 @@ namespace JMMServer.Providers.TraktTV
 		public static void UpdateAllInfoAndImages(string traktID, bool forceRefresh)
 		{
 			// this will do the first 3 steps
-			TraktTVShowResponse tvShow = GetShowInfo(traktID);
+			TraktTVShow tvShow = GetShowInfo(traktID);
 			if (tvShow == null) return;
 
 			try

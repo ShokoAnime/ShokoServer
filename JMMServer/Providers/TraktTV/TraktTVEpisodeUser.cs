@@ -7,15 +7,15 @@ using System.Runtime.Serialization;
 namespace JMMServer.Providers.TraktTV
 {
 	[DataContract]
-	public class TraktTVEpisodeResponse
+	public class TraktTVEpisodeUser
 	{
-		public TraktTVEpisodeResponse() { }
+		public TraktTVEpisodeUser() { }
 
 		[DataMember]
 		public string season { get; set; }
 
 		[DataMember]
-		public string episode { get; set; }
+		public string number { get; set; }
 
 		[DataMember]
 		public string title { get; set; }
@@ -27,11 +27,11 @@ namespace JMMServer.Providers.TraktTV
 		public string url { get; set; }
 
 		[DataMember]
-		public string screen { get; set; } // episode image
+		public TraktTVImagesUserEpisode images { get; set; }
 
 		public override string ToString()
 		{
-			return string.Format("S{0} - EP {1} - {2}", season, episode, title);
+			return string.Format("S{0} - EP {1} - {2}", season, number, title);
 		}
 	}
 }

@@ -7,9 +7,9 @@ using System.Runtime.Serialization;
 namespace JMMServer.Providers.TraktTV
 {
 	[DataContract]
-	public class TraktTVImagesResponse
+	public class TraktTVImages
 	{
-		public TraktTVImagesResponse() { }
+		public TraktTVImages() { }
 
 		[DataMember]
 		public string poster { get; set; }

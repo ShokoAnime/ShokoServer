@@ -60,7 +60,7 @@ namespace JMMServer.Commands
 						CrossRef_AniDB_TraktResult crossRef = XMLService.Get_CrossRef_AniDB_Trakt(AnimeID);
 						if (crossRef != null)
 						{
-							TraktTVShowResponse showInfo = TraktTVHelper.GetShowInfo(crossRef.TraktID);
+							TraktTVShow showInfo = TraktTVHelper.GetShowInfo(crossRef.TraktID);
 							if (showInfo != null)
 							{
 								logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID, showInfo.title);
@@ -82,7 +82,7 @@ namespace JMMServer.Commands
 				CrossRef_AniDB_TvDB xrefTvDB = repCrossRefTvDB.GetByAnimeID(AnimeID);
 				if (xrefTvDB != null)
 				{
-					TraktTVShowResponse showInfo = TraktTVHelper.GetShowInfo(xrefTvDB.TvDBID);
+					TraktTVShow showInfo = TraktTVHelper.GetShowInfo(xrefTvDB.TvDBID);
 					if (showInfo != null)
 					{
 						// make sure the season specified by TvDB also exists on Trakt
@@ -108,7 +108,7 @@ namespace JMMServer.Commands
 					CrossRef_AniDB_TvDBResult crossRefTvDB = XMLService.Get_CrossRef_AniDB_TvDB(AnimeID);
 					if (crossRefTvDB != null)
 					{
-						TraktTVShowResponse showInfo = TraktTVHelper.GetShowInfo(crossRefTvDB.TvDBID);
+						TraktTVShow showInfo = TraktTVHelper.GetShowInfo(crossRefTvDB.TvDBID);
 						if (showInfo != null)
 						{
 							// make sure the season specified by TvDB also exists on Trakt
@@ -138,7 +138,7 @@ namespace JMMServer.Commands
 				searchCriteria = anime.MainTitle;
 
 				// if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-				List<TraktTVShowResponse> results = TraktTVHelper.SearchShow(searchCriteria);
+				List<TraktTVShow> results = TraktTVHelper.SearchShow(searchCriteria);
 				logger.Trace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
 				if (ProcessSearchResults(results, searchCriteria)) return;
 
@@ -165,13 +165,13 @@ namespace JMMServer.Commands
 			}
 		}
 
-		private bool ProcessSearchResults(List<TraktTVShowResponse> results, string searchCriteria)
+		private bool ProcessSearchResults(List<TraktTVShow> results, string searchCriteria)
 		{
 			if (results.Count == 1)
 			{
 				// since we are using this result, lets download the info
 				logger.Trace("Found 1 trakt results for search on {0} --- Linked to {1} ({2})", searchCriteria, results[0].title, results[0].TraktID);
-				TraktTVShowResponse showInfo = TraktTVHelper.GetShowInfo(results[0].TraktID);
+				TraktTVShow showInfo = TraktTVHelper.GetShowInfo(results[0].TraktID);
 				if (showInfo != null)
 				{
 					TraktTVHelper.LinkAniDBTrakt(AnimeID, showInfo.TraktID, 1, false);

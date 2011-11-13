@@ -170,7 +170,9 @@ namespace JMMServer
 			//cmd.Save();
 
 			//JMMServiceImplementation imp = new JMMServiceImplementation();
-			//imp.GetSeriesWithoutAnyFiles(1);
+			//imp.GetMissingEpisodes(1, true);
+
+			TraktTVHelper.GetFriends();
 		}
 
 
