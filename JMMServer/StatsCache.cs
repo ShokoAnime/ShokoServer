@@ -7,6 +7,7 @@ using JMMServer.Repositories;
 using NLog;
 using JMMContracts;
 using System.Diagnostics;
+using JMMServer.Providers.TraktTV;
 
 namespace JMMServer
 {
@@ -27,7 +28,7 @@ namespace JMMServer
 			}
 		}
 
-		 
+		public List<TraktTVUser> TraktFriendInfo = null;
 
 		public Dictionary<int, string> StatGroupCategories = null; // AnimeGroupID / Categories List
 		public Dictionary<int, string> StatGroupTitles = null; // AnimeGroupID / Titles List
@@ -52,6 +53,8 @@ namespace JMMServer
 
 		public StatsCache()
 		{
+			TraktFriendInfo = new List<TraktTVUser>();
+
 			StatGroupCategories = new Dictionary<int, string>();
 			StatGroupTitles = new Dictionary<int, string>();
 			StatGroupAirDate_Min = new Dictionary<int, DateTime?>();

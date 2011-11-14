@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Runtime.Serialization;
 using JMMContracts;
+using JMMServer.Repositories;
+using JMMServer.Entities;
 
 namespace JMMServer.Providers.TraktTV
 {
@@ -53,6 +55,11 @@ namespace JMMServer.Providers.TraktTV
 
 		public Contract_Trakt_Friend ToContract()
 		{
+			CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
+			CrossRef_AniDB_TvDBRepository repXrefTvDB = new CrossRef_AniDB_TvDBRepository();
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
 			Contract_Trakt_Friend contract = new Contract_Trakt_Friend();
 
 			contract.Username = username;
@@ -71,12 +78,14 @@ namespace JMMServer.Providers.TraktTV
 			// we only care about the watched episodes
 			foreach (TraktTVWatched wtch in watched)
 			{
-				Contract_Trakt_WatchedEpisode watchedEp = new Contract_Trakt_WatchedEpisode();
-
 				if (wtch.episode != null)
 				{
+					Contract_Trakt_WatchedEpisode watchedEp = new Contract_Trakt_WatchedEpisode();
+
 					watchedEp.Watched = wtch.watched;
 					watchedEp.WatchedDate = Utils.GetAniDBDateAsDate(wtch.watched);
+
+					watchedEp.AnimeSeriesID = null;
 
 					watchedEp.Episode_Number = wtch.episode.number;
 					watchedEp.Episode_Overview = wtch.episode.overview;
@@ -86,13 +95,43 @@ namespace JMMServer.Providers.TraktTV
 
 					if (wtch.episode.images != null)
 						watchedEp.Episode_Screenshot = wtch.episode.images.screen;
+
+					if (wtch.show != null)
+					{
+						watchedEp.TraktShow = wtch.show.ToContract();
+
+						// find the anime and series based on the trakt id
+						int? animeID = null;
+						CrossRef_AniDB_Trakt xref = repXrefTrakt.GetByTraktID(wtch.show.TraktID);
+						if (xref != null)
+							animeID = xref.AnimeID;
+						else
+						{
+							// try the tvdb id instead
+							CrossRef_AniDB_TvDB xrefTvDB = repXrefTvDB.GetByTvDBID(int.Parse(wtch.show.tvdb_id));
+							if (xrefTvDB != null)
+								animeID = xrefTvDB.AnimeID;
+						}
+
+						if (animeID.HasValue)
+						{
+
+							AnimeSeries ser = repSeries.GetByAnimeID(animeID.Value);
+							if (ser != null)
+								watchedEp.AnimeSeriesID = ser.AnimeSeriesID;
+
+							AniDB_Anime anime = repAnime.GetByAnimeID(animeID.Value);
+							if (anime != null)
+								watchedEp.Anime = anime.ToContract();
+
+						}
+					}
+
+					
+
+					contract.WatchedEpisodes.Add(watchedEp);
 				}
 
-				if (wtch.show != null)
-					watchedEp.TraktShow = wtch.show.ToContract();
-
-				contract.WatchedEpisodes.Add(watchedEp);
-				
 			}
 
 			return contract;

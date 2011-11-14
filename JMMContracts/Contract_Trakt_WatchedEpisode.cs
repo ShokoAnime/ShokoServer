@@ -19,7 +19,7 @@ namespace JMMContracts
 
 		public Contract_TraktTVShowResponse TraktShow { get; set; }
 
-		public Contract_AnimeSeries AnimeSeries { get; set; }
+		public int? AnimeSeriesID { get; set; }
 		public Contract_AniDBAnime Anime { get; set; }
 	}
 }

@@ -7,9 +7,9 @@ using NHibernate.Criterion;
 
 namespace JMMServer.Repositories
 {
-	public class CrossRef_AniDB_TraktRepository
+	public class IgnoreAnimeRepository
 	{
-		public void Save(CrossRef_AniDB_Trakt obj)
+		public void Save(IgnoreAnime obj)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -22,47 +22,52 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public CrossRef_AniDB_Trakt GetByID(int id)
+		public IgnoreAnime GetByID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return session.Get<CrossRef_AniDB_Trakt>(id);
+				return session.Get<IgnoreAnime>(id);
 			}
 		}
 
-		public CrossRef_AniDB_Trakt GetByAnimeID(int id)
+		public IgnoreAnime GetByAnimeUserType(int animeID, int userID, int ignoreType)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				CrossRef_AniDB_Trakt cr = session
-					.CreateCriteria(typeof(CrossRef_AniDB_Trakt))
-					.Add(Restrictions.Eq("AnimeID", id))
-					.UniqueResult<CrossRef_AniDB_Trakt>();
-				return cr;
+				IgnoreAnime obj = session
+					.CreateCriteria(typeof(IgnoreAnime))
+					.Add(Restrictions.Eq("AnimeID", animeID))
+					.Add(Restrictions.Eq("JMMUserID", userID))
+					.Add(Restrictions.Eq("IgnoreType", ignoreType))
+					.UniqueResult<IgnoreAnime>();
+
+				return obj;
 			}
 		}
 
-		public CrossRef_AniDB_Trakt GetByTraktID(string id)
+		public List<IgnoreAnime> GetByUserAndType(int userID, int ignoreType)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				CrossRef_AniDB_Trakt cr = session
-					.CreateCriteria(typeof(CrossRef_AniDB_Trakt))
-					.Add(Restrictions.Eq("TraktID", id))
-					.UniqueResult<CrossRef_AniDB_Trakt>();
-				return cr;
+				var objs = session
+					.CreateCriteria(typeof(IgnoreAnime))
+					.Add(Restrictions.Eq("JMMUserID", userID))
+					.Add(Restrictions.Eq("IgnoreType", ignoreType))
+					.List<IgnoreAnime>();
+
+				return new List<IgnoreAnime>(objs);
 			}
 		}
 
-		public List<CrossRef_AniDB_Trakt> GetAll()
+
+		public List<IgnoreAnime> GetAll()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var series = session
-					.CreateCriteria(typeof(CrossRef_AniDB_Trakt))
-					.List<CrossRef_AniDB_Trakt>();
-
-				return new List<CrossRef_AniDB_Trakt>(series);
+				var gfcs = session
+					.CreateCriteria(typeof(IgnoreAnime))
+					.List<IgnoreAnime>();
+				return new List<IgnoreAnime>(gfcs);
 			}
 		}
 
@@ -73,7 +78,7 @@ namespace JMMServer.Repositories
 				// populate the database
 				using (var transaction = session.BeginTransaction())
 				{
-					CrossRef_AniDB_Trakt cr = GetByID(id);
+					IgnoreAnime cr = GetByID(id);
 					if (cr != null)
 					{
 						session.Delete(cr);

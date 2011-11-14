@@ -404,6 +404,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly);
+
+		[OperationContract]
+		void IgnoreAnime(int animeID, int ignoreType, int userID);
+
+		[OperationContract]
+		List<Contract_Trakt_Friend> GetTraktFriendInfo();
 	}
 
 }

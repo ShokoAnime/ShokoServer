@@ -38,7 +38,9 @@ namespace JMMServer
 		private System.Windows.Forms.NotifyIcon TippuTrayNotify;
 		private System.Windows.Forms.ContextMenuStrip ctxTrayMenu;
 		private bool isAppExiting = false;
+		private static bool doneFirstTrakTinfo = false;
 		private static Logger logger = LogManager.GetCurrentClassLogger();
+		private static DateTime lastTraktInfoUpdate = DateTime.Now;
 
 		private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
 		private static Uri baseAddressImage = new Uri("http://localhost:8111/JMMServerImage");
@@ -53,6 +55,8 @@ namespace JMMServer
 		private static BackgroundWorker workerScanFolder = new BackgroundWorker();
 		private static BackgroundWorker workerRemoveMissing = new BackgroundWorker();
 		private static BackgroundWorker workerDeleteImportFolder = new BackgroundWorker();
+		private static BackgroundWorker workerTraktFriends = new BackgroundWorker();
+
 		private static System.Timers.Timer autoUpdateTimer = null;
 		private static System.Timers.Timer autoUpdateTimerShort = null;
 		private static List<FileSystemWatcher> watcherVids = null;
@@ -172,7 +176,7 @@ namespace JMMServer
 			//JMMServiceImplementation imp = new JMMServiceImplementation();
 			//imp.GetMissingEpisodes(1, true);
 
-			TraktTVHelper.GetFriends();
+			
 		}
 
 
@@ -308,6 +312,9 @@ namespace JMMServer
 				workerDeleteImportFolder.WorkerSupportsCancellation = true;
 				workerDeleteImportFolder.DoWork += new DoWorkEventHandler(workerDeleteImportFolder_DoWork);
 
+				workerTraktFriends.DoWork += new DoWorkEventHandler(workerTraktFriends_DoWork);
+				workerTraktFriends.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerTraktFriends_RunWorkerCompleted);
+
 				if (!DatabaseHelper.InitDB()) return;
 
 				//init session factory
@@ -438,11 +445,51 @@ namespace JMMServer
 			}
 		}
 
+		void workerTraktFriends_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+		{
+			List<TraktTVUser> traktFriends = e.Result as List<TraktTVUser>;
+			if (traktFriends != null && traktFriends.Count > 0)
+			{
+				StatsCache.Instance.TraktFriendInfo.Clear();
+
+				foreach (TraktTVUser friend in traktFriends)
+					StatsCache.Instance.TraktFriendInfo.Add(friend);
+			}
+		}
+
+		void workerTraktFriends_DoWork(object sender, DoWorkEventArgs e)
+		{
+			List<TraktTVUser> traktFriends = TraktTVHelper.GetFriends();
+			e.Result = traktFriends;
+		}
+
+		private static void UpdateTraktFriendInfo()
+		{
+			if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password)) return;
+
+			bool performUpdate = false;
+			if (!doneFirstTrakTinfo)
+				performUpdate = true;
+			else
+			{
+				TimeSpan ts = DateTime.Now - lastTraktInfoUpdate;
+				if (ts.TotalMinutes > 20) performUpdate = true;
+			}
+
+			if (performUpdate)
+			{
+				lastTraktInfoUpdate = DateTime.Now;
+				doneFirstTrakTinfo = true;
+				workerTraktFriends.RunWorkerAsync();
+			}
+		}
 		
 
 		void autoUpdateTimerShort_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
 		{
 			JMMService.CmdProcessorImages.NotifyOfNewCommand();
+
+			UpdateTraktFriendInfo();
 		}
 
 		#region Tray Minimize
@@ -529,6 +576,8 @@ namespace JMMServer
 			Importer.CheckForMyListSyncUpdate(false);
 			Importer.CheckForTraktAllSeriesUpdate(false);
 			Importer.CheckForTraktSyncUpdate(false);
+
+			
 		}
 
 		public static void StartWatchingFiles()

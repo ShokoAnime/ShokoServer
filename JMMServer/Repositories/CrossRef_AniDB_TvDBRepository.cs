@@ -42,6 +42,18 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public CrossRef_AniDB_TvDB GetByTvDBID(int id)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				CrossRef_AniDB_TvDB cr = session
+					.CreateCriteria(typeof(CrossRef_AniDB_TvDB))
+					.Add(Restrictions.Eq("TvDBID", id))
+					.UniqueResult<CrossRef_AniDB_TvDB>();
+				return cr;
+			}
+		}
+
 		public List<CrossRef_AniDB_TvDB> GetAll()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

@@ -4694,6 +4694,20 @@ namespace JMMServer
 				JMMUser juser = repUsers.GetByID(userID);
 				if (juser == null) return recs;
 
+				// get all the anime the user has chosen to ignore
+				int ignoreType = 1;
+				switch (recommendationType)
+				{
+					case 1: ignoreType = 1; break;
+					case 2: ignoreType = 2; break;
+				}
+				IgnoreAnimeRepository repIgnore = new IgnoreAnimeRepository();
+				List<IgnoreAnime> ignored = repIgnore.GetByUserAndType(userID, ignoreType);
+				Dictionary<int, IgnoreAnime> dictIgnored = new Dictionary<int, Entities.IgnoreAnime>();
+				foreach (IgnoreAnime ign in ignored)
+					dictIgnored[ign.AnimeID] = ign;
+				
+
 				// find all the series which the user has rated
 				List<AniDB_Vote> allVotes = repVotes.GetAll();
 				if (allVotes.Count == 0) return recs;
@@ -4710,6 +4724,8 @@ namespace JMMServer
 				{
 					if (vote.VoteType != (int)enAniDBVoteType.Anime && vote.VoteType != (int)enAniDBVoteType.AnimeTemp) continue;
 
+					if (dictIgnored.ContainsKey(vote.EntityID)) continue;
+
 					// check if the user has this anime
 					AniDB_Anime anime = repAnime.GetByAnimeID(vote.EntityID);
 					if (anime == null) continue;
@@ -4723,6 +4739,8 @@ namespace JMMServer
 
 					foreach (AniDB_Anime_Similar link in simAnime)
 					{
+						if (dictIgnored.ContainsKey(link.SimilarAnimeID)) continue;
+
 						AniDB_Anime animeLink = repAnime.GetByAnimeID(link.SimilarAnimeID);
 						if (animeLink != null)
 							if (!juser.AllowedAnime(animeLink)) continue;
@@ -5179,6 +5197,52 @@ namespace JMMServer
 				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
 				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
 				contracts = Sorting.MultiSort<Contract_MissingEpisode>(contracts, sortCriteria);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return contracts;
+		}
+
+		public void IgnoreAnime(int animeID, int ignoreType, int userID)
+		{
+			try
+			{
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+				AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+				if (anime == null) return;
+
+				JMMUserRepository repUser = new JMMUserRepository();
+				JMMUser user = repUser.GetByID(userID);
+				if (user == null) return;
+
+				IgnoreAnimeRepository repIgnore = new IgnoreAnimeRepository();
+				IgnoreAnime ignore = repIgnore.GetByAnimeUserType(animeID, userID, ignoreType);
+				if (ignore != null) return;// record already exists
+
+				ignore = new IgnoreAnime();
+				ignore.AnimeID = animeID;
+				ignore.IgnoreType = ignoreType;
+				ignore.JMMUserID = userID;
+
+				repIgnore.Save(ignore);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
+
+		public List<Contract_Trakt_Friend> GetTraktFriendInfo()
+		{
+			List<Contract_Trakt_Friend> contracts = new List<Contract_Trakt_Friend>();
+			try
+			{
+				foreach (TraktTVUser friend in StatsCache.Instance.TraktFriendInfo)
+					contracts.Add(friend.ToContract());
 
 			}
 			catch (Exception ex)

@@ -106,7 +106,7 @@ namespace JMMServer
 				//BaseConfig.MyAnimeLog.Write("DownloadWebPage called by: {0} - {1}", GetParentMethodName(), url);
 
 				HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(url);
-				webReq.Timeout = 30000; // 30 seconds
+				webReq.Timeout = 60000; // 60 seconds
 				webReq.Proxy = null;
 				webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
 				webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;

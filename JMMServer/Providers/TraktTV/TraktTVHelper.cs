@@ -64,7 +64,7 @@ namespace JMMServer.Providers.TraktTV
 
 				friends = JSONHelper.Deserialize<List<TraktTVUser>>(json);
 
-				Contract_Trakt_Friend fr = friends[0].ToContract();
+				//Contract_Trakt_Friend fr = friends[0].ToContract();
 
 			}
 			catch (Exception ex)

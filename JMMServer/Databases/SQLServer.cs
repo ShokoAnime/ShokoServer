@@ -117,24 +117,40 @@ namespace JMMServer.Databases
 
 		private static void UpdateSchema_002(int currentVersionNumber)
 		{
-			/*int thisVersion = 2;
+			int thisVersion = 2;
 			if (currentVersionNumber >= thisVersion) return;
 
 			logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-			string sql = "ALTER TABLE GroupFilter ADD SortingCriteria [nvarchar](max)";
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE IgnoreAnime( " +
+				" IgnoreAnimeID int IDENTITY(1,1) NOT NULL, " +
+				" JMMUserID int NOT NULL, " +
+				" AnimeID int NOT NULL, " +
+				" IgnoreType int NOT NULL, " +
+				" CONSTRAINT [PK_IgnoreAnime] PRIMARY KEY CLUSTERED  " +
+				" ( " +
+				" IgnoreAnimeID ASC " +
+				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+				" ) ON [PRIMARY]");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_IgnoreAnime_User_AnimeID ON IgnoreAnime(JMMUserID, AnimeID, IgnoreType)");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
 			{
 				tmpConn.Open();
-				using (SqlCommand command = new SqlCommand(sql, tmpConn))
+				foreach (string cmdTable in cmds)
 				{
-					command.ExecuteNonQuery();
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
 				}
 			}
 
-			UpdateDatabaseVersion(thisVersion);*/
+			UpdateDatabaseVersion(thisVersion);
 
 		}
 

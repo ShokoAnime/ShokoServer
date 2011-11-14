@@ -88,21 +88,34 @@ namespace JMMServer.Databases
 
 		private static void UpdateSchema_002(int currentVersionNumber)
 		{
-			/*int thisVersion = 2;
+			int thisVersion = 2;
 			if (currentVersionNumber >= thisVersion) return;
 
 			logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-			string sql = "ALTER TABLE GroupFilter ADD SortingCriteria text";
-
 			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
 			myConn.Open();
-			SQLiteCommand sqCommand = new SQLiteCommand(sql); 
-			sqCommand.Connection = myConn;
-			sqCommand.ExecuteNonQuery(); 
+
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE IgnoreAnime( " +
+				" IgnoreAnimeID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" JMMUserID int NOT NULL, " +
+				" AnimeID int NOT NULL, " +
+				" IgnoreType int NOT NULL)");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_IgnoreAnime_User_AnimeID ON IgnoreAnime(JMMUserID, AnimeID, IgnoreType);");
+
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
 			myConn.Close();
 
-			UpdateDatabaseVersion(thisVersion);*/
+			UpdateDatabaseVersion(thisVersion);
 
 		}
 

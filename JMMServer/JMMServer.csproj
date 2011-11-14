@@ -245,6 +245,7 @@
     <Compile Include="Entities\FileNameHash.cs" />
     <Compile Include="Entities\GroupFilter.cs" />
     <Compile Include="Entities\GroupFilterCondition.cs" />
+    <Compile Include="Entities\IgnoreAnime.cs" />
     <Compile Include="Entities\ImportFolder.cs" />
     <Compile Include="Entities\JMMUser.cs" />
     <Compile Include="Entities\Language.cs" />
@@ -311,6 +312,7 @@
     <Compile Include="Mappings\FileNameHashMap.cs" />
     <Compile Include="Mappings\GroupFilterConditionMap.cs" />
     <Compile Include="Mappings\GroupFilterMap.cs" />
+    <Compile Include="Mappings\IgnoreAnimeMap.cs" />
     <Compile Include="Mappings\ImportFolderMap.cs" />
     <Compile Include="Mappings\JMMUserMap.cs" />
     <Compile Include="Mappings\LanguageMap.cs" />
@@ -397,6 +399,7 @@
     <Compile Include="Repositories\FileNameHashRepository.cs" />
     <Compile Include="Repositories\GroupFilterConditionRepository.cs" />
     <Compile Include="Repositories\GroupFilterRepository.cs" />
+    <Compile Include="Repositories\IgnoreAnimeRepository.cs" />
     <Compile Include="Repositories\ImportFolderRepository.cs" />
     <Compile Include="Repositories\JMMUserRepository.cs" />
     <Compile Include="Repositories\LanguageRepository.cs" />
