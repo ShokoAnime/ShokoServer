@@ -29,6 +29,7 @@ namespace JMMServer
 			Trakt_ImageFanartRepository repTraktFanart = new Trakt_ImageFanartRepository();
 			Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
 			Trakt_EpisodeRepository repTraktEpisodes = new Trakt_EpisodeRepository();
+			Trakt_FriendRepository repTraktFriends = new Trakt_FriendRepository();
 
 			JMMImageType imageType = (JMMImageType)entityType;
 
@@ -183,6 +184,20 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find Trakt_Fanart image: {0}", tFanart.FullImagePath);
+						return null;
+					}
+
+				case JMMImageType.Trakt_Friend:
+
+
+					Trakt_Friend tFriend = repTraktFriends.GetByID(int.Parse(entityID));
+					if (tFriend == null) return null;
+
+					if (File.Exists(tFriend.FullImagePath))
+						return File.ReadAllBytes(tFriend.FullImagePath);
+					else
+					{
+						logger.Trace("Could not find Trakt_Friend image: {0}", tFriend.FullImagePath);
 						return null;
 					}
 

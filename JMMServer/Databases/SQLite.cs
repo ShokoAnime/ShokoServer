@@ -78,6 +78,7 @@ namespace JMMServer.Databases
 			try
 			{
 				UpdateSchema_002(versionNumber);
+				UpdateSchema_003(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -119,7 +120,45 @@ namespace JMMServer.Databases
 
 		}
 
-		
+		private static void UpdateSchema_003(int currentVersionNumber)
+		{
+			int thisVersion = 3;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE Trakt_Friend( " +
+				" Trakt_FriendID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" Username text NOT NULL, " +
+				" FullName text NULL, " +
+				" Gender text NULL, " +
+				" Age text NULL, " +
+				" Location text NULL, " +
+				" About text NULL, " +
+				" Joined int NOT NULL, " +
+				" Avatar text NULL, " +
+				" Url text NULL, " +
+				" LastAvatarUpdate timestamp NOT NULL)");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_Trakt_Friend_Username ON Trakt_Friend(Username);");
+
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
 
 
 		private static void UpdateDatabaseVersion(int versionNumber)

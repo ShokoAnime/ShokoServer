@@ -175,8 +175,6 @@ namespace JMMServer
 
 			//JMMServiceImplementation imp = new JMMServiceImplementation();
 			//imp.GetMissingEpisodes(1, true);
-
-			
 		}
 
 

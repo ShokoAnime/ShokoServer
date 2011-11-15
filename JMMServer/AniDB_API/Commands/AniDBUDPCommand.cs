@@ -261,7 +261,9 @@ namespace AniDBAPI.Commands
 			// reset login status to start again
 			if (ResponseCode == 598)
 			{
-				JMMService.AnidbProcessor.IsLoggedOn = false;
+				JMMService.AnidbProcessor.IsInvalidSession = true;
+				logger.Trace("FORCING Logout because of invalid session");
+				JMMService.AnidbProcessor.ForceLogout();
 			}
 			
 		}

@@ -64,6 +64,67 @@ namespace JMMServer.Providers.TraktTV
 
 				friends = JSONHelper.Deserialize<List<TraktTVUser>>(json);
 
+				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+				Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
+				Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
+
+				foreach (TraktTVUser friend in friends)
+				{
+					Trakt_Friend traktFriend = repFriends.GetByUsername(friend.username);
+					if (traktFriend == null)
+					{
+						traktFriend = new Trakt_Friend();
+						traktFriend.LastAvatarUpdate = DateTime.Now;
+					}
+
+					traktFriend.Populate(friend);
+					repFriends.Save(traktFriend);
+
+					if (!string.IsNullOrEmpty(traktFriend.FullImagePath))
+					{
+						bool fileExists = File.Exists(traktFriend.FullImagePath);
+						TimeSpan ts = DateTime.Now - traktFriend.LastAvatarUpdate;
+
+						if (!fileExists || ts.TotalHours > 1)
+						{
+							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktFriend.Trakt_FriendID, JMMImageType.Trakt_Friend, true);
+							cmd.Save();
+						}
+					}
+
+					foreach (TraktTVWatched wtch in friend.watched)
+					{
+						if (wtch.episode != null && wtch.show != null)
+						{
+
+							Trakt_Show show = repShows.GetByTraktID(wtch.show.TraktID);
+							if (show == null)
+							{
+								show = new Trakt_Show();
+								show.Populate(wtch.show);
+								repShows.Save(show);
+							}
+
+							Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, int.Parse(wtch.episode.season), int.Parse(wtch.episode.number));
+							if (episode == null)
+								episode = new Trakt_Episode();
+
+							episode.Populate(wtch.episode, show.Trakt_ShowID);
+							repEpisodes.Save(episode);
+
+							if (!string.IsNullOrEmpty(episode.FullImagePath))
+							{
+								bool fileExists = File.Exists(episode.FullImagePath);
+								if (!fileExists)
+								{
+									CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(episode.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
+									cmd.Save();
+								}
+							}
+						}
+					}
+				}
+
 				//Contract_Trakt_Friend fr = friends[0].ToContract();
 
 			}
@@ -87,12 +148,7 @@ namespace JMMServer.Providers.TraktTV
 				if (show == null)
 					show = new Trakt_Show();
 
-				show.Overview = tvshow.overview;
-				show.Title = tvshow.title;
-				show.TraktID = tvshow.TraktID;
-				if (!string.IsNullOrEmpty(tvshow.tvdb_id)) show.TvDB_ID = int.Parse(tvshow.tvdb_id);
-				show.URL = tvshow.url;
-				show.Year = tvshow.year;
+				show.Populate(tvshow);
 				repShows.Save(show);
 
 

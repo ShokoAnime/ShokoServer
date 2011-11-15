@@ -5242,7 +5242,11 @@ namespace JMMServer
 			try
 			{
 				foreach (TraktTVUser friend in StatsCache.Instance.TraktFriendInfo)
-					contracts.Add(friend.ToContract());
+				{
+					Contract_Trakt_Friend contract = friend.ToContract();
+					if (contract != null)
+						contracts.Add(contract);
+				}
 
 			}
 			catch (Exception ex)

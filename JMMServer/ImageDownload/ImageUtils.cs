@@ -169,5 +169,15 @@ namespace JMMServer.ImageDownload
 
 			return filePath;
 		}
+
+		public static string GetTraktImagePath_Avatars()
+		{
+			string filePath = Path.Combine(GetTraktImagePath(), "Avatars");
+
+			if (!Directory.Exists(filePath))
+				Directory.CreateDirectory(filePath);
+
+			return filePath;
+		}
 	}
 }

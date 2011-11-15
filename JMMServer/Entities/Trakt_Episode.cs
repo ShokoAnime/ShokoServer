@@ -7,6 +7,7 @@ using NLog;
 using System.IO;
 using JMMServer.ImageDownload;
 using JMMContracts;
+using JMMServer.Providers.TraktTV;
 
 namespace JMMServer.Entities
 {
@@ -58,6 +59,18 @@ namespace JMMServer.Entities
 
 				return Path.Combine(ImageUtils.GetTraktImagePath(), relativePath);
 			}
+		}
+
+		public void Populate(TraktTVEpisodeUser ep, int traktShowID)
+		{
+			if (ep.images != null)
+				EpisodeImage = ep.images.screen;
+			EpisodeNumber = int.Parse(ep.number);
+			Overview = ep.overview;
+			Season = int.Parse(ep.season);
+			Title = ep.title;
+			URL = ep.url;
+			Trakt_ShowID = traktShowID;
 		}
 
 		public Contract_Trakt_Episode ToContract()

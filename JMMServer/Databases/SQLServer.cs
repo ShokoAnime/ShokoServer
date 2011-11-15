@@ -107,6 +107,7 @@ namespace JMMServer.Databases
 			try
 			{
 				UpdateSchema_002(versionNumber);
+				UpdateSchema_003(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -154,6 +155,51 @@ namespace JMMServer.Databases
 
 		}
 
+		private static void UpdateSchema_003(int currentVersionNumber)
+		{
+			int thisVersion = 3;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE Trakt_Friend( " +
+				" Trakt_FriendID int IDENTITY(1,1) NOT NULL, " +
+				" Username nvarchar(100) NOT NULL, " +
+				" FullName nvarchar(100) NULL, " +
+				" Gender nvarchar(100) NULL, " +
+				" Age nvarchar(100) NULL, " +
+				" Location nvarchar(100) NULL, " +
+				" About nvarchar(MAX) NULL, " +
+				" Joined int NOT NULL, " +
+				" Avatar nvarchar(MAX) NULL, " +
+				" Url nvarchar(MAX) NULL, " +
+				" LastAvatarUpdate datetime NOT NULL, " +
+				" CONSTRAINT [PK_Trakt_Friend] PRIMARY KEY CLUSTERED  " +
+				" ( " +
+				" Trakt_FriendID ASC " +
+				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+				" ) ON [PRIMARY]");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_Trakt_Friend_Username ON Trakt_Friend(Username)");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
 
 
 		

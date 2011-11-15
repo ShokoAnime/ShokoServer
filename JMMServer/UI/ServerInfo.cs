@@ -240,6 +240,17 @@ namespace JMMServer
 			}
 		}
 
+		private bool isInvalidSession = false;
+		public bool IsInvalidSession
+		{
+			get { return isInvalidSession; }
+			set
+			{
+				isInvalidSession = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("IsInvalidSession"));
+			}
+		}
+
 		public ObservableCollection<ImportFolder> ImportFolders { get; set; }
 
 		public void RefreshImportFolders()

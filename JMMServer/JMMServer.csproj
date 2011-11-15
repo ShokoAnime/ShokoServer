@@ -254,6 +254,7 @@
     <Compile Include="Entities\MovieDB_Poster.cs" />
     <Compile Include="Entities\ScheduledUpdate.cs" />
     <Compile Include="Entities\Trakt_Episode.cs" />
+    <Compile Include="Entities\Trakt_Friend.cs" />
     <Compile Include="Entities\Trakt_ImageFanart.cs" />
     <Compile Include="Entities\Trakt_ImagePoster.cs" />
     <Compile Include="Entities\Trakt_Season.cs" />
@@ -321,6 +322,7 @@
     <Compile Include="Mappings\MovieDB_PosterMap.cs" />
     <Compile Include="Mappings\ScheduledUpdateMap.cs" />
     <Compile Include="Mappings\Trakt_EpisodeMap.cs" />
+    <Compile Include="Mappings\Trakt_FriendMap.cs" />
     <Compile Include="Mappings\Trakt_ImageFanartMap.cs" />
     <Compile Include="Mappings\Trakt_ImagePosterMap.cs" />
     <Compile Include="Mappings\Trakt_SeasonMap.cs" />
@@ -408,6 +410,7 @@
     <Compile Include="Repositories\MovieDB_PosterRepository.cs" />
     <Compile Include="Repositories\ScheduledUpdateRepository.cs" />
     <Compile Include="Repositories\Trakt_EpisodeRepository.cs" />
+    <Compile Include="Repositories\Trakt_FriendRepository.cs" />
     <Compile Include="Repositories\Trakt_ImageFanartRepository.cs" />
     <Compile Include="Repositories\Trakt_ImagePosterRepository.cs" />
     <Compile Include="Repositories\Trakt_SeasonRepository.cs" />

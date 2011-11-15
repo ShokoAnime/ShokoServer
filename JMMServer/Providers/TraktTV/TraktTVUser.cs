@@ -25,7 +25,7 @@ namespace JMMServer.Providers.TraktTV
 		public string gender { get; set; }
 
 		[DataMember]
-		public object age { get; set; }
+		public string age { get; set; }
 
 		[DataMember]
 		public string location { get; set; }
@@ -59,9 +59,15 @@ namespace JMMServer.Providers.TraktTV
 			CrossRef_AniDB_TvDBRepository repXrefTvDB = new CrossRef_AniDB_TvDBRepository();
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+			Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
+			Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
+
+			Trakt_Friend traktFriend = repFriends.GetByUsername(username);
+			if (traktFriend == null) return null;
 
 			Contract_Trakt_Friend contract = new Contract_Trakt_Friend();
 
+			contract.Trakt_FriendID = traktFriend.Trakt_FriendID;
 			contract.Username = username;
 			contract.Full_name = full_name;
 			contract.Gender = gender;
@@ -72,6 +78,8 @@ namespace JMMServer.Providers.TraktTV
 			contract.Avatar = avatar;
 			contract.Url = url;
 			contract.JoinedDate = Utils.GetAniDBDateAsDate(joined);
+
+
 
 			contract.WatchedEpisodes = new List<Contract_Trakt_WatchedEpisode>();
 

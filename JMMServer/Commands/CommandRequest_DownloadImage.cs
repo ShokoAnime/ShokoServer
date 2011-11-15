@@ -150,6 +150,16 @@ namespace JMMServer.Commands
 						req = new ImageDownloadRequest(EntityTypeEnum, traktFanart, ForceDownload);
 						break;
 
+					case JMMImageType.Trakt_Friend:
+
+						Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
+						Trakt_Friend friend = repFriends.GetByID(EntityID);
+						if (friend == null) return;
+						if (string.IsNullOrEmpty(friend.Avatar)) return;
+
+						req = new ImageDownloadRequest(EntityTypeEnum, friend, ForceDownload);
+						break;
+
 					case JMMImageType.Trakt_Episode:
 
 						Trakt_EpisodeRepository repTraktEpisodes = new Trakt_EpisodeRepository();
@@ -325,6 +335,10 @@ namespace JMMServer.Commands
 					Trakt_ImageFanart traktFanart = req.ImageData as Trakt_ImageFanart;
 					return traktFanart.ImageURL;
 
+				case JMMImageType.Trakt_Friend:
+					Trakt_Friend traktFriend = req.ImageData as Trakt_Friend;
+					return traktFriend.Avatar;
+
 				case JMMImageType.Trakt_Episode:
 					Trakt_Episode traktEp = req.ImageData as Trakt_Episode;
 					return traktEp.EpisodeImage;
@@ -392,6 +406,10 @@ namespace JMMServer.Commands
 				case JMMImageType.Trakt_Fanart:
 					Trakt_ImageFanart traktFanart = req.ImageData as Trakt_ImageFanart;
 					return traktFanart.FullImagePath;
+
+				case JMMImageType.Trakt_Friend:
+					Trakt_Friend traktFriend = req.ImageData as Trakt_Friend;
+					return traktFriend.FullImagePath;
 
 				case JMMImageType.Trakt_Episode:
 					Trakt_Episode traktEp = req.ImageData as Trakt_Episode;

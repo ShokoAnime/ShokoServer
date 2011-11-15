@@ -7,6 +7,7 @@ namespace JMMContracts
 {
 	public class Contract_Trakt_Friend
 	{
+		public int Trakt_FriendID { get; set; }
 		public string Username { get; set; }
 		public string Full_name { get; set; }
 		public string Gender { get; set; }

@@ -8,6 +8,7 @@ using System.IO;
 using JMMServer.ImageDownload;
 using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Providers.TraktTV;
 
 namespace JMMServer.Entities
 {
@@ -28,6 +29,16 @@ namespace JMMServer.Entities
 				Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
 				return repSeasons.GetByShowID(Trakt_ShowID);
 			}
+		}
+
+		public void Populate(TraktTVShow tvshow)
+		{
+			Overview = tvshow.overview;
+			Title = tvshow.title;
+			TraktID = tvshow.TraktID;
+			if (!string.IsNullOrEmpty(tvshow.tvdb_id)) TvDB_ID = int.Parse(tvshow.tvdb_id);
+			URL = tvshow.url;
+			Year = tvshow.year;
 		}
 
 		public Contract_Trakt_Show ToContract()

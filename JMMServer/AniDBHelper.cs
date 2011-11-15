@@ -72,6 +72,20 @@ namespace JMMServer
 
 		}
 
+		private bool isInvalidSession = false;
+		public bool IsInvalidSession
+		{
+			get { return isInvalidSession; }
+
+			set
+			{
+				isInvalidSession = value;
+				ServerInfo.Instance.IsInvalidSession = isInvalidSession;
+				
+			}
+
+		}
+
 		private bool isLoggedOn = false;
 		public bool IsLoggedOn
 		{
@@ -199,6 +213,7 @@ namespace JMMServer
 				curSessionID = login.SessionID;
 				encoding = login.Encoding;
 				this.isLoggedOn = true;
+				this.IsInvalidSession = false;
 				return true;
 			}
 
