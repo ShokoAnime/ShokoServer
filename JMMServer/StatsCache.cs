@@ -921,6 +921,11 @@ namespace JMMServer
 						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.Stat_UserVotePermanent.HasValue == true) return false;
 						break;
 
+					case GroupFilterConditionType.UserVotedAny:
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && contractGroup.Stat_UserVoteOverall.HasValue == false) return false;
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.Stat_UserVoteOverall.HasValue == true) return false;
+						break;
+
 					case GroupFilterConditionType.AirDate:
 						DateTime filterDate;
 						if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)

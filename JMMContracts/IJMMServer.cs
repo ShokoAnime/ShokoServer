@@ -410,6 +410,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_Trakt_Friend> GetTraktFriendInfo();
+
+		[OperationContract]
+		Contract_AniDBVote GetUserVote(int animeID);
 	}
 
 }

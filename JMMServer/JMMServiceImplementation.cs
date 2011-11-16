@@ -5257,6 +5257,23 @@ namespace JMMServer
 			}
 			return contracts;
 		}
+
+		public Contract_AniDBVote GetUserVote(int animeID)
+		{
+			try
+			{
+				AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
+				List<AniDB_Vote> dbVotes = repVotes.GetByEntity(animeID);
+				if (dbVotes.Count == 0) return null;
+				return dbVotes[0].ToContract();
+			
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return null;
+		}
 	}
 
 	
