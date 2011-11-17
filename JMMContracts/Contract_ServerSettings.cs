@@ -12,6 +12,8 @@ namespace JMMContracts
 		public string AniDB_ServerAddress { get; set; }
 		public string AniDB_ServerPort { get; set; }
 		public string AniDB_ClientPort { get; set; }
+		public string AniDB_AVDumpClientPort { get; set; }
+		public string AniDB_AVDumpKey { get; set; }
 
 		public bool AniDB_DownloadRelatedAnime { get; set; }
 		public bool AniDB_DownloadSimilarAnime { get; set; }

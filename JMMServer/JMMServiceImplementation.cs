@@ -2093,6 +2093,8 @@ namespace JMMServer
 				ServerSettings.AniDB_ServerAddress = contractIn.AniDB_ServerAddress;
 				ServerSettings.AniDB_ServerPort = contractIn.AniDB_ServerPort;
 				ServerSettings.AniDB_Username = contractIn.AniDB_Username;
+				ServerSettings.AniDB_AVDumpClientPort = contractIn.AniDB_AVDumpClientPort;
+				ServerSettings.AniDB_AVDumpKey = contractIn.AniDB_AVDumpKey;
 
 				ServerSettings.AniDB_DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
 				ServerSettings.AniDB_DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;

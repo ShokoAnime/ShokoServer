@@ -174,6 +174,32 @@ namespace JMMServer
 			}
 		}
 
+		public static string AniDB_AVDumpKey
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				return appSettings["AniDB_AVDumpKey"];
+			}
+			set
+			{
+				UpdateSetting("AniDB_AVDumpKey", value);
+			}
+		}
+
+		public static string AniDB_AVDumpClientPort
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				return appSettings["AniDB_AVDumpClientPort"];
+			}
+			set
+			{
+				UpdateSetting("AniDB_AVDumpClientPort", value);
+			}
+		}
+
 		public static bool AniDB_DownloadRelatedAnime
 		{
 			get
@@ -903,6 +929,8 @@ namespace JMMServer
 			contract.AniDB_ServerAddress = ServerSettings.AniDB_ServerAddress;
 			contract.AniDB_ServerPort = ServerSettings.AniDB_ServerPort;
 			contract.AniDB_ClientPort = ServerSettings.AniDB_ClientPort;
+			contract.AniDB_AVDumpClientPort = ServerSettings.AniDB_AVDumpClientPort;
+			contract.AniDB_AVDumpKey = ServerSettings.AniDB_AVDumpKey;
 
 			contract.AniDB_DownloadRelatedAnime = ServerSettings.AniDB_DownloadRelatedAnime;
 			contract.AniDB_DownloadSimilarAnime = ServerSettings.AniDB_DownloadSimilarAnime;
