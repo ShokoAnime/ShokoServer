@@ -17,7 +17,6 @@ namespace JMMServer.Entities
 		public DateTime DateTimeUpdated { get; set; }
 		public DateTime DateTimeCreated { get; set; }
 
-
 		public enEpisodeType EpisodeTypeEnum
 		{
 			get
@@ -68,7 +67,7 @@ namespace JMMServer.Entities
 			}
 			else
 			{
-				contract.IsWatched = 1;
+				contract.IsWatched = epuser.WatchedCount > 0 ? 1 : 0;
 				contract.PlayedCount = epuser.PlayedCount;
 				contract.StoppedCount = epuser.StoppedCount;
 				contract.WatchedCount = epuser.WatchedCount;
@@ -124,7 +123,7 @@ namespace JMMServer.Entities
 			}
 			else
 			{
-				contract.IsWatched = 1;
+				contract.IsWatched = epuser.WatchedCount > 0 ? 1 : 0;
 				contract.PlayedCount = epuser.PlayedCount;
 				contract.StoppedCount = epuser.StoppedCount;
 				contract.WatchedCount = epuser.WatchedCount;
@@ -241,6 +240,7 @@ namespace JMMServer.Entities
 				epUserRecord.AnimeEpisodeID = this.AnimeEpisodeID;
 				epUserRecord.AnimeSeriesID = this.AnimeSeriesID;
 				epUserRecord.JMMUserID = userID;
+				epUserRecord.WatchedCount++;
 
 				if (watchedDate.HasValue)
 					epUserRecord.WatchedDate = watchedDate.Value;

@@ -4041,13 +4041,31 @@ namespace JMMServer
 			{
 				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
 				AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
+				AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
 
 				// get all the data first
 				// we do this to reduce the amount of database calls, which makes it a lot faster
 				AnimeSeries series = repAnimeSer.GetByID(animeSeriesID);
 				if (series == null) return null;
 
-				List<AnimeEpisode> epList = repEps.GetUnwatchedEpisodes(animeSeriesID, userID);
+				//List<AnimeEpisode> epList = repEps.GetUnwatchedEpisodes(animeSeriesID, userID);
+				List<AnimeEpisode> epList = new List<AnimeEpisode>();
+				Dictionary<int, AnimeEpisode_User> dictEpUsers = new Dictionary<int, AnimeEpisode_User>();
+				foreach (AnimeEpisode_User userRecord in repEpUser.GetByUserIDAndSeriesID(userID, animeSeriesID))
+					dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
+
+				foreach (AnimeEpisode animeep in repEps.GetBySeriesID(animeSeriesID))
+				{
+					if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
+					{
+						epList.Add(animeep);
+						continue;
+					}
+
+					AnimeEpisode_User usrRec = dictEpUsers[animeep.AnimeEpisodeID];
+					if (usrRec.WatchedCount == 0 || !usrRec.WatchedDate.HasValue)
+						epList.Add(animeep);
+				}
 
 				AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
 				List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(series.AniDB_ID);
@@ -5277,6 +5295,61 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 			}
 			return null;
+		}
+
+		public void IncrementEpisodeStats(int animeEpisodeID, int userID, int statCountType)
+		{
+			try
+			{
+				AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
+				AnimeEpisode ep = repEpisodes.GetByID(animeEpisodeID);
+				if (ep == null) return;
+
+				AnimeEpisode_UserRepository repEpisodeUsers = new AnimeEpisode_UserRepository();
+				AnimeEpisode_User epUserRecord = ep.GetUserRecord(userID);
+
+				if (epUserRecord == null)
+				{
+					epUserRecord = new AnimeEpisode_User();
+					epUserRecord.PlayedCount = 0;
+					epUserRecord.StoppedCount = 0;
+					epUserRecord.WatchedCount = 0;
+				}
+				epUserRecord.AnimeEpisodeID = ep.AnimeEpisodeID;
+				epUserRecord.AnimeSeriesID = ep.AnimeSeriesID;
+				epUserRecord.JMMUserID = userID;
+				//epUserRecord.WatchedDate = DateTime.Now;
+
+				switch ((StatCountType)statCountType)
+				{
+					case StatCountType.Played: epUserRecord.PlayedCount++; break;
+					case StatCountType.Stopped: epUserRecord.StoppedCount++; break;
+					case StatCountType.Watched: epUserRecord.WatchedCount++; break;
+				}
+
+				repEpisodeUsers.Save(epUserRecord);
+
+				AnimeSeries ser = ep.AnimeSeries;
+				if (ser == null) return;
+
+				AnimeSeries_UserRepository repSeriesUser = new AnimeSeries_UserRepository();
+				AnimeSeries_User userRecord = ser.GetUserRecord(userID);
+				if (userRecord == null)
+					userRecord = new AnimeSeries_User(userID, ser.AnimeSeriesID);
+
+				switch ((StatCountType)statCountType)
+				{
+					case StatCountType.Played: userRecord.PlayedCount++; break;
+					case StatCountType.Stopped: userRecord.StoppedCount++; break;
+					case StatCountType.Watched: userRecord.WatchedCount++; break;
+				}
+
+				repSeriesUser.Save(userRecord);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
 		}
 	}
 

@@ -22,6 +22,7 @@ namespace JMMServer.Entities
 		public int MissingEpisodeCount { get; set; }
 		public int MissingEpisodeCountGroups { get; set; }
 		public int LatestLocalEpisodeNumber { get; set; }
+
 		#endregion
 
 		public string Year
@@ -339,6 +340,7 @@ namespace JMMServer.Entities
 					// reset stats
 					userRecord.UnwatchedEpisodeCount = 0;
 					userRecord.WatchedEpisodeCount = 0;
+					userRecord.WatchedCount = 0;
 					userRecord.WatchedDate = null;
 
 					foreach (AnimeEpisode ep in AnimeEpisodes)
@@ -362,6 +364,8 @@ namespace JMMServer.Entities
 								}
 								else
 									userRecord.WatchedDate = epUserRecord.WatchedDate;
+
+								userRecord.WatchedCount += epUserRecord.WatchedCount;
 							}
 						}
 					}

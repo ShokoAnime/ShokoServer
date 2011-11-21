@@ -15,7 +15,7 @@ namespace JMMServer.Entities
 		public int JMMUserID { get; set; }
 		public int AnimeEpisodeID { get; set; }
 		public int AnimeSeriesID { get; set; }
-		public DateTime WatchedDate { get; set; }
+		public DateTime? WatchedDate { get; set; }
 		public int PlayedCount { get; set; }
 		public int WatchedCount { get; set; }
 		public int StoppedCount { get; set; }

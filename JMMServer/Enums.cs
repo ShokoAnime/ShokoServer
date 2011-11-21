@@ -282,4 +282,11 @@ namespace JMMServer
 		Web = 4,
 		Other = 5
 	}
+
+	public enum StatCountType
+	{
+		Watched = 1,
+		Played = 2,
+		Stopped = 3
+	}
 }

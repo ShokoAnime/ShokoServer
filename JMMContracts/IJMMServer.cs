@@ -413,6 +413,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		Contract_AniDBVote GetUserVote(int animeID);
+
+		[OperationContract]
+		void IncrementEpisodeStats(int animeEpisodeID, int userID, int statCountType);
 	}
 
 }

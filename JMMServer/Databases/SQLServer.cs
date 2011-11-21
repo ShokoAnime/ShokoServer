@@ -820,7 +820,7 @@ namespace JMMServer.Databases
 				" JMMUserID int NOT NULL, " +
 				" AnimeEpisodeID int NOT NULL, " +
 				" AnimeSeriesID int NOT NULL, " + // we only have this column to improve performance
-				" WatchedDate datetime NOT NULL, " +
+				" WatchedDate datetime NULL, " +
 				" PlayedCount int NOT NULL, " +
 				" WatchedCount int NOT NULL, " +
 				" StoppedCount int NOT NULL, " +
