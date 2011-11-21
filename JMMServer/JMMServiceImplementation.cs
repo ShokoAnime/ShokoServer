@@ -679,6 +679,8 @@ namespace JMMServer
 
 				ser.AnimeGroupID = contract.AnimeGroupID;
 				ser.AniDB_ID = contract.AniDB_ID;
+				ser.DefaultAudioLanguage = contract.DefaultAudioLanguage;
+				ser.DefaultSubtitleLanguage = contract.DefaultSubtitleLanguage;
 				ser.DateTimeUpdated = DateTime.Now;
 
 				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
