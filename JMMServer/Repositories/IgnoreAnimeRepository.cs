@@ -59,6 +59,19 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<IgnoreAnime> GetByUser(int userID)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var objs = session
+					.CreateCriteria(typeof(IgnoreAnime))
+					.Add(Restrictions.Eq("JMMUserID", userID))
+					.List<IgnoreAnime>();
+
+				return new List<IgnoreAnime>(objs);
+			}
+		}
+
 
 		public List<IgnoreAnime> GetAll()
 		{

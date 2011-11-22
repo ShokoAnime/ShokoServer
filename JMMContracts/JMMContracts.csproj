@@ -94,6 +94,7 @@
     <Compile Include="Contract_GroupFilterExtended.cs" />
     <Compile Include="Contract_GroupFilter_SaveResponse.cs" />
     <Compile Include="Contract_GroupVideoQuality.cs" />
+    <Compile Include="Contract_IgnoreAnime.cs" />
     <Compile Include="Contract_ImportFolder.cs" />
     <Compile Include="Contract_ImportFolder_SaveResponse.cs" />
     <Compile Include="Contract_JMMUser.cs" />

@@ -5351,6 +5351,46 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 			}
 		}
+
+		public List<Contract_IgnoreAnime> GetIgnoredAnime(int userID)
+		{
+			List<Contract_IgnoreAnime> retAnime = new List<Contract_IgnoreAnime>();
+			try
+			{
+				JMMUserRepository repUser = new JMMUserRepository();
+				JMMUser user = repUser.GetByID(userID);
+				if (user == null) return retAnime;
+
+				IgnoreAnimeRepository repIgnore = new IgnoreAnimeRepository();
+				List<IgnoreAnime> ignoredAnime = repIgnore.GetByUser(userID);
+				foreach (IgnoreAnime ign in ignoredAnime)
+					retAnime.Add(ign.ToContract());
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return retAnime;
+		}
+
+		public void RemoveIgnoreAnime(int ignoreAnimeID)
+		{
+			try
+			{
+				IgnoreAnimeRepository repIgnore = new IgnoreAnimeRepository();
+				IgnoreAnime ignore = repIgnore.GetByID(ignoreAnimeID);
+				if (ignore == null) return;
+
+				repIgnore.Delete(ignoreAnimeID);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
 	}
 
 	

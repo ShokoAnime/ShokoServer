@@ -416,6 +416,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		void IncrementEpisodeStats(int animeEpisodeID, int userID, int statCountType);
+
+		[OperationContract]
+		List<Contract_IgnoreAnime> GetIgnoredAnime(int userID);
+
+		[OperationContract]
+		void RemoveIgnoreAnime(int ignoreAnimeID);
 	}
 
 }
