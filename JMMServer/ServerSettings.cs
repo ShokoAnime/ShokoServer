@@ -613,7 +613,7 @@ namespace JMMServer
 				NameValueCollection appSettings = ConfigurationManager.AppSettings;
 				string language = appSettings["TvDB_Language"];
 				if (string.IsNullOrEmpty(language))
-					return "de";
+					return "en";
 				else
 					return language;
 			}
