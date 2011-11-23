@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using JMMContracts;
+using JMMServer.Repositories;
 
 namespace JMMServer.Entities
 {
@@ -13,6 +14,15 @@ namespace JMMServer.Entities
 		public int TvDBID { get; set; }
 		public int TvDBSeasonNumber { get; set; }
 		public int CrossRefSource { get; set; }
+
+		public TvDB_Series TvDBSeries
+		{
+			get
+			{
+				TvDB_SeriesRepository repTvSeries = new TvDB_SeriesRepository();
+				return repTvSeries.GetByTvDBID(TvDBID);
+			}
+		}
 
 		public Contract_CrossRef_AniDB_TvDB ToContract()
 		{

@@ -42,6 +42,18 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<TvDB_Series> GetAll()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var series = session
+					.CreateCriteria(typeof(TvDB_Series))
+					.List<TvDB_Series>();
+
+				return new List<TvDB_Series>(series);
+			}
+		}
+
 		public void Delete(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

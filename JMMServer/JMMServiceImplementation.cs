@@ -628,8 +628,10 @@ namespace JMMServer
 					contractout.ErrorMessage = string.Format("Could not find anime record with ID: {0}", ser.AniDB_ID);
 					return contractout;
 				}
+				CrossRef_AniDB_TvDB xref = ser.CrossRefTvDB;
 
-				contractout.AnimeSeries = ser.ToContract(anime, ser.CrossRefTvDB, ser.CrossRefMovieDB, ser.GetUserRecord(userID));
+				contractout.AnimeSeries = ser.ToContract(anime, xref, ser.CrossRefMovieDB,
+					ser.GetUserRecord(userID), xref != null ? xref.TvDBSeries : null);
 
 				return contractout;
 			}
@@ -706,8 +708,10 @@ namespace JMMServer
 						grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
 					}
 				}
+				CrossRef_AniDB_TvDB xref = ser.CrossRefTvDB;
 
-				contractout.AnimeSeries = ser.ToContract(anime, ser.CrossRefTvDB, ser.CrossRefMovieDB, ser.GetUserRecord(userID));
+				contractout.AnimeSeries = ser.ToContract(anime, xref, ser.CrossRefMovieDB, ser.GetUserRecord(userID),
+					xref != null ? xref.TvDBSeries : null);
 
 				return contractout;
 			}
@@ -1118,7 +1122,10 @@ namespace JMMServer
 				CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(anime.AnimeID, false);
 				cmd2.Save();
 
-				response.AnimeSeries = ser.ToContract(anime, ser.CrossRefTvDB, ser.CrossRefMovieDB, ser.GetUserRecord(userID));
+				CrossRef_AniDB_TvDB xref = ser.CrossRefTvDB;
+
+				response.AnimeSeries = ser.ToContract(anime, xref, ser.CrossRefMovieDB, ser.GetUserRecord(userID),
+					xref != null ? xref.TvDBSeries : null);
 				return response;
 			}
 			catch (Exception ex)
@@ -1563,13 +1570,19 @@ namespace JMMServer
 				foreach (AniDB_Anime anime in animes)
 					dictAnimes[anime.AnimeID] = anime;
 
-				// tvdb
+				// tvdb - cross refs
 				CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
 				List<CrossRef_AniDB_TvDB> allCrossRefs = repCrossRef.GetAll();
 				Dictionary<int, CrossRef_AniDB_TvDB> dictCrossRefs = new Dictionary<int, CrossRef_AniDB_TvDB>();
 				foreach (CrossRef_AniDB_TvDB xref in allCrossRefs)
 					dictCrossRefs[xref.AnimeID] = xref;
 
+				// tvdb - series info
+				TvDB_SeriesRepository repTvSeries = new TvDB_SeriesRepository();
+				List<TvDB_Series> allTvSeries = repTvSeries.GetAll();
+				Dictionary<int, TvDB_Series> dictTvSeries = new Dictionary<int, TvDB_Series>();
+				foreach (TvDB_Series tvs in allTvSeries)
+					dictTvSeries[tvs.SeriesID] = tvs;
 
 				// moviedb
 				CrossRef_AniDB_OtherRepository repOtherCrossRef = new CrossRef_AniDB_OtherRepository();
@@ -1595,6 +1608,10 @@ namespace JMMServer
 					CrossRef_AniDB_TvDB xref = null;
 					if (dictCrossRefs.ContainsKey(aser.AniDB_ID)) xref = dictCrossRefs[aser.AniDB_ID];
 
+					TvDB_Series tvseries = null;
+					if (xref != null)
+						if (dictTvSeries.ContainsKey(xref.TvDBID)) tvseries = dictTvSeries[xref.TvDBID];
+
 					CrossRef_AniDB_Other xrefMovie = null;
 					if (dictMovieCrossRefs.ContainsKey(aser.AniDB_ID)) xrefMovie = dictMovieCrossRefs[aser.AniDB_ID];
 
@@ -1602,7 +1619,7 @@ namespace JMMServer
 					if (dictUserRecords.ContainsKey(aser.AnimeSeriesID))
 						userRec = dictUserRecords[aser.AnimeSeriesID];
 
-					seriesContractList.Add(aser.ToContract(dictAnimes[aser.AniDB_ID], xref, xrefMovie, userRec));
+					seriesContractList.Add(aser.ToContract(dictAnimes[aser.AniDB_ID], xref, xrefMovie, userRec, tvseries));
 				}
 
 				TimeSpan ts = DateTime.Now - start;
@@ -1883,7 +1900,10 @@ namespace JMMServer
 				AniDB_Anime anime = repAnime.GetByAnimeID(series.AniDB_ID);
 				if (anime == null) return null;
 
-				return series.ToContract(anime, series.CrossRefTvDB, series.CrossRefMovieDB, series.GetUserRecord(userID));
+				CrossRef_AniDB_TvDB xref = series.CrossRefTvDB;
+
+				return series.ToContract(anime, xref, series.CrossRefMovieDB, series.GetUserRecord(userID),
+					xref != null ? xref.TvDBSeries : null);
 			}
 			catch (Exception ex)
 			{
@@ -1905,7 +1925,10 @@ namespace JMMServer
 				AniDB_Anime anime = repAnime.GetByAnimeID(series.AniDB_ID);
 				if (anime == null) return null;
 
-				return series.ToContract(anime, series.CrossRefTvDB, series.CrossRefMovieDB, series.GetUserRecord(userID));
+				CrossRef_AniDB_TvDB xref = series.CrossRefTvDB;
+
+				return series.ToContract(anime, xref, series.CrossRefMovieDB, series.GetUserRecord(userID),
+					xref != null ? xref.TvDBSeries : null);
 			}
 			catch (Exception ex)
 			{
@@ -2130,6 +2153,7 @@ namespace JMMServer
 				ServerSettings.TvDB_AutoPosters = contractIn.TvDB_AutoPosters;
 				ServerSettings.TvDB_AutoWideBanners = contractIn.TvDB_AutoWideBanners;
 				ServerSettings.TvDB_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.TvDB_UpdateFrequency;
+				ServerSettings.TvDB_Language = contractIn.TvDB_Language;
 
 				// MovieDB
 				ServerSettings.MovieDB_AutoFanart = contractIn.MovieDB_AutoFanart;
@@ -2149,6 +2173,9 @@ namespace JMMServer
 				// Language
 				ServerSettings.LanguagePreference = contractIn.LanguagePreference;
 				ServerSettings.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
+				ServerSettings.EpisodeTitleSource = (DataSourceType)contractIn.EpisodeTitleSource;
+				ServerSettings.SeriesDescriptionSource = (DataSourceType)contractIn.SeriesDescriptionSource;
+				ServerSettings.SeriesNameSource = (DataSourceType)contractIn.SeriesNameSource;
 
 				// Trakt
 				ServerSettings.Trakt_Username = contractIn.Trakt_Username;
@@ -4333,7 +4360,8 @@ namespace JMMServer
 					if (dictUserRecords.ContainsKey(aser.AnimeSeriesID))
 						userRec = dictUserRecords[aser.AnimeSeriesID];
 
-					seriesContractList.Add(aser.ToContract(dictAnimes[aser.AniDB_ID], xref, xrefMovie, userRec));
+					seriesContractList.Add(aser.ToContract(dictAnimes[aser.AniDB_ID], xref, xrefMovie, userRec,
+						xref != null ? xref.TvDBSeries : null));
 
 					if (i == maxRecords) break;
 
@@ -5440,6 +5468,26 @@ namespace JMMServer
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
+		}
+
+		public List<Contract_TvDBLanguage> GetTvDBLanguages()
+		{
+			List<Contract_TvDBLanguage> retLanguages = new List<Contract_TvDBLanguage>();
+
+			try
+			{
+				foreach (TvDBLanguage lan in JMMService.TvdbHelper.GetLanguages())
+				{
+					retLanguages.Add(lan.ToContract());
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return retLanguages;
 		}
 	}
 

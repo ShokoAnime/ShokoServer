@@ -118,6 +118,7 @@
     <Compile Include="Contract_Trakt_Season.cs" />
     <Compile Include="Contract_Trakt_Show.cs" />
     <Compile Include="Contract_Trakt_WatchedEpisode.cs" />
+    <Compile Include="Contract_TvDBLanguage.cs" />
     <Compile Include="Contract_TVDBSeriesSearchResult.cs" />
     <Compile Include="Contract_TvDB_Episode.cs" />
     <Compile Include="Contract_TvDB_ImageFanart.cs" />

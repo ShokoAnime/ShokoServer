@@ -428,6 +428,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		void RemoveDefaultSeriesForGroup(int animeGroupID);
+
+		[OperationContract]
+		List<Contract_TvDBLanguage> GetTvDBLanguages();
 	}
 
 }

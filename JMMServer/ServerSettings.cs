@@ -606,6 +606,23 @@ namespace JMMServer
 			}
 		}
 
+		public static string TvDB_Language
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				string language = appSettings["TvDB_Language"];
+				if (string.IsNullOrEmpty(language))
+					return "de";
+				else
+					return language;
+			}
+			set
+			{
+				UpdateSetting("TvDB_Language", value);
+			}
+		}
+
 		#endregion
 
 		#region MovieDB
@@ -847,6 +864,60 @@ namespace JMMServer
 			}
 		}
 
+		public static DataSourceType EpisodeTitleSource
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				int val = 0;
+				int.TryParse(appSettings["EpisodeTitleSource"], out val);
+				if (val <= 0)
+					return DataSourceType.AniDB;
+				else
+					return (DataSourceType)val;
+			}
+			set
+			{
+				UpdateSetting("EpisodeTitleSource", ((int)value).ToString());
+			}
+		}
+
+		public static DataSourceType SeriesDescriptionSource
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				int val = 0;
+				int.TryParse(appSettings["SeriesDescriptionSource"], out val);
+				if (val <= 0)
+					return DataSourceType.AniDB;
+				else
+					return (DataSourceType)val;
+			}
+			set
+			{
+				UpdateSetting("SeriesDescriptionSource", ((int)value).ToString());
+			}
+		}
+
+		public static DataSourceType SeriesNameSource
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				int val = 0;
+				int.TryParse(appSettings["SeriesNameSource"], out val);
+				if (val <= 0)
+					return DataSourceType.AniDB;
+				else
+					return (DataSourceType)val;
+			}
+			set
+			{
+				UpdateSetting("SeriesNameSource", ((int)value).ToString());
+			}
+		}
+
 		public static string Trakt_Username
 		{
 			get
@@ -964,6 +1035,7 @@ namespace JMMServer
 			contract.TvDB_AutoPosters = ServerSettings.TvDB_AutoPosters;
 			contract.TvDB_AutoWideBanners = ServerSettings.TvDB_AutoWideBanners;
 			contract.TvDB_UpdateFrequency = (int)ServerSettings.TvDB_UpdateFrequency;
+			contract.TvDB_Language = ServerSettings.TvDB_Language;
 
 			// MovieDB
 			contract.MovieDB_AutoFanart = ServerSettings.MovieDB_AutoFanart;
@@ -983,6 +1055,9 @@ namespace JMMServer
 			// Language
 			contract.LanguagePreference = ServerSettings.LanguagePreference;
 			contract.LanguageUseSynonyms = ServerSettings.LanguageUseSynonyms;
+			contract.EpisodeTitleSource = (int)ServerSettings.EpisodeTitleSource;
+			contract.SeriesDescriptionSource = (int)ServerSettings.SeriesDescriptionSource;
+			contract.SeriesNameSource = (int)ServerSettings.SeriesNameSource;
 
 			// trakt
 			contract.Trakt_Username = ServerSettings.Trakt_Username;

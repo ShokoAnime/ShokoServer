@@ -49,6 +49,7 @@ namespace JMMContracts
 		public bool TvDB_AutoWideBanners { get; set; }
 		public bool TvDB_AutoPosters { get; set; }
 		public int TvDB_UpdateFrequency { get; set; }
+		public string TvDB_Language { get; set; }
 
 		// MovieDB
 		public bool MovieDB_AutoFanart { get; set; }
@@ -68,6 +69,9 @@ namespace JMMContracts
 		// Language
 		public string LanguagePreference { get; set; }
 		public bool LanguageUseSynonyms { get; set; }
+		public int EpisodeTitleSource { get; set; }
+		public int SeriesDescriptionSource { get; set; }
+		public int SeriesNameSource { get; set; }
 
 		// Trakt
 		public string Trakt_Username { get; set; }

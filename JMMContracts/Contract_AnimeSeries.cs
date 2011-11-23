@@ -29,5 +29,6 @@ namespace JMMContracts
 		public Contract_AniDBAnime AniDBAnime { get; set; }
 		public Contract_CrossRef_AniDB_TvDB CrossRefAniDBTvDB { get; set; }
 		public Contract_CrossRef_AniDB_Other CrossRefAniDBMovieDB { get; set; }
+		public Contract_TvDB_Series TvDB_Series { get; set; }
 	}
 }

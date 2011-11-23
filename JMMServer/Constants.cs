@@ -120,10 +120,11 @@ namespace JMMServer
 		{
 			public static readonly string apiKey = "B178B8940CAF4A2C";
 			public static readonly string urlSeriesSearch = @"http://www.thetvdb.com/api/GetSeries.php?seriesname={0}&language=all";
-			public static readonly string urlFullSeriesData = @"{0}/api/{1}/series/{2}/all/en.zip"; // mirrirURL, apiKey, seriesID
+			public static readonly string urlFullSeriesData = @"{0}/api/{1}/series/{2}/all/{3}.zip"; // mirrirURL, apiKey, seriesID
 			public static readonly string urlBannersXML = @"{0}/api/{1}/series/{2}/banners.xml"; // mirrirURL, apiKey, seriesID
-			public static readonly string urlSeriesBaseXML = @"{0}/api/{1}/series/{2}/en.xml"; // mirrirURL, apiKey, seriesID
-			public static readonly string urlEpisodeXML = @"{0}/api/{1}/episodes/{2}/en.xml"; // mirrirURL, apiKey, episodeID
+			public static readonly string urlSeriesBaseXML = @"{0}/api/{1}/series/{2}/{3}.xml"; // mirrirURL, apiKey, seriesID
+			public static readonly string urlEpisodeXML = @"{0}/api/{1}/episodes/{2}/{3}.xml"; // mirrirURL, apiKey, episodeID
+			public static readonly string urlLanguagesXML = @"{0}/api/{1}/languages.xml"; // mirrirURL, apiKey
 			public static readonly string urlUpdatesList = @"{0}/api/Updates.php?type=all&time={1}"; // mirrirURL, server time
 		}
 

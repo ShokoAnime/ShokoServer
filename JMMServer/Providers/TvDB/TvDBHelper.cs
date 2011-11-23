@@ -148,7 +148,7 @@ namespace JMMServer.Providers.TvDB
 			{
 				//Init();
 
-				string url = string.Format(Constants.TvDBURLs.urlSeriesBaseXML, URLMirror, Constants.TvDBURLs.apiKey, seriesID);
+				string url = string.Format(Constants.TvDBURLs.urlSeriesBaseXML, URLMirror, Constants.TvDBURLs.apiKey, seriesID, ServerSettings.TvDB_Language);
 				logger.Trace("GetSeriesInfo: {0}", url);
 
 				// Search for a series
@@ -215,7 +215,7 @@ namespace JMMServer.Providers.TvDB
 			{
 				Init();
 
-				string url = string.Format(Constants.TvDBURLs.urlFullSeriesData, urlMirror, Constants.TvDBURLs.apiKey, seriesID);
+				string url = string.Format(Constants.TvDBURLs.urlFullSeriesData, urlMirror, Constants.TvDBURLs.apiKey, seriesID, ServerSettings.TvDB_Language);
 				logger.Trace("GetFullSeriesInfo: {0}", url);
 
 				Stream data = Utils.DownloadWebBinary(url);
@@ -334,6 +334,48 @@ namespace JMMServer.Providers.TvDB
 			}
 
 			return posters;
+		}
+
+		public List<TvDBLanguage> GetLanguages()
+		{
+			List<TvDBLanguage> languages = new List<TvDBLanguage>();
+
+			try
+			{
+				Init();
+
+				string url = string.Format(Constants.TvDBURLs.urlLanguagesXML, urlMirror, Constants.TvDBURLs.apiKey);
+				logger.Trace("GetLanguages: {0}", url);
+
+				// Search for a series
+				string xmlSeries = Utils.DownloadWebPage(url);
+
+				XmlDocument docLanguages = new XmlDocument();
+				docLanguages.LoadXml(xmlSeries);
+
+				XmlNodeList lanItems = docLanguages["Languages"].GetElementsByTagName("Language");
+
+				//BaseConfig.MyAnimeLog.Write("Found {0} banner nodes", bannerItems.Count);
+
+				if (lanItems.Count <= 0)
+					return languages;
+
+				foreach (XmlNode node in lanItems)
+				{
+					TvDBLanguage lan = new TvDBLanguage();
+
+					lan.Name = node["name"].InnerText.Trim();
+					lan.Abbreviation = node["abbreviation"].InnerText.Trim();
+					languages.Add(lan);
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString(), ex);
+			}
+
+			return languages;
 		}
 
 		public void DownloadAutomaticImages(int seriesID, bool forceDownload)
@@ -596,13 +638,15 @@ namespace JMMServer.Providers.TvDB
 			TvDB_EpisodeRepository repEpisodes = new TvDB_EpisodeRepository();
 			TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
 
+			string fileName = string.Format("{0}.xml", ServerSettings.TvDB_Language);
+
 			Dictionary<string, XmlDocument> docSeries = GetFullSeriesInfo(seriesID);
-			if (docSeries.ContainsKey("en.xml"))
+			if (docSeries.ContainsKey(fileName))
 			{
 				try
 				{
 					// update the series info
-					XmlDocument xmlDoc = docSeries["en.xml"];
+					XmlDocument xmlDoc = docSeries[fileName];
 					if (xmlDoc != null)
 					{
 						TvDB_Series tvSeries = repSeries.GetByTvDBID(seriesID);
