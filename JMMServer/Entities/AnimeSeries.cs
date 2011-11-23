@@ -237,7 +237,7 @@ namespace JMMServer.Entities
 			CrossRef_AniDB_TvDB tvDBCrossRef = this.CrossRefTvDB;
 			CrossRef_AniDB_Other movieDBCrossRef = this.CrossRefMovieDB;
 
-			return this.ToContract(anime, tvDBCrossRef, movieDBCrossRef, userRecord, tvDBCrossRef.TvDBSeries);
+			return this.ToContract(anime, tvDBCrossRef, movieDBCrossRef, userRecord, tvDBCrossRef != null ? tvDBCrossRef.TvDBSeries : null);
 		}
 
 		public Contract_AnimeSeries ToContract(AniDB_Anime animeRec, CrossRef_AniDB_TvDB tvDBCrossRef, CrossRef_AniDB_Other movieDBCrossRef, 
