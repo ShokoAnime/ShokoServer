@@ -45,6 +45,30 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<DuplicateFile> GetByImportFolder1(int folderID)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var dfiles = session
+					.CreateCriteria(typeof(DuplicateFile))
+					.Add(Restrictions.Eq("ImportFolderIDFile1", folderID))
+					.List<DuplicateFile>();
+				return new List<DuplicateFile>(dfiles);
+			}
+		}
+
+		public List<DuplicateFile> GetByImportFolder2(int folderID)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var dfiles = session
+					.CreateCriteria(typeof(DuplicateFile))
+					.Add(Restrictions.Eq("ImportFolderIDFile2", folderID))
+					.List<DuplicateFile>();
+				return new List<DuplicateFile>(dfiles);
+			}
+		}
+
 
 		public List<DuplicateFile> GetAll()
 		{

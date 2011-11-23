@@ -25,6 +25,7 @@ namespace JMMServer.Entities
 		public int MissingEpisodeCount { get; set; }
 		public int MissingEpisodeCountGroups { get; set; }
 		public int OverrideDescription { get; set; }
+		public int? DefaultAnimeSeriesID { get; set; }
 		#endregion
 
 		private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -168,6 +169,7 @@ namespace JMMServer.Entities
 			Contract_AnimeGroup contract = new Contract_AnimeGroup();
 			contract.AnimeGroupID = this.AnimeGroupID;
 			contract.AnimeGroupParentID = this.AnimeGroupParentID;
+			contract.DefaultAnimeSeriesID = this.DefaultAnimeSeriesID;
 			contract.GroupName = this.GroupName;
 			contract.Description = this.Description;
 			contract.SortName = this.SortName;

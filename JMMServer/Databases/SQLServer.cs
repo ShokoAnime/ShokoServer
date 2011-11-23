@@ -108,6 +108,7 @@ namespace JMMServer.Databases
 			{
 				UpdateSchema_002(versionNumber);
 				UpdateSchema_003(versionNumber);
+				UpdateSchema_004(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -202,7 +203,33 @@ namespace JMMServer.Databases
 		}
 
 
-		
+		private static void UpdateSchema_004(int currentVersionNumber)
+		{
+			int thisVersion = 4;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE AnimeGroup ADD DefaultAnimeSeriesID int NULL");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
 
 
 		private static void UpdateDatabaseVersion(int versionNumber)
@@ -891,8 +918,7 @@ namespace JMMServer.Databases
 				" Description nvarchar(max) NULL, " +
 				" IsManuallyNamed int NOT NULL, " +
 				" DateTimeUpdated datetime NOT NULL, " +
-				" DateTimeCreated datetime NOT NULL, " +
-				
+				" DateTimeCreated datetime NOT NULL, " +		
 				" SortName varchar(max) NOT NULL, " +
 				" MissingEpisodeCount int NOT NULL, " +
 				" MissingEpisodeCountGroups int NOT NULL, " +

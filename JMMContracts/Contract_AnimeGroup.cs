@@ -10,6 +10,7 @@ namespace JMMContracts
 		// Data from AnimeGroup
 		public int AnimeGroupID { get; set; }
 		public int? AnimeGroupParentID { get; set; }
+		public int? DefaultAnimeSeriesID { get; set; }
 		public string GroupName { get; set; }
 		public string Description { get; set; }
 		public int IsFave { get; set; }

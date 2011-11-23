@@ -422,6 +422,15 @@ namespace JMMServer
 					repVids.Delete(vid.VideoLocalID);
 				}
 
+				// delete any duplicate file records which reference this folder
+				DuplicateFileRepository repDupFiles = new DuplicateFileRepository();
+				foreach (DuplicateFile df in repDupFiles.GetByImportFolder1(importFolderID))
+					repDupFiles.Delete(df.DuplicateFileID);
+
+				foreach (DuplicateFile df in repDupFiles.GetByImportFolder2(importFolderID))
+					repDupFiles.Delete(df.DuplicateFileID);
+
+				// delete the import folder
 				repNS.Delete(importFolderID);
 				ServerInfo.Instance.RefreshImportFolders();
 
@@ -430,6 +439,8 @@ namespace JMMServer
 					ser.UpdateStats(true, true, true);
 					StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 				}
+
+				
 
 				return "";
 			}

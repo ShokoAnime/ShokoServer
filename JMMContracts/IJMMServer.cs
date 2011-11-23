@@ -422,6 +422,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		void RemoveIgnoreAnime(int ignoreAnimeID);
+
+		[OperationContract]
+		void SetDefaultSeriesForGroup(int animeGroupID, int animeSeriesID);
+
+		[OperationContract]
+		void RemoveDefaultSeriesForGroup(int animeGroupID);
 	}
 
 }

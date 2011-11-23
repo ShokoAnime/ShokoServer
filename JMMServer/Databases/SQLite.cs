@@ -79,6 +79,7 @@ namespace JMMServer.Databases
 			{
 				UpdateSchema_002(versionNumber);
 				UpdateSchema_003(versionNumber);
+				UpdateSchema_004(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -146,6 +147,32 @@ namespace JMMServer.Databases
 
 			cmds.Add("CREATE UNIQUE INDEX UIX_Trakt_Friend_Username ON Trakt_Friend(Username);");
 
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_004(int currentVersionNumber)
+		{
+			int thisVersion = 4;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+			cmds.Add("ALTER TABLE AnimeGroup ADD DefaultAnimeSeriesID int NULL");
 
 			foreach (string cmdTable in cmds)
 			{

@@ -2917,6 +2917,14 @@ namespace JMMServer
 				DuplicateFileRepository repDupFiles = new DuplicateFileRepository();
 				foreach (DuplicateFile df in repDupFiles.GetAll())
 				{
+					if (df.ImportFolder1 == null || df.ImportFolder2 == null)
+					{
+						string msg = string.Format("Deleting duplicate file record as one of the import folders can't be found: {0} --- {1}", df.FilePathFile1, df.FilePathFile2);
+						logger.Info(msg);
+						repDupFiles.Delete(df.DuplicateFileID);
+						continue;
+					}
+
 					// check if both files still exist
 					if (!File.Exists(df.FullServerPath1) || !File.Exists(df.FullServerPath2))
 					{
@@ -5384,6 +5392,48 @@ namespace JMMServer
 				if (ignore == null) return;
 
 				repIgnore.Delete(ignoreAnimeID);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
+
+		public void SetDefaultSeriesForGroup(int animeGroupID, int animeSeriesID)
+		{
+			try
+			{
+				AnimeGroupRepository repGroups = new AnimeGroupRepository();
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+				AnimeGroup grp = repGroups.GetByID(animeGroupID);
+				if (grp == null) return;
+
+				AnimeSeries ser = repSeries.GetByID(animeSeriesID);
+				if (ser == null) return;
+
+				grp.DefaultAnimeSeriesID = animeSeriesID;
+				repGroups.Save(grp);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
+
+		public void RemoveDefaultSeriesForGroup(int animeGroupID)
+		{
+			try
+			{
+				AnimeGroupRepository repGroups = new AnimeGroupRepository();
+
+				AnimeGroup grp = repGroups.GetByID(animeGroupID);
+				if (grp == null) return;
+
+				grp.DefaultAnimeSeriesID = null;
+				repGroups.Save(grp);
 
 			}
 			catch (Exception ex)
