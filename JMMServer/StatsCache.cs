@@ -179,6 +179,9 @@ namespace JMMServer
 				logger.Trace("Updating cached stats for GROUP - STEP 1 ({0}) in {1} ms", thisgrp.GroupName, ts.TotalMilliseconds);
 				start = DateTime.Now;
 
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				CrossRef_File_EpisodeRepository repXrefs = new CrossRef_File_EpisodeRepository();
+
 				foreach (AnimeGroup grp in allgroups)
 				{
 					StatGroupCategories[grp.AnimeGroupID] = grp.CategoriesString;
@@ -206,9 +209,26 @@ namespace JMMServer
 
 					int seriesCount = 0;
 
+
+
 					foreach (AnimeSeries series in grp.AllSeries)
 					{
 						seriesCount++;
+
+						List<VideoLocal> vidsTemp = repVids.GetByAniDBAnimeID(series.AniDB_ID);
+						List<CrossRef_File_Episode> crossRefs = repXrefs.GetByAnimeID(series.AniDB_ID);
+
+						Dictionary<int, List<CrossRef_File_Episode>> dictCrossRefs = new Dictionary<int, List<CrossRef_File_Episode>>();
+						foreach (CrossRef_File_Episode xref in crossRefs)
+						{
+							if (!dictCrossRefs.ContainsKey(xref.EpisodeID))
+								dictCrossRefs[xref.EpisodeID] = new List<CrossRef_File_Episode>();
+							dictCrossRefs[xref.EpisodeID].Add(xref);
+						}
+
+						Dictionary<string, VideoLocal> dictVids = new Dictionary<string, VideoLocal>();
+						foreach (VideoLocal vid in vidsTemp)
+							dictVids[vid.Hash] = vid;
 
 						// All Video Quality Episodes
 						// Try to determine if this anime has all the episodes available at a certain video quality
@@ -220,8 +240,22 @@ namespace JMMServer
 						{
 							if (ep.EpisodeTypeEnum != AniDBAPI.enEpisodeType.Episode) continue;
 
+
+							List<VideoLocal> epVids = new List<VideoLocal>();
+							if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
+							{
+								foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
+								{
+									if (xref.EpisodeID == ep.AniDB_EpisodeID)
+									{
+										if (dictVids.ContainsKey(xref.Hash))
+											epVids.Add(dictVids[xref.Hash]);
+									}
+								}
+							}
+
 							List<string> qualityAddedSoFar = new List<string>(); // handle mutliple files of the same quality for one episode
-							foreach (VideoLocal vid in ep.VideoLocals)
+							foreach (VideoLocal vid in epVids)
 							{
 								AniDB_File anifile = vid.AniDBFile;
 								if (anifile == null) continue;

@@ -106,6 +106,15 @@ namespace JMMServer
 			downloadImagesWorker.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
 
 			StartUp();
+
+			btnToolbarHelp.Click += new RoutedEventHandler(btnToolbarHelp_Click);
+		}
+
+		void btnToolbarHelp_Click(object sender, RoutedEventArgs e)
+		{
+			//AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+			//AnimeSeries ser = repSeries.GetByID(222);
+			//ser.UpdateStats(true, true, true);
 		}
 
 		private void DownloadAllImages()

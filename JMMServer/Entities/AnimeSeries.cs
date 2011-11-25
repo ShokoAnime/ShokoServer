@@ -330,12 +330,42 @@ namespace JMMServer.Entities
 			DateTime start = DateTime.Now;
 
 			AnimeSeries_UserRepository repSeriesUser = new AnimeSeries_UserRepository();
+			AnimeEpisode_UserRepository repEpisodeUser = new AnimeEpisode_UserRepository();
+			VideoLocalRepository repVids = new VideoLocalRepository();
+			CrossRef_File_EpisodeRepository repXrefs = new CrossRef_File_EpisodeRepository();
 
 			JMMUserRepository repUsers = new JMMUserRepository();
 			List<JMMUser> allUsers = repUsers.GetAll();
 
+			DateTime startEps = DateTime.Now;
+			List<AnimeEpisode> eps = AnimeEpisodes;
+			TimeSpan tsEps = DateTime.Now - startEps;
+			logger.Trace("Got episodes for SERIES {0} in {1}ms", this.ToString(), tsEps.TotalMilliseconds);
+
+			DateTime startVids = DateTime.Now;
+			List<VideoLocal> vidsTemp = repVids.GetByAniDBAnimeID(this.AniDB_ID);
+			List<CrossRef_File_Episode> crossRefs = repXrefs.GetByAnimeID(this.AniDB_ID);
+
+			Dictionary<int, List<CrossRef_File_Episode>> dictCrossRefs = new Dictionary<int, List<CrossRef_File_Episode>>();
+			foreach (CrossRef_File_Episode xref in crossRefs)
+			{
+				if (!dictCrossRefs.ContainsKey(xref.EpisodeID))
+					dictCrossRefs[xref.EpisodeID] = new List<CrossRef_File_Episode>();
+				dictCrossRefs[xref.EpisodeID].Add(xref);
+			}
+
+			Dictionary<string, VideoLocal> dictVids = new Dictionary<string, VideoLocal>();
+			foreach (VideoLocal vid in vidsTemp)
+				dictVids[vid.Hash] = vid;
+
+			TimeSpan tsVids = DateTime.Now - startVids;
+			logger.Trace("Got video locals for SERIES {0} in {1}ms", this.ToString(), tsVids.TotalMilliseconds);
+
+
 			if (watchedStats)
 			{
+				
+
 				foreach (JMMUser juser in allUsers)
 				{
 					//this.WatchedCount = 0;
@@ -348,16 +378,40 @@ namespace JMMServer.Entities
 					userRecord.WatchedCount = 0;
 					userRecord.WatchedDate = null;
 
-					foreach (AnimeEpisode ep in AnimeEpisodes)
+					DateTime startUser = DateTime.Now;
+					List<AnimeEpisode_User> epUserRecords = repEpisodeUser.GetByUserID(juser.JMMUserID);
+					Dictionary<int, AnimeEpisode_User> dictUserRecords = new Dictionary<int, AnimeEpisode_User>();
+					foreach (AnimeEpisode_User usrec in epUserRecords)
+						dictUserRecords[usrec.AnimeEpisodeID] = usrec;
+					TimeSpan tsUser = DateTime.Now - startUser;
+					logger.Trace("Got user records for SERIES {0}/{1} in {2}ms", this.ToString(), juser.Username, tsUser.TotalMilliseconds);
+
+					foreach (AnimeEpisode ep in eps)
 					{
 						// if the episode doesn't have any files then it won't count towards watched/unwatched counts
-						if (ep.VideoLocals.Count == 0) continue;
+						List<VideoLocal> epVids = new List<VideoLocal>();
+
+						if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
+						{
+							foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
+							{
+								if (xref.EpisodeID == ep.AniDB_EpisodeID)
+								{
+									if (dictVids.ContainsKey(xref.Hash))
+										epVids.Add(dictVids[xref.Hash]);
+								}
+							}
+						}
+						if (epVids.Count == 0) continue;
 
 						if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode || ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special)
 						{
-							AnimeEpisode_User epUserRecord = ep.GetUserRecord(juser.JMMUserID);
+							AnimeEpisode_User epUserRecord = null;
+							if (dictUserRecords.ContainsKey(ep.AnimeEpisodeID))
+								epUserRecord = dictUserRecords[ep.AnimeEpisodeID];
 
-							if (epUserRecord != null) userRecord.WatchedEpisodeCount++;
+							if (epUserRecord != null && userRecord.WatchedDate.HasValue) 
+								userRecord.WatchedEpisodeCount++;
 							else userRecord.UnwatchedEpisodeCount++;
 
 							if (epUserRecord != null)
@@ -379,6 +433,10 @@ namespace JMMServer.Entities
 				}
 			}
 
+			TimeSpan ts = DateTime.Now - start;
+			logger.Trace("Updated WATCHED stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
+			start = DateTime.Now;
+
 			if (missingEpsStats)
 			{
 				MissingEpisodeCount = 0;
@@ -387,7 +445,6 @@ namespace JMMServer.Entities
 				// get all the group status records
 				AniDB_GroupStatusRepository repGrpStat = new AniDB_GroupStatusRepository();
 				List<AniDB_GroupStatus> grpStatuses = repGrpStat.GetByAnimeID(this.AniDB_ID);
-				List<AnimeEpisode> eps = AnimeEpisodes;
 
 				// find all the episodes for which the user has a file
 				// from this we can determine what their latest episode number is
@@ -396,7 +453,21 @@ namespace JMMServer.Entities
 				List<int> userReleaseGroups = new List<int>();
 				foreach (AnimeEpisode ep in eps)
 				{
-					List<VideoLocal> vids = ep.VideoLocals;
+
+					List<VideoLocal> vids = new List<VideoLocal>();
+					if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
+					{
+						foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
+						{
+							if (xref.EpisodeID == ep.AniDB_EpisodeID)
+							{
+								if (dictVids.ContainsKey(xref.Hash))
+									vids.Add(dictVids[xref.Hash]);
+							}
+						}
+					}
+
+					//List<VideoLocal> vids = ep.VideoLocals;
 					foreach (VideoLocal vid in vids)
 					{
 						AniDB_File anifile = vid.AniDBFile;
@@ -410,8 +481,23 @@ namespace JMMServer.Entities
 				int latestLocalEpNumber = 0;
 				foreach (AnimeEpisode ep in eps)
 				{
-					List<VideoLocal> vids = ep.VideoLocals;
+					//List<VideoLocal> vids = ep.VideoLocals;
 					if (ep.EpisodeTypeEnum != AniDBAPI.enEpisodeType.Episode) continue;
+
+					List<VideoLocal> vids = new List<VideoLocal>();
+					if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
+					{
+						foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
+						{
+							if (xref.EpisodeID == ep.AniDB_EpisodeID)
+							{
+								if (dictVids.ContainsKey(xref.Hash))
+									vids.Add(dictVids[xref.Hash]);
+							}
+						}
+					}
+
+					
 
 					AniDB_Episode aniEp = ep.AniDB_Episode;
 					int thisEpNum = aniEp.EpisodeNumber;
@@ -437,6 +523,10 @@ namespace JMMServer.Entities
 				this.LatestLocalEpisodeNumber = latestLocalEpNumber;
 			}
 
+			ts = DateTime.Now - start;
+			logger.Trace("Updated MISSING EPS stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
+			start = DateTime.Now;
+
 			AnimeSeriesRepository rep = new AnimeSeriesRepository();
 			rep.Save(this);
 
@@ -447,8 +537,10 @@ namespace JMMServer.Entities
 					grp.UpdateStats(watchedStats, missingEpsStats);
 				}
 			}
-			TimeSpan ts = DateTime.Now - start;
-			logger.Trace("Updated stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
+
+			ts = DateTime.Now - start;
+			logger.Trace("Updated GROUPS ABOVE stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
+			start = DateTime.Now;
 		}
 
 	}

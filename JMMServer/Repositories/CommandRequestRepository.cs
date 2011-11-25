@@ -162,5 +162,17 @@ namespace JMMServer.Repositories
 				return (int)cnt;
 			}
 		}
+
+		public List<CommandRequest> GetAll()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var series = session
+					.CreateCriteria(typeof(CommandRequest))
+					.List<CommandRequest>();
+
+				return new List<CommandRequest>(series);
+			}
+		}
 	}
 }
