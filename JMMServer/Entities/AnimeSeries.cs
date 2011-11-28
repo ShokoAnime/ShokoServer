@@ -410,7 +410,7 @@ namespace JMMServer.Entities
 							if (dictUserRecords.ContainsKey(ep.AnimeEpisodeID))
 								epUserRecord = dictUserRecords[ep.AnimeEpisodeID];
 
-							if (epUserRecord != null && userRecord.WatchedDate.HasValue) 
+							if (epUserRecord != null && epUserRecord.WatchedDate.HasValue) 
 								userRecord.WatchedEpisodeCount++;
 							else userRecord.UnwatchedEpisodeCount++;
 

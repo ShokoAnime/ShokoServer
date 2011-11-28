@@ -25,6 +25,27 @@ namespace JMMServer
 			}
 		}
 
+		public static string JMMServerPort
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+
+				string serverPort = appSettings["JMMServerPort"];
+				if (string.IsNullOrEmpty(serverPort))
+				{
+					serverPort = "8111";
+					UpdateSetting("JMMServerPort", serverPort); 
+				}
+
+				return serverPort;
+			}
+			set
+			{
+				UpdateSetting("JMMServerPort", value);
+			}
+		}
+
 		#region Database
 
 		public static string DatabaseType

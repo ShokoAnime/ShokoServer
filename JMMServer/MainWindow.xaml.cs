@@ -42,12 +42,12 @@ namespace JMMServer
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 		private static DateTime lastTraktInfoUpdate = DateTime.Now;
 
-		private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
-		private static Uri baseAddressImage = new Uri("http://localhost:8111/JMMServerImage");
-		private static Uri baseAddressBinary = new Uri("http://localhost:8111/JMMServerBinary");
-		private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
-		private static ServiceHost host = null;
-		private static ServiceHost hostTCP = null;
+		//private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
+		private static string baseAddressImageString = @"http://localhost:{0}/JMMServerImage";
+		private static string baseAddressBinaryString = @"http://localhost:{0}/JMMServerBinary";
+		//private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
+		//private static ServiceHost host = null;
+		//private static ServiceHost hostTCP = null;
 		private static ServiceHost hostImage = null;
 		private static ServiceHost hostBinary = null;
 
@@ -63,6 +63,21 @@ namespace JMMServer
 
 		BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
+		public static Uri baseAddressBinary
+		{
+			get
+			{
+				return new Uri(string.Format(baseAddressBinaryString, ServerSettings.JMMServerPort));
+			}
+		}
+
+		public static Uri baseAddressImage
+		{
+			get
+			{
+				return new Uri(string.Format(baseAddressImageString, ServerSettings.JMMServerPort));
+			}
+		}
 
 		public MainWindow()
 		{
@@ -105,9 +120,57 @@ namespace JMMServer
 			this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
 			downloadImagesWorker.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
 
+			txtServerPort.Text = ServerSettings.JMMServerPort;
+
 			StartUp();
 
 			btnToolbarHelp.Click += new RoutedEventHandler(btnToolbarHelp_Click);
+			btnApplyServerPort.Click += new RoutedEventHandler(btnApplyServerPort_Click);
+		}
+
+		void btnApplyServerPort_Click(object sender, RoutedEventArgs e)
+		{
+			if (string.IsNullOrEmpty(txtServerPort.Text))
+			{
+				MessageBox.Show("Please enter a value", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				txtServerPort.Focus();
+				return;
+			}
+
+			int port = 0;
+			int.TryParse(txtServerPort.Text, out port);
+			if (port <= 0 || port > 65535)
+			{
+				MessageBox.Show("Please enter a value between 1 and 65535", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				txtServerPort.Focus();
+				return;
+			}
+
+			try
+			{
+				ServerSettings.JMMServerPort = port.ToString();
+
+				this.Cursor = Cursors.Wait;
+
+				JMMService.CmdProcessorGeneral.Paused = true;
+				JMMService.CmdProcessorHasher.Paused = true;
+				JMMService.CmdProcessorImages.Paused = true;
+
+				StopHost();
+				StartBinaryHost();
+				StartImageHost();
+
+				JMMService.CmdProcessorGeneral.Paused = false;
+				JMMService.CmdProcessorHasher.Paused = false;
+				JMMService.CmdProcessorImages.Paused = false;
+
+				this.Cursor = Cursors.Arrow;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+			}
 		}
 
 		void btnToolbarHelp_Click(object sender, RoutedEventArgs e)
@@ -185,6 +248,9 @@ namespace JMMServer
 			//JMMServiceImplementation imp = new JMMServiceImplementation();
 			//imp.GetMissingEpisodes(1, true);
 
+			//AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+			//AnimeSeries ser = repSeries.GetByAnimeID(7506);
+			//ser.UpdateStats(true, true, true);
 			
 		}
 
@@ -330,7 +396,7 @@ namespace JMMServer
 				ISessionFactory temp = JMMService.SessionFactory;
 
 				SetupAniDBProcessor();
-				StartHost();
+				//StartHost();
 				StartImageHost();
 				StartBinaryHost();
 				//StartTCPHost();
@@ -750,7 +816,7 @@ namespace JMMServer
 			}
 		}
 
-		private static void StartHost()
+		/*private static void StartHost()
 		{
 			// Create the ServiceHost.
 			host = new ServiceHost(typeof(JMMServiceImplementation), baseAddress);
@@ -814,7 +880,7 @@ namespace JMMServer
 
 			hostTCP.Open();
 			logger.Trace("Now Accepting client connections...");
-		}
+		}*/
 
 		private static void StartBinaryHost()
 		{
