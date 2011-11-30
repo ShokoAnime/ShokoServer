@@ -7,9 +7,10 @@ namespace AniDBAPI
 {
 	public enum AniDBFileStatus 
 	{ 
-		Unknown = 1, 
-		HDD = 2,
-		DVD = 3 
+		Unknown = 0, 
+		HDD = 1,
+		DVD = 2,
+ 		Deleted = 3
 	}
 
 	public enum enAniDBVoteType
