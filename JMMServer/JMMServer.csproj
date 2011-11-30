@@ -358,7 +358,9 @@
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowWatching.cs" />
     <Compile Include="Providers\TraktTV\TraktTVSeasonEpisode.cs" />
     <Compile Include="Providers\TraktTV\TraktTVSeason.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVSeasonUserCollectionWatched.cs" />
     <Compile Include="Providers\TraktTV\TraktTVShow.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVShowUserCollectionWatched.cs" />
     <Compile Include="Providers\TraktTV\TraktTVUser.cs" />
     <Compile Include="Providers\TraktTV\TraktTVWatched.cs" />
     <Compile Include="Providers\TvDB\TvDBHelper.cs" />

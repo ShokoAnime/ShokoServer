@@ -178,6 +178,8 @@ namespace JMMServer
 			//AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			//AnimeSeries ser = repSeries.GetByID(222);
 			//ser.UpdateStats(true, true, true);
+
+			//TraktTVHelper.GetUserCollection();
 		}
 
 		private void DownloadAllImages()

@@ -51,7 +51,7 @@ namespace JMMServer.Commands
 				if (ep != null)
 				{
 					// before scrobbling try to ensure the episode is in the users collection by sync'ing the series
-					TraktTVHelper.SyncCollectionToTrakt_Series(ep.AnimeSeries);
+					//TraktTVHelper.SyncCollectionToTrakt_Series(ep.AnimeSeries);
 
 					TraktTVHelper.MarkEpisodeWatched(ep);
 				}

@@ -363,6 +363,56 @@ namespace JMMServer.Providers.TraktTV
 			return results;
 		}
 
+		public static List<TraktTVShowUserCollectionWatched> GetUserCollection()
+		{
+			List<TraktTVShowUserCollectionWatched> results = new List<TraktTVShowUserCollectionWatched>();
+
+			try
+			{
+				string url = string.Format(Constants.TraktTvURLs.URLUserLibraryShowsCollection, Constants.TraktTvURLs.APIKey, ServerSettings.Trakt_Username);
+				logger.Trace("Trakt User Collection: {0}", url);
+
+				// Search for a series
+				string json = Utils.DownloadWebPage(url);
+
+				if (json.Trim().Length == 0) return new List<TraktTVShowUserCollectionWatched>();
+
+				results = JSONHelper.Deserialize<List<TraktTVShowUserCollectionWatched>>(json);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
+			}
+
+			return results;
+		}
+
+		public static List<TraktTVShowUserCollectionWatched> GetUserWatched()
+		{
+			List<TraktTVShowUserCollectionWatched> results = new List<TraktTVShowUserCollectionWatched>();
+
+			try
+			{
+				string url = string.Format(Constants.TraktTvURLs.URLUserLibraryShowsWatched, Constants.TraktTvURLs.APIKey, ServerSettings.Trakt_Username);
+				logger.Trace("Trakt User Collection Watched: {0}", url);
+
+				// Search for a series
+				string json = Utils.DownloadWebPage(url);
+
+				if (json.Trim().Length == 0) return new List<TraktTVShowUserCollectionWatched>();
+
+				results = JSONHelper.Deserialize<List<TraktTVShowUserCollectionWatched>>(json);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
+			}
+
+			return results;
+		}
+
 		/// <summary>
 		/// Updates the followung
 		/// 1. Series Info
