@@ -991,7 +991,7 @@ namespace JMMServer
 				if (int.TryParse(appSettings["Trakt_SyncFrequency"], out val))
 					return (ScheduledUpdateFrequency)val;
 				else
-					return ScheduledUpdateFrequency.Daily; // default value
+					return ScheduledUpdateFrequency.Never; // default value
 			}
 			set
 			{
