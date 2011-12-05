@@ -1566,11 +1566,6 @@ namespace JMMServer.Databases
 				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
 				" ) ON [PRIMARY] ");
 
-			cmds.Add("INSERT Into JMMUser (Username, Password, IsAdmin, IsAniDBUser, IsTraktUser, HideCategories) VALUES ('Default', '', 1, 1, 1, '')");
-
-			cmds.Add("INSERT Into JMMUser (Username, Password, IsAdmin, IsAniDBUser, IsTraktUser, HideCategories) VALUES ('Family Friendly', '', 0, 1, 1, 'Ecchi,Nudity,Sex,Sexual Abuse,Horror,Erotic Game,Incest,18 Restricted')");
-
-
 			return cmds;
 		}
 

@@ -82,8 +82,8 @@ namespace JMMServer.Databases
 
 		public static void PopulateInitialData()
 		{
+			CreateInitialUsers();
 			CreateInitialGroupFilters();
-
 		}
 
 		private static void CreateInitialGroupFilters()
@@ -216,6 +216,29 @@ namespace JMMServer.Databases
 			repGFC.Save(gfc);
 		}
 
-		
+		private static void CreateInitialUsers()
+		{
+			JMMUserRepository repUsers = new JMMUserRepository();
+
+			JMMUser defaultUser = new JMMUser();
+			defaultUser.CanEditServerSettings = 1;
+			defaultUser.HideCategories = "";
+			defaultUser.IsAdmin = 1;
+			defaultUser.IsAniDBUser = 1;
+			defaultUser.IsTraktUser = 1;
+			defaultUser.Password = "";
+			defaultUser.Username = "Default";
+			repUsers.Save(defaultUser);
+
+			JMMUser familyUser = new JMMUser();
+			familyUser.CanEditServerSettings = 1;
+			familyUser.HideCategories = "Ecchi,Nudity,Sex,Sexual Abuse,Horror,Erotic Game,Incest,18 Restricted";
+			familyUser.IsAdmin = 1;
+			familyUser.IsAniDBUser = 1;
+			familyUser.IsTraktUser = 1;
+			familyUser.Password = "";
+			familyUser.Username = "Family Friendly";
+			repUsers.Save(familyUser);
+		}
 	}
 }
