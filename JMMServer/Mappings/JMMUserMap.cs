@@ -20,6 +20,7 @@ namespace JMMServer.Mappings
 			Map(x => x.IsAdmin).Not.Nullable();
 			Map(x => x.Password);
 			Map(x => x.Username);
+			Map(x => x.CanEditServerSettings);
         }
 	}
 }

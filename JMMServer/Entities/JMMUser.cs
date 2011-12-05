@@ -15,6 +15,7 @@ namespace JMMServer.Entities
 		public int IsAniDBUser { get; set; }
 		public int IsTraktUser { get; set; }
 		public string HideCategories { get; set; }
+		public int? CanEditServerSettings { get; set; }
 
 		public Contract_JMMUser ToContract()
 		{
@@ -27,6 +28,7 @@ namespace JMMServer.Entities
 			contract.IsAniDBUser = this.IsAniDBUser;
 			contract.IsTraktUser = this.IsTraktUser;
 			contract.HideCategories = this.HideCategories;
+			contract.CanEditServerSettings = this.CanEditServerSettings;
 
 			return contract;
 		}

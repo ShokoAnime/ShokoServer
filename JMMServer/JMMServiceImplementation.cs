@@ -4560,6 +4560,7 @@ namespace JMMServer
 				jmmUser.IsAdmin = user.IsAdmin;
 				jmmUser.Password = user.Password;
 				jmmUser.Username = user.Username;
+				jmmUser.CanEditServerSettings = user.CanEditServerSettings;
 
 				// make sure that at least one user is an admin
 				if (jmmUser.IsAdmin == 0)

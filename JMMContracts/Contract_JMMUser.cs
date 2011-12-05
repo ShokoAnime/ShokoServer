@@ -14,5 +14,6 @@ namespace JMMContracts
 		public int IsAniDBUser { get; set; }
 		public int IsTraktUser { get; set; }
 		public string HideCategories { get; set; }
+		public int? CanEditServerSettings { get; set; }
 	}
 }
