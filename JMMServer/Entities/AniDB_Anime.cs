@@ -1077,7 +1077,7 @@ namespace JMMServer.Entities
 			return sb.ToString();
 		}
 
-		public Contract_AniDBAnime ToContract()
+		public Contract_AniDBAnime ToContract(bool getDefaultImages)
 		{
 			Contract_AniDBAnime contract = new Contract_AniDBAnime();
 
@@ -1115,7 +1115,24 @@ namespace JMMServer.Entities
 			contract.VoteCount = this.VoteCount;
 			contract.FormattedTitle = this.FormattedTitle;
 
+			if (getDefaultImages)
+			{
+				AniDB_Anime_DefaultImage defFanart = this.DefaultFanart;
+				if (defFanart != null) contract.DefaultImageFanart = defFanart.ToContract();
+
+				AniDB_Anime_DefaultImage defPoster = this.DefaultPoster;
+				if (defPoster != null) contract.DefaultImagePoster = defPoster.ToContract();
+
+				AniDB_Anime_DefaultImage defBanner = this.DefaultWideBanner;
+				if (defBanner != null) contract.DefaultImageWideBanner = defBanner.ToContract();
+			}
+
 			return contract;
+		}
+
+		public Contract_AniDBAnime ToContract()
+		{
+			return ToContract(false);
 		}
 
 		public Contract_AniDB_AnimeDetailed ToContractDetailed()

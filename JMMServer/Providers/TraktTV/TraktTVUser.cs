@@ -130,7 +130,7 @@ namespace JMMServer.Providers.TraktTV
 
 							AniDB_Anime anime = repAnime.GetByAnimeID(animeID.Value);
 							if (anime != null)
-								watchedEp.Anime = anime.ToContract();
+								watchedEp.Anime = anime.ToContract(true);
 
 						}
 					}
@@ -138,6 +138,7 @@ namespace JMMServer.Providers.TraktTV
 					
 
 					contract.WatchedEpisodes.Add(watchedEp);
+					break; // only show the latest show
 				}
 
 			}
