@@ -206,6 +206,7 @@
     <Compile Include="Constants.cs" />
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseHelper.cs" />
+    <Compile Include="MyAnime2Helper\MA2Progress.cs" />
     <Compile Include="Databases\SQLite.cs" />
     <Compile Include="Databases\SQLServer.cs" />
     <Compile Include="Entities\AniDB_Anime.cs" />

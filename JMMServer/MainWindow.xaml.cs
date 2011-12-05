@@ -27,6 +27,10 @@ using System.Windows.Input;
 using JMMServer.Providers.TvDB;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Providers.TraktTV;
+using System.Data.SQLite;
+using System.Data.SqlClient;
+using System.Data;
+using JMMServer.MyAnime2Helper;
 
 namespace JMMServer
 {
@@ -56,6 +60,7 @@ namespace JMMServer
 		private static BackgroundWorker workerRemoveMissing = new BackgroundWorker();
 		private static BackgroundWorker workerDeleteImportFolder = new BackgroundWorker();
 		private static BackgroundWorker workerTraktFriends = new BackgroundWorker();
+		private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
 
 		private static System.Timers.Timer autoUpdateTimer = null;
 		private static System.Timers.Timer autoUpdateTimerShort = null;
@@ -116,6 +121,7 @@ namespace JMMServer
 			btnUpdateTvDBInfo.Click += new RoutedEventHandler(btnUpdateTvDBInfo_Click);
 			btnUpdateAllStats.Click += new RoutedEventHandler(btnUpdateAllStats_Click);
 			btnSyncTrakt.Click += new RoutedEventHandler(btnSyncTrakt_Click);
+			btnImportManualLinks.Click += new RoutedEventHandler(btnImportManualLinks_Click);
 
 			this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
 			downloadImagesWorker.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
@@ -126,6 +132,217 @@ namespace JMMServer
 
 			btnToolbarHelp.Click += new RoutedEventHandler(btnToolbarHelp_Click);
 			btnApplyServerPort.Click += new RoutedEventHandler(btnApplyServerPort_Click);
+
+			workerMyAnime2.DoWork += new DoWorkEventHandler(workerMyAnime2_DoWork);
+			workerMyAnime2.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerMyAnime2_RunWorkerCompleted);
+			workerMyAnime2.ProgressChanged += new ProgressChangedEventHandler(workerMyAnime2_ProgressChanged);
+			workerMyAnime2.WorkerReportsProgress = true;
+
+		}
+
+		void workerMyAnime2_ProgressChanged(object sender, ProgressChangedEventArgs e)
+		{
+			MA2Progress ma2Progress = e.UserState as MA2Progress;
+			if (!string.IsNullOrEmpty(ma2Progress.ErrorMessage))
+			{
+				txtMA2Progress.Text = ma2Progress.ErrorMessage;
+				txtMA2Success.Visibility = System.Windows.Visibility.Hidden;
+				return;
+			}
+
+			if (ma2Progress.CurrentFile <= ma2Progress.TotalFiles)
+				txtMA2Progress.Text = string.Format("Processing unlinked file {0} of {1}", ma2Progress.CurrentFile, ma2Progress.TotalFiles);
+			else
+				txtMA2Progress.Text = string.Format("Processed all unlinked files ({0})", ma2Progress.TotalFiles);
+			txtMA2Success.Text = string.Format("{0} files sucessfully migrated", ma2Progress.MigratedFiles);
+		}
+
+		void workerMyAnime2_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+		{
+			
+		}
+
+		void workerMyAnime2_DoWork(object sender, DoWorkEventArgs e)
+		{
+			MA2Progress ma2Progress = new MA2Progress();
+			ma2Progress.CurrentFile = 0;
+			ma2Progress.ErrorMessage = "";
+			ma2Progress.MigratedFiles = 0;
+			ma2Progress.TotalFiles = 0;
+
+			try
+			{
+				string databasePath = e.Argument as string;
+
+				string connString = string.Format(@"data source={0};useutf16encoding=True", databasePath);
+				SQLiteConnection myConn = new SQLiteConnection(connString);
+				myConn.Open();
+
+				// get a list of unlinked files
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
+				AniDB_AnimeRepository repAniAnime = new AniDB_AnimeRepository();
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+
+				List<VideoLocal> vids = repVids.GetVideosWithoutEpisode();
+				ma2Progress.TotalFiles = vids.Count;
+				
+				foreach (VideoLocal vid in vids)
+				{
+					ma2Progress.CurrentFile = ma2Progress.CurrentFile + 1;
+					workerMyAnime2.ReportProgress(0, ma2Progress);
+
+					// search for this file in the XrossRef table in MA2
+					string sql = string.Format("SELECT AniDB_EpisodeID from CrossRef_Episode_FileHash WHERE Hash = '{0}' AND FileSize = {1}", vid.ED2KHash, vid.FileSize);
+					SQLiteCommand sqCommand = new SQLiteCommand(sql);
+					sqCommand.Connection = myConn;
+
+					SQLiteDataReader myReader = sqCommand.ExecuteReader();
+					while (myReader.Read())
+					{
+						int episodeID = myReader.GetInt32(0);
+						if (episodeID <= 0) continue;
+
+						sql = string.Format("SELECT AnimeID from AniDB_Episode WHERE EpisodeID = {0}", episodeID);
+						sqCommand = new SQLiteCommand(sql);
+						sqCommand.Connection = myConn;
+
+						SQLiteDataReader myReader2 = sqCommand.ExecuteReader();
+						while (myReader2.Read())
+						{
+							int animeID = myReader2.GetInt32(0);
+
+							// so now we have all the needed details we can link the file to the episode
+							// as long as wehave the details in JMM
+							AniDB_Anime anime = null;
+							AniDB_Episode ep = repAniEps.GetByEpisodeID(episodeID);
+							if (ep == null)
+							{
+								logger.Debug("Getting Anime record from AniDB....");
+								anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AniDB_DownloadRelatedAnime);
+							}
+							else
+								anime = repAniAnime.GetByAnimeID(animeID);
+
+							// create the group/series/episode records if needed
+							AnimeSeries ser = null;
+							if (anime == null) continue;
+
+							logger.Debug("Creating groups, series and episodes....");
+							// check if there is an AnimeSeries Record associated with this AnimeID
+							ser = repSeries.GetByAnimeID(animeID);
+							if (ser == null)
+							{
+								// create a new AnimeSeries record
+								ser = anime.CreateAnimeSeriesAndGroup();
+							}
+
+
+							ser.CreateAnimeEpisodes();
+
+							// check if we have any group status data for this associated anime
+							// if not we will download it now
+							AniDB_GroupStatusRepository repStatus = new AniDB_GroupStatusRepository();
+							if (repStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+							{
+								CommandRequest_GetReleaseGroupStatus cmdStatus = new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
+								cmdStatus.Save();
+							}
+
+							// update stats
+							ser.EpisodeAddedDate = DateTime.Now;
+							repSeries.Save(ser);
+
+							AnimeGroupRepository repGroups = new AnimeGroupRepository();
+							foreach (AnimeGroup grp in ser.AllGroupsAbove)
+							{
+								grp.EpisodeAddedDate = DateTime.Now;
+								repGroups.Save(grp);
+							}
+							
+
+							AnimeEpisode epAnime = repEps.GetByAniDBEpisodeID(episodeID);
+							if (epAnime == null)
+								continue;
+
+							CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
+							CrossRef_File_Episode xref = new CrossRef_File_Episode();
+							xref.PopulateManually(vid, epAnime);
+							repXRefs.Save(xref);
+
+							vid.MoveFileIfRequired();
+
+							// update stats for groups and series
+							if (ser != null)
+							{
+								// update all the groups above this series in the heirarchy
+								ser.UpdateStats(true, true, true);
+								StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
+							}
+
+
+							// Add this file to the users list
+							if (ServerSettings.AniDB_MyList_AddFiles)
+							{
+								CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList(vid.ED2KHash);
+								cmd.Save();
+							}
+
+							ma2Progress.MigratedFiles = ma2Progress.MigratedFiles + 1;
+							workerMyAnime2.ReportProgress(0, ma2Progress);
+
+						}
+						myReader2.Close();
+						
+
+						//Console.WriteLine(myReader.GetString(0));
+					}
+					myReader.Close();
+				}
+
+
+				myConn.Close();
+
+				ma2Progress.CurrentFile = ma2Progress.CurrentFile + 1;
+				workerMyAnime2.ReportProgress(0, ma2Progress);
+
+			}
+			catch (Exception ex)
+			{
+				logger.DebugException(ex.ToString(), ex);
+				ma2Progress.ErrorMessage = ex.Message;
+				workerMyAnime2.ReportProgress(0, ma2Progress);
+			}
+		}
+
+		void btnImportManualLinks_Click(object sender, RoutedEventArgs e)
+		{
+			if (workerMyAnime2.IsBusy)
+			{
+				MessageBox.Show("Importer is already running", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				return;
+			}
+
+			txtMA2Progress.Visibility = System.Windows.Visibility.Visible;
+			txtMA2Success.Visibility = System.Windows.Visibility.Visible;
+
+			//workerMyAnime2.RunWorkerAsync(@"C:\ProgramData\Team MediaPortal\MediaPortal\database\AnimeDatabaseV20.db3");
+			//return;
+
+
+			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
+			ofd.Filter = "Sqlite Files (*.DB3)|*.db3";
+			ofd.ShowDialog();
+			if (!string.IsNullOrEmpty(ofd.FileName))
+			{
+				workerMyAnime2.RunWorkerAsync(ofd.FileName);
+			}
+		}
+
+		private void ImportLinksFromMA2(string databasePath)
+		{
+			
 		}
 
 		void btnApplyServerPort_Click(object sender, RoutedEventArgs e)

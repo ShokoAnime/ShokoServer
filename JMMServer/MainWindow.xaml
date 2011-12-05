@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:JMMServer"
-        Title="JMM Server" Height="350" Width="525" Icon="/JMMServer;component/db.ico">
+        Title="JMM Server" Height="450" Width="525" Icon="/JMMServer;component/db.ico">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -143,9 +143,40 @@
                         </Button>
                     </StackPanel>
                 </TabItem>
+                <TabItem Header="MyAnime2 Migration">
+                    <StackPanel Orientation="Vertical" VerticalAlignment="Top" Margin="0">
+                        <Border Style="{DynamicResource ToolbarBorderControlStyle}" Background="#F1F1F1" Margin="0,0,0,5" Padding="5">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"></RowDefinition>
+                                </Grid.RowDefinitions>
 
-                
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="25"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
+                                <Image Height="16" Width="16" Source="/Images/32_info.png" Margin="5,2,5,0" Grid.Column="0" VerticalAlignment="Top"/>
+                                <TextBlock VerticalAlignment="Center" Text="Use this to import manually linked files from MyAnime2" Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1"/>
+                                <local:HyperLinkStandard VerticalAlignment="Center" Margin="10,0,0,0" DisplayText="More Info Here" Grid.Column="2"
+                                                                        URL="http://code.google.com/p/jmm/wiki/User_Manual#Do_i_need_to_manually_link_files_again_that_I_did_in_MyAnime2"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Import MyAnime2 -->
+                        <Button HorizontalAlignment="Left" Name="btnImportManualLinks" Margin="0,0,0,0" Style="{DynamicResource RoundButtonStyle}" Width="Auto">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
+                                <Image Height="16" Width="16" Source="/Images/32_import.png" Margin="0,0,5,0"/>
+                                <TextBlock VerticalAlignment="Center" Text="Select MA2 database file and start processing" Margin="0,0,5,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <TextBlock Name="txtMA2Progress" Text="Processing files..." Margin="5,5,0,0" Visibility="Hidden"  />
+
+                        <TextBlock Name="txtMA2Success" Text="0 Files Done" Margin="5,5,0,0" Visibility="Hidden" />
+                    </StackPanel>
+                </TabItem>
             </TabControl>
         </ScrollViewer>
 
@@ -231,7 +262,7 @@
                 <TextBlock VerticalAlignment="Center" Text="Paused due to BAN from AniDB" Margin="0,0,5,0" FontWeight="Bold"/>
                 <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=BanReason}"/>
                 <local:HyperLinkStandard VerticalAlignment="Center" Margin="10,0,0,0" DisplayText="What does this mean?" Grid.Column="1"
-                                                                        URL="http://code.google.com/p/otakumm/wiki/User_Manual#Banned_from_AniDB?"/>
+                                                                        URL="http://code.google.com/p/jmm/wiki/User_Manual#Banned_from_AniDB?"/>
             </StackPanel>
         </Border>
 
