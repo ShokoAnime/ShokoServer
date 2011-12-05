@@ -220,6 +220,8 @@ namespace JMMServer.Databases
 		{
 			JMMUserRepository repUsers = new JMMUserRepository();
 
+			if (repUsers.GetAll().Count() > 0) return;
+
 			JMMUser defaultUser = new JMMUser();
 			defaultUser.CanEditServerSettings = 1;
 			defaultUser.HideCategories = "";
