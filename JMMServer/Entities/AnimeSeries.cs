@@ -328,6 +328,8 @@ namespace JMMServer.Entities
 		{
 			
 			DateTime start = DateTime.Now;
+			DateTime startOverall = DateTime.Now;
+			logger.Info("Starting Updating STATS for SERIES {0} ({1} - {2} - {3})", this.ToString(), watchedStats, missingEpsStats, updateAllGroupsAbove);
 
 			AnimeSeries_UserRepository repSeriesUser = new AnimeSeries_UserRepository();
 			AnimeEpisode_UserRepository repEpisodeUser = new AnimeEpisode_UserRepository();
@@ -541,6 +543,10 @@ namespace JMMServer.Entities
 			ts = DateTime.Now - start;
 			logger.Trace("Updated GROUPS ABOVE stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
 			start = DateTime.Now;
+
+			TimeSpan tsOverall = DateTime.Now - startOverall;
+			logger.Info("Finished Updating STATS for SERIES {0} in {1}ms ({2} - {3} - {4})", this.ToString(), tsOverall.TotalMilliseconds, 
+				watchedStats, missingEpsStats, updateAllGroupsAbove);
 		}
 
 	}

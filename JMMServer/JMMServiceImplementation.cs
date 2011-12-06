@@ -1648,7 +1648,7 @@ namespace JMMServer
 				contract = anime.ToContractDetailed();
 
 				TimeSpan ts = DateTime.Now - start;
-				logger.Info("GetAnimeDetailed  in {0} ms", ts.TotalMilliseconds);
+				logger.Trace("GetAnimeDetailed  in {0} ms", ts.TotalMilliseconds);
 
 				return contract;
 			}
@@ -2253,7 +2253,8 @@ namespace JMMServer
 					return response;
 				}
 
-				ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, userID);
+				ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID);
+				ep.AnimeSeries.UpdateStats(true, false, true);
 
 				// refresh from db
 				ep = repEps.GetByID(animeEpisodeID);
@@ -2289,8 +2290,17 @@ namespace JMMServer
 				{
 					if (ep.EpisodeTypeEnum == (enEpisodeType)episodeType && ep.AniDB_Episode.EpisodeNumber <= maxEpisodeNumber)
 					{
-						ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID);
-						logger.Info("Updating episode: {0} to {1}", ep.AniDB_Episode.EpisodeNumber, watchedStatus);
+						// check if this episode is already watched
+						bool currentStatus = false;
+						AnimeEpisode_User epUser = ep.GetUserRecord(userID);
+						if (epUser != null)
+							currentStatus = epUser.WatchedCount > 0 ? true : false;
+
+						if (currentStatus != watchedStatus)
+						{
+							logger.Info("Updating episode: {0} to {1}", ep.AniDB_Episode.EpisodeNumber, watchedStatus);
+							ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID);
+						}
 					}
 					
 

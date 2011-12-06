@@ -206,7 +206,7 @@ namespace JMMServer.Entities
 				{
 					if ((watched && ServerSettings.AniDB_MyList_SetWatched) || (!watched && ServerSettings.AniDB_MyList_SetUnwatched))
 					{
-						CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(this.Hash, watched);
+						CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(this.Hash, watched, false);
 						cmd.Save();
 					}
 				}

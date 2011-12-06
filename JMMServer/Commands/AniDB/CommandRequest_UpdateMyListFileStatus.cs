@@ -14,6 +14,7 @@ namespace JMMServer.Commands
 		public string FullFileName { get; set; }
 		public string Hash { get; set; }
 		public bool Watched { get; set; }
+		public bool UpdateSeriesStats { get; set; }
 
 		public CommandRequestPriority DefaultPriority
 		{
@@ -32,12 +33,13 @@ namespace JMMServer.Commands
 		{
 		}
 
-		public CommandRequest_UpdateMyListFileStatus(string hash, bool watched)
+		public CommandRequest_UpdateMyListFileStatus(string hash, bool watched, bool updateSeriesStats)
 		{
 			this.Hash = hash;
 			this.Watched = watched;
 			this.CommandType = (int)CommandRequestType.AniDB_UpdateWatchedUDP;
 			this.Priority = (int)DefaultPriority;
+			this.UpdateSeriesStats = updateSeriesStats;
 
 			GenerateCommandID();
 		}
@@ -72,13 +74,16 @@ namespace JMMServer.Commands
 						logger.Info("Updating file list status: {0} - {1}", vid.ToString(), this.Watched);
 					}
 
-					// update watched stats
-					List<AnimeEpisode> eps = repEpisodes.GetByHash(vid.ED2KHash);
-					if (eps.Count > 0)
+					if (UpdateSeriesStats)
 					{
-						// all the eps should belong to the same anime
-						eps[0].AnimeSeries.UpdateStats(true, false, true);
-						//eps[0].AnimeSeries.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
+						// update watched stats
+						List<AnimeEpisode> eps = repEpisodes.GetByHash(vid.ED2KHash);
+						if (eps.Count > 0)
+						{
+							// all the eps should belong to the same anime
+							eps[0].AnimeSeries.UpdateStats(true, false, true);
+							//eps[0].AnimeSeries.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
+						}
 					}
 				}
 
@@ -118,6 +123,11 @@ namespace JMMServer.Commands
 				// populate the fields
 				this.Hash = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Hash");
 				this.Watched = bool.Parse(TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Watched"));
+
+				string sUpStats = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "UpdateSeriesStats");
+				bool upStats = true;
+				if (bool.TryParse(sUpStats, out upStats))
+					UpdateSeriesStats = upStats;
 			}
 
 			if (this.Hash.Trim().Length > 0)
