@@ -377,14 +377,14 @@ namespace JMMServer.Entities
 
 		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, int userID)
 		{
-			ToggleWatchedStatus(watched, updateOnline, watchedDate, true, userID);
+			ToggleWatchedStatus(watched, updateOnline, watchedDate, true, true, userID);
 		}
 
-		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID)
+		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, bool updateStatsCache, int userID)
 		{
 			foreach (VideoLocal vid in VideoLocals)
 			{
-				vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, userID);
+				vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, updateStatsCache, userID);
 			}
 		}
 	}

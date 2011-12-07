@@ -112,7 +112,7 @@ namespace JMMServer.Commands
 					string localFileName = Path.GetFileName(vidLocal.FilePath);
 					aniFile.FileName = localFileName;
 
-					repAniFile.Save(aniFile);
+					repAniFile.Save(aniFile, false);
 					aniFile.CreateLanguages();
 					aniFile.CreateCrossEpisodes(localFileName);
 

@@ -126,8 +126,8 @@ namespace JMMServer
 		{
 			try
 			{
+				DateTime start = DateTime.Now;
 				
-
 				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 				AnimeSeries ser = repSeries.GetByID(animeSeriesID);
 				if (ser == null) return;
@@ -137,7 +137,8 @@ namespace JMMServer
 					UpdateUsingGroup(grp.AnimeGroupID);
 				}
 
-				
+				TimeSpan ts = DateTime.Now - start;
+				logger.Info("Updated cached stats series ({0}) in {1} ms", ser.Anime.MainTitle, ts.TotalMilliseconds);
 			}
 			catch (Exception ex)
 			{

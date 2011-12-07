@@ -143,10 +143,10 @@ namespace JMMServer.Entities
 
 		public void ToggleWatchedStatus(bool watched, int userID)
 		{
-			ToggleWatchedStatus(watched, true, null, true, userID);
+			ToggleWatchedStatus(watched, true, null, true, true, userID);
 		}
 
-		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID)
+		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, bool updateStatsCache, int userID)
 		{
 			VideoLocalRepository repVids = new VideoLocalRepository();
 			AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
@@ -197,7 +197,7 @@ namespace JMMServer.Entities
 						aniFile.WatchedDate = null;
 
 
-					repAniFile.Save(aniFile);
+					repAniFile.Save(aniFile, false);
 
 					
 				}
@@ -301,6 +301,9 @@ namespace JMMServer.Entities
 				ser.UpdateStats(true, true, true);
 				//ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
 			}
+
+			if (ser != null && updateStatsCache)
+				StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 		}
 
 		public override string ToString()

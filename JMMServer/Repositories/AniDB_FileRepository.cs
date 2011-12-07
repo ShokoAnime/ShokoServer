@@ -12,7 +12,7 @@ namespace JMMServer.Repositories
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public void Save(AniDB_File obj)
+		public void Save(AniDB_File obj, bool updateStats)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -24,8 +24,11 @@ namespace JMMServer.Repositories
 				}
 			}
 
-			logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {0}", obj.Hash);
-			StatsCache.Instance.UpdateUsingAniDBFile(obj.Hash);
+			if (updateStats)
+			{
+				logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {0}", obj.Hash);
+				StatsCache.Instance.UpdateUsingAniDBFile(obj.Hash);
+			}
 		}
 
 		public AniDB_File GetByID(int id)
