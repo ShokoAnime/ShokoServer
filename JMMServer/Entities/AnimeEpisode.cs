@@ -307,6 +307,7 @@ namespace JMMServer.Entities
 					contract.VideoInfo_AudioCodec = vi.AudioCodec;
 					contract.VideoInfo_Duration = vi.Duration;
 					contract.VideoInfo_VideoBitrate = vi.VideoBitrate;
+					contract.VideoInfo_VideoBitDepth = vi.VideoBitDepth;
 					contract.VideoInfo_VideoCodec = vi.VideoCodec;
 					contract.VideoInfo_VideoFrameRate = vi.VideoFrameRate;
 					contract.VideoInfo_VideoResolution = vi.VideoResolution;

@@ -25,6 +25,7 @@ namespace JMMServer.Commands
 		// Pri 4
 		//------
 		// CommandRequest_GetUpdated
+		// CommandRequest_ReadMediaInfo
 		//------
 		// Pri 5
 		//------
@@ -79,11 +80,16 @@ namespace JMMServer.Commands
 		{
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
-			{	
+			{
 				case CommandRequestType.AniDB_GetFileUDP:
 					CommandRequest_GetFile cr_AniDB_GetFileUDP = new CommandRequest_GetFile();
 					cr_AniDB_GetFileUDP.LoadFromDBCommand(crdb);
 					return (ICommandRequest)cr_AniDB_GetFileUDP;
+
+				case CommandRequestType.ReadMediaInfo:
+					CommandRequest_ReadMediaInfo cr_ReadMediaInfo = new CommandRequest_ReadMediaInfo();
+					cr_ReadMediaInfo.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_ReadMediaInfo;
 
 				case CommandRequestType.Trakt_UpdateAllSeries:
 					CommandRequest_TraktUpdateAllSeries cr_Trakt_UpdateAllSeries = new CommandRequest_TraktUpdateAllSeries();

@@ -110,6 +110,7 @@ namespace JMMServer.Databases
 				UpdateSchema_003(versionNumber);
 				UpdateSchema_004(versionNumber);
 				UpdateSchema_005(versionNumber);
+				UpdateSchema_006(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -242,6 +243,34 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 
 			cmds.Add("ALTER TABLE JMMUser ADD CanEditServerSettings int NULL");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_006(int currentVersionNumber)
+		{
+			int thisVersion = 6;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE VideoInfo ADD VideoBitDepth varchar(max) NULL");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))

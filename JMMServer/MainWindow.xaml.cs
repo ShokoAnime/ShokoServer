@@ -61,6 +61,7 @@ namespace JMMServer
 		private static BackgroundWorker workerDeleteImportFolder = new BackgroundWorker();
 		private static BackgroundWorker workerTraktFriends = new BackgroundWorker();
 		private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
+		private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
 		private static System.Timers.Timer autoUpdateTimer = null;
 		private static System.Timers.Timer autoUpdateTimerShort = null;
@@ -397,6 +398,14 @@ namespace JMMServer
 			//ser.UpdateStats(true, true, true);
 
 			//TraktTVHelper.GetUserCollection();
+
+			//FileHashHelper.GetMediaInfo(@"C:\[Hiryuu] Maken-Ki! 09 [Hi10P 1280x720 H264] [EE47C947].mkv", true);
+
+			//CommandRequest_ReadMediaInfo cr1 = new CommandRequest_ReadMediaInfo(2038);
+			//cr1.Save();
+
+			//CommandRequest_ReadMediaInfo cr2 = new CommandRequest_ReadMediaInfo(2037);
+			//cr2.Save();
 		}
 
 		private void DownloadAllImages()

@@ -302,6 +302,7 @@ namespace JMMServer.Commands
 				vinfo.AudioBitrate = "";
 				vinfo.AudioCodec = "";
 				vinfo.VideoBitrate = "";
+				vinfo.VideoBitDepth = "";
 				vinfo.VideoCodec = "";
 				vinfo.VideoFrameRate = "";
 				vinfo.VideoResolution = "";
@@ -332,6 +333,7 @@ namespace JMMServer.Commands
 				vinfo.FileSize = fi.Length;
 
 				vinfo.VideoBitrate = string.IsNullOrEmpty(mInfo.VideoBitrate) ? "" : mInfo.VideoBitrate;
+				vinfo.VideoBitDepth = string.IsNullOrEmpty(mInfo.VideoBitDepth) ? "" : mInfo.VideoBitDepth;
 				vinfo.VideoCodec = string.IsNullOrEmpty(mInfo.VideoCodec) ? "" : mInfo.VideoCodec;
 				vinfo.VideoFrameRate = string.IsNullOrEmpty(mInfo.VideoFrameRate) ? "" : mInfo.VideoFrameRate;
 				vinfo.VideoResolution = string.IsNullOrEmpty(mInfo.VideoResolution) ? "" : mInfo.VideoResolution;

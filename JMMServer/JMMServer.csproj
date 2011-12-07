@@ -178,6 +178,7 @@
     <Compile Include="Commands\CommandRequest_ProcessFile.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_SyncMyList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_SyncMyVotes.cs" />
+    <Compile Include="Commands\CommandRequest_ReadMediaInfo.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktSearchAnime.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktShowEpisodeUnseen.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktShowScrobble.cs" />
