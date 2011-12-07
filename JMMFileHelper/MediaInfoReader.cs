@@ -32,10 +32,10 @@ namespace JMMFileHelper
 				string test = mi.getPlaytime();
 				if (test.Length > 0)
 				{
-
 					info.VideoResolution = mi.getWidth() + "x" + mi.getHeight();
 					info.VideoCodec = mi.getVidCodec();
 					info.VideoBitrate = mi.getVidBitrate();
+					info.VideoBitDepth = mi.getVidBitDepth();
 					info.VideoFrameRate = mi.getFPS();
 					info.AudioCodec = mi.getAudioCodec();
 					info.AudioBitrate = mi.getAudioBitrate();

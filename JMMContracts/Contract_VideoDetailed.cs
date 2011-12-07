@@ -32,6 +32,7 @@ namespace JMMContracts
 		public int VideoInfo_VideoInfoID { get; set; }
 		public string VideoInfo_VideoCodec { get; set; }
 		public string VideoInfo_VideoBitrate { get; set; }
+		public string VideoInfo_VideoBitDepth { get; set; }
 		public string VideoInfo_VideoFrameRate { get; set; }
 		public string VideoInfo_VideoResolution { get; set; }
 		public string VideoInfo_AudioCodec { get; set; }

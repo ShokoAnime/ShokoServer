@@ -96,6 +96,7 @@ namespace JMMFileHelper
 		public int Open(String FileName) { return MediaInfo_Open(Handle, FileName); }
 		public void Close() { MediaInfo_Close(Handle); }
 		public string getVidCodec() { return this.Get(StreamKind.Video, 0, "Codec"); }
+		public string getVidBitDepth() { return this.Get(StreamKind.Video, 0, "BitDepth"); }
 		public string getVidBitrate() { return this.Get(StreamKind.Video, 0, "BitRate"); }
 		public string getWidth() { return this.Get(StreamKind.Video, 0, "Width"); }
 		public string getHeight() { return this.Get(StreamKind.Video, 0, "Height"); }

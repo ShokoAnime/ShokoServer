@@ -9,6 +9,7 @@ namespace JMMContracts
 	{
 		public string VideoCodec { get; set; }
 		public string VideoBitrate { get; set; }
+		public string VideoBitDepth { get; set; }
 		public string VideoFrameRate { get; set; }
 		public string VideoResolution { get; set; }
 		public string AudioCodec { get; set; }
