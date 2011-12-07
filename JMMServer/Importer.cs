@@ -147,6 +147,50 @@ namespace JMMServer
 			}
 		}
 
+		public static void RunImport_DropFolders()
+		{
+			// get a complete list of files
+			List<string> fileList = new List<string>();
+			ImportFolderRepository repNetShares = new ImportFolderRepository();
+			foreach (ImportFolder share in repNetShares.GetAll())
+			{
+				if (!share.FolderIsDropSource) continue;
+
+				logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
+				try
+				{
+					if (Directory.Exists(share.ImportFolderLocation))
+						fileList.AddRange(Directory.GetFiles(share.ImportFolderLocation, "*.*", SearchOption.AllDirectories));
+				}
+				catch (Exception ex)
+				{
+					logger.ErrorException(ex.ToString(), ex);
+				}
+			}
+
+			// get a list of all the shares we are looking at
+			int filesFound = 0, videosFound = 0;
+			int i = 0;
+
+			// get a list of all files in the share
+			foreach (string fileName in fileList)
+			{
+				i++;
+				filesFound++;
+				logger.Info("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
+
+				if (!FileHashHelper.IsVideo(fileName)) continue;
+
+				videosFound++;
+
+				CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(fileName, false);
+				cr_hashfile.Save();
+
+			}
+			logger.Debug("Found {0} files", filesFound);
+			logger.Debug("Found {0} videos", videosFound);
+		}
+
 		public static void RunImport_NewFiles()
 		{
 			VideoLocalRepository repVidLocals = new VideoLocalRepository();

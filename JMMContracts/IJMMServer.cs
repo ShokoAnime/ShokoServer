@@ -431,6 +431,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_TvDBLanguage> GetTvDBLanguages();
+
+		[OperationContract]
+		void ScanDropFolders();
 	}
 
 }

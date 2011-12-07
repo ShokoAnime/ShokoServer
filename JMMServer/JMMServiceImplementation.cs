@@ -2563,6 +2563,11 @@ namespace JMMServer
 			MainWindow.RunImport();
 		}
 
+		public void ScanDropFolders()
+		{
+			Importer.RunImport_DropFolders();
+		}
+
 		public void ScanFolder(int importFolderID)
 		{
 			MainWindow.ScanFolder(importFolderID);
