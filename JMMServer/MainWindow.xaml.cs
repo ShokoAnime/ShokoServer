@@ -567,8 +567,9 @@ namespace JMMServer
 
 		void btnSyncTrakt_Click(object sender, RoutedEventArgs e)
 		{
-			CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
-			cmd.Save();
+			this.Cursor = Cursors.Wait;
+			TraktTVHelper.SyncCollectionToTrakt();
+			this.Cursor = Cursors.Arrow;
 			MessageBox.Show("Sync is Queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
