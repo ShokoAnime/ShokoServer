@@ -12,6 +12,7 @@ namespace JMMContracts
 		public int Ranking { get; set; }
 		public string Resolution { get; set; }
 		public string VideoSource { get; set; }
+		public int VideoBitDepth { get; set; }
 		public int FileCountNormal { get; set; }
 		public bool NormalComplete { get; set; }
 		public int FileCountSpecials { get; set; }

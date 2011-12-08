@@ -3060,13 +3060,22 @@ namespace JMMServer
 						AniDB_File aniFile = vid.AniDBFile;
 						if (aniFile != null)
 						{
+							VideoInfo vinfo = vid.VideoInfo;
+							int bitDepth = 8;
+							if (vinfo != null)
+							{
+								if (!int.TryParse(vinfo.VideoBitDepth, out bitDepth))
+									bitDepth = 8;
+							}
+
 							// match based on group / video sorce / video res
 							bool foundSummaryRecord = false;
 							foreach (Contract_GroupVideoQuality contract in vidQuals)
 							{
 								if (contract.GroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) &&
 									contract.VideoSource.Equals(aniFile.File_Source, StringComparison.InvariantCultureIgnoreCase) &&
-									contract.Resolution.Equals(aniFile.File_VideoResolution, StringComparison.InvariantCultureIgnoreCase))
+									contract.Resolution.Equals(aniFile.File_VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
+									contract.VideoBitDepth == bitDepth)
 								{
 									foundSummaryRecord = true;
 
@@ -3089,9 +3098,10 @@ namespace JMMServer
 								if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
 								contract.GroupName = aniFile.Anime_GroupName;
 								contract.GroupNameShort = aniFile.Anime_GroupNameShort;
+								contract.VideoBitDepth = bitDepth;
 								contract.Resolution = aniFile.File_VideoResolution;
 								contract.VideoSource = aniFile.File_Source;
-								contract.Ranking = Utils.GetOverallVideoSourceRanking(contract.Resolution, contract.VideoSource);
+								contract.Ranking = Utils.GetOverallVideoSourceRanking(contract.Resolution, contract.VideoSource, bitDepth);
 								contract.NormalEpisodeNumbers = new List<int>();
 								if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
 								{
@@ -3108,12 +3118,20 @@ namespace JMMServer
 							VideoInfo vinfo = vid.VideoInfo;
 							if (vinfo != null)
 							{
+								int bitDepth = 8;
+								if (vinfo != null)
+								{
+									if (!int.TryParse(vinfo.VideoBitDepth, out bitDepth))
+										bitDepth = 8;
+								}
+
 								bool foundSummaryRecord = false;
 								foreach (Contract_GroupVideoQuality contract in vidQuals)
 								{
 									if (contract.GroupName.Equals("NO GROUP INFO", StringComparison.InvariantCultureIgnoreCase) &&
 										contract.VideoSource.Equals("NO SOURCE INFO", StringComparison.InvariantCultureIgnoreCase) &&
-										contract.Resolution.Equals(vinfo.VideoResolution, StringComparison.InvariantCultureIgnoreCase))
+										contract.Resolution.Equals(vinfo.VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
+										contract.VideoBitDepth == bitDepth)
 									{
 										foundSummaryRecord = true;
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
@@ -3137,7 +3155,8 @@ namespace JMMServer
 									contract.GroupNameShort = "NO GROUP INFO";
 									contract.Resolution = vinfo.VideoResolution;
 									contract.VideoSource = "NO SOURCE INFO";
-									contract.Ranking = Utils.GetOverallVideoSourceRanking(contract.Resolution, contract.VideoSource);
+									contract.VideoBitDepth = bitDepth;
+									contract.Ranking = Utils.GetOverallVideoSourceRanking(contract.Resolution, contract.VideoSource, bitDepth);
 									contract.NormalEpisodeNumbers = new List<int>();
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
 									{
@@ -3192,16 +3211,19 @@ namespace JMMServer
 
 					}
 
-					if (contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1] >= baseEpNum)
+					if (contract.NormalEpisodeNumbers.Count > 0)
 					{
-						// this means we have missed an episode
-						if (contract.NormalEpisodeNumberSummary.Length > 0)
-							contract.NormalEpisodeNumberSummary += ", ";
+						if (contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1] >= baseEpNum)
+						{
+							// this means we have missed an episode
+							if (contract.NormalEpisodeNumberSummary.Length > 0)
+								contract.NormalEpisodeNumberSummary += ", ";
 
-						if (baseEpNum == contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1])
-							contract.NormalEpisodeNumberSummary += string.Format("{0}", baseEpNum);
-						else
-							contract.NormalEpisodeNumberSummary += string.Format("{0}-{1}", baseEpNum, contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1]);
+							if (baseEpNum == contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1])
+								contract.NormalEpisodeNumberSummary += string.Format("{0}", baseEpNum);
+							else
+								contract.NormalEpisodeNumberSummary += string.Format("{0}-{1}", baseEpNum, contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1]);
+						}
 					}
 				}
 
@@ -5259,7 +5281,7 @@ namespace JMMServer
 									if (contract.GroupFileSummary.Length > 0)
 										contract.GroupFileSummary += " --- ";
 
-									contract.GroupFileSummary += string.Format("{0} - {1}/{2} ({3})", gvq.GroupNameShort, gvq.Resolution, gvq.VideoSource, gvq.NormalEpisodeNumberSummary);
+									contract.GroupFileSummary += string.Format("{0} - {1}/{2}/{3}bit ({4})", gvq.GroupNameShort, gvq.Resolution, gvq.VideoSource, gvq.VideoBitDepth, gvq.NormalEpisodeNumberSummary);
 								}
 
 								AniDB_Episode ep = aep.AniDB_Episode;

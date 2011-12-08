@@ -573,11 +573,12 @@ namespace JMMServer
 			return 0;
 		}
 
-		public static int GetOverallVideoSourceRanking(string videoResolution, string source)
+		public static int GetOverallVideoSourceRanking(string videoResolution, string source, int bitDepth)
 		{
 			int vidWidth = GetVideoWidth(videoResolution);
 			int score = 0;
 			score += GetVideoSourceRanking(source);
+			score += bitDepth;
 
 			if (vidWidth > 1900) score += 100;
 			else if (vidWidth > 1300) score += 50;
