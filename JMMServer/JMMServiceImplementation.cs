@@ -5509,6 +5509,11 @@ namespace JMMServer
 
 			return retLanguages;
 		}
+
+		public void RefreshAllMediaInfo()
+		{
+			MainWindow.RefreshAllMediaInfo();
+		}
 	}
 
 	

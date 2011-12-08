@@ -133,12 +133,41 @@ namespace JMMServer
 
 			btnToolbarHelp.Click += new RoutedEventHandler(btnToolbarHelp_Click);
 			btnApplyServerPort.Click += new RoutedEventHandler(btnApplyServerPort_Click);
+			btnUpdateMediaInfo.Click += new RoutedEventHandler(btnUpdateMediaInfo_Click);
 
 			workerMyAnime2.DoWork += new DoWorkEventHandler(workerMyAnime2_DoWork);
 			workerMyAnime2.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerMyAnime2_RunWorkerCompleted);
 			workerMyAnime2.ProgressChanged += new ProgressChangedEventHandler(workerMyAnime2_ProgressChanged);
 			workerMyAnime2.WorkerReportsProgress = true;
 
+			workerMediaInfo.DoWork += new DoWorkEventHandler(workerMediaInfo_DoWork);
+			
+		}
+
+		void btnUpdateMediaInfo_Click(object sender, RoutedEventArgs e)
+		{
+			RefreshAllMediaInfo();
+			MessageBox.Show("Actions have been queued", "Done", MessageBoxButton.OK, MessageBoxImage.Information);
+		}
+
+		void workerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
+		{
+			VideoLocalRepository repVidLocals = new VideoLocalRepository();
+
+			// first build a list of files that we already know about, as we don't want to process them again
+			List<VideoLocal> filesAll = repVidLocals.GetAll();
+			Dictionary<string, VideoLocal> dictFilesExisting = new Dictionary<string, VideoLocal>();
+			foreach (VideoLocal vl in filesAll)
+			{
+				CommandRequest_ReadMediaInfo cr = new CommandRequest_ReadMediaInfo(vl.VideoLocalID);
+				cr.Save();
+			}
+		}
+
+		public static void RefreshAllMediaInfo()
+		{
+			if (workerMediaInfo.IsBusy) return;
+			workerMediaInfo.RunWorkerAsync();
 		}
 
 		void workerMyAnime2_ProgressChanged(object sender, ProgressChangedEventArgs e)

@@ -434,6 +434,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		void ScanDropFolders();
+
+		[OperationContract]
+		void RefreshAllMediaInfo();
 	}
 
 }
