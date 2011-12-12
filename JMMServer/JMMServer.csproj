@@ -348,11 +348,15 @@
     <Compile Include="Providers\MovieDB\MovieDB_Movie_Result.cs" />
     <Compile Include="Providers\TraktTV\TraktTVEpisode.cs" />
     <Compile Include="Providers\TraktTV\TraktTVEpisodeUser.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVFriendRequest.cs" />
     <Compile Include="Providers\TraktTV\TraktTVGenericResponse.cs" />
     <Compile Include="Providers\TraktTV\TraktTVHelper.cs" />
     <Compile Include="Providers\TraktTV\TraktTVImages.cs" />
     <Compile Include="Providers\TraktTV\TraktTVImagesUserEpisode.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVPost_AccountCreate.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_AccountTest.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVPost_FriendDenyApprove.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVPost_FriendsRequests.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowEpisodeLibrary.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowEpisodeSeen.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowEpisodeUnseen.cs" />

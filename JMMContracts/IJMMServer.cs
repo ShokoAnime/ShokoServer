@@ -437,6 +437,15 @@ namespace JMMContracts
 
 		[OperationContract]
 		void RefreshAllMediaInfo();
+
+		[OperationContract]
+		bool CreateTraktAccount(string username, string password, string email, ref string returnMessage);
+
+		[OperationContract]
+		bool TraktFriendRequestDeny(string friendUsername, ref string returnMessage);
+
+		[OperationContract]
+		bool TraktFriendRequestApprove(string friendUsername, ref string returnMessage);
 	}
 
 }

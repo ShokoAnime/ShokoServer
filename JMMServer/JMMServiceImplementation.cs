@@ -2686,6 +2686,48 @@ namespace JMMServer
 			}
 		}
 
+		public bool CreateTraktAccount(string username, string password, string email, ref string returnMessage)
+		{
+			try
+			{
+				return TraktTVHelper.CreateAccount(username, password, email, ref returnMessage);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TestTraktLogin: " + ex.ToString(), ex);
+				returnMessage = ex.Message;
+				return false;
+			}
+		}
+
+		public bool TraktFriendRequestDeny(string friendUsername, ref string returnMessage)
+		{
+			try
+			{
+				return TraktTVHelper.FriendRequestDeny(friendUsername, ref returnMessage);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktFriendRequestDeny: " + ex.ToString(), ex);
+				returnMessage = ex.Message;
+				return false;
+			}
+		}
+
+		public bool TraktFriendRequestApprove(string friendUsername, ref string returnMessage)
+		{
+			try
+			{
+				return TraktTVHelper.FriendRequestApprove(friendUsername, ref returnMessage);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktFriendRequestDeny: " + ex.ToString(), ex);
+				returnMessage = ex.Message;
+				return false;
+			}
+		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -5346,18 +5388,25 @@ namespace JMMServer
 				contract.HasTraktAccount = false;
 
 			contract.TraktFriends = new List<Contract_Trakt_Friend>();
+			contract.TraktFriendRequests = new List<Contract_Trakt_FriendFrequest>();
 			try
 			{
 				foreach (TraktTVUser friend in StatsCache.Instance.TraktFriendInfo)
 				{
 					Contract_Trakt_Friend contractFriend = friend.ToContract();
-					if (contract != null)
+					if (contractFriend != null)
 						contract.TraktFriends.Add(contractFriend);
 				}
 
 				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
 				sortCriteria.Add(new SortPropOrFieldAndDirection("LastEpisodeWatched", true, SortType.eDateTime));
 				contract.TraktFriends = Sorting.MultiSort<Contract_Trakt_Friend>(contract.TraktFriends, sortCriteria);
+
+				foreach (TraktTVFriendRequest req in StatsCache.Instance.TraktFriendRequests)
+				{
+					Contract_Trakt_FriendFrequest contractReq = req.ToContract();
+					contract.TraktFriendRequests.Add(contractReq);
+				}
 			}
 			catch (Exception ex)
 			{

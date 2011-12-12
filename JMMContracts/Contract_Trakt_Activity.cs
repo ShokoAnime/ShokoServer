@@ -9,5 +9,6 @@ namespace JMMContracts
 	{
 		public bool HasTraktAccount { get; set; }
 		public List<Contract_Trakt_Friend> TraktFriends { get; set; }
+		public List<Contract_Trakt_FriendFrequest> TraktFriendRequests { get; set; }
 	}
 }

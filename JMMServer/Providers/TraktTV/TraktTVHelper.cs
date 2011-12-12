@@ -47,6 +47,35 @@ namespace JMMServer.Providers.TraktTV
 			return tvshow;
 		}
 
+		public static List<TraktTVFriendRequest> GetFriendsRequests()
+		{
+			List<TraktTVFriendRequest> friends = new List<TraktTVFriendRequest>();
+
+			try
+			{
+				string url = string.Format(Constants.TraktTvURLs.URLPostFriendsRequests, Constants.TraktTvURLs.APIKey);
+				logger.Trace("GetFriendsRequests: {0}", url);
+
+				TraktTVPost_FriendsRequests cmd = new TraktTVPost_FriendsRequests();
+				cmd.Init();
+
+				string json = JSONHelper.Serialize<TraktTVPost_FriendsRequests>(cmd);
+				string jsonResponse = SendData(url, json);
+				if (string.IsNullOrEmpty(jsonResponse)) return friends;
+
+				friends = JSONHelper.Deserialize<List<TraktTVFriendRequest>>(jsonResponse);
+
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktTVHelper.GetFriends: " + ex.ToString(), ex);
+				return null;
+			}
+
+			return friends;
+		}
+
 		public static List<TraktTVUser> GetFriends()
 		{
 			List<TraktTVUser> friends = new List<TraktTVUser>();
@@ -760,7 +789,10 @@ namespace JMMServer.Providers.TraktTV
 
 				TraktTVGenericResponse genResponse = JSONHelper.Deserialize<TraktTVGenericResponse>(jsonResponse);
 				if (genResponse.IsSuccess)
+				{
+					MainWindow.UpdateTraktFriendInfo(true);
 					return "";
+				}
 				else
 					return genResponse.error;
 
@@ -769,6 +801,144 @@ namespace JMMServer.Providers.TraktTV
 			{
 				logger.ErrorException("Error in TraktTVHelper.TestUserLogin: " + ex.ToString(), ex);
 				return ex.Message;
+			}
+		}
+
+		public static bool CreateAccount(string uname, string pass, string emailAddress, ref string returnMessage)
+		{
+			returnMessage = "";
+			try
+			{
+				if (string.IsNullOrEmpty(uname) || string.IsNullOrEmpty(pass) || string.IsNullOrEmpty(emailAddress))
+				{
+					returnMessage = "Please enter a username and password";
+					return false;
+				}
+
+				TraktTVPost_AccountCreate cmd = new TraktTVPost_AccountCreate();
+				cmd.Init(uname, pass, emailAddress);
+
+				string url = string.Format(Constants.TraktTvURLs.URLPostAccountCreate, Constants.TraktTvURLs.APIKey);
+				logger.Trace("TestUserLogin: {0}", url);
+
+				string json = JSONHelper.Serialize<TraktTVPost_AccountCreate>(cmd);
+				string jsonResponse = SendData(url, json);
+
+				TraktTVGenericResponse genResponse = JSONHelper.Deserialize<TraktTVGenericResponse>(jsonResponse);
+				if (genResponse.IsSuccess)
+				{
+					returnMessage = genResponse.message;
+					ServerSettings.Trakt_Username = uname;
+					ServerSettings.Trakt_Password = pass;
+					MainWindow.UpdateTraktFriendInfo(true);
+					return true;
+				}
+				else
+				{
+					returnMessage = genResponse.error;
+					return false;
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktTVHelper.TestUserLogin: " + ex.ToString(), ex);
+				returnMessage = ex.Message;
+				return false;
+			}
+		}
+
+		public static bool FriendRequestDeny(string uname, ref string returnMessage)
+		{
+			returnMessage = "";
+			try
+			{
+				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+				{
+					returnMessage = "Please enter a username and password";
+					return false;
+				}
+
+				TraktTVPost_FriendDenyApprove cmd = new TraktTVPost_FriendDenyApprove();
+				cmd.Init(uname);
+
+				string url = string.Format(Constants.TraktTvURLs.URLPostFriendsDeny, Constants.TraktTvURLs.APIKey);
+				logger.Trace("URLPostFriendsDeny: {0}", url);
+
+				string json = JSONHelper.Serialize<TraktTVPost_FriendDenyApprove>(cmd);
+				string jsonResponse = SendData(url, json);
+				if (string.IsNullOrEmpty(jsonResponse))
+				{
+					returnMessage = "Error occurred";
+					return false;
+				}
+
+				TraktTVGenericResponse genResponse = JSONHelper.Deserialize<TraktTVGenericResponse>(jsonResponse);
+				if (genResponse.IsSuccess)
+				{
+					returnMessage = genResponse.message;
+					MainWindow.UpdateTraktFriendInfo(true);
+					return true;
+				}
+				else
+				{
+					returnMessage = genResponse.error;
+					return false;
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktTVHelper.FriendRequestDeny: " + ex.ToString(), ex);
+				returnMessage = ex.Message;
+				return false;
+			}
+		}
+
+		public static bool FriendRequestApprove(string uname, ref string returnMessage)
+		{
+			returnMessage = "";
+			try
+			{
+				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+				{
+					returnMessage = "Please enter a username and password";
+					return false;
+				}
+
+				TraktTVPost_FriendDenyApprove cmd = new TraktTVPost_FriendDenyApprove();
+				cmd.Init(uname);
+
+				string url = string.Format(Constants.TraktTvURLs.URLPostFriendsApprove, Constants.TraktTvURLs.APIKey);
+				logger.Trace("URLPostFriendsDeny: {0}", url);
+
+				string json = JSONHelper.Serialize<TraktTVPost_FriendDenyApprove>(cmd);
+				string jsonResponse = SendData(url, json);
+				if (string.IsNullOrEmpty(jsonResponse))
+				{
+					returnMessage = "Error occurred";
+					return false;
+				}
+
+				TraktTVGenericResponse genResponse = JSONHelper.Deserialize<TraktTVGenericResponse>(jsonResponse);
+				if (genResponse.IsSuccess)
+				{
+					returnMessage = genResponse.message;
+					MainWindow.UpdateTraktFriendInfo(true);
+					return true;
+				}
+				else
+				{
+					returnMessage = genResponse.error;
+					return false;
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktTVHelper.FriendRequestDeny: " + ex.ToString(), ex);
+				returnMessage = ex.Message;
+				return false;
 			}
 		}
 

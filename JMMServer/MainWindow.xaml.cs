@@ -426,7 +426,7 @@ namespace JMMServer
 			//AnimeSeries ser = repSeries.GetByID(222);
 			//ser.UpdateStats(true, true, true);
 
-			//TraktTVHelper.GetUserCollection();
+			//TraktTVHelper.GetFriendsRequests();
 
 			//FileHashHelper.GetMediaInfo(@"C:\[Hiryuu] Maken-Ki! 09 [Hi10P 1280x720 H264] [EE47C947].mkv", true);
 
@@ -780,28 +780,50 @@ namespace JMMServer
 
 		void workerTraktFriends_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
-			List<TraktTVUser> traktFriends = e.Result as List<TraktTVUser>;
-			if (traktFriends != null && traktFriends.Count > 0)
-			{
-				StatsCache.Instance.TraktFriendInfo.Clear();
+			StatsCache.Instance.TraktFriendInfo.Clear();
+			StatsCache.Instance.TraktFriendRequests.Clear();
 
-				foreach (TraktTVUser friend in traktFriends)
-					StatsCache.Instance.TraktFriendInfo.Add(friend);
+			List<object> allInfo = e.Result as List<object>;
+			if (allInfo != null && allInfo.Count > 0)
+			{
+				foreach (object obj in allInfo)
+				{
+					if (obj.GetType() == typeof(TraktTVFriendRequest))
+					{
+						TraktTVFriendRequest req = obj as TraktTVFriendRequest;
+						StatsCache.Instance.TraktFriendRequests.Add(req);
+					}
+
+					if (obj.GetType() == typeof(TraktTVUser))
+					{
+						TraktTVUser friend = obj as TraktTVUser;
+						StatsCache.Instance.TraktFriendInfo.Add(friend);
+					}
+				}
 			}
 		}
 
 		void workerTraktFriends_DoWork(object sender, DoWorkEventArgs e)
 		{
+			List<object> allInfo = new List<object>();
+
+			List<TraktTVFriendRequest> requests = TraktTVHelper.GetFriendsRequests();
+			foreach (TraktTVFriendRequest req in requests)
+				allInfo.Add(req);
+
 			List<TraktTVUser> traktFriends = TraktTVHelper.GetFriends();
-			e.Result = traktFriends;
+			foreach (TraktTVUser friend in traktFriends)
+				allInfo.Add(friend);
+
+			e.Result = allInfo;
 		}
 
-		private static void UpdateTraktFriendInfo()
+		public static void UpdateTraktFriendInfo(bool forced)
 		{
 			if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password)) return;
 
 			bool performUpdate = false;
-			if (!doneFirstTrakTinfo)
+			if (!doneFirstTrakTinfo || forced)
 				performUpdate = true;
 			else
 			{
@@ -822,7 +844,7 @@ namespace JMMServer
 		{
 			JMMService.CmdProcessorImages.NotifyOfNewCommand();
 
-			UpdateTraktFriendInfo();
+			UpdateTraktFriendInfo(false);
 		}
 
 		#region Tray Minimize

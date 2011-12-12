@@ -29,6 +29,7 @@ namespace JMMServer
 		}
 
 		public List<TraktTVUser> TraktFriendInfo = null;
+		public List<TraktTVFriendRequest> TraktFriendRequests = null;
 
 		public Dictionary<int, string> StatGroupCategories = null; // AnimeGroupID / Categories List
 		public Dictionary<int, string> StatGroupTitles = null; // AnimeGroupID / Titles List
@@ -54,6 +55,7 @@ namespace JMMServer
 		public StatsCache()
 		{
 			TraktFriendInfo = new List<TraktTVUser>();
+			TraktFriendRequests = new List<TraktTVFriendRequest>();
 
 			StatGroupCategories = new Dictionary<int, string>();
 			StatGroupTitles = new Dictionary<int, string>();
