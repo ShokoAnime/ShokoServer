@@ -5338,24 +5338,32 @@ namespace JMMServer
 			}
 		}
 
-		public List<Contract_Trakt_Friend> GetTraktFriendInfo()
+		public Contract_Trakt_Activity GetTraktFriendInfo()
 		{
-			List<Contract_Trakt_Friend> contracts = new List<Contract_Trakt_Friend>();
+			Contract_Trakt_Activity contract = new Contract_Trakt_Activity();
+			contract.HasTraktAccount = true;
+			if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+				contract.HasTraktAccount = false;
+
+			contract.TraktFriends = new List<Contract_Trakt_Friend>();
 			try
 			{
 				foreach (TraktTVUser friend in StatsCache.Instance.TraktFriendInfo)
 				{
-					Contract_Trakt_Friend contract = friend.ToContract();
+					Contract_Trakt_Friend contractFriend = friend.ToContract();
 					if (contract != null)
-						contracts.Add(contract);
+						contract.TraktFriends.Add(contractFriend);
 				}
 
+				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+				sortCriteria.Add(new SortPropOrFieldAndDirection("LastEpisodeWatched", true, SortType.eDateTime));
+				contract.TraktFriends = Sorting.MultiSort<Contract_Trakt_Friend>(contract.TraktFriends, sortCriteria);
 			}
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
-			return contracts;
+			return contract;
 		}
 
 		public Contract_AniDBVote GetUserVote(int animeID)

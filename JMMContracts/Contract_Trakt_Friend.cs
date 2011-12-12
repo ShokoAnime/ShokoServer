@@ -18,6 +18,7 @@ namespace JMMContracts
 		public DateTime? JoinedDate { get; set; }
 		public string Avatar { get; set; }
 		public string Url { get; set; }
+		public DateTime? LastEpisodeWatched { get; set; }
 
 		public List<Contract_Trakt_WatchedEpisode> WatchedEpisodes { get; set; }
 	}

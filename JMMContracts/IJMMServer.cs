@@ -409,7 +409,7 @@ namespace JMMContracts
 		void IgnoreAnime(int animeID, int ignoreType, int userID);
 
 		[OperationContract]
-		List<Contract_Trakt_Friend> GetTraktFriendInfo();
+		Contract_Trakt_Activity GetTraktFriendInfo();
 
 		[OperationContract]
 		Contract_AniDBVote GetUserVote(int animeID);

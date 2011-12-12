@@ -42,13 +42,14 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public CrossRef_AniDB_TvDB GetByTvDBID(int id)
+		public CrossRef_AniDB_TvDB GetByTvDBID(int id, int season)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				CrossRef_AniDB_TvDB cr = session
 					.CreateCriteria(typeof(CrossRef_AniDB_TvDB))
 					.Add(Restrictions.Eq("TvDBID", id))
+					.Add(Restrictions.Eq("TvDBSeasonNumber", season))
 					.UniqueResult<CrossRef_AniDB_TvDB>();
 				return cr;
 			}

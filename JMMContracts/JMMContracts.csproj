@@ -111,6 +111,7 @@
     <Compile Include="Contract_ServerStatus.cs" />
     <Compile Include="Contract_ToggleWatchedStatusOnEpisode_Response.cs" />
     <Compile Include="Contract_TraktTVShowResponse.cs" />
+    <Compile Include="Contract_Trakt_Activity.cs" />
     <Compile Include="Contract_Trakt_Episode.cs" />
     <Compile Include="Contract_Trakt_Friend.cs" />
     <Compile Include="Contract_Trakt_ImageFanart.cs" />

@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using JMMContracts;
 using JMMServer.Repositories;
 using JMMServer.Entities;
+using BinaryNorthwest;
 
 namespace JMMServer.Providers.TraktTV
 {
@@ -93,6 +94,12 @@ namespace JMMServer.Providers.TraktTV
 					watchedEp.Watched = wtch.watched;
 					watchedEp.WatchedDate = Utils.GetAniDBDateAsDate(wtch.watched);
 
+					if (!contract.LastEpisodeWatched.HasValue)
+						contract.LastEpisodeWatched = watchedEp.WatchedDate;
+
+					if (watchedEp.WatchedDate.HasValue && watchedEp.WatchedDate > contract.LastEpisodeWatched)
+						contract.LastEpisodeWatched = watchedEp.WatchedDate;
+
 					watchedEp.AnimeSeriesID = null;
 
 					watchedEp.Episode_Number = wtch.episode.number;
@@ -100,6 +107,8 @@ namespace JMMServer.Providers.TraktTV
 					watchedEp.Episode_Season = wtch.episode.season;
 					watchedEp.Episode_Title = wtch.episode.title;
 					watchedEp.Episode_Url = wtch.episode.url;
+
+					
 
 					if (wtch.episode.images != null)
 						watchedEp.Episode_Screenshot = wtch.episode.images.screen;
@@ -110,13 +119,13 @@ namespace JMMServer.Providers.TraktTV
 
 						// find the anime and series based on the trakt id
 						int? animeID = null;
-						CrossRef_AniDB_Trakt xref = repXrefTrakt.GetByTraktID(wtch.show.TraktID);
+						CrossRef_AniDB_Trakt xref = repXrefTrakt.GetByTraktID(wtch.show.TraktID, int.Parse(wtch.episode.season));
 						if (xref != null)
 							animeID = xref.AnimeID;
 						else
 						{
 							// try the tvdb id instead
-							CrossRef_AniDB_TvDB xrefTvDB = repXrefTvDB.GetByTvDBID(int.Parse(wtch.show.tvdb_id));
+							CrossRef_AniDB_TvDB xrefTvDB = repXrefTvDB.GetByTvDBID(int.Parse(wtch.show.tvdb_id), int.Parse(wtch.episode.season));
 							if (xrefTvDB != null)
 								animeID = xrefTvDB.AnimeID;
 						}
@@ -142,6 +151,10 @@ namespace JMMServer.Providers.TraktTV
 				}
 
 			}
+
+			List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+			sortCriteria.Add(new SortPropOrFieldAndDirection("WatchedDate", true, SortType.eDateTime));
+			contract.WatchedEpisodes = Sorting.MultiSort<Contract_Trakt_WatchedEpisode>(contract.WatchedEpisodes, sortCriteria);
 
 			return contract;
 		}

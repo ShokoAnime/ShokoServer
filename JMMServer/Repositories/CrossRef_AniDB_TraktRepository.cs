@@ -42,13 +42,14 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public CrossRef_AniDB_Trakt GetByTraktID(string id)
+		public CrossRef_AniDB_Trakt GetByTraktID(string id, int season)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				CrossRef_AniDB_Trakt cr = session
 					.CreateCriteria(typeof(CrossRef_AniDB_Trakt))
 					.Add(Restrictions.Eq("TraktID", id))
+					.Add(Restrictions.Eq("TraktSeasonNumber", season))
 					.UniqueResult<CrossRef_AniDB_Trakt>();
 				return cr;
 			}
