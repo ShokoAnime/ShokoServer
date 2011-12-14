@@ -86,7 +86,11 @@ namespace JMMServer.Databases
 				{
 					MySQL.CreateDatabase();
 					MySQL.CreateInitialSchema();
-					return false;
+					MySQL.UpdateSchema();
+
+					PopulateInitialData();
+
+					return true;
 				}
 
 				return false;

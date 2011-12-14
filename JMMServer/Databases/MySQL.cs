@@ -65,6 +65,283 @@ namespace JMMServer.Databases
 			return true;
 		}
 
+		#region Schema Updates
+
+		public static void UpdateSchema()
+		{
+
+			VersionsRepository repVersions = new VersionsRepository();
+			Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);
+			if (ver == null) return;
+
+			int versionNumber = 0;
+			int.TryParse(ver.VersionValue, out versionNumber);
+
+			try
+			{
+				UpdateSchema_002(versionNumber);
+				UpdateSchema_003(versionNumber);
+				UpdateSchema_004(versionNumber);
+				UpdateSchema_005(versionNumber);
+				UpdateSchema_006(versionNumber);
+				UpdateSchema_007(versionNumber);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error updating schema: " + ex.ToString(), ex);
+			}
+
+		}
+
+		private static void UpdateSchema_002(int currentVersionNumber)
+		{
+			int thisVersion = 2;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `IgnoreAnime` ( " +
+				" `IgnoreAnimeID` INT NOT NULL AUTO_INCREMENT , " +
+				" `JMMUserID` int NOT NULL, " +
+				" `AnimeID` int NOT NULL, " +
+				" `IgnoreType` int NOT NULL, " +
+				" PRIMARY KEY (`IgnoreAnimeID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `IgnoreAnime` ADD UNIQUE INDEX `UIX_IgnoreAnime_User_AnimeID` (`JMMUserID` ASC, `AnimeID` ASC, `IgnoreType` ASC) ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_003(int currentVersionNumber)
+		{
+			int thisVersion = 3;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `Trakt_Friend` ( " +
+				" `Trakt_FriendID` INT NOT NULL AUTO_INCREMENT , " +
+				" `Username` varchar(100) character set utf8 NOT NULL, " +
+				" `FullName` varchar(100) character set utf8 NULL, " +
+				" `Gender` varchar(100) character set utf8 NULL, " +
+				" `Age` varchar(100) character set utf8 NULL, " +
+				" `Location` varchar(100) character set utf8 NULL, " +
+				" `About` text character set utf8 NULL, " +
+				" `Joined` int NOT NULL, " +
+				" `Avatar` text character set utf8 NULL, " +
+				" `Url` text character set utf8 NULL, " +
+				" `LastAvatarUpdate` datetime NOT NULL, " +
+				" PRIMARY KEY (`Trakt_FriendID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `Trakt_Friend` ADD UNIQUE INDEX `UIX_Trakt_Friend_Username` (`Username` ASC) ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_004(int currentVersionNumber)
+		{
+			int thisVersion = 4;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE AnimeGroup ADD DefaultAnimeSeriesID int NULL");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_005(int currentVersionNumber)
+		{
+			int thisVersion = 5;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE JMMUser ADD CanEditServerSettings int NULL");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_006(int currentVersionNumber)
+		{
+			int thisVersion = 6;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE VideoInfo ADD VideoBitDepth varchar(100) NULL");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_007(int currentVersionNumber)
+		{
+			int thisVersion = 7;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			DatabaseHelper.FixDuplicateTvDBLinks();
+			DatabaseHelper.FixDuplicateTraktLinks();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_TvDB` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TvDB_Season` (`TvDBID` ASC, `TvDBSeasonNumber` ASC) ;");
+
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_Trakt` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_Trakt_Season` (`TraktID` ASC, `TraktSeasonNumber` ASC) ;");
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_Trakt` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_Trakt_Anime` (`AnimeID` ASC) ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateDatabaseVersion(int versionNumber)
+		{
+			VersionsRepository repVersions = new VersionsRepository();
+			Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);
+			if (ver == null) return;
+
+			ver.VersionValue = versionNumber.ToString();
+			repVersions.Save(ver);
+		}
+
+		#endregion
+
 		#region Create Initial Schema
 
 
@@ -116,7 +393,7 @@ namespace JMMServer.Databases
 			commands.AddRange(CreateTableString_AnimeGroup_User());
 			commands.AddRange(CreateTableString_VideoLocal());
 			commands.AddRange(CreateTableString_VideoLocal_User());
-			/*commands.AddRange(CreateTableString_CommandRequest());
+			commands.AddRange(CreateTableString_CommandRequest());
 			commands.AddRange(CreateTableString_CrossRef_AniDB_Other());
 			commands.AddRange(CreateTableString_CrossRef_AniDB_TvDB());
 			commands.AddRange(CreateTableString_CrossRef_File_Episode());
@@ -149,8 +426,6 @@ namespace JMMServer.Databases
 			commands.AddRange(CreateTableString_Trakt_Season());
 			commands.AddRange(CreateTableString_CrossRef_AniDB_Trakt());
 
-			
-			*/
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{
@@ -720,6 +995,529 @@ namespace JMMServer.Databases
 				" PRIMARY KEY (`AnimeSeries_UserID`) ) ; ");
 
 			cmds.Add("ALTER TABLE `AnimeSeries_User` ADD UNIQUE INDEX `UIX_AnimeSeries_User_User_SeriesID` (`JMMUserID` ASC, `AnimeSeriesID` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_CommandRequest()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `CommandRequest` ( " +
+				" `CommandRequestID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Priority` int NOT NULL, " +
+				" `CommandType` int NOT NULL, " +
+				" `CommandID` varchar(250) NOT NULL, " +
+				" `CommandDetails` text character set utf8 NOT NULL, " +
+				" `DateTimeUpdated` datetime NOT NULL, " +
+				" PRIMARY KEY (`CommandRequestID`) ) ; ");
+
+			return cmds;
+		}
+
+
+		public static List<string> CreateTableString_CrossRef_AniDB_TvDB()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `CrossRef_AniDB_TvDB` ( " +
+				" `CrossRef_AniDB_TvDBID` INT NOT NULL AUTO_INCREMENT, " +
+				" `AnimeID` int NOT NULL, " +
+				" `TvDBID` int NOT NULL, " +
+				" `TvDBSeasonNumber` int NOT NULL, " +
+				" `CrossRefSource` int NOT NULL, " +
+				" PRIMARY KEY (`CrossRef_AniDB_TvDBID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_TvDB` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TvDB_AnimeID` (`AnimeID` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_CrossRef_AniDB_Other()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `CrossRef_AniDB_Other` ( " +
+				" `CrossRef_AniDB_OtherID` INT NOT NULL AUTO_INCREMENT, " +
+				" `AnimeID` int NOT NULL, " +
+				" `CrossRefID` varchar(100) character set utf8 NOT NULL, " +
+				" `CrossRefSource` int NOT NULL, " +
+				" `CrossRefType` int NOT NULL, " +
+				" PRIMARY KEY (`CrossRef_AniDB_OtherID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_Other` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_Other` (`AnimeID` ASC, `CrossRefID` ASC, `CrossRefSource` ASC, `CrossRefType` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_CrossRef_File_Episode()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `CrossRef_File_Episode` ( " +
+				" `CrossRef_File_EpisodeID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Hash` varchar(50) NULL, " +
+				" `FileName` varchar(500) character set utf8 NOT NULL, " +
+				" `FileSize` bigint NOT NULL, " +
+				" `CrossRefSource` int NOT NULL, " +
+				" `AnimeID` int NOT NULL, " +
+				" `EpisodeID` int NOT NULL, " +
+				" `Percentage` int NOT NULL, " +
+				" `EpisodeOrder` int NOT NULL, " +
+				" PRIMARY KEY (`CrossRef_File_EpisodeID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `CrossRef_File_Episode` ADD UNIQUE INDEX `UIX_CrossRef_File_Episode_Hash_EpisodeID` (`Hash` ASC, `EpisodeID` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_CrossRef_Languages_AniDB_File()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `CrossRef_Languages_AniDB_File` ( " +
+				" `CrossRef_Languages_AniDB_FileID` INT NOT NULL AUTO_INCREMENT, " +
+				" `FileID` int NOT NULL, " +
+				" `LanguageID` int NOT NULL, " +
+				" PRIMARY KEY (`CrossRef_Languages_AniDB_FileID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_CrossRef_Subtitles_AniDB_File()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `CrossRef_Subtitles_AniDB_File` ( " +
+				" `CrossRef_Subtitles_AniDB_FileID` INT NOT NULL AUTO_INCREMENT, " +
+				" `FileID` int NOT NULL, " +
+				" `LanguageID` int NOT NULL, " +
+				" PRIMARY KEY (`CrossRef_Subtitles_AniDB_FileID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_FileNameHash()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `FileNameHash` ( " +
+				" `FileNameHashID` INT NOT NULL AUTO_INCREMENT, " +
+				" `FileName` varchar(500) character set utf8 NOT NULL, " +
+				" `FileSize` bigint NOT NULL, " +
+				" `Hash` varchar(50) NOT NULL, " +
+				" `DateTimeUpdated` datetime NOT NULL, " +
+				" PRIMARY KEY (`FileNameHashID`) ) ; ");
+
+			// can't do this because of restrictions on index key sizes
+			//cmds.Add("ALTER TABLE `FileNameHash` ADD UNIQUE INDEX `UIX_FileNameHash` (`FileName` ASC, `FileSize` ASC, `Hash` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_Language()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `Language` ( " +
+				" `LanguageID` INT NOT NULL AUTO_INCREMENT, " +
+				" `LanguageName` varchar(100) NOT NULL, " +
+				" PRIMARY KEY (`LanguageID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `Language` ADD UNIQUE INDEX `UIX_Language_LanguageName` (`LanguageName` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_ImportFolder()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `ImportFolder` ( " +
+				" `ImportFolderID` INT NOT NULL AUTO_INCREMENT, " +
+				" `ImportFolderType` int NOT NULL, " +
+				" `ImportFolderName` varchar(500) character set utf8 NOT NULL, " +
+				" `ImportFolderLocation` varchar(500) character set utf8 NOT NULL, " +
+				" `IsDropSource` int NOT NULL, " +
+				" `IsDropDestination` int NOT NULL, " +
+				" PRIMARY KEY (`ImportFolderID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_ScheduledUpdate()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `ScheduledUpdate` ( " +
+				" `ScheduledUpdateID` INT NOT NULL AUTO_INCREMENT, " +
+				" `UpdateType` int NOT NULL, " +
+				" `LastUpdate` datetime NOT NULL, " +
+				" `UpdateDetails` text character set utf8 NOT NULL, " +
+				" PRIMARY KEY (`ScheduledUpdateID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `ScheduledUpdate` ADD UNIQUE INDEX `UIX_ScheduledUpdate_UpdateType` (`UpdateType` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_VideoInfo()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `VideoInfo` ( " +
+				" `VideoInfoID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Hash` varchar(50) NOT NULL, " +
+				" `FileSize` bigint NOT NULL, " +
+				" `FileName` text character set utf8 NOT NULL, " +
+				" `DateTimeUpdated` datetime NOT NULL, " +
+				" `VideoCodec` varchar(100) NOT NULL, " +
+				" `VideoBitrate` varchar(100) NOT NULL, " +
+				" `VideoFrameRate` varchar(100) NOT NULL, " +
+				" `VideoResolution` varchar(100) NOT NULL, " +
+				" `AudioCodec` varchar(100) NOT NULL, " +
+				" `AudioBitrate` varchar(100) NOT NULL, " +
+				" `Duration` bigint NOT NULL, " +
+				" PRIMARY KEY (`VideoInfoID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `VideoInfo` ADD UNIQUE INDEX `UIX_VideoInfo_Hash` (`Hash` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_DuplicateFile()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `DuplicateFile` ( " +
+				" `DuplicateFileID` INT NOT NULL AUTO_INCREMENT, " +
+				" `FilePathFile1` varchar(500) character set utf8 NOT NULL, " +
+				" `FilePathFile2` varchar(500) character set utf8 NOT NULL, " +
+				" `ImportFolderIDFile1` int NOT NULL, " +
+				" `ImportFolderIDFile2` int NOT NULL, " +
+				" `Hash` varchar(50) NOT NULL, " +
+				" `DateTimeUpdated` datetime NOT NULL, " +
+				" PRIMARY KEY (`DuplicateFileID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_GroupFilter()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `GroupFilter` ( " +
+				" `GroupFilterID` INT NOT NULL AUTO_INCREMENT, " +
+				" `GroupFilterName` varchar(500) character set utf8 NOT NULL, " +
+				" `ApplyToSeries` int NOT NULL, " +
+				" `BaseCondition` int NOT NULL, " +
+				" `SortingCriteria` text character set utf8, " +
+				" PRIMARY KEY (`GroupFilterID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_GroupFilterCondition()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `GroupFilterCondition` ( " +
+				" `GroupFilterConditionID` INT NOT NULL AUTO_INCREMENT, " +
+				" `GroupFilterID` int NOT NULL, " +
+				" `ConditionType` int NOT NULL, " +
+				" `ConditionOperator` int NOT NULL, " +
+				" `ConditionParameter` text character set utf8 NOT NULL, " +
+				" PRIMARY KEY (`GroupFilterConditionID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_AniDB_Vote()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `AniDB_Vote` ( " +
+				" `AniDB_VoteID` INT NOT NULL AUTO_INCREMENT, " +
+				" `EntityID` int NOT NULL, " +
+				" `VoteValue` int NOT NULL, " +
+				" `VoteType` int NOT NULL, " +
+				" PRIMARY KEY (`AniDB_VoteID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_TvDB_ImageFanart()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `TvDB_ImageFanart` ( " +
+				" `TvDB_ImageFanartID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Id` int NOT NULL, " +
+				" `SeriesID` int NOT NULL, " +
+				" `BannerPath` varchar(200) character set utf8,  " +
+				" `BannerType` varchar(200) character set utf8,  " +
+				" `BannerType2` varchar(200) character set utf8,  " +
+				" `Colors` varchar(200) character set utf8,  " +
+				" `Language` varchar(200) character set utf8,  " +
+				" `ThumbnailPath` varchar(200) character set utf8,  " +
+				" `VignettePath` varchar(200) character set utf8,  " +
+				" `Enabled` int NOT NULL, " +
+				" `Chosen` int NOT NULL, " +
+				" PRIMARY KEY (`TvDB_ImageFanartID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `TvDB_ImageFanart` ADD UNIQUE INDEX `UIX_TvDB_ImageFanart_Id` (`Id` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_TvDB_ImageWideBanner()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `TvDB_ImageWideBanner` ( " +
+				" `TvDB_ImageWideBannerID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Id` int NOT NULL, " +
+				" `SeriesID` int NOT NULL, " +
+				" `BannerPath` varchar(200) character set utf8,  " +
+				" `BannerType` varchar(200) character set utf8,  " +
+				" `BannerType2` varchar(200) character set utf8,  " +
+				" `Language`varchar(200) character set utf8,  " +
+				" `Enabled` int NOT NULL, " +
+				" `SeasonNumber` int, " +
+				" PRIMARY KEY (`TvDB_ImageWideBannerID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `TvDB_ImageWideBanner` ADD UNIQUE INDEX `UIX_TvDB_ImageWideBanner_Id` (`Id` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_TvDB_ImagePoster()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `TvDB_ImagePoster` ( " +
+				" `TvDB_ImagePosterID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Id` int NOT NULL, " +
+				" `SeriesID` int NOT NULL, " +
+				" `BannerPath` varchar(200) character set utf8,  " +
+				" `BannerType` varchar(200) character set utf8,  " +
+				" `BannerType2` varchar(200) character set utf8,  " +
+				" `Language` varchar(200) character set utf8,  " +
+				" `Enabled` int NOT NULL, " +
+				" `SeasonNumber` int, " +
+				" PRIMARY KEY (`TvDB_ImagePosterID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `TvDB_ImagePoster` ADD UNIQUE INDEX `UIX_TvDB_ImagePoster_Id` (`Id` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_TvDB_Episode()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `TvDB_Episode` ( " +
+				" `TvDB_EpisodeID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Id` int NOT NULL, " +
+				" `SeriesID` int NOT NULL, " +
+				" `SeasonID` int NOT NULL, " +
+				" `SeasonNumber` int NOT NULL, " +
+				" `EpisodeNumber` int NOT NULL, " +
+				" `EpisodeName` varchar(200) character set utf8, " +
+				" `Overview` text character set utf8, " +
+				" `Filename` varchar(500) character set utf8, " +
+				" `EpImgFlag` int NOT NULL, " +
+				" `FirstAired` varchar(100) character set utf8, " +
+				" `AbsoluteNumber` int, " +
+				" `AirsAfterSeason` int, " +
+				" `AirsBeforeEpisode` int, " +
+				" `AirsBeforeSeason` int, " +
+				" PRIMARY KEY (`TvDB_EpisodeID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `TvDB_Episode` ADD UNIQUE INDEX `UIX_TvDB_Episode_Id` (`Id` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_TvDB_Series()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `TvDB_Series` ( " +
+				" `TvDB_SeriesID` INT NOT NULL AUTO_INCREMENT, " +
+				" `SeriesID` int NOT NULL, " +
+				" `Overview` text character set utf8, " +
+				" `SeriesName` varchar(250) character set utf8, " +
+				" `Status` varchar(100), " +
+				" `Banner` varchar(100), " +
+				" `Fanart` varchar(100), " +
+				" `Poster` varchar(100), " +
+				" `Lastupdated` varchar(100), " +
+				" PRIMARY KEY (`TvDB_SeriesID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `TvDB_Series` ADD UNIQUE INDEX `UIX_TvDB_Series_Id` (`SeriesID` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_AniDB_Anime_DefaultImage()
+		{
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE TABLE `AniDB_Anime_DefaultImage` ( " +
+				" `AniDB_Anime_DefaultImageID` INT NOT NULL AUTO_INCREMENT, " +
+				" `AnimeID` int NOT NULL, " +
+				" `ImageParentID` int NOT NULL, " +
+				" `ImageParentType` int NOT NULL, " +
+				" `ImageType` int NOT NULL, " +
+				" PRIMARY KEY (`AniDB_Anime_DefaultImageID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `AniDB_Anime_DefaultImage` ADD UNIQUE INDEX `UIX_AniDB_Anime_DefaultImage_ImageType` (`AnimeID` ASC, `ImageType` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_MovieDB_Movie()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `MovieDB_Movie` ( " +
+				" `MovieDB_MovieID` INT NOT NULL AUTO_INCREMENT, " +
+				" `MovieId` int NOT NULL, " +
+				" `MovieName` varchar(250) character set utf8, " +
+				" `OriginalName` varchar(250) character set utf8, " +
+				" `Overview` text character set utf8, " +
+				" PRIMARY KEY (`MovieDB_MovieID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `MovieDB_Movie` ADD UNIQUE INDEX `UIX_MovieDB_Movie_Id` (`MovieId` ASC) ;");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_MovieDB_Poster()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `MovieDB_Poster` ( " +
+				" `MovieDB_PosterID` INT NOT NULL AUTO_INCREMENT, " +
+				" `ImageID` varchar(100), " +
+				" `MovieId` int NOT NULL, " +
+				" `ImageType` varchar(100), " +
+				" `ImageSize` varchar(100),  " +
+				" `URL` text character set utf8,  " +
+				" `ImageWidth` int NOT NULL,  " +
+				" `ImageHeight` int NOT NULL,  " +
+				" `Enabled` int NOT NULL, " +
+				" PRIMARY KEY (`MovieDB_PosterID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_MovieDB_Fanart()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `MovieDB_Fanart` ( " +
+				" `MovieDB_FanartID` INT NOT NULL AUTO_INCREMENT, " +
+				" `ImageID` varchar(100), " +
+				" `MovieId` int NOT NULL, " +
+				" `ImageType` varchar(100), " +
+				" `ImageSize` varchar(100),  " +
+				" `URL` text character set utf8,  " +
+				" `ImageWidth` int NOT NULL,  " +
+				" `ImageHeight` int NOT NULL,  " +
+				" `Enabled` int NOT NULL, " +
+				" PRIMARY KEY (`MovieDB_FanartID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_JMMUser()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `JMMUser` ( " +
+				" `JMMUserID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Username` varchar(100) character set utf8, " +
+				" `Password` varchar(100) character set utf8, " +
+				" `IsAdmin` int NOT NULL, " +
+				" `IsAniDBUser` int NOT NULL, " +
+				" `IsTraktUser` int NOT NULL, " +
+				" `HideCategories` text character set utf8, " +
+				" PRIMARY KEY (`JMMUserID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_Trakt_Episode()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `Trakt_Episode` ( " +
+				" `Trakt_EpisodeID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Trakt_ShowID` int NOT NULL, " +
+				" `Season` int NOT NULL, " +
+				" `EpisodeNumber` int NOT NULL, " +
+				" `Title` varchar(500) character set utf8, " +
+				" `URL` text character set utf8, " +
+				" `Overview` text character set utf8, " +
+				" `EpisodeImage` varchar(500) character set utf8, " +
+				" PRIMARY KEY (`Trakt_EpisodeID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_Trakt_ImagePoster()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `Trakt_ImagePoster` ( " +
+				" `Trakt_ImagePosterID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Trakt_ShowID` int NOT NULL, " +
+				" `Season` int NOT NULL, " +
+				" `ImageURL` varchar(500) character set utf8, " +
+				" `Enabled` int NOT NULL, " +
+				" PRIMARY KEY (`Trakt_ImagePosterID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_Trakt_ImageFanart()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `Trakt_ImageFanart` ( " +
+				" `Trakt_ImageFanartID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Trakt_ShowID` int NOT NULL, " +
+				" `Season` int NOT NULL, " +
+				" `ImageURL` varchar(500) character set utf8, " +
+				" `Enabled` int NOT NULL, " +
+				" PRIMARY KEY (`Trakt_ImageFanartID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_Trakt_Show()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `Trakt_Show` ( " +
+				" `Trakt_ShowID` INT NOT NULL AUTO_INCREMENT, " +
+				" `TraktID` varchar(100) character set utf8, " +
+				" `Title` varchar(500) character set utf8, " +
+				" `Year` varchar(50) character set utf8, " +
+				" `URL` text character set utf8, " +
+				" `Overview` text character set utf8, " +
+				" `TvDB_ID` int NULL, " +
+				" PRIMARY KEY (`Trakt_ShowID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_Trakt_Season()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `Trakt_Season` ( " +
+				" `Trakt_SeasonID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Trakt_ShowID` int NOT NULL, " +
+				" `Season` int NOT NULL, " +
+				" `URL` text character set utf8, " +
+				" PRIMARY KEY (`Trakt_SeasonID`) ) ; ");
+
+			return cmds;
+		}
+
+		public static List<string> CreateTableString_CrossRef_AniDB_Trakt()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE `CrossRef_AniDB_Trakt` ( " +
+				" `CrossRef_AniDB_TraktID` INT NOT NULL AUTO_INCREMENT, " +
+				" `AnimeID` int NOT NULL, " +
+				" `TraktID` varchar(100) character set utf8, " +
+				" `TraktSeasonNumber` int NOT NULL, " +
+				" `CrossRefSource` int NOT NULL, " +
+				" PRIMARY KEY (`CrossRef_AniDB_TraktID`) ) ; ");
 
 			return cmds;
 		}
