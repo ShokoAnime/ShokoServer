@@ -82,6 +82,7 @@ namespace JMMServer.Databases
 				UpdateSchema_004(versionNumber);
 				UpdateSchema_005(versionNumber);
 				UpdateSchema_006(versionNumber);
+				UpdateSchema_007(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -218,6 +219,39 @@ namespace JMMServer.Databases
 		private static void UpdateSchema_006(int currentVersionNumber)
 		{
 			int thisVersion = 6;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			DatabaseHelper.FixDuplicateTvDBLinks();
+			DatabaseHelper.FixDuplicateTraktLinks();
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Season ON CrossRef_AniDB_TvDB(TvDBID, TvDBSeasonNumber);");
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_AnimeID ON CrossRef_AniDB_TvDB(AnimeID);");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Season ON CrossRef_AniDB_Trakt(TraktID, TraktSeasonNumber);");
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Anime ON CrossRef_AniDB_Trakt(AnimeID);");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_007(int currentVersionNumber)
+		{
+			int thisVersion = 7;
 			if (currentVersionNumber >= thisVersion) return;
 
 			logger.Info("Updating schema to VERSION: {0}", thisVersion);

@@ -3635,6 +3635,12 @@ namespace JMMServer
 		{
 			try
 			{
+				CrossRef_AniDB_TvDBRepository repXref = new CrossRef_AniDB_TvDBRepository();
+				CrossRef_AniDB_TvDB xref = repXref.GetByTvDBID(tvDBID, seasonNumber);
+				if (xref != null)
+					return string.Format("You have already linked Anime ID {0} to this TvDB show/season", xref.AnimeID);
+
+
 				TvDBHelper.LinkAniDBTvDB(animeID, tvDBID, seasonNumber, false);
 
 				return "";
@@ -3914,6 +3920,11 @@ namespace JMMServer
 		{
 			try
 			{
+				CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
+				CrossRef_AniDB_Trakt xref = repXrefTrakt.GetByTraktID(traktID, seasonNumber);
+				if (xref != null)
+					return string.Format("You have already linked Anime ID {0} to this Trakt show/season", xref.AnimeID);
+
 				TraktTVHelper.LinkAniDBTrakt(animeID, traktID, seasonNumber, false);
 
 				return "";

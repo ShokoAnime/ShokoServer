@@ -111,6 +111,7 @@ namespace JMMServer.Databases
 				UpdateSchema_004(versionNumber);
 				UpdateSchema_005(versionNumber);
 				UpdateSchema_006(versionNumber);
+				UpdateSchema_007(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -271,6 +272,42 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 
 			cmds.Add("ALTER TABLE VideoInfo ADD VideoBitDepth varchar(max) NULL");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_007(int currentVersionNumber)
+		{
+			int thisVersion = 7;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+
+			DatabaseHelper.FixDuplicateTvDBLinks();
+			DatabaseHelper.FixDuplicateTraktLinks();
+			
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Season ON CrossRef_AniDB_TvDB(TvDBID, TvDBSeasonNumber)");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Season ON CrossRef_AniDB_Trakt(TraktID, TraktSeasonNumber)");
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Anime ON CrossRef_AniDB_Trakt(AnimeID)");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))

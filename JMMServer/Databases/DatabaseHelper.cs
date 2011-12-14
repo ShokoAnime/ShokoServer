@@ -39,6 +39,17 @@ namespace JMMServer.Databases
 					m.FluentMappings.AddFromAssemblyOf<JMMService>())
 				.BuildSessionFactory();
 			}
+			else if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL")
+			{
+				return Fluently.Configure()
+				.Database(MySQLConfiguration.Standard.ConnectionString(x => x.Database(ServerSettings.MySQL_SchemaName)
+					.Server(ServerSettings.MySQL_Hostname)
+					.Username(ServerSettings.MySQL_Username)
+					.Password(ServerSettings.MySQL_Password)))
+				.Mappings(m =>
+					m.FluentMappings.AddFromAssemblyOf<JMMService>())
+				.BuildSessionFactory();
+			}
 			else
 				return null;
 		}
@@ -51,7 +62,8 @@ namespace JMMServer.Databases
 				{
 					if (!SQLServer.DatabaseAlreadyExists())
 					{
-						logger.Error("Database: {0} does not exist", ServerSettings.DatabaseName);
+						//logger.Error("Database: {0} does not exist", ServerSettings.DatabaseName);
+						SQLServer.CreateDatabase();
 						return false;
 					}
 
@@ -61,7 +73,7 @@ namespace JMMServer.Databases
 
 					return true;
 				}
-				else
+				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE")
 				{
 					SQLite.CreateDatabase();
 					SQLite.CreateInitialSchema();
@@ -70,7 +82,14 @@ namespace JMMServer.Databases
 
 					return true;
 				}
+				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL")
+				{
+					MySQL.CreateDatabase();
+					MySQL.CreateInitialSchema();
+					return false;
+				}
 
+				return false;
 				
 			}
 			catch (Exception ex)
@@ -241,6 +260,82 @@ namespace JMMServer.Databases
 			familyUser.Password = "";
 			familyUser.Username = "Family Friendly";
 			repUsers.Save(familyUser);
+		}
+
+		public static void FixDuplicateTvDBLinks()
+		{
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+			// delete all TvDB link duplicates
+			CrossRef_AniDB_TvDBRepository repCrossRefTvDB = new CrossRef_AniDB_TvDBRepository();
+
+			List<CrossRef_AniDB_TvDB> xrefsTvDBProcessed = new List<CrossRef_AniDB_TvDB>();
+			List<CrossRef_AniDB_TvDB> xrefsTvDBToBeDeleted = new List<CrossRef_AniDB_TvDB>();
+
+			List<CrossRef_AniDB_TvDB> xrefsTvDB = repCrossRefTvDB.GetAll();
+			foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
+			{
+				bool deleteXref = false;
+				foreach (CrossRef_AniDB_TvDB xref in xrefsTvDBProcessed)
+				{
+					if (xref.TvDBID == xrefTvDB.TvDBID && xref.TvDBSeasonNumber == xrefTvDB.TvDBSeasonNumber)
+					{
+						xrefsTvDBToBeDeleted.Add(xrefTvDB);
+						deleteXref = true;
+					}
+				}
+				if (!deleteXref)
+					xrefsTvDBProcessed.Add(xrefTvDB);
+			}
+
+
+			foreach (CrossRef_AniDB_TvDB xref in xrefsTvDBToBeDeleted)
+			{
+				string msg = "";
+				AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+				if (anime != null) msg = anime.MainTitle;
+
+				logger.Warn("Deleting TvDB Link because of a duplicate: {0} ({1}) - {2}/{3}", xref.AnimeID, msg, xref.TvDBID, xref.TvDBSeasonNumber);
+				repCrossRefTvDB.Delete(xref.CrossRef_AniDB_TvDBID);
+			}
+		}
+
+		public static void FixDuplicateTraktLinks()
+		{
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+			// delete all Trakt link duplicates
+			CrossRef_AniDB_TraktRepository repCrossRefTrakt = new CrossRef_AniDB_TraktRepository();
+
+			List<CrossRef_AniDB_Trakt> xrefsTraktProcessed = new List<CrossRef_AniDB_Trakt>();
+			List<CrossRef_AniDB_Trakt> xrefsTraktToBeDeleted = new List<CrossRef_AniDB_Trakt>();
+
+			List<CrossRef_AniDB_Trakt> xrefsTrakt = repCrossRefTrakt.GetAll();
+			foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
+			{
+				bool deleteXref = false;
+				foreach (CrossRef_AniDB_Trakt xref in xrefsTraktProcessed)
+				{
+					if (xref.TraktID == xrefTrakt.TraktID && xref.TraktSeasonNumber == xrefTrakt.TraktSeasonNumber)
+					{
+						xrefsTraktToBeDeleted.Add(xrefTrakt);
+						deleteXref = true;
+					}
+				}
+				if (!deleteXref)
+					xrefsTraktProcessed.Add(xrefTrakt);
+			}
+
+
+			foreach (CrossRef_AniDB_Trakt xref in xrefsTraktToBeDeleted)
+			{
+				string msg = "";
+				AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+				if (anime != null) msg = anime.MainTitle;
+
+				logger.Warn("Deleting Trakt Link because of a duplicate: {0} ({1}) - {2}/{3}", xref.AnimeID, msg, xref.TraktID, xref.TraktSeasonNumber);
+				repCrossRefTrakt.Delete(xref.CrossRef_AniDB_TraktID);
+			}
 		}
 	}
 }

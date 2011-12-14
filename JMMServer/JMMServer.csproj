@@ -58,6 +58,9 @@
     <Reference Include="Iesi.Collections">
       <HintPath>..\Dependencies\Iesi.Collections.dll</HintPath>
     </Reference>
+    <Reference Include="MySql.Data">
+      <HintPath>..\Dependencies\MySql.Data.dll</HintPath>
+    </Reference>
     <Reference Include="NHibernate">
       <HintPath>..\Dependencies\NHibernate.dll</HintPath>
     </Reference>
@@ -207,6 +210,7 @@
     <Compile Include="Constants.cs" />
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseHelper.cs" />
+    <Compile Include="Databases\MySQL.cs" />
     <Compile Include="MyAnime2Helper\MA2Progress.cs" />
     <Compile Include="Databases\SQLite.cs" />
     <Compile Include="Databases\SQLServer.cs" />
@@ -357,6 +361,7 @@
     <Compile Include="Providers\TraktTV\TraktTVPost_AccountTest.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_FriendDenyApprove.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_FriendsRequests.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVPost_GetFriends.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowEpisodeLibrary.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowEpisodeSeen.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShowEpisodeUnseen.cs" />

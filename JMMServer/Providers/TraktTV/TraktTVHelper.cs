@@ -86,12 +86,19 @@ namespace JMMServer.Providers.TraktTV
 				//string url = string.Format(Constants.TraktTvURLs.URLGetFriends, Constants.TraktTvURLs.APIKey, "lwerndly");
 				logger.Trace("GetFriends: {0}", url);
 
-				// Search for a series
-				string json = Utils.DownloadWebPage(url);
+				TraktTVPost_GetFriends cmdFriends = new TraktTVPost_GetFriends();
+				cmdFriends.Init();
+
+				string json = JSONHelper.Serialize<TraktTVPost_GetFriends>(cmdFriends);
+				string jsonResponse = SendData(url, json);
+				if (jsonResponse.Trim().Length == 0) return friends;
+				friends = JSONHelper.Deserialize<List<TraktTVUser>>(jsonResponse);
+
+				/*string json = Utils.DownloadWebPage(url);
 
 				if (json.Trim().Length == 0) return null;
 
-				friends = JSONHelper.Deserialize<List<TraktTVUser>>(json);
+				friends = JSONHelper.Deserialize<List<TraktTVUser>>(json);*/
 
 				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
 				Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
@@ -162,7 +169,7 @@ namespace JMMServer.Providers.TraktTV
 			catch (Exception ex)
 			{
 				logger.ErrorException("Error in TraktTVHelper.GetFriends: " + ex.ToString(), ex);
-				return null;
+				return friends;
 			}
 
 			return friends;
@@ -312,6 +319,15 @@ namespace JMMServer.Providers.TraktTV
 
 		public static void LinkAniDBTrakt(int animeID, string traktID, int seasonNumber, bool fromWebCache)
 		{
+			CrossRef_AniDB_TraktRepository repCrossRef = new CrossRef_AniDB_TraktRepository();
+			CrossRef_AniDB_Trakt xrefTemp = repCrossRef.GetByTraktID(traktID, seasonNumber);
+			if (xrefTemp != null)
+			{
+				string msg = string.Format("Not using Trakt link as one already exists {0} ({1}) - {2}", traktID, seasonNumber, animeID);
+				logger.Warn(msg);
+				return;
+			}
+
 			// check if we have this information locally
 			// if not download it now
 			Trakt_ShowRepository repShow = new Trakt_ShowRepository();
@@ -326,7 +342,6 @@ namespace JMMServer.Providers.TraktTV
 			// download fanart, posters
 			DownloadAllImages(traktID);
 
-			CrossRef_AniDB_TraktRepository repCrossRef = new CrossRef_AniDB_TraktRepository();
 			CrossRef_AniDB_Trakt xref = repCrossRef.GetByAnimeID(animeID);
 			if (xref == null)
 				xref = new CrossRef_AniDB_Trakt();
@@ -819,7 +834,7 @@ namespace JMMServer.Providers.TraktTV
 				cmd.Init(uname, pass, emailAddress);
 
 				string url = string.Format(Constants.TraktTvURLs.URLPostAccountCreate, Constants.TraktTvURLs.APIKey);
-				logger.Trace("TestUserLogin: {0}", url);
+				logger.Trace("CreateAccount: {0}", url);
 
 				string json = JSONHelper.Serialize<TraktTVPost_AccountCreate>(cmd);
 				string jsonResponse = SendData(url, json);

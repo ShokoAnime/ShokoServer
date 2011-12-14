@@ -812,8 +812,11 @@ namespace JMMServer
 				allInfo.Add(req);
 
 			List<TraktTVUser> traktFriends = TraktTVHelper.GetFriends();
-			foreach (TraktTVUser friend in traktFriends)
-				allInfo.Add(friend);
+			if (traktFriends != null)
+			{
+				foreach (TraktTVUser friend in traktFriends)
+					allInfo.Add(friend);
+			}
 
 			e.Result = allInfo;
 		}

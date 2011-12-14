@@ -126,6 +126,58 @@ namespace JMMServer
 			}
 		}
 
+		public static string MySQL_Hostname
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				return appSettings["MySQL_Hostname"];
+			}
+			set
+			{
+				UpdateSetting("MySQL_Hostname", value);
+			}
+		}
+
+		public static string MySQL_SchemaName
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				return appSettings["MySQL_SchemaName"];
+			}
+			set
+			{
+				UpdateSetting("MySQL_SchemaName", value);
+			}
+		}
+
+		public static string MySQL_Username
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				return appSettings["MySQL_Username"];
+			}
+			set
+			{
+				UpdateSetting("MySQL_Username", value);
+			}
+		}
+
+		public static string MySQL_Password
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				return appSettings["MySQL_Password"];
+			}
+			set
+			{
+				UpdateSetting("MySQL_Password", value);
+			}
+		}
+
 		#endregion
 
 		#region AniDB

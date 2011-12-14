@@ -710,6 +710,15 @@ namespace JMMServer.Providers.TvDB
 
 		public static void LinkAniDBTvDB(int animeID, int tvDBID, int seasonNumber, bool fromWebCache)
 		{
+			CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
+			CrossRef_AniDB_TvDB xrefTemp = repCrossRef.GetByTvDBID(tvDBID, seasonNumber);
+			if (xrefTemp != null)
+			{
+				string msg = string.Format("Not using TvDB link as one already exists {0} ({1}) - {2}", tvDBID, seasonNumber, animeID);
+				logger.Warn(msg);
+				return;
+			}
+
 			// check if we have this information locally
 			// if not download it now
 			TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
@@ -726,7 +735,6 @@ namespace JMMServer.Providers.TvDB
 			CommandRequest_TvDBUpdateSeriesAndEpisodes cmdSeriesEps = new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvDBID, false);
 			cmdSeriesEps.Save();
 
-			CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
 			CrossRef_AniDB_TvDB xref = repCrossRef.GetByAnimeID(animeID);
 			if (xref == null)
 				xref = new CrossRef_AniDB_TvDB();
