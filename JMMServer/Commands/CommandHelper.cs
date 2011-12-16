@@ -34,12 +34,11 @@ namespace JMMServer.Commands
 		// Pri 6
 		//------
 		// CommandRequest_SyncMyList
+		// CommandRequest_SyncMyVotes
 		//------
 		// Pri 7
 		//------
-		// CommandRequest_AddFileToMyList
 		// CommandRequest_GetCalendar
-		// CommandRequest_DeleteFileFromMyList
 		//------
 		// Pri 8
 		//------
@@ -49,6 +48,8 @@ namespace JMMServer.Commands
 		// CommandRequest_TvDBUpdateSeriesAndEpisodes
 		// CommandRequest_TvDBDownloadImages
 		// CommandRequest_TvDBSearchAnime
+		// CommandRequest_MovieDBSearchAnime
+		// CommandRequest_TraktSearchAnime
 		//------
 		// Pri 9
 		//------
@@ -57,15 +58,14 @@ namespace JMMServer.Commands
 		// CommandRequest_GetReleaseGroup
 		// CommandRequest_WebCacheSendXRefFileEpisode
 		// CommandRequest_WebCacheDeleteXRefFileEpisode
-		// CommandRequest_SyncMyVotes
+		// CommandRequest_AddFileToMyList
+		// CommandRequest_DeleteFileFromMyList
 		// CommandRequest_VoteAnime
 		// CommandRequest_WebCacheDeleteXRefAniDBTvDB
 		// CommandRequest_WebCacheDeleteXRefAniDBTvDBAll
 		// CommandRequest_WebCacheSendXRefAniDBTvDB
 		// CommandRequest_WebCacheSendXRefAniDBOther
 		// CommandRequest_WebCacheDeleteXRefAniDBOther
-		// CommandRequest_MovieDBSearchAnime
-		// CommandRequest_TraktSearchAnime
 		// CommandRequest_WebCacheDeleteXRefAniDBTrakt
 		// CommandRequest_WebCacheSendXRefAniDBTrakt
 		// CommandRequest_TraktUpdateInfoAndImages

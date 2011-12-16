@@ -170,5 +170,11 @@ namespace JMMServer
 				}
 			}
 		}
+
+		public static void CloseSessionFactory()
+		{
+			if (sessionFactory != null) sessionFactory.Dispose();
+			sessionFactory = null;
+		}
 	}
 }

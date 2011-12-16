@@ -63,6 +63,8 @@ namespace JMMServer
 		private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
 		private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
+		private static BackgroundWorker workerSetupDB = new BackgroundWorker();
+
 		private static System.Timers.Timer autoUpdateTimer = null;
 		private static System.Timers.Timer autoUpdateTimerShort = null;
 		private static List<FileSystemWatcher> watcherVids = null;
@@ -103,6 +105,9 @@ namespace JMMServer
 
 			CreateMenus();
 
+			ServerState.Instance.DatabaseAvailable = false;
+			ServerState.Instance.ServerOnline = false;
+
 			this.Closing += new System.ComponentModel.CancelEventHandler(MainWindow_Closing);
 			this.StateChanged += new EventHandler(MainWindow_StateChanged);
 			TippuTrayNotify.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(TippuTrayNotify_MouseDoubleClick);
@@ -126,10 +131,9 @@ namespace JMMServer
 
 			this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
 			downloadImagesWorker.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
+			downloadImagesWorker.WorkerSupportsCancellation = true;
 
 			txtServerPort.Text = ServerSettings.JMMServerPort;
-
-			StartUp();
 
 			btnToolbarHelp.Click += new RoutedEventHandler(btnToolbarHelp_Click);
 			btnApplyServerPort.Click += new RoutedEventHandler(btnApplyServerPort_Click);
@@ -141,8 +145,290 @@ namespace JMMServer
 			workerMyAnime2.WorkerReportsProgress = true;
 
 			workerMediaInfo.DoWork += new DoWorkEventHandler(workerMediaInfo_DoWork);
-			
+
+			workerImport.WorkerReportsProgress = true;
+			workerImport.WorkerSupportsCancellation = true;
+			workerImport.DoWork += new DoWorkEventHandler(workerImport_DoWork);
+
+			workerScanFolder.WorkerReportsProgress = true;
+			workerScanFolder.WorkerSupportsCancellation = true;
+			workerScanFolder.DoWork += new DoWorkEventHandler(workerScanFolder_DoWork);
+
+			workerRemoveMissing.WorkerReportsProgress = true;
+			workerRemoveMissing.WorkerSupportsCancellation = true;
+			workerRemoveMissing.DoWork += new DoWorkEventHandler(workerRemoveMissing_DoWork);
+
+			workerDeleteImportFolder.WorkerReportsProgress = false;
+			workerDeleteImportFolder.WorkerSupportsCancellation = true;
+			workerDeleteImportFolder.DoWork += new DoWorkEventHandler(workerDeleteImportFolder_DoWork);
+
+			workerTraktFriends.DoWork += new DoWorkEventHandler(workerTraktFriends_DoWork);
+			workerTraktFriends.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerTraktFriends_RunWorkerCompleted);
+
+			workerSetupDB.DoWork += new DoWorkEventHandler(workerSetupDB_DoWork);
+			workerSetupDB.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerSetupDB_RunWorkerCompleted);
+
+			//StartUp();
+
+			cboDatabaseType.Items.Clear();
+			cboDatabaseType.Items.Add("SQLite");
+			cboDatabaseType.Items.Add("Microsoft SQL Server 2008");
+			cboDatabaseType.Items.Add("MySQL");
+
+			cboDatabaseType.SelectionChanged += new System.Windows.Controls.SelectionChangedEventHandler(cboDatabaseType_SelectionChanged);
+
+			btnSaveDatabaseSettings.Click += new RoutedEventHandler(btnSaveDatabaseSettings_Click);
 		}
+
+		#region Database settings and initial start up
+
+		void btnSaveDatabaseSettings_Click(object sender, RoutedEventArgs e)
+		{
+
+			try
+			{
+				btnSaveDatabaseSettings.IsEnabled = false;
+				cboDatabaseType.IsEnabled = false;
+
+				if (ServerState.Instance.DatabaseIsSQLite)
+				{
+					ServerSettings.DatabaseType = "SQLite";
+				}
+				else if (ServerState.Instance.DatabaseIsSQLServer)
+				{
+					if (string.IsNullOrEmpty(txtMSSQL_DatabaseName.Text) || string.IsNullOrEmpty(txtMSSQL_Password.Password)
+						|| string.IsNullOrEmpty(txtMSSQL_ServerAddress.Text) || string.IsNullOrEmpty(txtMSSQL_Username.Text))
+					{
+						MessageBox.Show("Please fill out all the settings", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+						txtMSSQL_DatabaseName.Focus();
+						return;
+					}
+
+					ServerSettings.DatabaseType = "SQLServer";
+					ServerSettings.DatabaseName = txtMSSQL_DatabaseName.Text;
+					ServerSettings.DatabasePassword = txtMSSQL_Password.Password;
+					ServerSettings.DatabaseServer = txtMSSQL_ServerAddress.Text;
+					ServerSettings.DatabaseUsername = txtMSSQL_Username.Text;
+
+				}
+				else if (ServerState.Instance.DatabaseIsMySQL)
+				{
+
+					if (string.IsNullOrEmpty(txtMySQL_DatabaseName.Text) || string.IsNullOrEmpty(txtMySQL_Password.Password)
+						|| string.IsNullOrEmpty(txtMySQL_ServerAddress.Text) || string.IsNullOrEmpty(txtMySQL_Username.Text))
+					{
+						MessageBox.Show("Please fill out all the settings", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+						txtMySQL_DatabaseName.Focus();
+						return;
+					}
+
+					ServerSettings.DatabaseType = "MySQL";
+					ServerSettings.MySQL_SchemaName = txtMySQL_DatabaseName.Text;
+					ServerSettings.MySQL_Password = txtMySQL_Password.Password;
+					ServerSettings.MySQL_Hostname = txtMySQL_ServerAddress.Text;
+					ServerSettings.MySQL_Username = txtMySQL_Username.Text;
+
+				}
+
+				workerSetupDB.RunWorkerAsync();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.Message, ex);
+				MessageBox.Show("Failed to set start: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+			}
+		}
+
+		void cboDatabaseType_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+		{
+			ServerState.Instance.DatabaseIsSQLite = false;
+			ServerState.Instance.DatabaseIsSQLServer = false;
+			ServerState.Instance.DatabaseIsMySQL = false;
+
+			switch (cboDatabaseType.SelectedIndex)
+			{
+				case 0: 
+					ServerState.Instance.DatabaseIsSQLite = true; 
+					break;
+				case 1:
+
+					bool anySettingsMSSQL= !string.IsNullOrEmpty(ServerSettings.DatabaseName) || !string.IsNullOrEmpty(ServerSettings.DatabasePassword)
+						|| !string.IsNullOrEmpty(ServerSettings.DatabaseServer) || !string.IsNullOrEmpty(ServerSettings.DatabaseUsername);
+
+					if (anySettingsMSSQL)
+					{
+						txtMSSQL_DatabaseName.Text = ServerSettings.DatabaseName;
+						txtMSSQL_Password.Password = ServerSettings.DatabasePassword;
+						txtMSSQL_ServerAddress.Text = ServerSettings.DatabaseServer;
+						txtMSSQL_Username.Text = ServerSettings.DatabaseUsername;
+					}
+					else
+					{
+						txtMSSQL_DatabaseName.Text = "JMMServer";
+						txtMSSQL_Password.Password = "";
+						txtMSSQL_ServerAddress.Text = "localhost";
+						txtMSSQL_Username.Text = "sa";
+					}
+					ServerState.Instance.DatabaseIsSQLServer = true; 
+					break;
+				case 2: 
+
+					bool anySettingsMySQL= !string.IsNullOrEmpty(ServerSettings.MySQL_SchemaName) || !string.IsNullOrEmpty(ServerSettings.MySQL_Password)
+						|| !string.IsNullOrEmpty(ServerSettings.MySQL_Hostname) || !string.IsNullOrEmpty(ServerSettings.MySQL_Username);
+
+					if (anySettingsMySQL)
+					{
+						txtMySQL_DatabaseName.Text = ServerSettings.MySQL_SchemaName;
+						txtMySQL_Password.Password = ServerSettings.MySQL_Password;
+						txtMySQL_ServerAddress.Text = ServerSettings.MySQL_Hostname;
+						txtMySQL_Username.Text = ServerSettings.MySQL_Username;
+					}
+					else
+					{
+						txtMySQL_DatabaseName.Text = "JMMServer";
+						txtMySQL_Password.Password = "";
+						txtMySQL_ServerAddress.Text = "localhost";
+						txtMySQL_Username.Text = "root";
+					}
+
+					ServerState.Instance.DatabaseIsMySQL = true; 
+					break;
+			}
+		}
+
+		void workerSetupDB_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+		{
+			bool setupComplete = bool.Parse(e.Result.ToString());
+			if (setupComplete)
+			{
+				ServerInfo.Instance.RefreshImportFolders();
+				ServerState.Instance.CurrentSetupStatus = "Complete!";
+				ServerState.Instance.ServerOnline = true;
+				
+				tabControl1.SelectedIndex = 0;
+			}
+			else
+			{
+				ServerState.Instance.ServerOnline = false;
+				if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
+				{
+					ServerSettings.DatabaseType = "SQLite";
+					ShowDatabaseSetup();
+				}
+			}
+
+			btnSaveDatabaseSettings.IsEnabled = true;
+			cboDatabaseType.IsEnabled = true;
+		}
+
+		private void ShowDatabaseSetup()
+		{
+			if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE") cboDatabaseType.SelectedIndex = 0;
+			if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLSERVER") cboDatabaseType.SelectedIndex = 1;
+			if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL") cboDatabaseType.SelectedIndex = 2;
+		}
+
+		void workerSetupDB_DoWork(object sender, DoWorkEventArgs e)
+		{
+			
+			try
+			{
+				ServerState.Instance.ServerOnline = false;
+				ServerState.Instance.CurrentSetupStatus = "Cleaning up...";
+
+				StopWatchingFiles();
+				AniDBDispose();
+				StopHost();
+
+				JMMService.CmdProcessorGeneral.Stop();
+				JMMService.CmdProcessorHasher.Stop();
+				JMMService.CmdProcessorImages.Stop();
+
+
+				// wait until the queue count is 0
+				// ie the cancel has actuall worked
+				while (true)
+				{
+					if (JMMService.CmdProcessorGeneral.QueueCount == 0 && JMMService.CmdProcessorHasher.QueueCount == 0 && JMMService.CmdProcessorImages.QueueCount == 0) break;
+					Thread.Sleep(250);
+				}
+
+				if (autoUpdateTimer != null) autoUpdateTimer.Enabled = false;
+				if (autoUpdateTimerShort != null) autoUpdateTimerShort.Enabled = false;
+
+				JMMService.CloseSessionFactory();
+
+				ServerState.Instance.CurrentSetupStatus = "Initializing...";
+				Thread.Sleep(1000);
+
+				ServerState.Instance.CurrentSetupStatus = "Setting up database...";
+				if (!DatabaseHelper.InitDB())
+				{
+					ServerState.Instance.DatabaseAvailable = false;
+
+					if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
+						ServerState.Instance.CurrentSetupStatus = "Please select and configure your database.";
+					else
+						ServerState.Instance.CurrentSetupStatus = "Failed to start. Please review database settings.";
+					e.Result = false;
+					return;
+				}
+				else
+					ServerState.Instance.DatabaseAvailable = true;
+
+
+				//init session factory
+				ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
+				ISessionFactory temp = JMMService.SessionFactory;
+
+				ServerState.Instance.CurrentSetupStatus = "Initializing Hosts...";
+				SetupAniDBProcessor();
+				StartImageHost();
+				StartBinaryHost();
+
+				//  Load all stats
+				ServerState.Instance.CurrentSetupStatus = "Initializing Stats...";
+				StatsCache.Instance.InitStats();
+
+				ServerState.Instance.CurrentSetupStatus = "Initializing Queue Processors...";
+				JMMService.CmdProcessorGeneral.Init();
+				JMMService.CmdProcessorHasher.Init();
+				JMMService.CmdProcessorImages.Init();
+
+				// timer for automatic updates
+				autoUpdateTimer = new System.Timers.Timer();
+				autoUpdateTimer.AutoReset = true;
+				autoUpdateTimer.Interval = 10 * 60 * 1000; // 10 minutes * 60 seconds
+				autoUpdateTimer.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimer_Elapsed);
+				autoUpdateTimer.Start();
+
+				// timer for automatic updates
+				autoUpdateTimerShort = new System.Timers.Timer();
+				autoUpdateTimerShort.AutoReset = true;
+				autoUpdateTimerShort.Interval = 15 * 1000; // 15 seconds
+				autoUpdateTimerShort.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimerShort_Elapsed);
+				autoUpdateTimerShort.Start();
+
+				ServerState.Instance.CurrentSetupStatus = "Initializing File Watchers...";
+				StartWatchingFiles();
+
+				DownloadAllImages();
+				if (ServerSettings.RunImportOnStart) RunImport();
+
+
+				ServerState.Instance.ServerOnline = true;
+				e.Result = true;
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				ServerState.Instance.CurrentSetupStatus = ex.Message;
+				e.Result = false;
+			}
+		}
+
+		#endregion
 
 		void btnUpdateMediaInfo_Click(object sender, RoutedEventArgs e)
 		{
@@ -450,65 +736,13 @@ namespace JMMServer
 
 		void MainWindow_Loaded(object sender, RoutedEventArgs e)
 		{
-			ServerInfo.Instance.RefreshImportFolders();
+			//ServerInfo.Instance.RefreshImportFolders();
 
-			//Importer.CheckForTvDBUpdates(true);
-			//TvDBHelper.LinkAniDBTvDB(6751, 117851, 1, false);
-			//JMMService.TvdbHelper.UpdateAllInfoAndImages(134181, true);
+			tabControl1.SelectedIndex = 4; // setup
 
-			//CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(7103, false);
-			//cmd.ProcessCommand();
+			ShowDatabaseSetup();
 
-			//List<MovieDB_Movie_Result> movies = MovieDBHelper.Search("Naruto");
-			//XMLService.Get_CrossRef_AniDB_Other(1, CrossRefType.MovieDB);
-			//XMLService.Delete_CrossRef_AniDB_Other(1, CrossRefType.MovieDB);
-
-			//CommandRequest_MovieDBSearchAnime cmd = new CommandRequest_MovieDBSearchAnime(5178, false);
-			//cmd.ProcessCommand();
-
-			//MovieDBHelper.ScanForMatches();
-
-			//JMMServiceImplementation jmm = new JMMServiceImplementation();
-			//jmm.GetNextUnwatchedEpisode(157);
-
-			//AnimeSeriesRepository rep = new AnimeSeriesRepository();
-			//AnimeSeries ser = rep.GetByAnimeID(8148);
-			//ser.UpdateStats(true, true, true);
-
-			//TraktTVHelper.GetShowInfo(117851);
-			//TraktTVHelper.SearchShow("narutobummm");
-			//TraktTVHelper.GetShowInfo("never find this");
-			//CommandRequest_TraktSearchAnime cmd = new CommandRequest_TraktSearchAnime(8039, true);
-			//cmd.ProcessCommand();
-
-			//TraktTVHelper.ScanForMatches();
-
-			//Trakt_ImageFanartRepository repFanart = new Trakt_ImageFanartRepository();
-			//Trakt_ImageFanart fanart = repFanart.GetByShowIDAndSeason(5, 1);
-
-			//Trakt_EpisodeRepository rep = new Trakt_EpisodeRepository();
-			//Trakt_Episode ep = rep.GetByID(31);
-			//Console.Write(ep.FullImagePath);
-
-			//AnimeEpisodeRepository rep = new AnimeEpisodeRepository();
-			//AnimeEpisode ep = rep.GetByAniDBEpisodeID(85084);
-			//TraktTVHelper.MarkEpisodeWatched(ep);
-			//JMMServiceImplementation imp = new JMMServiceImplementation();
-			//imp.GetRecommendations(100, 1, 1);
-
-			//CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(7656, true, false);
-			//cmd.Save();
-
-			//CommandRequest_GetCharactersCreators cmd = new CommandRequest_GetCharactersCreators(6751, false);
-			//cmd.Save();
-
-			//JMMServiceImplementation imp = new JMMServiceImplementation();
-			//imp.GetMissingEpisodes(1, true);
-
-			//AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-			//AnimeSeries ser = repSeries.GetByAnimeID(7506);
-			//ser.UpdateStats(true, true, true);
-			
+			workerSetupDB.RunWorkerAsync();
 		}
 
 
@@ -627,155 +861,7 @@ namespace JMMServer
 
 		private void StartUp()
 		{
-			try
-			{
-				workerImport.WorkerReportsProgress = true;
-				workerImport.WorkerSupportsCancellation = true;
-				workerImport.DoWork += new DoWorkEventHandler(workerImport_DoWork);
-
-				workerScanFolder.WorkerReportsProgress = true;
-				workerScanFolder.WorkerSupportsCancellation = true;
-				workerScanFolder.DoWork += new DoWorkEventHandler(workerScanFolder_DoWork);
-
-				workerRemoveMissing.WorkerReportsProgress = true;
-				workerRemoveMissing.WorkerSupportsCancellation = true;
-				workerRemoveMissing.DoWork += new DoWorkEventHandler(workerRemoveMissing_DoWork);
-
-				workerDeleteImportFolder.WorkerReportsProgress = false;
-				workerDeleteImportFolder.WorkerSupportsCancellation = true;
-				workerDeleteImportFolder.DoWork += new DoWorkEventHandler(workerDeleteImportFolder_DoWork);
-
-				workerTraktFriends.DoWork += new DoWorkEventHandler(workerTraktFriends_DoWork);
-				workerTraktFriends.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerTraktFriends_RunWorkerCompleted);
-
-				if (!DatabaseHelper.InitDB()) return;
-
-				//init session factory
-				ISessionFactory temp = JMMService.SessionFactory;
-
-				SetupAniDBProcessor();
-				//StartHost();
-				StartImageHost();
-				StartBinaryHost();
-				//StartTCPHost();
-
-				//CreateImportFolders_Test();
-				//CreateImportFolders2();
-
-				//  Load all stats
-				StatsCache.Instance.InitStats();
-
-				JMMService.CmdProcessorGeneral.Init();
-				JMMService.CmdProcessorHasher.Init();
-				JMMService.CmdProcessorImages.Init();
-
-				//AdhocRepository rep = new AdhocRepository();
-				//Dictionary<int, string> dictStats = rep.GetAllVideoQualityByAnime();
-				//Dictionary<int, string> vidq = rep.GetAllVideoQualityByGroup();
-				//StatsCache.Instance.UpdateUsingGroup(7);
-
-				//JMMService.TvdbHelper.SearchSeries("Imouto");
-				//TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(78857);
-				
-
-				/*CrossRef_AniDB_TvDB xref = new CrossRef_AniDB_TvDB();
-				xref.AnimeID = 6107;
-				xref.TvDBID = 85249;
-				xref.TvDBSeasonNumber = 1;
-				XMLService.Send_CrossRef_AniDB_TvDB(xref);*/
-
-				//CrossRef_AniDB_TvDB xref = XMLService.Get_CrossRef_AniDB_TvDB(6107);
-
-				#region Test Code
-
-				//VideoLocalRepository repVids = new VideoLocalRepository();
-				//VideoLocal vlocal = repVids.GetByID(1);
-				//if (vlocal == null) return;
-
-				//XMLService.Send_FileHash(vlocal);
-
-				//XMLService.Get_FileHash(@"Zettai Shogeki - Platonic Heart\[Chihiro]_Zettai_Shogeki_~Platonic_Heart~_01v2_[h264][A057F3B2].mkv", 240600302);
-
-				//CommandRequest_GetCalendar cmd = new CommandRequest_GetCalendar(true);
-				//cmd.Save();
-
-				//CommandRequest_GetReleaseGroup cmd = new CommandRequest_GetReleaseGroup(3938, true);
-				//cmd.Save();
-
-				//CommandRequest_SyncMyList cmd = new CommandRequest_SyncMyList(true);
-				//cmd.ProcessCommand();
-
-				//OMMService.AnidbProcessor.GetMyListFileStatus(838983);
-
-				//CommandRequest_GetReleaseGroupStatus cmd = new CommandRequest_GetReleaseGroupStatus(7948, false);
-				//cmd.Save();
-
-				//CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList("8E451EA0C43FC94B51A8B638425D95BA");
-				//cmd.Save();
-
-				//CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(6313, false);
-				//cmd.Save();
-
-				//VideoLocalRepository repVids = new VideoLocalRepository();
-				//VideoLocal vid = repVids.GetByHash("0866E8D605F4DA96222A529A066CC35E");
-				//repVids.Delete(vid.VideoLocalID);
-				//vid.ToggleWatchedStatus(true, true);
-
-
-
-				//OMMServiceImplementation omm = new OMMServiceImplementation();
-				//omm.GetAllSeries();
-
-				//ReorganiseGundam();
-				//HashTest();
-				//HashTest2();
-				//ReviewsTest();
-
-				//CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(7671, true, false);
-				//cmd.Save();
-
-				//ProcessFileTest();
-				//ProcessFiles();
-				//ReadFiles();
-
-				//CreateTestCommandRequests();
-				//CreateSubGroupsTest();
-				//UpdateStatsTest();
-
-				//WebCacheTest();
-
-				//OMMService.AnidbProcessor.Login();
-				#endregion
-
-				// timer for automatic updates
-				autoUpdateTimer = new System.Timers.Timer();
-				autoUpdateTimer.AutoReset = true;
-				autoUpdateTimer.Interval = 10 * 60 * 1000; // 10 minutes * 60 seconds
-				autoUpdateTimer.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimer_Elapsed);
-				autoUpdateTimer.Start();
-
-				// timer for automatic updates
-				autoUpdateTimerShort = new System.Timers.Timer();
-				autoUpdateTimerShort.AutoReset = true;
-				autoUpdateTimerShort.Interval = 15 * 1000; // 15 seconds
-				autoUpdateTimerShort.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimerShort_Elapsed);
-				autoUpdateTimerShort.Start();
-
-				StartWatchingFiles();
-
-				DownloadAllImages();
-				if (ServerSettings.RunImportOnStart) RunImport();
-
-
-				//Console.WriteLine("Press ENTER to EXIT");
-				//Console.ReadKey();
-
-				
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-			}
+			
 		}
 
 		void workerTraktFriends_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)

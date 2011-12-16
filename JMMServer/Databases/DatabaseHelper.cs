@@ -62,30 +62,45 @@ namespace JMMServer.Databases
 				{
 					if (!SQLServer.DatabaseAlreadyExists())
 					{
-						//logger.Error("Database: {0} does not exist", ServerSettings.DatabaseName);
-						SQLServer.CreateDatabase();
+						logger.Error("Database: {0} does not exist", ServerSettings.DatabaseName);
+						//SQLServer.CreateDatabase();
 						return false;
 					}
 
+					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
 					SQLServer.CreateInitialSchema();
+
+					ServerState.Instance.CurrentSetupStatus = "Database - Applying Schema Patches...";
 					SQLServer.UpdateSchema();
+
 					PopulateInitialData();
 
 					return true;
 				}
 				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE")
 				{
+					ServerState.Instance.CurrentSetupStatus = "Database - Creating Database...";
 					SQLite.CreateDatabase();
+
+					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
 					SQLite.CreateInitialSchema();
+
+					ServerState.Instance.CurrentSetupStatus = "Database - Applying Schema Patches...";
 					SQLite.UpdateSchema();
+
 					PopulateInitialData();
 
 					return true;
 				}
 				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL")
 				{
+					ServerState.Instance.CurrentSetupStatus = "Database - Creating Database...";
 					MySQL.CreateDatabase();
+
+					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
 					MySQL.CreateInitialSchema();
+
+					ServerState.Instance.CurrentSetupStatus = "Database - Applying Schema Patches...";
 					MySQL.UpdateSchema();
 
 					PopulateInitialData();
@@ -105,7 +120,10 @@ namespace JMMServer.Databases
 
 		public static void PopulateInitialData()
 		{
+			ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Users)...";
 			CreateInitialUsers();
+
+			ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Group Filters)...";
 			CreateInitialGroupFilters();
 		}
 

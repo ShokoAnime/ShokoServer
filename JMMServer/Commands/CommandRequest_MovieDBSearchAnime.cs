@@ -19,7 +19,7 @@ namespace JMMServer.Commands
 
 		public CommandRequestPriority DefaultPriority 
 		{
-			get { return CommandRequestPriority.Priority9; }
+			get { return CommandRequestPriority.Priority8; }
 		}
 
 		public string PrettyDescription

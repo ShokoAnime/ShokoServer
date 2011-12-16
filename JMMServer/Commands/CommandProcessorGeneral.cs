@@ -127,6 +127,7 @@ namespace JMMServer.Commands
 			processingCommands = false;
 			logger.Trace("Stopping command worker...");
 			QueueState = "Idle";
+			QueueCount = 0;
 		}
 
 		public void Init()
@@ -135,6 +136,11 @@ namespace JMMServer.Commands
 			logger.Trace("Starting command worker...");
 			QueueState = "Starting command worker (hasher)...";
 			this.workerCommands.RunWorkerAsync();
+		}
+
+		public void Stop()
+		{
+			workerCommands.CancelAsync();
 		}
 
 		/// <summary>
@@ -160,6 +166,12 @@ namespace JMMServer.Commands
 		{
 			while (true)
 			{
+				if (workerCommands.CancellationPending)
+				{
+					e.Cancel = true;
+					return;
+				}
+
 				// if paused we will sleep for 5 seconds, and the try again
 				// we will remove the pause if it was set more than 6 hours ago
 				// the pause is initiated when banned from AniDB or manually by the user
@@ -167,6 +179,12 @@ namespace JMMServer.Commands
 				{
 					try
 					{
+						if (workerCommands.CancellationPending)
+						{
+							e.Cancel = true;
+							return;
+						}
+
 						logger.Trace("Queue is paused: {0}", pauseTime.Value);
 						TimeSpan ts = DateTime.Now - pauseTime.Value;
 						if (ts.TotalHours >= 6)
@@ -186,6 +204,12 @@ namespace JMMServer.Commands
 				CommandRequest crdb = repCR.GetNextDBCommandRequestGeneral();
 				if (crdb == null) return;
 
+				if (workerCommands.CancellationPending)
+				{
+					e.Cancel = true;
+					return;
+				}
+
 				QueueCount = repCR.GetQueuedCommandCountGeneral();
 				logger.Trace("{0} commands remaining in queue", QueueCount);
 
@@ -199,6 +223,12 @@ namespace JMMServer.Commands
 				}
 
 				QueueState = icr.PrettyDescription;
+
+				if (workerCommands.CancellationPending)
+				{
+					e.Cancel = true;
+					return;
+				}
 
 				logger.Trace("Processing command request: {0}", crdb.CommandID);
 				icr.ProcessCommand();

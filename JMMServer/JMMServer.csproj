@@ -439,6 +439,7 @@
     <Compile Include="Repositories\VideoLocalRepository.cs" />
     <Compile Include="Repositories\VideoLocal_UserRepository.cs" />
     <Compile Include="ServerSettings.cs" />
+    <Compile Include="ServerState.cs" />
     <Compile Include="StatsCache.cs" />
     <Compile Include="UI\HyperLinkStandard.xaml.cs">
       <DependentUpon>HyperLinkStandard.xaml</DependentUpon>
@@ -587,6 +588,9 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Providers\MyAnimeList\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_warning.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

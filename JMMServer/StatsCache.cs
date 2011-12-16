@@ -54,6 +54,11 @@ namespace JMMServer
 
 		public StatsCache()
 		{
+			ClearAllData();
+		}
+
+		private void ClearAllData()
+		{
 			TraktFriendInfo = new List<TraktTVUser>();
 			TraktFriendRequests = new List<TraktTVFriendRequest>();
 
@@ -450,6 +455,8 @@ namespace JMMServer
 			{
 
 				DateTime start = DateTime.Now;
+
+				ClearAllData();
 
 				#region Get the data
 				AnimeGroupRepository repGroups = new AnimeGroupRepository();
