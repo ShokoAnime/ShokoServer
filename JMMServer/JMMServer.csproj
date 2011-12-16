@@ -211,6 +211,8 @@
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseHelper.cs" />
     <Compile Include="Databases\MySQL.cs" />
+    <Compile Include="Security\CRC32.cs" />
+    <Compile Include="Security\Digest.cs" />
     <Compile Include="MyAnime2Helper\MA2Progress.cs" />
     <Compile Include="Databases\SQLite.cs" />
     <Compile Include="Databases\SQLServer.cs" />
@@ -438,6 +440,7 @@
     <Compile Include="Repositories\VideoInfoRepository.cs" />
     <Compile Include="Repositories\VideoLocalRepository.cs" />
     <Compile Include="Repositories\VideoLocal_UserRepository.cs" />
+    <Compile Include="Security\StringTools.cs" />
     <Compile Include="ServerSettings.cs" />
     <Compile Include="ServerState.cs" />
     <Compile Include="StatsCache.cs" />

@@ -24,7 +24,7 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Sync'ing Trakt Collectionfor series: {0}", SeriesName);
+				return string.Format("Sync'ing Trakt Collection for series: {0}", SeriesName);
 			}
 		}
 

@@ -4624,6 +4624,27 @@ namespace JMMServer
 			}
 		}
 
+		public string ChangePassword(int userID, string newPassword)
+		{
+			JMMUserRepository repUsers = new JMMUserRepository();
+
+			try
+			{
+				JMMUser jmmUser = repUsers.GetByID(userID);
+				if (jmmUser == null) return "User not found";
+
+				jmmUser.Password = Digest.Hash(newPassword);
+				repUsers.Save(jmmUser);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+
+			return "";
+		}
+
 		public string SaveUser(Contract_JMMUser user)
 		{
 			JMMUserRepository repUsers = new JMMUserRepository();
@@ -4652,7 +4673,6 @@ namespace JMMServer
 				jmmUser.IsAniDBUser = user.IsAniDBUser;
 				jmmUser.IsTraktUser = user.IsTraktUser;
 				jmmUser.IsAdmin = user.IsAdmin;
-				jmmUser.Password = user.Password;
 				jmmUser.Username = user.Username;
 				jmmUser.CanEditServerSettings = user.CanEditServerSettings;
 

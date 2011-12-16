@@ -83,6 +83,7 @@ namespace JMMServer.Databases
 				UpdateSchema_005(versionNumber);
 				UpdateSchema_006(versionNumber);
 				UpdateSchema_007(versionNumber);
+				UpdateSchema_008(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -273,6 +274,16 @@ namespace JMMServer.Databases
 
 			UpdateDatabaseVersion(thisVersion);
 
+		}
+
+		private static void UpdateSchema_008(int currentVersionNumber)
+		{
+			int thisVersion = 8;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			UpdateDatabaseVersion(thisVersion);
 		}
 
 

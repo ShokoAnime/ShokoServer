@@ -446,6 +446,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		bool TraktFriendRequestApprove(string friendUsername, ref string returnMessage);
+
+		[OperationContract]
+		string ChangePassword(int userID, string newPassword);
 	}
 
 }

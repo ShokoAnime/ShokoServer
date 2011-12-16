@@ -75,10 +75,11 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
+				string hashedPassword = Digest.Hash(password);
 				JMMUser cr = session
 					.CreateCriteria(typeof(JMMUser))
 					.Add(Restrictions.Eq("Username", userName))
-					.Add(Restrictions.Eq("Password", password))
+					.Add(Restrictions.Eq("Password", hashedPassword))
 					.UniqueResult<JMMUser>();
 				return cr;
 			}

@@ -85,6 +85,7 @@ namespace JMMServer.Databases
 				UpdateSchema_005(versionNumber);
 				UpdateSchema_006(versionNumber);
 				UpdateSchema_007(versionNumber);
+				UpdateSchema_008(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -305,6 +306,44 @@ namespace JMMServer.Databases
 
 			cmds.Add("ALTER TABLE `CrossRef_AniDB_Trakt` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_Trakt_Season` (`TraktID` ASC, `TraktSeasonNumber` ASC) ;");
 			cmds.Add("ALTER TABLE `CrossRef_AniDB_Trakt` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_Trakt_Anime` (`AnimeID` ASC) ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_008(int currentVersionNumber)
+		{
+			int thisVersion = 8;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			DatabaseHelper.FixDuplicateTvDBLinks();
+			DatabaseHelper.FixDuplicateTraktLinks();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE `jmmuser` CHANGE COLUMN `Password` `Password` VARCHAR(150) NULL DEFAULT NULL ;");
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{
