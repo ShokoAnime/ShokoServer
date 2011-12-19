@@ -7,6 +7,7 @@ using System.Configuration;
 using AniDBAPI;
 using JMMContracts;
 using System.IO;
+using JMMServer.ImageDownload;
 
 namespace JMMServer
 {
@@ -991,6 +992,44 @@ namespace JMMServer
 			}
 		}
 
+		public static string BaseImagesPath
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				return appSettings["BaseImagesPath"];
+			}
+			set
+			{
+				UpdateSetting("BaseImagesPath", value);
+				ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
+			}
+		}
+
+		public static bool BaseImagesPathIsDefault
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				string basePath = appSettings["BaseImagesPathIsDefault"];
+				if (!string.IsNullOrEmpty(basePath))
+				{
+					bool val = true;
+					bool.TryParse(basePath, out val);
+					return val;
+				}
+				else return true;
+				
+			}
+			set
+			{
+				UpdateSetting("BaseImagesPathIsDefault", value.ToString());
+				ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
+			}
+		}
+
+		#region Trakt
+
 		public static string Trakt_Username
 		{
 			get
@@ -1050,6 +1089,8 @@ namespace JMMServer
 				UpdateSetting("Trakt_SyncFrequency", ((int)value).ToString());
 			}
 		}
+
+		#endregion
 
 		public static void UpdateSetting(string key, string value)
 		{

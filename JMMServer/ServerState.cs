@@ -105,5 +105,16 @@ namespace JMMServer
 			}
 		}
 
+		private string baseImagePath = "";
+		public string BaseImagePath
+		{
+			get { return baseImagePath; }
+			set
+			{
+				baseImagePath = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("BaseImagePath"));
+			}
+		}
+
 	}
 }

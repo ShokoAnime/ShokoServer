@@ -31,6 +31,7 @@ using System.Data.SQLite;
 using System.Data.SqlClient;
 using System.Data;
 using JMMServer.MyAnime2Helper;
+using JMMServer.ImageDownload;
 
 namespace JMMServer
 {
@@ -107,6 +108,7 @@ namespace JMMServer
 
 			ServerState.Instance.DatabaseAvailable = false;
 			ServerState.Instance.ServerOnline = false;
+			ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
 
 			this.Closing += new System.ComponentModel.CancelEventHandler(MainWindow_Closing);
 			this.StateChanged += new EventHandler(MainWindow_StateChanged);
@@ -174,10 +176,46 @@ namespace JMMServer
 			cboDatabaseType.Items.Add("SQLite");
 			cboDatabaseType.Items.Add("Microsoft SQL Server 2008");
 			cboDatabaseType.Items.Add("MySQL");
-
 			cboDatabaseType.SelectionChanged += new System.Windows.Controls.SelectionChangedEventHandler(cboDatabaseType_SelectionChanged);
 
+			cboImagesPath.Items.Clear();
+			cboImagesPath.Items.Add("Default");
+			cboImagesPath.Items.Add("Custom");
+			cboImagesPath.SelectionChanged += new System.Windows.Controls.SelectionChangedEventHandler(cboImagesPath_SelectionChanged);
+			btnChooseImagesFolder.Click += new RoutedEventHandler(btnChooseImagesFolder_Click);
+
+			if (ServerSettings.BaseImagesPathIsDefault)
+				cboImagesPath.SelectedIndex = 0;
+			else
+				cboImagesPath.SelectedIndex = 1;
+
 			btnSaveDatabaseSettings.Click += new RoutedEventHandler(btnSaveDatabaseSettings_Click);
+
+			
+		}
+
+		void btnChooseImagesFolder_Click(object sender, RoutedEventArgs e)
+		{
+			System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
+			if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+			{
+				ServerSettings.BaseImagesPath = dialog.SelectedPath;
+			}
+		}
+
+		void cboImagesPath_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+		{
+			if (cboImagesPath.SelectedIndex == 0)
+			{
+				ServerSettings.BaseImagesPathIsDefault = true;
+				btnChooseImagesFolder.Visibility = System.Windows.Visibility.Hidden;
+			}
+			else
+			{
+				ServerSettings.BaseImagesPathIsDefault = false;
+				btnChooseImagesFolder.Visibility = System.Windows.Visibility.Visible;
+			}
+			
 		}
 
 		#region Database settings and initial start up

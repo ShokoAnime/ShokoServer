@@ -139,16 +139,40 @@
 
                 <!-- Settings tab-->
                 <TabItem Header="Settings" Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=ServerOnline, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5">
-                        <TextBlock Text="Server Port"  VerticalAlignment="Center"/>
-                        <TextBox Name="txtServerPort" Width="100" Margin="10,0,0,0"></TextBox>
+                    
+                    <StackPanel Orientation="Vertical">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5">
+                            <TextBlock Text="Server Port"  VerticalAlignment="Center"/>
+                            <TextBox Name="txtServerPort" Width="100" Margin="10,0,0,0"></TextBox>
 
-                        <Button Name="btnApplyServerPort" Style="{DynamicResource RoundButtonStyle}" Margin="10,0,0,0">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
-                                <Image Height="16" Width="16" Source="/Images/32_Save.png" Margin="0,0,5,0"/>
-                                <TextBlock VerticalAlignment="Center" Text="Apply" Margin="0,0,5,0"/>
-                            </StackPanel>
-                        </Button>
+                            <Button Name="btnApplyServerPort" Style="{DynamicResource RoundButtonStyle}" Margin="10,0,0,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
+                                    <Image Height="16" Width="16" Source="/Images/32_Save.png" Margin="0,0,5,0"/>
+                                    <TextBlock VerticalAlignment="Center" Text="Apply" Margin="0,0,5,0"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,10,5,5">
+                            <TextBlock Text="Images Path"  VerticalAlignment="Center"/>
+
+                            <ComboBox Name="cboImagesPath" MinWidth="100" Margin="10,0,0,0" VerticalAlignment="Center"/>
+
+                            <Button Name="btnChooseImagesFolder" Style="{DynamicResource RoundButtonStyle}" Margin="10,0,0,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
+                                    <Image Height="16" Width="16" Source="/Images/32_Folder.png" Margin="0,0,5,0"/>
+                                    <TextBlock VerticalAlignment="Center" Text="Select Folder" Margin="0,0,5,0"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,0,5,5">
+                            <TextBlock Text="{Binding Source={x:Static local:ServerState.Instance}, Path=BaseImagePath}" Name="txtImagesPath"  VerticalAlignment="Center" Margin="20,0,5,0" Foreground="DarkGray">
+                                <TextBlock.ToolTip>
+                                    <TextBlock Text="{Binding Source={x:Static local:ServerState.Instance}, Path=BaseImagePath}" Foreground="Black" FontWeight="DemiBold"/>
+                                </TextBlock.ToolTip>
+                            </TextBlock>
+                        </StackPanel>
                     </StackPanel>
                 </TabItem>
                 <TabItem Header="MyAnime2 Migration" Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=ServerOnline, Converter={StaticResource BooleanToVisibilityConverter}}">
