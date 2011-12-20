@@ -121,8 +121,9 @@ namespace JMMServer.Providers.TraktTV
 						bool fileExists = File.Exists(traktFriend.FullImagePath);
 						TimeSpan ts = DateTime.Now - traktFriend.LastAvatarUpdate;
 
-						if (!fileExists || ts.TotalHours > 1)
+						if (!fileExists || ts.TotalHours > 8)
 						{
+							traktFriend.LastAvatarUpdate = DateTime.Now;
 							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktFriend.Trakt_FriendID, JMMImageType.Trakt_Friend, true);
 							cmd.Save();
 						}
