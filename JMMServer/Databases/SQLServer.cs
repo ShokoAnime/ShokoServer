@@ -47,7 +47,7 @@ namespace JMMServer.Databases
 			return true;
 		}
 
-		public static void CreateDatabase()
+		public static void CreateDatabaseOld()
 		{
 			if (DatabaseAlreadyExists()) return;
 
@@ -90,6 +90,59 @@ namespace JMMServer.Databases
 				}
 
 			}
+		}
+
+		public static void CreateDatabase()
+		{
+			if (DatabaseAlreadyExists()) return;
+
+			/*SQLServerDatabase db = new SQLServerDatabase();
+
+			String str;
+			SqlConnection myConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword));
+
+			str = string.Format("CREATE DATABASE {0} ON PRIMARY " +
+				"(NAME = {1}_Data, " +
+				"FILENAME = 'C:\\MyDatabaseData.mdf', " +
+				"SIZE = 2MB, MAXSIZE = 10MB, FILEGROWTH = 10%) " +
+				"LOG ON (NAME = MyDatabase_Log, " +
+				"FILENAME = 'C:\\MyDatabaseLog.ldf', " +
+				"SIZE = 1MB, " +
+				"MAXSIZE = 5MB, " +
+				"FILEGROWTH = 10%)", ServerSettings.DatabaseName);
+
+			SqlCommand myCommand = new SqlCommand(str, myConn);
+			try
+			{
+				myConn.Open();
+				myCommand.ExecuteNonQuery();
+				MessageBox.Show("DataBase is Created Successfully", "MyProgram", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			}
+			catch (System.Exception ex)
+			{
+				MessageBox.Show(ex.ToString(), "MyProgram", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			}
+			finally
+			{
+				if (myConn.State == ConnectionState.Open)
+				{
+					myConn.Close();
+				}
+			}
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database=master", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword)))
+			{
+				using (SqlCommand command = new SqlCommand(sb.ToString(), tmpConn))
+				{
+					tmpConn.Open();
+					command.ExecuteNonQuery();
+
+					Console.WriteLine("Database created successfully!");
+				}
+
+			}*/
 		}
 
 		#region Schema Updates

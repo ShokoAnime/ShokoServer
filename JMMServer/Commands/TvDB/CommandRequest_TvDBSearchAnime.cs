@@ -60,7 +60,7 @@ namespace JMMServer.Commands
 							TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(crossRef.TvDBID);
 							if (tvser != null)
 							{
-								// since we are using the web cache result, let's save it
+								/*// since we are using the web cache result, let's save it
 								CrossRef_AniDB_TvDBRepository repCrossRefs = new CrossRef_AniDB_TvDBRepository();
 								CrossRef_AniDB_TvDB xref = repCrossRefs.GetByAnimeID(AnimeID);
 								if (xref == null)
@@ -70,7 +70,7 @@ namespace JMMServer.Commands
 								xref.CrossRefSource = (int)CrossRefSource.WebCache;
 								xref.TvDBID = crossRef.TvDBID;
 								xref.TvDBSeasonNumber = crossRef.TvDBSeasonNumber;
-								repCrossRefs.Save(xref);
+								repCrossRefs.Save(xref);*/
 
 								logger.Trace("Found tvdb match on web cache for {0} - id = {1}", AnimeID, tvser.SeriesID);
 								TvDBHelper.LinkAniDBTvDB(AnimeID, crossRef.TvDBID, crossRef.TvDBSeasonNumber, true);
