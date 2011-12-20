@@ -7,13 +7,14 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+//using System.Windows.Media;
+//using System.Windows.Media.Imaging;
+//using System.Windows.Shapes;
 using JMMServer.Entities;
 using JMMServer;
 using JMMServer.Repositories;
 using JMMContracts;
+using System.IO;
 
 namespace JMMServer
 {
@@ -30,6 +31,20 @@ namespace JMMServer
 
 			btnCancel.Click += new RoutedEventHandler(btnCancel_Click);
 			btnSave.Click += new RoutedEventHandler(btnSave_Click);
+			btnChooseFolder.Click += new RoutedEventHandler(btnChooseFolder_Click);
+		}
+
+		void btnChooseFolder_Click(object sender, RoutedEventArgs e)
+		{
+			System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
+
+			if (!string.IsNullOrEmpty(txtImportFolderLocation.Text) && Directory.Exists(txtImportFolderLocation.Text))
+				dialog.SelectedPath = txtImportFolderLocation.Text;
+
+			if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+			{
+				txtImportFolderLocation.Text = dialog.SelectedPath;
+			}
 		}
 
 		void btnSave_Click(object sender, RoutedEventArgs e)
