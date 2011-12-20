@@ -32,6 +32,7 @@ using System.Data.SqlClient;
 using System.Data;
 using JMMServer.MyAnime2Helper;
 using JMMServer.ImageDownload;
+using Microsoft.SqlServer.Management.Smo;
 
 namespace JMMServer
 {
@@ -191,9 +192,11 @@ namespace JMMServer
 				cboImagesPath.SelectedIndex = 1;
 
 			btnSaveDatabaseSettings.Click += new RoutedEventHandler(btnSaveDatabaseSettings_Click);
-
+			btnRefreshMSSQLServerList.Click += new RoutedEventHandler(btnRefreshMSSQLServerList_Click);
 			
 		}
+
+		
 
 		
 
@@ -230,6 +233,7 @@ namespace JMMServer
 			{
 				btnSaveDatabaseSettings.IsEnabled = false;
 				cboDatabaseType.IsEnabled = false;
+				btnRefreshMSSQLServerList.IsEnabled = false;
 
 				if (ServerState.Instance.DatabaseIsSQLite)
 				{
@@ -238,7 +242,7 @@ namespace JMMServer
 				else if (ServerState.Instance.DatabaseIsSQLServer)
 				{
 					if (string.IsNullOrEmpty(txtMSSQL_DatabaseName.Text) || string.IsNullOrEmpty(txtMSSQL_Password.Password)
-						|| string.IsNullOrEmpty(txtMSSQL_ServerAddress.Text) || string.IsNullOrEmpty(txtMSSQL_Username.Text))
+						|| string.IsNullOrEmpty(cboMSSQLServerList.Text) || string.IsNullOrEmpty(txtMSSQL_Username.Text))
 					{
 						MessageBox.Show("Please fill out all the settings", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 						txtMSSQL_DatabaseName.Focus();
@@ -248,7 +252,7 @@ namespace JMMServer
 					ServerSettings.DatabaseType = "SQLServer";
 					ServerSettings.DatabaseName = txtMSSQL_DatabaseName.Text;
 					ServerSettings.DatabasePassword = txtMSSQL_Password.Password;
-					ServerSettings.DatabaseServer = txtMSSQL_ServerAddress.Text;
+					ServerSettings.DatabaseServer = cboMSSQLServerList.Text;
 					ServerSettings.DatabaseUsername = txtMSSQL_Username.Text;
 
 				}
@@ -300,14 +304,15 @@ namespace JMMServer
 					{
 						txtMSSQL_DatabaseName.Text = ServerSettings.DatabaseName;
 						txtMSSQL_Password.Password = ServerSettings.DatabasePassword;
-						txtMSSQL_ServerAddress.Text = ServerSettings.DatabaseServer;
+						
+						cboMSSQLServerList.Text = ServerSettings.DatabaseServer;
 						txtMSSQL_Username.Text = ServerSettings.DatabaseUsername;
 					}
 					else
 					{
 						txtMSSQL_DatabaseName.Text = "JMMServer";
 						txtMSSQL_Password.Password = "";
-						txtMSSQL_ServerAddress.Text = "localhost";
+						cboMSSQLServerList.Text = "localhost";
 						txtMSSQL_Username.Text = "sa";
 					}
 					ServerState.Instance.DatabaseIsSQLServer = true; 
@@ -360,6 +365,35 @@ namespace JMMServer
 
 			btnSaveDatabaseSettings.IsEnabled = true;
 			cboDatabaseType.IsEnabled = true;
+			btnRefreshMSSQLServerList.IsEnabled = true;
+		}
+
+		void btnRefreshMSSQLServerList_Click(object sender, RoutedEventArgs e)
+		{
+			btnSaveDatabaseSettings.IsEnabled = false;
+			cboDatabaseType.IsEnabled = false;
+			btnRefreshMSSQLServerList.IsEnabled = false;
+
+			try
+			{
+				this.Cursor = Cursors.Wait;
+				cboMSSQLServerList.Items.Clear();
+				DataTable dt = SmoApplication.EnumAvailableSqlServers();
+				foreach (DataRow dr in dt.Rows)
+				{
+					cboMSSQLServerList.Items.Add(dr[0]);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+			}
+
+			this.Cursor = Cursors.Arrow;
+			btnSaveDatabaseSettings.IsEnabled = true;
+			cboDatabaseType.IsEnabled = true;
+			btnRefreshMSSQLServerList.IsEnabled = true;
 		}
 
 		private void ShowDatabaseSetup()

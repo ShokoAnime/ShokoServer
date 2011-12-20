@@ -63,8 +63,7 @@ namespace JMMServer.Databases
 					if (!SQLServer.DatabaseAlreadyExists())
 					{
 						logger.Error("Database: {0} does not exist", ServerSettings.DatabaseName);
-						//SQLServer.CreateDatabase();
-						return false;
+						SQLServer.CreateDatabase();
 					}
 
 					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
