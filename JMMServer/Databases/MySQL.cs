@@ -86,6 +86,7 @@ namespace JMMServer.Databases
 				UpdateSchema_006(versionNumber);
 				UpdateSchema_007(versionNumber);
 				UpdateSchema_008(versionNumber);
+				UpdateSchema_009(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -344,6 +345,43 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 
 			cmds.Add("ALTER TABLE `jmmuser` CHANGE COLUMN `Password` `Password` VARCHAR(150) NULL DEFAULT NULL ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_009(int currentVersionNumber)
+		{
+			int thisVersion = 9;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE `CommandRequest` CHANGE COLUMN `CommandID` `CommandID` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `CrossRef_File_Episode` CHANGE COLUMN `FileName` `FileName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `FileNameHash` CHANGE COLUMN `FileName` `FileName` text character set utf8 NOT NULL ;");
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{
