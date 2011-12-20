@@ -419,6 +419,16 @@ namespace JMMServer
 			TvDBHelper.UpdateAllInfo(forced);
 		}
 
+		public static void RunImport_UpdateAllAniDB()
+		{
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			foreach (AniDB_Anime anime in repAnime.GetAll())
+			{
+				CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(anime.AnimeID, true, false);
+				cmd.Save();
+			}
+		}
+
 		public static void RemoveRecordsWithoutPhysicalFiles()
 		{
 			VideoLocalRepository repVidLocals = new VideoLocalRepository();

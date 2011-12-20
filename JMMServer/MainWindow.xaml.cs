@@ -130,6 +130,7 @@ namespace JMMServer
 			btnUpdateAllStats.Click += new RoutedEventHandler(btnUpdateAllStats_Click);
 			btnSyncTrakt.Click += new RoutedEventHandler(btnSyncTrakt_Click);
 			btnImportManualLinks.Click += new RoutedEventHandler(btnImportManualLinks_Click);
+			btnUpdateAniDBInfo.Click += new RoutedEventHandler(btnUpdateAniDBInfo_Click);
 
 			this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
 			downloadImagesWorker.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
@@ -193,6 +194,8 @@ namespace JMMServer
 
 			
 		}
+
+		
 
 		void btnChooseImagesFolder_Click(object sender, RoutedEventArgs e)
 		{
@@ -809,10 +812,34 @@ namespace JMMServer
 
 		}
 
+		void btnUpdateAniDBInfo_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				this.Cursor = Cursors.Wait;
+				Importer.RunImport_UpdateAllAniDB();
+				this.Cursor = Cursors.Arrow;
+				MessageBox.Show("Updates are queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.Message, ex);
+			}
+		}
+
 		void btnUpdateTvDBInfo_Click(object sender, RoutedEventArgs e)
 		{
-			Importer.RunImport_UpdateTvDB(false);
-			MessageBox.Show("Updates are queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			try
+			{
+				this.Cursor = Cursors.Wait;
+				Importer.RunImport_UpdateTvDB(false);
+				this.Cursor = Cursors.Arrow;
+				MessageBox.Show("Updates are queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.Message, ex);
+			}
 		}
 
 		void btnUpdateAllStats_Click(object sender, RoutedEventArgs e)
