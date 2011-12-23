@@ -2234,7 +2234,7 @@ namespace JMMServer
 				if (vid == null)
 					return "Could not find video local record";
 
-				vid.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, true, true, userID);
+				vid.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, true, true, userID, true);
 
 				return "";
 			}
@@ -2261,7 +2261,7 @@ namespace JMMServer
 					return response;
 				}
 
-				ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID);
+				ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID, true);
 				ep.AnimeSeries.UpdateStats(true, false, true);
 				StatsCache.Instance.UpdateUsingSeries(ep.AnimeSeries.AnimeSeriesID);
 
@@ -2308,7 +2308,7 @@ namespace JMMServer
 						if (currentStatus != watchedStatus)
 						{
 							logger.Info("Updating episode: {0} to {1}", ep.AniDB_Episode.EpisodeNumber, watchedStatus);
-							ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID);
+							ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID, false);
 						}
 					}
 					

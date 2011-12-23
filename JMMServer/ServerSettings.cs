@@ -434,7 +434,7 @@ namespace JMMServer
 				if (int.TryParse(appSettings["AniDB_MyList_UpdateFrequency"], out val))
 					return (ScheduledUpdateFrequency)val;
 				else
-					return ScheduledUpdateFrequency.Daily; // default value
+					return ScheduledUpdateFrequency.Never; // default value
 			}
 			set
 			{

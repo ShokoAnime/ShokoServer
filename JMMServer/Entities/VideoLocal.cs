@@ -168,10 +168,10 @@ namespace JMMServer.Entities
 
 		public void ToggleWatchedStatus(bool watched, int userID)
 		{
-			ToggleWatchedStatus(watched, true, null, true, true, userID);
+			ToggleWatchedStatus(watched, true, null, true, true, userID, true);
 		}
 
-		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, bool updateStatsCache, int userID)
+		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, bool updateStatsCache, int userID, bool scrobbleTrakt)
 		{
 			VideoLocalRepository repVids = new VideoLocalRepository();
 			AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
@@ -272,8 +272,11 @@ namespace JMMServer.Entities
 							}
 						}
 
-						CommandRequest_TraktShowScrobble cmdScrobble = new CommandRequest_TraktShowScrobble(ep.AnimeEpisodeID);
-						cmdScrobble.Save();
+						if (scrobbleTrakt)
+						{
+							CommandRequest_TraktShowScrobble cmdScrobble = new CommandRequest_TraktShowScrobble(ep.AnimeEpisodeID);
+							cmdScrobble.Save();
+						}
 					}
 				}
 			}

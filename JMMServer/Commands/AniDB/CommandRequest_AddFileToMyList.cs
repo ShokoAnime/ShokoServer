@@ -81,7 +81,7 @@ namespace JMMServer.Commands
 					if (aniDBUsers.Count > 0)
 					{
 						JMMUser juser = aniDBUsers[0];
-						vid.ToggleWatchedStatus(newWatchedStatus, false, watchedDate, false, false, juser.JMMUserID);
+						vid.ToggleWatchedStatus(newWatchedStatus, false, watchedDate, false, false, juser.JMMUserID, false);
 						logger.Info("Adding file to list: {0} - {1}", vid.ToString(), watchedDate);
 
 						// if the the episode is watched we may want to set the file to watched as well
@@ -102,7 +102,7 @@ namespace JMMServer.Commands
 								if (epUser != null)
 								{
 									logger.Info("Setting file as watched, because episode was already watched: {0} - user: {1}", vid.ToString(), juser.Username);
-									vid.ToggleWatchedStatus(true, true, epUser.WatchedDate, false, false, epUser.JMMUserID);
+									vid.ToggleWatchedStatus(true, true, epUser.WatchedDate, false, false, epUser.JMMUserID, false);
 
 								}
 

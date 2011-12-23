@@ -376,16 +376,16 @@ namespace JMMServer.Entities
 			return contracts;
 		}
 
-		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, int userID)
+		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, int userID, bool scrobbleTrakt)
 		{
-			ToggleWatchedStatus(watched, updateOnline, watchedDate, true, true, userID);
+			ToggleWatchedStatus(watched, updateOnline, watchedDate, true, true, userID, scrobbleTrakt);
 		}
 
-		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, bool updateStatsCache, int userID)
+		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, bool updateStatsCache, int userID, bool scrobbleTrakt)
 		{
 			foreach (VideoLocal vid in VideoLocals)
 			{
-				vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, updateStatsCache, userID);
+				vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, updateStatsCache, userID, scrobbleTrakt);
 			}
 		}
 	}

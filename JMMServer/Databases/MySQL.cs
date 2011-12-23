@@ -429,7 +429,7 @@ namespace JMMServer.Databases
 
 			//string sql = string.Format("select count(VERSIONS) from INFORMATION_SCHEMA where TABLE_SCHEMA = '{0}' and TABLE_NAME = 'VERSIONS' group by TABLE_NAME",
 			//	ServerSettings.MySQL_SchemaName);
-			string sql = string.Format("select count(*) from information_schema.tables where table_name = 'VERSIONS'");
+			string sql = string.Format("select count(*) from information_schema.tables where table_schema='{0}' and table_name = 'VERSIONS'", ServerSettings.MySQL_SchemaName);
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{
 				conn.Open();

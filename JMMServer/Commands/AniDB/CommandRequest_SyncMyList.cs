@@ -171,7 +171,7 @@ namespace JMMServer.Commands
 										{
 											modifiedItems++;
 											if (jmmUserID.HasValue)
-												vl.ToggleWatchedStatus(myitem.IsWatched, false, myitem.WatchedDate, false, false, jmmUserID.Value);
+												vl.ToggleWatchedStatus(myitem.IsWatched, false, myitem.WatchedDate, false, false, jmmUserID.Value, false);
 											action = "Used AniDB Status";
 										}
 									}
@@ -182,7 +182,7 @@ namespace JMMServer.Commands
 										{
 											modifiedItems++;
 											if (jmmUserID.HasValue)
-												vl.ToggleWatchedStatus(true, false, myitem.WatchedDate, false, false, jmmUserID.Value);
+												vl.ToggleWatchedStatus(true, false, myitem.WatchedDate, false, false, jmmUserID.Value, false);
 											action = "Updated Local record to Watched";
 										}
 									}
