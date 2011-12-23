@@ -114,10 +114,12 @@
     <Compile Include="Contract_Trakt_Activity.cs" />
     <Compile Include="Contract_Trakt_Episode.cs" />
     <Compile Include="Contract_Trakt_Friend.cs" />
+    <Compile Include="Contract_Trakt_FriendActivity.cs" />
     <Compile Include="Contract_Trakt_FriendFrequest.cs" />
     <Compile Include="Contract_Trakt_ImageFanart.cs" />
     <Compile Include="Contract_Trakt_ImagePoster.cs" />
     <Compile Include="Contract_Trakt_Season.cs" />
+    <Compile Include="Contract_Trakt_Shout.cs" />
     <Compile Include="Contract_Trakt_Show.cs" />
     <Compile Include="Contract_Trakt_WatchedEpisode.cs" />
     <Compile Include="Contract_TvDBLanguage.cs" />

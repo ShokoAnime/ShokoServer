@@ -158,7 +158,8 @@ namespace JMMServer.Commands
 			logger.Trace("Restarting command worker (hasher)...");
 
 			processingCommands = true;
-			this.workerCommands.RunWorkerAsync();
+			if (!workerCommands.IsBusy)
+				this.workerCommands.RunWorkerAsync();
 		}
 
 		void workerCommands_DoWork(object sender, DoWorkEventArgs e)

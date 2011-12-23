@@ -505,6 +505,7 @@ namespace JMMServer
 
 		#endregion
 
+		#region Update all media info
 		void btnUpdateMediaInfo_Click(object sender, RoutedEventArgs e)
 		{
 			RefreshAllMediaInfo();
@@ -530,6 +531,10 @@ namespace JMMServer
 			if (workerMediaInfo.IsBusy) return;
 			workerMediaInfo.RunWorkerAsync();
 		}
+
+		#endregion
+
+		#region MyAnime2 Migration
 
 		void workerMyAnime2_ProgressChanged(object sender, ProgressChangedEventArgs e)
 		{
@@ -701,7 +706,7 @@ namespace JMMServer
 			}
 			catch (Exception ex)
 			{
-				logger.DebugException(ex.ToString(), ex);
+				logger.ErrorException(ex.ToString(), ex);
 				ma2Progress.ErrorMessage = ex.Message;
 				workerMyAnime2.ReportProgress(0, ma2Progress);
 			}
@@ -718,10 +723,6 @@ namespace JMMServer
 			txtMA2Progress.Visibility = System.Windows.Visibility.Visible;
 			txtMA2Success.Visibility = System.Windows.Visibility.Visible;
 
-			//workerMyAnime2.RunWorkerAsync(@"C:\ProgramData\Team MediaPortal\MediaPortal\database\AnimeDatabaseV20.db3");
-			//return;
-
-
 			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
 			ofd.Filter = "Sqlite Files (*.DB3)|*.db3";
 			ofd.ShowDialog();
@@ -735,6 +736,8 @@ namespace JMMServer
 		{
 			
 		}
+
+		#endregion
 
 		void btnApplyServerPort_Click(object sender, RoutedEventArgs e)
 		{
@@ -796,6 +799,8 @@ namespace JMMServer
 
 			//CommandRequest_ReadMediaInfo cr2 = new CommandRequest_ReadMediaInfo(2037);
 			//cr2.Save();
+
+			TraktTVHelper.GetActivityFriends();
 		}
 
 		private void DownloadAllImages()
@@ -965,8 +970,9 @@ namespace JMMServer
 
 		void workerTraktFriends_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
-			StatsCache.Instance.TraktFriendInfo.Clear();
+			//StatsCache.Instance.TraktFriendInfo.Clear();
 			StatsCache.Instance.TraktFriendRequests.Clear();
+			StatsCache.Instance.TraktFriendActivityInfo.Clear();
 
 			List<object> allInfo = e.Result as List<object>;
 			if (allInfo != null && allInfo.Count > 0)
@@ -979,10 +985,16 @@ namespace JMMServer
 						StatsCache.Instance.TraktFriendRequests.Add(req);
 					}
 
-					if (obj.GetType() == typeof(TraktTVUser))
+					/*if (obj.GetType() == typeof(TraktTVUser))
 					{
 						TraktTVUser friend = obj as TraktTVUser;
 						StatsCache.Instance.TraktFriendInfo.Add(friend);
+					}*/
+
+					if (obj.GetType() == typeof(TraktTV_Activity))
+					{
+						TraktTV_Activity act = obj as TraktTV_Activity;
+						StatsCache.Instance.TraktFriendActivityInfo.Add(act);
 					}
 				}
 			}
@@ -996,11 +1008,18 @@ namespace JMMServer
 			foreach (TraktTVFriendRequest req in requests)
 				allInfo.Add(req);
 
-			List<TraktTVUser> traktFriends = TraktTVHelper.GetFriends();
-			if (traktFriends != null)
+			//List<TraktTVUser> traktFriends = TraktTVHelper.GetFriends();
+			//if (traktFriends != null)
+			//{
+			//	foreach (TraktTVUser friend in traktFriends)
+			//		allInfo.Add(friend);
+			//}
+
+			TraktTV_ActivitySummary summ = TraktTVHelper.GetActivityFriends();
+			if (summ != null)
 			{
-				foreach (TraktTVUser friend in traktFriends)
-					allInfo.Add(friend);
+				foreach (TraktTV_Activity act in summ.activity)
+					allInfo.Add(act);
 			}
 
 			e.Result = allInfo;

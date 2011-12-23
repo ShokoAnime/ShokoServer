@@ -231,6 +231,16 @@
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseHelper.cs" />
     <Compile Include="Databases\MySQL.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_Activity.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_ActivitySummary.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_Elapsed.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_Episode.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_Ratings.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_Shout.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_Show.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_Timestamps.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_UserActivity.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_When.cs" />
     <Compile Include="Security\CRC32.cs" />
     <Compile Include="Security\Digest.cs" />
     <Compile Include="MyAnime2Helper\MA2Progress.cs" />

@@ -76,6 +76,96 @@ namespace JMMServer.Providers.TraktTV
 			return friends;
 		}
 
+		public static TraktTV_ActivitySummary GetActivityFriends()
+		{
+			TraktTV_ActivitySummary summ = null;
+			try
+			{
+				string url = string.Format(Constants.TraktTvURLs.URLGetActivityFriends, Constants.TraktTvURLs.APIKey);
+				logger.Trace("GetActivityFriends: {0}", url);
+
+				TraktTVPost_GetFriends cmdFriends = new TraktTVPost_GetFriends();
+				cmdFriends.Init();
+
+				string json = JSONHelper.Serialize<TraktTVPost_GetFriends>(cmdFriends); // TraktTVPost_GetFriends is really just an auth method
+				string jsonResponse = SendData(url, json);
+				if (jsonResponse.Trim().Length == 0) return null;
+
+				summ = JSONHelper.Deserialize<TraktTV_ActivitySummary>(jsonResponse);
+				if (summ == null) return null;
+
+
+				// save any trakt data that we don't have already
+				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+				Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
+				Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
+
+				foreach (TraktTV_Activity act in summ.activity)
+				{
+					if (act.user == null) continue;
+					TraktTV_UserActivity friend = act.user;
+
+					Trakt_Friend traktFriend = repFriends.GetByUsername(friend.username);
+					if (traktFriend == null)
+					{
+						traktFriend = new Trakt_Friend();
+						traktFriend.LastAvatarUpdate = DateTime.Now;
+					}
+
+					traktFriend.Populate(friend);
+					repFriends.Save(traktFriend);
+
+					if (!string.IsNullOrEmpty(traktFriend.FullImagePath))
+					{
+						bool fileExists = File.Exists(traktFriend.FullImagePath);
+						TimeSpan ts = DateTime.Now - traktFriend.LastAvatarUpdate;
+
+						if (!fileExists || ts.TotalHours > 8)
+						{
+							traktFriend.LastAvatarUpdate = DateTime.Now;
+							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktFriend.Trakt_FriendID, JMMImageType.Trakt_Friend, true);
+							cmd.Save();
+						}
+					}
+
+					if (act.episode != null && act.show != null)
+					{
+						Trakt_Show show = repShows.GetByTraktID(act.show.TraktID);
+						if (show == null)
+						{
+							show = new Trakt_Show();
+							show.Populate(act.show);
+							repShows.Save(show);
+						}
+
+						Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, int.Parse(act.episode.season), int.Parse(act.episode.number));
+						if (episode == null)
+							episode = new Trakt_Episode();
+
+						episode.Populate(act.episode, show.Trakt_ShowID);
+						repEpisodes.Save(episode);
+
+						if (!string.IsNullOrEmpty(episode.FullImagePath))
+						{
+							bool fileExists = File.Exists(episode.FullImagePath);
+							if (!fileExists)
+							{
+								CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(episode.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
+								cmd.Save();
+							}
+						}
+					}
+				}
+				
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktTVHelper.GetActivityFriends: " + ex.ToString(), ex);
+			}
+
+			return summ;
+		}
+
 		public static List<TraktTVUser> GetFriends()
 		{
 			List<TraktTVUser> friends = new List<TraktTVUser>();

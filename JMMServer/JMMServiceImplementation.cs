@@ -5411,8 +5411,15 @@ namespace JMMServer
 			}
 		}
 
-		public Contract_Trakt_Activity GetTraktFriendInfo()
+		public Contract_Trakt_Activity GetTraktFriendInfo(int maxResults, bool animeOnly)
 		{
+			CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
+			CrossRef_AniDB_TvDBRepository repXrefTvDB = new CrossRef_AniDB_TvDBRepository();
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+			Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
+			Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
+
 			Contract_Trakt_Activity contract = new Contract_Trakt_Activity();
 			contract.HasTraktAccount = true;
 			if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
@@ -5420,9 +5427,11 @@ namespace JMMServer
 
 			contract.TraktFriends = new List<Contract_Trakt_Friend>();
 			contract.TraktFriendRequests = new List<Contract_Trakt_FriendFrequest>();
+			contract.TraktFriendActivity = new List<Contract_Trakt_FriendActivity>();
+
 			try
 			{
-				foreach (TraktTVUser friend in StatsCache.Instance.TraktFriendInfo)
+				/*foreach (TraktTVUser friend in StatsCache.Instance.TraktFriendInfo)
 				{
 					Contract_Trakt_Friend contractFriend = friend.ToContract();
 					if (contractFriend != null)
@@ -5431,7 +5440,154 @@ namespace JMMServer
 
 				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
 				sortCriteria.Add(new SortPropOrFieldAndDirection("LastEpisodeWatched", true, SortType.eDateTime));
-				contract.TraktFriends = Sorting.MultiSort<Contract_Trakt_Friend>(contract.TraktFriends, sortCriteria);
+				contract.TraktFriends = Sorting.MultiSort<Contract_Trakt_Friend>(contract.TraktFriends, sortCriteria);*/
+
+				int i = 1;
+				foreach (TraktTV_Activity act in StatsCache.Instance.TraktFriendActivityInfo)
+				{
+					
+
+					if (i >= maxResults) break;
+
+					Contract_Trakt_FriendActivity contractAct = new Contract_Trakt_FriendActivity();
+
+					if (act.show == null) continue;
+
+					// find the anime and series based on the trakt id
+					int? animeID = null;
+					CrossRef_AniDB_Trakt xref = repXrefTrakt.GetByTraktID(act.show.TraktID, int.Parse(act.episode.season));
+					if (xref != null)
+						animeID = xref.AnimeID;
+					else
+					{
+						// try a rough match
+						// since we won't always do an exact match by season
+						List<CrossRef_AniDB_Trakt> traktXrefs = repXrefTrakt.GetByTraktID(act.show.TraktID);
+						if (traktXrefs.Count > 0)
+							animeID = traktXrefs[0].AnimeID;
+						else
+						{
+							// try the tvdb id instead
+							CrossRef_AniDB_TvDB xrefTvDB = repXrefTvDB.GetByTvDBID(int.Parse(act.show.tvdb_id), int.Parse(act.episode.season));
+							if (xrefTvDB != null)
+								animeID = xrefTvDB.AnimeID;
+						}
+					}
+
+					// skip this activity if we can't find the anime and the user only wants to see anime related stuff
+					if (!animeID.HasValue && animeOnly)
+					{
+						//TODO
+						// however let's try and look it up on the web cache to see if it is an anime
+						// this just might be an anime that user doesn't have in their local database
+						continue;
+					}
+
+					// activity details
+					contractAct.ActivityAction = act.ActivityAction;
+					contractAct.ActivityType = act.ActivityType;
+					contractAct.ActivityDate = Utils.GetAniDBDateAsDate(act.timestamp);
+					if (act.elapsed != null)
+					{
+						contractAct.Elapsed = act.elapsed.full;
+						contractAct.ElapsedShort = act.elapsed.shortElapsed;
+					}
+
+					Trakt_Friend traktFriend = repFriends.GetByUsername(act.user.username);
+					if (traktFriend == null) return null;
+					
+					// user details
+					contractAct.Trakt_FriendID = traktFriend.Trakt_FriendID;
+					contractAct.Username = act.user.username;
+					contractAct.Full_name = act.user.full_name;
+					contractAct.Gender = act.user.gender;
+					contractAct.Age = act.user.age;
+					contractAct.Location = act.user.location;
+					contractAct.About = act.user.about;
+					contractAct.Joined = act.user.joined;
+					contractAct.Avatar = act.user.avatar;
+					contractAct.Url = act.user.url;
+					contractAct.JoinedDate = Utils.GetAniDBDateAsDate(act.user.joined);
+
+					// episode details
+					if (act.ActivityAction == 1 && act.episode != null) // scrobble episode
+					{
+						contractAct.Episode = new Contract_Trakt_WatchedEpisode();
+						contractAct.Episode.AnimeSeriesID = null;
+
+						contractAct.Episode.Episode_Number = act.episode.number;
+						contractAct.Episode.Episode_Overview = act.episode.overview;
+						contractAct.Episode.Episode_Season = act.episode.season;
+						contractAct.Episode.Episode_Title = act.episode.title;
+						contractAct.Episode.Episode_Url = act.episode.url;
+
+						if (act.episode.images != null)
+							contractAct.Episode.Episode_Screenshot = act.episode.images.screen;
+
+						if (act.show != null)
+						{
+							contractAct.Episode.TraktShow = act.show.ToContract();
+
+							if (animeID.HasValue)
+							{
+
+								AnimeSeries ser = repSeries.GetByAnimeID(animeID.Value);
+								if (ser != null)
+									contractAct.Episode.AnimeSeriesID = ser.AnimeSeriesID;
+
+								AniDB_Anime anime = repAnime.GetByAnimeID(animeID.Value);
+								if (anime != null)
+									contractAct.Episode.Anime = anime.ToContract(true);
+
+							}
+						}
+					}
+
+					// shout details
+					if (act.ActivityAction == 2 && act.shout != null) // shout
+					{
+						contractAct.Shout = new Contract_Trakt_Shout();
+
+						contractAct.Shout.ShoutType = act.ActivityType; // episode or show
+						contractAct.Shout.Text = act.shout.text;
+						contractAct.Shout.Spoiler = act.shout.spoiler;
+
+						contractAct.Shout.AnimeSeriesID = null;
+
+						if (act.ActivityType == 1 && act.episode != null) // episode
+						{
+							contractAct.Shout.Episode_Number = act.episode.number;
+							contractAct.Shout.Episode_Overview = act.episode.overview;
+							contractAct.Shout.Episode_Season = act.episode.season;
+							contractAct.Shout.Episode_Title = act.episode.title;
+							contractAct.Shout.Episode_Url = act.episode.url;
+
+							if (act.episode.images != null)
+								contractAct.Shout.Episode_Screenshot = act.episode.images.screen;
+						}
+
+						if (act.show != null) // episode or show
+						{
+							contractAct.Shout.TraktShow = act.show.ToContract();
+
+							if (animeID.HasValue)
+							{
+
+								AnimeSeries ser = repSeries.GetByAnimeID(animeID.Value);
+								if (ser != null)
+									contractAct.Shout.AnimeSeriesID = ser.AnimeSeriesID;
+
+								AniDB_Anime anime = repAnime.GetByAnimeID(animeID.Value);
+								if (anime != null)
+									contractAct.Shout.Anime = anime.ToContract(true);
+
+							}
+						}
+					}
+
+					contract.TraktFriendActivity.Add(contractAct);
+					i++;
+				}
 
 				foreach (TraktTVFriendRequest req in StatsCache.Instance.TraktFriendRequests)
 				{

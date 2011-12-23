@@ -55,6 +55,19 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<CrossRef_AniDB_Trakt> GetByTraktID(string id)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var series = session
+					.CreateCriteria(typeof(CrossRef_AniDB_Trakt))
+					.Add(Restrictions.Eq("TraktID", id))
+					.List<CrossRef_AniDB_Trakt>();
+
+				return new List<CrossRef_AniDB_Trakt>(series);
+			}
+		}
+
 		public List<CrossRef_AniDB_Trakt> GetAll()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

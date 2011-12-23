@@ -49,5 +49,18 @@ namespace JMMServer.Entities
 			Avatar = user.avatar;
 			Url = user.url;
 		}
+
+		public void Populate(TraktTV_UserActivity user)
+		{
+			Username = user.username;
+			FullName = user.full_name;
+			Gender = user.gender;
+			Age = user.age;
+			Location = user.location;
+			About = user.about;
+			Joined = user.joined;
+			Avatar = user.avatar;
+			Url = user.url;
+		}
 	}
 }

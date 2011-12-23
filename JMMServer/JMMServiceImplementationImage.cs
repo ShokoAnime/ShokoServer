@@ -201,6 +201,20 @@ namespace JMMServer
 						return null;
 					}
 
+				case JMMImageType.Trakt_ActivityScrobble:
+
+
+					Trakt_Friend tFriendScrobble = repTraktFriends.GetByID(int.Parse(entityID));
+					if (tFriendScrobble == null) return null;
+
+					if (File.Exists(tFriendScrobble.FullImagePath))
+						return File.ReadAllBytes(tFriendScrobble.FullImagePath);
+					else
+					{
+						logger.Trace("Could not find Trakt_ActivityScrobble image: {0}", tFriendScrobble.FullImagePath);
+						return null;
+					}
+
 				case JMMImageType.Trakt_Poster:
 
 					Trakt_ImagePoster tPoster = repTraktPosters.GetByID(int.Parse(entityID));
