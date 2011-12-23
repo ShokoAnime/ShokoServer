@@ -81,6 +81,9 @@ namespace JMMServer.Providers.TraktTV
 			TraktTV_ActivitySummary summ = null;
 			try
 			{
+				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+					return null;
+
 				string url = string.Format(Constants.TraktTvURLs.URLGetActivityFriends, Constants.TraktTvURLs.APIKey);
 				logger.Trace("GetActivityFriends: {0}", url);
 

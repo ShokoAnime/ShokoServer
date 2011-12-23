@@ -1004,6 +1004,12 @@ namespace JMMServer
 		{
 			List<object> allInfo = new List<object>();
 
+			if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+			{
+				e.Result = allInfo;
+				return;
+			}
+
 			List<TraktTVFriendRequest> requests = TraktTVHelper.GetFriendsRequests();
 			foreach (TraktTVFriendRequest req in requests)
 				allInfo.Add(req);
