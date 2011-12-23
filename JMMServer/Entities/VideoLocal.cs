@@ -28,6 +28,31 @@ namespace JMMServer.Entities
 		public int IsIgnored { get; set; }
 		public DateTime DateTimeUpdated { get; set; }
 
+		public string ToStringDetailed()
+		{
+			StringBuilder sb = new StringBuilder("");
+			sb.Append(Environment.NewLine);
+			sb.Append("VideoLocalID: " + VideoLocalID.ToString());
+			sb.Append("FilePath: " + FilePath);
+			sb.Append("ImportFolderID: " + ImportFolderID.ToString());
+			sb.Append("Hash: " + Hash);
+			sb.Append("FileSize: " + FileSize.ToString());
+
+			try
+			{
+				if (ImportFolder != null)
+					sb.Append("ImportFolderLocation: " + ImportFolder.ImportFolderLocation);
+			}
+			catch (Exception ex)
+			{
+				sb.Append("ImportFolderLocation: " + ex.ToString());
+			}
+			
+			sb.Append(Environment.NewLine);
+
+			return sb.ToString();
+		}
+
 		public string ED2KHash
 		{
 			get { return Hash; }
@@ -310,6 +335,8 @@ namespace JMMServer.Entities
 		{
 			return string.Format("{0} --- {1}", FullServerPath, Hash);
 		}
+
+		
 
 		public void MoveFileIfRequired()
 		{

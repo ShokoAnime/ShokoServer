@@ -1305,7 +1305,7 @@ namespace JMMServer
 			}
 			catch (Exception ex)
 			{
-				logger.ErrorException(ex.Message, ex);
+				logger.ErrorException(ex.ToString(), ex);
 			}
 		}
 

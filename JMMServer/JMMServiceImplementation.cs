@@ -831,7 +831,15 @@ namespace JMMServer
 
 				CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
 				CrossRef_File_Episode xref = new CrossRef_File_Episode();
-				xref.PopulateManually(vid, ep);
+				try
+				{
+					xref.PopulateManually(vid, ep);
+				}
+				catch (Exception ex)
+				{
+					string msg = string.Format("Error populating XREF: {0}", vid.ToStringDetailed());
+					throw;
+				}
 				repXRefs.Save(xref);
 
 				vid.MoveFileIfRequired();

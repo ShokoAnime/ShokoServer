@@ -74,6 +74,11 @@ namespace JMMServer.Commands
 				repSched.Save(sched);
 
 				CalendarCollection colCalendars = JMMService.AnidbProcessor.GetCalendarUDP();
+				if (colCalendars == null || colCalendars.Calendars == null)
+				{
+					logger.Error("Could not get calendar from AniDB");
+					return;
+				}
 				foreach (Calendar cal in colCalendars.Calendars)
 				{
 					AniDB_Anime anime = repAnime.GetByAnimeID(cal.AnimeID);
@@ -103,7 +108,7 @@ namespace JMMServer.Commands
 			}
 			catch (Exception ex)
 			{
-				logger.Error("Error processing CommandRequest_GetCalendar: {0}", ex.ToString());
+				logger.ErrorException("Error processing CommandRequest_GetCalendar: " + ex.ToString(), ex);
 				return;
 			}
 		}
