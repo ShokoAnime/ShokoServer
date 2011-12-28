@@ -223,13 +223,25 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate)
+		public void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
 		{
 			AnimeEpisode_UserRepository repEpisodeUsers = new AnimeEpisode_UserRepository();
 			AnimeEpisode_User epUserRecord = this.GetUserRecord(userID);
 
 			if (watched)
 			{
+				// lets check if an update is actually required
+				if (epUserRecord != null)
+				{
+					if (epUserRecord.WatchedDate.HasValue && watchedDate.HasValue &&
+						epUserRecord.WatchedDate.Value.Equals(watchedDate.Value))
+					{
+						// this will happen when we are adding a new file for an episode where we already had another file
+						// and the file/episode was watched already
+						return;
+					}
+				}
+
 				if (epUserRecord == null)
 				{
 					epUserRecord = new AnimeEpisode_User();
@@ -243,9 +255,12 @@ namespace JMMServer.Entities
 				epUserRecord.WatchedCount++;
 
 				if (watchedDate.HasValue)
-					epUserRecord.WatchedDate = watchedDate.Value;
-				else
-					epUserRecord.WatchedDate = DateTime.Now;
+				{
+					if (updateWatchedDate)
+						epUserRecord.WatchedDate = watchedDate.Value;
+				}
+
+				if (!epUserRecord.WatchedDate.HasValue) epUserRecord.WatchedDate = DateTime.Now;
 
 				repEpisodeUsers.Save(epUserRecord);
 			}
@@ -385,7 +400,7 @@ namespace JMMServer.Entities
 		{
 			foreach (VideoLocal vid in VideoLocals)
 			{
-				vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, updateStatsCache, userID, scrobbleTrakt);
+				vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, updateStatsCache, userID, scrobbleTrakt, true);
 			}
 		}
 	}

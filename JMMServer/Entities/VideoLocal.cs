@@ -142,20 +142,25 @@ namespace JMMServer.Entities
 			}
 		}
 
-		private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate)
+		private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
 		{
 			VideoLocal_UserRepository repVidUsers = new VideoLocal_UserRepository();
 			VideoLocal_User vidUserRecord = this.GetUserRecord(userID);
 			if (watched)
 			{
-				if (vidUserRecord == null) vidUserRecord = new VideoLocal_User();
+				if (vidUserRecord == null)
+				{
+					vidUserRecord = new VideoLocal_User();
+					vidUserRecord.WatchedDate = DateTime.Now;
+				}
 				vidUserRecord.JMMUserID = userID;
 				vidUserRecord.VideoLocalID = this.VideoLocalID;
 
 				if (watchedDate.HasValue)
-					vidUserRecord.WatchedDate = watchedDate.Value;
-				else
-					vidUserRecord.WatchedDate = DateTime.Now;
+				{
+					if (updateWatchedDate)
+						vidUserRecord.WatchedDate = watchedDate.Value;
+				}
 
 				repVidUsers.Save(vidUserRecord);
 			}
@@ -168,10 +173,11 @@ namespace JMMServer.Entities
 
 		public void ToggleWatchedStatus(bool watched, int userID)
 		{
-			ToggleWatchedStatus(watched, true, null, true, true, userID, true);
+			ToggleWatchedStatus(watched, true, null, true, true, userID, true, true);
 		}
 
-		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, bool updateStatsCache, int userID, bool scrobbleTrakt)
+		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, bool updateStatsCache, int userID, 
+			bool scrobbleTrakt, bool updateWatchedDate)
 		{
 			VideoLocalRepository repVids = new VideoLocalRepository();
 			AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
@@ -190,7 +196,7 @@ namespace JMMServer.Entities
 			int mywatched = watched ? 1 : 0;
 
 			if (user.IsAniDBUser == 0)
-				SaveWatchedStatus(watched, userID, watchedDate);
+				SaveWatchedStatus(watched, userID, watchedDate, updateWatchedDate);
 			else
 			{
 				// if the user is AniDB user we also want to update any other AniDB
@@ -198,7 +204,7 @@ namespace JMMServer.Entities
 				foreach (JMMUser juser in aniDBUsers)
 				{
 					if (juser.IsAniDBUser == 1)
-						SaveWatchedStatus(watched, juser.JMMUserID, watchedDate);
+						SaveWatchedStatus(watched, juser.JMMUserID, watchedDate, updateWatchedDate);
 				}
 			}
 			
@@ -231,7 +237,8 @@ namespace JMMServer.Entities
 				{
 					if ((watched && ServerSettings.AniDB_MyList_SetWatched) || (!watched && ServerSettings.AniDB_MyList_SetUnwatched))
 					{
-						CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(this.Hash, watched, false);
+						CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(this.Hash, watched, false, 
+							watchedDate.HasValue ? Utils.GetAniDBDateAsSeconds(watchedDate) : 0);
 						cmd.Save();
 					}
 				}
@@ -260,7 +267,7 @@ namespace JMMServer.Entities
 						if (ser == null) ser = ep.AnimeSeries;
 
 						if (user.IsAniDBUser == 0)
-							ep.SaveWatchedStatus(true, userID, watchedDate);
+							ep.SaveWatchedStatus(true, userID, watchedDate, updateWatchedDate);
 						else
 						{
 							// if the user is AniDB user we also want to update any other AniDB
@@ -268,7 +275,7 @@ namespace JMMServer.Entities
 							foreach (JMMUser juser in aniDBUsers)
 							{
 								if (juser.IsAniDBUser == 1)
-									ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate);
+									ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
 							}
 						}
 
@@ -303,7 +310,7 @@ namespace JMMServer.Entities
 					if (!anyFilesWatched)
 					{
 						if (user.IsAniDBUser == 0)
-							ep.SaveWatchedStatus(false, userID, watchedDate);
+							ep.SaveWatchedStatus(false, userID, watchedDate, true);
 						else
 						{
 							// if the user is AniDB user we also want to update any other AniDB
@@ -311,7 +318,7 @@ namespace JMMServer.Entities
 							foreach (JMMUser juser in aniDBUsers)
 							{
 								if (juser.IsAniDBUser == 1)
-									ep.SaveWatchedStatus(false, juser.JMMUserID, watchedDate);
+									ep.SaveWatchedStatus(false, juser.JMMUserID, watchedDate, true);
 							}
 						}
 

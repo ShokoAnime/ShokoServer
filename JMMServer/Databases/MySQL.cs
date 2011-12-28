@@ -51,7 +51,7 @@ namespace JMMServer.Databases
 			string connStr = string.Format("Server={0};User ID={1};Password={2}",
 					ServerSettings.MySQL_Hostname, ServerSettings.MySQL_Username, ServerSettings.MySQL_Password);
 
-			string sql = string.Format("CREATE DATABASE {0}", ServerSettings.MySQL_SchemaName);
+			string sql = string.Format("CREATE DATABASE {0} DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;", ServerSettings.MySQL_SchemaName);
 			using (MySqlConnection conn = new MySqlConnection(connStr))
 			{
 				MySqlCommand cmd = new MySqlCommand(sql, conn);
@@ -87,6 +87,7 @@ namespace JMMServer.Databases
 				UpdateSchema_007(versionNumber);
 				UpdateSchema_008(versionNumber);
 				UpdateSchema_009(versionNumber);
+				UpdateSchema_010(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -382,6 +383,73 @@ namespace JMMServer.Databases
 			cmds.Add("ALTER TABLE `CommandRequest` CHANGE COLUMN `CommandID` `CommandID` text character set utf8 NOT NULL ;");
 			cmds.Add("ALTER TABLE `CrossRef_File_Episode` CHANGE COLUMN `FileName` `FileName` text character set utf8 NOT NULL ;");
 			cmds.Add("ALTER TABLE `FileNameHash` CHANGE COLUMN `FileName` `FileName` text character set utf8 NOT NULL ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_010(int currentVersionNumber)
+		{
+			int thisVersion = 10;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE `AniDB_Category` CHANGE COLUMN `CategoryName` `CategoryName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_Category` CHANGE COLUMN `CategoryDescription` `CategoryDescription` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_Episode` CHANGE COLUMN `RomajiName` `RomajiName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_Episode` CHANGE COLUMN `EnglishName` `EnglishName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_Anime_Relation` CHANGE COLUMN `RelationType` `RelationType` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_Character` CHANGE COLUMN `CharName` `CharName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_Seiyuu` CHANGE COLUMN `SeiyuuName` `SeiyuuName` text character set utf8 NOT NULL ;");
+
+			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `File_Description` `File_Description` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `Anime_GroupName` `Anime_GroupName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `Anime_GroupNameShort` `Anime_GroupNameShort` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `FileName` `FileName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_GroupStatus` CHANGE COLUMN `GroupName` `GroupName` text character set utf8 NOT NULL ;");
+
+			cmds.Add("ALTER TABLE `AniDB_ReleaseGroup` CHANGE COLUMN `GroupName` `GroupName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_ReleaseGroup` CHANGE COLUMN `GroupNameShort` `GroupNameShort` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_ReleaseGroup` CHANGE COLUMN `URL` `URL` text character set utf8 NOT NULL ;");
+
+			cmds.Add("ALTER TABLE `AnimeGroup` CHANGE COLUMN `GroupName` `GroupName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `AnimeGroup` CHANGE COLUMN `SortName` `SortName` text character set utf8 NOT NULL ;");
+
+			cmds.Add("ALTER TABLE `CommandRequest` CHANGE COLUMN `CommandID` `CommandID` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `CrossRef_File_Episode` CHANGE COLUMN `FileName` `FileName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `FileNameHash` CHANGE COLUMN `FileName` `FileName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `ImportFolder` CHANGE COLUMN `ImportFolderLocation` `ImportFolderLocation` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `DuplicateFile` CHANGE COLUMN `FilePathFile1` `FilePathFile1` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `DuplicateFile` CHANGE COLUMN `FilePathFile2` `FilePathFile2` text character set utf8 NOT NULL ;");
+
+			cmds.Add("ALTER TABLE `TvDB_Episode` CHANGE COLUMN `Filename` `Filename` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `TvDB_Episode` CHANGE COLUMN `EpisodeName` `EpisodeName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `TvDB_Series` CHANGE COLUMN `SeriesName` `SeriesName` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `DuplicateFile` CHANGE COLUMN `FilePathFile2` `FilePathFile2` text character set utf8 NOT NULL ;");
+			cmds.Add("ALTER TABLE `DuplicateFile` CHANGE COLUMN `FilePathFile2` `FilePathFile2` text character set utf8 NOT NULL ;");
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{

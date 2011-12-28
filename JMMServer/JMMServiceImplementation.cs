@@ -2234,7 +2234,7 @@ namespace JMMServer
 				if (vid == null)
 					return "Could not find video local record";
 
-				vid.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, true, true, userID, true);
+				vid.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, true, true, userID, true, true);
 
 				return "";
 			}

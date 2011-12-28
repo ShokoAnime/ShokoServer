@@ -237,6 +237,7 @@
     <Compile Include="Providers\TraktTV\TraktTV_Episode.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_Ratings.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_Shout.cs" />
+    <Compile Include="Providers\TraktTV\TraktTV_ShoutGet.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_Show.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_Timestamps.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_UserActivity.cs" />

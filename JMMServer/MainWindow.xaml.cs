@@ -810,7 +810,24 @@ namespace JMMServer
 			//CommandRequest_ReadMediaInfo cr2 = new CommandRequest_ReadMediaInfo(2037);
 			//cr2.Save();
 
-			TraktTVHelper.GetActivityFriends();
+			/*AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			foreach (AniDB_Anime anime in repAnime.GetAll())
+			{
+				List<TraktTV_ShoutGet> shouts = TraktTVHelper.GetShowShouts(anime.AnimeID);
+				if (shouts == null || shouts.Count == 0)
+				{
+					//logger.Info("{0} ({1}) = 0 Shouts", anime.MainTitle, anime.AnimeID);
+				}
+				else
+				{
+					if (shouts.Count <= 5)
+						logger.Info("{0} ({1}) = {2} MINOR Shouts", anime.MainTitle, anime.AnimeID, shouts.Count);
+					else
+						logger.Info("{0} ({1}) = {2} *** MAJOR *** Shouts", anime.MainTitle, anime.AnimeID, shouts.Count);
+				}
+			}*/
+
+			
 		}
 
 		private void DownloadAllImages()
@@ -1216,7 +1233,7 @@ namespace JMMServer
 		static void fsw_Created(object sender, FileSystemEventArgs e)
 		{
 			logger.Info("New file created: {0}: {1}", e.FullPath, e.ChangeType);
-			if (e.ChangeType == WatcherChangeTypes.Created)
+			if (e.ChangeType == WatcherChangeTypes.Created && FileHashHelper.IsVideo(e.FullPath))
 			{
 				CommandRequest_HashFile cmd = new CommandRequest_HashFile(e.FullPath, false);
 				cmd.Save();

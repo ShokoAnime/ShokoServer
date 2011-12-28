@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Net.Sockets;
 using System.Net;
+using JMMServer;
 
 namespace AniDBAPI.Commands
 {
@@ -64,7 +65,7 @@ namespace AniDBAPI.Commands
 			commandType = enAniDBCommandType.UpdateFile;
 		}
 
-		public void Init(IHash fileData, bool watched)
+		/*public void Init(IHash fileData, bool watched)
 		{
 			FileData = fileData;
 			IsWatched = watched;
@@ -74,6 +75,21 @@ namespace AniDBAPI.Commands
 			commandText = "MYLISTADD size=" + fileData.FileSize.ToString();
 			commandText += "&ed2k=" + fileData.ED2KHash;
 			commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
+			commandText += "&edit=1";
+		}*/
+
+		public void Init(IHash fileData, bool watched, DateTime? watchedDate)
+		{
+			FileData = fileData;
+			IsWatched = watched;
+
+			commandID = fileData.Info;
+
+			commandText = "MYLISTADD size=" + fileData.FileSize.ToString();
+			commandText += "&ed2k=" + fileData.ED2KHash;
+			commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
+			if (watchedDate.HasValue)
+				commandText += "&viewdate=" + Utils.GetAniDBDateAsSeconds(watchedDate.Value).ToString();
 			commandText += "&edit=1";
 		}
 

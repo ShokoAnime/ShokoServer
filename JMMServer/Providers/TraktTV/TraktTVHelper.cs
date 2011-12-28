@@ -76,6 +76,37 @@ namespace JMMServer.Providers.TraktTV
 			return friends;
 		}
 
+		public static List<TraktTV_ShoutGet> GetShowShouts(int animeID)
+		{
+			List<TraktTV_ShoutGet> shouts = null;
+			try
+			{
+				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+					return null;
+
+				CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
+				CrossRef_AniDB_Trakt traktXRef = repXrefTrakt.GetByAnimeID(animeID);
+				if (traktXRef == null) return null;
+
+				string url = string.Format(Constants.TraktTvURLs.URLGetShowShouts, Constants.TraktTvURLs.APIKey, traktXRef.TraktID);
+				logger.Trace("GetShowShouts: {0}", url);
+
+				// Search for a series
+				string json = Utils.DownloadWebPage(url);
+
+				if (json.Trim().Length == 0) return new List<TraktTV_ShoutGet>();
+
+				shouts = JSONHelper.Deserialize<List<TraktTV_ShoutGet>>(json);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktTVHelper.GetShowShouts: " + ex.ToString(), ex);
+			}
+
+			return shouts;
+		}
+
 		public static TraktTV_ActivitySummary GetActivityFriends()
 		{
 			TraktTV_ActivitySummary summ = null;

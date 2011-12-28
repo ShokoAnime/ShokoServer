@@ -15,6 +15,7 @@ namespace JMMServer.Commands
 		public string Hash { get; set; }
 		public bool Watched { get; set; }
 		public bool UpdateSeriesStats { get; set; }
+		public int WatchedDateAsSecs { get; set; }
 
 		public CommandRequestPriority DefaultPriority
 		{
@@ -33,13 +34,14 @@ namespace JMMServer.Commands
 		{
 		}
 
-		public CommandRequest_UpdateMyListFileStatus(string hash, bool watched, bool updateSeriesStats)
+		public CommandRequest_UpdateMyListFileStatus(string hash, bool watched, bool updateSeriesStats, int watchedDateSecs)
 		{
 			this.Hash = hash;
 			this.Watched = watched;
 			this.CommandType = (int)CommandRequestType.AniDB_UpdateWatchedUDP;
 			this.Priority = (int)DefaultPriority;
 			this.UpdateSeriesStats = updateSeriesStats;
+			this.WatchedDateAsSecs = watchedDateSecs;
 
 			GenerateCommandID();
 		}
@@ -70,7 +72,13 @@ namespace JMMServer.Commands
 					}
 					else
 					{
-						JMMService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched);
+						if (WatchedDateAsSecs > 0)
+						{
+							DateTime? watchedDate = Utils.GetAniDBDateAsDate(WatchedDateAsSecs);
+							JMMService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched, watchedDate);
+						}
+						else
+							JMMService.AnidbProcessor.UpdateMyListFileStatus(vid, this.Watched, null);
 						logger.Info("Updating file list status: {0} - {1}", vid.ToString(), this.Watched);
 					}
 
@@ -128,6 +136,10 @@ namespace JMMServer.Commands
 				bool upStats = true;
 				if (bool.TryParse(sUpStats, out upStats))
 					UpdateSeriesStats = upStats;
+
+				int dateSecs = 0;
+				if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "WatchedDateAsSecs"), out dateSecs))
+					WatchedDateAsSecs = dateSecs;
 			}
 
 			if (this.Hash.Trim().Length > 0)

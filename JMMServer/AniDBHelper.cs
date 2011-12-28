@@ -322,7 +322,7 @@ namespace JMMServer
 
 		}
 
-		public void UpdateMyListFileStatus(IHash fileDataLocal, bool watched)
+		public void UpdateMyListFileStatus(IHash fileDataLocal, bool watched, DateTime? watchedDate)
 		{
 			if (!ServerSettings.AniDB_MyList_AddFiles) return;
 
@@ -333,7 +333,7 @@ namespace JMMServer
 				Pause();
 
 				AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
-				cmdUpdateFile.Init(fileDataLocal, watched);
+				cmdUpdateFile.Init(fileDataLocal, watched, watchedDate);
 				enHelperActivityType ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
 			}
 		}
