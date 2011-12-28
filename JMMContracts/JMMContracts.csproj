@@ -120,7 +120,9 @@
     <Compile Include="Contract_Trakt_ImagePoster.cs" />
     <Compile Include="Contract_Trakt_Season.cs" />
     <Compile Include="Contract_Trakt_Shout.cs" />
+    <Compile Include="Contract_Trakt_ShoutUser.cs" />
     <Compile Include="Contract_Trakt_Show.cs" />
+    <Compile Include="Contract_Trakt_User.cs" />
     <Compile Include="Contract_Trakt_WatchedEpisode.cs" />
     <Compile Include="Contract_TvDBLanguage.cs" />
     <Compile Include="Contract_TVDBSeriesSearchResult.cs" />

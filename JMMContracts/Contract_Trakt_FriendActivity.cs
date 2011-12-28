@@ -8,7 +8,8 @@ namespace JMMContracts
 	public class Contract_Trakt_FriendActivity
 	{
 		// user details
-		public int Trakt_FriendID { get; set; }
+		public Contract_Trakt_User User { get; set; }
+		/*public int Trakt_FriendID { get; set; }
 		public string Username { get; set; }
 		public string Full_name { get; set; }
 		public string Gender { get; set; }
@@ -18,7 +19,7 @@ namespace JMMContracts
 		public int Joined { get; set; }
 		public DateTime? JoinedDate { get; set; }
 		public string Avatar { get; set; }
-		public string Url { get; set; }
+		public string Url { get; set; }*/
 
 		// activity details
 		public int ActivityAction { get; set; } // scrobble, shout

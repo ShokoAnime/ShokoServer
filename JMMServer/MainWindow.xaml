@@ -337,7 +337,6 @@
                                 <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Grid.Column="1" Grid.Row="1" Text="series in their collection" Margin="0,0,5,0"/>
                                 <Image Height="16" Width="16" Source="/Images/32_warning.png" Margin="5,12,5,0" Grid.Column="0" Grid.Row="2" VerticalAlignment="Top"/>
                                 <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Grid.Column="1" Grid.Row="2" Text="SQL Server can use quite a lot of memory" Margin="0,10,5,0"/>
-                                <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Grid.Column="1" Grid.Row="3" Text="The database will not be created automatically but needs to be created manually" Margin="0,5,5,0"/>
                                 <Image Height="16" Width="16" Source="/Images/32_down.png" Margin="5,12,5,0" Grid.Column="0" Grid.Row="4" VerticalAlignment="Top"/>
                                 <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="4" Margin="0,10,5,0">
                                     <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"  Text="You can download SQL Server Express"/>

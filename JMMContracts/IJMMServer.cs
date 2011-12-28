@@ -449,6 +449,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		string ChangePassword(int userID, string newPassword);
+
+		[OperationContract]
+		List<Contract_Trakt_ShoutUser> GetTraktShoutsForAnime(int animeID);
 	}
 
 }

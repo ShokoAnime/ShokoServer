@@ -297,4 +297,16 @@ namespace JMMServer
 		AniDB = 1,
 		TheTvDB = 2
 	}
+
+	public enum TraktActivityAction
+	{
+		Scrobble = 1,
+		Shout = 2
+	}
+
+	public enum TraktActivityType
+	{
+		Episode = 1,
+		Show = 2
+	}
 }

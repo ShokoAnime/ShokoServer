@@ -5419,6 +5419,51 @@ namespace JMMServer
 			}
 		}
 
+		public List<Contract_Trakt_ShoutUser> GetTraktShoutsForAnime(int animeID)
+		{
+			List<Contract_Trakt_ShoutUser> shouts = new List<Contract_Trakt_ShoutUser>();
+
+			try
+			{
+				Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
+
+				List<TraktTV_ShoutGet> shoutsTemp = TraktTVHelper.GetShowShouts(animeID);
+				if (shoutsTemp == null || shoutsTemp.Count == 0) return shouts;
+
+				foreach (TraktTV_ShoutGet sht in shoutsTemp)
+				{
+					Contract_Trakt_ShoutUser shout = new Contract_Trakt_ShoutUser();
+
+					// user details
+					shout.User = new Contract_Trakt_User();
+					shout.User.Username = sht.user.username;
+					shout.User.Full_name = sht.user.full_name;
+					shout.User.Gender = sht.user.gender;
+					shout.User.Age = sht.user.age;
+					shout.User.Location = sht.user.location;
+					shout.User.About = sht.user.about;
+					shout.User.Joined = sht.user.joined;
+					shout.User.Avatar = sht.user.avatar;
+					shout.User.Url = sht.user.url;
+					shout.User.JoinedDate = Utils.GetAniDBDateAsDate(sht.user.joined);
+
+					// shout details
+					shout.Shout = new Contract_Trakt_Shout();
+					shout.Shout.ShoutType = (int)TraktActivityType.Show; // episode or show
+					shout.Shout.Text = sht.shout;
+					shout.Shout.Spoiler = sht.spoiler;
+					shout.Shout.Inserted = Utils.GetAniDBDateAsDate(sht.inserted);
+
+					shouts.Add(shout);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return shouts;
+		}
+
 		public Contract_Trakt_Activity GetTraktFriendInfo(int maxResults, bool animeOnly)
 		{
 			CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
@@ -5505,17 +5550,18 @@ namespace JMMServer
 					if (traktFriend == null) return null;
 					
 					// user details
-					contractAct.Trakt_FriendID = traktFriend.Trakt_FriendID;
-					contractAct.Username = act.user.username;
-					contractAct.Full_name = act.user.full_name;
-					contractAct.Gender = act.user.gender;
-					contractAct.Age = act.user.age;
-					contractAct.Location = act.user.location;
-					contractAct.About = act.user.about;
-					contractAct.Joined = act.user.joined;
-					contractAct.Avatar = act.user.avatar;
-					contractAct.Url = act.user.url;
-					contractAct.JoinedDate = Utils.GetAniDBDateAsDate(act.user.joined);
+					contractAct.User = new Contract_Trakt_User();
+					contractAct.User.Trakt_FriendID = traktFriend.Trakt_FriendID;
+					contractAct.User.Username = act.user.username;
+					contractAct.User.Full_name = act.user.full_name;
+					contractAct.User.Gender = act.user.gender;
+					contractAct.User.Age = act.user.age;
+					contractAct.User.Location = act.user.location;
+					contractAct.User.About = act.user.about;
+					contractAct.User.Joined = act.user.joined;
+					contractAct.User.Avatar = act.user.avatar;
+					contractAct.User.Url = act.user.url;
+					contractAct.User.JoinedDate = Utils.GetAniDBDateAsDate(act.user.joined);
 
 					// episode details
 					if (act.ActivityAction == 1 && act.episode != null) // scrobble episode
