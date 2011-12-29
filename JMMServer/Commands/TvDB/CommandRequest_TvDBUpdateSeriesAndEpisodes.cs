@@ -48,7 +48,7 @@ namespace JMMServer.Commands
 
 			try
 			{
-				JMMService.TvdbHelper.UpdateAllInfoAndImages(TvDBSeriesID, ForceRefresh);
+				JMMService.TvdbHelper.UpdateAllInfoAndImages(TvDBSeriesID, ForceRefresh, true);
 
 			}
 			catch (Exception ex)

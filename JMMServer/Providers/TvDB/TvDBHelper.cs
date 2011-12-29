@@ -633,7 +633,7 @@ namespace JMMServer.Providers.TvDB
 		/// </summary>
 		/// <param name="seriesID"></param>
 		/// <param name="forceRefresh"></param>
-		public void UpdateAllInfoAndImages(int seriesID, bool forceRefresh)
+		public void UpdateAllInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
 		{
 			TvDB_EpisodeRepository repEpisodes = new TvDB_EpisodeRepository();
 			TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
@@ -657,12 +657,15 @@ namespace JMMServer.Providers.TvDB
 						repSeries.Save(tvSeries);
 					}
 
-					// get all fanart, posters and wide banners
-					if (docSeries.ContainsKey("banners.xml"))
+					if (downloadImages)
 					{
-						XmlDocument xmlDocBanners = docSeries["banners.xml"];
-						if (xmlDocBanners != null)
-							DownloadAutomaticImages(xmlDocBanners, seriesID, forceRefresh);
+						// get all fanart, posters and wide banners
+						if (docSeries.ContainsKey("banners.xml"))
+						{
+							XmlDocument xmlDocBanners = docSeries["banners.xml"];
+							if (xmlDocBanners != null)
+								DownloadAutomaticImages(xmlDocBanners, seriesID, forceRefresh);
+						}
 					}
 
 					// update all the episodes and download episode images
@@ -683,14 +686,17 @@ namespace JMMServer.Providers.TvDB
 
 							//BaseConfig.MyAnimeLog.Write("Refreshing episode info for: {0}", ep.ToString());
 
-							// download the image for this episode
-							if (!string.IsNullOrEmpty(ep.Filename))
+							if (downloadImages)
 							{
-								bool fileExists = File.Exists(ep.FullImagePath);
-								if (!fileExists || (fileExists && forceRefresh))
+								// download the image for this episode
+								if (!string.IsNullOrEmpty(ep.Filename))
 								{
-									CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(ep.TvDB_EpisodeID, JMMImageType.TvDB_Episode, forceRefresh);
-									cmd.Save();
+									bool fileExists = File.Exists(ep.FullImagePath);
+									if (!fileExists || (fileExists && forceRefresh))
+									{
+										CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(ep.TvDB_EpisodeID, JMMImageType.TvDB_Episode, forceRefresh);
+										cmd.Save();
+									}
 								}
 							}
 						}

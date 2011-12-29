@@ -523,8 +523,8 @@ namespace JMMServer.Providers.TraktTV
 				results = JSONHelper.Deserialize<List<TraktTVShow>>(json);
 
 				// save this data for later use
-				//foreach (TraktTVShowResponse tvshow in results)
-				//	SaveShowInfo(tvshow);
+				//foreach (TraktTVShow tvshow in results)
+				//	SaveExtendedShowInfo(tvshow);
 			}
 			catch (Exception ex)
 			{

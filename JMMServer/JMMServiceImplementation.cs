@@ -1186,7 +1186,7 @@ namespace JMMServer
 
 			try
 			{
-				JMMService.TvdbHelper.UpdateAllInfoAndImages(seriesID, false);
+				JMMService.TvdbHelper.UpdateAllInfoAndImages(seriesID, false, true);
 			}
 			catch (Exception ex)
 			{
@@ -3620,13 +3620,10 @@ namespace JMMServer
 			List<int> seasonNumbers = new List<int>();
 			try
 			{
+				// refresh data from TvDB
+				JMMService.TvdbHelper.UpdateAllInfoAndImages(seriesID, true, false);
+
 				TvDB_EpisodeRepository repEps = new TvDB_EpisodeRepository();
-				seasonNumbers = repEps.GetSeasonNumbersForSeries(seriesID);
-
-				// if no results try refreshing from TvDB
-				if (seasonNumbers.Count == 0)
-					JMMService.TvdbHelper.UpdateAllInfoAndImages(seriesID, true);
-
 				seasonNumbers = repEps.GetSeasonNumbersForSeries(seriesID);
 
 				return seasonNumbers;
@@ -3981,6 +3978,9 @@ namespace JMMServer
 			List<int> seasonNumbers = new List<int>();
 			try
 			{
+				// refresh show info including season numbers from trakt
+				TraktTVShow tvshow = TraktTVHelper.GetShowInfo(traktID);
+
 				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
 				Trakt_Show show = repShows.GetByTraktID(traktID);
 				if (show == null) return seasonNumbers;
