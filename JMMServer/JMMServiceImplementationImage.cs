@@ -202,6 +202,7 @@ namespace JMMServer
 					}
 
 				case JMMImageType.Trakt_ActivityScrobble:
+				case JMMImageType.Trakt_ShoutUser:
 
 
 					Trakt_Friend tFriendScrobble = repTraktFriends.GetByID(int.Parse(entityID));

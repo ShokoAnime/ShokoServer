@@ -452,6 +452,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_Trakt_ShoutUser> GetTraktShoutsForAnime(int animeID);
+
+		[OperationContract]
+		bool PostShoutShow(int animeID, string shoutText, bool isSpoiler, ref string returnMessage);
 	}
 
 }

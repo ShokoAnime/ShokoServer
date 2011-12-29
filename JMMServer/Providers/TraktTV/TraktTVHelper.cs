@@ -76,6 +76,70 @@ namespace JMMServer.Providers.TraktTV
 			return friends;
 		}
 
+		public static bool PostShoutShow(int animeID, string shoutText, bool isSpoiler, ref string returnMessage)
+		{
+			returnMessage = "";
+			try
+			{
+				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+				{
+					returnMessage = "Trakt credentials have not been entered";
+					return false;
+				}
+
+				if (string.IsNullOrEmpty(shoutText))
+				{
+					returnMessage = "Please enter text for your shout";
+					return false;
+				}
+
+				CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
+				Trakt_ShowRepository repTraktShow = new Trakt_ShowRepository();
+
+				CrossRef_AniDB_Trakt traktXRef = repXrefTrakt.GetByAnimeID(animeID);
+				if (traktXRef == null)
+				{
+					returnMessage = string.Format("Could not find trakt show for Anime ID: {0}", animeID);
+					return false;
+				}
+
+				Trakt_Show show = repTraktShow.GetByTraktID(traktXRef.TraktID);
+				if (show == null || !show.TvDB_ID.HasValue)
+				{
+					returnMessage = string.Format("Could not find trakt show for Anime ID: {0}", animeID);
+					return false;
+				}
+
+				TraktTVPost_ShoutShow cmd = new TraktTVPost_ShoutShow();
+				cmd.Init(shoutText, isSpoiler, show.TvDB_ID.Value);
+
+				string url = string.Format(Constants.TraktTvURLs.URLPostShoutShow, Constants.TraktTvURLs.APIKey);
+				logger.Trace("PostShoutShow: {0}", url);
+
+				string json = JSONHelper.Serialize<TraktTVPost_ShoutShow>(cmd);
+				string jsonResponse = SendData(url, json);
+
+				TraktTVGenericResponse genResponse = JSONHelper.Deserialize<TraktTVGenericResponse>(jsonResponse);
+				if (genResponse.IsSuccess)
+				{
+					returnMessage = genResponse.message;
+					return true;
+				}
+				else
+				{
+					returnMessage = genResponse.error;
+					return false;
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktTVHelper.PostShoutShow: " + ex.ToString(), ex);
+				returnMessage = ex.Message;
+				return false;
+			}
+		}
+
 		public static List<TraktTV_ShoutGet> GetShowShouts(int animeID)
 		{
 			List<TraktTV_ShoutGet> shouts = null;
@@ -97,6 +161,33 @@ namespace JMMServer.Providers.TraktTV
 				if (json.Trim().Length == 0) return new List<TraktTV_ShoutGet>();
 
 				shouts = JSONHelper.Deserialize<List<TraktTV_ShoutGet>>(json);
+
+				Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
+				foreach (TraktTV_ShoutGet shout in shouts)
+				{
+					Trakt_Friend traktFriend = repFriends.GetByUsername(shout.user.username);
+					if (traktFriend == null)
+					{
+						traktFriend = new Trakt_Friend();
+						traktFriend.LastAvatarUpdate = DateTime.Now;
+					}
+
+					traktFriend.Populate(shout.user);
+					repFriends.Save(traktFriend);
+
+					if (!string.IsNullOrEmpty(traktFriend.FullImagePath))
+					{
+						bool fileExists = File.Exists(traktFriend.FullImagePath);
+						TimeSpan ts = DateTime.Now - traktFriend.LastAvatarUpdate;
+
+						if (!fileExists || ts.TotalHours > 8)
+						{
+							traktFriend.LastAvatarUpdate = DateTime.Now;
+							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktFriend.Trakt_FriendID, JMMImageType.Trakt_Friend, true);
+							cmd.Save();
+						}
+					}
+				}
 
 			}
 			catch (Exception ex)

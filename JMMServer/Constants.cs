@@ -140,6 +140,7 @@ namespace JMMServer
 			public static readonly string URLUserLibraryShowsCollection = @"http://api.trakt.tv/user/library/shows/collection.json/{0}/{1}"; // apiKey/ username
 			public static readonly string URLUserLibraryShowsWatched = @"http://api.trakt.tv/user/library/shows/watched.json/{0}/{1}"; // apiKey/ username
 
+			public static readonly string URLPostShoutShow = @"http://api.trakt.tv/shout/show/{0}"; // apiKey
 			public static readonly string URLPostFriendsRequests = @"http://api.trakt.tv/friends/requests/{0}"; // apiKey
 			public static readonly string URLPostFriendsDeny = @"http://api.trakt.tv/friends/deny/{0}"; // apiKey
 			public static readonly string URLPostFriendsApprove = @"http://api.trakt.tv/friends/approve/{0}"; // apiKey

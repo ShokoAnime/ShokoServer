@@ -5419,6 +5419,11 @@ namespace JMMServer
 			}
 		}
 
+		public bool PostShoutShow(int animeID, string shoutText, bool isSpoiler, ref string returnMessage)
+		{
+			return TraktTVHelper.PostShoutShow(animeID, shoutText, isSpoiler, ref returnMessage);
+		}
+
 		public List<Contract_Trakt_ShoutUser> GetTraktShoutsForAnime(int animeID)
 		{
 			List<Contract_Trakt_ShoutUser> shouts = new List<Contract_Trakt_ShoutUser>();
@@ -5434,8 +5439,14 @@ namespace JMMServer
 				{
 					Contract_Trakt_ShoutUser shout = new Contract_Trakt_ShoutUser();
 
+					Trakt_Friend traktFriend = repFriends.GetByUsername(sht.user.username);
+
 					// user details
 					shout.User = new Contract_Trakt_User();
+					if (traktFriend == null)
+						shout.User.Trakt_FriendID = 0;
+					else
+						shout.User.Trakt_FriendID = traktFriend.Trakt_FriendID;
 					shout.User.Username = sht.user.username;
 					shout.User.Full_name = sht.user.full_name;
 					shout.User.Gender = sht.user.gender;

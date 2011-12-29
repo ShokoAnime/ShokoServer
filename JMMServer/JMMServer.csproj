@@ -231,6 +231,7 @@
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseHelper.cs" />
     <Compile Include="Databases\MySQL.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVPost_ShoutShow.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_Activity.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_ActivitySummary.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_Elapsed.cs" />
