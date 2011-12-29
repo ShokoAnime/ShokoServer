@@ -5519,7 +5519,10 @@ namespace JMMServer
 
 					// find the anime and series based on the trakt id
 					int? animeID = null;
-					CrossRef_AniDB_Trakt xref = repXrefTrakt.GetByTraktID(act.show.TraktID, int.Parse(act.episode.season));
+					CrossRef_AniDB_Trakt xref = null;
+					if (act.episode != null)
+						xref = repXrefTrakt.GetByTraktID(act.show.TraktID, int.Parse(act.episode.season));
+
 					if (xref != null)
 						animeID = xref.AnimeID;
 					else
@@ -5532,7 +5535,11 @@ namespace JMMServer
 						else
 						{
 							// try the tvdb id instead
-							CrossRef_AniDB_TvDB xrefTvDB = repXrefTvDB.GetByTvDBID(int.Parse(act.show.tvdb_id), int.Parse(act.episode.season));
+							CrossRef_AniDB_TvDB xrefTvDB = null;
+
+							if (act.episode != null)
+								xrefTvDB = repXrefTvDB.GetByTvDBID(int.Parse(act.show.tvdb_id), int.Parse(act.episode.season));
+
 							if (xrefTvDB != null)
 								animeID = xrefTvDB.AnimeID;
 						}
