@@ -202,7 +202,15 @@ namespace JMMServer
 			Dictionary<string, VideoLocal> dictFilesExisting = new Dictionary<string, VideoLocal>();
 			foreach (VideoLocal vl in filesAll)
 			{
-				dictFilesExisting[vl.FullServerPath] = vl;
+				try
+				{
+					dictFilesExisting[vl.FullServerPath] = vl;
+				}
+				catch (Exception ex)
+				{
+					string msg = string.Format("Error RunImport_NewFiles XREF: {0} - {1}", vl.ToStringDetailed(), ex.ToString());
+					throw;
+				}
 			}
 
 

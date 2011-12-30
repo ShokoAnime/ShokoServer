@@ -671,7 +671,7 @@ namespace JMMServer
 							}
 							catch (Exception ex)
 							{
-								string msg = string.Format("Error populating XREF: {0}", vid.ToStringDetailed());
+								string msg = string.Format("Error populating XREF: {0} - {1}", vid.ToStringDetailed(), ex.ToString());
 								throw;
 							}
 

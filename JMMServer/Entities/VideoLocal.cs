@@ -33,10 +33,15 @@ namespace JMMServer.Entities
 			StringBuilder sb = new StringBuilder("");
 			sb.Append(Environment.NewLine);
 			sb.Append("VideoLocalID: " + VideoLocalID.ToString());
+			sb.Append(Environment.NewLine);
 			sb.Append("FilePath: " + FilePath);
+			sb.Append(Environment.NewLine);
 			sb.Append("ImportFolderID: " + ImportFolderID.ToString());
+			sb.Append(Environment.NewLine);
 			sb.Append("Hash: " + Hash);
+			sb.Append(Environment.NewLine);
 			sb.Append("FileSize: " + FileSize.ToString());
+			sb.Append(Environment.NewLine);
 
 			try
 			{

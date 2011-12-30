@@ -214,7 +214,7 @@ namespace JMMContracts
 		void RescanUnlinkedFiles();
 
 		[OperationContract]
-		List<Contract_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName, string resolution, string videoSource, int userID);
+		List<Contract_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName, string resolution, string videoSource, int videoBitDepth, int userID);
 
 		[OperationContract]
 		Contract_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID);

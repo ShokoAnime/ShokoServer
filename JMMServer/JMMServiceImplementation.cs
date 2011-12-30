@@ -3037,7 +3037,7 @@ namespace JMMServer
 			}
 		}
 
-		public List<Contract_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName, string resolution, string videoSource, int userID)
+		public List<Contract_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName, string resolution, string videoSource, int videoBitDepth, int userID)
 		{
 			List<Contract_VideoDetailed> vids = new List<Contract_VideoDetailed>();
 
@@ -3046,6 +3046,7 @@ namespace JMMServer
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			VideoLocalRepository repVids = new VideoLocalRepository();
 			AniDB_FileRepository repAniFile = new AniDB_FileRepository();
+			
 
 			try
 			{
@@ -3054,6 +3055,16 @@ namespace JMMServer
 
 				foreach (VideoLocal vid in repVids.GetByAniDBAnimeID(animeID))
 				{
+					int thisBitDepth = 8;
+
+					VideoInfo vidInfo = vid.VideoInfo;
+					if (vidInfo != null)
+					{
+						int bitDepth = 0;
+						if (int.TryParse(vidInfo.VideoBitDepth, out bitDepth))
+							thisBitDepth = bitDepth;
+					}
+
 					List<AnimeEpisode> eps = vid.AnimeEpisodes;
 					if (eps.Count == 0) continue;
 					AnimeEpisode animeEp = eps[0];
@@ -3066,7 +3077,8 @@ namespace JMMServer
 							// match based on group / video sorce / video res
 							if (relGroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) &&
 								videoSource.Equals(aniFile.File_Source, StringComparison.InvariantCultureIgnoreCase) &&
-								resolution.Equals(aniFile.File_VideoResolution, StringComparison.InvariantCultureIgnoreCase))
+								resolution.Equals(aniFile.File_VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
+								thisBitDepth == videoBitDepth)
 							{
 								vids.Add(vid.ToContractDetailed(userID));
 							}
