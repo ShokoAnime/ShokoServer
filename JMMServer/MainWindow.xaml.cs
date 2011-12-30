@@ -92,6 +92,8 @@ namespace JMMServer
 		public MainWindow()
 		{
 			InitializeComponent();
+			ServerSettings.DebugSettingsToLog();
+
 
 			//Create an instance of the NotifyIcon Class
 			TippuTrayNotify = new System.Windows.Forms.NotifyIcon();

@@ -8,11 +8,15 @@ using AniDBAPI;
 using JMMContracts;
 using System.IO;
 using JMMServer.ImageDownload;
+using NLog;
+using System.Diagnostics;
 
 namespace JMMServer
 {
 	public class ServerSettings
 	{
+		private static Logger logger = LogManager.GetCurrentClassLogger();
+
 		public static void CreateDefaultConfig()
 		{
 			System.Reflection.Assembly assm = System.Reflection.Assembly.GetExecutingAssembly();
@@ -1180,6 +1184,142 @@ namespace JMMServer
 			contract.Trakt_SyncFrequency = (int)ServerSettings.Trakt_SyncFrequency;
 
 			return contract;
+		}
+
+		public static void DebugSettingsToLog()
+		{
+			#region System Info
+			logger.Info("-------------------- SYSTEM INFO -----------------------");
+
+			System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+			try
+			{
+				if (a != null)
+				{
+					logger.Info(string.Format("JMM Server Version: v{0}", Utils.GetApplicationVersion(a)));
+				}
+			}
+			catch (Exception ex)
+			{
+				// oopps, can't create file
+				logger.Warn("Error in log: {0}", ex.ToString());
+			}
+
+			logger.Info(string.Format("Operating System: {0}", Utils.GetOSInfo()));
+
+			string screenSize = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width.ToString() + "x" +
+				System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height.ToString();
+			logger.Info(string.Format("Screen Size: {0}", screenSize));
+
+
+			
+			
+			try
+			{
+				string mediaInfoVersion = "**** MediaInfo - DLL Not found *****";
+				string mediaInfoPath = Path.Combine(System.IO.Path.GetDirectoryName(a.Location), "MediaInfo.dll");
+				if (File.Exists(mediaInfoPath))
+				{
+					FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(mediaInfoPath);
+					mediaInfoVersion = string.Format("MediaInfo DLL {0}.{1}.{2}.{3}", fvi.FileMajorPart, fvi.FileMinorPart, fvi.FileBuildPart, fvi.FilePrivatePart);
+				}
+				logger.Info(mediaInfoVersion);
+
+				string hasherInfoVersion = "**** Hasher - DLL NOT found *****";
+				string hasherInfoPath = Path.Combine(System.IO.Path.GetDirectoryName(a.Location), "hasher.dll");
+				if (File.Exists(hasherInfoPath))
+					hasherInfoVersion = "Hasher - DLL found";
+				logger.Info(hasherInfoVersion);
+			}
+			catch { }
+
+			logger.Info("-------------------------------------------------------");
+			#endregion
+
+			logger.Info("----------------- SERVER SETTINGS ----------------------");
+
+			logger.Info("DatabaseType: {0}", DatabaseType);
+			logger.Info("MSSQL DatabaseServer: {0}", DatabaseServer);
+			logger.Info("MSSQL DatabaseName: {0}", DatabaseName);
+			logger.Info("MSSQL DatabaseUsername: {0}", string.IsNullOrEmpty(DatabaseUsername) ? "NOT SET" : "***HIDDEN***");
+			logger.Info("MSSQL DatabasePassword: {0}", string.IsNullOrEmpty(DatabasePassword) ? "NOT SET" : "***HIDDEN***");
+
+			logger.Info("SQLITE DatabaseFile: {0}", DatabaseFile);
+
+			logger.Info("MySQL_Hostname: {0}", MySQL_Hostname);
+			logger.Info("MySQL_SchemaName: {0}", MySQL_SchemaName);
+			logger.Info("MySQL_Username: {0}", string.IsNullOrEmpty(MySQL_Username) ? "NOT SET" : "***HIDDEN***");
+			logger.Info("MySQL_Password: {0}", string.IsNullOrEmpty(MySQL_Password) ? "NOT SET" : "***HIDDEN***");
+
+			logger.Info("AniDB_Username: {0}", string.IsNullOrEmpty(AniDB_Username) ? "NOT SET" : "***HIDDEN***");
+			logger.Info("AniDB_Password: {0}", string.IsNullOrEmpty(AniDB_Password) ? "NOT SET" : "***HIDDEN***");
+			logger.Info("AniDB_ServerAddress: {0}", AniDB_ServerAddress);
+			logger.Info("AniDB_ServerPort: {0}", AniDB_ServerPort);
+			logger.Info("AniDB_ClientPort: {0}", AniDB_ClientPort);
+			logger.Info("AniDB_AVDumpKey: {0}", string.IsNullOrEmpty(AniDB_AVDumpKey) ? "NOT SET" : "***HIDDEN***");
+			logger.Info("AniDB_AVDumpClientPort: {0}", AniDB_AVDumpClientPort);
+			logger.Info("AniDB_DownloadRelatedAnime: {0}", AniDB_DownloadRelatedAnime);
+			logger.Info("AniDB_DownloadSimilarAnime: {0}", AniDB_DownloadSimilarAnime);
+			logger.Info("AniDB_DownloadReviews: {0}", AniDB_DownloadReviews);
+			logger.Info("AniDB_DownloadReleaseGroups: {0}", AniDB_DownloadReleaseGroups);
+			logger.Info("AniDB_MyList_AddFiles: {0}", AniDB_MyList_AddFiles);
+			logger.Info("AniDB_MyList_StorageState: {0}", AniDB_MyList_StorageState);
+			logger.Info("AniDB_MyList_ReadUnwatched: {0}", AniDB_MyList_ReadUnwatched);
+			logger.Info("AniDB_MyList_ReadWatched: {0}", AniDB_MyList_ReadWatched);
+			logger.Info("AniDB_MyList_SetWatched: {0}", AniDB_MyList_SetWatched);
+			logger.Info("AniDB_MyList_SetUnwatched: {0}", AniDB_MyList_SetUnwatched);
+			logger.Info("AniDB_MyList_UpdateFrequency: {0}", AniDB_MyList_UpdateFrequency);
+			logger.Info("AniDB_Calendar_UpdateFrequency: {0}", AniDB_Calendar_UpdateFrequency);
+			logger.Info("AniDB_Anime_UpdateFrequency: {0}", AniDB_Anime_UpdateFrequency);
+
+
+
+			logger.Info("WebCache_Address: {0}", WebCache_Address);
+			logger.Info("WebCache_Anonymous: {0}", WebCache_Anonymous);
+			logger.Info("WebCache_FileHashes_Get: {0}", WebCache_FileHashes_Get);
+			logger.Info("WebCache_FileHashes_Send: {0}", WebCache_FileHashes_Send);
+			logger.Info("WebCache_XRefFileEpisode_Get: {0}", WebCache_XRefFileEpisode_Get);
+			logger.Info("WebCache_XRefFileEpisode_Send: {0}", WebCache_XRefFileEpisode_Send);
+			logger.Info("WebCache_TvDB_Get: {0}", WebCache_TvDB_Get);
+			logger.Info("WebCache_TvDB_Send: {0}", WebCache_TvDB_Send);
+
+			logger.Info("TvDB_AutoFanart: {0}", TvDB_AutoFanart);
+			logger.Info("TvDB_AutoFanartAmount: {0}", TvDB_AutoFanartAmount);
+			logger.Info("TvDB_AutoWideBanners: {0}", TvDB_AutoWideBanners);
+			logger.Info("TvDB_AutoPosters: {0}", TvDB_AutoPosters);
+			logger.Info("TvDB_UpdateFrequency: {0}", TvDB_UpdateFrequency);
+			logger.Info("TvDB_Language: {0}", TvDB_Language);
+
+			logger.Info("MovieDB_AutoFanart: {0}", MovieDB_AutoFanart);
+			logger.Info("MovieDB_AutoFanartAmount: {0}", MovieDB_AutoFanartAmount);
+			logger.Info("MovieDB_AutoPosters: {0}", MovieDB_AutoPosters);
+
+			logger.Info("VideoExtensions: {0}", VideoExtensions);
+			logger.Info("DefaultSeriesLanguage: {0}", DefaultSeriesLanguage);
+			logger.Info("DefaultEpisodeLanguage: {0}", DefaultEpisodeLanguage);
+			logger.Info("WatchForNewFiles: {0}", WatchForNewFiles);
+			logger.Info("RunImportOnStart: {0}", RunImportOnStart);
+			logger.Info("Hash_CRC32: {0}", Hash_CRC32);
+			logger.Info("Hash_MD5: {0}", Hash_MD5);
+			logger.Info("Hash_SHA1: {0}", Hash_SHA1);
+			logger.Info("Import_UseExistingFileWatchedStatus: {0}", Import_UseExistingFileWatchedStatus);
+
+			logger.Info("Trakt_Username: {0}", string.IsNullOrEmpty(Trakt_Username) ? "NOT SET" : "***HIDDEN***");
+			logger.Info("Trakt_Password: {0}", string.IsNullOrEmpty(Trakt_Password) ? "NOT SET" : "***HIDDEN***");
+			logger.Info("Trakt_UpdateFrequency: {0}", Trakt_UpdateFrequency);
+			logger.Info("Trakt_SyncFrequency: {0}", Trakt_SyncFrequency);
+
+			logger.Info("AutoGroupSeries: {0}", AutoGroupSeries);
+			logger.Info("LanguagePreference: {0}", LanguagePreference);
+			logger.Info("LanguageUseSynonyms: {0}", LanguageUseSynonyms);
+			logger.Info("EpisodeTitleSource: {0}", EpisodeTitleSource);
+			logger.Info("SeriesDescriptionSource: {0}", SeriesDescriptionSource);
+			logger.Info("SeriesNameSource: {0}", SeriesNameSource);
+			logger.Info("BaseImagesPath: {0}", BaseImagesPath);
+			logger.Info("BaseImagesPathIsDefault: {0}", BaseImagesPathIsDefault);
+
+
+			logger.Info("-------------------------------------------------------");
 		}
 	}
 }
