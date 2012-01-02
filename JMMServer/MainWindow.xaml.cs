@@ -812,7 +812,7 @@ namespace JMMServer
 			//CommandRequest_ReadMediaInfo cr2 = new CommandRequest_ReadMediaInfo(2037);
 			//cr2.Save();
 
-			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			/*AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			foreach (AniDB_Anime anime in repAnime.GetAll())
 			{
 				List<TraktTV_ShoutGet> shouts = TraktTVHelper.GetShowShouts(anime.AnimeID);
@@ -827,7 +827,8 @@ namespace JMMServer
 					else
 						logger.Info("{0} ({1}) = {2} *** MAJOR *** Shouts", anime.MainTitle, anime.AnimeID, shouts.Count);
 				}
-			}
+			}*/
+
 
 			
 		}

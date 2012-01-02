@@ -36,7 +36,7 @@ namespace JMMServer.Entities
 		{
 			get
 			{
-				return string.Format(Path.Combine(ImportFolder1.ImportFolderLocation, FilePathFile1));
+				return Path.Combine(ImportFolder1.ImportFolderLocation, FilePathFile1);
 			}
 		}
 
@@ -53,7 +53,7 @@ namespace JMMServer.Entities
 		{
 			get
 			{
-				return string.Format(Path.Combine(ImportFolder2.ImportFolderLocation, FilePathFile2));
+				return Path.Combine(ImportFolder2.ImportFolderLocation, FilePathFile2);
 			}
 		}
 

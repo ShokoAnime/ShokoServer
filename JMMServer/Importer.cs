@@ -209,7 +209,8 @@ namespace JMMServer
 				catch (Exception ex)
 				{
 					string msg = string.Format("Error RunImport_NewFiles XREF: {0} - {1}", vl.ToStringDetailed(), ex.ToString());
-					throw;
+					logger.Info(msg);
+					//throw;
 				}
 			}
 

@@ -87,7 +87,7 @@ namespace JMMServer.Entities
 		{
 			get
 			{
-				return string.Format(Path.Combine(ImportFolder.ImportFolderLocation, FilePath));
+				return Path.Combine(ImportFolder.ImportFolderLocation, FilePath);
 			}
 		}
 
