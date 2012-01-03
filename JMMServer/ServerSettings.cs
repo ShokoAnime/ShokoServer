@@ -10,6 +10,8 @@ using System.IO;
 using JMMServer.ImageDownload;
 using NLog;
 using System.Diagnostics;
+using JMMServer.Repositories;
+using JMMServer.Entities;
 
 namespace JMMServer
 {
@@ -1198,6 +1200,19 @@ namespace JMMServer
 				{
 					logger.Info(string.Format("JMM Server Version: v{0}", Utils.GetApplicationVersion(a)));
 				}
+			}
+			catch (Exception ex)
+			{
+				// oopps, can't create file
+				logger.Warn("Error in log: {0}", ex.ToString());
+			}
+
+			try
+			{
+				VersionsRepository repVersions = new VersionsRepository();
+				Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);
+				if (ver != null)
+					logger.Info(string.Format("Database Version: {0}", ver.VersionValue));
 			}
 			catch (Exception ex)
 			{
