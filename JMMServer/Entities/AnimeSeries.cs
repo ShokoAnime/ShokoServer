@@ -315,6 +315,13 @@ namespace JMMServer.Entities
 			if (movieDBCrossRef != null)
 				contract.CrossRefAniDBMovieDB = movieDBCrossRef.ToContract();
 
+			/*AnimeGroup grp = this.TopLevelAnimeGroup;
+			if (grp != null && userRecord != null)
+			{
+				AnimeGroup_User grpUser = grp.GetUserRecord(userRecord.JMMUserID);
+				contract.TopLevelGroup = grp.ToContract(grpUser);
+			}*/
+
 			return contract;
 		}
 

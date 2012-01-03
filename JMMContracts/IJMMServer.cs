@@ -458,6 +458,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		void RefreshTraktFriendInfo();
+
+		[OperationContract]
+		Contract_AnimeGroup GetTopLevelGroupForSeries(int animeSeriesID, int userID);
 	}
 
 }

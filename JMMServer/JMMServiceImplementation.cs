@@ -5869,6 +5869,30 @@ namespace JMMServer
 		{
 			MainWindow.RefreshAllMediaInfo();
 		}
+
+		public Contract_AnimeGroup GetTopLevelGroupForSeries(int animeSeriesID, int userID)
+		{
+			try
+			{
+				AnimeGroupRepository repGroups = new AnimeGroupRepository();
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+				AnimeSeries ser = repSeries.GetByID(animeSeriesID);
+				if (ser == null) return null;
+
+				AnimeGroup grp = ser.TopLevelAnimeGroup;
+				if (grp == null) return null;
+
+				return grp.ToContract(grp.GetUserRecord(userID));
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return null;
+		}
 	}
 
 	
