@@ -455,6 +455,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		bool PostShoutShow(int animeID, string shoutText, bool isSpoiler, ref string returnMessage);
+
+		[OperationContract]
+		void RefreshTraktFriendInfo();
 	}
 
 }

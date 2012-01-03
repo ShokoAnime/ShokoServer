@@ -1000,9 +1000,8 @@ namespace JMMServer
 
 		void workerTraktFriends_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
-			//StatsCache.Instance.TraktFriendInfo.Clear();
-			StatsCache.Instance.TraktFriendRequests.Clear();
-			StatsCache.Instance.TraktFriendActivityInfo.Clear();
+			//StatsCache.Instance.TraktFriendRequests.Clear();
+			//StatsCache.Instance.TraktFriendActivityInfo.Clear();
 
 			List<object> allInfo = e.Result as List<object>;
 			if (allInfo != null && allInfo.Count > 0)
@@ -1014,12 +1013,6 @@ namespace JMMServer
 						TraktTVFriendRequest req = obj as TraktTVFriendRequest;
 						StatsCache.Instance.TraktFriendRequests.Add(req);
 					}
-
-					/*if (obj.GetType() == typeof(TraktTVUser))
-					{
-						TraktTVUser friend = obj as TraktTVUser;
-						StatsCache.Instance.TraktFriendInfo.Add(friend);
-					}*/
 
 					if (obj.GetType() == typeof(TraktTV_Activity))
 					{
@@ -1044,13 +1037,6 @@ namespace JMMServer
 			foreach (TraktTVFriendRequest req in requests)
 				allInfo.Add(req);
 
-			//List<TraktTVUser> traktFriends = TraktTVHelper.GetFriends();
-			//if (traktFriends != null)
-			//{
-			//	foreach (TraktTVUser friend in traktFriends)
-			//		allInfo.Add(friend);
-			//}
-
 			TraktTV_ActivitySummary summ = TraktTVHelper.GetActivityFriends();
 			if (summ != null)
 			{
@@ -1063,6 +1049,8 @@ namespace JMMServer
 
 		public static void UpdateTraktFriendInfo(bool forced)
 		{
+			if (workerTraktFriends.IsBusy) return;
+
 			if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password)) return;
 
 			bool performUpdate = false;
@@ -1076,6 +1064,9 @@ namespace JMMServer
 
 			if (performUpdate)
 			{
+				StatsCache.Instance.TraktFriendRequests.Clear();
+				StatsCache.Instance.TraktFriendActivityInfo.Clear();
+
 				lastTraktInfoUpdate = DateTime.Now;
 				doneFirstTrakTinfo = true;
 				workerTraktFriends.RunWorkerAsync();

@@ -5487,6 +5487,11 @@ namespace JMMServer
 			return shouts;
 		}
 
+		public void RefreshTraktFriendInfo()
+		{
+			MainWindow.UpdateTraktFriendInfo(true);
+		}
+
 		public Contract_Trakt_Activity GetTraktFriendInfo(int maxResults, bool animeOnly)
 		{
 			CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
