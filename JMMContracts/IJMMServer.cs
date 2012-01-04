@@ -461,6 +461,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		Contract_AnimeGroup GetTopLevelGroupForSeries(int animeSeriesID, int userID);
+
+		[OperationContract]
+		List<Contract_AnimeEpisode> GetEpisodesRecentlyWatched(int maxRecords, int jmmuserID);
 	}
 
 }

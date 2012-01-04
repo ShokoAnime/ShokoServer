@@ -4338,6 +4338,45 @@ namespace JMMServer
 			return retEps;
 		}
 
+		public List<Contract_AnimeEpisode> GetEpisodesRecentlyWatched(int maxRecords, int jmmuserID)
+		{
+			List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
+			try
+			{
+				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
+				//AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
+				//AnimeSeries_UserRepository repSeriesUser = new AnimeSeries_UserRepository();
+				JMMUserRepository repUsers = new JMMUserRepository();
+
+				JMMUser user = repUsers.GetByID(jmmuserID);
+				if (user == null) return retEps;
+
+				// get a list of series that is applicable
+				List<AnimeEpisode_User> allEpUserRecs = repEpUser.GetMostRecentlyWatched(jmmuserID);
+				foreach (AnimeEpisode_User userRecord in allEpUserRecs)
+				{
+					AnimeEpisode ep = repEps.GetByID(userRecord.AnimeEpisodeID);
+					if (ep == null) continue;
+
+					Contract_AnimeEpisode epContract = ep.ToContract(jmmuserID);
+					if (epContract != null)
+					{
+						retEps.Add(epContract);
+
+						// Lets only return the specified amount
+						if (retEps.Count == maxRecords) return retEps;
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return retEps;
+		}
+
 
 		/// <summary>
 		/// Delete a series, and everything underneath it (episodes, files)
