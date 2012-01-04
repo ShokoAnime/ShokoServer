@@ -77,8 +77,15 @@ namespace JMMServer.Commands
 						}
 						thisVote.VoteType = (int)myVote.VoteType;
 						thisVote.VoteValue = myVote.VoteValue;
+
 						repVotes.Save(thisVote);
-						
+
+						if (myVote.VoteType == enAniDBVoteType.Anime || myVote.VoteType == enAniDBVoteType.AnimeTemp)
+						{
+							// download the anime info if the user doesn't already have it
+							CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(thisVote.EntityID, false, false);
+							cmdAnime.Save();
+						}
 					}
 
 					logger.Info("Processed Votes: {0} Items", cmd.MyVotes.Count);
