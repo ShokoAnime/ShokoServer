@@ -2171,7 +2171,6 @@ namespace JMMServer
 				// Import settings
 				ServerSettings.VideoExtensions = contractIn.VideoExtensions;
 				ServerSettings.Import_UseExistingFileWatchedStatus = contractIn.Import_UseExistingFileWatchedStatus;
-				ServerSettings.WatchForNewFiles = contractIn.WatchForNewFiles;
 				ServerSettings.AutoGroupSeries = contractIn.AutoGroupSeries;
 				ServerSettings.RunImportOnStart = contractIn.RunImportOnStart;
 				ServerSettings.Hash_CRC32 = contractIn.Hash_CRC32;
@@ -2543,6 +2542,7 @@ namespace JMMServer
 				ns.ImportFolderLocation = contract.ImportFolderLocation;
 				ns.IsDropDestination = contract.IsDropDestination;
 				ns.IsDropSource = contract.IsDropSource;
+				ns.IsWatched = contract.IsWatched;
 				repNS.Save(ns);
 
 				response.ImportFolder = ns.ToContract();

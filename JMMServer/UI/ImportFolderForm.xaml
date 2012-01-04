@@ -28,6 +28,7 @@
                     <RowDefinition />
                     <RowDefinition />
                     <RowDefinition />
+                    <RowDefinition />
                 </Grid.RowDefinitions>
 
                 
@@ -47,6 +48,9 @@
 
                 <TextBlock Grid.Column="0" Grid.Row="3" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5" Text="Drop Destination"/>
                 <CheckBox Name="chkDropDestination" Grid.Column="1" Grid.Row="3" VerticalAlignment="Center"></CheckBox>
+
+                <TextBlock Grid.Column="0" Grid.Row="4" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5" Text="Watch For New Files"/>
+                <CheckBox Name="chkIsWatched" Grid.Column="1" Grid.Row="4" VerticalAlignment="Center"></CheckBox>
 
             </Grid>
 

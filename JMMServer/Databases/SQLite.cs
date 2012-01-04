@@ -84,6 +84,7 @@ namespace JMMServer.Databases
 				UpdateSchema_006(versionNumber);
 				UpdateSchema_007(versionNumber);
 				UpdateSchema_008(versionNumber);
+				UpdateSchema_009(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -282,6 +283,31 @@ namespace JMMServer.Databases
 			if (currentVersionNumber >= thisVersion) return;
 
 			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_009(int currentVersionNumber)
+		{
+			int thisVersion = 9;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+			cmds.Add("ALTER TABLE ImportFolder ADD IsWatched int NOT NULL DEFAULT 1");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
 
 			UpdateDatabaseVersion(thisVersion);
 		}

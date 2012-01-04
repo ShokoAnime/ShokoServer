@@ -1171,8 +1171,6 @@ namespace JMMServer
 
 		public static void StartWatchingFiles()
 		{
-			if (!ServerSettings.WatchForNewFiles) return;
-
 			StopWatchingFiles();
 
 			watcherVids = new List<FileSystemWatcher>();
@@ -1182,7 +1180,7 @@ namespace JMMServer
 			{
 				try
 				{
-					if (Directory.Exists(share.ImportFolderLocation))
+					if (Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
 					{
 						logger.Info("Watching ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 						FileSystemWatcher fsw = new FileSystemWatcher(share.ImportFolderLocation);

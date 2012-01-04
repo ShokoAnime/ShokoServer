@@ -13,5 +13,6 @@ namespace JMMContracts
 		public string ImportFolderLocation { get; set; }
 		public int IsDropSource { get; set; }
 		public int IsDropDestination { get; set; }
+		public int IsWatched { get; set; }
 	}
 }

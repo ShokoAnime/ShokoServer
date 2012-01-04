@@ -630,6 +630,9 @@
   <ItemGroup>
     <Resource Include="Images\32_Refresh.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_folder_find.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(TargetDir)*.dll" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	

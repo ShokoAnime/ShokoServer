@@ -75,6 +75,7 @@ namespace JMMServer
 				contract.ImportFolderLocation = txtImportFolderLocation.Text.Trim();
 				contract.IsDropDestination = chkDropDestination.IsChecked.Value ? 1 : 0;
 				contract.IsDropSource = chkDropSource.IsChecked.Value ? 1 : 0;
+				contract.IsWatched = chkIsWatched.IsChecked.Value ? 1 : 0; 
 
 				JMMServiceImplementation imp = new JMMServiceImplementation();
 				Contract_ImportFolder_SaveResponse response = imp.SaveImportFolder(contract);
@@ -107,6 +108,7 @@ namespace JMMServer
 				txtImportFolderLocation.Text = importFldr.ImportFolderLocation;
 				chkDropDestination.IsChecked = importFldr.IsDropDestination == 1;
 				chkDropSource.IsChecked = importFldr.IsDropSource == 1;
+				chkIsWatched.IsChecked = importFldr.IsWatched == 1;
 
 				txtImportFolderLocation.Focus();
 			}

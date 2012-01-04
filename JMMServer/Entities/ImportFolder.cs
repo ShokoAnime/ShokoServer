@@ -14,6 +14,29 @@ namespace JMMServer.Entities
 		public string ImportFolderName { get; set; }
 		public string ImportFolderLocation { get; set; }
 
+		private int isWatched = 0;
+		public int IsWatched
+		{
+			get { return isWatched; }
+			set
+			{
+				isWatched = value;
+				NotifyPropertyChanged("IsWatched");
+				FolderIsWatched = IsWatched == 1;
+			}
+		}
+
+		private Boolean folderIsWatched = true;
+		public Boolean FolderIsWatched
+		{
+			get { return folderIsWatched; }
+			set
+			{
+				folderIsWatched = value;
+				NotifyPropertyChanged("FolderIsWatched");
+			}
+		}
+
 		public override string ToString()
 		{
 			return string.Format("{0} - {1} ({2})", ImportFolderName, ImportFolderLocation, ImportFolderID);
@@ -90,7 +113,7 @@ namespace JMMServer.Entities
 			contract.ImportFolderName = this.ImportFolderName;
 			contract.IsDropSource = this.IsDropSource;
 			contract.IsDropDestination = this.IsDropDestination;
-
+			contract.IsWatched = this.IsWatched;
 
 			return contract;
 		}

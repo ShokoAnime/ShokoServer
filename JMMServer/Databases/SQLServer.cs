@@ -126,6 +126,7 @@ namespace JMMServer.Databases
 				UpdateSchema_006(versionNumber);
 				UpdateSchema_007(versionNumber);
 				UpdateSchema_008(versionNumber);
+				UpdateSchema_009(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -353,6 +354,36 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 
 			cmds.Add("ALTER TABLE jmmuser ALTER COLUMN Password NVARCHAR(150) NULL");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_009(int currentVersionNumber)
+		{
+			int thisVersion = 9;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE ImportFolder ADD IsWatched int NULL");
+			cmds.Add("UPDATE ImportFolder SET IsWatched = 1");
+			cmds.Add("ALTER TABLE ImportFolder ALTER COLUMN IsWatched int NOT NULL");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))

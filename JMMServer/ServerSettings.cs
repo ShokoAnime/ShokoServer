@@ -809,21 +809,6 @@ namespace JMMServer
 			}
 		}
 
-		public static bool WatchForNewFiles
-		{
-			get
-			{
-				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				bool val = false;
-				bool.TryParse(appSettings["WatchForNewFiles"], out val);
-				return val;
-			}
-			set
-			{
-				UpdateSetting("WatchForNewFiles", value.ToString());
-			}
-		}
-
 		public static bool RunImportOnStart
 		{
 			get
@@ -1164,7 +1149,6 @@ namespace JMMServer
 
 			// Import settings
 			contract.VideoExtensions = ServerSettings.VideoExtensions;
-			contract.WatchForNewFiles = ServerSettings.WatchForNewFiles;
 			contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
 			contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
 			contract.RunImportOnStart = ServerSettings.RunImportOnStart;
@@ -1312,7 +1296,6 @@ namespace JMMServer
 			logger.Info("VideoExtensions: {0}", VideoExtensions);
 			logger.Info("DefaultSeriesLanguage: {0}", DefaultSeriesLanguage);
 			logger.Info("DefaultEpisodeLanguage: {0}", DefaultEpisodeLanguage);
-			logger.Info("WatchForNewFiles: {0}", WatchForNewFiles);
 			logger.Info("RunImportOnStart: {0}", RunImportOnStart);
 			logger.Info("Hash_CRC32: {0}", Hash_CRC32);
 			logger.Info("Hash_MD5: {0}", Hash_MD5);

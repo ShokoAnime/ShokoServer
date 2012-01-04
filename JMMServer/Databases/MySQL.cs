@@ -88,6 +88,7 @@ namespace JMMServer.Databases
 				UpdateSchema_008(versionNumber);
 				UpdateSchema_009(versionNumber);
 				UpdateSchema_010(versionNumber);
+				UpdateSchema_011(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -474,6 +475,46 @@ namespace JMMServer.Databases
 			UpdateDatabaseVersion(thisVersion);
 
 		}
+
+		private static void UpdateSchema_011(int currentVersionNumber)
+		{
+			int thisVersion = 11;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE `ImportFolder` ADD `IsWatched` int NULL ;");
+			cmds.Add("UPDATE ImportFolder SET IsWatched = 1 ;");
+			cmds.Add("ALTER TABLE `ImportFolder` CHANGE COLUMN `IsWatched` `IsWatched` int NOT NULL ;");
+			
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		
 
 		private static void UpdateDatabaseVersion(int versionNumber)
 		{
