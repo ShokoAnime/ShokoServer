@@ -1034,8 +1034,11 @@ namespace JMMServer
 			}
 
 			List<TraktTVFriendRequest> requests = TraktTVHelper.GetFriendsRequests();
-			foreach (TraktTVFriendRequest req in requests)
-				allInfo.Add(req);
+			if (requests != null)
+			{
+				foreach (TraktTVFriendRequest req in requests)
+					allInfo.Add(req);
+			}
 
 			TraktTV_ActivitySummary summ = TraktTVHelper.GetActivityFriends();
 			if (summ != null)
