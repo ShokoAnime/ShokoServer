@@ -52,7 +52,9 @@ namespace JMMServer
 		Trakt_SyncCollectionSeries = 44,
 		Trakt_ShowEpisodeUnseen = 45,
 		Trakt_UpdateAllSeries = 46,
-		ReadMediaInfo = 50
+		ReadMediaInfo = 50,
+		WebCache_SendXRefAniDBMAL = 51,
+		WebCache_DeleteXRefAniDBMAL = 52
 	}
 
 	public enum CommandRequestPriority

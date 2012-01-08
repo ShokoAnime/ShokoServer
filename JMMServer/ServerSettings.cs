@@ -1083,6 +1083,36 @@ namespace JMMServer
 
 		#endregion
 
+		#region MAL
+
+		public static string MAL_Username
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				return appSettings["MAL_Username"];
+			}
+			set
+			{
+				UpdateSetting("MAL_Username", value);
+			}
+		}
+
+		public static string MAL_Password
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				return appSettings["MAL_Password"];
+			}
+			set
+			{
+				UpdateSetting("MAL_Password", value);
+			}
+		}
+
+		#endregion
+
 		public static void UpdateSetting(string key, string value)
 		{
 			System.Configuration.Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
@@ -1168,6 +1198,10 @@ namespace JMMServer
 			contract.Trakt_Password = ServerSettings.Trakt_Password;
 			contract.Trakt_UpdateFrequency = (int)ServerSettings.Trakt_UpdateFrequency;
 			contract.Trakt_SyncFrequency = (int)ServerSettings.Trakt_SyncFrequency;
+
+			// MAL
+			contract.MAL_Username = ServerSettings.MAL_Username;
+			contract.MAL_Password = ServerSettings.MAL_Password;
 
 			return contract;
 		}

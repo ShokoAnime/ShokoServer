@@ -464,6 +464,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AnimeEpisode> GetEpisodesRecentlyWatched(int maxRecords, int jmmuserID);
+
+		[OperationContract]
+		List<Contract_MALAnimeResponse> SearchMAL(string criteria);
+
+		[OperationContract]
+		string TestMALLogin();
 	}
 
 }

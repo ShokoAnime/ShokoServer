@@ -143,6 +143,15 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public CrossRef_AniDB_MAL CrossRefMAL
+		{
+			get
+			{
+				CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
+				return repCrossRef.GetByAnimeID(this.AnimeID);
+			}
+		}
+
 		public Trakt_Show TraktShow
 		{
 			get

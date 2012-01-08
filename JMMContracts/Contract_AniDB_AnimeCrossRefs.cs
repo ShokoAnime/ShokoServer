@@ -29,6 +29,9 @@ namespace JMMContracts
 		public List<Contract_MovieDB_Fanart> MovieDBFanarts { get; set; }
 		public List<Contract_MovieDB_Poster> MovieDBPosters { get; set; }
 
+		// MAL
+		public Contract_CrossRef_AniDB_MAL CrossRef_AniDB_MAL { get; set; }
+
 		public Contract_AniDB_AnimeCrossRefs()
 		{
 			CrossRef_AniDB_TvDB = null;
@@ -42,6 +45,8 @@ namespace JMMContracts
 			MovieDBMovie = null;
 			MovieDBFanarts = new List<Contract_MovieDB_Fanart>();
 			MovieDBPosters = new List<Contract_MovieDB_Poster>();
+
+			CrossRef_AniDB_MAL = null;
 		}
 	}
 }

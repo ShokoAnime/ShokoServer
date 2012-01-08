@@ -18,6 +18,7 @@ using JMMServer.Providers.MovieDB;
 using BinaryNorthwest;
 using JMMServer.Providers.TraktTV;
 using AniDBAPI.Commands;
+using JMMServer.Providers.MyAnimeList;
 
 namespace JMMServer
 {
@@ -2190,6 +2191,10 @@ namespace JMMServer
 				ServerSettings.Trakt_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_UpdateFrequency;
 				ServerSettings.Trakt_SyncFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_SyncFrequency;
 
+				// MAL
+				ServerSettings.MAL_Username = contractIn.MAL_Username;
+				ServerSettings.MAL_Password = contractIn.MAL_Password;
+
 				if (anidbSettingsChanged)
 				{
 					JMMService.AnidbProcessor.ForceLogout();
@@ -2690,6 +2695,22 @@ namespace JMMServer
 			catch (Exception ex)
 			{
 				logger.ErrorException("Error in TestTraktLogin: " + ex.ToString(), ex);
+				return ex.Message;
+			}
+		}
+
+		public string TestMALLogin()
+		{
+			try
+			{
+				if (MALHelper.VerifyCredentials())
+					return "";
+
+				return "Login is not valid";
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TestMALLogin: " + ex.ToString(), ex);
 				return ex.Message;
 			}
 		}
@@ -3388,6 +3409,12 @@ namespace JMMServer
 						result.MovieDBPosters.Add(poster.ToContract());
 				}
 
+				// MAL
+				CrossRef_AniDB_MAL xrefMAL = anime.CrossRefMAL;
+				if (xrefMAL == null)
+					result.CrossRef_AniDB_MAL = null;
+				else
+					result.CrossRef_AniDB_MAL = xrefMAL.ToContract();
 
 				return result;
 			}
@@ -3626,6 +3653,8 @@ namespace JMMServer
 				return results;
 			}
 		}
+
+		
 
 		public List<int> GetSeasonNumbersForSeries(int seriesID)
 		{
@@ -3897,6 +3926,22 @@ namespace JMMServer
 			}
 		}
 
+		public Contract_CrossRef_AniDB_MALResult GetMALCrossRefWebCache(int animeID)
+		{
+			try
+			{
+				CrossRef_AniDB_MALResult result = XMLService.Get_CrossRef_AniDB_MAL(animeID);
+				if (result == null) return null;
+
+				return result.ToContract();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return null;
+			}
+		}
+
 		public Contract_CrossRef_AniDB_Trakt GetTraktCrossRef(int animeID)
 		{
 			try
@@ -3922,6 +3967,25 @@ namespace JMMServer
 				List<TraktTVShow> traktResults = TraktTVHelper.SearchShow(criteria);
 
 				foreach (TraktTVShow res in traktResults)
+					results.Add(res.ToContract());
+
+				return results;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return results;
+			}
+		}
+
+		public List<Contract_MALAnimeResponse> SearchMAL(string criteria)
+		{
+			List<Contract_MALAnimeResponse> results = new List<Contract_MALAnimeResponse>();
+			try
+			{
+				anime malResults = MALHelper.SearchAnimesByTitle(criteria);
+
+				foreach (animeEntry res in malResults.entry)
 					results.Add(res.ToContract());
 
 				return results;

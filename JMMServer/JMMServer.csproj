@@ -104,6 +104,7 @@
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.ServiceModel.Web" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
@@ -214,12 +215,14 @@
     <Compile Include="Commands\TvDB\CommandRequest_TvDBSearchAnime.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_UpdateMyListFileStatus.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_VoteAnime.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBMAL.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBOther.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTrakt.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTvDB.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefFileEpisode.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTvDBAll.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendFileHash.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBMAL.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBOther.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBTrakt.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBTvDB.cs" />
@@ -231,6 +234,12 @@
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseHelper.cs" />
     <Compile Include="Databases\MySQL.cs" />
+    <Compile Include="Entities\CrossRef_AniDB_MAL.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
+    <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
+    <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
+    <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
+    <Compile Include="Providers\MyAnimeList\MALHelper.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShoutShow.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_Activity.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_ActivitySummary.cs" />
@@ -243,6 +252,7 @@
     <Compile Include="Providers\TraktTV\TraktTV_Timestamps.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_UserActivity.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_When.cs" />
+    <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
     <Compile Include="Security\CRC32.cs" />
     <Compile Include="Security\Digest.cs" />
     <Compile Include="MyAnime2Helper\MA2Progress.cs" />
@@ -488,15 +498,18 @@
     <Compile Include="UI\ServerInfo.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WatchedUnwatchedCount.cs" />
+    <Compile Include="WebCache\AddCrossRef_AniDB_MALRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_OtherRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_TraktRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_TvDBRequest.cs" />
     <Compile Include="WebCache\AniDB_UpdatedRequest.cs" />
+    <Compile Include="WebCache\CrossRef_AniDB_MALResult.cs" />
     <Compile Include="WebCache\CrossRef_AniDB_OtherResult.cs" />
     <Compile Include="WebCache\CrossRef_AniDB_TraktResult.cs" />
     <Compile Include="WebCache\CrossRef_AniDB_TvDBResult.cs" />
     <Compile Include="WebCache\CrossRef_File_EpisodeRequest.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDBTvDBAll_Request.cs" />
+    <Compile Include="WebCache\DeleteCrossRef_AniDB_MALRequest.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDB_OtherRequest.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDB_TraktRequest.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDB_TvDBRequest.cs" />
@@ -564,6 +577,15 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <AppDesigner Include="Properties\" />
+    <None Include="Providers\MyAnimeList\XMLSchema\AnimeList.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Providers\MyAnimeList\XMLSchema\SearchResult.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Providers\MyAnimeList\XMLSchema\VerifyCredentials.xsd">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_add.png" />
@@ -621,9 +643,7 @@
   <ItemGroup>
     <Resource Include="Images\32_image.png" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Providers\MyAnimeList\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Resource Include="Images\32_warning.png" />
   </ItemGroup>
@@ -632,6 +652,12 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\16_folder_find.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Providers\MyAnimeList\sample\AnimeList.xml" />
+    <Resource Include="Providers\MyAnimeList\sample\AnimeValues.xml" />
+    <Resource Include="Providers\MyAnimeList\sample\SearchResult.xml" />
+    <Resource Include="Providers\MyAnimeList\sample\VerifyCredentials.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

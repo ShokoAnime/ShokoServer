@@ -33,6 +33,7 @@ using System.Data;
 using JMMServer.MyAnime2Helper;
 using JMMServer.ImageDownload;
 using Microsoft.SqlServer.Management.Smo;
+using JMMServer.Providers.MyAnimeList;
 
 namespace JMMServer
 {
@@ -829,7 +830,8 @@ namespace JMMServer
 				}
 			}*/
 
-
+			anime temp = MALHelper.SearchAnimesByTitle("Naruto");
+			//MALHelper.VerifyCredentials();
 			
 		}
 

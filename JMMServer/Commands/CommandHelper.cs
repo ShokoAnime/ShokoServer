@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using JMMServer.Entities;
+using JMMServer.Commands.WebCache;
 
 namespace JMMServer.Commands
 {
@@ -81,6 +82,16 @@ namespace JMMServer.Commands
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
 			{
+				case CommandRequestType.WebCache_SendXRefAniDBMAL:
+					CommandRequest_WebCacheSendXRefAniDBMAL cr_WebCacheSendXRefAniDBMAL = new CommandRequest_WebCacheSendXRefAniDBMAL();
+					cr_WebCacheSendXRefAniDBMAL.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_WebCacheSendXRefAniDBMAL;
+
+				case CommandRequestType.WebCache_DeleteXRefAniDBMAL:
+					CommandRequest_WebCacheDeleteXRefAniDBMAL cr_WebCacheDeleteXRefAniDBMAL = new CommandRequest_WebCacheDeleteXRefAniDBMAL();
+					cr_WebCacheDeleteXRefAniDBMAL.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_WebCacheDeleteXRefAniDBMAL;
+
 				case CommandRequestType.AniDB_GetFileUDP:
 					CommandRequest_GetFile cr_AniDB_GetFileUDP = new CommandRequest_GetFile();
 					cr_AniDB_GetFileUDP.LoadFromDBCommand(crdb);

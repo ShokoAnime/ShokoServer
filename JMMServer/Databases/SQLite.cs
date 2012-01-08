@@ -85,6 +85,7 @@ namespace JMMServer.Databases
 				UpdateSchema_007(versionNumber);
 				UpdateSchema_008(versionNumber);
 				UpdateSchema_009(versionNumber);
+				UpdateSchema_010(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -299,6 +300,42 @@ namespace JMMServer.Databases
 
 			List<string> cmds = new List<string>();
 			cmds.Add("ALTER TABLE ImportFolder ADD IsWatched int NOT NULL DEFAULT 1");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_010(int currentVersionNumber)
+		{
+			int thisVersion = 10;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE CrossRef_AniDB_MAL( " +
+				" CrossRef_AniDB_MALID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" AnimeID int NOT NULL, " +
+				" MALID int NOT NULL, " +
+				" MALTitle text, " +
+				" CrossRefSource int NOT NULL " +
+				" ); ");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_AnimeID ON CrossRef_AniDB_MAL(AnimeID);");
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL(MALID);");
+
 
 			foreach (string cmdTable in cmds)
 			{

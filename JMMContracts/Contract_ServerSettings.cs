@@ -77,5 +77,9 @@ namespace JMMContracts
 		public string Trakt_Password { get; set; }
 		public int Trakt_UpdateFrequency { get; set; }
 		public int Trakt_SyncFrequency { get; set; }
+
+		// MAL
+		public string MAL_Username { get; set; }
+		public string MAL_Password { get; set; }
 	}
 }
