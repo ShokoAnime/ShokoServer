@@ -2155,6 +2155,8 @@ namespace JMMServer
 				ServerSettings.WebCache_XRefFileEpisode_Send = contractIn.WebCache_XRefFileEpisode_Send;
 				ServerSettings.WebCache_TvDB_Get = contractIn.WebCache_TvDB_Get;
 				ServerSettings.WebCache_TvDB_Send = contractIn.WebCache_TvDB_Send;
+				ServerSettings.WebCache_MAL_Get = contractIn.WebCache_MAL_Get;
+				ServerSettings.WebCache_MAL_Send = contractIn.WebCache_MAL_Send;
 
 				// TvDB
 				ServerSettings.TvDB_AutoFanart = contractIn.TvDB_AutoFanart;
@@ -2194,6 +2196,7 @@ namespace JMMServer
 				// MAL
 				ServerSettings.MAL_Username = contractIn.MAL_Username;
 				ServerSettings.MAL_Password = contractIn.MAL_Password;
+				ServerSettings.MAL_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.MAL_UpdateFrequency;
 
 				if (anidbSettingsChanged)
 				{
@@ -4017,6 +4020,30 @@ namespace JMMServer
 			}
 		}
 
+		public string LinkAniDBMAL(int animeID, int malID, string malTitle)
+		{
+			try
+			{
+				CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
+				CrossRef_AniDB_MAL xrefTemp = repCrossRef.GetByMALID(malID);
+				if (xrefTemp != null)
+					return string.Format("Not using MAL link as this MAL ID ({0}) is already in use by {1}", malID, xrefTemp.AnimeID);
+
+				xrefTemp = repCrossRef.GetByAnimeID(animeID);
+				if (xrefTemp != null)
+					return string.Format("Not using MAL link as this Anime ID ({0}) is already in use by {1} ({2})", animeID, xrefTemp.MALID, xrefTemp.MALTitle);
+
+				MALHelper.LinkAniDBMAL(animeID, malID, malTitle, false);
+
+				return "";
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+		}
+
 		public string RemoveLinkAniDBTrakt(int animeID)
 		{
 			try
@@ -4039,6 +4066,26 @@ namespace JMMServer
 				}
 
 				TraktTVHelper.RemoveLinkAniDBTrakt(ser);
+
+				return "";
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+		}
+
+		public string RemoveLinkAniDBMAL(int animeID)
+		{
+			try
+			{
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+
+				if (ser == null) return "Could not find Series for Anime!";
+
+				MALHelper.RemoveLinkAniDBMAL(ser);
 
 				return "";
 			}

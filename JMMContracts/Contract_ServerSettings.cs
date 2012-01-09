@@ -42,6 +42,8 @@ namespace JMMContracts
 		public bool WebCache_XRefFileEpisode_Send { get; set; }
 		public bool WebCache_TvDB_Get { get; set; }
 		public bool WebCache_TvDB_Send { get; set; }
+		public bool WebCache_MAL_Get { get; set; }
+		public bool WebCache_MAL_Send { get; set; }
 
 		// TvDB
 		public bool TvDB_AutoFanart { get; set; }
@@ -81,5 +83,6 @@ namespace JMMContracts
 		// MAL
 		public string MAL_Username { get; set; }
 		public string MAL_Password { get; set; }
+		public int MAL_UpdateFrequency { get; set; }
 	}
 }

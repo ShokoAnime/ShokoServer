@@ -11,6 +11,8 @@ using NLog;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.Commands.WebCache;
+using JMMServer.Commands;
+using JMMServer.Commands.MAL;
 
 namespace JMMServer.Providers.MyAnimeList
 {
@@ -20,7 +22,14 @@ namespace JMMServer.Providers.MyAnimeList
 
 		public static anime SearchAnimesByTitle(string searchTitle)
 		{
-			searchTitle = HttpUtility.UrlEncode(searchTitle);
+			if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
+			{
+				logger.Warn("Won't search MAL, MAL credentials not provided");
+				return GetEmptyAnimes();
+			}
+
+			searchTitle = HttpUtility.UrlPathEncode(searchTitle);
+
 			string searchResultXML = "";
 			try
 			{
@@ -183,7 +192,7 @@ namespace JMMServer.Providers.MyAnimeList
 
 		}
 
-		public static void LinkAniDBTvDB(int animeID, int malID, string malTitle, bool fromWebCache)
+		public static void LinkAniDBMAL(int animeID, int malID, string malTitle, bool fromWebCache)
 		{
 			CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
 			CrossRef_AniDB_MAL xrefTemp = repCrossRef.GetByMALID(malID);
@@ -219,6 +228,46 @@ namespace JMMServer.Providers.MyAnimeList
 
 			CommandRequest_WebCacheSendXRefAniDBMAL req = new CommandRequest_WebCacheSendXRefAniDBMAL(xref.CrossRef_AniDB_MALID);
 			req.Save();
+		}
+
+		public static void RemoveLinkAniDBMAL(AnimeSeries ser)
+		{
+			CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
+			CrossRef_AniDB_MAL xref = repCrossRef.GetByAnimeID(ser.AniDB_ID);
+			if (xref == null) return;
+
+			repCrossRef.Delete(xref.CrossRef_AniDB_MALID);
+
+			CommandRequest_WebCacheDeleteXRefAniDBMAL req = new CommandRequest_WebCacheDeleteXRefAniDBMAL(ser.AniDB_ID);
+			req.Save();
+		}
+
+		public static void ScanForMatches()
+		{
+			if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
+			{
+				logger.Warn("Won't SCAN MAL, MAL credentials not provided");
+				return;
+			}
+
+			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+			List<AnimeSeries> allSeries = repSeries.GetAll();
+
+			CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
+			foreach (AnimeSeries ser in allSeries)
+			{
+				AniDB_Anime anime = ser.Anime;
+				if (anime == null) continue;
+
+				// don't scan if it is associated on the TvDB
+				if (anime.CrossRefMAL != null) continue;
+
+				logger.Trace(string.Format("Found anime without MAL association: {0} ({1})", anime.AnimeID, anime.MainTitle));
+
+				CommandRequest_MALSearchAnime cmd = new CommandRequest_MALSearchAnime(ser.AniDB_ID, false);
+				cmd.Save();
+			}
+
 		}
 	}
 }

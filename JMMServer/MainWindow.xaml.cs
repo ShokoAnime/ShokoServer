@@ -34,6 +34,7 @@ using JMMServer.MyAnime2Helper;
 using JMMServer.ImageDownload;
 using Microsoft.SqlServer.Management.Smo;
 using JMMServer.Providers.MyAnimeList;
+using JMMServer.Commands.MAL;
 
 namespace JMMServer
 {
@@ -476,7 +477,7 @@ namespace JMMServer
 				// timer for automatic updates
 				autoUpdateTimer = new System.Timers.Timer();
 				autoUpdateTimer.AutoReset = true;
-				autoUpdateTimer.Interval = 10 * 60 * 1000; // 10 minutes * 60 seconds
+				autoUpdateTimer.Interval = 5 * 60 * 1000; // 5 minutes * 60 seconds
 				autoUpdateTimer.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimer_Elapsed);
 				autoUpdateTimer.Start();
 
@@ -830,9 +831,8 @@ namespace JMMServer
 				}
 			}*/
 
-			anime temp = MALHelper.SearchAnimesByTitle("Naruto");
+			//anime temp = MALHelper.SearchAnimesByTitle("Naruto");
 			//MALHelper.VerifyCredentials();
-			
 		}
 
 		private void DownloadAllImages()
@@ -1170,7 +1170,7 @@ namespace JMMServer
 			Importer.CheckForMyListSyncUpdate(false);
 			Importer.CheckForTraktAllSeriesUpdate(false);
 			Importer.CheckForTraktSyncUpdate(false);
-
+			Importer.CheckForMALUpdate(false);
 			
 		}
 
@@ -1325,6 +1325,9 @@ namespace JMMServer
 
 				// Check for missing images
 				Importer.RunImport_GetImages();
+
+				// MAL association checks
+				Importer.RunImport_ScanMAL();
 
 			}
 			catch (Exception ex)

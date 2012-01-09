@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using JMMServer.Commands.WebCache;
+using JMMServer.Commands.MAL;
 
 namespace JMMServer.Commands
 {
@@ -51,6 +52,7 @@ namespace JMMServer.Commands
 		// CommandRequest_TvDBSearchAnime
 		// CommandRequest_MovieDBSearchAnime
 		// CommandRequest_TraktSearchAnime
+		// CommandRequest_MALSearchAnime
 		//------
 		// Pri 9
 		//------
@@ -82,6 +84,11 @@ namespace JMMServer.Commands
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
 			{
+				case CommandRequestType.MAL_SearchAnime:
+					CommandRequest_MALSearchAnime cr_MAL_SearchAnime = new CommandRequest_MALSearchAnime();
+					cr_MAL_SearchAnime.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_MAL_SearchAnime;
+
 				case CommandRequestType.WebCache_SendXRefAniDBMAL:
 					CommandRequest_WebCacheSendXRefAniDBMAL cr_WebCacheSendXRefAniDBMAL = new CommandRequest_WebCacheSendXRefAniDBMAL();
 					cr_WebCacheSendXRefAniDBMAL.LoadFromDBCommand(crdb);

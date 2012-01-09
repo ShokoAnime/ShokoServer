@@ -470,6 +470,15 @@ namespace JMMContracts
 
 		[OperationContract]
 		string TestMALLogin();
+
+		[OperationContract]
+		Contract_CrossRef_AniDB_MALResult GetMALCrossRefWebCache(int animeID);
+
+		[OperationContract]
+		string LinkAniDBMAL(int animeID, int malID, string malTitle);
+
+		[OperationContract]
+		string RemoveLinkAniDBMAL(int animeID);
 	}
 
 }

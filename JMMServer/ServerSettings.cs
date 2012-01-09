@@ -605,6 +605,40 @@ namespace JMMServer
 			}
 		}
 
+		public static bool WebCache_MAL_Get
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool usecache = false;
+				if (bool.TryParse(appSettings["WebCache_MAL_Get"], out usecache))
+					return usecache;
+				else
+					return true; // default
+			}
+			set
+			{
+				UpdateSetting("WebCache_MAL_Get", value.ToString());
+			}
+		}
+
+		public static bool WebCache_MAL_Send
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool usecache = false;
+				if (bool.TryParse(appSettings["WebCache_MAL_Send"], out usecache))
+					return usecache;
+				else
+					return true; // default
+			}
+			set
+			{
+				UpdateSetting("WebCache_MAL_Send", value.ToString());
+			}
+		}
+
 		#endregion
 
 		#region TvDB
@@ -1111,6 +1145,23 @@ namespace JMMServer
 			}
 		}
 
+		public static ScheduledUpdateFrequency MAL_UpdateFrequency
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				int val = 1;
+				if (int.TryParse(appSettings["MAL_UpdateFrequency"], out val))
+					return (ScheduledUpdateFrequency)val;
+				else
+					return ScheduledUpdateFrequency.Daily; // default value
+			}
+			set
+			{
+				UpdateSetting("MAL_UpdateFrequency", ((int)value).ToString());
+			}
+		}
+
 		#endregion
 
 		public static void UpdateSetting(string key, string value)
@@ -1163,6 +1214,8 @@ namespace JMMServer
 			contract.WebCache_XRefFileEpisode_Send = ServerSettings.WebCache_XRefFileEpisode_Send;
 			contract.WebCache_TvDB_Get = ServerSettings.WebCache_TvDB_Get;
 			contract.WebCache_TvDB_Send = ServerSettings.WebCache_TvDB_Send;
+			contract.WebCache_MAL_Get = ServerSettings.WebCache_MAL_Get;
+			contract.WebCache_MAL_Send = ServerSettings.WebCache_MAL_Send;
 
 			// TvDB
 			contract.TvDB_AutoFanart = ServerSettings.TvDB_AutoFanart;
@@ -1202,6 +1255,7 @@ namespace JMMServer
 			// MAL
 			contract.MAL_Username = ServerSettings.MAL_Username;
 			contract.MAL_Password = ServerSettings.MAL_Password;
+			contract.MAL_UpdateFrequency = (int)ServerSettings.MAL_UpdateFrequency;
 
 			return contract;
 		}
@@ -1315,6 +1369,8 @@ namespace JMMServer
 			logger.Info("WebCache_XRefFileEpisode_Send: {0}", WebCache_XRefFileEpisode_Send);
 			logger.Info("WebCache_TvDB_Get: {0}", WebCache_TvDB_Get);
 			logger.Info("WebCache_TvDB_Send: {0}", WebCache_TvDB_Send);
+			logger.Info("WebCache_MAL_Get: {0}", WebCache_MAL_Get);
+			logger.Info("WebCache_MAL_Send: {0}", WebCache_MAL_Send);
 
 			logger.Info("TvDB_AutoFanart: {0}", TvDB_AutoFanart);
 			logger.Info("TvDB_AutoFanartAmount: {0}", TvDB_AutoFanartAmount);

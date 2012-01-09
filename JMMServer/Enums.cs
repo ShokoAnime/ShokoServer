@@ -54,7 +54,8 @@ namespace JMMServer
 		Trakt_UpdateAllSeries = 46,
 		ReadMediaInfo = 50,
 		WebCache_SendXRefAniDBMAL = 51,
-		WebCache_DeleteXRefAniDBMAL = 52
+		WebCache_DeleteXRefAniDBMAL = 52,
+		MAL_SearchAnime = 60
 	}
 
 	public enum CommandRequestPriority
@@ -135,7 +136,8 @@ namespace JMMServer
 		AniDBTitles = 4,
 		AniDBMyListSync = 5,
 		TraktSync = 6,
-		TraktUpdate = 7
+		TraktUpdate = 7,
+		MALUpdate = 8
 	}
 
 	public enum JMMImageType

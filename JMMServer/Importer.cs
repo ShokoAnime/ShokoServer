@@ -12,6 +12,7 @@ using JMMServer.Providers.TvDB;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Providers.TraktTV;
 using System.Threading;
+using JMMServer.Providers.MyAnimeList;
 
 namespace JMMServer
 {
@@ -423,6 +424,11 @@ namespace JMMServer
 			MovieDBHelper.ScanForMatches();
 		}
 
+		public static void RunImport_ScanMAL()
+		{
+			MALHelper.ScanForMatches();
+		}
+
 		public static void RunImport_UpdateTvDB(bool forced)
 		{
 			TvDBHelper.UpdateAllInfo(forced);
@@ -621,6 +627,38 @@ namespace JMMServer
 
 			CommandRequest_GetUpdated cmd = new CommandRequest_GetUpdated(true);
 			cmd.Save();
+		}
+
+		public static void CheckForMALUpdate(bool forceRefresh)
+		{
+			if (ServerSettings.AniDB_Anime_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+			int freqHours = Utils.GetScheduledHours(ServerSettings.MAL_UpdateFrequency);
+
+			// check for any updated anime info every 12 hours
+			ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+			ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.MALUpdate);
+			if (sched != null)
+			{
+				// if we have run this in the last 12 hours and are not forcing it, then exit
+				TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+				if (tsLastRun.TotalHours < freqHours)
+				{
+					if (!forceRefresh) return;
+				}
+			}
+
+			RunImport_ScanMAL();
+
+			if (sched == null)
+			{
+				sched = new ScheduledUpdate();
+				sched.UpdateType = (int)ScheduledUpdateType.MALUpdate;
+				sched.UpdateDetails = "";
+			}
+			sched.LastUpdate = DateTime.Now;
+			repSched.Save(sched);
 		}
 
 		public static void CheckForMyListSyncUpdate(bool forceRefresh)
