@@ -12,6 +12,8 @@ namespace JMMServer.WebCache
 		public int MALID { get; set; }
 		public int CrossRefSource { get; set; }
 		public string MALTitle { get; set; }
+		public int StartEpisodeType { get; set; }
+		public int StartEpisodeNumber { get; set; }
 
 		// default constructor
 		public CrossRef_AniDB_MALResult()
@@ -25,6 +27,8 @@ namespace JMMServer.WebCache
 			contract.MALID = this.MALID;
 			contract.CrossRefSource = this.CrossRefSource;
 			contract.MALTitle = this.MALTitle;
+			contract.StartEpisodeType = this.StartEpisodeType;
+			contract.StartEpisodeNumber = this.StartEpisodeNumber;
 			return contract;
 		}
 	}

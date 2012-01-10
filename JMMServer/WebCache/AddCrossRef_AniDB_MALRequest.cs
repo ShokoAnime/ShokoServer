@@ -40,6 +40,20 @@ namespace JMMServer.WebCache
 			set { mALID = value; }
 		}
 
+		protected int startEpisodeType = 0;
+		public int StartEpisodeType
+		{
+			get { return startEpisodeType; }
+			set { startEpisodeType = value; }
+		}
+
+		protected int startEpisodeNumber = 0;
+		public int StartEpisodeNumber
+		{
+			get { return startEpisodeNumber; }
+			set { startEpisodeNumber = value; }
+		}
+
 
 		// default constructor
 		public AddCrossRef_AniDB_MALRequest()
@@ -51,6 +65,8 @@ namespace JMMServer.WebCache
 		{
 			this.AnimeID = data.AnimeID;
 			this.MALID = data.MALID;
+			this.StartEpisodeType = data.StartEpisodeType;
+			this.StartEpisodeNumber = data.StartEpisodeNumber;
 
 			string username = ServerSettings.AniDB_Username;
 			if (ServerSettings.WebCache_Anonymous)

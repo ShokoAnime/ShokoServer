@@ -30,15 +30,16 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public CrossRef_AniDB_MAL GetByAnimeID(int id)
+		public List<CrossRef_AniDB_MAL> GetByAnimeID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				CrossRef_AniDB_MAL cr = session
+				var xrefs = session
 					.CreateCriteria(typeof(CrossRef_AniDB_MAL))
 					.Add(Restrictions.Eq("AnimeID", id))
-					.UniqueResult<CrossRef_AniDB_MAL>();
-				return cr;
+					.List<CrossRef_AniDB_MAL>();
+
+				return new List<CrossRef_AniDB_MAL>(xrefs);
 			}
 		}
 
@@ -54,15 +55,29 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public CrossRef_AniDB_MAL GetByAnimeConstraint(int animeID, int epType, int epNumber)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				CrossRef_AniDB_MAL cr = session
+					.CreateCriteria(typeof(CrossRef_AniDB_MAL))
+					.Add(Restrictions.Eq("AnimeID", animeID))
+					.Add(Restrictions.Eq("StartEpisodeType", epType))
+					.Add(Restrictions.Eq("StartEpisodeNumber", epNumber))
+					.UniqueResult<CrossRef_AniDB_MAL>();
+				return cr;
+			}
+		}
+
 		public List<CrossRef_AniDB_MAL> GetAll()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var series = session
+				var xrefs = session
 					.CreateCriteria(typeof(CrossRef_AniDB_MAL))
 					.List<CrossRef_AniDB_MAL>();
 
-				return new List<CrossRef_AniDB_MAL>(series);
+				return new List<CrossRef_AniDB_MAL>(xrefs);
 			}
 		}
 

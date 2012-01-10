@@ -83,7 +83,7 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public CrossRef_AniDB_MAL CrossRefMAL
+		public List<CrossRef_AniDB_MAL> CrossRefMAL
 		{
 			get
 			{
@@ -245,13 +245,13 @@ namespace JMMServer.Entities
 			AniDB_Anime anime = this.Anime;
 			CrossRef_AniDB_TvDB tvDBCrossRef = this.CrossRefTvDB;
 			CrossRef_AniDB_Other movieDBCrossRef = this.CrossRefMovieDB;
-			CrossRef_AniDB_MAL malDBCrossRef = this.CrossRefMAL;
+			List<CrossRef_AniDB_MAL> malDBCrossRef = this.CrossRefMAL;
 
 			return this.ToContract(anime, tvDBCrossRef, movieDBCrossRef, userRecord, tvDBCrossRef != null ? tvDBCrossRef.TvDBSeries : null, malDBCrossRef);
 		}
 
 		public Contract_AnimeSeries ToContract(AniDB_Anime animeRec, CrossRef_AniDB_TvDB tvDBCrossRef, CrossRef_AniDB_Other movieDBCrossRef,
-			AnimeSeries_User userRecord, TvDB_Series tvseries, CrossRef_AniDB_MAL malDBCrossRef)
+			AnimeSeries_User userRecord, TvDB_Series tvseries, List<CrossRef_AniDB_MAL> malDBCrossRef)
 		{
 			Contract_AnimeSeries contract = new Contract_AnimeSeries();
 
@@ -325,9 +325,12 @@ namespace JMMServer.Entities
 			if (movieDBCrossRef != null)
 				contract.CrossRefAniDBMovieDB = movieDBCrossRef.ToContract();
 
-			contract.CrossRefAniDBMAL = null;
+			contract.CrossRefAniDBMAL = new List<Contract_CrossRef_AniDB_MAL>();
 			if (malDBCrossRef != null)
-				contract.CrossRefAniDBMAL = malDBCrossRef.ToContract();
+			{
+				foreach (CrossRef_AniDB_MAL xref in malDBCrossRef)
+					contract.CrossRefAniDBMAL.Add(xref.ToContract());
+			}
 
 			/*AnimeGroup grp = this.TopLevelAnimeGroup;
 			if (grp != null && userRecord != null)

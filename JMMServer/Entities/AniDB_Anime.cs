@@ -143,7 +143,7 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public CrossRef_AniDB_MAL CrossRefMAL
+		public List<CrossRef_AniDB_MAL> CrossRefMAL
 		{
 			get
 			{

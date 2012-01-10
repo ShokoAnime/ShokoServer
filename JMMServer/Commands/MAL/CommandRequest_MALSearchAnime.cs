@@ -8,6 +8,7 @@ using JMMServer.Repositories;
 using JMMServer.Providers.TvDB;
 using JMMServer.WebCache;
 using JMMServer.Providers.MyAnimeList;
+using AniDBAPI;
 
 namespace JMMServer.Commands.MAL
 {
@@ -55,11 +56,14 @@ namespace JMMServer.Commands.MAL
 				{
 					try
 					{
-						CrossRef_AniDB_MALResult crossRef = XMLService.Get_CrossRef_AniDB_MAL(AnimeID);
-						if (crossRef != null)
+						List<CrossRef_AniDB_MALResult> crossRefs = XMLService.Get_CrossRef_AniDB_MAL(AnimeID);
+						if (crossRefs != null)
 						{
-							logger.Trace("Found MAL match on web cache for {0} - id = {1}", AnimeID, crossRef.MALID);
-							MALHelper.LinkAniDBMAL(AnimeID, crossRef.MALID, crossRef.MALTitle, true);
+							foreach (CrossRef_AniDB_MALResult crossRef in crossRefs)
+							{
+								logger.Trace("Found MAL match on web cache for {0} - id = {1} ({2}/{3})", AnimeID, crossRef.MALID, crossRef.StartEpisodeType, crossRef.StartEpisodeNumber);
+								MALHelper.LinkAniDBMAL(AnimeID, crossRef.MALID, crossRef.MALTitle, crossRef.StartEpisodeType, crossRef.StartEpisodeNumber, true);
+							}
 							return;
 						}
 					}
@@ -82,7 +86,7 @@ namespace JMMServer.Commands.MAL
 				if (malResults.entry.Length == 1)
 				{
 					logger.Trace("Using MAL search result for search on {0} : {1} ({2})", searchCriteria, malResults.entry[0].id, malResults.entry[0].title);
-					MALHelper.LinkAniDBMAL(AnimeID, malResults.entry[0].id, malResults.entry[0].title, false);
+					MALHelper.LinkAniDBMAL(AnimeID, malResults.entry[0].id, malResults.entry[0].title, (int)enEpisodeType.Episode, 1, false);
 				}
 				else if (malResults.entry.Length == 0)
 					logger.Trace("ZERO MAL search result results for: {0}", searchCriteria);
@@ -94,7 +98,7 @@ namespace JMMServer.Commands.MAL
 						if (res.title.Equals(anime.MainTitle, StringComparison.InvariantCultureIgnoreCase) && res.episodes == anime.EpisodeCountNormal)
 						{
 							logger.Trace("Using MAL search result for search on {0} : {1} ({2})", searchCriteria, res.id, res.title);
-							MALHelper.LinkAniDBMAL(AnimeID, res.id, res.title, false);
+							MALHelper.LinkAniDBMAL(AnimeID, res.id, res.title, (int)enEpisodeType.Episode, 1, false);
 						}
 					}
 					logger.Trace("Too many MAL search result results for, skipping: {0}", searchCriteria);

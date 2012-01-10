@@ -11,6 +11,8 @@ namespace JMMServer.Commands.WebCache
 	public class CommandRequest_WebCacheDeleteXRefAniDBMAL : CommandRequestImplementation, ICommandRequest
 	{
 		public int AnimeID { get; set; }
+		public int StartEpisodeType { get; set; }
+		public int StartEpisodeNumber { get; set; }
 
 		public CommandRequestPriority DefaultPriority
 		{
@@ -29,9 +31,11 @@ namespace JMMServer.Commands.WebCache
 		{
 		}
 
-		public CommandRequest_WebCacheDeleteXRefAniDBMAL(int animeID)
+		public CommandRequest_WebCacheDeleteXRefAniDBMAL(int animeID, int epType, int epNumber)
 		{
 			this.AnimeID = animeID;
+			this.StartEpisodeType = epType;
+			this.StartEpisodeNumber = epNumber;
 			this.CommandType = (int)CommandRequestType.WebCache_DeleteXRefAniDBMAL;
 			this.Priority = (int)DefaultPriority;
 
@@ -43,7 +47,7 @@ namespace JMMServer.Commands.WebCache
 			
 			try
 			{
-				XMLService.Delete_CrossRef_AniDB_MAL(AnimeID);
+				XMLService.Delete_CrossRef_AniDB_MAL(AnimeID, StartEpisodeType, StartEpisodeNumber);
 			}
 			catch (Exception ex)
 			{
@@ -74,6 +78,8 @@ namespace JMMServer.Commands.WebCache
 
 				// populate the fields
 				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL", "AnimeID"));
+				this.StartEpisodeType = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL", "StartEpisodeType"));
+				this.StartEpisodeNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL", "StartEpisodeNumber"));
 			}
 
 			return true;

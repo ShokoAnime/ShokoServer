@@ -225,6 +225,10 @@ namespace JMMServer.Entities
 				contract.Stat_HasTvDBLink = StatsCache.Instance.StatGroupHasTvDB[this.AnimeGroupID];
 			else contract.Stat_HasTvDBLink = false;
 
+			if (StatsCache.Instance.StatGroupHasMAL.ContainsKey(this.AnimeGroupID))
+				contract.Stat_HasMALLink = StatsCache.Instance.StatGroupHasMAL[this.AnimeGroupID];
+			else contract.Stat_HasMALLink = false;
+
 			if (StatsCache.Instance.StatGroupHasMovieDB.ContainsKey(this.AnimeGroupID))
 				contract.Stat_HasMovieDBLink = StatsCache.Instance.StatGroupHasMovieDB[this.AnimeGroupID];
 			else contract.Stat_HasMovieDBLink = false;

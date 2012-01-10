@@ -472,13 +472,13 @@ namespace JMMContracts
 		string TestMALLogin();
 
 		[OperationContract]
-		Contract_CrossRef_AniDB_MALResult GetMALCrossRefWebCache(int animeID);
+		List<Contract_CrossRef_AniDB_MALResult> GetMALCrossRefWebCache(int animeID);
 
 		[OperationContract]
-		string LinkAniDBMAL(int animeID, int malID, string malTitle);
+		string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber);
 
 		[OperationContract]
-		string RemoveLinkAniDBMAL(int animeID);
+		string RemoveLinkAniDBMAL(int animeID ,int epType, int epNumber);
 	}
 
 }

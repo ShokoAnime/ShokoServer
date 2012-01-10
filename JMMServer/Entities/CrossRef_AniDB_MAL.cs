@@ -14,6 +14,8 @@ namespace JMMServer.Entities
 		public int AnimeID { get; set; }
 		public int MALID { get; set; }
 		public string MALTitle { get; set; }
+		public int StartEpisodeType { get; set; }
+		public int StartEpisodeNumber { get; set; }
 		public int CrossRefSource { get; set; }
 
 		public Contract_CrossRef_AniDB_MAL ToContract()
@@ -24,6 +26,8 @@ namespace JMMServer.Entities
 			contract.AnimeID = AnimeID;
 			contract.MALID = MALID;
 			contract.MALTitle = MALTitle;
+			contract.StartEpisodeType = StartEpisodeType;
+			contract.StartEpisodeNumber = StartEpisodeNumber;
 			contract.CrossRefSource = CrossRefSource;
 
 			return contract;

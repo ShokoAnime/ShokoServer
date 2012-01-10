@@ -192,7 +192,7 @@ namespace JMMServer.Providers.MyAnimeList
 
 		}
 
-		public static void LinkAniDBMAL(int animeID, int malID, string malTitle, bool fromWebCache)
+		public static void LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber, bool fromWebCache)
 		{
 			CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
 			CrossRef_AniDB_MAL xrefTemp = repCrossRef.GetByMALID(malID);
@@ -203,18 +203,12 @@ namespace JMMServer.Providers.MyAnimeList
 				return;
 			}
 
-			xrefTemp = repCrossRef.GetByAnimeID(animeID);
-			if (xrefTemp != null)
-			{
-				string msg = string.Format("Not using MAL link as this Anime ID ({0}) is already in use by {1} ({2})", animeID, xrefTemp.MALID, xrefTemp.MALTitle);
-				logger.Warn(msg);
-				return;
-			}
-
 			CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL();
 			xref.AnimeID = animeID;
 			xref.MALID = malID;
 			xref.MALTitle = malTitle;
+			xref.StartEpisodeType = epType;
+			xref.StartEpisodeNumber = epNumber;
 			if (fromWebCache)
 				xref.CrossRefSource = (int)CrossRefSource.WebCache;
 			else
@@ -230,15 +224,15 @@ namespace JMMServer.Providers.MyAnimeList
 			req.Save();
 		}
 
-		public static void RemoveLinkAniDBMAL(AnimeSeries ser)
+		public static void RemoveLinkAniDBMAL(int animeID, int epType, int epNumber)
 		{
 			CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-			CrossRef_AniDB_MAL xref = repCrossRef.GetByAnimeID(ser.AniDB_ID);
+			CrossRef_AniDB_MAL xref = repCrossRef.GetByAnimeConstraint(animeID, epType, epNumber);
 			if (xref == null) return;
 
 			repCrossRef.Delete(xref.CrossRef_AniDB_MALID);
 
-			CommandRequest_WebCacheDeleteXRefAniDBMAL req = new CommandRequest_WebCacheDeleteXRefAniDBMAL(ser.AniDB_ID);
+			CommandRequest_WebCacheDeleteXRefAniDBMAL req = new CommandRequest_WebCacheDeleteXRefAniDBMAL(animeID, epType, epNumber);
 			req.Save();
 		}
 
@@ -260,12 +254,13 @@ namespace JMMServer.Providers.MyAnimeList
 				if (anime == null) continue;
 
 				// don't scan if it is associated on the TvDB
-				if (anime.CrossRefMAL != null) continue;
+				if (anime.CrossRefMAL == null || anime.CrossRefMAL.Count == 0)
+				{
+					logger.Trace(string.Format("Found anime without MAL association: {0} ({1})", anime.AnimeID, anime.MainTitle));
 
-				logger.Trace(string.Format("Found anime without MAL association: {0} ({1})", anime.AnimeID, anime.MainTitle));
-
-				CommandRequest_MALSearchAnime cmd = new CommandRequest_MALSearchAnime(ser.AniDB_ID, false);
-				cmd.Save();
+					CommandRequest_MALSearchAnime cmd = new CommandRequest_MALSearchAnime(ser.AniDB_ID, false);
+					cmd.Save();
+				}
 			}
 
 		}

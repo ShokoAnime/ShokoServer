@@ -48,6 +48,7 @@ namespace JMMServer
 		public Dictionary<int, string> StatGroupAudioLanguages = null; // AnimeGroupID / audio language List
 		public Dictionary<int, string> StatGroupSubtitleLanguages = null; // AnimeGroupID / subtitle language List
 		public Dictionary<int, bool> StatGroupHasTvDB = null; // AnimeGroupID
+		public Dictionary<int, bool> StatGroupHasMAL = null; // AnimeGroupID
 		public Dictionary<int, bool> StatGroupHasMovieDB = null; // AnimeGroupID
 		public Dictionary<int, bool> StatGroupHasMovieDBOrTvDB = null; // AnimeGroupID
 		public Dictionary<int, int> StatGroupSeriesCount = null; // AnimeGroupID
@@ -80,6 +81,7 @@ namespace JMMServer
 			StatGroupAudioLanguages = new Dictionary<int, string>();
 			StatGroupSubtitleLanguages = new Dictionary<int, string>();
 			StatGroupHasTvDB = new Dictionary<int, bool>();
+			StatGroupHasMAL = new Dictionary<int, bool>();
 			StatGroupHasMovieDB = new Dictionary<int, bool>();
 			StatGroupHasMovieDBOrTvDB = new Dictionary<int, bool>();
 			StatGroupSeriesCount = new Dictionary<int, int>();
@@ -214,6 +216,7 @@ namespace JMMServer
 					List<string> subtitleLanguages = new List<string>();
 
 					bool hasTvDB = true;
+					bool hasMAL = true;
 					bool hasMovieDB = true;
 					bool hasMovieDBOrTvDB = true;
 
@@ -401,6 +404,7 @@ namespace JMMServer
 						// we will consider the group as not having a tvdb link
 						if (series.CrossRefTvDB == null) hasTvDB = false;
 						if (series.CrossRefMovieDB == null) hasMovieDB = false;
+						if (series.CrossRefMAL == null) hasMAL = false;
 
 						if (series.CrossRefTvDB == null && series.CrossRefMovieDB == null) hasMovieDBOrTvDB = false;
 					}
@@ -409,6 +413,7 @@ namespace JMMServer
 					StatGroupIsComplete[grp.AnimeGroupID] = isComplete;
 					StatGroupIsFinishedAiring[grp.AnimeGroupID] = hasFinishedAiring;
 					StatGroupHasTvDB[grp.AnimeGroupID] = hasTvDB;
+					StatGroupHasMAL[grp.AnimeGroupID] = hasMAL;
 					StatGroupHasMovieDB[grp.AnimeGroupID] = hasMovieDB;
 					StatGroupHasMovieDBOrTvDB[grp.AnimeGroupID] = hasMovieDBOrTvDB;
 					StatGroupSeriesCount[grp.AnimeGroupID] = seriesCount;
@@ -577,7 +582,21 @@ namespace JMMServer
 						animeWithMovieCrossRef.Add(xref.AnimeID);
 				}
 				ts = DateTime.Now - start;
-				logger.Info("Get All AniDB->TvDB Cross Refs (Database) in {0} ms", ts.TotalMilliseconds);
+				logger.Info("Get All AniDB->MovieDB Cross Refs (Database) in {0} ms", ts.TotalMilliseconds);
+
+
+				// MAL
+				start = DateTime.Now;
+				CrossRef_AniDB_MALRepository repMALCrossRef = new CrossRef_AniDB_MALRepository();
+				List<CrossRef_AniDB_MAL> allMALCrossRefs = repMALCrossRef.GetAll();
+				List<int> animeWithMALCrossRef = new List<int>();
+				foreach (CrossRef_AniDB_MAL xref in allMALCrossRefs)
+				{
+					if (!animeWithMALCrossRef.Contains(xref.AnimeID))
+						animeWithMALCrossRef.Add(xref.AnimeID);
+				}
+				ts = DateTime.Now - start;
+				logger.Info("Get All AniDB->MAL Cross Refs (Database) in {0} ms", ts.TotalMilliseconds);
 
 				#endregion
 
@@ -614,6 +633,7 @@ namespace JMMServer
 					int countVotesPerm = 0, countVotesTemp = 0, countVotes = 0;
 
 					bool hasTvDB = true;
+					bool hasMAL = true;
 					bool hasMovieDB = true;
 					bool hasMovieDBOrTvDB = true;
 
@@ -769,6 +789,7 @@ namespace JMMServer
 						// we will consider the group as not having a tvdb link
 						if (!animeWithTvDBCrossRef.Contains(series.AniDB_ID)) hasTvDB = false;
 						if (!animeWithMovieCrossRef.Contains(series.AniDB_ID)) hasMovieDB = false;
+						if (!animeWithMALCrossRef.Contains(series.AniDB_ID)) hasMAL = false;
 
 						if (!animeWithTvDBCrossRef.Contains(series.AniDB_ID) && !animeWithMovieCrossRef.Contains(series.AniDB_ID)) hasMovieDBOrTvDB = false;
 					}
@@ -791,6 +812,7 @@ namespace JMMServer
 					StatGroupEndDate[ag.AnimeGroupID] = Stat_EndDate;
 					StatGroupSeriesCreatedDate[ag.AnimeGroupID] = Stat_SeriesCreatedDate;
 					StatGroupHasTvDB[ag.AnimeGroupID] = hasTvDB;
+					StatGroupHasMAL[ag.AnimeGroupID] = hasMAL;
 					StatGroupHasMovieDB[ag.AnimeGroupID] = hasMovieDB;
 					StatGroupHasMovieDBOrTvDB[ag.AnimeGroupID] = hasMovieDBOrTvDB;
 

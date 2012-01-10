@@ -414,24 +414,26 @@ namespace JMMServer.WebCache
 			SendData(uri, xml);
 		}
 
-		public static void Delete_CrossRef_AniDB_MAL(int animeID)
+		public static void Delete_CrossRef_AniDB_MAL(int animeID, int epType, int epNumber)
 		{
 			if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 			if (ServerSettings.WebCache_Anonymous) return;
 
 			string uri = string.Format("http://{0}/DeleteCrossRef_AniDB_MAL.aspx", ServerSettings.WebCache_Address);
-			DeleteCrossRef_AniDB_MALRequest req = new DeleteCrossRef_AniDB_MALRequest(animeID);
+			DeleteCrossRef_AniDB_MALRequest req = new DeleteCrossRef_AniDB_MALRequest(animeID, epType, epNumber);
 			string xml = req.ToXML();
 
 			SendData(uri, xml);
 		}
 
-		public static CrossRef_AniDB_MALResult Get_CrossRef_AniDB_MAL(int animeID)
+		public static List<CrossRef_AniDB_MALResult> Get_CrossRef_AniDB_MAL(int animeID)
 		{
 			if (!ServerSettings.WebCache_XRefFileEpisode_Get) return null;
 
 			try
 			{
+				List<CrossRef_AniDB_MALResult> results = null;
+
 				string username = ServerSettings.AniDB_Username;
 				if (ServerSettings.WebCache_Anonymous)
 					username = Constants.AnonWebCacheUsername;
@@ -442,23 +444,15 @@ namespace JMMServer.WebCache
 
 				if (xml.Trim().Length == 0) return null;
 
-				XmlDocument docFile = new XmlDocument();
-				docFile.LoadXml(xml);
+				XmlSerializer serializer = new XmlSerializer(typeof(List<CrossRef_AniDB_MALResult>));
+				XmlDocument docSearchResult = new XmlDocument();
+				docSearchResult.LoadXml(xml);
 
-				string sMalID = TryGetProperty(docFile, "CrossRef_AniDB_MALResult", "MALID");
-				string showName = TryGetProperty(docFile, "CrossRef_AniDB_MALResult", "MALTitle");
+				XmlNodeReader reader = new XmlNodeReader(docSearchResult.DocumentElement);
+				object obj = serializer.Deserialize(reader);
+				results = (List<CrossRef_AniDB_MALResult>)obj;
 
-				int malID = 0;
-				int.TryParse(sMalID, out malID);
-				if (malID <= 0) return null;
-
-
-				CrossRef_AniDB_MALResult result = new CrossRef_AniDB_MALResult();
-				result.AnimeID = animeID;
-				result.MALID = malID;
-				result.MALTitle = showName;
-
-				return result;
+				return results;
 			}
 			catch (Exception ex)
 			{

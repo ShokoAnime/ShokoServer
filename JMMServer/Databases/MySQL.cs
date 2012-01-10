@@ -90,6 +90,7 @@ namespace JMMServer.Databases
 				UpdateSchema_010(versionNumber);
 				UpdateSchema_011(versionNumber);
 				UpdateSchema_012(versionNumber);
+				UpdateSchema_013(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -560,7 +561,53 @@ namespace JMMServer.Databases
 
 		}
 
-		
+		private static void UpdateSchema_013(int currentVersionNumber)
+		{
+			int thisVersion = 13;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("drop table `crossref_anidb_mal`;");
+
+			cmds.Add("CREATE TABLE CrossRef_AniDB_MAL( " +
+				" CrossRef_AniDB_MALID INT NOT NULL AUTO_INCREMENT, " +
+				" AnimeID int NOT NULL, " +
+				" MALID int NOT NULL, " +
+				" MALTitle text, " +
+				" StartEpisodeType int NOT NULL, " +
+				" StartEpisodeNumber int NOT NULL, " +
+				" CrossRefSource int NOT NULL, " +
+				" PRIMARY KEY (`CrossRef_AniDB_MALID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_AnimeID` (`AnimeID` ASC) ;");
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_Anime` (`MALID` ASC, `AnimeID` ASC, `StartEpisodeType` ASC, `StartEpisodeNumber` ASC) ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
 
 		private static void UpdateDatabaseVersion(int versionNumber)
 		{

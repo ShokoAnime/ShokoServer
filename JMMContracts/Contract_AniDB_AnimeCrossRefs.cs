@@ -30,7 +30,7 @@ namespace JMMContracts
 		public List<Contract_MovieDB_Poster> MovieDBPosters { get; set; }
 
 		// MAL
-		public Contract_CrossRef_AniDB_MAL CrossRef_AniDB_MAL { get; set; }
+		public List<Contract_CrossRef_AniDB_MAL> CrossRef_AniDB_MAL { get; set; }
 
 		public Contract_AniDB_AnimeCrossRefs()
 		{

@@ -12,5 +12,7 @@ namespace JMMContracts
 		public int MALID { get; set; }
 		public string MALTitle { get; set; }
 		public int CrossRefSource { get; set; }
+		public int StartEpisodeType { get; set; }
+		public int StartEpisodeNumber { get; set; }
 	}
 }

@@ -630,7 +630,7 @@ namespace JMMServer
 					return contractout;
 				}
 				CrossRef_AniDB_TvDB xref = ser.CrossRefTvDB;
-				CrossRef_AniDB_MAL xrefMAL = ser.CrossRefMAL;
+				List<CrossRef_AniDB_MAL> xrefMAL = ser.CrossRefMAL;
 
 				contractout.AnimeSeries = ser.ToContract(anime, xref, ser.CrossRefMovieDB,
 					ser.GetUserRecord(userID), xref != null ? xref.TvDBSeries : null, xrefMAL);
@@ -711,7 +711,7 @@ namespace JMMServer
 					}
 				}
 				CrossRef_AniDB_TvDB xref = ser.CrossRefTvDB;
-				CrossRef_AniDB_MAL xrefMAL = ser.CrossRefMAL;
+				List<CrossRef_AniDB_MAL> xrefMAL = ser.CrossRefMAL;
 
 				contractout.AnimeSeries = ser.ToContract(anime, xref, ser.CrossRefMovieDB, ser.GetUserRecord(userID),
 					xref != null ? xref.TvDBSeries : null, xrefMAL);
@@ -1134,7 +1134,7 @@ namespace JMMServer
 				cmd2.Save();
 
 				CrossRef_AniDB_TvDB xref = ser.CrossRefTvDB;
-				CrossRef_AniDB_MAL xrefMAL = ser.CrossRefMAL;
+				List<CrossRef_AniDB_MAL> xrefMAL = ser.CrossRefMAL;
 
 				response.AnimeSeries = ser.ToContract(anime, xref, ser.CrossRefMovieDB, ser.GetUserRecord(userID),
 					xref != null ? xref.TvDBSeries : null, xrefMAL);
@@ -1609,10 +1609,12 @@ namespace JMMServer
 				// MAL
 				CrossRef_AniDB_MALRepository repMALCrossRef = new CrossRef_AniDB_MALRepository();
 				List<CrossRef_AniDB_MAL> allMALCrossRefs = repMALCrossRef.GetAll();
-				Dictionary<int, CrossRef_AniDB_MAL> dictMALCrossRefs = new Dictionary<int, CrossRef_AniDB_MAL>();
+				Dictionary<int, List<CrossRef_AniDB_MAL>> dictMALCrossRefs = new Dictionary<int, List<CrossRef_AniDB_MAL>>();
 				foreach (CrossRef_AniDB_MAL xref in allMALCrossRefs)
 				{
-					dictMALCrossRefs[xref.AnimeID] = xref;
+					if (!dictMALCrossRefs.ContainsKey(xref.AnimeID))
+						dictMALCrossRefs[xref.AnimeID] = new List<CrossRef_AniDB_MAL>();
+					dictMALCrossRefs[xref.AnimeID].Add(xref);
 				}
 
 				// user records
@@ -1636,7 +1638,7 @@ namespace JMMServer
 					CrossRef_AniDB_Other xrefMovie = null;
 					if (dictMovieCrossRefs.ContainsKey(aser.AniDB_ID)) xrefMovie = dictMovieCrossRefs[aser.AniDB_ID];
 
-					CrossRef_AniDB_MAL xrefMAL = null;
+					List<CrossRef_AniDB_MAL> xrefMAL = null;
 					if (dictMALCrossRefs.ContainsKey(aser.AniDB_ID))
 						xrefMAL = dictMALCrossRefs[aser.AniDB_ID];
 
@@ -1926,7 +1928,7 @@ namespace JMMServer
 				if (anime == null) return null;
 
 				CrossRef_AniDB_TvDB xref = series.CrossRefTvDB;
-				CrossRef_AniDB_MAL xrefMAL = series.CrossRefMAL;
+				List<CrossRef_AniDB_MAL> xrefMAL = series.CrossRefMAL;
 
 				return series.ToContract(anime, xref, series.CrossRefMovieDB, series.GetUserRecord(userID),
 					xref != null ? xref.TvDBSeries : null, xrefMAL);
@@ -1952,7 +1954,7 @@ namespace JMMServer
 				if (anime == null) return null;
 
 				CrossRef_AniDB_TvDB xref = series.CrossRefTvDB;
-				CrossRef_AniDB_MAL xrefMAL = series.CrossRefMAL;
+				List<CrossRef_AniDB_MAL> xrefMAL = series.CrossRefMAL;
 
 				return series.ToContract(anime, xref, series.CrossRefMovieDB, series.GetUserRecord(userID),
 					xref != null ? xref.TvDBSeries : null, xrefMAL);
@@ -3431,11 +3433,15 @@ namespace JMMServer
 				}
 
 				// MAL
-				CrossRef_AniDB_MAL xrefMAL = anime.CrossRefMAL;
+				List<CrossRef_AniDB_MAL> xrefMAL = anime.CrossRefMAL;
 				if (xrefMAL == null)
 					result.CrossRef_AniDB_MAL = null;
 				else
-					result.CrossRef_AniDB_MAL = xrefMAL.ToContract();
+				{
+					result.CrossRef_AniDB_MAL = new List<Contract_CrossRef_AniDB_MAL>();
+					foreach (CrossRef_AniDB_MAL xrefTemp in xrefMAL)
+						result.CrossRef_AniDB_MAL.Add(xrefTemp.ToContract());
+				}
 
 				return result;
 			}
@@ -3947,14 +3953,18 @@ namespace JMMServer
 			}
 		}
 
-		public Contract_CrossRef_AniDB_MALResult GetMALCrossRefWebCache(int animeID)
+		public List<Contract_CrossRef_AniDB_MALResult> GetMALCrossRefWebCache(int animeID)
 		{
 			try
 			{
-				CrossRef_AniDB_MALResult result = XMLService.Get_CrossRef_AniDB_MAL(animeID);
-				if (result == null) return null;
+				List<CrossRef_AniDB_MALResult> results = XMLService.Get_CrossRef_AniDB_MAL(animeID);
+				if (results == null) return null;
 
-				return result.ToContract();
+				List<Contract_CrossRef_AniDB_MALResult> contracts = new List<Contract_CrossRef_AniDB_MALResult>();
+				foreach (CrossRef_AniDB_MALResult res in results)
+					contracts.Add(res.ToContract());
+
+				return contracts;
 			}
 			catch (Exception ex)
 			{
@@ -4038,7 +4048,7 @@ namespace JMMServer
 			}
 		}
 
-		public string LinkAniDBMAL(int animeID, int malID, string malTitle)
+		public string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber)
 		{
 			try
 			{
@@ -4047,11 +4057,11 @@ namespace JMMServer
 				if (xrefTemp != null)
 					return string.Format("Not using MAL link as this MAL ID ({0}) is already in use by {1}", malID, xrefTemp.AnimeID);
 
-				xrefTemp = repCrossRef.GetByAnimeID(animeID);
+				xrefTemp = repCrossRef.GetByAnimeConstraint(animeID, epType, epNumber);
 				if (xrefTemp != null)
-					return string.Format("Not using MAL link as this Anime ID ({0}) is already in use by {1} ({2})", animeID, xrefTemp.MALID, xrefTemp.MALTitle);
+					return string.Format("Not using MAL link as this Anime ID ({0}) is already in use by {1}/{2}/{3} ({4})", animeID, xrefTemp.MALID, epType, epNumber, xrefTemp.MALTitle);
 
-				MALHelper.LinkAniDBMAL(animeID, malID, malTitle, false);
+				MALHelper.LinkAniDBMAL(animeID, malID, malTitle, epType, epNumber, false);
 
 				return "";
 			}
@@ -4094,16 +4104,11 @@ namespace JMMServer
 			}
 		}
 
-		public string RemoveLinkAniDBMAL(int animeID)
+		public string RemoveLinkAniDBMAL(int animeID ,int epType, int epNumber)
 		{
 			try
 			{
-				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-				AnimeSeries ser = repSeries.GetByAnimeID(animeID);
-
-				if (ser == null) return "Could not find Series for Anime!";
-
-				MALHelper.RemoveLinkAniDBMAL(ser);
+				MALHelper.RemoveLinkAniDBMAL(animeID, epType, epNumber);
 
 				return "";
 			}
@@ -4620,10 +4625,12 @@ namespace JMMServer
 				// MAL
 				CrossRef_AniDB_MALRepository repMALCrossRef = new CrossRef_AniDB_MALRepository();
 				List<CrossRef_AniDB_MAL> allMALCrossRefs = repMALCrossRef.GetAll();
-				Dictionary<int, CrossRef_AniDB_MAL> dictMALCrossRefs = new Dictionary<int, CrossRef_AniDB_MAL>();
+				Dictionary<int, List<CrossRef_AniDB_MAL>> dictMALCrossRefs = new Dictionary<int, List<CrossRef_AniDB_MAL>>();
 				foreach (CrossRef_AniDB_MAL xref in allMALCrossRefs)
 				{
-					dictMALCrossRefs[xref.AnimeID] = xref;
+					if (!dictMALCrossRefs.ContainsKey(xref.AnimeID))
+						dictMALCrossRefs[xref.AnimeID] = new List<CrossRef_AniDB_MAL>();
+					dictMALCrossRefs[xref.AnimeID].Add(xref);
 				}
 
 				// user records
@@ -4651,7 +4658,7 @@ namespace JMMServer
 					if (dictUserRecords.ContainsKey(aser.AnimeSeriesID))
 						userRec = dictUserRecords[aser.AnimeSeriesID];
 
-					CrossRef_AniDB_MAL xrefMAL = null;
+					List<CrossRef_AniDB_MAL> xrefMAL = null;
 					if (dictMALCrossRefs.ContainsKey(aser.AniDB_ID))
 						xrefMAL = dictMALCrossRefs[aser.AniDB_ID];
 

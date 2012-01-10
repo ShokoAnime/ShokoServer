@@ -41,6 +41,7 @@ namespace JMMContracts
 		public bool Stat_IsComplete { get; set; }
 		public bool Stat_HasFinishedAiring { get; set; }
 		public bool Stat_HasTvDBLink { get; set; }
+		public bool Stat_HasMALLink { get; set; }
 		public bool Stat_HasMovieDBLink { get; set; }
 		public bool Stat_HasMovieDBOrTvDBLink { get; set; }
 		public string Stat_AllVideoQuality { get; set; }

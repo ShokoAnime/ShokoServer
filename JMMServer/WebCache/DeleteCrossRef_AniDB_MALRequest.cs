@@ -25,15 +25,31 @@ namespace JMMServer.WebCache
 			set { animeID = value; }
 		}
 
+		protected int startEpisodeType = 0;
+		public int StartEpisodeType
+		{
+			get { return startEpisodeType; }
+			set { startEpisodeType = value; }
+		}
+
+		protected int startEpisodeNumber = 0;
+		public int StartEpisodeNumber
+		{
+			get { return startEpisodeNumber; }
+			set { startEpisodeNumber = value; }
+		}
+
 		// default constructor
 		public DeleteCrossRef_AniDB_MALRequest()
 		{
 		}
 
 		// default constructor
-		public DeleteCrossRef_AniDB_MALRequest(int animeID)
+		public DeleteCrossRef_AniDB_MALRequest(int animeID, int epType, int epNumber)
 		{
 			this.AnimeID = animeID;
+			this.StartEpisodeType = epType;
+			this.StartEpisodeNumber = epNumber;
 
 			string username = ServerSettings.AniDB_Username;
 			if (ServerSettings.WebCache_Anonymous)
