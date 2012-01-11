@@ -4072,6 +4072,26 @@ namespace JMMServer
 			}
 		}
 
+		public string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber, int newEpType, int newEpNumber)
+		{
+			try
+			{
+				CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
+				CrossRef_AniDB_MAL xrefTemp = repCrossRef.GetByAnimeConstraint(animeID, oldEpType, oldEpNumber);
+				if (xrefTemp == null)
+					return string.Format("Could not find MAL link ({0}/{1}/{2})", animeID, oldEpType, oldEpNumber);
+
+				repCrossRef.Delete(xrefTemp.CrossRef_AniDB_MALID);
+
+				return LinkAniDBMAL(animeID, malID, malTitle, newEpType, newEpNumber);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+		}
+
 		public string RemoveLinkAniDBTrakt(int animeID)
 		{
 			try

@@ -479,6 +479,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		string RemoveLinkAniDBMAL(int animeID ,int epType, int epNumber);
+
+		[OperationContract]
+		string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber, int newEpType, int newEpNumber);
 	}
 
 }
