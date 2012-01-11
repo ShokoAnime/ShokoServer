@@ -124,6 +124,12 @@ namespace JMMServer.Commands
 			{
 				vlocal = vidLocals[0];
 				logger.Trace("VideoLocal record found in database: {0}", vlocal.VideoLocalID);
+
+				if (ForceHash)
+				{
+					vlocal.FileSize = fi.Length;
+					vlocal.DateTimeUpdated = DateTime.Now;
+				}
 			}
 			else
 			{
