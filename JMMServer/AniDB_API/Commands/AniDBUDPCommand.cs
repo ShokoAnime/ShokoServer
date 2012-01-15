@@ -263,7 +263,7 @@ namespace AniDBAPI.Commands
 			{
 				JMMService.AnidbProcessor.IsInvalidSession = true;
 				logger.Trace("FORCING Logout because of invalid session");
-				JMMService.AnidbProcessor.ForceLogout();
+				ForceReconnection();
 			}
 			
 		}
@@ -271,6 +271,26 @@ namespace AniDBAPI.Commands
 		public AniDBUDPCommand()
 		{
 			ResponseCode = 0;
+		}
+
+		public void ForceReconnection()
+		{
+			try
+			{
+				if (JMMService.AnidbProcessor != null)
+				{
+					logger.Info("Forcing reconnection to AniDB");
+					JMMService.AnidbProcessor.Dispose();
+					Thread.Sleep(1000);
+
+					JMMService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password, ServerSettings.AniDB_ServerAddress,
+						ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
 		}
 	}
 }

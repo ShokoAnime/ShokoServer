@@ -24,7 +24,7 @@ namespace JMMServer
 		private static readonly object lockLastAniDBMessageNonPing = new object();
 		private static readonly object lockLastAniDBPing = new object();
 
-		
+		public static bool DebugFlag = false;
 
 		private static DateTime lastAniDBMessage = DateTime.Now;
 		public static DateTime LastAniDBMessage

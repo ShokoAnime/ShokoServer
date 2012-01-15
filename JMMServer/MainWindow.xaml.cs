@@ -834,7 +834,7 @@ namespace JMMServer
 			//anime temp = MALHelper.SearchAnimesByTitle("Naruto");
 			//MALHelper.VerifyCredentials();
 
-			Importer.RunImport_ScanMAL();
+			//JMMService.DebugFlag = !JMMService.DebugFlag;
 		}
 
 		private void DownloadAllImages()
