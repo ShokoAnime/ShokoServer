@@ -414,7 +414,7 @@ namespace JMMServer.Providers.TraktTV
 						if (fanart == null)
 						{
 							fanart = new Trakt_ImageFanart();
-							fanart.Enabled = 1;
+							fanart.Enabled = 0;
 						}
 
 						fanart.ImageURL = tvshow.images.fanart;
@@ -449,7 +449,7 @@ namespace JMMServer.Providers.TraktTV
 							if (poster == null)
 							{
 								poster = new Trakt_ImagePoster();
-								poster.Enabled = 1;
+								poster.Enabled = 0;
 							}
 
 							poster.ImageURL = sea.images.poster;
