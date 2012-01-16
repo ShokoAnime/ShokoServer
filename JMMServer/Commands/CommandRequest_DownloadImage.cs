@@ -231,7 +231,18 @@ namespace JMMServer.Commands
 						if (File.Exists(tempName)) File.Delete(tempName);
 
 
-						if (fileExists) File.Delete(fileName);
+						try
+						{
+							if (fileExists) File.Delete(fileName);
+						}
+						catch (Exception ex)
+						{
+							string msg = string.Format("Error deleting image: ({0}) - {1}", fileName, ex.Message);
+							logger.Warn(msg);
+							return;
+						}
+
+						
 
 						// download image
 						using (WebClient client = new WebClient())
@@ -285,7 +296,7 @@ namespace JMMServer.Commands
 			}
 			catch (Exception ex)
 			{
-				logger.Error("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL, EntityID, ex.ToString());
+				logger.Warn("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL, EntityID, ex.Message);
 				return;
 			}
 		}
