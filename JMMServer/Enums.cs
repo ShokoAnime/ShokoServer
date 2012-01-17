@@ -55,7 +55,10 @@ namespace JMMServer
 		ReadMediaInfo = 50,
 		WebCache_SendXRefAniDBMAL = 51,
 		WebCache_DeleteXRefAniDBMAL = 52,
-		MAL_SearchAnime = 60
+		MAL_SearchAnime = 60,
+		MAL_UpdateStatus = 61,
+		MAL_UploadWatchedStates = 62,
+		MAL_DownloadWatchedStates = 63
 	}
 
 	public enum CommandRequestPriority

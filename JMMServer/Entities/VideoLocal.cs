@@ -9,6 +9,7 @@ using System.IO;
 using JMMServer.Commands;
 using NLog;
 using BinaryNorthwest;
+using JMMServer.Commands.MAL;
 
 namespace JMMServer.Entities
 {
@@ -284,10 +285,16 @@ namespace JMMServer.Entities
 							}
 						}
 
-						if (scrobbleTrakt)
+						if (scrobbleTrakt && !string.IsNullOrEmpty(ServerSettings.Trakt_Username) && !string.IsNullOrEmpty(ServerSettings.Trakt_Password))
 						{
 							CommandRequest_TraktShowScrobble cmdScrobble = new CommandRequest_TraktShowScrobble(ep.AnimeEpisodeID);
 							cmdScrobble.Save();
+						}
+
+						if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) && !string.IsNullOrEmpty(ServerSettings.MAL_Password))
+						{
+							CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
+							cmdMAL.Save();
 						}
 					}
 				}

@@ -2217,6 +2217,7 @@ namespace JMMServer
 				ServerSettings.MAL_Username = contractIn.MAL_Username;
 				ServerSettings.MAL_Password = contractIn.MAL_Password;
 				ServerSettings.MAL_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.MAL_UpdateFrequency;
+				ServerSettings.MAL_NeverDecreaseWatchedNums = contractIn.MAL_NeverDecreaseWatchedNums;
 
 				if (anidbSettingsChanged)
 				{

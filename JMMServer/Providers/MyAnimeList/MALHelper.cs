@@ -13,6 +13,8 @@ using JMMServer.Entities;
 using JMMServer.Commands.WebCache;
 using JMMServer.Commands;
 using JMMServer.Commands.MAL;
+using System.Collections;
+using AniDBAPI;
 
 namespace JMMServer.Providers.MyAnimeList
 {
@@ -263,6 +265,227 @@ namespace JMMServer.Providers.MyAnimeList
 				}
 			}
 
+		}
+
+		// non official API to retrieve current watching state
+		public static myanimelist GetMALAnimeList()
+		{
+			try
+			{
+				if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
+				{
+					logger.Warn("Won't search MAL, MAL credentials not provided");
+					return null;
+				}
+
+				string url = string.Format("http://myanimelist.net/malappinfo.php?u={0}&status=all&type=anime", ServerSettings.MAL_Username);
+				string malAnimeListXML = SendMALAuthenticatedRequest(url);
+				malAnimeListXML = ReplaceEntityNamesByCharacter(malAnimeListXML);
+
+				XmlSerializer serializer = new XmlSerializer(typeof(myanimelist));
+				XmlDocument docAnimeList = new XmlDocument();
+				docAnimeList.LoadXml(malAnimeListXML);
+
+				XmlNodeReader reader = new XmlNodeReader(docAnimeList.DocumentElement);
+				object obj = serializer.Deserialize(reader);
+				myanimelist malAnimeList = (myanimelist)obj;
+				return malAnimeList;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return null;
+			}
+		}
+
+		public static void UpdateWatchedStatus(int animeID, enEpisodeType epType, int lastWatchedEpNumber)
+		{
+			try
+			{
+				if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
+					return;
+
+				AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
+				List<AniDB_Episode> aniEps = repAniEps.GetByAnimeIDAndEpisodeTypeNumber(animeID, epType, lastWatchedEpNumber);
+				if (aniEps.Count == 0) return;
+
+				AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
+				AnimeEpisode ep = repEp.GetByAniDBEpisodeID(aniEps[0].EpisodeID);
+				if (ep == null) return;
+
+				MALHelper.UpdateMAL(ep);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
+
+		public static void UpdateMAL(AnimeEpisode animeEpisode)
+		{
+			try
+			{
+				if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
+					return;
+
+				// Populate MAL animelist hashtable if isNeverDecreaseWatched set
+				Hashtable animeListHashtable = new Hashtable();
+				if (ServerSettings.MAL_NeverDecreaseWatchedNums) //if set, check watched number before update: take some time, as user anime list must be loaded
+				{
+					myanimelist malAnimeList = GetMALAnimeList();
+					if (malAnimeList != null && malAnimeList.anime != null)
+					{
+						for (int i = 0; i < malAnimeList.anime.Length; i++)
+						{
+							animeListHashtable.Add(malAnimeList.anime[i].series_animedb_id, malAnimeList.anime[i]);
+						}
+					}
+				}
+
+				// look for MAL Links
+				AnimeSeries ser = animeEpisode.AnimeSeries;
+				List<CrossRef_AniDB_MAL> crossRefs = ser.Anime.CrossRefMAL;
+				if (crossRefs == null || crossRefs.Count == 0)
+				{
+					logger.Warn("Could not find MAL link for : {0} ({1})", ser.Anime.FormattedTitle, ser.Anime.AnimeID);
+					return;
+				}
+
+				// look for the right MAL id
+				int malID = -1;
+				int epNumber = -1;
+				int totalEpCount = -1;
+
+				// e.g.
+				// AniDB - Code Geass R2
+				// MAL Equivalent = AniDB Normal Eps 1 - 25 / Code Geass: Hangyaku no Lelouch R2 / hxxp://myanimelist.net/anime/2904/Code_Geass:_Hangyaku_no_Lelouch_R2
+				// MAL Equivalent = AniDB Special Eps 1 - 9 / Code Geass: Hangyaku no Lelouch R2 Picture Drama / hxxp://myanimelist.net/anime/5163/Code_Geass:_Hangyaku_no_Lelouch_R2_Picture_Drama
+				// MAL Equivalent = AniDB Special Eps 9 - 18 / Code Geass: Hangyaku no Lelouch R2: Flash Specials / hxxp://myanimelist.net/anime/9591/Code_Geass:_Hangyaku_no_Lelouch_R2:_Flash_Specials
+				// MAL Equivalent = AniDB Special Eps 20 / Code Geass: Hangyaku no Lelouch - Kiseki no Birthday Picture Drama / hxxp://myanimelist.net/anime/8728/Code_Geass:_Hangyaku_no_Lelouch_-_Kiseki_no_Birthday_Picture_Drama
+
+				foreach (CrossRef_AniDB_MAL xref in crossRefs)
+				{
+					if ((int)animeEpisode.EpisodeTypeEnum == xref.StartEpisodeType)
+					{
+						int epNum = animeEpisode.AniDB_Episode.EpisodeNumber;
+						if (epNum >= xref.StartEpisodeNumber && epNum <= GetUpperEpisodeLimit(crossRefs, xref))
+						{
+							malID = xref.MALID;
+							epNumber = epNum - xref.StartEpisodeNumber + 1;
+							if (totalEpCount < 0)
+							{
+								if (animeEpisode.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode) totalEpCount = ser.Anime.EpisodeCountNormal;
+								if (animeEpisode.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special) totalEpCount = ser.Anime.EpisodeCountSpecial;
+								totalEpCount = totalEpCount - xref.StartEpisodeNumber + 1;
+							}
+						}
+					}
+				}
+
+				if (malID <= 0 || totalEpCount <= 0)
+				{
+					logger.Warn("Could not find MAL link for : {0} ({1})", ser.Anime.FormattedTitle, ser.Anime.AnimeID);
+					return;
+				}
+
+				// Update MAL with matching anime
+				int status = 1; //watching
+				if (epNumber == totalEpCount)
+					status = 2; //completed
+				if (epNumber > totalEpCount)
+				{
+					logger.Error("updateMAL, episode number > matching anime episode total : {0} ({1}) / {2}", ser.Anime.FormattedTitle, ser.Anime.AnimeID, epNumber);
+					return;
+				}
+
+				int score = 0;
+				if (ser.Anime.UserVote != null)
+					score = (int)(ser.Anime.UserVote.VoteValue / 100);
+
+				string confirmationMessage = string.Format("MAL successfully updated, mal id: {0}, ep: {1}, score: {2}", malID, epNumber, score);
+
+				bool doUpdate = true;
+				if (ServerSettings.MAL_NeverDecreaseWatchedNums) //if set, check watched number before update: take some time, as user anime list must be loaded
+				{
+					if (animeListHashtable.ContainsKey(malID))
+					{
+						myanimelistAnime animeInList = (myanimelistAnime)animeListHashtable[malID];
+						if (animeInList.my_watched_episodes > epNumber)
+						{
+							doUpdate = false;
+							confirmationMessage = string.Format("MAL not updated (episode smaller than current), mal id: {0}, ep: {1}", malID, epNumber);
+						}
+					}
+				}
+
+
+				// update MAL
+				bool res = true;
+				if (doUpdate)
+					res = UpdateAnime(malID, epNumber, status, score);
+
+				// MAL Update Confirmation popup
+				if (res)
+					logger.Trace(confirmationMessage);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+		}
+
+		private static int GetUpperEpisodeLimit(List<CrossRef_AniDB_MAL> crossRefs, CrossRef_AniDB_MAL xrefBase)
+		{
+			foreach (CrossRef_AniDB_MAL xref in crossRefs)
+			{
+				if (xref.StartEpisodeType == xrefBase.StartEpisodeType)
+				{
+					if (xref.StartEpisodeNumber > xrefBase.StartEpisodeNumber)
+						return xref.StartEpisodeNumber - 1;
+				}
+			}
+
+			return int.MaxValue;
+		}
+
+		// status: 1/watching, 2/completed, 3/onhold, 4/dropped, 6/plantowatch
+		public static bool UpdateAnime(int animeId, int episode, int status, int score)
+		{
+			try
+			{
+				string animeValuesXMLString = string.Format("?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
+					episode, status, score);
+
+				string res = "";
+				try
+				{
+					// try to add anime
+					res = SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/add/" + animeId + ".xml" + animeValuesXMLString);
+				}
+				catch (WebException)
+				{
+					try
+					{
+						// try to update anime
+						res = SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/update/" + animeId + ".xml" + animeValuesXMLString);
+					}
+					catch (WebException)
+					{
+						// if nothing good happens
+						logger.Error("MAL update anime failed: " + res);
+						return false;
+					}
+				}
+
+				logger.Trace("MAL updateAnime, res: " + res);
+				return true;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return false;
+			}
 		}
 	}
 }

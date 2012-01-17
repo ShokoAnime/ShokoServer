@@ -77,6 +77,7 @@ namespace JMMServer.Commands
 		// CommandRequest_TraktShowEpisodeUnseen
 		// CommandRequest_DownloadImage
 		// CommandRequest_TraktUpdateAllSeries
+		// CommandRequest_MALUpdatedWatchedStatus
 
 
 		public static ICommandRequest GetCommand(CommandRequest crdb)
@@ -84,6 +85,11 @@ namespace JMMServer.Commands
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
 			{
+				case CommandRequestType.MAL_UpdateStatus:
+					CommandRequest_MALUpdatedWatchedStatus cr_MAL_UpdateStatus = new CommandRequest_MALUpdatedWatchedStatus();
+					cr_MAL_UpdateStatus.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_MAL_UpdateStatus;
+
 				case CommandRequestType.MAL_SearchAnime:
 					CommandRequest_MALSearchAnime cr_MAL_SearchAnime = new CommandRequest_MALSearchAnime();
 					cr_MAL_SearchAnime.LoadFromDBCommand(crdb);

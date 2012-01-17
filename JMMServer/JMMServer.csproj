@@ -203,7 +203,10 @@
     <Compile Include="Commands\AniDB\CommandRequest_SyncMyList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_SyncMyVotes.cs" />
     <Compile Include="Commands\CommandRequest_ReadMediaInfo.cs" />
+    <Compile Include="Commands\MAL\CommandRequest_MALDownloadStatusFromMAL.cs" />
     <Compile Include="Commands\MAL\CommandRequest_MALSearchAnime.cs" />
+    <Compile Include="Commands\MAL\CommandRequest_MALUpdatedWatchedStatus.cs" />
+    <Compile Include="Commands\MAL\CommandRequest_MALUploadStatusToMAL.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktSearchAnime.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktShowEpisodeUnseen.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktShowScrobble.cs" />

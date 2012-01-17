@@ -830,6 +830,8 @@ namespace JMMServer.Providers.TraktTV
 		{
 			try
 			{
+				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+					return;
 
 				CrossRef_AniDB_Trakt xref = ep.AnimeSeries.CrossRefTrakt;
 				if (xref == null) return;
@@ -894,6 +896,8 @@ namespace JMMServer.Providers.TraktTV
 		{
 			try
 			{
+				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+					return;
 				
 				CrossRef_AniDB_Trakt xref = ep.AnimeSeries.CrossRefTrakt;
 				if (xref == null) return;

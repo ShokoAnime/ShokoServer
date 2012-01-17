@@ -1162,6 +1162,27 @@ namespace JMMServer
 			}
 		}
 
+		public static bool MAL_NeverDecreaseWatchedNums
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				string wtchNum = appSettings["MAL_NeverDecreaseWatchedNums"];
+				if (!string.IsNullOrEmpty(wtchNum))
+				{
+					bool val = true;
+					bool.TryParse(wtchNum, out val);
+					return val;
+				}
+				else return true;
+
+			}
+			set
+			{
+				UpdateSetting("MAL_NeverDecreaseWatchedNums", value.ToString());
+			}
+		}
+
 		#endregion
 
 		public static void UpdateSetting(string key, string value)
@@ -1256,6 +1277,9 @@ namespace JMMServer
 			contract.MAL_Username = ServerSettings.MAL_Username;
 			contract.MAL_Password = ServerSettings.MAL_Password;
 			contract.MAL_UpdateFrequency = (int)ServerSettings.MAL_UpdateFrequency;
+			contract.MAL_NeverDecreaseWatchedNums = ServerSettings.MAL_NeverDecreaseWatchedNums;
+
+			
 
 			return contract;
 		}

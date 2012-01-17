@@ -84,5 +84,6 @@ namespace JMMContracts
 		public string MAL_Username { get; set; }
 		public string MAL_Password { get; set; }
 		public int MAL_UpdateFrequency { get; set; }
+		public bool MAL_NeverDecreaseWatchedNums { get; set; }
 	}
 }

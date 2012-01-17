@@ -835,6 +835,13 @@ namespace JMMServer
 			//MALHelper.VerifyCredentials();
 
 			//JMMService.DebugFlag = !JMMService.DebugFlag;
+
+			//AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
+			//AnimeEpisode ep = repEp.GetByID(2430);
+			//MALHelper.UpdateMAL(ep);
+
+			//CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(8107);
+			//cmdMAL.ProcessCommand();
 		}
 
 		private void DownloadAllImages()
