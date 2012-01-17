@@ -19,6 +19,7 @@ using BinaryNorthwest;
 using JMMServer.Providers.TraktTV;
 using AniDBAPI.Commands;
 using JMMServer.Providers.MyAnimeList;
+using JMMServer.Commands.MAL;
 
 namespace JMMServer
 {
@@ -2624,6 +2625,18 @@ namespace JMMServer
 		{
 			CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
 			cmdVotes.Save();
+		}
+
+		public void SyncMALUpload()
+		{
+			CommandRequest_MALUploadStatusToMAL cmd = new CommandRequest_MALUploadStatusToMAL();
+			cmd.Save();
+		}
+
+		public void SyncMALDownload()
+		{
+			CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
+			cmd.Save();
 		}
 
 		public void RescanUnlinkedFiles()

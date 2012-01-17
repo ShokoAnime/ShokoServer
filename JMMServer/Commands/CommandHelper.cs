@@ -78,6 +78,8 @@ namespace JMMServer.Commands
 		// CommandRequest_DownloadImage
 		// CommandRequest_TraktUpdateAllSeries
 		// CommandRequest_MALUpdatedWatchedStatus
+		// CommandRequest_MALUploadStatusToMAL
+		// CommandRequest_MALDownloadStatusFromMAL
 
 
 		public static ICommandRequest GetCommand(CommandRequest crdb)
@@ -85,6 +87,16 @@ namespace JMMServer.Commands
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
 			{
+				case CommandRequestType.MAL_DownloadWatchedStates:
+					CommandRequest_MALDownloadStatusFromMAL cr_MAL_DownloadWatchedStates = new CommandRequest_MALDownloadStatusFromMAL();
+					cr_MAL_DownloadWatchedStates.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_MAL_DownloadWatchedStates;
+
+				case CommandRequestType.MAL_UploadWatchedStates:
+					CommandRequest_MALUploadStatusToMAL cr_MAL_UploadWatchedStates = new CommandRequest_MALUploadStatusToMAL();
+					cr_MAL_UploadWatchedStates.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_MAL_UploadWatchedStates;
+
 				case CommandRequestType.MAL_UpdateStatus:
 					CommandRequest_MALUpdatedWatchedStatus cr_MAL_UpdateStatus = new CommandRequest_MALUpdatedWatchedStatus();
 					cr_MAL_UpdateStatus.LoadFromDBCommand(crdb);

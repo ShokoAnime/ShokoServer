@@ -482,6 +482,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber, int newEpType, int newEpNumber);
+
+		[OperationContract]
+		void SyncMALUpload();
+
+		[OperationContract]
+		void SyncMALDownload();
 	}
 
 }

@@ -42,6 +42,9 @@ namespace JMMServer.Commands.MAL
 
 			try
 			{
+				if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
+					return;
+
 				// find the latest eps to update
 				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 				List<AniDB_Anime> animes = repAnime.GetAll();
