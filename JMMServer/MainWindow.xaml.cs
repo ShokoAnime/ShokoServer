@@ -843,8 +843,8 @@ namespace JMMServer
 			//CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(8107);
 			//cmdMAL.ProcessCommand();
 
-			CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
-			cmd.Save();
+			//CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
+			//cmd.Save();
 		}
 
 		private void DownloadAllImages()

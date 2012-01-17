@@ -281,6 +281,10 @@ namespace JMMServer.Entities
 				contract.Stat_SeriesCount = StatsCache.Instance.StatGroupSeriesCount[this.AnimeGroupID];
 			else contract.Stat_SeriesCount = 0;
 
+			if (StatsCache.Instance.StatGroupEpisodeCount.ContainsKey(this.AnimeGroupID))
+				contract.Stat_EpisodeCount = StatsCache.Instance.StatGroupEpisodeCount[this.AnimeGroupID];
+			else contract.Stat_EpisodeCount = 0;
+
 			//contract.AniDB_AirDate = this.AirDate;
 			//contract.AniDB_Year = animeRec.Year;
 

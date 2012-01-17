@@ -52,6 +52,7 @@ namespace JMMServer
 		public Dictionary<int, bool> StatGroupHasMovieDB = null; // AnimeGroupID
 		public Dictionary<int, bool> StatGroupHasMovieDBOrTvDB = null; // AnimeGroupID
 		public Dictionary<int, int> StatGroupSeriesCount = null; // AnimeGroupID
+		public Dictionary<int, int> StatGroupEpisodeCount = null; // AnimeGroupID
 
 
 		public StatsCache()
@@ -85,6 +86,7 @@ namespace JMMServer
 			StatGroupHasMovieDB = new Dictionary<int, bool>();
 			StatGroupHasMovieDBOrTvDB = new Dictionary<int, bool>();
 			StatGroupSeriesCount = new Dictionary<int, int>();
+			StatGroupEpisodeCount = new Dictionary<int, int>();
 		}
 
 		public void UpdateUsingAniDBFile(string hash)
@@ -221,7 +223,7 @@ namespace JMMServer
 					bool hasMovieDBOrTvDB = true;
 
 					int seriesCount = 0;
-
+					int epCount = 0;
 
 
 					foreach (AnimeSeries series in grp.AllSeries)
@@ -292,6 +294,9 @@ namespace JMMServer
 						
 
 						AniDB_Anime anime = series.Anime;
+
+						epCount = epCount + anime.EpisodeCountNormal;
+
 						foreach (KeyValuePair<string, int> kvp in vidQualEpCounts)
 						{
 							int index = videoQualityEpisodes.IndexOf(kvp.Key, 0, StringComparison.InvariantCultureIgnoreCase);
@@ -417,6 +422,7 @@ namespace JMMServer
 					StatGroupHasMovieDB[grp.AnimeGroupID] = hasMovieDB;
 					StatGroupHasMovieDBOrTvDB[grp.AnimeGroupID] = hasMovieDBOrTvDB;
 					StatGroupSeriesCount[grp.AnimeGroupID] = seriesCount;
+					StatGroupEpisodeCount[grp.AnimeGroupID] = epCount;
 
 					StatGroupVideoQualityEpisodes[grp.AnimeGroupID] = videoQualityEpisodes;
 
@@ -638,6 +644,7 @@ namespace JMMServer
 					bool hasMovieDBOrTvDB = true;
 
 					int seriesCount = 0;
+					int epCount = 0;
 
 					foreach (AnimeSeries series in seriesForGroup)
 					{
@@ -645,6 +652,8 @@ namespace JMMServer
 						if (allAnimeDict.ContainsKey(series.AniDB_ID))
 						{
 							AniDB_Anime thisAnime = allAnimeDict[series.AniDB_ID];
+
+							epCount = epCount + thisAnime.EpisodeCountNormal;
 
 							// All Video Quality Episodes
 							// Try to determine if this anime has all the episodes available at a certain video quality
@@ -805,6 +814,7 @@ namespace JMMServer
 					StatGroupIsFinishedAiring[ag.AnimeGroupID] = hasFinishedAiring;
 
 					StatGroupSeriesCount[ag.AnimeGroupID] = seriesCount;
+					StatGroupEpisodeCount[ag.AnimeGroupID] = epCount;
 
 					StatGroupTitles[ag.AnimeGroupID] = Stat_AllTitles;
 					StatGroupAirDate_Max[ag.AnimeGroupID] = Stat_AirDate_Max;
@@ -947,6 +957,12 @@ namespace JMMServer
 						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && grp.HasMissingEpisodesGroups == true) return false;
 						break;
 
+						case GroupFilterConditionType.HasWatchedEpisodes:
+						if (userRec == null) return false;
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && userRec.AnyFilesWatched == false) return false;
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && userRec.AnyFilesWatched == true) return false;
+						break;
+
 					case GroupFilterConditionType.HasUnwatchedEpisodes:
 						if (userRec == null) return false;
 						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && userRec.HasUnwatchedFiles == false) return false;
@@ -956,6 +972,11 @@ namespace JMMServer
 					case GroupFilterConditionType.AssignedTvDBInfo:
 						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && contractGroup.Stat_HasTvDBLink == false) return false;
 						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.Stat_HasTvDBLink == true) return false;
+						break;
+
+					case GroupFilterConditionType.AssignedMALInfo:
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && contractGroup.Stat_HasMALLink == false) return false;
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.Stat_HasMALLink == true) return false;
 						break;
 
 					case GroupFilterConditionType.AssignedMovieDBInfo:
@@ -1086,6 +1107,15 @@ namespace JMMServer
 							if (!grp.EpisodeAddedDate.HasValue) return false;
 							if (grp.EpisodeAddedDate.Value > filterDateEpisodeAdded) return false;
 						}
+						break;
+
+					case GroupFilterConditionType.EpisodeCount:
+
+						int epCount = -1;
+						int.TryParse(gfc.ConditionParameter, out epCount);
+
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && contractGroup.Stat_EpisodeCount < epCount) return false;
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && contractGroup.Stat_EpisodeCount > epCount) return false;
 						break;
 
 					case GroupFilterConditionType.AniDBRating:

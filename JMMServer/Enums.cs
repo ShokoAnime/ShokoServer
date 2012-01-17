@@ -236,7 +236,10 @@ namespace JMMServer
 		SubtitleLanguage = 24,
 		AssignedTvDBOrMovieDBInfo = 25,
 		AssignedMovieDBInfo = 26,
-		UserVotedAny = 27
+		UserVotedAny = 27,
+		HasWatchedEpisodes = 28,
+		AssignedMALInfo = 29,
+		EpisodeCount = 30
 	}
 
 	public enum GroupFilterOperator
