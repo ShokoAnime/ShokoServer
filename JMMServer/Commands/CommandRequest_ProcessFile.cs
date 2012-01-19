@@ -88,14 +88,33 @@ namespace JMMServer.Commands
 			AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
 			CrossRef_File_EpisodeRepository repXrefFE = new CrossRef_File_EpisodeRepository();
 
-			AniDB_File aniFile = repAniFile.GetByHash(vidLocal.Hash);
+			AniDB_File aniFile = repAniFile.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
 
 			if (aniFile == null)
 				logger.Trace("AniDB_File record not found");
 
 			int animeID = 0;
 
-			//if (!vidLocal.FilePath.ToLower().Contains("chobits")) return;
+			// get from web cache
+			if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
+			{
+				AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
+				if (fr != null)
+				{
+					aniFile = new AniDB_File();
+					aniFile.Populate(fr);
+
+					//overwrite with local file name
+					string localFileName = Path.GetFileName(vidLocal.FilePath);
+					aniFile.FileName = localFileName;
+
+					repAniFile.Save(aniFile, false);
+					aniFile.CreateLanguages();
+					aniFile.CreateCrossEpisodes(localFileName);
+
+					animeID = aniFile.AnimeID;
+				}
+			}
 
 			if (aniFile == null)
 			{

@@ -17,6 +17,8 @@ namespace JMMServer.Commands
 	public class CommandRequest_GetFile : CommandRequestImplementation, ICommandRequest
 	{
 		public int VideoLocalID { get; set; }
+		public bool ForceAniDB { get; set; }
+
 		private VideoLocal vlocal = null;
 
 		public CommandRequestPriority DefaultPriority
@@ -39,9 +41,10 @@ namespace JMMServer.Commands
 		{
 		}
 
-		public CommandRequest_GetFile(int vidLocalID)
+		public CommandRequest_GetFile(int vidLocalID, bool forceAniDB)
 		{
 			this.VideoLocalID = vidLocalID;
+			this.ForceAniDB = forceAniDB;
 			this.CommandType = (int)CommandRequestType.AniDB_GetFileUDP;
 			this.Priority = (int)DefaultPriority;
 
@@ -60,9 +63,31 @@ namespace JMMServer.Commands
 				vlocal = repVids.GetByID(VideoLocalID);
 				if (vlocal == null) return;
 
-				AniDB_File aniFile = repAniFile.GetByHash(vlocal.Hash);
+				AniDB_File aniFile = repAniFile.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
 
-				Raw_AniDB_File fileInfo = JMMService.AnidbProcessor.GetFileInfo(vlocal);
+				// get anidb file info from web cache
+				if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
+				{
+					AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
+					if (fr != null)
+					{
+						aniFile = new AniDB_File();
+						aniFile.Populate(fr);
+
+						//overwrite with local file name
+						string localFileName = Path.GetFileName(vlocal.FilePath);
+						aniFile.FileName = localFileName;
+
+						repAniFile.Save(aniFile, true);
+						aniFile.CreateLanguages();
+						aniFile.CreateCrossEpisodes(localFileName);
+					}
+				}
+
+				Raw_AniDB_File fileInfo = null;
+				if (aniFile == null || ForceAniDB)
+					fileInfo = JMMService.AnidbProcessor.GetFileInfo(vlocal);
+
 				if (fileInfo != null)
 				{
 					// save to the database
@@ -114,6 +139,7 @@ namespace JMMServer.Commands
 
 				// populate the fields
 				this.VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "VideoLocalID"));
+				this.ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "ForceAniDB"));
 			}
 
 			return true;

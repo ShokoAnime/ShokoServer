@@ -44,6 +44,8 @@ namespace JMMContracts
 		public bool WebCache_TvDB_Send { get; set; }
 		public bool WebCache_MAL_Get { get; set; }
 		public bool WebCache_MAL_Send { get; set; }
+		public bool WebCache_AniDB_File_Get { get; set; }
+		public bool WebCache_AniDB_File_Send { get; set; }
 
 		// TvDB
 		public bool TvDB_AutoFanart { get; set; }

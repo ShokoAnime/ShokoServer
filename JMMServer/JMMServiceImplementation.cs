@@ -1169,7 +1169,7 @@ namespace JMMServer
 
 					if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
 					{
-						CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID);
+						CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
 						cmd.Save();
 					}
 				}
@@ -2178,6 +2178,8 @@ namespace JMMServer
 				ServerSettings.WebCache_TvDB_Send = contractIn.WebCache_TvDB_Send;
 				ServerSettings.WebCache_MAL_Get = contractIn.WebCache_MAL_Get;
 				ServerSettings.WebCache_MAL_Send = contractIn.WebCache_MAL_Send;
+				ServerSettings.WebCache_AniDB_File_Get = contractIn.WebCache_AniDB_File_Get;
+				ServerSettings.WebCache_AniDB_File_Send = contractIn.WebCache_AniDB_File_Send;
 
 				// TvDB
 				ServerSettings.TvDB_AutoFanart = contractIn.TvDB_AutoFanart;

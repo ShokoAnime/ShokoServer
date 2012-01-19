@@ -18,6 +18,52 @@ namespace JMMServer.WebCache
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
+
+		#region AniDB File
+
+		public static AniDB_FileRequest Get_AniDB_File(string hash, long filesize)
+		{
+			if (!ServerSettings.WebCache_AniDB_File_Get) return null;
+
+			try
+			{
+
+				string uri = string.Format("http://{0}/GetAniDB_File.aspx?hash={1}&fsize={2}",
+					ServerSettings.WebCache_Address, hash, filesize);
+				string xml = GetData(uri);
+
+				if (xml.Trim().Length == 0) return null;
+
+				XmlSerializer serializer = new XmlSerializer(typeof(AniDB_FileRequest));
+				XmlDocument docSearchResult = new XmlDocument();
+				docSearchResult.LoadXml(xml);
+
+				XmlNodeReader reader = new XmlNodeReader(docSearchResult.DocumentElement);
+				object obj = serializer.Deserialize(reader);
+				return (AniDB_FileRequest)obj;
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in XMLService.Get_FileHash:: {0}", ex);
+				return null;
+			}
+		}
+
+		public static void Send_AniDB_File(AniDB_File data)
+		{
+			if (!ServerSettings.WebCache_AniDB_File_Send) return;
+
+
+			string uri = string.Format("http://{0}/AddAniDB_File.aspx", ServerSettings.WebCache_Address);
+			AniDB_FileRequest req = new AniDB_FileRequest(data);
+			string xml = req.ToXML();
+
+			SendData(uri, xml);
+		}
+
+		#endregion
+
 		#region File Hash
 
 		public static string Get_FileHash(string filename, long filesize)

@@ -80,6 +80,7 @@ namespace JMMServer.Commands
 		// CommandRequest_MALUpdatedWatchedStatus
 		// CommandRequest_MALUploadStatusToMAL
 		// CommandRequest_MALDownloadStatusFromMAL
+		// CommandRequest_WebCacheSendAniDB_File
 
 
 		public static ICommandRequest GetCommand(CommandRequest crdb)
@@ -87,6 +88,11 @@ namespace JMMServer.Commands
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
 			{
+				case CommandRequestType.WebCache_SendAniDB_File:
+					CommandRequest_WebCacheSendAniDB_File cr_WebCache_SendAniDB_File = new CommandRequest_WebCacheSendAniDB_File();
+					cr_WebCache_SendAniDB_File.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_WebCache_SendAniDB_File;
+
 				case CommandRequestType.MAL_DownloadWatchedStates:
 					CommandRequest_MALDownloadStatusFromMAL cr_MAL_DownloadWatchedStates = new CommandRequest_MALDownloadStatusFromMAL();
 					cr_MAL_DownloadWatchedStates.LoadFromDBCommand(crdb);

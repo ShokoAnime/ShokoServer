@@ -51,6 +51,19 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public AniDB_File GetByHashAndFileSize(string hash, long fsize)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				AniDB_File cr = session
+					.CreateCriteria(typeof(AniDB_File))
+					.Add(Restrictions.Eq("Hash", hash))
+					.Add(Restrictions.Eq("FileSize", fsize))
+					.UniqueResult<AniDB_File>();
+				return cr;
+			}
+		}
+
 		public AniDB_File GetByFileID(int fileID)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

@@ -6,6 +6,7 @@ using System.Xml.Serialization;
 using NLog;
 using JMMServer.Repositories;
 using AniDBAPI;
+using JMMServer.WebCache;
 
 namespace JMMServer.Entities
 {
@@ -228,6 +229,101 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public string SubtitlesRAWForWebCache
+		{
+			get
+			{
+				char apostrophe = ("'").ToCharArray()[0];
+
+				if (!string.IsNullOrEmpty(subtitlesRAW))
+					return subtitlesRAW;
+				string ret = "";
+				foreach (Language lang in this.Subtitles)
+				{
+					if (ret.Length > 0)
+						ret += apostrophe;
+					ret += lang.LanguageName;
+				}
+				return ret;
+			}
+			set
+			{
+				subtitlesRAW = value;
+			}
+		}
+
+
+		public string LanguagesRAWForWebCache
+		{
+			get
+			{
+				char apostrophe = ("'").ToCharArray()[0];
+
+				if (!string.IsNullOrEmpty(languagesRAW))
+					return languagesRAW;
+				string ret = "";
+				foreach (Language lang in this.Languages)
+				{
+					if (ret.Length > 0)
+						ret += apostrophe;
+					ret += lang.LanguageName;
+				}
+				return ret;
+			}
+			set
+			{
+				languagesRAW = value;
+			}
+		}
+
+
+		public string EpisodesRAWForWebCache
+		{
+			get
+			{
+				char apostrophe = ("'").ToCharArray()[0];
+
+				if (!string.IsNullOrEmpty(episodesRAW))
+					return episodesRAW;
+				string ret = "";
+				foreach (CrossRef_File_Episode cross in EpisodeCrossRefs)
+				{
+					if (ret.Length > 0)
+						ret += apostrophe;
+					ret += cross.EpisodeID.ToString();
+				}
+				return ret;
+			}
+			set
+			{
+				episodesRAW = value;
+			}
+		}
+
+
+		public string EpisodesPercentRAWForWebCache
+		{
+			get
+			{
+				char apostrophe = ("'").ToCharArray()[0];
+
+				if (!string.IsNullOrEmpty(episodesPercentRAW))
+					return episodesPercentRAW;
+				string ret = "";
+				foreach (CrossRef_File_Episode cross in EpisodeCrossRefs)
+				{
+					if (ret.Length > 0)
+						ret += apostrophe;
+					ret += cross.Percentage.ToString();
+				}
+				return ret;
+			}
+			set
+			{
+				episodesPercentRAW = value;
+			}
+		}
+
 
 		public void Populate(Raw_AniDB_File fileInfo)
 		{
@@ -252,6 +348,37 @@ namespace JMMServer.Entities
 			this.GroupID = fileInfo.GroupID;
 			this.Hash = fileInfo.ED2KHash;
 			this.IsWatched = fileInfo.IsWatched;
+			this.MD5 = fileInfo.MD5;
+			this.SHA1 = fileInfo.SHA1;
+
+			this.languagesRAW = fileInfo.LanguagesRAW;
+			this.subtitlesRAW = fileInfo.SubtitlesRAW;
+			this.episodesPercentRAW = fileInfo.EpisodesPercentRAW;
+			this.episodesRAW = fileInfo.EpisodesRAW;
+		}
+
+		public void Populate(AniDB_FileRequest fileInfo)
+		{
+			this.Anime_GroupName = fileInfo.Anime_GroupName;
+			this.Anime_GroupNameShort = fileInfo.Anime_GroupNameShort;
+			this.AnimeID = fileInfo.AnimeID;
+			this.CRC = fileInfo.CRC;
+			this.DateTimeUpdated = DateTime.Now;
+			this.Episode_Rating = fileInfo.Episode_Rating;
+			this.Episode_Votes = fileInfo.Episode_Votes;
+			this.File_AudioCodec = fileInfo.File_AudioCodec;
+			this.File_Description = fileInfo.File_Description;
+			this.File_FileExtension = fileInfo.File_FileExtension;
+			this.File_LengthSeconds = fileInfo.File_LengthSeconds;
+			this.File_ReleaseDate = fileInfo.File_ReleaseDate;
+			this.File_Source = fileInfo.File_Source;
+			this.File_VideoCodec = fileInfo.File_VideoCodec;
+			this.File_VideoResolution = fileInfo.File_VideoResolution;
+			this.FileID = fileInfo.FileID;
+			this.FileName = fileInfo.FileName;
+			this.FileSize = fileInfo.FileSize;
+			this.GroupID = fileInfo.GroupID;
+			this.Hash = fileInfo.Hash;
 			this.MD5 = fileInfo.MD5;
 			this.SHA1 = fileInfo.SHA1;
 

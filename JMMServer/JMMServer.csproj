@@ -225,6 +225,7 @@
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTvDB.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefFileEpisode.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTvDBAll.cs" />
+    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendAniDB_File.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendFileHash.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBMAL.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBOther.cs" />
@@ -502,6 +503,7 @@
     <Compile Include="UI\ServerInfo.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WatchedUnwatchedCount.cs" />
+    <Compile Include="WebCache\AniDB_FileRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_MALRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_OtherRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_TraktRequest.cs" />

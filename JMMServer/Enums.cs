@@ -19,7 +19,6 @@ namespace JMMServer
 		AniDB_GetCreator = 10,
 		HashFile = 11,
 		WebCache_SendFileHash = 12,
-		WebCache_SendAniDBFile = 13,
 		WebCache_SendXRefFileEpisode = 14,
 		WebCache_DeleteXRefFileEpisode = 15,
 		WebCache_DeleteXRefTvDB = 16,
@@ -58,7 +57,9 @@ namespace JMMServer
 		MAL_SearchAnime = 60,
 		MAL_UpdateStatus = 61,
 		MAL_UploadWatchedStates = 62,
-		MAL_DownloadWatchedStates = 63
+		MAL_DownloadWatchedStates = 63,
+		WebCache_SendAniDB_File = 64,
+		WebCache_GetAniDB_File = 65,
 	}
 
 	public enum CommandRequestPriority

@@ -639,6 +639,40 @@ namespace JMMServer
 			}
 		}
 
+		public static bool WebCache_AniDB_File_Get
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool usecache = false;
+				if (bool.TryParse(appSettings["WebCache_AniDB_File_Get"], out usecache))
+					return usecache;
+				else
+					return true; // default
+			}
+			set
+			{
+				UpdateSetting("WebCache_AniDB_File_Get", value.ToString());
+			}
+		}
+
+		public static bool WebCache_AniDB_File_Send
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool usecache = false;
+				if (bool.TryParse(appSettings["WebCache_AniDB_File_Send"], out usecache))
+					return usecache;
+				else
+					return true; // default
+			}
+			set
+			{
+				UpdateSetting("WebCache_AniDB_File_Send", value.ToString());
+			}
+		}
+
 		#endregion
 
 		#region TvDB
@@ -1237,6 +1271,8 @@ namespace JMMServer
 			contract.WebCache_TvDB_Send = ServerSettings.WebCache_TvDB_Send;
 			contract.WebCache_MAL_Get = ServerSettings.WebCache_MAL_Get;
 			contract.WebCache_MAL_Send = ServerSettings.WebCache_MAL_Send;
+			contract.WebCache_AniDB_File_Get = ServerSettings.WebCache_AniDB_File_Get;
+			contract.WebCache_AniDB_File_Send = ServerSettings.WebCache_AniDB_File_Send;
 
 			// TvDB
 			contract.TvDB_AutoFanart = ServerSettings.TvDB_AutoFanart;

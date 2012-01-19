@@ -35,6 +35,7 @@ using JMMServer.ImageDownload;
 using Microsoft.SqlServer.Management.Smo;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Commands.MAL;
+using JMMServer.Commands.WebCache;
 
 namespace JMMServer
 {
@@ -136,6 +137,7 @@ namespace JMMServer
 			btnSyncTrakt.Click += new RoutedEventHandler(btnSyncTrakt_Click);
 			btnImportManualLinks.Click += new RoutedEventHandler(btnImportManualLinks_Click);
 			btnUpdateAniDBInfo.Click += new RoutedEventHandler(btnUpdateAniDBInfo_Click);
+			btnUploadAniFileCache.Click += new RoutedEventHandler(btnUploadAniFileCache_Click);
 
 			this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
 			downloadImagesWorker.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
@@ -199,6 +201,8 @@ namespace JMMServer
 			btnRefreshMSSQLServerList.Click += new RoutedEventHandler(btnRefreshMSSQLServerList_Click);
 			
 		}
+
+		
 
 		
 
@@ -845,6 +849,8 @@ namespace JMMServer
 
 			//CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
 			//cmd.Save();
+
+			
 		}
 
 		private void DownloadAllImages()
@@ -953,6 +959,19 @@ namespace JMMServer
 			TraktTVHelper.SyncCollectionToTrakt();
 			this.Cursor = Cursors.Arrow;
 			MessageBox.Show("Sync is Queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+		}
+
+		void btnUploadAniFileCache_Click(object sender, RoutedEventArgs e)
+		{
+			this.Cursor = Cursors.Wait;
+			AniDB_FileRepository rep = new AniDB_FileRepository();
+			foreach (AniDB_File aniFile in rep.GetAll())
+			{
+				CommandRequest_WebCacheSendAniDB_File cmd = new CommandRequest_WebCacheSendAniDB_File(aniFile.AniDB_FileID);
+				cmd.Save();
+			}
+			this.Cursor = Cursors.Arrow;
+			MessageBox.Show("Commands are queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
 		void btnRunImport_Click(object sender, RoutedEventArgs e)
