@@ -222,6 +222,9 @@ namespace JMMServer.Providers.MyAnimeList
 
 			logger.Trace("Changed MAL association: {0}", animeID);
 
+			CommandRequest_MALUpdatedWatchedStatus cmd = new CommandRequest_MALUpdatedWatchedStatus(animeID);
+			cmd.Save();
+
 			CommandRequest_WebCacheSendXRefAniDBMAL req = new CommandRequest_WebCacheSendXRefAniDBMAL(xref.CrossRef_AniDB_MALID);
 			req.Save();
 		}
