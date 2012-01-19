@@ -5716,7 +5716,7 @@ namespace JMMServer
 			MainWindow.UpdateTraktFriendInfo(true);
 		}
 
-		public Contract_Trakt_Activity GetTraktFriendInfo(int maxResults, bool animeOnly)
+		public Contract_Trakt_Activity GetTraktFriendInfo(int maxResults, bool animeOnly, bool getShouts, bool getScrobbles)
 		{
 			CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
 			CrossRef_AniDB_TvDBRepository repXrefTvDB = new CrossRef_AniDB_TvDBRepository();
@@ -5736,23 +5736,15 @@ namespace JMMServer
 
 			try
 			{
-				/*foreach (TraktTVUser friend in StatsCache.Instance.TraktFriendInfo)
-				{
-					Contract_Trakt_Friend contractFriend = friend.ToContract();
-					if (contractFriend != null)
-						contract.TraktFriends.Add(contractFriend);
-				}
-
-				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-				sortCriteria.Add(new SortPropOrFieldAndDirection("LastEpisodeWatched", true, SortType.eDateTime));
-				contract.TraktFriends = Sorting.MultiSort<Contract_Trakt_Friend>(contract.TraktFriends, sortCriteria);*/
-
 				int i = 1;
 				foreach (TraktTV_Activity act in StatsCache.Instance.TraktFriendActivityInfo)
 				{
 					
 
 					if (i >= maxResults) break;
+
+					if (act.ActivityAction == (int)TraktActivityAction.Scrobble && !getScrobbles) continue;
+					if (act.ActivityAction == (int)TraktActivityAction.Shout && !getShouts) continue;
 
 					Contract_Trakt_FriendActivity contractAct = new Contract_Trakt_FriendActivity();
 
@@ -5795,6 +5787,8 @@ namespace JMMServer
 						continue;
 					}
 
+					
+
 					// activity details
 					contractAct.ActivityAction = act.ActivityAction;
 					contractAct.ActivityType = act.ActivityType;
@@ -5823,7 +5817,7 @@ namespace JMMServer
 					contractAct.User.JoinedDate = Utils.GetAniDBDateAsDate(act.user.joined);
 
 					// episode details
-					if (act.ActivityAction == 1 && act.episode != null) // scrobble episode
+					if (act.ActivityAction == (int)TraktActivityAction.Scrobble && act.episode != null) // scrobble episode
 					{
 						contractAct.Episode = new Contract_Trakt_WatchedEpisode();
 						contractAct.Episode.AnimeSeriesID = null;
@@ -5857,7 +5851,7 @@ namespace JMMServer
 					}
 
 					// shout details
-					if (act.ActivityAction == 2 && act.shout != null) // shout
+					if (act.ActivityAction == (int)TraktActivityAction.Shout && act.shout != null) // shout
 					{
 						contractAct.Shout = new Contract_Trakt_Shout();
 
