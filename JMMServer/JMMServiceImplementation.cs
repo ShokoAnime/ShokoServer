@@ -2804,6 +2804,9 @@ namespace JMMServer
 		/// <param name="voteType"></param>
 		public void VoteAnime(int animeID, decimal voteValue, int voteType)
 		{
+			string msg = string.Format("Voting for anime: {0} - Value: {1}", animeID, voteValue);
+			logger.Info(msg);
+
 			// lets save to the database and assume it will work
 			AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
 			List<AniDB_Vote> dbVotes = repVotes.GetByEntity(animeID);
@@ -2837,6 +2840,8 @@ namespace JMMServer
 			else
 				iVoteValue = (int)voteValue;
 
+			msg = string.Format("Voting for anime Formatted: {0} - Value: {1}", animeID, iVoteValue);
+			logger.Info(msg);
 
 			thisVote.VoteValue = iVoteValue;
 			repVotes.Save(thisVote);
