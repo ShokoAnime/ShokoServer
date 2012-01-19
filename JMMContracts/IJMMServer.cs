@@ -488,6 +488,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		void SyncMALDownload();
+
+		[OperationContract]
+		void RecreateAllGroups();
 	}
 
 }

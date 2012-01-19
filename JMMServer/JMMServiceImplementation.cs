@@ -6117,6 +6117,97 @@ namespace JMMServer
 
 			return null;
 		}
+
+		public void RecreateAllGroups()
+		{
+			try
+			{
+				// pause queues
+				JMMService.CmdProcessorGeneral.Paused = true;
+				JMMService.CmdProcessorHasher.Paused = true;
+				JMMService.CmdProcessorImages.Paused = true;
+
+				AnimeGroupRepository repGroups = new AnimeGroupRepository();
+				AnimeGroup_UserRepository repGroupUser = new AnimeGroup_UserRepository();
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+				// get all the old groups
+				List<AnimeGroup> oldGroups = repGroups.GetAll();
+				List<AnimeGroup_User> oldGroupUsers = repGroupUser.GetAll();
+
+				// create a new group, where we will place all the series temporarily
+				AnimeGroup tempGroup = new AnimeGroup();
+				tempGroup.GroupName = "AAA Migrating Groups AAA";
+				tempGroup.Description = "AAA Migrating Groups AAA";
+				tempGroup.SortName = "AAA Migrating Groups AAA";
+				tempGroup.DateTimeUpdated = DateTime.Now;
+				tempGroup.DateTimeCreated = DateTime.Now;
+				repGroups.Save(tempGroup);
+
+				// move all series to the new group
+				foreach (AnimeSeries ser in repSeries.GetAll())
+				{
+					ser.AnimeGroupID = tempGroup.AnimeGroupID;
+					repSeries.Save(ser, false);
+				}
+
+				// delete all the old groups
+				foreach (AnimeGroup grp in oldGroups)
+					repGroups.Delete(grp.AnimeGroupID);
+
+				// delete all the old group user records
+				foreach (AnimeGroup_User grpUser in oldGroupUsers)
+					repGroupUser.Delete(grpUser.AnimeGroupID);
+
+
+				// recreate groups
+				foreach (AnimeSeries ser in repSeries.GetAll())
+				{
+					bool createNewGroup = true;
+
+					if (ServerSettings.AutoGroupSeries)
+					{
+						List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(ser.AniDB_ID);
+
+						// only use if there is just one result
+						if (grps != null && grps.Count > 0 && !grps[0].GroupName.Equals("AAA Migrating Groups AAA"))
+						{
+							ser.AnimeGroupID = grps[0].AnimeGroupID;
+							createNewGroup = false;
+						}
+					}
+
+					if (createNewGroup)
+					{
+						AnimeGroup anGroup = new AnimeGroup();
+						anGroup.Populate(ser);
+						repGroups.Save(anGroup);
+
+						ser.AnimeGroupID = anGroup.AnimeGroupID;
+					}
+
+					repSeries.Save(ser, false);
+				}
+
+				// delete the temp group
+				if (tempGroup.AllSeries.Count == 0)
+					repGroups.Delete(tempGroup.AnimeGroupID);
+
+				// create group user records and update group stats
+				foreach (AnimeGroup grp in repGroups.GetAll())
+					grp.UpdateStatsFromTopLevel(true, true);
+				
+
+				// un-pause queues
+				JMMService.CmdProcessorGeneral.Paused = false;
+				JMMService.CmdProcessorHasher.Paused = false;
+				JMMService.CmdProcessorImages.Paused = false;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
 	}
 
 	

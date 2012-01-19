@@ -14,6 +14,11 @@ namespace JMMServer.Repositories
 
 		public void Save(AnimeSeries obj)
 		{
+			Save(obj, true);
+		}
+
+		public void Save(AnimeSeries obj, bool updateStats)
+		{
 			bool updateStatsCache = false;
 			AnimeGroup oldGroup = null;
 			if (obj.AnimeSeriesID == 0) updateStatsCache = true; // a new series
@@ -44,16 +49,19 @@ namespace JMMServer.Repositories
 				}
 			}
 
-			if (updateStatsCache)
+			if (updateStats)
 			{
-				logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
-				StatsCache.Instance.UpdateUsingSeries(obj.AnimeSeriesID);
-			}
+				if (updateStatsCache)
+				{
+					logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
+					StatsCache.Instance.UpdateUsingSeries(obj.AnimeSeriesID);
+				}
 
-			if (oldGroup != null)
-			{
-				logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}", oldGroup.AnimeGroupID);
-				StatsCache.Instance.UpdateUsingGroup(oldGroup.AnimeGroupID);
+				if (oldGroup != null)
+				{
+					logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}", oldGroup.AnimeGroupID);
+					StatsCache.Instance.UpdateUsingGroup(oldGroup.AnimeGroupID);
+				}
 			}
 		}
 
