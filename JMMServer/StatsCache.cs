@@ -53,6 +53,7 @@ namespace JMMServer
 		public Dictionary<int, bool> StatGroupHasMovieDBOrTvDB = null; // AnimeGroupID
 		public Dictionary<int, int> StatGroupSeriesCount = null; // AnimeGroupID
 		public Dictionary<int, int> StatGroupEpisodeCount = null; // AnimeGroupID
+		public Dictionary<int, decimal> StatGroupAniDBRating = null; // AnimeGroupID / AniDBVote
 
 
 		public StatsCache()
@@ -87,6 +88,7 @@ namespace JMMServer
 			StatGroupHasMovieDBOrTvDB = new Dictionary<int, bool>();
 			StatGroupSeriesCount = new Dictionary<int, int>();
 			StatGroupEpisodeCount = new Dictionary<int, int>();
+			StatGroupAniDBRating = new Dictionary<int, decimal>();
 		}
 
 		public void UpdateUsingAniDBFile(string hash)
@@ -434,6 +436,7 @@ namespace JMMServer
 					StatGroupUserVoteOverall[grp.AnimeGroupID] = grp.UserVote;
 					StatGroupUserVotePermanent[grp.AnimeGroupID] = grp.UserVotePermanent;
 					StatGroupUserVoteTemporary[grp.AnimeGroupID] = grp.UserVoteTemporary;
+					StatGroupAniDBRating[grp.AnimeGroupID] = grp.AniDBRating;
 
 					ts = DateTime.Now - start;
 					logger.Trace("Updating cached stats for GROUP - STEP 8 ({0}) in {1} ms", grp.GroupName, ts.TotalMilliseconds);
@@ -841,6 +844,7 @@ namespace JMMServer
 						Stat_UserVoteTemporary = totalVotesTemp / (decimal)countVotesTemp / (decimal)100;
 					StatGroupUserVoteTemporary[ag.AnimeGroupID] = Stat_UserVoteTemporary;
 
+					StatGroupAniDBRating[ag.AnimeGroupID] = ag.AniDBRating;
 
 					Stat_AllCategories = "";
 
@@ -1123,8 +1127,10 @@ namespace JMMServer
 						decimal dRating = -1;
 						decimal.TryParse(gfc.ConditionParameter, out dRating);
 
-						if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && grp.AniDBRating < dRating) return false;
-						if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && grp.AniDBRating > dRating) return false;
+						decimal thisRating = contractGroup.Stat_AniDBRating / (decimal)100;
+
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && thisRating < dRating) return false;
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && thisRating > dRating) return false;
 						break;
 
 					case GroupFilterConditionType.UserRating:

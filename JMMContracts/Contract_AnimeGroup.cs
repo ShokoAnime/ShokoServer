@@ -50,6 +50,7 @@ namespace JMMContracts
 		public string Stat_SubtitleLanguages { get; set; }
 		public int Stat_SeriesCount { get; set; }
 		public int Stat_EpisodeCount { get; set; }
+		public decimal Stat_AniDBRating { get; set; }
 
 		public int CompareTo(Contract_AnimeGroup obj)
 		{
