@@ -399,6 +399,66 @@ namespace JMMServer
 			return gfs;
 		}
 
+		public List<Contract_Playlist> GetAllPlaylists()
+		{
+			List<Contract_Playlist> pls = new List<Contract_Playlist>();
+			try
+			{
+				PlaylistRepository repPlaylist = new PlaylistRepository();
+
+
+				List<Playlist> allPls = repPlaylist.GetAll();
+				foreach (Playlist pl in allPls)
+					pls.Add(pl.ToContract());
+
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return pls;
+		}
+
+		public string SavePlaylist(Contract_Playlist contract)
+		{
+			try
+			{
+				PlaylistRepository repPlaylist = new PlaylistRepository();
+
+				// Process the playlist
+				Playlist pl = null;
+				if (contract.PlaylistID.HasValue)
+				{
+					pl = repPlaylist.GetByID(contract.PlaylistID.Value);
+					if (pl == null)
+					{
+						return "Could not find existing Playlist with ID: " + contract.PlaylistID.Value.ToString();
+					}
+				}
+				else
+					pl = new Playlist();
+
+				if (string.IsNullOrEmpty(contract.PlaylistName))
+					return "Playlist must have a name";
+
+				pl.DefaultPlayOrder = contract.DefaultPlayOrder;
+				pl.PlaylistItems = contract.PlaylistItems;
+				pl.PlaylistName = contract.PlaylistName;
+				pl.PlayUnwatched = contract.PlayUnwatched;
+				pl.PlayWatched = contract.PlayWatched;
+
+				repPlaylist.Save(pl);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+			
+			return "";
+		}
+
 		public Contract_GroupFilter_SaveResponse SaveGroupFilter(Contract_GroupFilter contract)
 		{
 			Contract_GroupFilter_SaveResponse response = new Contract_GroupFilter_SaveResponse();

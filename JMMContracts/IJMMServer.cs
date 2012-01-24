@@ -491,6 +491,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		void RecreateAllGroups();
+
+		[OperationContract]
+		List<Contract_Playlist> GetAllPlaylists();
+
+		[OperationContract]
+		string SavePlaylist(Contract_Playlist contract);
 	}
 
 }

@@ -129,6 +129,7 @@ namespace JMMServer.Databases
 				UpdateSchema_009(versionNumber);
 				UpdateSchema_010(versionNumber);
 				UpdateSchema_011(versionNumber);
+				UpdateSchema_012(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -474,6 +475,46 @@ namespace JMMServer.Databases
 
 			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL(MALID)");
 			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_Anime ON CrossRef_AniDB_MAL(AnimeID, StartEpisodeType, StartEpisodeNumber)");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_012(int currentVersionNumber)
+		{
+			int thisVersion = 12;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+
+			cmds.Add("CREATE TABLE Playlist( " +
+				" PlaylistID int IDENTITY(1,1) NOT NULL, " +
+				" PlaylistName nvarchar(MAX) NULL, " +
+				" PlaylistItems varchar(MAX) NULL, " +
+				" DefaultPlayOrder int NOT NULL, " +
+				" PlayWatched int NOT NULL, " +
+				" PlayUnwatched int NOT NULL, " +
+				" CONSTRAINT [PK_Playlist] PRIMARY KEY CLUSTERED " +
+				" ( " +
+				" PlaylistID ASC " +
+				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+				" ) ON [PRIMARY] ");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
