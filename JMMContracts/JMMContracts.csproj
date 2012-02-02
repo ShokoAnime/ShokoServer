@@ -108,6 +108,7 @@
     <Compile Include="Contract_MovieDB_Movie.cs" />
     <Compile Include="Contract_MovieDB_Poster.cs" />
     <Compile Include="Contract_Playlist.cs" />
+    <Compile Include="Contract_Playlist_SaveResponse.cs" />
     <Compile Include="Contract_Recommendation.cs" />
     <Compile Include="Contract_ReleaseGroup.cs" />
     <Compile Include="Contract_ServerSettings.cs" />

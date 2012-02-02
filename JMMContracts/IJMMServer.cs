@@ -496,7 +496,13 @@ namespace JMMContracts
 		List<Contract_Playlist> GetAllPlaylists();
 
 		[OperationContract]
-		string SavePlaylist(Contract_Playlist contract);
+		Contract_Playlist_SaveResponse SavePlaylist(Contract_Playlist contract);
+
+		[OperationContract]
+		string DeletePlaylist(int playlistID);
+
+		[OperationContract]
+		Contract_Playlist GetPlaylist(int playlistID);
 	}
 
 }

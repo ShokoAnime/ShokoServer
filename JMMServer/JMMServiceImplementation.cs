@@ -420,8 +420,11 @@ namespace JMMServer
 			return pls;
 		}
 
-		public string SavePlaylist(Contract_Playlist contract)
+		public Contract_Playlist_SaveResponse SavePlaylist(Contract_Playlist contract)
 		{
+			Contract_Playlist_SaveResponse contractRet = new Contract_Playlist_SaveResponse();
+			contractRet.ErrorMessage = "";
+
 			try
 			{
 				PlaylistRepository repPlaylist = new PlaylistRepository();
@@ -433,14 +436,18 @@ namespace JMMServer
 					pl = repPlaylist.GetByID(contract.PlaylistID.Value);
 					if (pl == null)
 					{
-						return "Could not find existing Playlist with ID: " + contract.PlaylistID.Value.ToString();
+						contractRet.ErrorMessage = "Could not find existing Playlist with ID: " + contract.PlaylistID.Value.ToString();
+						return contractRet;
 					}
 				}
 				else
 					pl = new Playlist();
 
 				if (string.IsNullOrEmpty(contract.PlaylistName))
-					return "Playlist must have a name";
+				{
+					contractRet.ErrorMessage = "Playlist must have a name";
+					return contractRet;
+				}
 
 				pl.DefaultPlayOrder = contract.DefaultPlayOrder;
 				pl.PlaylistItems = contract.PlaylistItems;
@@ -449,14 +456,57 @@ namespace JMMServer
 				pl.PlayWatched = contract.PlayWatched;
 
 				repPlaylist.Save(pl);
+
+				contractRet.Playlist = pl.ToContract();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				contractRet.ErrorMessage = ex.Message;
+				return contractRet;
+			}
+
+			return contractRet;
+		}
+
+		public string DeletePlaylist(int playlistID)
+		{
+			try
+			{
+				PlaylistRepository repPlaylist = new PlaylistRepository();
+
+				Playlist pl = repPlaylist.GetByID(playlistID);
+				if (pl == null)
+					return "Playlist not found";
+
+				repPlaylist.Delete(playlistID);
+
+				return "";
 			}
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
 				return ex.Message;
 			}
-			
-			return "";
+		}
+
+		public Contract_Playlist GetPlaylist(int playlistID)
+		{
+			try
+			{
+				PlaylistRepository repPlaylist = new PlaylistRepository();
+
+				Playlist pl = repPlaylist.GetByID(playlistID);
+				if (pl == null)
+					return null;
+
+				return pl.ToContract();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return null;
+			}
 		}
 
 		public Contract_GroupFilter_SaveResponse SaveGroupFilter(Contract_GroupFilter contract)
