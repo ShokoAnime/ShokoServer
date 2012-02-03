@@ -512,6 +512,7 @@
     <Compile Include="WebCache\AddCrossRef_AniDB_TraktRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_TvDBRequest.cs" />
     <Compile Include="WebCache\AniDB_UpdatedRequest.cs" />
+    <Compile Include="WebCache\AppVersionsResult.cs" />
     <Compile Include="WebCache\CrossRef_AniDB_MALResult.cs" />
     <Compile Include="WebCache\CrossRef_AniDB_OtherResult.cs" />
     <Compile Include="WebCache\CrossRef_AniDB_TraktResult.cs" />

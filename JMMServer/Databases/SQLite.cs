@@ -87,6 +87,7 @@ namespace JMMServer.Databases
 				UpdateSchema_009(versionNumber);
 				UpdateSchema_010(versionNumber);
 				UpdateSchema_011(versionNumber);
+				UpdateSchema_012(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -390,6 +391,39 @@ namespace JMMServer.Databases
 			UpdateDatabaseVersion(thisVersion);
 		}
 
+		private static void UpdateSchema_012(int currentVersionNumber)
+		{
+			int thisVersion = 12;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE Playlist( " +
+				" PlaylistID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" PlaylistName text, " +
+				" PlaylistItems text, " +
+				" DefaultPlayOrder int NOT NULL, " +
+				" PlayWatched int NOT NULL, " +
+				" PlayUnwatched int NOT NULL " +
+				" ); ");
+
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
 
 		private static void UpdateDatabaseVersion(int versionNumber)
 		{

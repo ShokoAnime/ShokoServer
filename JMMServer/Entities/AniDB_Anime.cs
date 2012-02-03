@@ -10,6 +10,7 @@ using JMMServer.Commands;
 using JMMContracts;
 using System.IO;
 using JMMServer.ImageDownload;
+using System.Diagnostics;
 
 namespace JMMServer.Entities
 {
@@ -1253,7 +1254,19 @@ namespace JMMServer.Entities
 
 			contract.Stat_AllVideoQuality = repAdHoc.GetAllVideoQualityForAnime(this.AnimeID);
 
+			contract.Stat_AllVideoQuality_Episodes = "";
 			AnimeVideoQualityStat stat = repAdHoc.GetEpisodeVideoQualityStatsForAnime(this.AnimeID);
+			if (stat != null && stat.VideoQualityEpisodeCount.Count > 0)
+			{
+				foreach (KeyValuePair<string, int> kvp in stat.VideoQualityEpisodeCount)
+				{
+					if (kvp.Value >= EpisodeCountNormal)
+					{
+						if (contract.Stat_AllVideoQuality_Episodes.Length > 0) contract.Stat_AllVideoQuality_Episodes += ",";
+						contract.Stat_AllVideoQuality_Episodes += kvp.Key;
+					}
+				}
+			}
 
 			return contract;
 		}

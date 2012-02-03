@@ -91,6 +91,7 @@ namespace JMMServer.Databases
 				UpdateSchema_011(versionNumber);
 				UpdateSchema_012(versionNumber);
 				UpdateSchema_013(versionNumber);
+				UpdateSchema_014(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -585,6 +586,49 @@ namespace JMMServer.Databases
 			cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_AnimeID` (`AnimeID` ASC) ;");
 			cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_Anime` (`MALID` ASC, `AnimeID` ASC, `StartEpisodeType` ASC, `StartEpisodeNumber` ASC) ;");
 
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_014(int currentVersionNumber)
+		{
+			int thisVersion = 14;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE Playlist( " +
+				" PlaylistID INT NOT NULL AUTO_INCREMENT, " +
+				" PlaylistName text character set utf8, " +
+				" PlaylistItems text character set utf8, " +
+				" DefaultPlayOrder int NOT NULL, " +
+				" PlayWatched int NOT NULL, " +
+				" PlayUnwatched int NOT NULL, " +
+				" PRIMARY KEY (`PlaylistID`) ) ; ");
+
+			
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{
 				conn.Open();
