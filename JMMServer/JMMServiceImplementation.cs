@@ -6317,6 +6317,23 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 			}
 		}
+
+		public Contract_AppVersions GetAppVersions()
+		{
+			try
+			{
+				AppVersionsResult appv = XMLService.GetAppVersions();
+				if (appv == null) return null;
+
+				return appv.ToContract();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return null;
+		}
 	}
 
 	

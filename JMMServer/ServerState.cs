@@ -116,5 +116,38 @@ namespace JMMServer
 			}
 		}
 
+		private bool newVersionAvailable = false;
+		public bool NewVersionAvailable
+		{
+			get { return newVersionAvailable; }
+			set
+			{
+				newVersionAvailable = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("NewVersionAvailable"));
+			}
+		}
+
+		private string newVersionNumber = "";
+		public string NewVersionNumber
+		{
+			get { return newVersionNumber; }
+			set
+			{
+				newVersionNumber = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("NewVersionNumber"));
+			}
+		}
+
+		private string newVersionDownloadLink = "";
+		public string NewVersionDownloadLink
+		{
+			get { return newVersionDownloadLink; }
+			set
+			{
+				newVersionDownloadLink = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("NewVersionDownloadLink"));
+			}
+		}
+
 	}
 }

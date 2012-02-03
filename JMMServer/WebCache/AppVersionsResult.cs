@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMContracts;
 
 namespace JMMServer.WebCache
 {
@@ -19,6 +20,21 @@ namespace JMMServer.WebCache
 		// default constructor
 		public AppVersionsResult()
 		{
+		}
+		public Contract_AppVersions ToContract()
+		{
+			Contract_AppVersions contract = new Contract_AppVersions();
+
+			contract.JMMServerVersion = JMMServerVersion;
+			contract.JMMServerDownload = JMMServerDownload;
+
+			contract.JMMDesktopVersion = JMMDesktopVersion;
+			contract.JMMDesktopDownload = JMMDesktopDownload;
+
+			contract.MyAnime3Version = MyAnime3Version;
+			contract.MyAnime3Download = MyAnime3Download;
+
+			return contract;
 		}
 	}
 }

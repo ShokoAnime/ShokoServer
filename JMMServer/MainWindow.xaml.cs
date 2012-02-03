@@ -50,6 +50,7 @@ namespace JMMServer
 		private static bool doneFirstTrakTinfo = false;
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 		private static DateTime lastTraktInfoUpdate = DateTime.Now;
+		private static DateTime lastVersionCheck = DateTime.Now.AddDays(-5);
 
 		//private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
 		private static string baseAddressImageString = @"http://localhost:{0}/JMMServerImage";
@@ -850,7 +851,7 @@ namespace JMMServer
 			//CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
 			//cmd.Save();
 
-			
+			//AppVersionsResult appv = XMLService.GetAppVersions();
 		}
 
 		private void DownloadAllImages()
@@ -1115,6 +1116,59 @@ namespace JMMServer
 			JMMService.CmdProcessorImages.NotifyOfNewCommand();
 
 			UpdateTraktFriendInfo(false);
+
+			CheckVersion();
+		}
+
+		private void CheckVersion()
+		{
+			try
+			{
+				TimeSpan ts = DateTime.Now - lastVersionCheck;
+				if (ts.TotalMinutes < 180) return;
+
+				lastVersionCheck = DateTime.Now;
+
+				ServerState.Instance.NewVersionAvailable = false;
+				ServerState.Instance.NewVersionDownloadLink = "";
+				ServerState.Instance.NewVersionNumber = "";
+				
+				// check for new version
+				AppVersionsResult appv = XMLService.GetAppVersions();
+				if (appv != null)
+				{
+					string curVersion = Utils.GetApplicationVersion(System.Reflection.Assembly.GetExecutingAssembly());
+
+					string[] latestNumbers = appv.JMMServerVersion.Split('.');
+					string[] curNumbers = curVersion.Split('.');
+
+					string latestMajor = string.Format("{0}.{1}", latestNumbers[0], latestNumbers[1]);
+					string curMajor = string.Format("{0}.{1}", curNumbers[0], curNumbers[1]);
+
+					decimal lmajor = decimal.Parse(latestMajor);
+					decimal cmajor = decimal.Parse(curMajor);
+
+					if (lmajor > cmajor)
+					{
+						ServerState.Instance.NewVersionAvailable = true;
+						ServerState.Instance.NewVersionDownloadLink = appv.JMMServerDownload;
+						ServerState.Instance.NewVersionNumber = appv.JMMServerVersion;
+					}
+					else if (lmajor == cmajor)
+					{
+						if (int.Parse(latestNumbers[2]) > int.Parse(curNumbers[2]))
+						{
+							ServerState.Instance.NewVersionAvailable = true;
+							ServerState.Instance.NewVersionDownloadLink = appv.JMMServerDownload;
+							ServerState.Instance.NewVersionNumber = appv.JMMServerVersion;
+						}
+					}
+
+					
+				}
+
+			}
+			catch { }
 		}
 
 		#region Tray Minimize

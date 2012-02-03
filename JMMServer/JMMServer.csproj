@@ -653,7 +653,9 @@
   <ItemGroup>
     <Resource Include="Images\32_image.png" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="Images\48_new.png" />
+  </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_warning.png" />
   </ItemGroup>
@@ -668,6 +670,9 @@
     <Resource Include="Providers\MyAnimeList\sample\AnimeValues.xml" />
     <Resource Include="Providers\MyAnimeList\sample\SearchResult.xml" />
     <Resource Include="Providers\MyAnimeList\sample\VerifyCredentials.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_new.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

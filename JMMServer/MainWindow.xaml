@@ -55,6 +55,20 @@
                         <TextBlock VerticalAlignment="Center" Text="Help" Margin="0,0,5,0"/>
                     </StackPanel>
                 </Button>
+
+
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" 
+                                Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=NewVersionAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Image Height="24" Width="24" Source="/Images/32_new.png" Margin="20,0,5,0"/>
+                        <TextBlock VerticalAlignment="Center" Text="Version" Margin="0,0,5,0"/>
+                        <TextBlock VerticalAlignment="Center" Text="{Binding Source={x:Static local:ServerState.Instance}, Path=NewVersionNumber}" Margin="0,0,5,0"/>
+                        <TextBlock VerticalAlignment="Center" Text="Available" Margin="0,0,5,0"/>
+                        <local:HyperLinkStandard VerticalAlignment="Center" Margin="5,0,0,0" DisplayText="Download"
+                                                                            URL="{Binding Source={x:Static local:ServerState.Instance}, Path=NewVersionDownloadLink}"/>
+                    </StackPanel>
+
+                
             </StackPanel>
         </Border>
 

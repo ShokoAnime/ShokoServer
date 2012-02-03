@@ -509,6 +509,34 @@ namespace JMMServer.WebCache
 
 		#endregion
 
+		public static AppVersionsResult GetAppVersions()
+		{
+			try
+			{
+				AppVersionsResult appVersions = null;
+
+				string uri = string.Format("http://{0}/GetAppVersions.aspx", ServerSettings.WebCache_Address);
+				string xml = GetData(uri);
+
+				if (xml.Trim().Length == 0) return null;
+
+				XmlSerializer serializer = new XmlSerializer(typeof(AppVersionsResult));
+				XmlDocument docSearchResult = new XmlDocument();
+				docSearchResult.LoadXml(xml);
+
+				XmlNodeReader reader = new XmlNodeReader(docSearchResult.DocumentElement);
+				object obj = serializer.Deserialize(reader);
+				appVersions = (AppVersionsResult)obj;
+
+				return appVersions;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in XMLService.GetAppVersions:: {0}", ex);
+				return null;
+			}
+		}
+
 		public static UpdatesCollection Get_AniDBUpdates(long utcUpdateTime)
 		{
 			try

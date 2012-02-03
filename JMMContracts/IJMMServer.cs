@@ -503,6 +503,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		Contract_Playlist GetPlaylist(int playlistID);
+
+		[OperationContract]
+		Contract_AppVersions GetAppVersions();
 	}
 
 }
