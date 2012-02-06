@@ -506,6 +506,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		Contract_AppVersions GetAppVersions();
+
+		[OperationContract]
+		string UpdateFileData(int videoLocalID);
+
+		[OperationContract]
+		string RescanFile(int videoLocalID);
 	}
 
 }

@@ -1296,6 +1296,48 @@ namespace JMMServer
 			return "";
 		}
 
+		public string UpdateFileData(int videoLocalID)
+		{
+
+			try
+			{
+				
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				VideoLocal vid = repVids.GetByID(videoLocalID);
+				if (vid == null) return "File could not be found";
+
+				CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
+				cmd.Save();
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+			return "";
+		}
+
+		public string RescanFile(int videoLocalID)
+		{
+			try
+			{
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				VideoLocal vid = repVids.GetByID(videoLocalID);
+				if (vid == null) return "File could not be found";
+
+				CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vid.VideoLocalID, true);
+				cmd.Save();
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.Message, ex);
+				return ex.Message;
+			}
+			return "";
+		}
+
 		public string UpdateTvDBData(int seriesID)
 		{
 
@@ -2761,7 +2803,7 @@ namespace JMMServer
 
 				foreach (VideoLocal vl in filesWithoutEpisode)
 				{
-					CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID);
+					CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
 					cmd.Save();
 				}
 			}
@@ -2770,6 +2812,8 @@ namespace JMMServer
 				logger.ErrorException(ex.Message, ex);
 			}
 		}
+
+		
 
 		public void SetCommandProcessorHasherPaused(bool paused)
 		{

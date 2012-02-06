@@ -18,6 +18,7 @@ namespace JMMServer.Commands
 	{
 
 		public int VideoLocalID { get; set; }
+		public bool ForceAniDB { get; set; }
 
 		private VideoLocal vlocal = null;
 
@@ -41,9 +42,10 @@ namespace JMMServer.Commands
 		{
 		}
 
-		public CommandRequest_ProcessFile(int vidLocalID)
+		public CommandRequest_ProcessFile(int vidLocalID, bool forceAniDB)
 		{
 			this.VideoLocalID = vidLocalID;
+			this.ForceAniDB = forceAniDB;
 			this.CommandType = (int)CommandRequestType.ProcessFile;
 			this.Priority = (int)DefaultPriority;
 
@@ -88,15 +90,20 @@ namespace JMMServer.Commands
 			AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
 			CrossRef_File_EpisodeRepository repXrefFE = new CrossRef_File_EpisodeRepository();
 
-			AniDB_File aniFile = repAniFile.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
+			AniDB_File aniFile = null;
 
-			if (aniFile == null)
-				logger.Trace("AniDB_File record not found");
+			if (!ForceAniDB)
+			{
+				aniFile = repAniFile.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
+
+				if (aniFile == null)
+					logger.Trace("AniDB_File record not found");
+			}
 
 			int animeID = 0;
 
 			// get from web cache
-			if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
+			if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get && !ForceAniDB)
 			{
 				AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
 				if (fr != null)
@@ -186,13 +193,22 @@ namespace JMMServer.Commands
 			{
 				// check if we have the episode info
 				// if we don't, we will need to re-download the anime info (which also has episode info)
-				foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
-				{
-					AniDB_Episode ep = repAniEps.GetByEpisodeID(xref.EpisodeID);
-					if (ep == null)
-						missingEpisodes = true;
 
-					animeID = xref.AnimeID;
+				if (aniFile.EpisodeCrossRefs.Count == 0)
+				{
+					animeID = aniFile.AnimeID;
+					missingEpisodes = true;
+				}
+				else
+				{
+					foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
+					{
+						AniDB_Episode ep = repAniEps.GetByEpisodeID(xref.EpisodeID);
+						if (ep == null)
+							missingEpisodes = true;
+
+						animeID = xref.AnimeID;
+					}
 				}
 			}
 
@@ -297,6 +313,7 @@ namespace JMMServer.Commands
 
 				// populate the fields
 				this.VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "VideoLocalID"));
+				this.ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "ForceAniDB"));
 			}
 
 			return true;

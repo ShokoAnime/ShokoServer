@@ -78,9 +78,11 @@ namespace JMMServer.Commands
 						string localFileName = Path.GetFileName(vlocal.FilePath);
 						aniFile.FileName = localFileName;
 
-						repAniFile.Save(aniFile, true);
+						repAniFile.Save(aniFile, false);
 						aniFile.CreateLanguages();
 						aniFile.CreateCrossEpisodes(localFileName);
+
+						StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
 					}
 				}
 
@@ -100,9 +102,11 @@ namespace JMMServer.Commands
 					string localFileName = Path.GetFileName(vlocal.FilePath);
 					aniFile.FileName = localFileName;
 
-					repAniFile.Save(aniFile, true);
+					repAniFile.Save(aniFile, false);
 					aniFile.CreateLanguages();
 					aniFile.CreateCrossEpisodes(localFileName);
+
+					StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
 				}
 				
 			}

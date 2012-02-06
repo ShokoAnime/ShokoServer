@@ -96,6 +96,9 @@ namespace JMMServer
 		public MainWindow()
 		{
 			InitializeComponent();
+
+			//HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
+
 			ServerSettings.DebugSettingsToLog();
 
 
@@ -1759,7 +1762,7 @@ namespace JMMServer
 			//CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(@"M:\[ Anime Test ]\[Doki] Saki - 01 (720x480 h264 DVD AAC) [DC73ACB9].mkv");
 			//cr_hashfile.Save();
 
-			CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(15350);
+			CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(15350, false);
 			cr_procfile.Save();
 		}
 

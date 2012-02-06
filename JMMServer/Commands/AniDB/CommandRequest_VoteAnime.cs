@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
+using JMMServer.Commands.MAL;
 
 namespace JMMServer.Commands
 {
@@ -51,6 +52,12 @@ namespace JMMServer.Commands
 			try
 			{
 				JMMService.AnidbProcessor.VoteAnime(AnimeID, VoteValue, (AniDBAPI.enAniDBVoteType)VoteType);
+
+				if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) && !string.IsNullOrEmpty(ServerSettings.MAL_Password))
+				{
+					CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(AnimeID);
+					cmdMAL.Save();
+				}
 			}
 			catch (Exception ex)
 			{

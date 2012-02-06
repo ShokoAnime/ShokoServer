@@ -67,7 +67,7 @@ namespace JMMServer
 				// check if it has an episode
 				if (dictFilesWithoutEpisode.ContainsKey(vl.VideoLocalID))
 				{
-					CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID);
+					CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, false);
 					cmd.Save();
 					continue;
 				}
@@ -79,7 +79,7 @@ namespace JMMServer
 					if (xref.CrossRefSource != (int)CrossRefSource.AniDB) continue;
 					if (aniFile == null)
 					{
-						CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID);
+						CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, false);
 						cmd.Save();
 						continue;
 					}
@@ -99,7 +99,7 @@ namespace JMMServer
 				if (missingEpisodes)
 				{
 					// this will then download the anime etc
-					CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID);
+					CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, false);
 					cmd.Save();
 					continue;
 				}

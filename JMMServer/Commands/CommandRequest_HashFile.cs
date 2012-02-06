@@ -347,7 +347,7 @@ namespace JMMServer.Commands
 			}
 
 			// now add a command to process the file
-			CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID);
+			CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);
 			cr_procfile.Save();
 
 			return vlocal;
