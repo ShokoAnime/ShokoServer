@@ -16,6 +16,7 @@ using JMMServer.Commands.MAL;
 using System.Collections;
 using AniDBAPI;
 using System.Diagnostics;
+using JMMContracts;
 
 namespace JMMServer.Providers.MyAnimeList
 {
@@ -355,6 +356,8 @@ namespace JMMServer.Providers.MyAnimeList
 				}
 
 				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				AniDB_FileRepository repFiles = new AniDB_FileRepository();
+
 				List<AnimeEpisode> eps = ser.AnimeEpisodes;
 
 				// find the anidb user
@@ -381,6 +384,8 @@ namespace JMMServer.Providers.MyAnimeList
 					int malID = -1;
 					int epNumber = -1;
 					int totalEpCount = -1;
+
+					List<string> fanSubGroups = new List<string>();
 
 					// for each cross ref (which is a series on MAL) we need to update the data
 					// so find all the episodes which apply to this cross ref
@@ -412,12 +417,25 @@ namespace JMMServer.Providers.MyAnimeList
 								lastWatchedEpNumber = epNum;
 							}
 
+							List<Contract_VideoDetailed> contracts = ep.GetVideoDetailedContracts(user.JMMUserID);
+
 							// find the latest episode number in the collection
-							if (ep.GetVideoDetailedContracts(user.JMMUserID).Count > 0)
+							if (contracts.Count > 0)
 								downloadedEps++;
 
-							
+							foreach (Contract_VideoDetailed contract in contracts)
+							{
+								if (!string.IsNullOrEmpty(contract.AniDB_Anime_GroupNameShort) && !fanSubGroups.Contains(contract.AniDB_Anime_GroupNameShort))
+									fanSubGroups.Add(contract.AniDB_Anime_GroupNameShort);
+							}
 						}
+					}
+
+					string fanSubs = "";
+					foreach (string fgrp in fanSubGroups)
+					{
+						if (!string.IsNullOrEmpty(fanSubs)) fanSubs += ",";
+						fanSubs += fgrp;
 					}
 
 					// determine status
@@ -446,7 +464,7 @@ namespace JMMServer.Providers.MyAnimeList
 					}
 					else
 					{
-						bool res = UpdateAnime(malID, lastWatchedEpNumber, status, score, downloadedEps);
+						bool res = UpdateAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
 
 						string confirmationMessage = string.Format("MAL successfully updated, mal id: {0}, ep: {1}, score: {2}", malID, lastWatchedEpNumber, score);
 						if (res) logger.Trace(confirmationMessage);
@@ -478,14 +496,14 @@ namespace JMMServer.Providers.MyAnimeList
 			return int.MaxValue;
 		}
 
-		public static bool AddAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps)
+		public static bool AddAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps, string fanSubs)
 		{
 			try
 			{
 				string res = "";
 
-				string animeValuesXMLString = string.Format("?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score><downloaded_episodes>{3}</downloaded_episodes></entry>",
-							lastEpisodeWatched, status, score, downloadedEps);
+				string animeValuesXMLString = string.Format("?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score><downloaded_episodes>{3}</downloaded_episodes><fansub_group>{4}</fansub_group></entry>",
+							lastEpisodeWatched, status, score, downloadedEps, fanSubs);
 
 				res = SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/add/" + animeId + ".xml" + animeValuesXMLString);
 
@@ -497,14 +515,14 @@ namespace JMMServer.Providers.MyAnimeList
 			}
 		}
 
-		public static bool ModifyAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps)
+		public static bool ModifyAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps, string fanSubs)
 		{
 			try
 			{
 				string res = "";
 
-				string animeValuesXMLString = string.Format("?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score><downloaded_episodes>{3}</downloaded_episodes></entry>",
-							lastEpisodeWatched, status, score, downloadedEps);
+				string animeValuesXMLString = string.Format("?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score><downloaded_episodes>{3}</downloaded_episodes><fansub_group>{4}</fansub_group></entry>",
+							lastEpisodeWatched, status, score, downloadedEps, fanSubs);
 
 				res = SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/update/" + animeId + ".xml" + animeValuesXMLString);
 
@@ -517,7 +535,7 @@ namespace JMMServer.Providers.MyAnimeList
 		}
 
 		// status: 1/watching, 2/completed, 3/onhold, 4/dropped, 6/plantowatch
-		public static bool UpdateAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps)
+		public static bool UpdateAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps, string fanSubs)
 		{
 			try
 			{
@@ -526,24 +544,10 @@ namespace JMMServer.Providers.MyAnimeList
 				string res = "";
 				try
 				{
-					// the API doesn't work when you try to add an anime with watching and 0 episodes seen
-					// and there is no
-
-					// first try modifying the anime
-					if (status == 1 && lastEpisodeWatched == 0)
-					{
-						Debug.Write("");
-						
-						/*if (!AddAnime(animeId, 1, status, score, downloadedEps))
-						{
-							ModifyAnime(animeId, 1, status, score, downloadedEps);
-						}*/
-					}
-
 					// now modify back to proper status
-					if (!AddAnime(animeId, lastEpisodeWatched, status, score, downloadedEps))
+					if (!AddAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs))
 					{
-						ModifyAnime(animeId, lastEpisodeWatched, status, score, downloadedEps);
+						ModifyAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs);
 					}
 
 					
