@@ -609,7 +609,8 @@ namespace JMMServer
 					SQLiteDataReader myReader = sqCommand.ExecuteReader();
 					while (myReader.Read())
 					{
-						int episodeID = myReader.GetInt32(0);
+						int episodeID = 0;
+						if (!int.TryParse(myReader.GetValue(0).ToString(), out episodeID)) continue;
 						if (episodeID <= 0) continue;
 
 						sql = string.Format("SELECT AnimeID from AniDB_Episode WHERE EpisodeID = {0}", episodeID);
