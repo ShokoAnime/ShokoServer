@@ -61,36 +61,8 @@ namespace JMMServer.Commands.MAL
 				AnimeSeries ser = repSeries.GetByAnimeID(AnimeID);
 				if (ser == null) return;
 
-				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-				List<AnimeEpisode> eps = ser.AnimeEpisodes;
+				MALHelper.UpdateMALSeries(ser);
 
-				// find the anidb user
-				JMMUserRepository repUsers = new JMMUserRepository();
-				List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
-				if (aniDBUsers.Count == 0) return;
-
-				JMMUser user = aniDBUsers[0];
-
-				foreach (CrossRef_AniDB_MAL xref in crossRefs)
-				{
-					int lastEpNumber = -1;
-
-					foreach (AnimeEpisode ep in eps)
-					{
-						int epNum = ep.AniDB_Episode.EpisodeNumber;
-						if (xref.StartEpisodeType == (int)ep.EpisodeTypeEnum && epNum >= xref.StartEpisodeNumber &&
-							epNum <= GetUpperEpisodeLimit(crossRefs, xref))
-						{
-							AnimeEpisode_User usrRecord = ep.GetUserRecord(user.JMMUserID);
-							if (usrRecord != null && usrRecord.WatchedDate.HasValue && epNum > lastEpNumber)
-								lastEpNumber = ep.AniDB_Episode.EpisodeNumber;
-						}
-					}
-
-					if (lastEpNumber > 0)
-						MALHelper.UpdateWatchedStatus(AnimeID, (enEpisodeType)xref.StartEpisodeType, lastEpNumber);
-					
-				}
 			}
 			catch (Exception ex)
 			{

@@ -338,6 +338,12 @@ namespace JMMServer.Entities
 						cmdUnseen.Save();
 					}
 				}
+
+				if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) && !string.IsNullOrEmpty(ServerSettings.MAL_Password))
+				{
+					CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
+					cmdMAL.Save();
+				}
 			}
 			
 

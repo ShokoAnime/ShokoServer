@@ -10,6 +10,7 @@ using JMMFileHelper;
 using AniDBAPI;
 using System.Xml;
 using JMMServer.WebCache;
+using JMMServer.Commands.MAL;
 
 namespace JMMServer.Commands
 {
@@ -284,6 +285,13 @@ namespace JMMServer.Commands
 			{
 				CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.Anime.MainTitle);
 				cmdTrakt.Save();
+			}
+
+			// sync the series on MAL
+			if (ser != null)
+			{
+				CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
+				cmdMAL.Save();
 			}
 		}
 

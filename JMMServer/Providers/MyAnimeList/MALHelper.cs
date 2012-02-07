@@ -15,6 +15,7 @@ using JMMServer.Commands;
 using JMMServer.Commands.MAL;
 using System.Collections;
 using AniDBAPI;
+using System.Diagnostics;
 
 namespace JMMServer.Providers.MyAnimeList
 {
@@ -301,7 +302,7 @@ namespace JMMServer.Providers.MyAnimeList
 			}
 		}
 
-		public static void UpdateWatchedStatus(int animeID, enEpisodeType epType, int lastWatchedEpNumber)
+		/*public static void UpdateWatchedStatus(int animeID, enEpisodeType epType, int lastWatchedEpNumber)
 		{
 			try
 			{
@@ -322,9 +323,9 @@ namespace JMMServer.Providers.MyAnimeList
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
-		}
+		}*/
 
-		public static void UpdateMAL(AnimeEpisode animeEpisode)
+		public static void UpdateMALSeries(AnimeSeries ser)
 		{
 			try
 			{
@@ -346,7 +347,6 @@ namespace JMMServer.Providers.MyAnimeList
 				}
 
 				// look for MAL Links
-				AnimeSeries ser = animeEpisode.AnimeSeries;
 				List<CrossRef_AniDB_MAL> crossRefs = ser.Anime.CrossRefMAL;
 				if (crossRefs == null || crossRefs.Count == 0)
 				{
@@ -354,10 +354,19 @@ namespace JMMServer.Providers.MyAnimeList
 					return;
 				}
 
-				// look for the right MAL id
-				int malID = -1;
-				int epNumber = -1;
-				int totalEpCount = -1;
+				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				List<AnimeEpisode> eps = ser.AnimeEpisodes;
+
+				// find the anidb user
+				JMMUserRepository repUsers = new JMMUserRepository();
+				List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
+				if (aniDBUsers.Count == 0) return;
+
+				JMMUser user = aniDBUsers[0];
+
+				int score = 0;
+				if (ser.Anime.UserVote != null)
+					score = (int)(ser.Anime.UserVote.VoteValue / 100);
 
 				// e.g.
 				// AniDB - Code Geass R2
@@ -368,75 +377,92 @@ namespace JMMServer.Providers.MyAnimeList
 
 				foreach (CrossRef_AniDB_MAL xref in crossRefs)
 				{
-					if ((int)animeEpisode.EpisodeTypeEnum == xref.StartEpisodeType)
+					// look for the right MAL id
+					int malID = -1;
+					int epNumber = -1;
+					int totalEpCount = -1;
+
+					// for each cross ref (which is a series on MAL) we need to update the data
+					// so find all the episodes which apply to this cross ref
+					int lastWatchedEpNumber = 0;
+					int downloadedEps = 0;
+
+					foreach (AnimeEpisode ep in eps)
 					{
-						int epNum = animeEpisode.AniDB_Episode.EpisodeNumber;
-						if (epNum >= xref.StartEpisodeNumber && epNum <= GetUpperEpisodeLimit(crossRefs, xref))
+						int epNum = ep.AniDB_Episode.EpisodeNumber;
+						if (xref.StartEpisodeType == (int)ep.EpisodeTypeEnum && epNum >= xref.StartEpisodeNumber &&
+							epNum <= GetUpperEpisodeLimit(crossRefs, xref))
 						{
 							malID = xref.MALID;
 							epNumber = epNum - xref.StartEpisodeNumber + 1;
+
+							// find the total episode count
 							if (totalEpCount < 0)
 							{
-								if (animeEpisode.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode) totalEpCount = ser.Anime.EpisodeCountNormal;
-								if (animeEpisode.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special) totalEpCount = ser.Anime.EpisodeCountSpecial;
+								if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode) totalEpCount = ser.Anime.EpisodeCountNormal;
+								if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special) totalEpCount = ser.Anime.EpisodeCountSpecial;
 								totalEpCount = totalEpCount - xref.StartEpisodeNumber + 1;
 							}
+
+							// any episodes here belong to the MAL series
+							// find the latest watched episod enumber
+							AnimeEpisode_User usrRecord = ep.GetUserRecord(user.JMMUserID);
+							if (usrRecord != null && usrRecord.WatchedDate.HasValue && epNum > lastWatchedEpNumber)
+							{
+								lastWatchedEpNumber = epNum;
+							}
+
+							// find the latest episode number in the collection
+							if (ep.GetVideoDetailedContracts(user.JMMUserID).Count > 0)
+								downloadedEps++;
+
+							
 						}
 					}
-				}
 
-				if (malID <= 0 || totalEpCount <= 0)
-				{
-					logger.Warn("Could not find MAL link for : {0} ({1})", ser.Anime.FormattedTitle, ser.Anime.AnimeID);
-					return;
-				}
-
-				// Update MAL with matching anime
-				int status = 1; //watching
-				if (epNumber == totalEpCount)
-					status = 2; //completed
-				if (epNumber > totalEpCount)
-				{
-					logger.Error("updateMAL, episode number > matching anime episode total : {0} ({1}) / {2}", ser.Anime.FormattedTitle, ser.Anime.AnimeID, epNumber);
-					return;
-				}
-
-				int score = 0;
-				if (ser.Anime.UserVote != null)
-					score = (int)(ser.Anime.UserVote.VoteValue / 100);
-
-				string confirmationMessage = string.Format("MAL successfully updated, mal id: {0}, ep: {1}, score: {2}", malID, epNumber, score);
-
-				bool doUpdate = true;
-				if (ServerSettings.MAL_NeverDecreaseWatchedNums) //if set, check watched number before update: take some time, as user anime list must be loaded
-				{
+					// determine status
+					int status = 1; //watching
 					if (animeListHashtable.ContainsKey(malID))
 					{
 						myanimelistAnime animeInList = (myanimelistAnime)animeListHashtable[malID];
-						if (animeInList.my_watched_episodes > epNumber)
-						{
-							doUpdate = false;
-							confirmationMessage = string.Format("MAL not updated (episode smaller than current), mal id: {0}, ep: {1}", malID, epNumber);
-						}
+						status = animeInList.my_status;
 					}
+
+					// over-ride is user has watched an episode
+					// don't override on hold (3) or dropped (4) but do override plan to watch (6)
+					if (status == 6 && lastWatchedEpNumber > 0) status = 1; //watching
+					if (lastWatchedEpNumber == totalEpCount) status = 2; //completed
+
+					if (lastWatchedEpNumber > totalEpCount)
+					{
+						logger.Error("updateMAL, episode number > matching anime episode total : {0} ({1}) / {2}", ser.Anime.FormattedTitle, ser.Anime.AnimeID, epNumber);
+						continue;
+					}
+
+					if (malID <= 0 || totalEpCount <= 0)
+					{
+						logger.Warn("Could not find MAL link for : {0} ({1})", ser.Anime.FormattedTitle, ser.Anime.AnimeID);
+						continue;
+					}
+					else
+					{
+						bool res = UpdateAnime(malID, lastWatchedEpNumber, status, score, downloadedEps);
+
+						string confirmationMessage = string.Format("MAL successfully updated, mal id: {0}, ep: {1}, score: {2}", malID, lastWatchedEpNumber, score);
+						if (res) logger.Trace(confirmationMessage);
+					}
+					
 				}
 
-
-				// update MAL
-				bool res = true;
-				if (doUpdate)
-					res = UpdateAnime(malID, epNumber, status, score);
-
-				// MAL Update Confirmation popup
-				if (res)
-					logger.Trace(confirmationMessage);
+				
 			}
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
-
 		}
+
+
 
 		private static int GetUpperEpisodeLimit(List<CrossRef_AniDB_MAL> crossRefs, CrossRef_AniDB_MAL xrefBase)
 		{
@@ -452,36 +478,84 @@ namespace JMMServer.Providers.MyAnimeList
 			return int.MaxValue;
 		}
 
-		// status: 1/watching, 2/completed, 3/onhold, 4/dropped, 6/plantowatch
-		public static bool UpdateAnime(int animeId, int episode, int status, int score)
+		public static bool AddAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps)
 		{
 			try
 			{
-				string animeValuesXMLString = string.Format("?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
-					episode, status, score);
+				string res = "";
+
+				string animeValuesXMLString = string.Format("?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score><downloaded_episodes>{3}</downloaded_episodes></entry>",
+							lastEpisodeWatched, status, score, downloadedEps);
+
+				res = SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/add/" + animeId + ".xml" + animeValuesXMLString);
+
+				return true;
+			}
+			catch (WebException)
+			{
+				return false;
+			}
+		}
+
+		public static bool ModifyAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps)
+		{
+			try
+			{
+				string res = "";
+
+				string animeValuesXMLString = string.Format("?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score><downloaded_episodes>{3}</downloaded_episodes></entry>",
+							lastEpisodeWatched, status, score, downloadedEps);
+
+				res = SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/update/" + animeId + ".xml" + animeValuesXMLString);
+
+				return true;
+			}
+			catch (WebException)
+			{
+				return false;
+			}
+		}
+
+		// status: 1/watching, 2/completed, 3/onhold, 4/dropped, 6/plantowatch
+		public static bool UpdateAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps)
+		{
+			try
+			{
+				
 
 				string res = "";
 				try
 				{
-					// try to add anime
-					res = SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/add/" + animeId + ".xml" + animeValuesXMLString);
+					// the API doesn't work when you try to add an anime with watching and 0 episodes seen
+					// and there is no
+
+					// first try modifying the anime
+					if (status == 1 && lastEpisodeWatched == 0)
+					{
+						Debug.Write("");
+						
+						/*if (!AddAnime(animeId, 1, status, score, downloadedEps))
+						{
+							ModifyAnime(animeId, 1, status, score, downloadedEps);
+						}*/
+					}
+
+					// now modify back to proper status
+					if (!AddAnime(animeId, lastEpisodeWatched, status, score, downloadedEps))
+					{
+						ModifyAnime(animeId, lastEpisodeWatched, status, score, downloadedEps);
+					}
+
+					
 				}
 				catch (WebException)
 				{
-					try
-					{
-						// try to update anime
-						res = SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/update/" + animeId + ".xml" + animeValuesXMLString);
-					}
-					catch (WebException)
-					{
-						// if nothing good happens
-						logger.Error("MAL update anime failed: " + res);
-						return false;
-					}
+			
+					// if nothing good happens
+					logger.Error("MAL update anime failed: " + res);
+					return false;
 				}
 
-				logger.Trace("MAL updateAnime, res: " + res);
 				return true;
 			}
 			catch (Exception ex)
