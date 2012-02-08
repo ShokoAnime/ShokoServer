@@ -496,6 +496,7 @@ namespace JMMServer.Providers.MyAnimeList
 			return int.MaxValue;
 		}
 
+
 		public static bool AddAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps, string fanSubs)
 		{
 			try
