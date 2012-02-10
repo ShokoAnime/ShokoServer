@@ -22,6 +22,7 @@ namespace JMMServer.Entities
 		public int MissingEpisodeCount { get; set; }
 		public int MissingEpisodeCountGroups { get; set; }
 		public int LatestLocalEpisodeNumber { get; set; }
+		public string SeriesNameOverride { get; set; }
 
 		#endregion
 
@@ -162,6 +163,7 @@ namespace JMMServer.Entities
 			this.LatestLocalEpisodeNumber = 0;
 			this.DateTimeUpdated = DateTime.Now;
 			this.DateTimeCreated = DateTime.Now;
+			this.SeriesNameOverride = "";
 		}
 
 		public void CreateAnimeEpisodes()
@@ -266,6 +268,7 @@ namespace JMMServer.Entities
 			contract.EpisodeAddedDate = this.EpisodeAddedDate;
 			contract.MissingEpisodeCount = this.MissingEpisodeCount;
 			contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
+			contract.SeriesNameOverride = this.SeriesNameOverride;
 
 			if (userRecord == null)
 			{

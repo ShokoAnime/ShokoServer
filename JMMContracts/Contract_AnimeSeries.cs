@@ -22,6 +22,7 @@ namespace JMMContracts
 		public int WatchedCount { get; set; }
 		public int StoppedCount { get; set; }
 		public int LatestLocalEpisodeNumber { get; set; }
+		public string SeriesNameOverride { get; set; }
 
 		public int MissingEpisodeCount { get; set; }
 		public int MissingEpisodeCountGroups { get; set; }

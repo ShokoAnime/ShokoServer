@@ -788,6 +788,7 @@ namespace JMMServer
 					ser.MissingEpisodeCount = 0;
 					ser.MissingEpisodeCountGroups = 0;
 					ser.LatestLocalEpisodeNumber = 0;
+					ser.SeriesNameOverride = "";
 				}
 
 
@@ -797,6 +798,7 @@ namespace JMMServer
 				ser.DefaultAudioLanguage = contract.DefaultAudioLanguage;
 				ser.DefaultSubtitleLanguage = contract.DefaultSubtitleLanguage;
 				ser.DateTimeUpdated = DateTime.Now;
+				ser.SeriesNameOverride = contract.SeriesNameOverride;
 
 				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 				AniDB_Anime anime = repAnime.GetByAnimeID(ser.AniDB_ID);

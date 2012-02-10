@@ -88,6 +88,7 @@ namespace JMMServer.Databases
 				UpdateSchema_010(versionNumber);
 				UpdateSchema_011(versionNumber);
 				UpdateSchema_012(versionNumber);
+				UpdateSchema_013(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -412,6 +413,31 @@ namespace JMMServer.Databases
 				" PlayUnwatched int NOT NULL " +
 				" ); ");
 
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_013(int currentVersionNumber)
+		{
+			int thisVersion = 13;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+			cmds.Add("ALTER TABLE AnimeSeries ADD SeriesNameOverride text");
 
 			foreach (string cmdTable in cmds)
 			{
