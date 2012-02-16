@@ -512,6 +512,18 @@ namespace JMMContracts
 
 		[OperationContract]
 		string RescanFile(int videoLocalID);
+
+		[OperationContract]
+		List<Contract_BookmarkedAnime> GetAllBookmarkedAnime();
+
+		[OperationContract]
+		Contract_BookmarkedAnime_SaveResponse SaveBookmarkedAnime(Contract_BookmarkedAnime contract);
+
+		[OperationContract]
+		string DeleteBookmarkedAnime(int bookmarkedAnimeID);
+
+		[OperationContract]
+		Contract_BookmarkedAnime GetBookmarkedAnime(int bookmarkedAnimeID);
 	}
 
 }

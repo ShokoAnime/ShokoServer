@@ -242,8 +242,10 @@
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseHelper.cs" />
     <Compile Include="Databases\MySQL.cs" />
+    <Compile Include="Entities\BookmarkedAnime.cs" />
     <Compile Include="Entities\CrossRef_AniDB_MAL.cs" />
     <Compile Include="Entities\Playlist.cs" />
+    <Compile Include="Mappings\BookmarkedAnimeMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
     <Compile Include="Mappings\PlaylistMap.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
@@ -262,6 +264,7 @@
     <Compile Include="Providers\TraktTV\TraktTV_Timestamps.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_UserActivity.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_When.cs" />
+    <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
     <Compile Include="Repositories\PlaylistRepository.cs" />
     <Compile Include="Security\CRC32.cs" />

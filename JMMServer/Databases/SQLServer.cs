@@ -131,6 +131,7 @@ namespace JMMServer.Databases
 				UpdateSchema_011(versionNumber);
 				UpdateSchema_012(versionNumber);
 				UpdateSchema_013(versionNumber);
+				UpdateSchema_014(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -544,6 +545,47 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 
 			cmds.Add("ALTER TABLE AnimeSeries ADD SeriesNameOverride nvarchar(500) NULL");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_014(int currentVersionNumber)
+		{
+			int thisVersion = 14;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+
+			cmds.Add("CREATE TABLE BookmarkedAnime( " +
+				" BookmarkedAnimeID int IDENTITY(1,1) NOT NULL, " +
+				" AnimeID int NOT NULL, " +
+				" Priority int NOT NULL, " +
+				" Notes nvarchar(MAX) NULL, " +
+				" Downloading int NOT NULL, " +
+				" CONSTRAINT [PK_BookmarkedAnime] PRIMARY KEY CLUSTERED " +
+				" ( " +
+				" BookmarkedAnimeID ASC " +
+				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+				" ) ON [PRIMARY] ");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_BookmarkedAnime_AnimeID ON BookmarkedAnime(BookmarkedAnimeID)");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))

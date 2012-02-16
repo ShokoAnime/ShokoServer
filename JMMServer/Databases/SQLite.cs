@@ -89,6 +89,7 @@ namespace JMMServer.Databases
 				UpdateSchema_011(versionNumber);
 				UpdateSchema_012(versionNumber);
 				UpdateSchema_013(versionNumber);
+				UpdateSchema_014(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -438,6 +439,41 @@ namespace JMMServer.Databases
 
 			List<string> cmds = new List<string>();
 			cmds.Add("ALTER TABLE AnimeSeries ADD SeriesNameOverride text");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_014(int currentVersionNumber)
+		{
+			int thisVersion = 14;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE BookmarkedAnime( " +
+				" BookmarkedAnimeID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" AnimeID int NOT NULL, " +
+				" Priority int NOT NULL, " +
+				" Notes text, " +
+				" Downloading int NOT NULL " +
+				" ); ");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_BookmarkedAnime_AnimeID ON BookmarkedAnime(BookmarkedAnimeID)");
+
 
 			foreach (string cmdTable in cmds)
 			{

@@ -93,6 +93,7 @@ namespace JMMServer.Databases
 				UpdateSchema_013(versionNumber);
 				UpdateSchema_014(versionNumber);
 				UpdateSchema_015(versionNumber);
+				UpdateSchema_016(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -664,6 +665,50 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 
 			cmds.Add("ALTER TABLE `AnimeSeries` ADD `SeriesNameOverride` text NULL ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_016(int currentVersionNumber)
+		{
+			int thisVersion = 16;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE BookmarkedAnime( " +
+				" BookmarkedAnimeID INT NOT NULL AUTO_INCREMENT, " +
+				" AnimeID int NOT NULL, " +
+				" Priority int NOT NULL, " +
+				" Notes text character set utf8, " +
+				" Downloading int NOT NULL, " +
+				" PRIMARY KEY (`BookmarkedAnimeID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `BookmarkedAnime` ADD UNIQUE INDEX `UIX_BookmarkedAnime_AnimeID` (`AnimeID` ASC) ;");
+
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{

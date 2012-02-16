@@ -40,7 +40,7 @@ namespace JMMServer
 		System.Timers.Timer logoutTimer = null;
 
 		public static int AniDBDelay = 2500;
-		public int CurrentDelay;
+		public static int AniDBDelay_Short = 1200;
 
 		private DateTime? banTime = null;
 		public DateTime? BanTime
@@ -96,7 +96,6 @@ namespace JMMServer
 
 		public AniDBHelper()
 		{
-			CurrentDelay = AniDBDelay;
 		}
 
 		public void Init(string userName, string password, string serverName, string serverPort, string clientPort)
@@ -167,14 +166,22 @@ namespace JMMServer
 			}
 		}
 
-		private void Pause()
+		private void Pause(AniDBPause pauseType)
 		{
+			int pauseDuration = AniDBDelay;
+			if (pauseType == AniDBPause.Short) pauseDuration = AniDBDelay_Short;
+
 			// do not send more than one message every 2 (2.4 to make sure) seconds
-			while (DateTime.Now < JMMService.LastAniDBMessage.AddMilliseconds(2400))
+			while (DateTime.Now < JMMService.LastAniDBMessage.AddMilliseconds(pauseDuration))
 			{
 				// pretend to do something....
 				Thread.Sleep(100);
 			}
+		}
+
+		private void Pause()
+		{
+			Pause(AniDBPause.Long);
 		}
 
 		public bool Login()
@@ -242,7 +249,7 @@ namespace JMMServer
 
 			lock (lockAniDBConnections)
 			{
-				Pause();
+				Pause(AniDBPause.Short);
 
 				getInfoCmd = new AniDBCommand_GetFileInfo();
 				getInfoCmd.Init(vidLocal, true);

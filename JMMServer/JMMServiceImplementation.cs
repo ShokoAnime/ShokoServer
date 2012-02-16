@@ -420,6 +420,10 @@ namespace JMMServer
 			return pls;
 		}
 
+		
+
+		
+
 		public Contract_Playlist_SaveResponse SavePlaylist(Contract_Playlist contract)
 		{
 			Contract_Playlist_SaveResponse contractRet = new Contract_Playlist_SaveResponse();
@@ -501,6 +505,117 @@ namespace JMMServer
 					return null;
 
 				return pl.ToContract();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return null;
+			}
+		}
+
+		public List<Contract_BookmarkedAnime> GetAllBookmarkedAnime()
+		{
+			List<Contract_BookmarkedAnime> baList = new List<Contract_BookmarkedAnime>();
+			try
+			{
+				BookmarkedAnimeRepository repBA = new BookmarkedAnimeRepository();
+
+
+				List<BookmarkedAnime> allBAs = repBA.GetAll();
+				foreach (BookmarkedAnime ba in allBAs)
+					baList.Add(ba.ToContract());
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return baList;
+		}
+
+		public Contract_BookmarkedAnime_SaveResponse SaveBookmarkedAnime(Contract_BookmarkedAnime contract)
+		{
+			Contract_BookmarkedAnime_SaveResponse contractRet = new Contract_BookmarkedAnime_SaveResponse();
+			contractRet.ErrorMessage = "";
+
+			try
+			{
+				BookmarkedAnimeRepository repBA = new BookmarkedAnimeRepository();
+
+				BookmarkedAnime ba = null;
+				if (contract.BookmarkedAnimeID.HasValue)
+				{
+					ba = repBA.GetByID(contract.BookmarkedAnimeID.Value);
+					if (ba == null)
+					{
+						contractRet.ErrorMessage = "Could not find existing Bookmark with ID: " + contract.BookmarkedAnimeID.Value.ToString();
+						return contractRet;
+					}
+				}
+				else
+				{
+					// if a new record, check if it is allowed
+					BookmarkedAnime baTemp = repBA.GetByAnimeID(contract.AnimeID);
+					if (baTemp != null)
+					{
+						contractRet.ErrorMessage = "A bookmark with the AnimeID already exists: " + contract.AnimeID.ToString();
+						return contractRet;
+					}
+
+					ba = new BookmarkedAnime();
+				}
+
+				ba.AnimeID = contract.AnimeID;
+				ba.Priority = contract.Priority;
+				ba.Notes = contract.Notes;
+				ba.Downloading = contract.Downloading;
+
+				repBA.Save(ba);
+
+				contractRet.BookmarkedAnime = ba.ToContract();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				contractRet.ErrorMessage = ex.Message;
+				return contractRet;
+			}
+
+			return contractRet;
+		}
+
+		public string DeleteBookmarkedAnime(int bookmarkedAnimeID)
+		{
+			try
+			{
+				BookmarkedAnimeRepository repBA = new BookmarkedAnimeRepository();
+
+				BookmarkedAnime ba = repBA.GetByID(bookmarkedAnimeID);
+				if (ba == null)
+					return "Bookmarked not found";
+
+				repBA.Delete(bookmarkedAnimeID);
+
+				return "";
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+		}
+
+		public Contract_BookmarkedAnime GetBookmarkedAnime(int bookmarkedAnimeID)
+		{
+			try
+			{
+				BookmarkedAnimeRepository repBA = new BookmarkedAnimeRepository();
+
+				BookmarkedAnime ba = repBA.GetByID(bookmarkedAnimeID);
+				if (ba == null)
+					return null;
+
+				return ba.ToContract();
 			}
 			catch (Exception ex)
 			{

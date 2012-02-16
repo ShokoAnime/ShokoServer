@@ -321,4 +321,10 @@ namespace JMMServer
 		Episode = 1,
 		Show = 2
 	}
+
+	public enum AniDBPause
+	{
+		Long = 1,
+		Short = 2
+	}
 }

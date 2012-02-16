@@ -83,6 +83,8 @@
     <Compile Include="Contract_AnimeTag.cs" />
     <Compile Include="Contract_AnimeTitle.cs" />
     <Compile Include="Contract_AppVersions.cs" />
+    <Compile Include="Contract_BookmarkedAnime.cs" />
+    <Compile Include="Contract_BookmarkedAnime_SaveResponse.cs" />
     <Compile Include="Contract_CrossRef_AniDB_MAL.cs" />
     <Compile Include="Contract_CrossRef_AniDB_MALResult.cs" />
     <Compile Include="Contract_CrossRef_AniDB_Other.cs" />
