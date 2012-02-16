@@ -119,6 +119,27 @@ namespace JMMServer
 				ImportFolder fldr = repFolders.GetByID(importFolderID);
 				if (fldr == null) return;
 
+				VideoLocalRepository repVidLocals = new VideoLocalRepository();
+				// first build a list of files that we already know about, as we don't want to process them again
+				List<VideoLocal> filesAll = repVidLocals.GetAll();
+				Dictionary<string, VideoLocal> dictFilesExisting = new Dictionary<string, VideoLocal>();
+				foreach (VideoLocal vl in filesAll)
+				{
+					try
+					{
+						dictFilesExisting[vl.FullServerPath] = vl;
+					}
+					catch (Exception ex)
+					{
+						string msg = string.Format("Error RunImport_ScanFolder XREF: {0} - {1}", vl.ToStringDetailed(), ex.ToString());
+						logger.Info(msg);
+					}
+				}
+
+
+
+
+
 				logger.Debug("ImportFolder: {0} || {1}", fldr.ImportFolderName, fldr.ImportFolderLocation);
 
 				if (Directory.Exists(fldr.ImportFolderLocation))
@@ -128,6 +149,9 @@ namespace JMMServer
 				foreach (string fileName in fileList)
 				{
 					i++;
+
+					if (dictFilesExisting.ContainsKey(fileName)) continue;
+					
 					filesFound++;
 					logger.Info("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
@@ -139,7 +163,7 @@ namespace JMMServer
 					cr_hashfile.Save();
 
 				}
-				logger.Debug("Found {0} files", filesFound);
+				logger.Debug("Found {0} new files", filesFound);
 				logger.Debug("Found {0} videos", videosFound);
 			}
 			catch (Exception ex)
