@@ -52,5 +52,19 @@ namespace JMMServer.Entities
 				return repEps.GetByEpisodeID(EpisodeID);
 			}
 		}
+
+		public VideoLocal_User GetVideoLocalUserRecord(int userID)
+		{
+			VideoLocalRepository repVids = new VideoLocalRepository();
+
+			VideoLocal vid = repVids.GetByHash(Hash);
+			if (vid != null)
+			{
+				VideoLocal_User vidUser = vid.GetUserRecord(userID);
+				if (vidUser != null) return vidUser;
+			}
+
+			return null;
+		}
 	}
 }

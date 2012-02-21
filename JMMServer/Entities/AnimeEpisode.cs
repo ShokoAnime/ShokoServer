@@ -297,8 +297,9 @@ namespace JMMServer.Entities
 					contract.VideoLocal_FileSize = vid.FileSize;
 					contract.VideoLocalID = vid.VideoLocalID;
 
-					AnimeEpisode_User userRecord = this.GetUserRecord(userID);
-					if (userRecord == null)
+					VideoLocal_User vidUser = vid.GetUserRecord(userID);
+					//AnimeEpisode_User userRecord = this.GetUserRecord(userID);
+					if (vidUser == null)
 					{
 						contract.VideoLocal_IsWatched = 0;
 						contract.VideoLocal_WatchedDate = null;
@@ -306,7 +307,7 @@ namespace JMMServer.Entities
 					else
 					{
 						contract.VideoLocal_IsWatched = 1;
-						contract.VideoLocal_WatchedDate = userRecord.WatchedDate;
+						contract.VideoLocal_WatchedDate = vidUser.WatchedDate;
 					}
 					contract.VideoLocal_IsIgnored = vid.IsIgnored;
 

@@ -260,17 +260,33 @@ namespace JMMServer.Entities
 			List<CrossRef_File_Episode> xrefs = repCross.GetByHash(this.Hash);
 			if (watched)
 			{
+				// find the total watched percentage
+				// eg one file can have a % = 100
+				// or if 2 files make up one episodes they will each have a % = 50
+
 				foreach (CrossRef_File_Episode xref in xrefs)
 				{
-					// if setting a file watched, only update the episode to watched when the
-					// the file is the last file for the episode
-					// handles an episode being split across multiple files
-					if (xref.Percentage == 100)
-					{
-						AnimeEpisode ep = repEpisodes.GetByAniDBEpisodeID(xref.EpisodeID);
+					// get the episode for this file
+					AnimeEpisode ep = repEpisodes.GetByAniDBEpisodeID(xref.EpisodeID);
+					if (ep == null) continue;
 
-						if (ep == null) continue;
-						if (ser == null) ser = ep.AnimeSeries;
+					// get all the files for this episode
+					int epPercentWatched = 0;
+					foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
+					{
+						VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
+						if (vidUser != null)
+						{
+							// if not null means it is watched
+							epPercentWatched += filexref.Percentage;
+						}
+
+						if (epPercentWatched > 95) break;
+					}
+
+					if (epPercentWatched > 95)
+					{
+						ser = ep.AnimeSeries;
 
 						if (user.IsAniDBUser == 0)
 							ep.SaveWatchedStatus(true, userID, watchedDate, updateWatchedDate);
@@ -298,6 +314,8 @@ namespace JMMServer.Entities
 						}
 					}
 				}
+
+				
 			}
 			else
 			{
@@ -306,20 +324,20 @@ namespace JMMServer.Entities
 				{
 					AnimeEpisode ep = repEpisodes.GetByAniDBEpisodeID(xrefEp.EpisodeID);
 					if (ep == null) continue;
-					if (ser == null) ser = ep.AnimeSeries;
+					ser = ep.AnimeSeries;
 
-					bool anyFilesWatched = false;
-					foreach (VideoLocal thisvid in ep.VideoLocals)
+					// get all the files for this episode
+					int epPercentWatched = 0;
+					foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
 					{
-						VideoLocal_User vidUserRecordTemp = thisvid.GetUserRecord(userID);
-						if (vidUserRecordTemp != null)
-						{
-							anyFilesWatched = true;
-							break;
-						}
+						VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
+						if (vidUser != null)
+							epPercentWatched += filexref.Percentage;
+
+						if (epPercentWatched > 95) break;
 					}
 
-					if (!anyFilesWatched)
+					if (epPercentWatched < 95)
 					{
 						if (user.IsAniDBUser == 0)
 							ep.SaveWatchedStatus(false, userID, watchedDate, true);
