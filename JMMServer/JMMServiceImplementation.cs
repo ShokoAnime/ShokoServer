@@ -4823,6 +4823,86 @@ namespace JMMServer
 			return retEps;
 		}
 
+		public List<Contract_AnimeEpisode> GetEpisodesRecentlyAdded(int maxRecords, int jmmuserID)
+		{
+			List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
+			try
+			{
+				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
+				JMMUserRepository repUsers = new JMMUserRepository();
+				VideoLocalRepository repVids = new VideoLocalRepository();
+
+				JMMUser user = repUsers.GetByID(jmmuserID);
+				if (user == null) return retEps;
+
+				List<VideoLocal> vids = repVids.GetMostRecentlyAdded(maxRecords);
+				int numEps = 0;
+				foreach (VideoLocal vid in vids)
+				{
+					foreach (AnimeEpisode ep in vid.AnimeEpisodes)
+					{
+						if (user.AllowedSeries(ep.AnimeSeries))
+						{
+							Contract_AnimeEpisode epContract = ep.ToContract(jmmuserID);
+							if (epContract != null)
+							{
+								retEps.Add(epContract);
+								numEps++;
+
+								// Lets only return the specified amount
+								if (retEps.Count == maxRecords) return retEps;
+							}
+						}
+					}
+				}				
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return retEps;
+		}
+
+		public List<Contract_AnimeSeries> GetSeriesRecentlyAdded(int maxRecords, int jmmuserID)
+		{
+			List<Contract_AnimeSeries> retSeries = new List<Contract_AnimeSeries>();
+			try
+			{
+				JMMUserRepository repUsers = new JMMUserRepository();
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+				JMMUser user = repUsers.GetByID(jmmuserID);
+				if (user == null) return retSeries;
+
+				List<AnimeSeries> series = repSeries.GetMostRecentlyAdded(maxRecords);
+				int numSeries = 0;
+				foreach (AnimeSeries ser in series)
+				{
+
+					if (user.AllowedSeries(ser))
+					{
+						Contract_AnimeSeries serContract = ser.ToContract(ser.GetUserRecord(jmmuserID));
+						if (serContract != null)
+						{
+							retSeries.Add(serContract);
+							numSeries++;
+
+							// Lets only return the specified amount
+							if (retSeries.Count == maxRecords) return retSeries;
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return retSeries;
+		}
+
 
 		/// <summary>
 		/// Delete a series, and everything underneath it (episodes, files)

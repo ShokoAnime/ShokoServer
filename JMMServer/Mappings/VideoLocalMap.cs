@@ -15,6 +15,7 @@ namespace JMMServer.Mappings
             Id(x => x.VideoLocalID);
 
 			Map(x => x.DateTimeUpdated).Not.Nullable();
+			Map(x => x.DateTimeCreated).Not.Nullable();
 			Map(x => x.FilePath).Not.Nullable();
 			Map(x => x.FileSize).Not.Nullable();
 			Map(x => x.Hash).Not.Nullable();

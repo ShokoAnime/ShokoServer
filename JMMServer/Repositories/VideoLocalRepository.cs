@@ -44,6 +44,20 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<VideoLocal> GetMostRecentlyAdded(int maxResults)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var eps = session
+					.CreateCriteria(typeof(VideoLocal))
+					.AddOrder(Order.Desc("DateTimeCreated"))
+					.SetMaxResults(maxResults + 15)
+					.List<VideoLocal>();
+
+				return new List<VideoLocal>(eps);
+			}
+		}
+
 		public List<VideoLocal> GetByFilePathAndShareID(string filePath, int nshareID)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

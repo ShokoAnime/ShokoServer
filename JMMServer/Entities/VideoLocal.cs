@@ -28,6 +28,7 @@ namespace JMMServer.Entities
 		public long FileSize { get; set; }
 		public int IsIgnored { get; set; }
 		public DateTime DateTimeUpdated { get; set; }
+		public DateTime DateTimeCreated { get; set; }
 
 		public string ToStringDetailed()
 		{

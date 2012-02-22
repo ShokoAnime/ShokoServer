@@ -524,6 +524,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		Contract_BookmarkedAnime GetBookmarkedAnime(int bookmarkedAnimeID);
+
+		[OperationContract]
+		List<Contract_AnimeEpisode> GetEpisodesRecentlyAdded(int maxRecords, int jmmuserID);
+
+		[OperationContract]
+		List<Contract_AnimeSeries> GetSeriesRecentlyAdded(int maxRecords, int jmmuserID);
 	}
 
 }

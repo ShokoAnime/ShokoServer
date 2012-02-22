@@ -132,6 +132,7 @@ namespace JMMServer.Databases
 				UpdateSchema_012(versionNumber);
 				UpdateSchema_013(versionNumber);
 				UpdateSchema_014(versionNumber);
+				UpdateSchema_015(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -586,6 +587,36 @@ namespace JMMServer.Databases
 				" ) ON [PRIMARY] ");
 
 			cmds.Add("CREATE UNIQUE INDEX UIX_BookmarkedAnime_AnimeID ON BookmarkedAnime(BookmarkedAnimeID)");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_015(int currentVersionNumber)
+		{
+			int thisVersion = 15;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE VideoLocal ADD DateTimeCreated datetime NULL");
+			cmds.Add("UPDATE VideoLocal SET DateTimeCreated = DateTimeUpdated");
+			cmds.Add("ALTER TABLE VideoLocal ALTER COLUMN DateTimeCreated datetime NOT NULL");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
