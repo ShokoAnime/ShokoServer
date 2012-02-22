@@ -94,6 +94,7 @@ namespace JMMServer.Databases
 				UpdateSchema_014(versionNumber);
 				UpdateSchema_015(versionNumber);
 				UpdateSchema_016(versionNumber);
+				UpdateSchema_017(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -708,6 +709,44 @@ namespace JMMServer.Databases
 				" PRIMARY KEY (`BookmarkedAnimeID`) ) ; ");
 
 			cmds.Add("ALTER TABLE `BookmarkedAnime` ADD UNIQUE INDEX `UIX_BookmarkedAnime_AnimeID` (`AnimeID` ASC) ;");
+
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_017(int currentVersionNumber)
+		{
+			int thisVersion = 17;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE `VideoLocal` ADD `DateTimeCreated` datetime NULL ;");
+			cmds.Add("UPDATE VideoLocal SET DateTimeCreated = DateTimeUpdated ;");
+			cmds.Add("ALTER TABLE `VideoLocal` CHANGE COLUMN `DateTimeCreated` `DateTimeCreated` datetime NOT NULL ;");
 
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

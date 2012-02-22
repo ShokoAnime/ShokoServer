@@ -136,6 +136,7 @@ namespace JMMServer.Commands
 				logger.Trace("VideoLocal, creating new record");
 				vlocal = new VideoLocal();
 				vlocal.DateTimeUpdated = DateTime.Now;
+				vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
 				vlocal.FilePath = filePath;
 				vlocal.FileSize = fi.Length;
 				vlocal.ImportFolderID = nshareID;

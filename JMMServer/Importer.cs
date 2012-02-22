@@ -143,7 +143,27 @@ namespace JMMServer
 				logger.Debug("ImportFolder: {0} || {1}", fldr.ImportFolderName, fldr.ImportFolderLocation);
 
 				if (Directory.Exists(fldr.ImportFolderLocation))
-					fileList.AddRange(Directory.GetFiles(fldr.ImportFolderLocation, "*.*", SearchOption.AllDirectories));
+				{
+					// get root level files
+					fileList.AddRange(Directory.GetFiles(fldr.ImportFolderLocation, "*.*", SearchOption.TopDirectoryOnly));
+					
+					// search sub folders
+					foreach (string dirName in Directory.GetDirectories(fldr.ImportFolderLocation))
+					{
+						try
+						{
+							if (dirName.ToUpper().Contains("RECYCLE.BIN")) continue;
+
+							fileList.AddRange(Directory.GetFiles(dirName, "*.*", SearchOption.AllDirectories));
+						}
+						catch (Exception ex)
+						{
+							logger.Warn("Error accessing: {0} - {1}", dirName, ex.Message);
+						}
+					}
+					
+				}
+					
 
 				// get a list of all files in the share
 				foreach (string fileName in fileList)

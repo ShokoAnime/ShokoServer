@@ -90,6 +90,7 @@ namespace JMMServer.Databases
 				UpdateSchema_012(versionNumber);
 				UpdateSchema_013(versionNumber);
 				UpdateSchema_014(versionNumber);
+				UpdateSchema_015(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -474,6 +475,32 @@ namespace JMMServer.Databases
 
 			cmds.Add("CREATE UNIQUE INDEX UIX_BookmarkedAnime_AnimeID ON BookmarkedAnime(BookmarkedAnimeID)");
 
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_015(int currentVersionNumber)
+		{
+			int thisVersion = 15;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+			cmds.Add("ALTER TABLE VideoLocal ADD DateTimeCreated timestamp NULL");
+			cmds.Add("UPDATE VideoLocal SET DateTimeCreated = DateTimeUpdated");
 
 			foreach (string cmdTable in cmds)
 			{
