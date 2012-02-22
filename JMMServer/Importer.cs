@@ -142,28 +142,7 @@ namespace JMMServer
 
 				logger.Debug("ImportFolder: {0} || {1}", fldr.ImportFolderName, fldr.ImportFolderLocation);
 
-				if (Directory.Exists(fldr.ImportFolderLocation))
-				{
-					// get root level files
-					fileList.AddRange(Directory.GetFiles(fldr.ImportFolderLocation, "*.*", SearchOption.TopDirectoryOnly));
-					
-					// search sub folders
-					foreach (string dirName in Directory.GetDirectories(fldr.ImportFolderLocation))
-					{
-						try
-						{
-							if (dirName.ToUpper().Contains("RECYCLE.BIN")) continue;
-
-							fileList.AddRange(Directory.GetFiles(dirName, "*.*", SearchOption.AllDirectories));
-						}
-						catch (Exception ex)
-						{
-							logger.Warn("Error accessing: {0} - {1}", dirName, ex.Message);
-						}
-					}
-					
-				}
-					
+				Utils.GetFilesForImportFolder(fldr.ImportFolderLocation, ref fileList);
 
 				// get a list of all files in the share
 				foreach (string fileName in fileList)
@@ -204,15 +183,9 @@ namespace JMMServer
 				if (!share.FolderIsDropSource) continue;
 
 				logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
-				try
-				{
-					if (Directory.Exists(share.ImportFolderLocation))
-						fileList.AddRange(Directory.GetFiles(share.ImportFolderLocation, "*.*", SearchOption.AllDirectories));
-				}
-				catch (Exception ex)
-				{
-					logger.ErrorException(ex.ToString(), ex);
-				}
+
+				Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
+
 			}
 
 			// get a list of all the shares we are looking at
@@ -273,8 +246,7 @@ namespace JMMServer
 				logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 				try
 				{
-					if (Directory.Exists(share.ImportFolderLocation))
-						fileList.AddRange(Directory.GetFiles(share.ImportFolderLocation, "*.*", SearchOption.AllDirectories));
+					Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
 				}
 				catch (Exception ex)
 				{

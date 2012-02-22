@@ -1561,7 +1561,8 @@ namespace JMMServer
 			foreach (ImportFolder share in repNetShares.GetAll())
 			{
 				logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
-				fileList.AddRange(Directory.GetFiles(share.ImportFolderLocation, "*.*", SearchOption.AllDirectories));
+
+				Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
 			}
 
 

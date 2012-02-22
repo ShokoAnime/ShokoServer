@@ -644,5 +644,29 @@ namespace JMMServer
 
 			return int.MaxValue;
 		}
+
+		public static void GetFilesForImportFolder(string folderLocation, ref List<string> fileList)
+		{
+			if (Directory.Exists(folderLocation))
+			{
+				// get root level files
+				fileList.AddRange(Directory.GetFiles(folderLocation, "*.*", SearchOption.TopDirectoryOnly));
+
+				// search sub folders
+				foreach (string dirName in Directory.GetDirectories(folderLocation))
+				{
+					try
+					{
+						if (dirName.ToUpper().Contains("RECYCLE.BIN")) continue;
+
+						fileList.AddRange(Directory.GetFiles(dirName, "*.*", SearchOption.AllDirectories));
+					}
+					catch (Exception ex)
+					{
+						logger.Warn("Error accessing: {0} - {1}", dirName, ex.Message);
+					}
+				}
+			}
+		}
 	}
 }
