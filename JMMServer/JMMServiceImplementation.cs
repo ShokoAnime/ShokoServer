@@ -20,6 +20,7 @@ using JMMServer.Providers.TraktTV;
 using AniDBAPI.Commands;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Commands.MAL;
+using System.Diagnostics;
 
 namespace JMMServer
 {
@@ -3442,23 +3443,59 @@ namespace JMMServer
 
 			try
 			{
+				DateTime start = DateTime.Now;
+				TimeSpan ts = DateTime.Now - start;
+
+				double totalTiming = 0;
+				double timingAnime = 0;
+				double timingVids = 0;
+				double timingEps = 0;
+				double timingAniEps = 0;
+				double timingAniFile = 0;
+				double timingVidInfo = 0;
+				double timingContracts = 0;
+
+				DateTime oStart = DateTime.Now;
+
+				start = DateTime.Now;
 				AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+				ts = DateTime.Now - start;
+				timingAnime += ts.TotalMilliseconds;
+
 				if (anime == null) return vidQuals;
 
-				foreach (VideoLocal vid in repVids.GetByAniDBAnimeID(animeID))
+				start = DateTime.Now;
+				List<VideoLocal> vids = repVids.GetByAniDBAnimeID(animeID);
+				ts = DateTime.Now - start;
+				timingVids += ts.TotalMilliseconds;
+
+				foreach (VideoLocal vid in vids)
 				{
+					start = DateTime.Now;
 					List<AnimeEpisode> eps = vid.AnimeEpisodes;
+					ts = DateTime.Now - start;
+					timingEps += ts.TotalMilliseconds;
+
 					if (eps.Count == 0) continue;
 					AnimeEpisode animeEp = eps[0];
 					if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode || animeEp.EpisodeTypeEnum == enEpisodeType.Special)
 					{
+						start = DateTime.Now;
 						AniDB_Episode anidbEp = animeEp.AniDB_Episode;
+						ts = DateTime.Now - start;
+						timingAniEps += ts.TotalMilliseconds;
 
 						// get the anibd file info
+						start = DateTime.Now;
 						AniDB_File aniFile = vid.AniDBFile;
+						ts = DateTime.Now - start;
+						timingAniFile += ts.TotalMilliseconds;
 						if (aniFile != null)
 						{
+							start = DateTime.Now;
 							VideoInfo vinfo = vid.VideoInfo;
+							ts = DateTime.Now - start;
+							timingVidInfo += ts.TotalMilliseconds;
 							int bitDepth = 8;
 							if (vinfo != null)
 							{
@@ -3568,6 +3605,7 @@ namespace JMMServer
 					}
 				}
 
+				start = DateTime.Now;
 				foreach (Contract_GroupVideoQuality contract in vidQuals)
 				{
 					contract.NormalComplete = contract.FileCountNormal >= anime.EpisodeCountNormal;
@@ -3624,6 +3662,15 @@ namespace JMMServer
 						}
 					}
 				}
+				ts = DateTime.Now - start;
+				timingContracts += ts.TotalMilliseconds;
+
+				ts = DateTime.Now - oStart;
+				totalTiming = ts.TotalMilliseconds;
+
+				string msg2 = string.Format("Timing for video quality {0} ({1}) : {2}/{3}/{4}/{5}/{6}/{7}/{8}  (AID: {9})", anime.MainTitle, totalTiming, timingAnime, timingVids,
+							timingEps, timingAniEps, timingAniFile, timingVidInfo, timingContracts, anime.AnimeID);
+				logger.Debug(msg2);
 
 				vidQuals.Sort();
 				return vidQuals;
@@ -3954,6 +4001,27 @@ namespace JMMServer
 			}
 		}
 
+		public List<Contract_CrossRef_AniDB_TvDB_Episode> GetTVDBCrossRefEpisode(int animeID)
+		{
+			try
+			{
+				List<Contract_CrossRef_AniDB_TvDB_Episode> contracts = new List<Contract_CrossRef_AniDB_TvDB_Episode>();
+
+				CrossRef_AniDB_TvDB_EpisodeRepository repCrossRef = new CrossRef_AniDB_TvDB_EpisodeRepository();
+				List<CrossRef_AniDB_TvDB_Episode> xrefs = repCrossRef.GetByAnimeID(animeID);
+
+				foreach (CrossRef_AniDB_TvDB_Episode xref in xrefs)
+					contracts.Add(xref.ToContract());
+
+				return contracts;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return null;
+			}
+		}
+
 		public List<Contract_TVDBSeriesSearchResult> SearchTheTvDB(string criteria)
 		{
 			List<Contract_TVDBSeriesSearchResult> results = new List<Contract_TVDBSeriesSearchResult>();
@@ -4007,6 +4075,21 @@ namespace JMMServer
 
 
 				TvDBHelper.LinkAniDBTvDB(animeID, tvDBID, seasonNumber, false);
+
+				return "";
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+		}
+
+		public string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID)
+		{
+			try
+			{
+				TvDBHelper.LinkAniDBTvDBEpisode(aniDBID, tvDBID, animeID);
 
 				return "";
 			}
@@ -5910,35 +5993,75 @@ namespace JMMServer
 
 			try
 			{
-				foreach (AnimeSeries ser in repSeries.GetAll())
+				int i = 0;
+				List<AnimeSeries> allSeries = repSeries.GetAll();
+				foreach (AnimeSeries ser in allSeries)
 				{
+					i++;
+					//string msg = string.Format("Updating series {0} of {1} ({2}) -  {3}", i, allSeries.Count, ser.Anime.MainTitle, DateTime.Now);
+					//logger.Debug(msg);
+
+					//if (ser.Anime.AnimeID != 69) continue;
+
 					int missingEps = ser.MissingEpisodeCount;
 					if (onlyMyGroups) missingEps = ser.MissingEpisodeCountGroups;
+
+					DateTime start = DateTime.Now;
+					TimeSpan ts = DateTime.Now - start;
+
+					double totalTiming = 0;
+					double timingVids = 0;
+					double timingSeries = 0;
+					double timingAnime = 0;
+					double timingQuality = 0;
+					double timingEps = 0;
+					double timingAniEps = 0;
+					int epCount = 0;
+
+					DateTime oStart = DateTime.Now;
 					
 					if (missingEps > 0)
 					{
 						// find the missing episodes
+						start = DateTime.Now;
+						List<AnimeEpisode> eps = ser.AnimeEpisodes;
+						ts = DateTime.Now - start;
+						timingEps += ts.TotalMilliseconds;
+
+						epCount = eps.Count;
 						foreach (AnimeEpisode aep in ser.AnimeEpisodes)
 						{
 							if (regularEpisodesOnly && aep.EpisodeTypeEnum != enEpisodeType.Episode) continue;
 
-							if (aep.VideoLocals.Count == 0)
+							start = DateTime.Now;
+							List<VideoLocal> vids = aep.VideoLocals;
+							ts = DateTime.Now - start;
+							timingVids += ts.TotalMilliseconds;
+
+							if (vids.Count == 0)
 							{
 								Contract_MissingEpisode contract = new Contract_MissingEpisode();
 								contract.AnimeID = ser.AniDB_ID;
+								start = DateTime.Now;
 								contract.AnimeSeries = ser.ToContract(ser.GetUserRecord(userID));
+								ts = DateTime.Now - start;
+								timingSeries += ts.TotalMilliseconds;
 
 								AniDB_Anime anime = null;
 								if (animeCache.ContainsKey(ser.AniDB_ID))
 									anime = animeCache[ser.AniDB_ID];
 								else
 								{
+									start = DateTime.Now;
 									anime = ser.Anime;
+									ts = DateTime.Now - start;
+									timingAnime += ts.TotalMilliseconds;
 									animeCache[ser.AniDB_ID] = anime;
 								}
 
 								contract.AnimeTitle = anime.MainTitle;
 
+								start = DateTime.Now;
 								contract.GroupFileSummary = "";
 								List<Contract_GroupVideoQuality> summ = null;
 								if (gvqCache.ContainsKey(ser.AniDB_ID))
@@ -5956,15 +6079,30 @@ namespace JMMServer
 
 									contract.GroupFileSummary += string.Format("{0} - {1}/{2}/{3}bit ({4})", gvq.GroupNameShort, gvq.Resolution, gvq.VideoSource, gvq.VideoBitDepth, gvq.NormalEpisodeNumberSummary);
 								}
+								ts = DateTime.Now - start;
+								timingQuality += ts.TotalMilliseconds;
+								animeCache[ser.AniDB_ID] = anime;
 
+								start = DateTime.Now;
 								AniDB_Episode ep = aep.AniDB_Episode;
 								contract.EpisodeID = ep.EpisodeID;
 								contract.EpisodeNumber = ep.EpisodeNumber;
 								contract.EpisodeType = ep.EpisodeType;
 								contracts.Add(contract);
+								ts = DateTime.Now - start;
+								timingAniEps += ts.TotalMilliseconds;
 							}
 						}
+
+						ts = DateTime.Now - oStart;
+						totalTiming = ts.TotalMilliseconds;
+
+						string msg2 = string.Format("Timing for series {0} ({1}) : {2}/{3}/{4}/{5}/{6}/{7} - {8} eps (AID: {9})", ser.Anime.MainTitle, totalTiming, timingVids, timingSeries,
+							timingAnime, timingQuality, timingEps, timingAniEps, epCount, ser.Anime.AnimeID);
+						//logger.Debug(msg2);
 					}
+
+					
 				}
 
 				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();

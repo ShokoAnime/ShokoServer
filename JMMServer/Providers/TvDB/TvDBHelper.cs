@@ -763,6 +763,23 @@ namespace JMMServer.Providers.TvDB
 			req.Save();
 		}
 
+		public static void LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID)
+		{
+			CrossRef_AniDB_TvDB_EpisodeRepository repCrossRef = new CrossRef_AniDB_TvDB_EpisodeRepository();
+			CrossRef_AniDB_TvDB_Episode xref = repCrossRef.GetByAniDBEpisodeID(aniDBID);
+			if (xref == null)
+				xref = new CrossRef_AniDB_TvDB_Episode();
+
+			xref.AnimeID = animeID;
+			xref.AniDBEpisodeID = aniDBID;
+			xref.TvDBEpisodeID = tvDBID;
+			repCrossRef.Save(xref);
+
+			StatsCache.Instance.UpdateUsingAnime(animeID);
+
+			logger.Trace("Changed tvdb episode association: {0}", aniDBID);
+		}
+
 		// Removes all TVDB information from a series, bringing it back to a blank state.
 		public static void RemoveLinkAniDBTvDB(AnimeSeries ser)
 		{

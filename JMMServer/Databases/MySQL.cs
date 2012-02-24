@@ -95,6 +95,7 @@ namespace JMMServer.Databases
 				UpdateSchema_015(versionNumber);
 				UpdateSchema_016(versionNumber);
 				UpdateSchema_017(versionNumber);
+				UpdateSchema_018(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -748,6 +749,49 @@ namespace JMMServer.Databases
 			cmds.Add("UPDATE VideoLocal SET DateTimeCreated = DateTimeUpdated ;");
 			cmds.Add("ALTER TABLE `VideoLocal` CHANGE COLUMN `DateTimeCreated` `DateTimeCreated` datetime NOT NULL ;");
 
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_018(int currentVersionNumber)
+		{
+			int thisVersion = 18;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+
+			cmds.Add("CREATE TABLE `CrossRef_AniDB_TvDB_Episode` ( " +
+				" `CrossRef_AniDB_TvDB_EpisodeID` INT NOT NULL AUTO_INCREMENT, " +
+				" `AnimeID` int NOT NULL, " +
+				" `AniDBEpisodeID` int NOT NULL, " +
+				" `TvDBEpisodeID` int NOT NULL, " +
+				" PRIMARY KEY (`CrossRef_AniDB_TvDB_EpisodeID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_TvDB_Episode` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID` (`AniDBEpisodeID` ASC) ;");
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{

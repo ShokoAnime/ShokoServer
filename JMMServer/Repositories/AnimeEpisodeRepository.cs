@@ -83,15 +83,16 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var eps = session.CreateQuery("FROM AnimeEpisode ae WHERE ae.AniDB_EpisodeID IN (Select EpisodeID FROM CrossRef_File_Episode xref WHERE xref.Hash= :Hash)")
+				/*var eps = session.CreateQuery("FROM AnimeEpisode ae WHERE ae.AniDB_EpisodeID IN (Select EpisodeID FROM CrossRef_File_Episode xref WHERE xref.Hash= :Hash)")
+					.SetParameter("Hash", hash)
+					.List<AnimeEpisode>();*/
+
+				var eps = session.CreateQuery("Select ae FROM AnimeEpisode as ae, CrossRef_File_Episode as xref WHERE ae.AniDB_EpisodeID = xref.EpisodeID AND xref.Hash= :Hash")
 					.SetParameter("Hash", hash)
 					.List<AnimeEpisode>();
 
-				/*var eps = session
-					.CreateCriteria(typeof(AnimeEpisode))
-					.Add(Restrictions.Eq("AniDB_EpisodeID", epid))
-					.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
-					.List<AnimeEpisode>();*/
+				// Select vl FROM AnimeEpisode as ae, CrossRef_File_Episode as xref WHERE as.AniDB_EpisodeID = xref.EpisodeID AND xref.Hash= :Hash
+
 
 				return new List<AnimeEpisode>(eps);
 			}

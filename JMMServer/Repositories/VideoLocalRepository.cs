@@ -80,7 +80,11 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var vidfiles = session.CreateQuery("FROM VideoLocal vl WHERE vl.Hash IN (Select Hash FROM CrossRef_File_Episode xref WHERE xref.EpisodeID= :episodeid)")
+				/*var vidfiles = session.CreateQuery("FROM VideoLocal vl WHERE vl.Hash IN (Select Hash FROM CrossRef_File_Episode xref WHERE xref.EpisodeID= :episodeid)")
+					.SetParameter("episodeid", episodeID)
+					.List<VideoLocal>();*/
+
+				var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.EpisodeID= :episodeid")
 					.SetParameter("episodeid", episodeID)
 					.List<VideoLocal>();
 
@@ -97,7 +101,11 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var vidfiles = session.CreateQuery("FROM VideoLocal vl WHERE vl.Hash IN (Select Hash FROM CrossRef_File_Episode xref WHERE xref.AnimeID= :animeID )")
+				/*var vidfiles = session.CreateQuery("FROM VideoLocal vl WHERE vl.Hash IN (Select Hash FROM CrossRef_File_Episode xref WHERE xref.AnimeID= :animeID )")
+					.SetParameter("animeID", animeID)
+					.List<VideoLocal>();*/
+
+				var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeID")
 					.SetParameter("animeID", animeID)
 					.List<VideoLocal>();
 

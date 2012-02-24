@@ -985,7 +985,7 @@ namespace JMMServer.Providers.TraktTV
 
 
 				TimeSpan ts = DateTime.Now - start;
-				logger.Trace("Sent TraktPost in {0} ms: {1} --- {2}", ts.TotalMilliseconds, uri, output);
+				//logger.Trace("Sent TraktPost in {0} ms: {1} --- {2}", ts.TotalMilliseconds, uri, output);
 
 			}
 			catch (WebException webEx)

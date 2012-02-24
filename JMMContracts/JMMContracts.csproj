@@ -93,6 +93,7 @@
     <Compile Include="Contract_CrossRef_AniDB_TraktResult.cs" />
     <Compile Include="Contract_CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Contract_CrossRef_AniDB_TvDBResult.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_TvDB_Episode.cs" />
     <Compile Include="Contract_DuplicateFile.cs" />
     <Compile Include="Contract_GroupFilter.cs" />
     <Compile Include="Contract_GroupFilterCondition.cs" />

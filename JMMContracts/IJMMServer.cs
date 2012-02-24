@@ -530,6 +530,12 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AnimeSeries> GetSeriesRecentlyAdded(int maxRecords, int jmmuserID);
+
+		[OperationContract]
+		string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID);
+
+		[OperationContract]
+		List<Contract_CrossRef_AniDB_TvDB_Episode> GetTVDBCrossRefEpisode(int animeID);
 	}
 
 }

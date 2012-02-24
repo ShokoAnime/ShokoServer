@@ -91,6 +91,7 @@ namespace JMMServer.Databases
 				UpdateSchema_013(versionNumber);
 				UpdateSchema_014(versionNumber);
 				UpdateSchema_015(versionNumber);
+				UpdateSchema_016(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -501,6 +502,39 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 			cmds.Add("ALTER TABLE VideoLocal ADD DateTimeCreated timestamp NULL");
 			cmds.Add("UPDATE VideoLocal SET DateTimeCreated = DateTimeUpdated");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_016(int currentVersionNumber)
+		{
+			int thisVersion = 16;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE CrossRef_AniDB_TvDB_Episode( " +
+				" CrossRef_AniDB_TvDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" AnimeID int NOT NULL, " +
+				" AniDBEpisodeID int NOT NULL, " +
+				" TvDBEpisodeID int NOT NULL " +
+				" ); ");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID);");
 
 			foreach (string cmdTable in cmds)
 			{
