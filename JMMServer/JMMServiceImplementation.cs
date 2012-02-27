@@ -4133,6 +4133,31 @@ namespace JMMServer
 			}
 		}
 
+		public string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID)
+		{
+			try
+			{
+				CrossRef_AniDB_TvDB_EpisodeRepository repXrefs = new CrossRef_AniDB_TvDB_EpisodeRepository();
+				AniDB_EpisodeRepository repEps = new AniDB_EpisodeRepository();
+				AniDB_Episode ep = repEps.GetByEpisodeID(aniDBEpisodeID);
+
+				if (ep == null) return "Could not find Episode";
+
+				CrossRef_AniDB_TvDB_Episode xref = repXrefs.GetByAniDBEpisodeID(aniDBEpisodeID);
+				if (xref == null) return "Could not find Link!";
+
+
+				repXrefs.Delete(xref.CrossRef_AniDB_TvDB_EpisodeID);
+
+				return "";
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+		}
+
 		public List<Contract_TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID)
 		{
 			List<Contract_TvDB_ImagePoster> allImages = new List<Contract_TvDB_ImagePoster>();

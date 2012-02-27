@@ -536,6 +536,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_CrossRef_AniDB_TvDB_Episode> GetTVDBCrossRefEpisode(int animeID);
+
+		[OperationContract]
+		string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID);
 	}
 
 }
