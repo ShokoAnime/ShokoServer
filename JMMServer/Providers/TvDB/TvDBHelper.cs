@@ -672,12 +672,17 @@ namespace JMMServer.Providers.TvDB
 					XmlNodeList episodeItems = xmlDoc["Data"].GetElementsByTagName("Episode");
 					logger.Trace("Found {0} Episode nodes", episodeItems.Count.ToString());
 
+					List<int> existingEpIds = new List<int>();
 					foreach (XmlNode node in episodeItems)
 					{
 						try
 						{
+							
+
 							// the episode id
 							int id = int.Parse(node["id"].InnerText.Trim());
+							existingEpIds.Add(id);
+
 							TvDB_Episode ep = repEpisodes.GetByTvDBID(id);
 							if (ep == null)
 								ep = new TvDB_Episode();
@@ -705,6 +710,16 @@ namespace JMMServer.Providers.TvDB
 							logger.ErrorException("Error in TVDBHelper.GetEpisodes: " + ex.ToString(), ex);
 						}
 					}
+
+					// get all the existing tvdb episodes, to see if any have been deleted
+					List<TvDB_Episode> allEps = repEpisodes.GetBySeriesID(seriesID);
+					foreach (TvDB_Episode oldEp in allEps)
+					{
+						if (!existingEpIds.Contains(oldEp.Id))
+							repEpisodes.Delete(oldEp.TvDB_EpisodeID);
+					}
+
+
 				}
 				catch (Exception ex)
 				{
