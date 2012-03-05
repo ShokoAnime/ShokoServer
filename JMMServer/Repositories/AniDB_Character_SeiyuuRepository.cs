@@ -56,6 +56,19 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<AniDB_Character_Seiyuu> GetBySeiyuuID(int id)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var objs = session
+					.CreateCriteria(typeof(AniDB_Character_Seiyuu))
+					.Add(Restrictions.Eq("SeiyuuID", id))
+					.List<AniDB_Character_Seiyuu>();
+
+				return new List<AniDB_Character_Seiyuu>(objs);
+			}
+		}
+
 		public void Delete(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

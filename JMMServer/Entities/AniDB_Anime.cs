@@ -997,7 +997,7 @@ namespace JMMServer.Entities
 				anime_rel.Populate(rawrel);
 				repRels.Save(anime_rel);
 
-				if (ServerSettings.AniDB_DownloadRelatedAnime && downloadRelations)
+				if (ServerSettings.AniDB_DownloadRelatedAnime && downloadRelations && ServerSettings.AutoGroupSeries)
 				{
 					logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
 						this.MainTitle, this.AnimeID, rawrel.RelatedAnimeID);

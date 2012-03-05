@@ -19,5 +19,6 @@ namespace JMMContracts
 		public string CharType { get; set; }
 
 		public Contract_AniDB_Seiyuu Seiyuu { get; set; }
+		public Contract_AniDBAnime Anime { get; set; }
 	}
 }

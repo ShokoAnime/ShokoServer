@@ -5823,6 +5823,47 @@ namespace JMMServer
 			return chars;
 		}
 
+		public List<Contract_AniDB_Character> GetCharactersForSeiyuu(int seiyuuID)
+		{
+			List<Contract_AniDB_Character> chars = new List<Contract_AniDB_Character>();
+
+			try
+			{
+				AniDB_Character_SeiyuuRepository repCharSei = new AniDB_Character_SeiyuuRepository();
+				List<AniDB_Character_Seiyuu> links = repCharSei.GetBySeiyuuID(seiyuuID);
+
+				AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
+				AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+				foreach (AniDB_Character_Seiyuu chrSei in links)
+				{
+					AniDB_Character chr = repChar.GetByCharID(chrSei.CharID);
+					if (chr != null)
+					{
+						List<AniDB_Anime_Character> aniChars = repAnimeChar.GetByCharID(chr.CharID);
+						if (aniChars.Count > 0)
+						{
+							
+							AniDB_Anime anime = repAnime.GetByAnimeID(aniChars[0].AnimeID);
+							if (anime != null)
+							{
+								Contract_AniDB_Character contract = chr.ToContract(aniChars[0]);
+								contract.Anime = anime.ToContract(true);
+								chars.Add(contract);
+							}
+						}
+
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return chars;
+		}
+
 		public void ForceAddFileToMyList(string hash)
 		{
 			try

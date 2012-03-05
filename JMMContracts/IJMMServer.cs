@@ -539,6 +539,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID);
+
+		[OperationContract]
+		List<Contract_AniDB_Character> GetCharactersForSeiyuu(int seiyuuID);
 	}
 
 }
