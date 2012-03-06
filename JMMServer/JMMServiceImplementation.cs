@@ -6099,6 +6099,9 @@ namespace JMMServer
 						{
 							if (regularEpisodesOnly && aep.EpisodeTypeEnum != enEpisodeType.Episode) continue;
 
+							AniDB_Episode aniep = aep.AniDB_Episode;
+							if (aniep.FutureDated) continue;
+
 							start = DateTime.Now;
 							List<VideoLocal> vids = aep.VideoLocals;
 							ts = DateTime.Now - start;
@@ -6150,10 +6153,9 @@ namespace JMMServer
 								animeCache[ser.AniDB_ID] = anime;
 
 								start = DateTime.Now;
-								AniDB_Episode ep = aep.AniDB_Episode;
-								contract.EpisodeID = ep.EpisodeID;
-								contract.EpisodeNumber = ep.EpisodeNumber;
-								contract.EpisodeType = ep.EpisodeType;
+								contract.EpisodeID = aniep.EpisodeID;
+								contract.EpisodeNumber = aniep.EpisodeNumber;
+								contract.EpisodeType = aniep.EpisodeType;
 								contracts.Add(contract);
 								ts = DateTime.Now - start;
 								timingAniEps += ts.TotalMilliseconds;

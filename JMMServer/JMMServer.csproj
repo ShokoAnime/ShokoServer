@@ -588,9 +588,7 @@
     <None Include="app.manifest">
       <SubType>Designer</SubType>
     </None>
-    <None Include="default.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <None Include="default.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -689,7 +687,6 @@
 xcopy "$(TargetDir)*.exe" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
 xcopy "$(TargetDir)*.pdb" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
 xcopy "$(TargetDir)*.manifest" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)default.config" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
 
 </PostBuildEvent>
   </PropertyGroup>

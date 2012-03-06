@@ -52,6 +52,16 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public bool FutureDated
+		{
+			get
+			{
+				if (!AirDateAsDate.HasValue) return true;
+
+				return (AirDateAsDate.Value > DateTime.Now);
+			}
+		}
+
 		public enEpisodeType EpisodeTypeEnum
 		{
 			get
