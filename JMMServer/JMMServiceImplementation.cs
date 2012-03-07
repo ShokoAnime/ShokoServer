@@ -6781,6 +6781,24 @@ namespace JMMServer
 
 			return null;
 		}
+
+		public Contract_AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID)
+		{
+			AniDB_SeiyuuRepository repSeiyuu = new AniDB_SeiyuuRepository();
+
+			try
+			{
+				AniDB_Seiyuu seiyuu = repSeiyuu.GetByID(seiyuuID);
+				if (seiyuu == null) return null;
+
+				return seiyuu.ToContract();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return null;
+		}
 	}
 
 	

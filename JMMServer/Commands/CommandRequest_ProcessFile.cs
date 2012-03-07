@@ -109,7 +109,12 @@ namespace JMMServer.Commands
 				AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
 				if (fr != null)
 				{
-					aniFile = new AniDB_File();
+					// check if we already have a record
+					aniFile = repAniFile.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
+
+					if (aniFile == null)
+						aniFile = new AniDB_File();
+
 					aniFile.Populate(fr);
 
 					//overwrite with local file name
@@ -131,8 +136,12 @@ namespace JMMServer.Commands
 				Raw_AniDB_File fileInfo = JMMService.AnidbProcessor.GetFileInfo(vidLocal);
 				if (fileInfo != null)
 				{
-					// save to the database
-					aniFile = new AniDB_File();
+					// check if we already have a record
+					aniFile = repAniFile.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
+
+					if (aniFile == null)
+						aniFile = new AniDB_File();
+
 					aniFile.Populate(fileInfo);
 
 					//overwrite with local file name
