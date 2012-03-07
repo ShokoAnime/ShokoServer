@@ -5823,14 +5823,18 @@ namespace JMMServer
 			return chars;
 		}
 
-		public List<Contract_AniDB_Character> GetCharactersForSeiyuu(int seiyuuID)
+		public List<Contract_AniDB_Character> GetCharactersForSeiyuu(int aniDB_SeiyuuID)
 		{
 			List<Contract_AniDB_Character> chars = new List<Contract_AniDB_Character>();
 
 			try
 			{
+				AniDB_SeiyuuRepository repSeiyuu = new AniDB_SeiyuuRepository();
+				AniDB_Seiyuu seiyuu = repSeiyuu.GetByID(aniDB_SeiyuuID);
+				if (seiyuu == null) return chars;
+
 				AniDB_Character_SeiyuuRepository repCharSei = new AniDB_Character_SeiyuuRepository();
-				List<AniDB_Character_Seiyuu> links = repCharSei.GetBySeiyuuID(seiyuuID);
+				List<AniDB_Character_Seiyuu> links = repCharSei.GetBySeiyuuID(seiyuu.SeiyuuID);
 
 				AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
 				AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();

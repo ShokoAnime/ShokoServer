@@ -860,6 +860,35 @@ namespace JMMServer
 			//JMMServiceImplementation imp = new JMMServiceImplementation();
 			//imp.GetMissingEpisodes(1, true, true);
 
+			VideoLocalRepository repVidLocal = new VideoLocalRepository();
+			/*VideoLocal vlocal = new VideoLocal();
+			vlocal.DateTimeUpdated = DateTime.Now;
+			vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
+			vlocal.FilePath = "";
+			vlocal.FileSize = 656181746;
+			vlocal.ImportFolderID = 1;
+			vlocal.Hash = "453063B2993D4AC4BA51F4A64170260A";
+			vlocal.CRC32 = "";
+			vlocal.MD5 = "";
+			vlocal.SHA1 = "";
+			vlocal.IsIgnored = 0;
+			vlocal.HashSource = (int)HashSource.DirectHash;
+			repVidLocal.Save(vlocal);*/
+
+			try
+			{
+				VideoLocal vlocal = repVidLocal.GetByHash("453063B2993D4AC4BA51F4A64170260A");
+
+				CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vlocal.VideoLocalID, true);
+				cmd.ProcessCommand();
+
+				MessageBox.Show(vlocal.EpisodeCrossRefs.Count.ToString());
+			}
+			catch (Exception ex)
+			{
+				Utils.ShowErrorMessage(ex.Message);
+			}
+
 		}
 
 		private void DownloadAllImages()

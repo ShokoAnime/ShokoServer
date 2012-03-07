@@ -542,6 +542,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AniDB_Character> GetCharactersForSeiyuu(int seiyuuID);
+
+		[OperationContract]
+		Contract_AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID);
 	}
 
 }

@@ -30,6 +30,18 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<AniDB_Character> GetAll()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var objs = session
+					.CreateCriteria(typeof(AniDB_Character))
+					.List<AniDB_Character>();
+
+				return new List<AniDB_Character>(objs);
+			}
+		}
+
 		public AniDB_Character GetByCharID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

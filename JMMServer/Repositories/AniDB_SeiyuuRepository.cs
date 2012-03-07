@@ -30,6 +30,18 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<AniDB_Seiyuu> GetAll()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var objs = session
+					.CreateCriteria(typeof(AniDB_Seiyuu))
+					.List<AniDB_Seiyuu>();
+
+				return new List<AniDB_Seiyuu>(objs);
+			}
+		}
+
 		public AniDB_Seiyuu GetBySeiyuuID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

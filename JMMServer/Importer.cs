@@ -423,6 +423,32 @@ namespace JMMServer
 					cmd.Save();
 				}
 			}
+
+			// AniDB Characters
+			AniDB_CharacterRepository repChars = new AniDB_CharacterRepository();
+			foreach (AniDB_Character chr in repChars.GetAll())
+			{
+				if (string.IsNullOrEmpty(chr.PosterPath)) continue;
+				bool fileExists = File.Exists(chr.PosterPath);
+				if (!fileExists)
+				{
+					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
+					cmd.Save();
+				}
+			}
+
+			// AniDB Creators
+			AniDB_SeiyuuRepository repSeiyuu = new AniDB_SeiyuuRepository();
+			foreach (AniDB_Seiyuu seiyuu in repSeiyuu.GetAll())
+			{
+				if (string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
+				bool fileExists = File.Exists(seiyuu.PosterPath);
+				if (!fileExists)
+				{
+					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
+					cmd.Save();
+				}
+			}
 		}
 
 		public static void RunImport_ScanTvDB()
