@@ -36,6 +36,7 @@ using Microsoft.SqlServer.Management.Smo;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Commands.MAL;
 using JMMServer.Commands.WebCache;
+using System.Diagnostics;
 
 namespace JMMServer
 {
@@ -874,20 +875,6 @@ namespace JMMServer
 			vlocal.IsIgnored = 0;
 			vlocal.HashSource = (int)HashSource.DirectHash;
 			repVidLocal.Save(vlocal);*/
-
-			try
-			{
-				VideoLocal vlocal = repVidLocal.GetByHash("453063B2993D4AC4BA51F4A64170260A");
-
-				CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vlocal.VideoLocalID, true);
-				cmd.ProcessCommand();
-
-				MessageBox.Show(vlocal.EpisodeCrossRefs.Count.ToString());
-			}
-			catch (Exception ex)
-			{
-				Utils.ShowErrorMessage(ex.Message);
-			}
 
 		}
 

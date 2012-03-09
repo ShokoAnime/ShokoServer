@@ -479,8 +479,17 @@ namespace JMMServer.Entities
 						repFileEpisodes.Delete(fileEp.CrossRef_File_EpisodeID);
 				}
 
-				string[] epi = episodesRAW.Split(',');
-				string[] epp = episodesPercentRAW.Split(',');
+				char apostrophe = ("'").ToCharArray()[0];
+				char epiSplit = ',';
+				if (episodesRAW.Contains(apostrophe))
+					epiSplit = apostrophe;
+
+				char eppSplit = ',';
+				if (episodesPercentRAW.Contains(apostrophe))
+					eppSplit = apostrophe;
+
+				string[] epi = episodesRAW.Split(epiSplit);
+				string[] epp = episodesPercentRAW.Split(eppSplit);
 				for (int x = 0; x < epi.Length; x++)
 				{
 

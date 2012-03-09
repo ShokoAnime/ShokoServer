@@ -207,6 +207,9 @@ namespace JMMServer.Commands
 				if (aniFile.EpisodeCrossRefs.Count == 0)
 				{
 					animeID = aniFile.AnimeID;
+
+					// if we have the anidb file, but no cross refs it means something has been broken
+
 					missingEpisodes = true;
 				}
 				else
