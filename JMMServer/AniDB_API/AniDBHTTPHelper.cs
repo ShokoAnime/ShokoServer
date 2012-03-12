@@ -163,8 +163,8 @@ namespace AniDBAPI
 			anime.EpisodeCount = epCount;
 			anime.EpisodeCountNormal = epCount;
 
-			int convertedAirDate = Utils.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "startdate"));
-			int convertedEndDate = Utils.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "enddate"));
+			int convertedAirDate = Utils.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "startdate"), true);
+			int convertedEndDate = Utils.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "enddate"), false);
 
 			//anime.AirDate = TryGetProperty(docAnime, "anime", "startdate");
 			//anime.EndDate = TryGetProperty(docAnime, "anime", "enddate");

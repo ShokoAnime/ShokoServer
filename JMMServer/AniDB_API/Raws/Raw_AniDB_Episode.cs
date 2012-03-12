@@ -154,7 +154,7 @@ namespace AniDBAPI
 			<title xml:lang="x-jat">Asahina Mikuru no Bouken Episode 00</title>*/
             string adate = AniDBHTTPHelper.TryGetProperty(node, "airdate");
 		   
-			AirDate = Utils.GetAniDBDateAsSeconds(adate); 
+			AirDate = Utils.GetAniDBDateAsSeconds(adate, true); 
 
 			//BaseConfig.MyAnimeLog.Write("EPISODE: {0}: {1}", epno.Trim(), this.ToString());
 		}

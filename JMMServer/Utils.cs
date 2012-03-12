@@ -200,7 +200,7 @@ namespace JMMServer
 			return thisDate;
 		}
 
-		public static int GetAniDBDateAsSeconds(string dateXML)
+		public static int GetAniDBDateAsSeconds(string dateXML, bool isStartDate)
 		{
 			// eg "2008-12-31" or "2008-12" or "2008"
 			if (dateXML.Trim().Length < 4) return 0;
@@ -212,9 +212,27 @@ namespace JMMServer
 
 			if (dateXML.Trim().Length > 4)
 				month = dateXML.Trim().Substring(5, 2);
+			else
+			{
+				if (isStartDate)
+					month = "1";
+				else
+					month = "12";
+			}
 
 			if (dateXML.Trim().Length > 7)
 				day = dateXML.Trim().Substring(8, 2);
+			else
+			{
+				if (isStartDate)
+					day = "1";
+				else
+				{
+					// find the last day of the month
+					int numberOfDays = DateTime.DaysInMonth(int.Parse(year), int.Parse(month));
+					day = numberOfDays.ToString();
+				}
+			}
 
 			//BaseConfig.MyAnimeLog.Write("Date = {0}/{1}/{2}", year, month, day);
 
