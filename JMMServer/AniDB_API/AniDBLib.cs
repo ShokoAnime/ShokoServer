@@ -13,6 +13,13 @@ namespace AniDBAPI
 			return iVal;
 		}
 
+		public static long ProcessAniDBLong(string fld)
+		{
+			long iVal = 0;
+			long.TryParse(fld, out iVal);
+			return iVal;
+		}
+
 		public static string ProcessAniDBString(string fld)
 		{
 			string ret = fld.Trim();

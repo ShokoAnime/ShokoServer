@@ -138,6 +138,7 @@
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetGroup.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetGroupStatus.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetMyListFileInfo.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_GetMyListStats.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetReview.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetUpdated.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_Login.cs" />
@@ -170,6 +171,7 @@
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Group.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_GroupStatus.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_MyListFile.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_MyListStats.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyAlert.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyList.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyMessage.cs" />
@@ -185,6 +187,7 @@
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="BlockingList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetFile.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_UpdateMylistStats.cs" />
     <Compile Include="Commands\CommandHelper.cs" />
     <Compile Include="Commands\CommandProcessorGeneral.cs" />
     <Compile Include="Commands\CommandProcessorHasher.cs" />
@@ -242,10 +245,12 @@
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseHelper.cs" />
     <Compile Include="Databases\MySQL.cs" />
+    <Compile Include="Entities\AniDB_MylistStats.cs" />
     <Compile Include="Entities\BookmarkedAnime.cs" />
     <Compile Include="Entities\CrossRef_AniDB_MAL.cs" />
     <Compile Include="Entities\CrossRef_AniDB_TvDB_Episode.cs" />
     <Compile Include="Entities\Playlist.cs" />
+    <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
     <Compile Include="Mappings\BookmarkedAnimeMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TvDB_EpisodeMap.cs" />
@@ -266,6 +271,7 @@
     <Compile Include="Providers\TraktTV\TraktTV_Timestamps.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_UserActivity.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_When.cs" />
+    <Compile Include="Repositories\AniDB_MylistStatsRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />

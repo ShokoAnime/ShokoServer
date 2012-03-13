@@ -42,7 +42,7 @@ namespace AniDBAPI.Commands
 			{
 				if (commandType != enAniDBCommandType.Login)
 				{
-					if (commandType != enAniDBCommandType.Logout)
+					if (commandType != enAniDBCommandType.Logout && commandType != enAniDBCommandType.GetMyListStats)
 					{
 						mcommandText += "&";
 					}

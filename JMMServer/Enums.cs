@@ -60,6 +60,7 @@ namespace JMMServer
 		MAL_DownloadWatchedStates = 63,
 		WebCache_SendAniDB_File = 64,
 		WebCache_GetAniDB_File = 65,
+		AniDB_UpdateMylistStats = 66
 	}
 
 	public enum CommandRequestPriority
@@ -141,7 +142,8 @@ namespace JMMServer
 		AniDBMyListSync = 5,
 		TraktSync = 6,
 		TraktUpdate = 7,
-		MALUpdate = 8
+		MALUpdate = 8,
+		AniDBMylistStats = 9
 	}
 
 	public enum JMMImageType

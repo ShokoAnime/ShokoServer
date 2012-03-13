@@ -134,6 +134,7 @@ namespace JMMServer.Databases
 				UpdateSchema_014(versionNumber);
 				UpdateSchema_015(versionNumber);
 				UpdateSchema_016(versionNumber);
+				UpdateSchema_017(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -657,6 +658,58 @@ namespace JMMServer.Databases
 				" ) ON [PRIMARY] ");
 
 			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID)");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_017(int currentVersionNumber)
+		{
+			int thisVersion = 17;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE AniDB_MylistStats( " +
+				" AniDB_MylistStatsID int IDENTITY(1,1) NOT NULL, " +
+				" Animes int NOT NULL, " +
+				" Episodes int NOT NULL, " +
+				" Files int NOT NULL, " +
+				" SizeOfFiles bigint NOT NULL, " +
+				" AddedAnimes int NOT NULL, " +
+				" AddedEpisodes int NOT NULL, " +
+				" AddedFiles int NOT NULL, " +
+				" AddedGroups int NOT NULL, " +
+				" LeechPct int NOT NULL, " +
+				" GloryPct int NOT NULL, " +
+				" ViewedPct int NOT NULL, " +
+				" MylistPct int NOT NULL, " +
+				" ViewedMylistPct int NOT NULL, " +
+				" EpisodesViewed int NOT NULL, " +
+				" Votes int NOT NULL, " +
+				" Reviews int NOT NULL, " +
+				" ViewiedLength int NOT NULL, " +
+				" CONSTRAINT [PK_AniDB_MylistStats] PRIMARY KEY CLUSTERED " +
+				" ( " +
+				" AniDB_MylistStatsID ASC " +
+				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+				" ) ON [PRIMARY] ");
+
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))

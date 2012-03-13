@@ -92,6 +92,7 @@ namespace JMMServer.Databases
 				UpdateSchema_014(versionNumber);
 				UpdateSchema_015(versionNumber);
 				UpdateSchema_016(versionNumber);
+				UpdateSchema_017(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -535,6 +536,52 @@ namespace JMMServer.Databases
 				" ); ");
 
 			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID);");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_017(int currentVersionNumber)
+		{
+			int thisVersion = 17;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE AniDB_MylistStats( " +
+				" AniDB_MylistStatsID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" Animes int NOT NULL, " +
+				" Episodes int NOT NULL, " +
+				" Files int NOT NULL, " +
+				" SizeOfFiles INTEGER NOT NULL, " +
+				" AddedAnimes int NOT NULL, " +
+				" AddedEpisodes int NOT NULL, " +
+				" AddedFiles int NOT NULL, " +
+				" AddedGroups int NOT NULL, " +
+				" LeechPct int NOT NULL, " +
+				" GloryPct int NOT NULL, " +
+				" ViewedPct int NOT NULL, " +
+				" MylistPct int NOT NULL, " +
+				" ViewedMylistPct int NOT NULL, " +
+				" EpisodesViewed int NOT NULL, " +
+				" Votes int NOT NULL, " +
+				" Reviews int NOT NULL, " +
+				" ViewiedLength int NOT NULL " +
+				" ); ");
+
 
 			foreach (string cmdTable in cmds)
 			{

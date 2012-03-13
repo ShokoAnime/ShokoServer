@@ -2436,6 +2436,7 @@ namespace JMMServer
 				ServerSettings.AniDB_MyList_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_MyList_UpdateFrequency;
 				ServerSettings.AniDB_Calendar_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_Calendar_UpdateFrequency;
 				ServerSettings.AniDB_Anime_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_Anime_UpdateFrequency;
+				ServerSettings.AniDB_MyListStats_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_MyListStats_UpdateFrequency;
 
 				// Web Cache
 				ServerSettings.WebCache_Address = contractIn.WebCache_Address;

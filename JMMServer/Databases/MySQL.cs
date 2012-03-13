@@ -96,6 +96,7 @@ namespace JMMServer.Databases
 				UpdateSchema_016(versionNumber);
 				UpdateSchema_017(versionNumber);
 				UpdateSchema_018(versionNumber);
+				UpdateSchema_019(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -792,6 +793,62 @@ namespace JMMServer.Databases
 				" PRIMARY KEY (`CrossRef_AniDB_TvDB_EpisodeID`) ) ; ");
 
 			cmds.Add("ALTER TABLE `CrossRef_AniDB_TvDB_Episode` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID` (`AniDBEpisodeID` ASC) ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_019(int currentVersionNumber)
+		{
+			int thisVersion = 19;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+
+			cmds.Add("CREATE TABLE `AniDB_MylistStats` ( " +
+				" `AniDB_MylistStatsID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Animes` int NOT NULL, " +
+				" `Episodes` int NOT NULL, " +
+				" `Files` int NOT NULL, " +
+				" `SizeOfFiles` bigint NOT NULL, " +
+				" `AddedAnimes` int NOT NULL, " +
+				" `AddedEpisodes` int NOT NULL, " +
+				" `AddedFiles` int NOT NULL, " +
+				" `AddedGroups` int NOT NULL, " +
+				" `LeechPct` int NOT NULL, " +
+				" `GloryPct` int NOT NULL, " +
+				" `ViewedPct` int NOT NULL, " +
+				" `MylistPct` int NOT NULL, " +
+				" `ViewedMylistPct` int NOT NULL, " +
+				" `EpisodesViewed` int NOT NULL, " +
+				" `Votes` int NOT NULL, " +
+				" `Reviews` int NOT NULL, " +
+				" `ViewiedLength` int NOT NULL, " +
+				" PRIMARY KEY (`AniDB_MylistStatsID`) ) ; ");
+
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{

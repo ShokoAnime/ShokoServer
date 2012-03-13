@@ -40,7 +40,7 @@ namespace JMMServer
 		System.Timers.Timer logoutTimer = null;
 
 		public static int AniDBDelay = 2500;
-		public static int AniDBDelay_Short = 2500;
+		public static int AniDBDelay_Short = 1250;
 
 		private DateTime? banTime = null;
 		public DateTime? BanTime
@@ -293,6 +293,34 @@ namespace JMMServer
 				AniDBCommand_GetMyListFileInfo cmdGetFileStatus = new AniDBCommand_GetMyListFileInfo();
 				cmdGetFileStatus.Init(aniDBFileID);
 				enHelperActivityType ev = cmdGetFileStatus.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+				
+			}
+		}
+
+		public void UpdateMyListStats()
+		{
+			if (!Login()) return;
+
+			lock (lockAniDBConnections)
+			{
+				Pause();
+
+				AniDBCommand_GetMyListStats cmdGetMylistStats = new AniDBCommand_GetMyListStats();
+				cmdGetMylistStats.Init();
+				enHelperActivityType ev = cmdGetMylistStats.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+				if (ev == enHelperActivityType.GotMyListStats && cmdGetMylistStats.MyListStats != null)
+				{
+					AniDB_MylistStatsRepository repStats = new AniDB_MylistStatsRepository();
+					AniDB_MylistStats stat = null;
+					List<AniDB_MylistStats> allStats = repStats.GetAll();
+					if (allStats.Count == 0)
+						stat = new AniDB_MylistStats();
+					else
+						stat = allStats[0];
+
+					stat.Populate(cmdGetMylistStats.MyListStats);
+					repStats.Save(stat);
+				}
 			}
 		}
 

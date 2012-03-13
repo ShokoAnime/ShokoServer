@@ -46,8 +46,8 @@ namespace AniDBAPI
 		Ping = 21,
 		GetGroup = 22,
 		GetVotesHTTP = 23,
-		DeleteFile = 24
-
+		DeleteFile = 24,
+		GetMyListStats = 25
 	}
 
 	public enum enHelperActivityType
@@ -90,6 +90,8 @@ namespace AniDBAPI
 		GettingMyListFileInfo = 50,
 		NoSuchMyListFile = 51,
 		GotMyListFileInfo = 52,
+		GettingMyListStats = 53,
+		GotMyListStats = 54,
 		//Char
 		GotCharInfo = 60,
 		GettingCharInfo = 61,

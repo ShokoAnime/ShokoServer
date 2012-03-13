@@ -13,6 +13,7 @@ using JMMServer.Providers.MovieDB;
 using JMMServer.Providers.TraktTV;
 using System.Threading;
 using JMMServer.Providers.MyAnimeList;
+using JMMServer.Commands.AniDB;
 
 namespace JMMServer
 {
@@ -701,6 +702,29 @@ namespace JMMServer
 			}
 			sched.LastUpdate = DateTime.Now;
 			repSched.Save(sched);
+		}
+
+		public static void CheckForMyListStatsUpdate(bool forceRefresh)
+		{
+			if (ServerSettings.AniDB_MyListStats_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+			int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyListStats_UpdateFrequency);
+
+			ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+
+			ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AniDBMylistStats);
+			if (sched != null)
+			{
+				// if we have run this in the last 24 hours and are not forcing it, then exit
+				TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+				logger.Trace("Last AniDB MyList Stats Update: {0} minutes ago", tsLastRun.TotalMinutes);
+				if (tsLastRun.TotalHours < freqHours)
+				{
+					if (!forceRefresh) return;
+				}
+			}
+
+			CommandRequest_UpdateMylistStats cmd = new CommandRequest_UpdateMylistStats(forceRefresh);
+			cmd.Save();
 		}
 
 		public static void CheckForMyListSyncUpdate(bool forceRefresh)

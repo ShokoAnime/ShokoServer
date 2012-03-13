@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using JMMServer.Commands.WebCache;
 using JMMServer.Commands.MAL;
+using JMMServer.Commands.AniDB;
 
 namespace JMMServer.Commands
 {
@@ -81,13 +82,21 @@ namespace JMMServer.Commands
 		// CommandRequest_MALUploadStatusToMAL
 		// CommandRequest_MALDownloadStatusFromMAL
 		// CommandRequest_WebCacheSendAniDB_File
-
+		//------
+		// Pri 10
+		//------
+		// CommandRequest_UpdateMylistStats
 
 		public static ICommandRequest GetCommand(CommandRequest crdb)
 		{
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
 			{
+				case CommandRequestType.AniDB_UpdateMylistStats:
+					CommandRequest_UpdateMylistStats cr_AniDB_UpdateMylistStats = new CommandRequest_UpdateMylistStats();
+					cr_AniDB_UpdateMylistStats.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_AniDB_UpdateMylistStats;
+
 				case CommandRequestType.WebCache_SendAniDB_File:
 					CommandRequest_WebCacheSendAniDB_File cr_WebCache_SendAniDB_File = new CommandRequest_WebCacheSendAniDB_File();
 					cr_WebCache_SendAniDB_File.LoadFromDBCommand(crdb);

@@ -876,6 +876,8 @@ namespace JMMServer
 			vlocal.HashSource = (int)HashSource.DirectHash;
 			repVidLocal.Save(vlocal);*/
 
+			//JMMService.AnidbProcessor.UpdateMyListStats();
+
 		}
 
 		private void DownloadAllImages()
@@ -1137,6 +1139,7 @@ namespace JMMServer
 
 		void autoUpdateTimerShort_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
 		{
+			
 			JMMService.CmdProcessorImages.NotifyOfNewCommand();
 
 			UpdateTraktFriendInfo(false);
@@ -1280,7 +1283,7 @@ namespace JMMServer
 			Importer.CheckForTraktAllSeriesUpdate(false);
 			Importer.CheckForTraktSyncUpdate(false);
 			Importer.CheckForMALUpdate(false);
-			
+			Importer.CheckForMyListStatsUpdate(false);
 		}
 
 		public static void StartWatchingFiles()
