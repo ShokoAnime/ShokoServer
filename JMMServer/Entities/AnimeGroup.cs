@@ -241,6 +241,10 @@ namespace JMMServer.Entities
 				contract.Stat_HasFinishedAiring = StatsCache.Instance.StatGroupIsFinishedAiring[this.AnimeGroupID];
 			else contract.Stat_HasFinishedAiring = false;
 
+			if (StatsCache.Instance.StatGroupIsCurrentlyAiring.ContainsKey(this.AnimeGroupID))
+				contract.Stat_IsCurrentlyAiring = StatsCache.Instance.StatGroupIsCurrentlyAiring[this.AnimeGroupID];
+			else contract.Stat_IsCurrentlyAiring = false;
+
 			if (StatsCache.Instance.StatGroupAirDate_Max.ContainsKey(this.AnimeGroupID))
 				contract.Stat_AirDate_Max = StatsCache.Instance.StatGroupAirDate_Max[this.AnimeGroupID];
 			else contract.Stat_AirDate_Max = null;

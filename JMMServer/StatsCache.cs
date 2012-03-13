@@ -43,6 +43,7 @@ namespace JMMServer
 		public Dictionary<int, decimal?> StatGroupUserVoteTemporary = null; // AnimeGroupID / UserVoteTemporary
 		public Dictionary<int, bool> StatGroupIsComplete = null; // AnimeGroupID
 		public Dictionary<int, bool> StatGroupIsFinishedAiring = null; // AnimeGroupID
+		public Dictionary<int, bool> StatGroupIsCurrentlyAiring = null; // AnimeGroupID
 		public Dictionary<int, string> StatGroupVideoQuality = null; // AnimeGroupID / Video Quality List
 		public Dictionary<int, string> StatGroupVideoQualityEpisodes = null; // AnimeGroupID / Video Quality List
 		public Dictionary<int, string> StatGroupAudioLanguages = null; // AnimeGroupID / audio language List
@@ -78,6 +79,7 @@ namespace JMMServer
 			StatGroupUserVoteTemporary = new Dictionary<int, decimal?>();
 			StatGroupIsComplete = new Dictionary<int, bool>();
 			StatGroupIsFinishedAiring = new Dictionary<int, bool>();
+			StatGroupIsCurrentlyAiring = new Dictionary<int, bool>();
 			StatGroupVideoQuality = new Dictionary<int, string>();
 			StatGroupVideoQualityEpisodes = new Dictionary<int, string>();
 			StatGroupAudioLanguages = new Dictionary<int, string>();
@@ -214,6 +216,7 @@ namespace JMMServer
 					DateTime? seriesCreatedDate = null;
 					bool isComplete = false;
 					bool hasFinishedAiring = false;
+					bool isCurrentlyAiring = false;
 					string videoQualityEpisodes = "";
 
 					List<string> audioLanguages = new List<string>();
@@ -379,6 +382,10 @@ namespace JMMServer
 						if (series.EndDate.HasValue && series.EndDate.Value < DateTime.Now)
 							hasFinishedAiring = true;
 
+						// Note - only one series has to be finished airing to qualify
+						if (!series.EndDate.HasValue || series.EndDate.Value > DateTime.Now)
+							isCurrentlyAiring = true;
+
 						// We evaluate IsComplete as true if
 						// 1. series has finished airing
 						// 2. user has all episodes locally
@@ -419,6 +426,7 @@ namespace JMMServer
 
 					StatGroupIsComplete[grp.AnimeGroupID] = isComplete;
 					StatGroupIsFinishedAiring[grp.AnimeGroupID] = hasFinishedAiring;
+					StatGroupIsCurrentlyAiring[grp.AnimeGroupID] = isCurrentlyAiring;
 					StatGroupHasTvDB[grp.AnimeGroupID] = hasTvDB;
 					StatGroupHasMAL[grp.AnimeGroupID] = hasMAL;
 					StatGroupHasMovieDB[grp.AnimeGroupID] = hasMovieDB;
@@ -629,6 +637,7 @@ namespace JMMServer
 					DateTime? Stat_SeriesCreatedDate = null;
 					bool isComplete = false;
 					bool hasFinishedAiring = false;
+					bool isCurrentlyAiring = false;
 
 					List<int> categoryIDList = new List<int>();
 					List<string> audioLanguageList = new List<string>();
@@ -720,9 +729,16 @@ namespace JMMServer
 									Stat_SeriesCreatedDate = thisDate;
 							}
 
+							if (series.AniDB_ID == 2369)
+								Debug.Write("Test");
+
 							// Note - only one series has to be finished airing to qualify
 							if (thisAnime.EndDate.HasValue && thisAnime.EndDate.Value < DateTime.Now)
 								hasFinishedAiring = true;
+
+							// Note - only one series has to be currently airing to qualify
+							if (!thisAnime.EndDate.HasValue || thisAnime.EndDate.Value > DateTime.Now)
+								isCurrentlyAiring = true;
 
 							// We evaluate IsComplete as true if
 							// 1. series has finished airing
@@ -815,7 +831,7 @@ namespace JMMServer
 
 					StatGroupIsComplete[ag.AnimeGroupID] = isComplete;
 					StatGroupIsFinishedAiring[ag.AnimeGroupID] = hasFinishedAiring;
-
+					StatGroupIsCurrentlyAiring[ag.AnimeGroupID] = isCurrentlyAiring;
 					StatGroupSeriesCount[ag.AnimeGroupID] = seriesCount;
 					StatGroupEpisodeCount[ag.AnimeGroupID] = epCount;
 
@@ -1006,7 +1022,7 @@ namespace JMMServer
 
 					case GroupFilterConditionType.FinishedAiring:
 						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && contractGroup.Stat_HasFinishedAiring == false) return false;
-						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.Stat_HasFinishedAiring == true) return false;
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.Stat_IsCurrentlyAiring == false) return false;
 						break;
 
 					case GroupFilterConditionType.UserVoted:

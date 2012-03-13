@@ -40,6 +40,7 @@ namespace JMMContracts
 		public string Stat_AllTitles { get; set; }
 		public bool Stat_IsComplete { get; set; }
 		public bool Stat_HasFinishedAiring { get; set; }
+		public bool Stat_IsCurrentlyAiring { get; set; }
 		public bool Stat_HasTvDBLink { get; set; }
 		public bool Stat_HasMALLink { get; set; }
 		public bool Stat_HasMovieDBLink { get; set; }
