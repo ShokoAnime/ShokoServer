@@ -545,6 +545,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		Contract_AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID);
+
+		[OperationContract]
+		Contract_AnimeEpisode GetPreviousEpisodeForUnwatched(int animeSeriesID, int userID);
 	}
 
 }

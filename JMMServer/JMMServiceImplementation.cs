@@ -4739,6 +4739,46 @@ namespace JMMServer
 
 		#endregion
 
+		/// <summary>
+		/// Finds the previous episode for use int the next unwatched episode
+		/// </summary>
+		/// <param name="animeSeriesID"></param>
+		/// <param name="userID"></param>
+		/// <returns></returns>
+		public Contract_AnimeEpisode GetPreviousEpisodeForUnwatched(int animeSeriesID, int userID)
+		{
+			try
+			{
+				Contract_AnimeEpisode nextEp = GetNextUnwatchedEpisode(animeSeriesID, userID);
+				if (nextEp == null) return null;
+
+				int epType = nextEp.EpisodeType;
+				int epNum = nextEp.EpisodeNumber - 1;
+
+				if (epNum <= 0) return null;
+
+				AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
+				AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
+				AnimeSeries series = repAnimeSer.GetByID(animeSeriesID);
+				if (series == null) return null;
+
+				List<AniDB_Episode> anieps = repAniEps.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, (enEpisodeType)epType, epNum);
+				if (anieps.Count == 0) return null;
+
+				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				AnimeEpisode ep = repEps.GetByAniDBEpisodeID(anieps[0].EpisodeID);
+				if (ep == null) return null;
+
+				return ep.ToContract(true, userID);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return null;
+			}
+		}
+
 		public Contract_AnimeEpisode GetNextUnwatchedEpisode(int animeSeriesID, int userID)
 		{
 			try
