@@ -4785,7 +4785,11 @@ namespace JMMServer
 						AniDB_Episode anidbep = dictAniEps[ep.AniDB_EpisodeID];
 						if (anidbep.EpisodeType == (int)enEpisodeType.Episode || anidbep.EpisodeType == (int)enEpisodeType.Special)
 						{
-							Contract_AnimeEpisode epContract = ep.ToContract(anidbep, new List<VideoLocal>(), ep.GetUserRecord(userID));
+							AnimeEpisode_User userRecord = null;
+							if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
+								userRecord = dictEpUsers[ep.AnimeEpisodeID];
+
+							Contract_AnimeEpisode epContract = ep.ToContract(anidbep, new List<VideoLocal>(), userRecord);
 							candidateEps.Add(epContract);
 						}
 					}
@@ -4799,6 +4803,8 @@ namespace JMMServer
 				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
 				candidateEps = Sorting.MultiSort<Contract_AnimeEpisode>(candidateEps, sortCriteria);
 
+				// this will generate a lot of queries when the user doesn have files
+				// for these episodes
 				foreach (Contract_AnimeEpisode canEp in candidateEps)
 				{
 					// now refresh from the database to get file count

@@ -23,6 +23,9 @@ namespace JMMServer.WebCache
 
 		public static AniDB_FileRequest Get_AniDB_File(string hash, long filesize)
 		{
+			// turn this off for now until the bugs are sorted out
+			return null;
+
 			if (!ServerSettings.WebCache_AniDB_File_Get) return null;
 
 			try

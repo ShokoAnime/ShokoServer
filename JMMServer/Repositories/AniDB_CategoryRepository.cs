@@ -42,6 +42,25 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<AniDB_Category> GetByAnimeID(int animeID)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+
+				var cats = session.CreateQuery("Select cat FROM AniDB_Category as cat, AniDB_Anime_Category as xref WHERE cat.CategoryID = xref.CategoryID AND xref.AnimeID= :animeID")
+					.SetParameter("animeID", animeID)
+					.List<AniDB_Category>();
+
+				/*var cats = session
+					.CreateCriteria(typeof(AniDB_Category))
+					.Add(Restrictions.Eq("AnimeID", id))
+					.AddOrder(Order.Desc("Weighting"))
+					.List<AniDB_Category>();*/
+
+				return new List<AniDB_Category>(cats);
+			}
+		}
+
 		public List<AniDB_Category> GetAll()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

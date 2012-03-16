@@ -209,7 +209,7 @@ namespace JMMServer.Commands
 					animeID = aniFile.AnimeID;
 
 					// if we have the anidb file, but no cross refs it means something has been broken
-
+					logger.Debug("Could not find any cross ref records for: {0}", vidLocal.ED2KHash);
 					missingEpisodes = true;
 				}
 				else
@@ -225,16 +225,22 @@ namespace JMMServer.Commands
 				}
 			}
 
-			AniDB_Anime anime = null;
-			if (missingEpisodes)
+			// get from DB
+			AniDB_Anime anime = repAniAnime.GetByAnimeID(animeID);
+			bool animeRecentlyUpdated = false;
+
+			if (anime != null)
+			{
+				TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
+				if (ts.TotalHours < 4) animeRecentlyUpdated = true;
+			}
+
+			// even if we are missing episode info, don't get data  more than once every 4 hours
+			// this is to prevent banning
+			if (missingEpisodes && !animeRecentlyUpdated)
 			{
 				logger.Debug("Getting Anime record from AniDB....");
 				anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AniDB_DownloadRelatedAnime);
-			}
-			else
-			{
-				// get from DB
-				anime = repAniAnime.GetByAnimeID(animeID);
 			}
 
 			// create the group/series/episode records if needed

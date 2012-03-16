@@ -440,6 +440,16 @@ namespace JMMServer.Entities
 		}
 
 		[XmlIgnore]
+		public List<AniDB_Category> AniDBCategories
+		{
+			get
+			{
+				AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
+				return repCats.GetByAnimeID(AnimeID);
+			}
+		}
+
+		[XmlIgnore]
 		public List<AniDB_Tag> Tags
 		{
 			get
@@ -1175,7 +1185,7 @@ namespace JMMServer.Entities
 			}
 
 
-			foreach (AniDB_Anime_Category animeCat in AnimeCategories)
+			/*foreach (AniDB_Anime_Category animeCat in AnimeCategories)
 			{
 				AniDB_Category cat = repCats.GetByCategoryID(animeCat.CategoryID);
 				if (cat != null)
@@ -1189,6 +1199,26 @@ namespace JMMServer.Entities
 					ccat.Weighting = animeCat.Weighting;
 					contract.Categories.Add(ccat);
 				}
+			}*/
+
+			Dictionary<int, AniDB_Anime_Category> dictAnimeCats = new Dictionary<int, AniDB_Anime_Category>();
+			foreach (AniDB_Anime_Category animeCat in AnimeCategories)
+				dictAnimeCats[animeCat.CategoryID] = animeCat;
+
+			foreach (AniDB_Category cat in AniDBCategories)
+			{
+				Contract_AnimeCategory ccat = new Contract_AnimeCategory();
+				ccat.CategoryDescription = cat.CategoryDescription;
+				ccat.CategoryID = cat.CategoryID;
+				ccat.CategoryName = cat.CategoryName;
+				ccat.IsHentai = cat.IsHentai;
+				ccat.ParentID = cat.ParentID;
+
+				if (dictAnimeCats.ContainsKey(cat.CategoryID))
+					ccat.Weighting = dictAnimeCats[cat.CategoryID].Weighting;
+				else
+					ccat.Weighting = 0;
+				contract.Categories.Add(ccat);
 			}
 
 			foreach (AniDB_Anime_Tag animeTag in AnimeTags)
