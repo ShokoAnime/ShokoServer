@@ -204,6 +204,9 @@ namespace JMMServer
 
 			btnSaveDatabaseSettings.Click += new RoutedEventHandler(btnSaveDatabaseSettings_Click);
 			btnRefreshMSSQLServerList.Click += new RoutedEventHandler(btnRefreshMSSQLServerList_Click);
+
+			//automaticUpdater.MenuItem = mnuCheckForUpdates;
+			
 			
 		}
 
@@ -878,6 +881,9 @@ namespace JMMServer
 
 			//JMMService.AnidbProcessor.UpdateMyListStats();
 
+			//UpdateVersion();
+
+			automaticUpdater.ForceCheckForUpdate(true);
 		}
 
 		private void DownloadAllImages()
@@ -900,6 +906,8 @@ namespace JMMServer
 			ShowDatabaseSetup();
 
 			workerSetupDB.RunWorkerAsync();
+
+			automaticUpdater.ForceCheckForUpdate(true);
 		}
 
 
@@ -1139,13 +1147,118 @@ namespace JMMServer
 
 		void autoUpdateTimerShort_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
 		{
-			
+			autoUpdateTimerShort.Enabled = false;
 			JMMService.CmdProcessorImages.NotifyOfNewCommand();
 
 			UpdateTraktFriendInfo(false);
 
-			CheckVersion();
+			//CheckVersion();
+			
+			autoUpdateTimerShort.Enabled = true;
 		}
+
+		/*private void UpdateVersion2()
+		{
+			ShutDown();
+
+			UpdateManager updManager = UpdateManager.Instance;
+
+			//update configuration
+			updManager.UpdateFeedReader = new NAppUpdate.Framework.FeedReaders.AppcastReader();
+			updManager.UpdateSource = new NAppUpdate.Framework.Sources.SimpleWebSource();
+
+			string xml = "";
+			try
+			{
+				xml = Utils.DownloadWebPage("http://omm.hobbydb.net.leaf.arvixe.com/jmmserver_updatefeed.xml");
+
+				updManager.CheckForUpdateAsync(new NAppUpdate.Framework.Sources.MemorySource(xml), updatesCount =>
+				{
+					//Action showUpdateAction = () => new UpdateWindow(UpdateManager.Instance).Show();
+
+					if (updatesCount > 0)
+					{
+						
+
+						updManager.PrepareUpdatesAsync(finished =>
+						{
+							if (finished)
+								updManager.ApplyUpdates();
+							else
+								updManager.CleanUp();
+						});
+					}
+				});
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			//
+
+			
+		}
+
+		private void UpdateVersion()
+		{
+			string xml = Utils.DownloadWebPage("http://omm.hobbydb.net.leaf.arvixe.com/jmmserver_updatefeed.xml");
+			IUpdateSource feedSource = new MemorySource(xml);
+
+
+			// Get a local pointer to the UpdateManager instance
+			UpdateManager updManager = UpdateManager.Instance;
+			updManager.UpdateFeedReader = new NAppUpdate.Framework.FeedReaders.AppcastReader();
+
+			// Only check for updates if we haven't done so already
+			if (updManager.State != UpdateManager.UpdateProcessState.NotChecked)
+			{
+				//MessageBox.Show("Update process has already initialized; current state: " + updManager.State.ToString());
+				return;
+			}
+
+			try
+			{
+				// Check for updates - returns true if relevant updates are found (after processing all the tasks and
+				// conditions)
+				// Throws exceptions in case of bad arguments or unexpected results
+				if (updManager.CheckForUpdates(feedSource))
+				{
+					updManager.PrepareUpdatesAsync(OnPrepareUpdatesCompleted);
+				}
+				else
+				{
+					MessageBox.Show("Your software is up to date");
+				}
+			}
+			catch (Exception ex)
+			{
+				if (ex is NAppUpdateException)
+				{
+					// This indicates a feed or network error; ex will contain all the info necessary
+					// to deal with that
+				}
+				else MessageBox.Show(ex.ToString());
+			}
+		}
+
+		private void OnPrepareUpdatesCompleted(bool succeeded)
+		{
+			if (!succeeded)
+			{
+				MessageBox.Show("Updates preperation failed. Check the feed and try again.");
+			}
+			else
+			{
+				// Get a local pointer to the UpdateManager instance
+				UpdateManager updManager = UpdateManager.Instance;
+
+				// This is a synchronous method by design, make sure to save all user work before calling
+				// it as it might restart your application
+				if (!updManager.ApplyUpdates())
+					MessageBox.Show("Error while trying to install software updates");
+			}
+		}*/
 
 		private void CheckVersion()
 		{

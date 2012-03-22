@@ -48,6 +48,9 @@
     <Reference Include="Antlr3.Runtime">
       <HintPath>..\Dependencies\Antlr3.Runtime.dll</HintPath>
     </Reference>
+    <Reference Include="AutomaticUpdaterWPF">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\wyBuild\AutomaticUpdater\AutomaticUpdaterWPF.dll</HintPath>
+    </Reference>
     <Reference Include="FluentNHibernate">
       <HintPath>..\Dependencies\FluentNHibernate.dll</HintPath>
     </Reference>
@@ -116,6 +119,7 @@
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
