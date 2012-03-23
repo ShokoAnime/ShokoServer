@@ -1366,7 +1366,7 @@ namespace JMMServer
 			catch (Exception ex)
 			{
 				// oopps, can't create file
-				logger.Warn("Error in log: {0}", ex.ToString());
+				logger.Warn("Error in log: {0}", ex.Message);
 			}
 
 			logger.Info(string.Format("Operating System: {0}", Utils.GetOSInfo()));

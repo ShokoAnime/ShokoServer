@@ -58,8 +58,7 @@
                     </StackPanel>
                 </Button>
 
-                <my:AutomaticUpdater Height="100" Name="automaticUpdater" Width="200" GUID="JMM-JMMServer" DaysBetweenChecks="1" UpdateType="OnlyCheck"
-                                         />
+                <my:AutomaticUpdater Height="100" Name="automaticUpdater" Width="200" GUID="JMM-JMMServer" DaysBetweenChecks="1" UpdateType="OnlyCheck"/>
 
                 
             </StackPanel>

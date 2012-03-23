@@ -9,6 +9,7 @@ using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using JMMServer.Repositories;
 using JMMServer.Entities;
+using System.Threading;
 
 namespace JMMServer.Databases
 {
@@ -23,6 +24,8 @@ namespace JMMServer.Databases
 			{
 				string connectionstring = string.Format(@"data source={0};initial catalog={1};persist security info=True;user id={2};password={3}",
 					ServerSettings.DatabaseServer, ServerSettings.DatabaseName, ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword);
+
+				//logger.Info("Conn string = {0}", connectionstring);
 
 				return Fluently.Configure()
 				.Database(MsSqlConfiguration.MsSql2008.ConnectionString(connectionstring))
@@ -64,7 +67,12 @@ namespace JMMServer.Databases
 					{
 						logger.Error("Database: {0} does not exist", ServerSettings.DatabaseName);
 						SQLServer.CreateDatabase();
+						Thread.Sleep(3000);
 					}
+
+					JMMService.CloseSessionFactory();
+					ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
+					ISessionFactory temp = JMMService.SessionFactory;
 
 					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
 					SQLServer.CreateInitialSchema();
@@ -81,6 +89,10 @@ namespace JMMServer.Databases
 					ServerState.Instance.CurrentSetupStatus = "Database - Creating Database...";
 					SQLite.CreateDatabase();
 
+					JMMService.CloseSessionFactory();
+					ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
+					ISessionFactory temp = JMMService.SessionFactory;
+
 					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
 					SQLite.CreateInitialSchema();
 
@@ -95,6 +107,10 @@ namespace JMMServer.Databases
 				{
 					ServerState.Instance.CurrentSetupStatus = "Database - Creating Database...";
 					MySQL.CreateDatabase();
+
+					JMMService.CloseSessionFactory();
+					ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
+					ISessionFactory temp = JMMService.SessionFactory;
 
 					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
 					MySQL.CreateInitialSchema();

@@ -100,7 +100,7 @@ namespace JMMServer.Databases
 
 			ServerConnection conn = new ServerConnection(ServerSettings.DatabaseServer, ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword);
 			Server srv = new Server(conn);
-
+			
 			Database db = new Database(srv, ServerSettings.DatabaseName);
 			db.Create();
 		}
