@@ -160,5 +160,79 @@ namespace JMMServer
 			}
 		}
 
+		private string aniDB_Username = "";
+		public string AniDB_Username
+		{
+			get { return aniDB_Username; }
+			set
+			{
+				aniDB_Username = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("AniDB_Username"));
+			}
+		}
+
+		private string aniDB_Password = "";
+		public string AniDB_Password
+		{
+			get { return aniDB_Password; }
+			set
+			{
+				aniDB_Password = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("AniDB_Password"));
+			}
+		}
+
+		private string aniDB_ServerAddress = "";
+		public string AniDB_ServerAddress
+		{
+			get { return aniDB_ServerAddress; }
+			set
+			{
+				aniDB_ServerAddress = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("AniDB_ServerAddress"));
+			}
+		}
+
+		private string aniDB_ServerPort = "";
+		public string AniDB_ServerPort
+		{
+			get { return aniDB_ServerPort; }
+			set
+			{
+				aniDB_ServerPort = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("AniDB_ServerPort"));
+			}
+		}
+
+		private string aniDB_ClientPort = "";
+		public string AniDB_ClientPort
+		{
+			get { return aniDB_ClientPort; }
+			set
+			{
+				aniDB_ClientPort = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("AniDB_ClientPort"));
+			}
+		}
+
+		private string aniDB_TestStatus = "";
+		public string AniDB_TestStatus
+		{
+			get { return aniDB_TestStatus; }
+			set
+			{
+				aniDB_TestStatus = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("AniDB_TestStatus"));
+			}
+		}
+
+		public void LoadSettings()
+		{
+			AniDB_Username = ServerSettings.AniDB_Username;
+			AniDB_Password = ServerSettings.AniDB_Password;
+			AniDB_ServerAddress = ServerSettings.AniDB_ServerAddress;
+			AniDB_ServerPort = ServerSettings.AniDB_ServerPort;
+			AniDB_ClientPort = ServerSettings.AniDB_ClientPort;
+		}
 	}
 }

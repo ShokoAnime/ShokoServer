@@ -207,8 +207,8 @@ namespace JMMServer
 			btnRefreshMSSQLServerList.Click += new RoutedEventHandler(btnRefreshMSSQLServerList_Click);
 
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
-			
-			
+
+			ServerState.Instance.LoadSettings();
 		}
 
 		
@@ -383,6 +383,24 @@ namespace JMMServer
 			btnSaveDatabaseSettings.IsEnabled = true;
 			cboDatabaseType.IsEnabled = true;
 			btnRefreshMSSQLServerList.IsEnabled = true;
+
+			if (setupComplete)
+			{
+				if (string.IsNullOrEmpty(ServerSettings.AniDB_Username) || string.IsNullOrEmpty(ServerSettings.AniDB_Password))
+				{
+					InitialSetupForm frm = new InitialSetupForm();
+					frm.Owner = this;
+					frm.ShowDialog();
+				}
+
+				ImportFolderRepository repFolders = new ImportFolderRepository();
+				List<ImportFolder> folders = repFolders.GetAll();
+				if (folders.Count == 0)
+				{
+					tabControl1.SelectedIndex = 1;
+				}
+			}
+
 		}
 
 		void btnRefreshMSSQLServerList_Click(object sender, RoutedEventArgs e)
@@ -505,7 +523,11 @@ namespace JMMServer
 				StartWatchingFiles();
 
 				DownloadAllImages();
-				if (ServerSettings.RunImportOnStart) RunImport();
+
+				ImportFolderRepository repFolders = new ImportFolderRepository();
+				List<ImportFolder> folders = repFolders.GetAll();
+
+				if (ServerSettings.RunImportOnStart && folders.Count > 0) RunImport();
 
 
 				ServerState.Instance.ServerOnline = true;

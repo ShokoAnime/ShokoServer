@@ -525,6 +525,10 @@
     <Compile Include="UI\ImportFolderAdmin.xaml.cs">
       <DependentUpon>ImportFolderAdmin.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\InitialSetupForm.xaml.cs">
+      <DependentUpon>InitialSetupForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\PasswordBoxAssistant.cs" />
     <Compile Include="UI\ServerInfo.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WatchedUnwatchedCount.cs" />
@@ -575,6 +579,10 @@
     <Page Include="UI\ImportFolderAdmin.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="UI\InitialSetupForm.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\UIStyles.xaml">
       <SubType>Designer</SubType>
@@ -697,6 +705,12 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_new.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_key.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\anidb.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
