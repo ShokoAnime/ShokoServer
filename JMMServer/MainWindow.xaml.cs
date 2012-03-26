@@ -37,6 +37,7 @@ using JMMServer.Providers.MyAnimeList;
 using JMMServer.Commands.MAL;
 using JMMServer.Commands.WebCache;
 using System.Diagnostics;
+using JMMServer.UI;
 
 namespace JMMServer
 {
@@ -864,7 +865,7 @@ namespace JMMServer
 			//JMMServiceImplementation imp = new JMMServiceImplementation();
 			//imp.GetMissingEpisodes(1, true, true);
 
-			VideoLocalRepository repVidLocal = new VideoLocalRepository();
+			//VideoLocalRepository repVidLocal = new VideoLocalRepository();
 			/*VideoLocal vlocal = new VideoLocal();
 			vlocal.DateTimeUpdated = DateTime.Now;
 			vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
@@ -883,7 +884,9 @@ namespace JMMServer
 
 			//UpdateVersion();
 
-			automaticUpdater.ForceCheckForUpdate(true);
+			AboutForm frm = new AboutForm();
+			frm.Owner = this;
+			frm.ShowDialog();
 		}
 
 		private void DownloadAllImages()
@@ -906,6 +909,12 @@ namespace JMMServer
 			ShowDatabaseSetup();
 
 			workerSetupDB.RunWorkerAsync();
+
+			System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+			if (a != null)
+			{
+				ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);
+			}
 
 			automaticUpdater.ForceCheckForUpdate(true);
 		}

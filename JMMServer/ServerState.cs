@@ -149,5 +149,16 @@ namespace JMMServer
 			}
 		}
 
+		private string applicationVersion = "";
+		public string ApplicationVersion
+		{
+			get { return applicationVersion; }
+			set
+			{
+				applicationVersion = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("ApplicationVersion"));
+			}
+		}
+
 	}
 }
