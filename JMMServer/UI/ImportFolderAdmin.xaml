@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:JMMServer"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300">
+             d:DesignHeight="300" d:DesignWidth="400">
 
     <StackPanel Orientation="Vertical">
 
@@ -61,7 +61,25 @@
 
         </StackPanel.Resources>
 
-        
+        <Border Style="{DynamicResource ToolbarBorderControlStyle}" Background="FloralWhite" Margin="0,0,0,5" Padding="5" DockPanel.Dock="Top" BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"></RowDefinition>
+                    <RowDefinition Height="Auto"></RowDefinition>
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="25"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Image Height="16" Width="16" Source="/Images/32_info.png" Margin="5,2,5,0" Grid.Column="0" VerticalAlignment="Top"/>
+                <TextBlock VerticalAlignment="Center" Text="Import folders are the the base locations where you keep your anime. You will need to add at least one folder and then select 'Run Import' on the Actions tab" Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1"/>
+                <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,5,5,5" DisplayText="Detailed explanation of options"
+                                                                        URL="http://code.google.com/p/jmm/wiki/User_Manual#Import_Folders"/>
+            </Grid>
+        </Border>
+
         <StackPanel Orientation="Horizontal">
             <StackPanel Orientation="Vertical">
                 <TextBlock Text="Server Path" Margin="10,10,0,10" FontWeight="DemiBold"></TextBlock>

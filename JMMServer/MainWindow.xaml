@@ -66,7 +66,7 @@
         </Border>
 
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Name="Scroller" Padding="0,0,0,0" Margin="0,2,0,85" Grid.RowSpan="2">
-            <TabControl  Name="tabControl1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="5,5,5,5"  >
+            <TabControl  Name="tabControl1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0" Width="{Binding ElementName=Scroller, Path=ViewportWidth}" >
 
                 <!-- Actions tab-->
                 <TabItem Header="Actions" Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=ServerOnline, Converter={StaticResource BooleanToVisibilityConverter}}">
