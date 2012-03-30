@@ -90,12 +90,22 @@ namespace JMMServer.Commands
 
 				if (ServerSettings.AniDB_DownloadReleaseGroups)
 				{
-					foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
+					// save in bulk to improve performance
+					using (var session = JMMService.SessionFactory.OpenSession())
 					{
-						
-						CommandRequest_GetReleaseGroup cmdRelgrp = new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
-						cmdRelgrp.Save();
+						using (var transaction = session.BeginTransaction())
+						{
+							foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
+							{
+								CommandRequest_GetReleaseGroup cmdRelgrp = new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
+								session.SaveOrUpdate(cmdRelgrp);
+							}
+
+							transaction.Commit();
+						}
 					}
+
+					
 				}
 
 				//}

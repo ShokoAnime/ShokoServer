@@ -38,6 +38,7 @@ using JMMServer.Commands.MAL;
 using JMMServer.Commands.WebCache;
 using System.Diagnostics;
 using JMMServer.UI;
+using System.ServiceModel.Dispatcher;
 
 namespace JMMServer
 {
@@ -1679,6 +1680,23 @@ namespace JMMServer
 			hostBinary.Description.Behaviors.Add(smb);
 
 			hostBinary.AddServiceEndpoint(typeof(IJMMServer), binding, baseAddressBinary);
+
+			IParameterInspector parameterInspector = new WCFLogger();
+
+			foreach (ChannelDispatcher dispatcher in hostBinary.ChannelDispatchers)
+			{
+				foreach (EndpointDispatcher endpointDispatcher in dispatcher.Endpoints)
+				{
+					DispatchRuntime dispatchRuntime = endpointDispatcher.DispatchRuntime;
+					IEnumerable<DispatchOperation> dispatchOperations = dispatchRuntime.Operations;
+ 
+					foreach (DispatchOperation dispatchOperation in dispatchOperations)
+					{
+						dispatchOperation.ParameterInspectors.Add(parameterInspector);
+					}
+				}
+			}
+
 
 			// Open the ServiceHost to start listening for messages. Since
 			// no endpoints are explicitly configured, the runtime will create

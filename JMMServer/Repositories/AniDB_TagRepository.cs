@@ -42,6 +42,19 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<AniDB_Tag> GetByAnimeID(int animeID)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+
+				var tags = session.CreateQuery("Select tag FROM AniDB_Tag as tag, AniDB_Anime_Tag as xref WHERE tag.TagID = xref.TagID AND xref.AnimeID= :animeID")
+					.SetParameter("animeID", animeID)
+					.List<AniDB_Tag>();
+
+				return new List<AniDB_Tag>(tags);
+			}
+		}
+
 		public AniDB_Tag GetByTagID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
