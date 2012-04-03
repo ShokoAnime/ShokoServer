@@ -1462,17 +1462,8 @@ namespace JMMServer
 				}
 			}
 
-
-
-			/*if (settings.DropFolder.Trim().Length > 0 && settings.DropFolderDestination.Trim().Length > 0)
-			{
-				FileSystemWatcher fsw = new FileSystemWatcher(settings.DropFolder);
-				fsw.IncludeSubdirectories = true;
-				fsw.Created += new FileSystemEventHandler(fsw_Created);
-				fsw.EnableRaisingEvents = true;
-				watcherVids.Add(fsw);
-			}*/
 		}
+
 
 		public static void StopWatchingFiles()
 		{
