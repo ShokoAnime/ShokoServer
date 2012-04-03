@@ -657,7 +657,7 @@ namespace JMMServer
 							if (ep == null)
 							{
 								logger.Debug("Getting Anime record from AniDB....");
-								anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AniDB_DownloadRelatedAnime);
+								anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AutoGroupSeries);
 							}
 							else
 								anime = repAniAnime.GetByAnimeID(animeID);

@@ -790,21 +790,13 @@ namespace JMMServer.Entities
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			repAnime.Save(this);
 
-			logger.Trace("ZZZ 01");
 			CreateEpisodes(eps);
-			logger.Trace("ZZZ 02");
 			CreateTitles(titles);
-			logger.Trace("ZZZ 03");
 			CreateCategories(cats);
-			logger.Trace("ZZZ 04");
 			CreateTags(tags);
-			logger.Trace("ZZZ 05");
 			CreateCharacters(chars);
-			logger.Trace("ZZZ 06");
 			CreateRelations(rels, downloadRelations);
-			logger.Trace("ZZZ 07");
 			CreateSimilarAnime(sims);
-			logger.Trace("ZZZ 08");
 			repAnime.Save(this);
 		}
 
@@ -1088,7 +1080,7 @@ namespace JMMServer.Entities
 				anime_rel.Populate(rawrel);
 				repRels.Save(anime_rel);
 
-				if (ServerSettings.AniDB_DownloadRelatedAnime && downloadRelations && ServerSettings.AutoGroupSeries)
+				if (downloadRelations && ServerSettings.AutoGroupSeries)
 				{
 					logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
 						this.MainTitle, this.AnimeID, rawrel.RelatedAnimeID);

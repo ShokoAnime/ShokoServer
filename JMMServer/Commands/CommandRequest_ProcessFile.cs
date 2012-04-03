@@ -240,7 +240,7 @@ namespace JMMServer.Commands
 			if (missingEpisodes && !animeRecentlyUpdated)
 			{
 				logger.Debug("Getting Anime record from AniDB....");
-				anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AniDB_DownloadRelatedAnime);
+				anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AutoGroupSeries);
 			}
 
 			// create the group/series/episode records if needed
