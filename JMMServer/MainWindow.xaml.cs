@@ -206,10 +206,16 @@ namespace JMMServer
 
 			btnSaveDatabaseSettings.Click += new RoutedEventHandler(btnSaveDatabaseSettings_Click);
 			btnRefreshMSSQLServerList.Click += new RoutedEventHandler(btnRefreshMSSQLServerList_Click);
+			btnInstallMSSQLServer.Click += new RoutedEventHandler(btnInstallMSSQLServer_Click);
 
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
+		}
+
+		void btnInstallMSSQLServer_Click(object sender, RoutedEventArgs e)
+		{
+			System.Diagnostics.Process.Start("http://www.microsoft.com/web/gallery/install.aspx?appsxml=&appid=SQLExpressTools");
 		}
 
 		
