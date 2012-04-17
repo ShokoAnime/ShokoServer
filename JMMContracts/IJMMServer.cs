@@ -548,6 +548,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		Contract_AnimeEpisode GetPreviousEpisodeForUnwatched(int animeSeriesID, int userID);
+
+		[OperationContract]
+		Contract_AnimeEpisode GetEpisodeByAniDBEpisodeID(int episodeID, int userID);
 	}
 
 }
