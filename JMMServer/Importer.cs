@@ -34,6 +34,7 @@ namespace JMMServer
 			Dictionary<int, VideoLocal> dictFilesToHash = new Dictionary<int, VideoLocal>();
 			foreach (VideoLocal vl in filesToHash)
 			{
+
 				dictFilesToHash[vl.VideoLocalID] = vl;
 				CommandRequest_HashFile cmd = new CommandRequest_HashFile(vl.FullServerPath, false);
 				cmd.Save();
@@ -47,8 +48,16 @@ namespace JMMServer
 				// don't use if it is in the previous list
 				if (!dictFilesToHash.ContainsKey(vl.VideoLocalID))
 				{
-					CommandRequest_HashFile cmd = new CommandRequest_HashFile(vl.FullServerPath, false);
-					cmd.Save();
+					try
+					{
+						CommandRequest_HashFile cmd = new CommandRequest_HashFile(vl.FullServerPath, false);
+						cmd.Save();
+					}
+					catch (Exception ex)
+					{
+						string msg = string.Format("Error RunImport_IntegrityCheck XREF: {0} - {1}", vl.ToStringDetailed(), ex.ToString());
+						logger.Info(msg);
+					}
 				}
 			}
 
@@ -64,7 +73,17 @@ namespace JMMServer
 			Dictionary<string, VideoLocal> dictFilesAllExisting = new Dictionary<string, VideoLocal>();
 			foreach (VideoLocal vl in filesAll)
 			{
-				dictFilesAllExisting[vl.FullServerPath] = vl;
+				try
+				{
+					dictFilesAllExisting[vl.FullServerPath] = vl;
+				}
+				catch (Exception ex)
+				{
+					string msg = string.Format("Error RunImport_IntegrityCheck XREF: {0} - {1}", vl.ToStringDetailed(), ex.ToString());
+					logger.Error(msg);
+					continue;
+				}
+
 				// check if it has an episode
 				if (dictFilesWithoutEpisode.ContainsKey(vl.VideoLocalID))
 				{
