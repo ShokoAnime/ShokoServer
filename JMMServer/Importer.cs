@@ -28,6 +28,13 @@ namespace JMMServer
 			AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
 			AniDB_AnimeRepository repAniAnime = new AniDB_AnimeRepository();
 
+
+			// files which don't have a valid import folder
+			List<VideoLocal> filesToDelete = repVidLocals.GetVideosWithoutImportFolder();
+			foreach (VideoLocal vl in filesToDelete)
+				repVidLocals.Delete(vl.VideoLocalID);
+				
+
 			// files which have not been hashed yet
 			// or files which do not have a VideoInfo record
 			List<VideoLocal> filesToHash = repVidLocals.GetVideosWithoutHash();

@@ -113,6 +113,17 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<VideoLocal> GetVideosWithoutImportFolder()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var vidfiles = session.CreateQuery("FROM VideoLocal vl WHERE vl.ImportFolderID NOT IN (select ImportFolderID from ImportFolder fldr)")
+					.List<VideoLocal>();
+
+				return new List<VideoLocal>(vidfiles);
+			}
+		}
+
 		public List<VideoLocal> GetVideosWithoutHash()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
