@@ -230,6 +230,7 @@ namespace JMMServer
 					}
 
 				case JMMImageType.Trakt_Episode:
+				case JMMImageType.Trakt_WatchedEpisode:
 
 					Trakt_Episode tEpisode = repTraktEpisodes.GetByID(int.Parse(entityID));
 					if (tEpisode == null) return null;

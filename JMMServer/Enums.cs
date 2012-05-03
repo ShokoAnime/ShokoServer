@@ -162,7 +162,8 @@ namespace JMMServer
 		Trakt_Episode = 12,
 		Trakt_Friend = 13,
 		Trakt_ActivityScrobble = 14,
-		Trakt_ShoutUser = 15
+		Trakt_ShoutUser = 15,
+		Trakt_WatchedEpisode = 16
 	}
 
 	public enum ImageSizeType

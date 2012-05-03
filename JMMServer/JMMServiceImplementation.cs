@@ -6392,6 +6392,7 @@ namespace JMMServer
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
 			Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
+			Trakt_ShowRepository repShows = new Trakt_ShowRepository();
 
 			Contract_Trakt_Activity contract = new Contract_Trakt_Activity();
 			contract.HasTraktAccount = true;
@@ -6495,6 +6496,8 @@ namespace JMMServer
 						contractAct.Episode.Episode_Season = act.episode.season;
 						contractAct.Episode.Episode_Title = act.episode.title;
 						contractAct.Episode.Episode_Url = act.episode.url;
+						contractAct.Episode.Trakt_EpisodeID = -1;
+						
 
 						if (act.episode.images != null)
 							contractAct.Episode.Episode_Screenshot = act.episode.images.screen;
@@ -6502,6 +6505,14 @@ namespace JMMServer
 						if (act.show != null)
 						{
 							contractAct.Episode.TraktShow = act.show.ToContract();
+
+							Trakt_Show show = repShows.GetByTraktID(act.show.TraktID);
+							if (show != null)
+							{
+								Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, int.Parse(act.episode.season), int.Parse(act.episode.number));
+								if (episode != null)
+									contractAct.Episode.Trakt_EpisodeID = episode.Trakt_EpisodeID;
+							}
 
 							if (animeID.HasValue)
 							{

@@ -7,6 +7,8 @@ namespace JMMContracts
 {
 	public class Contract_Trakt_WatchedEpisode
 	{
+		public int Trakt_EpisodeID { get; set; }
+
 		public int Watched { get; set; }
 		public DateTime? WatchedDate { get; set; }
 
