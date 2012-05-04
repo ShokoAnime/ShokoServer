@@ -64,7 +64,11 @@ namespace JMMFileHelper
 
 		public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getED2k, bool getCRC32, bool getMD5, bool getSHA1)
 		{
-			if (UseDll())
+			// the DLL is returning the wrong results for CRC's so don't use it
+			//bool justHash = !getED2k && !getMD5 && !getSHA1;
+			bool justHash = false;
+
+			if (UseDll() && justHash)
 			{
 				byte[] hash = new byte[56];
 				Hashes rhash = new Hashes();

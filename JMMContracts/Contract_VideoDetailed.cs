@@ -27,6 +27,10 @@ namespace JMMContracts
 		public int VideoLocal_IsWatched { get; set; }
 		public DateTime? VideoLocal_WatchedDate { get; set; }
 		public int VideoLocal_IsIgnored { get; set; }
+		public string VideoLocal_CRC32 { get; set; }
+		public string VideoLocal_MD5 { get; set; }
+		public string VideoLocal_SHA1 { get; set; }
+		public int VideoLocal_HashSource { get; set; }
 
 		// VideoInfo
 		public int VideoInfo_VideoInfoID { get; set; }

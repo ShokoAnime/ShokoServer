@@ -539,6 +539,11 @@ namespace JMMServer.Entities
 			contract.VideoLocalID = this.VideoLocalID;
 			contract.VideoLocal_IsIgnored = this.IsIgnored;
 
+			contract.VideoLocal_MD5 = this.MD5;
+			contract.VideoLocal_SHA1 = this.SHA1;
+			contract.VideoLocal_CRC32 = this.CRC32;
+			contract.VideoLocal_HashSource = this.HashSource;
+
 			VideoLocal_User userRecord = this.GetUserRecord(userID);
 			if (userRecord == null)
 				contract.VideoLocal_IsWatched = 0;

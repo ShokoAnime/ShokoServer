@@ -297,6 +297,11 @@ namespace JMMServer.Entities
 					contract.VideoLocal_FileSize = vid.FileSize;
 					contract.VideoLocalID = vid.VideoLocalID;
 
+					contract.VideoLocal_MD5 = vid.MD5;
+					contract.VideoLocal_SHA1 = vid.SHA1;
+					contract.VideoLocal_CRC32 = vid.CRC32;
+					contract.VideoLocal_HashSource = vid.HashSource;
+
 					VideoLocal_User vidUser = vid.GetUserRecord(userID);
 					//AnimeEpisode_User userRecord = this.GetUserRecord(userID);
 					if (vidUser == null)
