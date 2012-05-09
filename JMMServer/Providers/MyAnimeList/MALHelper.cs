@@ -239,6 +239,8 @@ namespace JMMServer.Providers.MyAnimeList
 
 			repCrossRef.Delete(xref.CrossRef_AniDB_MALID);
 
+			StatsCache.Instance.UpdateUsingAnime(animeID);
+
 			CommandRequest_WebCacheDeleteXRefAniDBMAL req = new CommandRequest_WebCacheDeleteXRefAniDBMAL(animeID, epType, epNumber);
 			req.Save();
 		}

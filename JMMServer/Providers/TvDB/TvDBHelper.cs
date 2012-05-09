@@ -804,6 +804,8 @@ namespace JMMServer.Providers.TvDB
 			
 			repCrossRef.Delete(xref.CrossRef_AniDB_TvDBID);
 
+			StatsCache.Instance.UpdateUsingAnime(ser.AniDB_ID);
+
 			CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(ser.AniDB_ID);
 			req.Save();
 		}
