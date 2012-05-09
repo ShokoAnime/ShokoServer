@@ -6,6 +6,7 @@ using JMMServer;
 using NLog;
 using System.IO;
 using JMMServer.AniDB_API.Raws;
+using System.Globalization;
 
 namespace AniDBAPI
 {
@@ -260,6 +261,9 @@ namespace AniDBAPI
 			anime.ReviewCount = 0;
 			anime.AvgReviewRating = 0;
 
+			NumberStyles style = NumberStyles.Number;
+			CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
+
 			if (docAnime["anime"]["ratings"] != null)
 			{
 				XmlNodeList ratingItems = docAnime["anime"]["ratings"].ChildNodes;
@@ -276,7 +280,7 @@ namespace AniDBAPI
 								anime.VoteCount = iCount;
 
 								decimal iRating = 0;
-								decimal.TryParse(node.InnerText.Trim(), out iRating);
+								decimal.TryParse(node.InnerText.Trim(), style, culture, out iRating);
 								anime.Rating = (int)(iRating * 100);
 							}
 							if (node.Name.Trim().ToLower() == "temporary")
@@ -286,7 +290,7 @@ namespace AniDBAPI
 								anime.TempVoteCount = iCount;
 
 								decimal iRating = 0;
-								decimal.TryParse(node.InnerText.Trim(), out iRating);
+								decimal.TryParse(node.InnerText.Trim(), style, culture, out iRating);
 								anime.TempRating = (int)(iRating * 100);
 							}
 							if (node.Name.Trim().ToLower() == "review")
@@ -296,7 +300,7 @@ namespace AniDBAPI
 								anime.ReviewCount = iCount;
 
 								decimal iRating = 0;
-								decimal.TryParse(node.InnerText.Trim(), out iRating);
+								decimal.TryParse(node.InnerText.Trim(), style, culture, out iRating);
 								anime.AvgReviewRating = (int)(iRating * 100);
 							}
 
