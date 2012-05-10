@@ -4,6 +4,7 @@ using System.Text;
 using System.Xml.Serialization;
 using System.Xml;
 using JMMServer;
+using System.Globalization;
 
 
 namespace AniDBAPI
@@ -138,8 +139,11 @@ namespace AniDBAPI
 		    decimal rating = 0;
 		    int votes = 0;
 
+			NumberStyles style = NumberStyles.Number;
+			CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
+
 			//string airdate = TryGetProperty(node, "airdate");
-			decimal.TryParse(AniDBHTTPHelper.TryGetProperty(node, "rating"), out rating);
+			decimal.TryParse(AniDBHTTPHelper.TryGetProperty(node, "rating"), style, culture, out rating);
 		    int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "rating", "votes"), out votes);
 		    Rating = rating;
 		    Votes = votes;

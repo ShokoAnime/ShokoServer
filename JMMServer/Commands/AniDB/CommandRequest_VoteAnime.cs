@@ -6,6 +6,7 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
 using JMMServer.Commands.MAL;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
@@ -84,6 +85,9 @@ namespace JMMServer.Commands
 			this.CommandDetails = cq.CommandDetails;
 			this.DateTimeUpdated = cq.DateTimeUpdated;
 
+			NumberStyles style = NumberStyles.Number;
+			CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
+
 			// read xml to get parameters
 			if (this.CommandDetails.Trim().Length > 0)
 			{
@@ -93,7 +97,7 @@ namespace JMMServer.Commands
 				// populate the fields
 				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "AnimeID"));
 				this.VoteType = int.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "VoteType"));
-				this.VoteValue = decimal.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "VoteValue"));
+				this.VoteValue = decimal.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "VoteValue"), style, culture);
 			}
 
 			return true;

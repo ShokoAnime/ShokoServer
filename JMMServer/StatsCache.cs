@@ -8,6 +8,7 @@ using NLog;
 using JMMContracts;
 using System.Diagnostics;
 using JMMServer.Providers.TraktTV;
+using System.Globalization;
 
 namespace JMMServer
 {
@@ -952,6 +953,9 @@ namespace JMMServer
 					if (groupID == grp.AnimeGroupID) return false;
 			}
 
+			NumberStyles style = NumberStyles.Number;
+			CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
+
 			if (gf.BaseCondition == (int)GroupFilterBaseCondition.Exclude) return false;
 
 			Contract_AnimeGroup contractGroup = grp.ToContract(userRec);
@@ -1141,7 +1145,7 @@ namespace JMMServer
 					case GroupFilterConditionType.AniDBRating:
 
 						decimal dRating = -1;
-						decimal.TryParse(gfc.ConditionParameter, out dRating);
+						decimal.TryParse(gfc.ConditionParameter, style, culture, out dRating);
 
 						decimal thisRating = contractGroup.Stat_AniDBRating / (decimal)100;
 
@@ -1154,7 +1158,7 @@ namespace JMMServer
 						if (!contractGroup.Stat_UserVoteOverall.HasValue) return false;
 
 						decimal dUserRating = -1;
-						decimal.TryParse(gfc.ConditionParameter, out dUserRating);
+						decimal.TryParse(gfc.ConditionParameter, style, culture, out dUserRating);
 
 						if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan && contractGroup.Stat_UserVoteOverall.Value < dUserRating) return false;
 						if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan && contractGroup.Stat_UserVoteOverall.Value > dUserRating) return false;
