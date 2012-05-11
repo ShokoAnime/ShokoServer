@@ -345,22 +345,45 @@ namespace JMMServer
 			}
 
 			// TvDB Fanart
-			TvDB_ImageFanartRepository repTvFanart = new TvDB_ImageFanartRepository();
-			foreach (TvDB_ImageFanart tvFanart in repTvFanart.GetAll())
+			if (ServerSettings.TvDB_AutoFanart)
 			{
-				if (tvFanart.SeriesID == 88651)
-					Console.Write("");
+				Dictionary<int, int> fanartCount = new Dictionary<int, int>();
+				TvDB_ImageFanartRepository repTvFanart = new TvDB_ImageFanartRepository();
 
-				if (string.IsNullOrEmpty(tvFanart.FullImagePath)) continue;
-				bool fileExists = File.Exists(tvFanart.FullImagePath);
-				if (!fileExists)
+				List<TvDB_ImageFanart> allFanart = repTvFanart.GetAll();
+				foreach (TvDB_ImageFanart tvFanart in allFanart)
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvFanart.TvDB_ImageFanartID, JMMImageType.TvDB_FanArt, false);
-					cmd.Save();
+					if (string.IsNullOrEmpty(tvFanart.FullImagePath)) continue;
+					bool fileExists = File.Exists(tvFanart.FullImagePath);
+
+					if (fileExists)
+					{
+						if (fanartCount.ContainsKey(tvFanart.SeriesID))
+							fanartCount[tvFanart.SeriesID] = fanartCount[tvFanart.SeriesID] + 1;
+						else
+							fanartCount[tvFanart.SeriesID] = 1;
+					}
+				}
+
+				foreach (TvDB_ImageFanart tvFanart in allFanart)
+				{
+					if (string.IsNullOrEmpty(tvFanart.FullImagePath)) continue;
+					bool fileExists = File.Exists(tvFanart.FullImagePath);
+
+					int fanartAvailable = 0;
+					if (fanartCount.ContainsKey(tvFanart.SeriesID))
+						fanartAvailable = fanartCount[tvFanart.SeriesID];
+
+					if (!fileExists && fanartAvailable < ServerSettings.TvDB_AutoFanartAmount)
+					{
+						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvFanart.TvDB_ImageFanartID, JMMImageType.TvDB_FanArt, false);
+						cmd.Save();
+						fanartCount[tvFanart.SeriesID] = fanartAvailable + 1;
+					}
 				}
 			}
 
-			// TvDB Fanart
+			// TvDB Wide Banners
 			TvDB_ImageWideBannerRepository repTvBanners = new TvDB_ImageWideBannerRepository();
 			foreach (TvDB_ImageWideBanner tvBanner in repTvBanners.GetAll())
 			{
