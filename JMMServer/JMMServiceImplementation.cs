@@ -6916,6 +6916,76 @@ namespace JMMServer
 			}
 			return null;
 		}
+
+		public Contract_FileFfdshowPreset GetFFDPreset(int videoLocalID)
+		{
+
+			VideoLocalRepository repVids = new VideoLocalRepository();
+			FileFfdshowPresetRepository repFFD = new FileFfdshowPresetRepository();
+
+			try
+			{
+				VideoLocal vid = repVids.GetByID(videoLocalID);
+				if (vid == null) return null;
+
+				FileFfdshowPreset ffd = repFFD.GetByHashAndSize(vid.Hash, vid.FileSize);
+				if (ffd == null) return null;
+
+				return ffd.ToContract();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return null;
+		}
+
+		public void DeleteFFDPreset(int videoLocalID)
+		{
+			try
+			{
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				FileFfdshowPresetRepository repFFD = new FileFfdshowPresetRepository();
+
+				VideoLocal vid = repVids.GetByID(videoLocalID);
+				if (vid == null) return;
+
+				FileFfdshowPreset ffd = repFFD.GetByHashAndSize(vid.Hash, vid.FileSize);
+				if (ffd == null) return;
+
+				repFFD.Delete(ffd.FileFfdshowPresetID);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
+
+		public void SaveFFDPreset(Contract_FileFfdshowPreset preset)
+		{
+			try
+			{
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				FileFfdshowPresetRepository repFFD = new FileFfdshowPresetRepository();
+
+				VideoLocal vid = repVids.GetByHashAndSize(preset.Hash, preset.FileSize);
+				if (vid == null) return;
+
+				FileFfdshowPreset ffd = repFFD.GetByHashAndSize(preset.Hash, preset.FileSize);
+				if (ffd == null) ffd = new FileFfdshowPreset();
+
+				ffd.FileSize = preset.FileSize;
+				ffd.Hash = preset.Hash;
+				ffd.Preset = preset.Preset;
+
+				repFFD.Save(ffd);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
 	}
 
 	

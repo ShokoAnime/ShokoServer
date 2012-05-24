@@ -23,40 +23,58 @@ namespace JMMServer.Databases
 
 		public static bool DatabaseAlreadyExists()
 		{
-			string connStr = string.Format("Server={0};User ID={1};Password={2}",
-					ServerSettings.MySQL_Hostname, ServerSettings.MySQL_Username, ServerSettings.MySQL_Password);
-
-			string sql = string.Format("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{0}'", ServerSettings.MySQL_SchemaName);
-			using (MySqlConnection conn = new MySqlConnection(connStr))
+			try
 			{
-				// if the Versions already exists, it means we have done this already
-				MySqlCommand cmd = new MySqlCommand(sql, conn);
-				conn.Open();
-				MySqlDataReader reader = cmd.ExecuteReader();
-				while (reader.Read())
+				string connStr = string.Format("Server={0};User ID={1};Password={2}",
+						ServerSettings.MySQL_Hostname, ServerSettings.MySQL_Username, ServerSettings.MySQL_Password);
+
+				string sql = string.Format("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{0}'", ServerSettings.MySQL_SchemaName);
+				logger.Trace(sql);
+				using (MySqlConnection conn = new MySqlConnection(connStr))
 				{
-					string db = reader.GetString(0);
-					return true;
+					// if the Versions already exists, it means we have done this already
+					MySqlCommand cmd = new MySqlCommand(sql, conn);
+					conn.Open();
+					MySqlDataReader reader = cmd.ExecuteReader();
+					while (reader.Read())
+					{
+						string db = reader.GetString(0);
+						logger.Trace("Found db already exists: {0}", db);
+						return true;
+					}
 				}
 			}
-			
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
 
+			logger.Trace("db does not exist: {0}", ServerSettings.MySQL_SchemaName);
 			return false;
 		}
 
 		public static void CreateDatabase()
 		{
-			if (DatabaseAlreadyExists()) return;
-
-			string connStr = string.Format("Server={0};User ID={1};Password={2}",
-					ServerSettings.MySQL_Hostname, ServerSettings.MySQL_Username, ServerSettings.MySQL_Password);
-
-			string sql = string.Format("CREATE DATABASE {0} DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;", ServerSettings.MySQL_SchemaName);
-			using (MySqlConnection conn = new MySqlConnection(connStr))
+			try
 			{
-				MySqlCommand cmd = new MySqlCommand(sql, conn);
-				conn.Open();
-				cmd.ExecuteNonQuery();
+				if (DatabaseAlreadyExists()) return;
+
+				string connStr = string.Format("Server={0};User ID={1};Password={2}",
+						ServerSettings.MySQL_Hostname, ServerSettings.MySQL_Username, ServerSettings.MySQL_Password);
+
+				logger.Trace(connStr);
+				string sql = string.Format("CREATE DATABASE {0} DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;", ServerSettings.MySQL_SchemaName);
+				logger.Trace(sql);
+				using (MySqlConnection conn = new MySqlConnection(connStr))
+				{
+					MySqlCommand cmd = new MySqlCommand(sql, conn);
+					conn.Open();
+					cmd.ExecuteNonQuery();
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
 			}
 		}
 
@@ -97,6 +115,7 @@ namespace JMMServer.Databases
 				UpdateSchema_017(versionNumber);
 				UpdateSchema_018(versionNumber);
 				UpdateSchema_019(versionNumber);
+				UpdateSchema_020(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -874,6 +893,91 @@ namespace JMMServer.Databases
 
 		}
 
+		private static void UpdateSchema_020(int currentVersionNumber)
+		{
+			int thisVersion = 20;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+
+			cmds.Add("CREATE TABLE `FileFfdshowPreset` ( " +
+				" `FileFfdshowPresetID` INT NOT NULL AUTO_INCREMENT, " +
+				" `Hash` varchar(50) NOT NULL, " +
+				" `FileSize` bigint NOT NULL, " +
+				" `Preset` text character set utf8, " +
+				" PRIMARY KEY (`FileFfdshowPresetID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `FileFfdshowPreset` ADD UNIQUE INDEX `UIX_FileFfdshowPreset_Hash` (`Hash` ASC, `FileSize` ASC) ;");
+
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		public static void UpdateSchema_Fix()
+		{
+			List<string> cmds = new List<string>();
+
+			cmds.Add("drop table `crossref_anidb_mal`;");
+
+			cmds.Add("CREATE TABLE CrossRef_AniDB_MAL( " +
+				" CrossRef_AniDB_MALID INT NOT NULL AUTO_INCREMENT, " +
+				" AnimeID int NOT NULL, " +
+				" MALID int NOT NULL, " +
+				" MALTitle text, " +
+				" StartEpisodeType int NOT NULL, " +
+				" StartEpisodeNumber int NOT NULL, " +
+				" CrossRefSource int NOT NULL, " +
+				" PRIMARY KEY (`CrossRef_AniDB_MALID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_AnimeID` (`AnimeID` ASC) ;");
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_Anime` (`MALID` ASC, `AnimeID` ASC, `StartEpisodeType` ASC, `StartEpisodeNumber` ASC) ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+		}
+
 		private static void UpdateDatabaseVersion(int versionNumber)
 		{
 			VersionsRepository repVersions = new VersionsRepository();
@@ -897,6 +1001,7 @@ namespace JMMServer.Databases
 			//string sql = string.Format("select count(VERSIONS) from INFORMATION_SCHEMA where TABLE_SCHEMA = '{0}' and TABLE_NAME = 'VERSIONS' group by TABLE_NAME",
 			//	ServerSettings.MySQL_SchemaName);
 			string sql = string.Format("select count(*) from information_schema.tables where table_schema='{0}' and table_name = 'VERSIONS'", ServerSettings.MySQL_SchemaName);
+			logger.Trace(sql);
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{
 				conn.Open();
@@ -906,7 +1011,13 @@ namespace JMMServer.Databases
 			}
 
 			// if the Versions already exists, it means we have done this already
-			if (count > 0) return;
+			if (count > 0)
+			{
+				logger.Trace("Initial schema already exists");
+				return;
+			}
+
+			logger.Trace("Initial schema doesn't exists, creating now...");
 
 			//Create all the commands to be executed
 			List<string> commands = new List<string>();

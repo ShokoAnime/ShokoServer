@@ -93,6 +93,7 @@ namespace JMMServer.Databases
 				UpdateSchema_015(versionNumber);
 				UpdateSchema_016(versionNumber);
 				UpdateSchema_017(versionNumber);
+				UpdateSchema_018(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -581,6 +582,40 @@ namespace JMMServer.Databases
 				" Reviews int NOT NULL, " +
 				" ViewiedLength int NOT NULL " +
 				" ); ");
+
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_018(int currentVersionNumber)
+		{
+			int thisVersion = 18;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE FileFfdshowPreset( " +
+				" FileFfdshowPresetID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" Hash int NOT NULL, " +
+				" FileSize INTEGER NOT NULL, " +
+				" Preset text " +
+				" ); ");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_FileFfdshowPreset_Hash ON FileFfdshowPreset(Hash, FileSize);");
 
 
 			foreach (string cmdTable in cmds)

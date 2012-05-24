@@ -253,11 +253,13 @@
     <Compile Include="Entities\BookmarkedAnime.cs" />
     <Compile Include="Entities\CrossRef_AniDB_MAL.cs" />
     <Compile Include="Entities\CrossRef_AniDB_TvDB_Episode.cs" />
+    <Compile Include="Entities\FileFfdshowPreset.cs" />
     <Compile Include="Entities\Playlist.cs" />
     <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
     <Compile Include="Mappings\BookmarkedAnimeMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TvDB_EpisodeMap.cs" />
+    <Compile Include="Mappings\FileFfdshowPresetMap.cs" />
     <Compile Include="Mappings\PlaylistMap.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
@@ -279,6 +281,7 @@
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
+    <Compile Include="Repositories\FileFfdshowPresetRepository.cs" />
     <Compile Include="Repositories\PlaylistRepository.cs" />
     <Compile Include="Security\CRC32.cs" />
     <Compile Include="Security\Digest.cs" />

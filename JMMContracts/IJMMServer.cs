@@ -551,6 +551,15 @@ namespace JMMContracts
 
 		[OperationContract]
 		Contract_AnimeEpisode GetEpisodeByAniDBEpisodeID(int episodeID, int userID);
+
+		[OperationContract]
+		Contract_FileFfdshowPreset GetFFDPreset(int videoLocalID);
+
+		[OperationContract]
+		void DeleteFFDPreset(int videoLocalID);
+
+		[OperationContract]
+		void SaveFFDPreset(Contract_FileFfdshowPreset preset);
 	}
 
 }

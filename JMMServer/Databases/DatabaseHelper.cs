@@ -105,18 +105,23 @@ namespace JMMServer.Databases
 				}
 				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL")
 				{
+					logger.Trace("Database - Creating Database...");
 					ServerState.Instance.CurrentSetupStatus = "Database - Creating Database...";
 					MySQL.CreateDatabase();
 
+					logger.Trace("Initializing Session Factory...");
 					JMMService.CloseSessionFactory();
 					ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
 					ISessionFactory temp = JMMService.SessionFactory;
 
+					logger.Trace("Database - Creating Initial Schema...");
 					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
 					MySQL.CreateInitialSchema();
 
+					logger.Trace("Database - Applying Schema Patches...");
 					ServerState.Instance.CurrentSetupStatus = "Database - Applying Schema Patches...";
 					MySQL.UpdateSchema();
+					//MySQL.UpdateSchema_Fix();
 
 					PopulateInitialData();
 

@@ -44,6 +44,20 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public VideoLocal GetByHashAndSize(string hash, long fsize)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				VideoLocal obj = session
+					.CreateCriteria(typeof(VideoLocal))
+					.Add(Restrictions.Eq("Hash", hash))
+					.Add(Restrictions.Eq("FileSize", fsize))
+					.UniqueResult<VideoLocal>();
+
+				return obj;
+			}
+		}
+
 		public List<VideoLocal> GetMostRecentlyAdded(int maxResults)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
