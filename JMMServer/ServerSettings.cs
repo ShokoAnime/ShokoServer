@@ -1103,6 +1103,21 @@ namespace JMMServer
 			}
 		}
 
+		public static bool MinimizeOnStartup
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool val = false;
+				bool.TryParse(appSettings["MinimizeOnStartup"], out val);
+				return val;
+			}
+			set
+			{
+				UpdateSetting("MinimizeOnStartup", value.ToString());
+			}
+		}
+
 		#region Trakt
 
 		public static string Trakt_Username

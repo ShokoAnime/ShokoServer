@@ -718,6 +718,9 @@
   <ItemGroup>
     <Resource Include="PostBuild1.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_tick.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(TargetDir)*.dll" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	

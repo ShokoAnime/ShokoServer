@@ -226,6 +226,28 @@ namespace JMMServer
 			}
 		}
 
+		private bool minOnStartup = false;
+		public bool MinOnStartup
+		{
+			get { return minOnStartup; }
+			set
+			{
+				minOnStartup = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("MinOnStartup"));
+			}
+		}
+
+		private bool maxOnStartup = true;
+		public bool MaxOnStartup
+		{
+			get { return maxOnStartup; }
+			set
+			{
+				maxOnStartup = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("MaxOnStartup"));
+			}
+		}
+
 		public void LoadSettings()
 		{
 			AniDB_Username = ServerSettings.AniDB_Username;
@@ -233,6 +255,9 @@ namespace JMMServer
 			AniDB_ServerAddress = ServerSettings.AniDB_ServerAddress;
 			AniDB_ServerPort = ServerSettings.AniDB_ServerPort;
 			AniDB_ClientPort = ServerSettings.AniDB_ClientPort;
+
+			MinOnStartup = ServerSettings.MinimizeOnStartup;
+			MaxOnStartup = !ServerSettings.MinimizeOnStartup;
 		}
 	}
 }

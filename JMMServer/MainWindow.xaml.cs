@@ -116,8 +116,12 @@ namespace JMMServer
 
 			//show the Tray Notify Icon
 			TippuTrayNotify.Visible = true;
+			
 
 			CreateMenus();
+
+			if (ServerSettings.MinimizeOnStartup)
+				MinimizeToTray();
 
 			ServerState.Instance.DatabaseAvailable = false;
 			ServerState.Instance.ServerOnline = false;
@@ -207,10 +211,19 @@ namespace JMMServer
 			btnSaveDatabaseSettings.Click += new RoutedEventHandler(btnSaveDatabaseSettings_Click);
 			btnRefreshMSSQLServerList.Click += new RoutedEventHandler(btnRefreshMSSQLServerList_Click);
 			btnInstallMSSQLServer.Click += new RoutedEventHandler(btnInstallMSSQLServer_Click);
+			btnMaxOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
+			btnMinOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
 
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
+		}
+
+		void toggleMinimizeOnStartup(object sender, RoutedEventArgs e)
+		{
+			ServerSettings.MinimizeOnStartup = !ServerSettings.MinimizeOnStartup;
+			ServerState.Instance.MinOnStartup = !ServerState.Instance.MinOnStartup;
+			ServerState.Instance.MaxOnStartup = !ServerState.Instance.MaxOnStartup;
 		}
 
 		void btnInstallMSSQLServer_Click(object sender, RoutedEventArgs e)
@@ -1394,6 +1407,15 @@ namespace JMMServer
 			StopHost();
 		}
 
+		private void MinimizeToTray()
+		{
+			this.Hide();
+			TippuTrayNotify.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+			TippuTrayNotify.BalloonTipTitle = "JMM Server";
+			TippuTrayNotify.BalloonTipText = "JMM Server has been minimized to the system tray. To open the application, double-click the icon in the system tray.";
+			//TippuTrayNotify.ShowBalloonTip(400);
+		}
+
 		void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
 		{
 			//When the application is closed, check wether the application is 
@@ -1403,11 +1425,7 @@ namespace JMMServer
 				//if the forms close button is triggered, cancel the event and hide the form
 				//then show the notification ballon tip
 				e.Cancel = true;
-				this.Hide();
-				TippuTrayNotify.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-				TippuTrayNotify.BalloonTipTitle = "Tippu Tray Notify";
-				TippuTrayNotify.BalloonTipText = "Tippu Tray Notify has been minimized to the system tray. To open the application, double-click the icon in the system tray.";
-				//TippuTrayNotify.ShowBalloonTip(400);
+				MinimizeToTray();
 			}
 			else
 			{
