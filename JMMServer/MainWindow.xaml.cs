@@ -926,6 +926,8 @@ namespace JMMServer
 
 			//UpdateVersion();
 
+			TvDBHelper.ScanForMatches();
+
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();

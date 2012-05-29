@@ -560,6 +560,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		void SaveFFDPreset(Contract_FileFfdshowPreset preset);
+
+		[OperationContract]
+		void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags);
 	}
 
 }

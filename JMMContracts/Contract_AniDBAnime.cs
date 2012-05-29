@@ -40,6 +40,7 @@ namespace JMMContracts
 		public int? AllCinemaID { get; set; }
 		public int? AnimeNfo { get; set; }
 		public int? LatestEpisodeNumber { get; set; }
+		public int DisableExternalLinksFlag { get; set; }
 
 		public Contract_AniDB_Anime_DefaultImage DefaultImagePoster { get; set; }
 		public Contract_AniDB_Anime_DefaultImage DefaultImageFanart { get; set; }

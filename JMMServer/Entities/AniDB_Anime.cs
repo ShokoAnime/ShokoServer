@@ -50,6 +50,7 @@ namespace JMMServer.Entities
 		public int? AllCinemaID { get; set; }
 		public int? AnimeNfo { get; set; }
 		public int? LatestEpisodeNumber { get; set; }
+		public int DisableExternalLinksFlag { get; set; }
 		#endregion
 
 		private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -81,6 +82,38 @@ namespace JMMServer.Entities
 					default: return "Other";
 
 				}
+			}
+		}
+
+		public bool IsTvDBLinkDisabled
+		{
+			get
+			{
+				return (DisableExternalLinksFlag & Constants.FlagLinkTvDB) > 0;
+			}
+		}
+
+		public bool IsTraktLinkDisabled
+		{
+			get
+			{
+				return (DisableExternalLinksFlag & Constants.FlagLinkTrakt) > 0;
+			}
+		}
+
+		public bool IsMALLinkDisabled
+		{
+			get
+			{
+				return (DisableExternalLinksFlag & Constants.FlagLinkMAL) > 0;
+			}
+		}
+
+		public bool IsMovieDBLinkDisabled
+		{
+			get
+			{
+				return (DisableExternalLinksFlag & Constants.FlagLinkMovieDB) > 0;
 			}
 		}
 
@@ -778,6 +811,7 @@ namespace JMMServer.Entities
 			this.TempVoteCount = animeInfo.TempVoteCount;
 			this.URL = animeInfo.URL;
 			this.VoteCount = animeInfo.VoteCount;
+			this.DisableExternalLinksFlag = 0;
 		}
 
 		public void PopulateAndSaveFromHTTP(Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps, List<Raw_AniDB_Anime_Title> titles,
@@ -1207,6 +1241,7 @@ namespace JMMServer.Entities
 			contract.URL = this.URL;
 			contract.VoteCount = this.VoteCount;
 			contract.FormattedTitle = this.FormattedTitle;
+			contract.DisableExternalLinksFlag = this.DisableExternalLinksFlag;
 
 			if (getDefaultImages)
 			{

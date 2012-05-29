@@ -116,6 +116,7 @@ namespace JMMServer.Databases
 				UpdateSchema_018(versionNumber);
 				UpdateSchema_019(versionNumber);
 				UpdateSchema_020(versionNumber);
+				UpdateSchema_021(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -911,6 +912,44 @@ namespace JMMServer.Databases
 				" PRIMARY KEY (`FileFfdshowPresetID`) ) ; ");
 
 			cmds.Add("ALTER TABLE `FileFfdshowPreset` ADD UNIQUE INDEX `UIX_FileFfdshowPreset_Hash` (`Hash` ASC, `FileSize` ASC) ;");
+
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_021(int currentVersionNumber)
+		{
+			int thisVersion = 21;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE `AniDB_Anime` ADD `DisableExternalLinksFlag` int NULL ;");
+			cmds.Add("UPDATE AniDB_Anime SET DisableExternalLinksFlag = 0 ;");
+			cmds.Add("ALTER TABLE `AniDB_Anime` CHANGE COLUMN `DisableExternalLinksFlag` `DisableExternalLinksFlag` int NOT NULL ;");
 
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

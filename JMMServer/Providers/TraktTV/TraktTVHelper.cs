@@ -784,6 +784,8 @@ namespace JMMServer.Providers.TraktTV
 				if (anime != null)
 					logger.Trace("Found anime without Trakt association: " + anime.MainTitle);
 
+				if (anime.IsTraktLinkDisabled) continue;
+
 				CommandRequest_TraktSearchAnime cmd = new CommandRequest_TraktSearchAnime(ser.AniDB_ID, false);
 				cmd.Save();
 			}

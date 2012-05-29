@@ -262,6 +262,8 @@ namespace JMMServer.Providers.MyAnimeList
 				AniDB_Anime anime = ser.Anime;
 				if (anime == null) continue;
 
+				if (anime.IsMALLinkDisabled) continue;
+
 				// don't scan if it is associated on the TvDB
 				if (anime.CrossRefMAL == null || anime.CrossRefMAL.Count == 0)
 				{

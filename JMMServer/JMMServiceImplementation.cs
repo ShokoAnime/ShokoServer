@@ -2688,6 +2688,23 @@ namespace JMMServer
 			}
 		}
 
+		public void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags)
+		{
+			try
+			{
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+				AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+				if (anime == null) return;
+
+				anime.DisableExternalLinksFlag = flags;
+				repAnime.Save(anime);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
+
 		public Contract_VideoDetailed GetVideoDetailed(int videoLocalID, int userID)
 		{
 			try

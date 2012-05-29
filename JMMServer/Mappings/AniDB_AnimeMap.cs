@@ -46,7 +46,7 @@ namespace JMMServer.Mappings
 			Map(x => x.TempVoteCount).Not.Nullable();
 			Map(x => x.URL).Not.Nullable();
 			Map(x => x.VoteCount).Not.Nullable();
-			
+			Map(x => x.DisableExternalLinksFlag).Not.Nullable();
         }
 	}
 }

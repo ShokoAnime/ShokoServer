@@ -23,6 +23,7 @@ namespace JMMServer.Entities
 		public int MissingEpisodeCountGroups { get; set; }
 		public int LatestLocalEpisodeNumber { get; set; }
 		public string SeriesNameOverride { get; set; }
+		
 
 		#endregion
 
@@ -270,6 +271,8 @@ namespace JMMServer.Entities
 			contract.MissingEpisodeCount = this.MissingEpisodeCount;
 			contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
 			contract.SeriesNameOverride = this.SeriesNameOverride;
+			
+			
 
 			if (userRecord == null)
 			{

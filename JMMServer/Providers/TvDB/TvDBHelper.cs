@@ -855,8 +855,12 @@ namespace JMMServer.Providers.TvDB
 				if (anime!= null)
 				{
 					logger.Trace("Found anime without tvDB association: " + anime.MainTitle);
-					if (!anime.SearchOnTvDB)
+					if (!anime.SearchOnTvDB) continue;
+					if (anime.IsTvDBLinkDisabled)
+					{
+						logger.Trace("Skipping scan tvDB link because it is disabled: " + anime.MainTitle);
 						continue;
+					}
 				}
 
 				CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(ser.AniDB_ID, false);
