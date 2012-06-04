@@ -120,9 +120,6 @@ namespace JMMServer
 
 			CreateMenus();
 
-			if (ServerSettings.MinimizeOnStartup)
-				MinimizeToTray();
-
 			ServerState.Instance.DatabaseAvailable = false;
 			ServerState.Instance.ServerOnline = false;
 			ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
@@ -926,8 +923,6 @@ namespace JMMServer
 
 			//UpdateVersion();
 
-			TvDBHelper.ScanForMatches();
-
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();
@@ -947,6 +942,8 @@ namespace JMMServer
 		void MainWindow_Loaded(object sender, RoutedEventArgs e)
 		{
 			//ServerInfo.Instance.RefreshImportFolders();
+
+			if (ServerSettings.MinimizeOnStartup) MinimizeToTray();
 
 			tabControl1.SelectedIndex = 4; // setup
 
