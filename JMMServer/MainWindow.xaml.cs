@@ -210,10 +210,26 @@ namespace JMMServer
 			btnInstallMSSQLServer.Click += new RoutedEventHandler(btnInstallMSSQLServer_Click);
 			btnMaxOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
 			btnMinOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
+			btnLogs.Click += new RoutedEventHandler(btnLogs_Click);
 
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
+		}
+
+		void btnLogs_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+				string logPath = Path.Combine(appPath, "logs");
+
+				Process.Start(new ProcessStartInfo(logPath));
+			}
+			catch (Exception ex)
+			{
+				Utils.ShowErrorMessage(ex);
+			}
 		}
 
 		void toggleMinimizeOnStartup(object sender, RoutedEventArgs e)

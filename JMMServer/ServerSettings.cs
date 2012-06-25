@@ -908,6 +908,21 @@ namespace JMMServer
 			}
 		}
 
+		public static bool ScanImportFoldersOnStart
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool val = false;
+				bool.TryParse(appSettings["ScanImportFoldersOnStart"], out val);
+				return val;
+			}
+			set
+			{
+				UpdateSetting("ScanImportFoldersOnStart", value.ToString());
+			}
+		}
+
 		public static bool Hash_CRC32
 		{
 			get
