@@ -908,18 +908,18 @@ namespace JMMServer
 			}
 		}
 
-		public static bool ScanImportFoldersOnStart
+		public static bool ScanDropFoldersOnStart
 		{
 			get
 			{
 				NameValueCollection appSettings = ConfigurationManager.AppSettings;
 				bool val = false;
-				bool.TryParse(appSettings["ScanImportFoldersOnStart"], out val);
+				bool.TryParse(appSettings["ScanDropFoldersOnStart"], out val);
 				return val;
 			}
 			set
 			{
-				UpdateSetting("ScanImportFoldersOnStart", value.ToString());
+				UpdateSetting("ScanDropFoldersOnStart", value.ToString());
 			}
 		}
 
@@ -1339,6 +1339,7 @@ namespace JMMServer
 			contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
 			contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
 			contract.RunImportOnStart = ServerSettings.RunImportOnStart;
+			contract.ScanDropFoldersOnStart = ServerSettings.ScanDropFoldersOnStart;
 			contract.Hash_CRC32 = ServerSettings.Hash_CRC32;
 			contract.Hash_MD5 = ServerSettings.Hash_MD5;
 			contract.Hash_SHA1 = ServerSettings.Hash_SHA1;

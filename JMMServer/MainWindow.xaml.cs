@@ -66,6 +66,7 @@ namespace JMMServer
 
 		private static BackgroundWorker workerImport = new BackgroundWorker();
 		private static BackgroundWorker workerScanFolder = new BackgroundWorker();
+		private static BackgroundWorker workerScanDropFolders = new BackgroundWorker();
 		private static BackgroundWorker workerRemoveMissing = new BackgroundWorker();
 		private static BackgroundWorker workerDeleteImportFolder = new BackgroundWorker();
 		private static BackgroundWorker workerTraktFriends = new BackgroundWorker();
@@ -172,6 +173,11 @@ namespace JMMServer
 			workerScanFolder.WorkerSupportsCancellation = true;
 			workerScanFolder.DoWork += new DoWorkEventHandler(workerScanFolder_DoWork);
 
+
+			workerScanDropFolders.WorkerReportsProgress = true;
+			workerScanDropFolders.WorkerSupportsCancellation = true;
+			workerScanDropFolders.DoWork += new DoWorkEventHandler(workerScanDropFolders_DoWork);
+
 			workerRemoveMissing.WorkerReportsProgress = true;
 			workerRemoveMissing.WorkerSupportsCancellation = true;
 			workerRemoveMissing.DoWork += new DoWorkEventHandler(workerRemoveMissing_DoWork);
@@ -216,6 +222,8 @@ namespace JMMServer
 
 			ServerState.Instance.LoadSettings();
 		}
+
+		
 
 		void btnLogs_Click(object sender, RoutedEventArgs e)
 		{
@@ -560,8 +568,8 @@ namespace JMMServer
 				ImportFolderRepository repFolders = new ImportFolderRepository();
 				List<ImportFolder> folders = repFolders.GetAll();
 
+				if (ServerSettings.ScanDropFoldersOnStart) ScanDropFolders();
 				if (ServerSettings.RunImportOnStart && folders.Count > 0) RunImport();
-
 
 				ServerState.Instance.ServerOnline = true;
 				e.Result = true;
@@ -1524,6 +1532,12 @@ namespace JMMServer
 			}
 		}
 
+		public static void ScanDropFolders()
+		{
+			if (!workerScanDropFolders.IsBusy)
+				workerScanDropFolders.RunWorkerAsync();
+		}
+
 		public static void ScanFolder(int importFolderID)
 		{
 			if (!workerScanFolder.IsBusy)
@@ -1591,6 +1605,18 @@ namespace JMMServer
 			}
 		}
 
+		void workerScanDropFolders_DoWork(object sender, DoWorkEventArgs e)
+		{
+			try
+			{
+				Importer.RunImport_DropFolders();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.Message, ex);
+			}
+		}
+
 		static void workerImport_DoWork(object sender, DoWorkEventArgs e)
 		{
 
@@ -1623,71 +1649,7 @@ namespace JMMServer
 			}
 		}
 
-		/*private static void StartHost()
-		{
-			// Create the ServiceHost.
-			host = new ServiceHost(typeof(JMMServiceImplementation), baseAddress);
-			// Enable metadata publishing.
-			ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
-			smb.HttpGetEnabled = true;
-			smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
-			host.Description.Behaviors.Add(smb);
-
-			BasicHttpBinding binding = new BasicHttpBinding();
-			//binding.MessageEncoding = WSMessageEncoding.Mtom;
-			binding.MaxReceivedMessageSize = 20971520;
-			binding.MaxBufferPoolSize = 20971520; // 20 megabytes
-			binding.MaxBufferSize = 20971520; // 20 megabytes
-			binding.SendTimeout = new TimeSpan(0, 0, 30);
-
-			host.AddServiceEndpoint(typeof(IJMMServer), binding, baseAddress);
-
-			// Open the ServiceHost to start listening for messages. Since
-			// no endpoints are explicitly configured, the runtime will create
-			// one endpoint per base address for each service contract implemented
-			// by the service.
-			host.Open();
-			logger.Trace("Now Accepting client connections...");
-		}
-
-		private static void StartTCPHost()
-		{
-			// Create the ServiceHost.
-			hostTCP = new ServiceHost(typeof(JMMServiceImplementation), baseAddressTCP);
-			// Enable metadata publishing.
-
-			ServiceMetadataBehavior behavior = new ServiceMetadataBehavior();
-
-			hostTCP.Description.Behaviors.Add(behavior);
-			hostTCP.AddServiceEndpoint(typeof(IMetadataExchange), MetadataExchangeBindings.CreateMexNamedPipeBinding(), "net.pipe://localhost/service/mex/");
-
-
-			NetTcpBinding binding = new NetTcpBinding();
-			binding.ReceiveTimeout = new TimeSpan(30, 0, 30);
-			binding.SendTimeout = new TimeSpan(30, 0, 30);
-			binding.OpenTimeout = new TimeSpan(30, 0, 30);
-			binding.CloseTimeout = new TimeSpan(30, 0, 30);
-			binding.MaxBufferPoolSize = int.MaxValue;
-			binding.MaxBufferSize = int.MaxValue;
-			binding.MaxReceivedMessageSize = int.MaxValue;
-
-
-			XmlDictionaryReaderQuotas quotas = new XmlDictionaryReaderQuotas();
-			quotas.MaxArrayLength = int.MaxValue;
-			quotas.MaxBytesPerRead = int.MaxValue;
-			quotas.MaxDepth = int.MaxValue;
-			quotas.MaxNameTableCharCount = int.MaxValue;
-			quotas.MaxStringContentLength = int.MaxValue;
-
-			binding.ReaderQuotas = quotas;
-
-			hostTCP.AddServiceEndpoint(typeof(IJMMServer), binding, baseAddressTCP);
-
-
-
-			hostTCP.Open();
-			logger.Trace("Now Accepting client connections...");
-		}*/
+		
 
 		private static void StartBinaryHost()
 		{
