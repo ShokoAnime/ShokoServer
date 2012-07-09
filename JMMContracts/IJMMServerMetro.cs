@@ -7,12 +7,9 @@ using System.ServiceModel;
 namespace JMMContracts
 {
 	[ServiceContract]
-	public interface IJMMServerImage
+	public interface IJMMServerMetro
 	{
 		[OperationContract]
-		byte[] GetImage(string entityID, int entityType, bool thumnbnailOnly);
-
-		[OperationContract]
-		byte[] GetImageUsingPath(string serverImagePath);
+		List<Contract_AnimeGroup> GetAllGroups(int userID);
 	}
 }

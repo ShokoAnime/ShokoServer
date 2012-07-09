@@ -255,6 +255,7 @@
     <Compile Include="Entities\CrossRef_AniDB_TvDB_Episode.cs" />
     <Compile Include="Entities\FileFfdshowPreset.cs" />
     <Compile Include="Entities\Playlist.cs" />
+    <Compile Include="JMMServiceImplementationMetro.cs" />
     <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
     <Compile Include="Mappings\BookmarkedAnimeMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />

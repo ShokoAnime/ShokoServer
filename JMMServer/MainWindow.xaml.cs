@@ -58,11 +58,15 @@ namespace JMMServer
 		//private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
 		private static string baseAddressImageString = @"http://localhost:{0}/JMMServerImage";
 		private static string baseAddressBinaryString = @"http://localhost:{0}/JMMServerBinary";
+		private static string baseAddressMetroString = @"http://localhost:{0}/JMMServerMetro";
+		private static string baseAddressMetroImageString = @"http://localhost:{0}/JMMServerMetroImage";
 		//private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
 		//private static ServiceHost host = null;
 		//private static ServiceHost hostTCP = null;
 		private static ServiceHost hostImage = null;
 		private static ServiceHost hostBinary = null;
+		private static ServiceHost hostMetro = null;
+		private static ServiceHost hostMetroImage = null;
 
 		private static BackgroundWorker workerImport = new BackgroundWorker();
 		private static BackgroundWorker workerScanFolder = new BackgroundWorker();
@@ -94,6 +98,22 @@ namespace JMMServer
 			get
 			{
 				return new Uri(string.Format(baseAddressImageString, ServerSettings.JMMServerPort));
+			}
+		}
+
+		public static Uri baseAddressMetro
+		{
+			get
+			{
+				return new Uri(string.Format(baseAddressMetroString, ServerSettings.JMMServerPort));
+			}
+		}
+
+		public static Uri baseAddressMetroImage
+		{
+			get
+			{
+				return new Uri(string.Format(baseAddressMetroImageString, ServerSettings.JMMServerPort));
 			}
 		}
 
@@ -217,11 +237,14 @@ namespace JMMServer
 			btnMaxOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
 			btnMinOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
 			btnLogs.Click += new RoutedEventHandler(btnLogs_Click);
+			btnChooseVLCLocation.Click += new RoutedEventHandler(btnChooseVLCLocation_Click);
 
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
 		}
+
+		
 
 		
 
@@ -252,11 +275,26 @@ namespace JMMServer
 			System.Diagnostics.Process.Start("http://www.microsoft.com/web/gallery/install.aspx?appsxml=&appid=SQLExpressTools");
 		}
 
-		
 
-		
 
-		
+
+
+		void btnChooseVLCLocation_Click(object sender, RoutedEventArgs e)
+		{
+			/*string errorMsg = "";
+			string streamingAddress = "";
+			
+			Utils.StartStreamingVideo("localhost", @"E:\Test\Mobile_Suit_Gundam_00_Season_2_Ep02_Twin_Drive_[1080p,BluRay,x264]_-_THORA.mkv", "12000", "30", "1280",
+				"128", "44100", "8088", ref errorMsg, ref streamingAddress);
+
+			return;*/
+
+			System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
+			if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+			{
+				ServerSettings.VLCLocation = dialog.FileName;
+			}
+		}
 
 		void btnChooseImagesFolder_Click(object sender, RoutedEventArgs e)
 		{
@@ -536,6 +574,8 @@ namespace JMMServer
 				SetupAniDBProcessor();
 				StartImageHost();
 				StartBinaryHost();
+				StartMetroHost();
+				StartImageHostMetro();
 
 				//  Load all stats
 				ServerState.Instance.CurrentSetupStatus = "Initializing Stats...";
@@ -861,6 +901,7 @@ namespace JMMServer
 				StopHost();
 				StartBinaryHost();
 				StartImageHost();
+				StartImageHostMetro();
 
 				JMMService.CmdProcessorGeneral.Paused = false;
 				JMMService.CmdProcessorHasher.Paused = false;
@@ -1699,6 +1740,7 @@ namespace JMMServer
 			hostImage.Description.Behaviors.Add(smb);
 
 			hostImage.AddServiceEndpoint(typeof(IJMMServerImage), binding, baseAddressImage);
+			hostImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName, MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
 
 			// Open the ServiceHost to start listening for messages. Since
 			// no endpoints are explicitly configured, the runtime will create
@@ -1706,6 +1748,62 @@ namespace JMMServer
 			// by the service.
 			hostImage.Open();
 			logger.Trace("Now Accepting client connections for images...");
+		}
+
+		private static void StartImageHostMetro()
+		{
+			BasicHttpBinding binding = new BasicHttpBinding();
+			binding.MessageEncoding = WSMessageEncoding.Text;
+			binding.MaxReceivedMessageSize = 2147483647;
+			binding.Name = "httpLargeMessageStream";
+
+
+			// Create the ServiceHost.
+			hostMetroImage = new ServiceHost(typeof(JMMServiceImplementationImage), baseAddressMetroImage);
+			// Enable metadata publishing.
+			ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
+			smb.HttpGetEnabled = true;
+			smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
+			hostMetroImage.Description.Behaviors.Add(smb);
+
+			hostMetroImage.AddServiceEndpoint(typeof(IJMMServerImage), binding, baseAddressMetroImage);
+			hostMetroImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName, MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
+
+			// Open the ServiceHost to start listening for messages. Since
+			// no endpoints are explicitly configured, the runtime will create
+			// one endpoint per base address for each service contract implemented
+			// by the service.
+			hostMetroImage.Open();
+			logger.Trace("Now Accepting client connections for images (metro)...");
+		}
+
+		
+		private static void StartMetroHost()
+		{
+			BasicHttpBinding binding = new BasicHttpBinding();
+			binding.MaxReceivedMessageSize = 2147483647;
+			binding.Name = "metroTest";
+
+
+			// Create the ServiceHost.
+			hostMetro = new ServiceHost(typeof(JMMServiceImplementationMetro), baseAddressMetro);
+			// Enable metadata publishing.
+			ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
+			smb.HttpGetEnabled = true;
+			smb.HttpGetUrl = baseAddressMetro;
+			smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
+
+			hostMetro.Description.Behaviors.Add(smb);
+
+			hostMetro.AddServiceEndpoint(typeof(IJMMServerMetro), binding, baseAddressMetro);
+			hostMetro.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName, MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
+
+			// Open the ServiceHost to start listening for messages. Since
+			// no endpoints are explicitly configured, the runtime will create
+			// one endpoint per base address for each service contract implemented
+			// by the service.
+			hostMetro.Open();
+			logger.Trace("Now Accepting client connections for metro apps...");
 		}
 
 		private static void ReadFiles()
@@ -1762,6 +1860,12 @@ namespace JMMServer
 
 			if (hostBinary != null)
 				hostBinary.Close();
+
+			if (hostMetro != null)
+				hostMetro.Close();
+
+			if (hostMetroImage != null)
+				hostMetroImage.Close();
 		}
 
 		private static void SetupAniDBProcessor()

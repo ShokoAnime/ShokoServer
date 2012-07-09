@@ -251,5 +251,16 @@ namespace JMMServer
 			
 
 		}
+
+		public byte[] GetImageUsingPath(string serverImagePath)
+		{
+			if (File.Exists(serverImagePath))
+				return File.ReadAllBytes(serverImagePath);
+			else
+			{
+				logger.Trace("Could not find AniDB_Cover image: {0}", serverImagePath);
+				return null;
+			}
+		}
 	}
 }

@@ -661,7 +661,7 @@ namespace JMMServer
 
 					foreach (AnimeSeries series in seriesForGroup)
 					{
-						seriesCount = 0;
+						seriesCount++;
 						if (allAnimeDict.ContainsKey(series.AniDB_ID))
 						{
 							AniDB_Anime thisAnime = allAnimeDict[series.AniDB_ID];

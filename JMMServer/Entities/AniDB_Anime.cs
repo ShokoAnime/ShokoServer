@@ -339,6 +339,64 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public string PosterPathNoDefault
+		{
+			get
+			{
+				string fileName = Path.Combine(ImageUtils.GetAniDBImagePath(AnimeID), Picname);
+				return fileName;
+			}
+		}
+
+		public string DefaultPosterPathNoBlanks
+		{
+			get
+			{
+				if (DefaultPoster == null)
+					return PosterPathNoDefault;
+				else
+				{
+					ImageEntityType imageType = (ImageEntityType)DefaultPoster.ImageParentType;
+
+					switch (imageType)
+					{
+						case ImageEntityType.AniDB_Cover:
+							return this.PosterPath;
+
+						case ImageEntityType.TvDB_Cover:
+
+							TvDB_ImagePosterRepository repTvPosters = new TvDB_ImagePosterRepository();
+							TvDB_ImagePoster tvPoster = repTvPosters.GetByID(DefaultPoster.ImageParentID);
+							if (tvPoster != null)
+								return tvPoster.FullImagePath;
+							else
+								return this.PosterPath;
+
+						case ImageEntityType.Trakt_Poster:
+
+							Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
+							Trakt_ImagePoster traktPoster = repTraktPosters.GetByID(DefaultPoster.ImageParentID);
+							if (traktPoster != null)
+								return traktPoster.FullImagePath;
+							else
+								return this.PosterPath;
+
+						case ImageEntityType.MovieDB_Poster:
+
+							MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
+							MovieDB_Poster moviePoster = repMoviePosters.GetByID(DefaultPoster.ImageParentID);
+							if (moviePoster != null)
+								return moviePoster.FullImagePath;
+							else
+								return this.PosterPath;
+
+					}
+				}
+
+				return PosterPath;
+			}
+		}
+
 		public AniDB_Anime_DefaultImage DefaultFanart
 		{
 			get

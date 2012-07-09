@@ -7,6 +7,7 @@ using JMMServer.Repositories;
 using JMMContracts;
 using System.Xml.Serialization;
 using BinaryNorthwest;
+using System.IO;
 
 namespace JMMServer.Entities
 {
@@ -29,6 +30,52 @@ namespace JMMServer.Entities
 		#endregion
 
 		private static Logger logger = LogManager.GetCurrentClassLogger();
+
+		public string PosterPathNoBlanks
+		{
+			get
+			{
+
+				List<string> allPosters = GetPosterFilenames();
+				string posterName = "";
+				if (allPosters.Count > 0)
+					//posterName = allPosters[fanartRandom.Next(0, allPosters.Count)];
+					posterName = allPosters[0];
+
+				if (!String.IsNullOrEmpty(posterName))
+					return posterName;
+
+				return "";
+			}
+		}
+
+		private List<string> GetPosterFilenames()
+		{
+			List<string> allPosters = new List<string>();
+
+			// check if user has specied a fanart to always be used
+			if (DefaultAnimeSeriesID.HasValue)
+			{
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				AnimeSeries defaultSeries = repSeries.GetByID(DefaultAnimeSeriesID.Value);
+				if (defaultSeries != null)
+				{
+					if (!string.IsNullOrEmpty(defaultSeries.Anime.DefaultPosterPathNoBlanks) && File.Exists(defaultSeries.Anime.DefaultPosterPathNoBlanks))
+					{
+						allPosters.Add(defaultSeries.Anime.DefaultPosterPathNoBlanks);
+						return allPosters;
+					}
+				}
+			}
+
+			foreach (AnimeSeries ser in AllSeries)
+			{
+				if (!string.IsNullOrEmpty(ser.Anime.DefaultPosterPathNoBlanks) && File.Exists(ser.Anime.DefaultPosterPathNoBlanks))
+					allPosters.Add(ser.Anime.DefaultPosterPathNoBlanks);
+			}
+
+			return allPosters;
+		}
 
 		public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(int animeid)
 		{

@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using NLog;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace JMMServer
 {
@@ -684,6 +685,45 @@ namespace JMMServer
 						logger.Warn("Error accessing: {0} - {1}", dirName, ex.Message);
 					}
 				}
+			}
+		}
+
+		public static bool StartStreamingVideo(string ipAddress, string fileName, string vidBitRate, string fps, string resWidth, string audioBitRate, string audioSamplerate, string port,
+			ref string errorMessage, ref string streamingUri)
+		{
+			try
+			{
+				// the ipAddress should be passed by the calling client
+				// this is because the client needs to know how to address the stream
+				// for example, in JMM Desktop it will know the JMM Server location by either machine name or IP Address
+				// it should pass this address in
+
+				// REQUIRES VLC 2.0.2 or better
+
+				// VLC cannot handle FLAC audio - a buf was submitted for this
+
+				errorMessage = "";
+				streamingUri = string.Format("http://{0}:{1}", ipAddress, port);
+
+				string vlcStartTemplate = @" -v {0} --sout=#transcode%vcodec=WMV2,vb={1},fps={2},width={3},acodec=wma2,ab={4},channels=1,samplerate={5},soverlay+:http%mux=asf,dst=:{6}/+ --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep --sout-transcode-high-priority --sub-language=en";
+
+				string vlcStop = @"/F /IM vlc.exe";
+				string vlcStart = string.Format(vlcStartTemplate, fileName, vidBitRate, fps, resWidth, audioBitRate, audioSamplerate, port);
+				vlcStart = vlcStart.Replace("%", "{");
+				vlcStart = vlcStart.Replace("+", "}");
+
+				Process.Start("taskkill", vlcStop);
+				Thread.Sleep(1000);
+				Process.Start(ServerSettings.VLCLocation, vlcStart);
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				errorMessage = ex.Message;
+
+				logger.ErrorException(ex.ToString(), ex);
+				return false;
 			}
 		}
 	}

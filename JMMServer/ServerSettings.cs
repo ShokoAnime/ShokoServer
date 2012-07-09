@@ -1096,6 +1096,8 @@ namespace JMMServer
 			}
 		}
 
+
+
 		public static bool BaseImagesPathIsDefault
 		{
 			get
@@ -1115,6 +1117,20 @@ namespace JMMServer
 			{
 				UpdateSetting("BaseImagesPathIsDefault", value.ToString());
 				ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
+			}
+		}
+
+		public static string VLCLocation
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				return appSettings["VLCLocation"];
+			}
+			set
+			{
+				UpdateSetting("VLCLocation", value);
+				ServerState.Instance.VLCLocation = value;
 			}
 		}
 

@@ -248,6 +248,17 @@ namespace JMMServer
 			}
 		}
 
+		private string vLCLocation = "";
+		public string VLCLocation
+		{
+			get { return vLCLocation; }
+			set
+			{
+				vLCLocation = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("VLCLocation"));
+			}
+		}
+
 		public void LoadSettings()
 		{
 			AniDB_Username = ServerSettings.AniDB_Username;
@@ -258,6 +269,8 @@ namespace JMMServer
 
 			MinOnStartup = ServerSettings.MinimizeOnStartup;
 			MaxOnStartup = !ServerSettings.MinimizeOnStartup;
+
+			VLCLocation = ServerSettings.VLCLocation;
 		}
 	}
 }
