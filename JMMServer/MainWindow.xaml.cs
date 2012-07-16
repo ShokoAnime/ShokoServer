@@ -988,6 +988,13 @@ namespace JMMServer
 
 			//UpdateVersion();
 
+			VideoLocalRepository repVidLocal = new VideoLocalRepository();
+			VideoLocal vid = repVidLocal.GetByID(194);
+
+			JMMService.AnidbProcessor.GetFileInfo(vid);
+
+			return;
+
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();

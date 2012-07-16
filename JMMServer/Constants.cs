@@ -20,6 +20,48 @@ namespace JMMServer
 
 
 		#region Labels
+
+		// http://wiki.anidb.net/w/WebAOM#Move.2Frename_system
+		public struct FileRenameTag
+		{
+			public static readonly string AnimeNameRomaji = "%ann";
+			public static readonly string AnimeNameKanji = "%kan";
+			public static readonly string AnimeNameEnglish = "%eng";
+			public static readonly string EpisodeNameRomaji = "%epn";
+			public static readonly string EpisodeNameKanji = "%epk";
+			public static readonly string EpisodeNameEnglish = "%epr";
+			public static readonly string EpisodeNumber = "%enr";
+			public static readonly string GroupShortName = "%grp";
+			public static readonly string GroupLongName = "%grl";
+
+
+			/*
+			 
+%ed2 / %ED2	 ed2k sum (lower/upper)
+%md5 / %MD5	 md5 sum (lower/upper)
+%sha / %SHA	 sha1 sum (lower/upper)
+%crc / %CRC	 crc sum (lower/upper)
+%ver	 Version string
+%inv	 Invalid crc string
+%cen	 Censored string
+%dub	 Dub language (tracks separated with ')
+%sub	 Sub language (tracks separated with ')
+%vid	 Video codec (tracks separated with ')
+%aud	 Audio codec (tracks separated with ')
+%qua	 Quality
+%src	 Source
+%res	 Resolution
+%yea	 Year
+%eps	 Total number of episodes
+%typ	 Type [unknown, TV, OVA, Movie, TV Special, Other, web]
+%gen	 Category string
+%fid	 File ID
+%aid	 Anime ID
+%eid	 Episode ID
+%gid	 Group ID
+			 * */
+		}
+
 		public struct Labels
 		{
 			public static readonly string LASTWATCHED = "Last Watched";

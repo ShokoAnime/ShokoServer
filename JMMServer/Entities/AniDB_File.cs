@@ -40,6 +40,7 @@ namespace JMMServer.Entities
 		public string SHA1 { get; set; }
 		public string FileName { get; set; }
 		public long FileSize { get; set; }
+		public int FileVersion { get; set; }
 		#endregion
 
 
@@ -350,6 +351,7 @@ namespace JMMServer.Entities
 			this.IsWatched = fileInfo.IsWatched;
 			this.MD5 = fileInfo.MD5;
 			this.SHA1 = fileInfo.SHA1;
+			this.FileVersion = fileInfo.FileVersion;
 
 			this.languagesRAW = fileInfo.LanguagesRAW;
 			this.subtitlesRAW = fileInfo.SubtitlesRAW;

@@ -103,7 +103,7 @@ namespace JMMServer.Commands
 
 			int animeID = 0;
 
-			// get from web cache
+			/*// get from web cache
 			if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get && !ForceAniDB)
 			{
 				AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
@@ -127,7 +127,7 @@ namespace JMMServer.Commands
 
 					animeID = aniFile.AnimeID;
 				}
-			}
+			}*/
 
 			if (aniFile == null)
 			{

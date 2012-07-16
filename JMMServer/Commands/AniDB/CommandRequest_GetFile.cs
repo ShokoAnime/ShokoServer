@@ -65,7 +65,7 @@ namespace JMMServer.Commands
 
 				AniDB_File aniFile = repAniFile.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
 
-				// get anidb file info from web cache
+				/*// get anidb file info from web cache
 				if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
 				{
 					AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
@@ -84,7 +84,7 @@ namespace JMMServer.Commands
 
 						StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
 					}
-				}
+				}*/
 
 				Raw_AniDB_File fileInfo = null;
 				if (aniFile == null || ForceAniDB)

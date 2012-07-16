@@ -189,6 +189,7 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="BitMaskHelper.cs" />
     <Compile Include="BlockingList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetFile.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_UpdateMylistStats.cs" />
@@ -255,6 +256,7 @@
     <Compile Include="Entities\CrossRef_AniDB_TvDB_Episode.cs" />
     <Compile Include="Entities\FileFfdshowPreset.cs" />
     <Compile Include="Entities\Playlist.cs" />
+    <Compile Include="FileRenamer.cs" />
     <Compile Include="JMMServiceImplementationMetro.cs" />
     <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
     <Compile Include="Mappings\BookmarkedAnimeMap.cs" />

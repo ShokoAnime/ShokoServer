@@ -137,6 +137,7 @@ namespace JMMServer.Databases
 				UpdateSchema_017(versionNumber);
 				UpdateSchema_018(versionNumber);
 				UpdateSchema_019(versionNumber);
+				UpdateSchema_020(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -782,6 +783,36 @@ namespace JMMServer.Databases
 			cmds.Add("ALTER TABLE AniDB_Anime ADD DisableExternalLinksFlag int NULL");
 			cmds.Add("UPDATE AniDB_Anime SET DisableExternalLinksFlag = 0");
 			cmds.Add("ALTER TABLE AniDB_Anime ALTER COLUMN DisableExternalLinksFlag int NOT NULL");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_020(int currentVersionNumber)
+		{
+			int thisVersion = 20;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE AniDB_File ADD FileVersion int NULL");
+			cmds.Add("UPDATE AniDB_File SET FileVersion = 1");
+			cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN FileVersion int NOT NULL");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))

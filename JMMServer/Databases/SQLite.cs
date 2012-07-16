@@ -95,6 +95,7 @@ namespace JMMServer.Databases
 				UpdateSchema_017(versionNumber);
 				UpdateSchema_018(versionNumber);
 				UpdateSchema_019(versionNumber);
+				UpdateSchema_020(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -644,6 +645,32 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 			cmds.Add("ALTER TABLE AniDB_Anime ADD DisableExternalLinksFlag int NULL");
 			cmds.Add("UPDATE AniDB_Anime SET DisableExternalLinksFlag = 0");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_020(int currentVersionNumber)
+		{
+			int thisVersion = 20;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+			cmds.Add("ALTER TABLE AniDB_File ADD FileVersion int NULL");
+			cmds.Add("UPDATE AniDB_File SET FileVersion = 1");
 
 			foreach (string cmdTable in cmds)
 			{

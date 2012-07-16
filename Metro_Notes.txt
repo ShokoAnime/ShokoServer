@@ -1,0 +1,51 @@
+http://social.msdn.microsoft.com/Forums/da-DK/winappswithcsharp/thread/28b7d14d-64a3-45f4-a391-d1c68acfd00c
+http://playerframework.codeplex.com/releases
+
+Source="Assets/[DB]_Bleach_253_[B0770E96].avi"
+
+rtsp://dev23:5544/stream
+http://dev23:8080/stream
+http://192.168.153.130:8088
+mms://192.168.153.130:8088
+
+mms://192.168.153.130:8088
+http://192.168.153.130:8088
+
+taskkill /IM vlc.exe
+
+vlc -vvv file:///E:/Test/%5BDB%5D_Bleach_253_%5BB0770E96%5D.avi --sout '#transcode{vcodec=WMV2,vb=5000,fps=30,scale=1,acodec=wma2,ab=128,channels=1,samplerate=44100}:duplicate{dst=std{access=mmsh,mux=asfh,dst=0.0.0.0:8088},dst=display}' --no-sout-rtp-sap :no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+vlc -vvv E:\Test\[DB]_Bleach_253_[B0770E96].avi --sout='#transcode{vcodec=WMV2,vb=5000,fps=30,scale=1,acodec=wma2,ab=128,channels=1,samplerate=44100}:duplicate{dst=std{access=mmsh,mux=asfh,dst=0.0.0.0:8088},dst=display}' --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+
+//winner //     vlc -v E:\Test\[DB]_Bleach_253_[B0770E96].avi --extraintf=http:logger --verbose=2 --sout=#transcode{vcodec=WMV2,vb=5000,fps=30,scale=1,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:std{access=mmsh,mux=asfh,dst=:8088}
+//winner //     vlc -v E:\Test\[DB]_Bleach_253_[B0770E96].avi --extraintf=http:logger --sout=#transcode{vcodec=WMV2,vb=5000,fps=30,scale=1,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:std{access=mmsh,mux=asfh,dst=:8088} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+
+//winner //     vlc -v E:\Test\[Coalgirls]_Highschool_of_the_Dead_01_(1920x1080_Blu-Ray_FLAC)_[90CC6DC1].mkv --sout=#transcode{vcodec=WMV2,vb=15000,fps=30,scale=1,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:std{access=mmsh,mux=asfh,dst=:8088} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep --sout-transcode-high-priority --sout-transcode-threads=4 --audio-language=en --sub-language=en
+// final winer // vlc -v E:\Test\[Coalgirls]_Highschool_of_the_Dead_01_(1920x1080_Blu-Ray_FLAC)_[90CC6DC1].mkv --sout=#transcode{vcodec=WMV2,vb=12000,fps=30,width=1280,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:std{access=mmsh,mux=asfh,dst=:8088} --sout-transcode-high-priority --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+
+
+// resolution at 848
+vlc -v E:\Test\[DB]_Bleach_253_[B0770E96].avi --sout=#transcode{vcodec=WMV2,vb=7000,fps=30,width=848,acodec=wma2,ab=128,channels=1,samplerate=44100}:std{access=mmsh,mux=asfh,dst=:8088} --sout-transcode-high-priority --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+vlc -v E:\Test\[DB]_Bleach_253_[B0770E96].avi --sout=#transcode{vcodec=WMV2,vb=5000,fps=30,width=848,acodec=wma2,ab=128,channels=1,samplerate=44100}:http{mux=asf,dst=:8088/} --sout-transcode-high-priority --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+
+
+// Everything seems to be working except for FLAC audio
+// resolution at 1280 (HD) MMS
+vlc -v E:\Test\[Coalgirls]_Highschool_of_the_Dead_01_(1920x1080_Blu-Ray_FLAC)_[90CC6DC1].mkv --sout=#transcode{vcodec=WMV2,vb=12000,fps=30,width=1280,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:std{access=mmsh,mux=asfh,dst=:8088} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+vlc -v E:\Test\[Chihiro]_Amagami_SS_-_ED2_[1280x720_H264_AAC][29102DF1].mkv --sout=#transcode{vcodec=WMV2,vb=12000,fps=30,width=1280,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:std{access=mmsh,mux=asfh,dst=:8088} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+vlc -v E:\Test\Mobile_Suit_Gundam_00_Season_2_Ep02_Twin_Drive_[1080p,BluRay,x264]_-_THORA.mkv --sout=#transcode{vcodec=WMV2,vb=12000,fps=30,width=1280,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:std{access=mmsh,mux=asfh,dst=:8088} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep --sout-transcode-high-priority --sub-language=en
+
+
+// resolution at 1280 (HD) HTTP
+vlc -v E:\Test\[Coalgirls]_Highschool_of_the_Dead_01_(1920x1080_Blu-Ray_FLAC)_[90CC6DC1].mkv --sout=#transcode{vcodec=WMV2,vb=12000,fps=30,width=1280,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:http{mux=asf,dst=:8088/} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+vlc -v E:\Test\[Chihiro]_Amagami_SS_-_ED2_[1280x720_H264_AAC][29102DF1].mkv --sout=#transcode{vcodec=WMV2,vb=12000,fps=30,width=1280,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:http{mux=asf,dst=:8088/} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+vlc -v E:\Test\Mobile_Suit_Gundam_00_Season_2_Ep02_Twin_Drive_[1080p,BluRay,x264]_-_THORA.mkv --sout=#transcode{vcodec=WMV2,vb=12000,fps=30,width=1280,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:http{mux=asf,dst=:8088/} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep --sout-transcode-high-priority --sub-language=en
+
+
+
+// original resolution
+vlc -v E:\Test\[DB]_Bleach_253_[B0770E96].avi --sout=#transcode{vcodec=WMV2,vb=5000,fps=30,scale=1,acodec=wma2,ab=128,channels=1,samplerate=44100}:std{access=mmsh,mux=asfh,dst=:8088} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+vlc -v E:\Test\[Coalgirls]_Highschool_of_the_Dead_01_(1920x1080_Blu-Ray_FLAC)_[90CC6DC1].mkv --sout=#transcode{vcodec=WMV2,vb=5000,fps=30,scale=1,acodec=wma2,ab=128,channels=1,samplerate=44100}:std{access=mmsh,mux=asfh,dst=:8088} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep
+
+
+
+vlc -v E:\Test\[Coalgirls]_Highschool_of_the_Dead_01_(1920x1080_Blu-Ray_FLAC)_[90CC6DC1].mkv --sout=#transcode{vcodec=WMV2,vb=12000,fps=30,width=1280,acodec=wma2,ab=128,channels=1,samplerate=44100,soverlay}:std{access=mmsh,mux=asfh,dst=:8088} --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep

@@ -596,6 +596,7 @@ namespace JMMServer.Entities
 				contract.AniDB_GroupID = anifile.GroupID;
 				contract.AniDB_MD5 = anifile.MD5;
 				contract.AniDB_SHA1 = anifile.SHA1;
+				contract.AniDB_File_FileVersion = anifile.FileVersion;
 
 				// languages
 				contract.LanguagesAudio = anifile.LanguagesRAW;
@@ -614,6 +615,7 @@ namespace JMMServer.Entities
 				contract.AniDB_File_VideoResolution = "";
 				contract.AniDB_MD5 = "";
 				contract.AniDB_SHA1 = "";
+				contract.AniDB_File_FileVersion = 1;
 
 				// languages
 				contract.LanguagesAudio = "";
