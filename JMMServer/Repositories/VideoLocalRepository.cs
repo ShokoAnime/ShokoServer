@@ -58,6 +58,19 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<VideoLocal> GetByName(string fileName)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var eps = session
+					.CreateCriteria(typeof(VideoLocal))
+					.Add(Restrictions.Like("FilePath", fileName, MatchMode.Anywhere))
+					.List<VideoLocal>();
+
+				return new List<VideoLocal>(eps);
+			}
+		}
+
 		public List<VideoLocal> GetMostRecentlyAdded(int maxResults)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

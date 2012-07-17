@@ -7004,6 +7004,57 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 			}
 		}
+
+		public List<Contract_VideoLocal> SearchForFiles(int searchType, string searchCriteria, int userID)
+		{
+
+			try
+			{
+				List<Contract_VideoLocal> vids = new List<Contract_VideoLocal>();
+
+				FileSearchCriteria sType = (FileSearchCriteria)searchType;
+
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				switch (sType)
+				{
+					case FileSearchCriteria.Name:
+
+						List<VideoLocal> results1 = repVids.GetByName(searchCriteria.Trim());
+						foreach (VideoLocal vid in results1)
+							vids.Add(vid.ToContract(userID));
+
+						break;
+
+					case FileSearchCriteria.ED2KHash:
+
+						VideoLocal vidByHash = repVids.GetByHash(searchCriteria.Trim());
+						if (vidByHash != null)
+							vids.Add(vidByHash.ToContract(userID));
+
+						break;
+
+					case FileSearchCriteria.Size:
+
+						break;
+
+					case FileSearchCriteria.LastOneHundred:
+
+						List<VideoLocal> results2 = repVids.GetMostRecentlyAdded(100);
+						foreach (VideoLocal vid in results2)
+							vids.Add(vid.ToContract(userID));
+
+						break;
+				}
+
+				return vids;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return new List<Contract_VideoLocal>();
+		}
+
 	}
 
 	

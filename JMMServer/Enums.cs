@@ -364,4 +364,12 @@ namespace JMMServer
 		Long = 1,
 		Short = 2
 	}
+
+	public enum FileSearchCriteria
+	{
+		Name = 1,
+		Size = 2,
+		LastOneHundred = 3,
+		ED2KHash = 4
+	}
 }

@@ -563,6 +563,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags);
+
+		[OperationContract]
+		List<Contract_VideoLocal> SearchForFiles(int searchType, string searchCriteria, int userID);
 	}
 
 }

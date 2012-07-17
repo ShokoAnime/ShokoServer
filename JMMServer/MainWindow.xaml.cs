@@ -988,6 +988,11 @@ namespace JMMServer
 
 			//UpdateVersion();
 
+			JMMServiceImplementation imp = new JMMServiceImplementation();
+			imp.SearchForFiles(1, "driver", 1);
+
+			return;
+
 			VideoLocalRepository repVidLocal = new VideoLocalRepository();
 			VideoLocal vid = repVidLocal.GetByID(194);
 
