@@ -117,13 +117,36 @@ namespace JMMServer
 			}
 		}
 
+
+		private Mutex mutex;
+		private readonly string mutexName = "JmmServer3.0Mutex";
+
 		public MainWindow()
 		{
 			InitializeComponent();
 
 			//HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
 
+			if (!ServerSettings.AllowMultipleInstances)
+			{
+				try
+				{
+					mutex = Mutex.OpenExisting(mutexName);
+					//since it hasn't thrown an exception, then we already have one copy of the app open.
+					MessageBox.Show("JMM Server is already running. Please check your system tray (notification area).",
+					"JMM Server", MessageBoxButton.OK, MessageBoxImage.Error);
+					Environment.Exit(0);
+				}
+				catch (Exception Ex)
+				{
+					//since we didn't find a mutex with that name, create one
+					Debug.WriteLine("Exception thrown:" + Ex.Message + " Creating a new mutex...");
+					mutex = new Mutex(true, mutexName);
+				}
+			}
 			ServerSettings.DebugSettingsToLog();
+
+
 
 
 			//Create an instance of the NotifyIcon Class
@@ -239,9 +262,19 @@ namespace JMMServer
 			btnLogs.Click += new RoutedEventHandler(btnLogs_Click);
 			btnChooseVLCLocation.Click += new RoutedEventHandler(btnChooseVLCLocation_Click);
 
+			btnAllowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
+			btnDisallowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
+
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
+		}
+
+		void toggleAllowMultipleInstances(object sender, RoutedEventArgs e)
+		{
+			ServerSettings.AllowMultipleInstances = !ServerSettings.AllowMultipleInstances;
+			ServerState.Instance.AllowMultipleInstances = !ServerState.Instance.AllowMultipleInstances;
+			ServerState.Instance.DisallowMultipleInstances = !ServerState.Instance.DisallowMultipleInstances;
 		}
 
 		
@@ -999,6 +1032,8 @@ namespace JMMServer
 			JMMService.AnidbProcessor.GetFileInfo(vid);
 
 			return;*/
+
+			
 
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;

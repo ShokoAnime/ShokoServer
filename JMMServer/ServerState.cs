@@ -248,6 +248,28 @@ namespace JMMServer
 			}
 		}
 
+		private bool disallowMultipleInstances = false;
+		public bool DisallowMultipleInstances
+		{
+			get { return disallowMultipleInstances; }
+			set
+			{
+				disallowMultipleInstances = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("DisallowMultipleInstances"));
+			}
+		}
+
+		private bool allowMultipleInstances = true;
+		public bool AllowMultipleInstances
+		{
+			get { return allowMultipleInstances; }
+			set
+			{
+				allowMultipleInstances = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("AllowMultipleInstances"));
+			}
+		}
+
 		private string vLCLocation = "";
 		public string VLCLocation
 		{
@@ -269,6 +291,9 @@ namespace JMMServer
 
 			MinOnStartup = ServerSettings.MinimizeOnStartup;
 			MaxOnStartup = !ServerSettings.MinimizeOnStartup;
+
+			AllowMultipleInstances = ServerSettings.AllowMultipleInstances;
+			DisallowMultipleInstances = !ServerSettings.AllowMultipleInstances;
 
 			VLCLocation = ServerSettings.VLCLocation;
 		}

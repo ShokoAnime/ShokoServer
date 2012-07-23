@@ -1149,6 +1149,22 @@ namespace JMMServer
 			}
 		}
 
+		public static bool AllowMultipleInstances
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool val = false;
+				if (!bool.TryParse(appSettings["AllowMultipleInstances"], out val))
+					val = false;
+				return val;
+			}
+			set
+			{
+				UpdateSetting("AllowMultipleInstances", value.ToString());
+			}
+		}
+
 		#region Trakt
 
 		public static string Trakt_Username
