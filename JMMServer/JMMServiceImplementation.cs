@@ -219,7 +219,7 @@ namespace JMMServer
 
 		}
 
-		public List<Contract_AnimeGroup> GetAnimeGroupsForFilter(int groupFilterID, int userID)
+		public List<Contract_AnimeGroup> GetAnimeGroupsForFilter(int groupFilterID, int userID, bool getSingleSeriesGroups)
 		{
 			List<Contract_AnimeGroup> retGroups = new List<Contract_AnimeGroup>();
 			try
@@ -262,6 +262,11 @@ namespace JMMServer
 				logger.Info(msg);
 				start = DateTime.Now;
 
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				List<AnimeSeries> allSeries = new List<AnimeSeries>();
+				if (getSingleSeriesGroups)
+					allSeries = repSeries.GetAll();
+
 				foreach (AnimeGroup grp in allGrps)
 				{
 					AnimeGroup_User userRec = null;
@@ -269,7 +274,20 @@ namespace JMMServer
 						userRec = dictUserRecords[grp.AnimeGroupID];
 
 					if (StatsCache.Instance.EvaluateGroupFilter(gf, grp, user, userRec))
-						retGroups.Add(grp.ToContract(userRec));
+					{
+						Contract_AnimeGroup contractGrp = grp.ToContract(userRec);
+						if (getSingleSeriesGroups)
+						{
+							if (contractGrp.Stat_SeriesCount == 1)
+							{
+								AnimeSeries ser = GetSeriesForGroup(grp.AnimeGroupID, allSeries);
+								if (ser != null)
+									contractGrp.SeriesForNameOverride = ser.ToContract(ser.GetUserRecord(userID));
+
+							}
+						}
+						retGroups.Add(contractGrp);
+					}
 				}
 
 				ts = DateTime.Now - start;
@@ -283,6 +301,30 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 			}
 			return retGroups;
+		}
+
+		/// <summary>
+		/// Can only be used when the group only has one series
+		/// </summary>
+		/// <param name="animeGroupID"></param>
+		/// <param name="allSeries"></param>
+		/// <returns></returns>
+		private AnimeSeries GetSeriesForGroup(int animeGroupID, List<AnimeSeries> allSeries)
+		{
+			try
+			{
+				foreach (AnimeSeries ser in allSeries)
+				{
+					if (ser.AnimeGroupID == animeGroupID) return ser;
+				}
+
+				return null;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return null;
+			}
 		}
 
 		public Contract_GroupFilterExtended GetGroupFilterExtended(int groupFilterID, int userID)

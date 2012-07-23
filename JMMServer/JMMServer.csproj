@@ -536,6 +536,7 @@
     </Compile>
     <Compile Include="UI\PasswordBoxAssistant.cs" />
     <Compile Include="UI\ServerInfo.cs" />
+    <Compile Include="Utilities\RenameFileHelper.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WatchedUnwatchedCount.cs" />
     <Compile Include="WebCache\AniDB_FileRequest.cs" />

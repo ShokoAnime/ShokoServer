@@ -21,6 +21,13 @@ namespace JMMServer
 
 		#region Labels
 
+		public struct AniDBLanguageType
+		{
+			public static readonly string Romaji = "X-JAT";
+			public static readonly string English = "EN";
+			public static readonly string Kanji = "JA";
+		}
+
 		// http://wiki.anidb.net/w/WebAOM#Move.2Frename_system
 		public struct FileRenameTag
 		{
@@ -33,33 +40,41 @@ namespace JMMServer
 			public static readonly string EpisodeNumber = "%enr";
 			public static readonly string GroupShortName = "%grp";
 			public static readonly string GroupLongName = "%grl";
+			public static readonly string ED2KLower = "%ed2";
+			public static readonly string ED2KUpper = "%ED2";
+			public static readonly string CRCLower = "%crc";
+			public static readonly string CRCUpper = "%CRC";
+			public static readonly string FileVersion = "%ver";
+			public static readonly string Quality = "%qua";
+			public static readonly string Source = "%src";
+			public static readonly string Resolution = "%res";
+			public static readonly string Year = "%yea";
+			public static readonly string Episodes = "%eps"; // Total number of episodes
+			public static readonly string Type = "%typ"; // Type [unknown, TV, OVA, Movie, TV Special, Other, web]
+			public static readonly string FileID = "%fid";
+			public static readonly string AnimeID = "%aid";
+			public static readonly string EpisodeID = "%eid";
+			public static readonly string GroupID = "%gid";
+			public static readonly string DubLanguage = "%sub";
+			public static readonly string SubLanguage = "%sub";
 
 
 			/*
-			 
-%ed2 / %ED2	 ed2k sum (lower/upper)
-%md5 / %MD5	 md5 sum (lower/upper)
-%sha / %SHA	 sha1 sum (lower/upper)
-%crc / %CRC	 crc sum (lower/upper)
-%ver	 Version string
-%inv	 Invalid crc string
-%cen	 Censored string
-%dub	 Dub language (tracks separated with ')
-%sub	 Sub language (tracks separated with ')
-%vid	 Video codec (tracks separated with ')
-%aud	 Audio codec (tracks separated with ')
-%qua	 Quality
-%src	 Source
-%res	 Resolution
-%yea	 Year
-%eps	 Total number of episodes
-%typ	 Type [unknown, TV, OVA, Movie, TV Special, Other, web]
-%gen	 Category string
-%fid	 File ID
-%aid	 Anime ID
-%eid	 Episode ID
-%gid	 Group ID
+			%md5 / %MD5	 md5 sum (lower/upper)
+			%sha / %SHA	 sha1 sum (lower/upper)
+			%inv	 Invalid crc string
+			%cen	 Censored string
+			%vid	 Video codec (tracks separated with ')
+			%aud	 Audio codec (tracks separated with ')
 			 * */
+		}
+
+		public struct FileRenameReserved
+		{
+			public static readonly string Do = "DO";
+			public static readonly string Fail = "FAIL";
+			public static readonly string Add = "ADD";
+			public static readonly string None = "none"; // used for videos with no audio or no subitle languages
 		}
 
 		public struct Labels

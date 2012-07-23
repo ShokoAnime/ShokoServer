@@ -27,8 +27,6 @@ namespace JMMServer.Entities
 
 		#endregion
 
-		
-
 		public string Year
 		{
 			get

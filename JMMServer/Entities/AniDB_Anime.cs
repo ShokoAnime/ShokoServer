@@ -712,7 +712,7 @@ namespace JMMServer.Entities
 					
 					// Romaji and English titles will be contained in MAIN and/or OFFICIAL
 					// we won't use synonyms for these two languages
-					if (thisLanguage == "X-JAT" || thisLanguage == "EN")
+					if (thisLanguage.Equals(Constants.AniDBLanguageType.Romaji) || thisLanguage.Equals(Constants.AniDBLanguageType.English))
 					{
 						foreach (AniDB_Anime_Title title in thisTitles)
 						{

@@ -988,17 +988,17 @@ namespace JMMServer
 
 			//UpdateVersion();
 
-			JMMServiceImplementation imp = new JMMServiceImplementation();
-			imp.SearchForFiles(1, "driver", 1);
+			/*VideoLocalRepository repVidLocal = new VideoLocalRepository();
+			VideoLocal vid = repVidLocal.GetByID(194);
+			RenameFileHelper.Test(vid);
 
 			return;
 
-			VideoLocalRepository repVidLocal = new VideoLocalRepository();
-			VideoLocal vid = repVidLocal.GetByID(194);
+			
 
 			JMMService.AnidbProcessor.GetFileInfo(vid);
 
-			return;
+			return;*/
 
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;

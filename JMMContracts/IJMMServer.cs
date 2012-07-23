@@ -352,7 +352,7 @@ namespace JMMContracts
 		Contract_GroupFilterExtended GetGroupFilterExtended(int groupFilterID, int userID);
 
 		[OperationContract]
-		List<Contract_AnimeGroup> GetAnimeGroupsForFilter(int groupFilterID, int userID);
+		List<Contract_AnimeGroup> GetAnimeGroupsForFilter(int groupFilterID, int userID, bool getSingleSeriesGroups);
 
 		[OperationContract]
 		List<Contract_GroupFilterExtended> GetAllGroupFiltersExtended(int userID);

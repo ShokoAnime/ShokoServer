@@ -55,6 +55,8 @@ namespace JMMContracts
 
 		public string ServerPosterPath { get; set; }
 
+		public Contract_AnimeSeries SeriesForNameOverride { get; set; }
+
 		public int CompareTo(Contract_AnimeGroup obj)
 		{
 			return SortName.CompareTo(obj.SortName);
