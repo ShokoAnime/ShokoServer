@@ -2371,6 +2371,29 @@ namespace JMMServer
 			return new List<Contract_VideoDetailed>();
 		}
 
+		public List<Contract_VideoLocal> GetVideoLocalsForEpisode(int episodeID, int userID)
+		{
+			List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
+			try
+			{
+				
+				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				AnimeEpisode ep = repEps.GetByID(episodeID);
+				if (ep != null)
+				{
+					foreach (VideoLocal vid in ep.VideoLocals)
+					{
+						contracts.Add(vid.ToContract(userID));
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return contracts;
+		}
+
 		public List<Contract_VideoLocal> GetIgnoredFiles(int userID)
 		{
 			List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
@@ -7097,6 +7120,214 @@ namespace JMMServer
 			return new List<Contract_VideoLocal>();
 		}
 
+		/*public List<Contract_VideoLocalRenamed> RandomFileRenamePreview(int maxResults, int userID, string renameRules)
+		{
+			List<Contract_VideoLocalRenamed> ret = new List<Contract_VideoLocalRenamed>();
+			try
+			{
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				foreach (VideoLocal vid in repVids.GetRandomFiles(maxResults))
+				{
+					Contract_VideoLocalRenamed vidRen = new Contract_VideoLocalRenamed();
+					vidRen.VideoLocalID = vid.VideoLocalID;
+					vidRen.VideoLocal = vid.ToContract(userID);
+					vidRen.NewFileName = RenameFileHelper.GetNewFileName(vid, renameRules);
+					ret.Add(vidRen);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				
+			}
+			return ret;
+		}*/
+
+		public List<Contract_VideoLocal> RandomFileRenamePreview(int maxResults, int userID)
+		{
+			List<Contract_VideoLocal> ret = new List<Contract_VideoLocal>();
+			try
+			{
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				foreach (VideoLocal vid in repVids.GetRandomFiles(maxResults))
+					ret.Add(vid.ToContract(userID));
+				
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				
+			}
+			return ret;
+		}
+
+		public Contract_VideoLocalRenamed RenameFilePreview(int videoLocalID, string renameRules)
+		{
+			Contract_VideoLocalRenamed ret = new Contract_VideoLocalRenamed();
+			ret.VideoLocalID = videoLocalID;
+			try
+			{
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				VideoLocal vid = repVids.GetByID(videoLocalID);
+				if (vid == null)
+				{
+					ret.VideoLocal = null;
+					ret.NewFileName = string.Format("ERROR: Could not find file record");
+				}
+				else
+				{
+					ret.VideoLocal = null;
+					ret.NewFileName = RenameFileHelper.GetNewFileName(vid, renameRules);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				ret.VideoLocal = null;
+				ret.NewFileName = string.Format("ERROR: {0}", ex.Message);
+			}
+			return ret;
+		}
+
+		public List<Contract_VideoLocalRenamed> RenameFiles(List<int> videoLocalIDs, string renameRules)
+		{
+			List<Contract_VideoLocalRenamed> ret = new List<Contract_VideoLocalRenamed>();
+			try
+			{
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				foreach (int vid in videoLocalIDs)
+				{
+
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return ret;
+		}
+
+		public List<Contract_VideoLocal> GetVideoLocalsForAnime(int animeID, int userID)
+		{
+			List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
+			try
+			{
+
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				foreach (VideoLocal vid in repVids.GetByAniDBAnimeID(animeID))
+				{
+					contracts.Add(vid.ToContract(userID));
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return contracts;
+		}
+
+		public List<Contract_RenameScript> GetAllRenameScripts()
+		{
+			List<Contract_RenameScript> ret = new List<Contract_RenameScript>();
+			try
+			{
+				RenameScriptRepository repScripts = new RenameScriptRepository();
+
+				List<RenameScript> allScripts = repScripts.GetAll();
+				foreach (RenameScript scr in allScripts)
+					ret.Add(scr.ToContract());
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return ret;
+		}
+
+		public Contract_RenameScript_SaveResponse SaveRenameScript(Contract_RenameScript contract)
+		{
+			Contract_RenameScript_SaveResponse response = new Contract_RenameScript_SaveResponse();
+			response.ErrorMessage = "";
+			response.RenameScript = null;
+
+			try
+			{
+
+
+				RenameScriptRepository repScripts = new RenameScriptRepository();
+				RenameScript script = null;
+				if (contract.RenameScriptID.HasValue)
+				{
+					// update
+					script = repScripts.GetByID(contract.RenameScriptID.Value);
+					if (script == null)
+					{
+						response.ErrorMessage = "Could not find Rename Script ID: " + contract.RenameScriptID.Value.ToString();
+						return response;
+					}
+				}
+				else
+				{
+					// create
+					script = new RenameScript();
+				}
+
+				if (string.IsNullOrEmpty(contract.ScriptName))
+				{
+					response.ErrorMessage = "Must specify a Script Name";
+					return response;
+				}
+
+				// check to make sure we multiple scripts enable on import (only one can be selected)
+				List<RenameScript> allScripts = repScripts.GetAll();
+
+				if (contract.IsEnabledOnImport == 1)
+				{
+					foreach (RenameScript rs in allScripts)
+					{
+						if (rs.IsEnabledOnImport == 1 && (!contract.RenameScriptID.HasValue || (contract.RenameScriptID.Value != rs.RenameScriptID)))
+						{
+							rs.IsEnabledOnImport = 0;
+							repScripts.Save(rs);
+						}
+					}
+				}
+
+				script.IsEnabledOnImport = contract.IsEnabledOnImport;
+				script.Script = contract.Script;
+				script.ScriptName = contract.ScriptName;
+				repScripts.Save(script);
+
+				response.RenameScript = script.ToContract();
+
+				return response;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				response.ErrorMessage = ex.Message;
+				return response;
+			}
+		}
+
+		public string DeleteRenameScript(int renameScriptID)
+		{
+			try
+			{
+				RenameScriptRepository repScripts = new RenameScriptRepository();
+				RenameScript df = repScripts.GetByID(renameScriptID);
+				if (df == null) return "Database entry does not exist";
+
+				repScripts.Delete(renameScriptID);
+
+				return "";
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+		}
 	}
 
 	

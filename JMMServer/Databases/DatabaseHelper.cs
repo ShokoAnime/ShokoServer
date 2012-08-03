@@ -145,6 +145,9 @@ namespace JMMServer.Databases
 
 			ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Group Filters)...";
 			CreateInitialGroupFilters();
+
+			ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Rename Script)...";
+			CreateInitialRenameScript();
 		}
 
 		private static void CreateInitialGroupFilters()
@@ -302,6 +305,61 @@ namespace JMMServer.Databases
 			familyUser.Password = "";
 			familyUser.Username = "Family Friendly";
 			repUsers.Save(familyUser);
+		}
+
+		private static void CreateInitialRenameScript()
+		{
+			RenameScriptRepository repScripts = new RenameScriptRepository();
+
+			if (repScripts.GetAll().Count() > 0) return;
+
+			RenameScript initialScript = new RenameScript();
+
+			initialScript.ScriptName = "Default";
+			initialScript.IsEnabledOnImport = 0;
+			initialScript.Script = "// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv" + Environment.NewLine +
+				"// Sub group name" + Environment.NewLine +
+				"DO ADD '[%grp] '" + Environment.NewLine +
+				"// Anime Name, use english name if it exists, otherwise use the Romaji name" + Environment.NewLine +
+				"IF I(eng) DO ADD '%eng '" + Environment.NewLine +
+				"IF I(ann);I(!eng) DO ADD '%ann '" + Environment.NewLine +
+				"// Episode Number, don't use episode number for movies" + Environment.NewLine +
+				"IF T(!Movie) DO ADD '- %enr'" + Environment.NewLine +
+				"// If the file version is v2 or higher add it here" + Environment.NewLine +
+				"IF F(!1) DO ADD 'v%ver'" + Environment.NewLine +
+				"// Video Resolution" + Environment.NewLine +
+				"DO ADD ' (%res'" + Environment.NewLine +
+				"// Video Source (only if blu-ray or DVD)" + Environment.NewLine +
+				"IF R(DVD),R(Blu-ray) DO ADD ' %src'" + Environment.NewLine +
+				"// Video Codec" + Environment.NewLine +
+				"DO ADD ' %vid'" + Environment.NewLine +
+				"// Video Bit Depth (only if 10bit)" + Environment.NewLine +
+				"IF Z(10) DO ADD ' %bitbit'" + Environment.NewLine +
+				"DO ADD ') '" + Environment.NewLine +
+				"DO ADD '[%CRC]'" + Environment.NewLine +
+				"" + Environment.NewLine +
+				"// Replacement rules (cleanup)" + Environment.NewLine +
+				"DO REPLACE ' ' '_' // replace spaces with underscores" + Environment.NewLine +
+				"DO REPLACE 'H264/AVC' 'H264'" + Environment.NewLine +
+				"DO REPLACE '0x0' ''" + Environment.NewLine +
+				"DO REPLACE '__' '_'" + Environment.NewLine +
+				"DO REPLACE '__' '_'" + Environment.NewLine +
+				"" + Environment.NewLine +
+				"// Replace all illegal file name characters" + Environment.NewLine +
+				"DO REPLACE '<' '('" + Environment.NewLine +
+				"DO REPLACE '>' ')'" + Environment.NewLine +
+				"DO REPLACE ':' '-'" + Environment.NewLine +
+				"DO REPLACE '" + ((Char)34).ToString() + "' '`'" + Environment.NewLine +
+				"DO REPLACE '/' '_'" + Environment.NewLine +
+				"DO REPLACE '/' '_'" + Environment.NewLine +
+				"DO REPLACE '\\' '_'" + Environment.NewLine +
+				"DO REPLACE '|' '_'" + Environment.NewLine +
+				"DO REPLACE '?' '_'" + Environment.NewLine +
+				"DO REPLACE '*' '_'" + Environment.NewLine;
+
+			repScripts.Save(initialScript);
+
+
 		}
 
 		public static void FixDuplicateTvDBLinks()

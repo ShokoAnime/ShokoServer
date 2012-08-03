@@ -35,7 +35,6 @@ namespace JMMServer
 			public static readonly string AnimeNameKanji = "%kan";
 			public static readonly string AnimeNameEnglish = "%eng";
 			public static readonly string EpisodeNameRomaji = "%epn";
-			public static readonly string EpisodeNameKanji = "%epk";
 			public static readonly string EpisodeNameEnglish = "%epr";
 			public static readonly string EpisodeNumber = "%enr";
 			public static readonly string GroupShortName = "%grp";
@@ -45,7 +44,6 @@ namespace JMMServer
 			public static readonly string CRCLower = "%crc";
 			public static readonly string CRCUpper = "%CRC";
 			public static readonly string FileVersion = "%ver";
-			public static readonly string Quality = "%qua";
 			public static readonly string Source = "%src";
 			public static readonly string Resolution = "%res";
 			public static readonly string Year = "%yea";
@@ -55,8 +53,11 @@ namespace JMMServer
 			public static readonly string AnimeID = "%aid";
 			public static readonly string EpisodeID = "%eid";
 			public static readonly string GroupID = "%gid";
-			public static readonly string DubLanguage = "%sub";
+			public static readonly string DubLanguage = "%dub";
 			public static readonly string SubLanguage = "%sub";
+			public static readonly string VideoCodec = "%vid"; //tracks separated with '
+			public static readonly string AudioCodec = "%aud"; //tracks separated with '
+			public static readonly string VideoBitDepth = "%bit"; // 8bit, 10bit
 
 
 			/*
@@ -64,8 +65,6 @@ namespace JMMServer
 			%sha / %SHA	 sha1 sum (lower/upper)
 			%inv	 Invalid crc string
 			%cen	 Censored string
-			%vid	 Video codec (tracks separated with ')
-			%aud	 Audio codec (tracks separated with ')
 			 * */
 		}
 
@@ -74,7 +73,9 @@ namespace JMMServer
 			public static readonly string Do = "DO";
 			public static readonly string Fail = "FAIL";
 			public static readonly string Add = "ADD";
+			public static readonly string Replace = "REPLACE";
 			public static readonly string None = "none"; // used for videos with no audio or no subitle languages
+			public static readonly string Unknown = "unknown"; // used for videos with no audio or no subitle languages
 		}
 
 		public struct Labels

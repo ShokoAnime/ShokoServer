@@ -566,6 +566,27 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_VideoLocal> SearchForFiles(int searchType, string searchCriteria, int userID);
+
+		[OperationContract]
+		Contract_VideoLocalRenamed RenameFilePreview(int videoLocalID, string renameRules);
+
+		[OperationContract]
+		List<Contract_VideoLocal> RandomFileRenamePreview(int maxResults, int userID);
+
+		[OperationContract]
+		List<Contract_VideoLocal> GetVideoLocalsForEpisode(int episodeID, int userID);
+
+		[OperationContract]
+		List<Contract_VideoLocal> GetVideoLocalsForAnime(int animeID, int userID);
+
+		[OperationContract]
+		List<Contract_RenameScript> GetAllRenameScripts();
+
+		[OperationContract]
+		Contract_RenameScript_SaveResponse SaveRenameScript(Contract_RenameScript contract);
+
+		[OperationContract]
+		string DeleteRenameScript(int renameScriptID);
 	}
 
 }

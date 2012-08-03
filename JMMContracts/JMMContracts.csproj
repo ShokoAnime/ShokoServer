@@ -116,6 +116,8 @@
     <Compile Include="Contract_Playlist_SaveResponse.cs" />
     <Compile Include="Contract_Recommendation.cs" />
     <Compile Include="Contract_ReleaseGroup.cs" />
+    <Compile Include="Contract_RenameScript.cs" />
+    <Compile Include="Contract_RenameScript_SaveResponse.cs" />
     <Compile Include="Contract_ServerSettings.cs" />
     <Compile Include="Contract_ServerSettings_SaveResponse.cs" />
     <Compile Include="Contract_ServerStatus.cs" />
@@ -144,6 +146,7 @@
     <Compile Include="Contract_VideoDetailed.cs" />
     <Compile Include="Contract_VideoLocal.cs" />
     <Compile Include="Contract_VideoLocalManualLink.cs" />
+    <Compile Include="Contract_VideoLocalRenamed.cs" />
     <Compile Include="Hashes.cs" />
     <Compile Include="IJMMServer.cs" />
     <Compile Include="IJMMServerImage.cs" />

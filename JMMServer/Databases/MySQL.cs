@@ -118,6 +118,7 @@ namespace JMMServer.Databases
 				UpdateSchema_020(versionNumber);
 				UpdateSchema_021(versionNumber);
 				UpdateSchema_022(versionNumber);
+				UpdateSchema_023(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -989,6 +990,47 @@ namespace JMMServer.Databases
 			cmds.Add("ALTER TABLE `AniDB_File` ADD `FileVersion` int NULL ;");
 			cmds.Add("UPDATE AniDB_File SET FileVersion = 1 ;");
 			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `FileVersion` `FileVersion` int NOT NULL ;");
+
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_023(int currentVersionNumber)
+		{
+			int thisVersion = 23;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE RenameScript( " +
+				" RenameScriptID INT NOT NULL AUTO_INCREMENT, " +
+				" ScriptName text character set utf8, " +
+				" Script text character set utf8, " +
+				" IsEnabledOnImport int NOT NULL, " +
+				" PRIMARY KEY (`RenameScriptID`) ) ; ");
 
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

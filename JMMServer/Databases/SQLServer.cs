@@ -138,6 +138,7 @@ namespace JMMServer.Databases
 				UpdateSchema_018(versionNumber);
 				UpdateSchema_019(versionNumber);
 				UpdateSchema_020(versionNumber);
+				UpdateSchema_021(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -813,6 +814,43 @@ namespace JMMServer.Databases
 			cmds.Add("ALTER TABLE AniDB_File ADD FileVersion int NULL");
 			cmds.Add("UPDATE AniDB_File SET FileVersion = 1");
 			cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN FileVersion int NOT NULL");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_021(int currentVersionNumber)
+		{
+			int thisVersion = 21;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE RenameScript( " +
+				" RenameScriptID int IDENTITY(1,1) NOT NULL, " +
+				" ScriptName nvarchar(MAX) NULL, " +
+				" Script nvarchar(MAX) NULL, " +
+				" IsEnabledOnImport int NOT NULL, " +
+				" CONSTRAINT [PK_RenameScript] PRIMARY KEY CLUSTERED " +
+				" ( " +
+				" RenameScriptID ASC " +
+				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+				" ) ON [PRIMARY] ");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))

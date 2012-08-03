@@ -1022,8 +1022,12 @@ namespace JMMServer
 			//UpdateVersion();
 
 			/*VideoLocalRepository repVidLocal = new VideoLocalRepository();
-			VideoLocal vid = repVidLocal.GetByID(194);
-			RenameFileHelper.Test(vid);
+			VideoLocal vid = repVidLocal.GetByID(194); RenameFileHelper.Test(vid);
+
+			vid = repVidLocal.GetByID(295); RenameFileHelper.Test(vid);
+			vid = repVidLocal.GetByID(396); RenameFileHelper.Test(vid);
+			vid = repVidLocal.GetByID(497); RenameFileHelper.Test(vid);
+			vid = repVidLocal.GetByID(598); RenameFileHelper.Test(vid);
 
 			return;
 
