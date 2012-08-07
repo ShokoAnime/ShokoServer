@@ -14,7 +14,7 @@ namespace JMMServer
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		private static readonly char[] validTests = "AGFEHXRTYDSCIZJ".ToCharArray();
+		private static readonly char[] validTests = "AGFEHXRTYDSCIZJWU".ToCharArray();
 		/* TESTS
 		A	int     Anime id
 		G	int     Group id
@@ -31,6 +31,8 @@ namespace JMMServer
 		J   text	Audio Codec (one of the audio tracks) [AC3, FLAC, MP3 CBR, MP3 VBR, Other, unknown, Vorbis (Ogg Vorbis)  ...]
 		I	text	Tag has a value. Do not use %, i.e. I(eng) [eng, kan, rom, ...]
 		Z	int 	Video Bith Depth [8,10]
+		W	int 	Video Resolution Width [720, 1280, 1920, ...]
+		U	int 	Video Resolution Height [576, 720, 1080, ...]
 		 */
 
 		/// <summary>
@@ -265,39 +267,10 @@ namespace JMMServer
 			try
 			{
 				bool notCondition = false;
-				if (test.Substring(0, 1).Equals("!"))
-				{
-					notCondition = true;
-					test = test.Substring(1, test.Length - 1);
-				}
+				bool greaterThan = false; bool greaterThanEqual = false;
+				bool lessThan = false; bool lessThanEqual = false;
 
-				bool greaterThan = false;
-				bool greaterThanEqual = false;
-				if (test.Substring(0, 1).Equals(">"))
-				{
-					greaterThan = true;
-					test = test.Substring(1, test.Length - 1);
-					if (test.Substring(0, 1).Equals("="))
-					{
-						greaterThan = false;
-						greaterThanEqual = true;
-						test = test.Substring(1, test.Length - 1);
-					}
-				}
-
-				bool lessThan = false;
-				bool lessThanEqual = false;
-				if (test.Substring(0, 1).Equals("<"))
-				{
-					lessThan = true;
-					test = test.Substring(1, test.Length - 1);
-					if (test.Substring(0, 1).Equals("="))
-					{
-						lessThan = false;
-						lessThanEqual = true;
-						test = test.Substring(1, test.Length - 1);
-					}
-				}
+				ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual, ref lessThan, ref lessThanEqual);
 
 				if (aniFile == null) return false;
 
@@ -358,6 +331,151 @@ namespace JMMServer
 				return false;
 			}
 		}
+
+		private static bool EvaluateTestW(string test, VideoLocal vid, AniDB_File aniFile, VideoInfo vi)
+		{
+			try
+			{
+				bool notCondition = false;
+				bool greaterThan = false; bool greaterThanEqual = false;
+				bool lessThan = false; bool lessThanEqual = false;
+
+				ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual, ref lessThan, ref lessThanEqual);
+
+				if (aniFile == null) return false;
+				if (vi == null) return false;
+
+				int testWidth = 0;
+				int.TryParse(test, out testWidth);
+
+				int width = Utils.GetVideoWidth(aniFile.File_VideoResolution);
+				if (width == 0)
+					width = Utils.GetVideoWidth(vi.VideoResolution);
+
+				bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
+
+				if (!hasFileVersionOperator)
+				{
+					if (!notCondition)
+					{
+						if (testWidth == width) return true;
+						else return false;
+					}
+					else
+					{
+						if (testWidth == width) return false;
+						else return true;
+					}
+				}
+				else
+				{
+					if (greaterThan)
+					{
+						if (width > testWidth) return true;
+						else return false;
+					}
+
+					if (greaterThanEqual)
+					{
+						if (width >= testWidth) return true;
+						else return false;
+					}
+
+					if (lessThan)
+					{
+						if (width < testWidth) return true;
+						else return false;
+					}
+
+					if (lessThanEqual)
+					{
+						if (width <= testWidth) return true;
+						else return false;
+					}
+				}
+
+				return false;
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return false;
+			}
+		}
+
+		private static bool EvaluateTestU(string test, VideoLocal vid, AniDB_File aniFile, VideoInfo vi)
+		{
+			try
+			{
+				bool notCondition = false;
+				bool greaterThan = false; bool greaterThanEqual = false;
+				bool lessThan = false; bool lessThanEqual = false;
+
+				ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual, ref lessThan, ref lessThanEqual);
+
+				if (aniFile == null) return false;
+				if (vi == null) return false;
+
+				int testHeight = 0;
+				int.TryParse(test, out testHeight);
+
+				int height = Utils.GetVideoHeight(aniFile.File_VideoResolution);
+				if (height == 0)
+					height = Utils.GetVideoHeight(vi.VideoResolution);
+
+				bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
+
+				if (!hasFileVersionOperator)
+				{
+					if (!notCondition)
+					{
+						if (testHeight == height) return true;
+						else return false;
+					}
+					else
+					{
+						if (testHeight == height) return false;
+						else return true;
+					}
+				}
+				else
+				{
+					if (greaterThan)
+					{
+						if (height > testHeight) return true;
+						else return false;
+					}
+
+					if (greaterThanEqual)
+					{
+						if (height >= testHeight) return true;
+						else return false;
+					}
+
+					if (lessThan)
+					{
+						if (height < testHeight) return true;
+						else return false;
+					}
+
+					if (lessThanEqual)
+					{
+						if (height <= testHeight) return true;
+						else return false;
+					}
+				}
+
+				return false;
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return false;
+			}
+		}
+
 
 		private static bool EvaluateTestR(string test, VideoLocal vid, AniDB_File aniFile)
 		{
@@ -1656,7 +1774,17 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.Resolution))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.Resolution, aniFile.File_VideoResolution);
+				string res = aniFile.File_VideoResolution;
+				bool hasResolution = true;
+				if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
+				if (aniFile.File_VideoResolution.Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
+				if (!hasResolution)
+				{
+					// try the video info
+					if (vi != null) res = vi.VideoResolution;
+				}
+
+				newFileName = newFileName.Replace(Constants.FileRenameTag.Resolution, res.Trim());
 			}
 
 			#endregion
@@ -1802,6 +1930,8 @@ namespace JMMServer
 				case 'C': return EvaluateTestC(testCondition, vid, aniFile);
 				case 'J': return EvaluateTestJ(testCondition, vid, aniFile);
 				case 'I': return EvaluateTestI(testCondition, vid, aniFile, episodes, anime, vi);
+				case 'W': return EvaluateTestW(testCondition, vid, aniFile, vi);
+				case 'U': return EvaluateTestU(testCondition, vid, aniFile, vi);
 			}
 
 			return false;
