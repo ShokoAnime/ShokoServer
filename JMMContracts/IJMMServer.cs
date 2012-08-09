@@ -571,6 +571,9 @@ namespace JMMContracts
 		Contract_VideoLocalRenamed RenameFilePreview(int videoLocalID, string renameRules);
 
 		[OperationContract]
+		Contract_VideoLocalRenamed RenameFile(int videoLocalID, string renameRules);
+
+		[OperationContract]
 		List<Contract_VideoLocal> RandomFileRenamePreview(int maxResults, int userID);
 
 		[OperationContract]
@@ -587,6 +590,15 @@ namespace JMMContracts
 
 		[OperationContract]
 		string DeleteRenameScript(int renameScriptID);
+
+		[OperationContract]
+		void ClearHasherQueue();
+
+		[OperationContract]
+		void ClearImagesQueue();
+
+		[OperationContract]
+		void ClearGeneralQueue();
 	}
 
 }

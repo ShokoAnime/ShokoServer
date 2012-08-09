@@ -1134,6 +1134,7 @@ namespace JMMServer
 				}
 				repXRefs.Save(xref);
 
+				vid.RenameIfRequired();
 				vid.MoveFileIfRequired();
 
 				CommandRequest_WebCacheSendXRefFileEpisode cr = new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
@@ -1216,6 +1217,7 @@ namespace JMMServer
 					cr.Save();
 				}
 
+				vid.RenameIfRequired();
 				vid.MoveFileIfRequired();
 
 				ser.UpdateStats(true, true, true);
@@ -1300,6 +1302,7 @@ namespace JMMServer
 
 					repXRefs.Save(xref);
 
+					vid.RenameIfRequired();
 					vid.MoveFileIfRequired();
 
 					CommandRequest_WebCacheSendXRefFileEpisode cr = new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
@@ -3085,6 +3088,81 @@ namespace JMMServer
 		public void SetCommandProcessorImagesPaused(bool paused)
 		{
 			JMMService.CmdProcessorImages.Paused = paused;
+		}
+
+		public void ClearHasherQueue()
+		{
+			try
+			{
+				JMMService.CmdProcessorHasher.Stop();
+
+				// wait until the queue stops
+				while (JMMService.CmdProcessorHasher.ProcessingCommands)
+				{
+					Thread.Sleep(200);
+				}
+				Thread.Sleep(200);
+
+				CommandRequestRepository repCR = new CommandRequestRepository();
+				foreach (CommandRequest cr in repCR.GetAllCommandRequestHasher())
+					repCR.Delete(cr.CommandRequestID);
+
+				JMMService.CmdProcessorHasher.Init();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
+
+		public void ClearImagesQueue()
+		{
+			try
+			{
+				JMMService.CmdProcessorImages.Stop();
+
+				// wait until the queue stops
+				while (JMMService.CmdProcessorImages.ProcessingCommands)
+				{
+					Thread.Sleep(200);
+				}
+				Thread.Sleep(200);
+
+				CommandRequestRepository repCR = new CommandRequestRepository();
+				foreach (CommandRequest cr in repCR.GetAllCommandRequestImages())
+					repCR.Delete(cr.CommandRequestID);
+
+				JMMService.CmdProcessorImages.Init();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
+
+		public void ClearGeneralQueue()
+		{
+			try
+			{
+				JMMService.CmdProcessorGeneral.Stop();
+
+				// wait until the queue stops
+				while (JMMService.CmdProcessorGeneral.ProcessingCommands)
+				{
+					Thread.Sleep(200);
+				}
+				Thread.Sleep(200);
+
+				CommandRequestRepository repCR = new CommandRequestRepository();
+				foreach (CommandRequest cr in repCR.GetAllCommandRequestGeneral())
+					repCR.Delete(cr.CommandRequestID);
+
+				JMMService.CmdProcessorGeneral.Init();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
 		}
 
 		public void RehashFile(int videoLocalID)
@@ -7165,6 +7243,8 @@ namespace JMMServer
 		{
 			Contract_VideoLocalRenamed ret = new Contract_VideoLocalRenamed();
 			ret.VideoLocalID = videoLocalID;
+			ret.Success = true;
+
 			try
 			{
 				VideoLocalRepository repVids = new VideoLocalRepository();
@@ -7173,11 +7253,13 @@ namespace JMMServer
 				{
 					ret.VideoLocal = null;
 					ret.NewFileName = string.Format("ERROR: Could not find file record");
+					ret.Success = false;
 				}
 				else
 				{
 					ret.VideoLocal = null;
 					ret.NewFileName = RenameFileHelper.GetNewFileName(vid, renameRules);
+					if (string.IsNullOrEmpty(ret.NewFileName)) ret.Success = false;
 				}
 			}
 			catch (Exception ex)
@@ -7185,6 +7267,87 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 				ret.VideoLocal = null;
 				ret.NewFileName = string.Format("ERROR: {0}", ex.Message);
+				ret.Success = false;
+			}
+			return ret;
+		}
+
+		public Contract_VideoLocalRenamed RenameFile(int videoLocalID, string renameRules)
+		{
+			Contract_VideoLocalRenamed ret = new Contract_VideoLocalRenamed();
+			ret.VideoLocalID = videoLocalID;
+			ret.Success = true;
+			try
+			{
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				VideoLocal vid = repVids.GetByID(videoLocalID);
+				if (vid == null)
+				{
+					ret.VideoLocal = null;
+					ret.NewFileName = string.Format("ERROR: Could not find file record");
+					ret.Success = false;
+				}
+				else
+				{
+					ret.VideoLocal = null;
+					ret.NewFileName = RenameFileHelper.GetNewFileName(vid, renameRules);
+
+					if (!string.IsNullOrEmpty(ret.NewFileName))
+					{
+						// check if the file exists
+						string fullFileName = vid.FullServerPath;
+						if (!File.Exists(fullFileName))
+						{
+							ret.NewFileName = "Error could not find the original file";
+							ret.Success = false;
+							return ret;
+						}
+
+						// actually rename the file
+						string path = Path.GetDirectoryName(fullFileName);
+						string newFullName = Path.Combine(path, ret.NewFileName);
+
+						try
+						{
+							logger.Info(string.Format("Renaming file From ({0}) to ({1})....", fullFileName, newFullName));
+
+							if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
+							{
+								logger.Info(string.Format("Renaming file SKIPPED, no change From ({0}) to ({1})", fullFileName, newFullName));
+								ret.NewFileName = newFullName;
+							}
+							else
+							{
+								File.Move(fullFileName, newFullName);
+								logger.Info(string.Format("Renaming file SUCCESS From ({0}) to ({1})", fullFileName, newFullName));
+								ret.NewFileName = newFullName;
+
+								string newPartialPath = "";
+								int folderID = vid.ImportFolderID;
+								ImportFolderRepository repFolders = new ImportFolderRepository();
+
+								DataAccessHelper.GetShareAndPath(newFullName, repFolders.GetAll(), ref folderID, ref newPartialPath);
+
+								vid.FilePath = newPartialPath;
+								repVids.Save(vid);
+							}
+						}
+						catch (Exception ex)
+						{
+							logger.Info(string.Format("Renaming file FAIL From ({0}) to ({1}) - {2}", fullFileName, newFullName, ex.Message));
+							logger.ErrorException(ex.ToString(), ex);
+							ret.Success = false;
+							ret.NewFileName = ex.Message;
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				ret.VideoLocal = null;
+				ret.NewFileName = string.Format("ERROR: {0}", ex.Message);
+				ret.Success = false;
 			}
 			return ret;
 		}

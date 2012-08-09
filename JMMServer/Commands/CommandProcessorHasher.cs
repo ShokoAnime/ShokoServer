@@ -113,6 +113,11 @@ namespace JMMServer.Commands
 			}
 		}
 
+		public bool ProcessingCommands
+		{
+			get { return processingCommands; }
+		}
+
 		public CommandProcessorHasher()
         {
 			workerCommands.WorkerReportsProgress = true;

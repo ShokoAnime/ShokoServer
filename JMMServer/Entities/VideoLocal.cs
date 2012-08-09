@@ -383,7 +383,74 @@ namespace JMMServer.Entities
 			return string.Format("{0} --- {1}", FullServerPath, Hash);
 		}
 
-		
+		public void RenameFile(string renameScript)
+		{
+			string renamed = RenameFileHelper.GetNewFileName(this, renameScript);
+			if (string.IsNullOrEmpty(renamed)) return;
+
+			ImportFolderRepository repFolders = new ImportFolderRepository();
+			VideoLocalRepository repVids = new VideoLocalRepository();
+
+			// actually rename the file
+			string fullFileName = this.FullServerPath;
+
+			// check if the file exists
+			if (!File.Exists(fullFileName))
+			{
+				logger.Error("Error could not find the original file for renaming: " + fullFileName);
+				return;
+			}
+
+			// actually rename the file
+			string path = Path.GetDirectoryName(fullFileName);
+			string newFullName = Path.Combine(path, renamed);
+
+			try
+			{
+				logger.Info(string.Format("Renaming file From ({0}) to ({1})....", fullFileName, newFullName));
+
+				if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
+				{
+					logger.Info(string.Format("Renaming file SKIPPED, no change From ({0}) to ({1})", fullFileName, newFullName));
+				}
+				else
+				{
+					File.Move(fullFileName, newFullName);
+					logger.Info(string.Format("Renaming file SUCCESS From ({0}) to ({1})", fullFileName, newFullName));
+
+					string newPartialPath = "";
+					int folderID = this.ImportFolderID;
+
+					DataAccessHelper.GetShareAndPath(newFullName, repFolders.GetAll(), ref folderID, ref newPartialPath);
+
+					this.FilePath = newPartialPath;
+					repVids.Save(this);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.Info(string.Format("Renaming file FAIL From ({0}) to ({1}) - {2}", fullFileName, newFullName, ex.Message));
+				logger.ErrorException(ex.ToString(), ex);
+			}
+		}
+
+		public void RenameIfRequired()
+		{
+			try
+			{
+				RenameScriptRepository repScripts = new RenameScriptRepository();
+				RenameScript defaultScript = repScripts.GetDefaultScript();
+
+				if (defaultScript == null) return;
+
+				RenameFile(defaultScript.Script);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return;
+			}
+		}
 
 		public void MoveFileIfRequired()
 		{
@@ -467,6 +534,7 @@ namespace JMMServer.Entities
 			string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
 
 			DataAccessHelper.GetShareAndPath(newFullServerPath, repFolders.GetAll(), ref newFolderID, ref newPartialPath);
+
 
 			logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
 

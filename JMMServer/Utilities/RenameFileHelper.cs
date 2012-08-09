@@ -1461,6 +1461,8 @@ namespace JMMServer
 				}
 			}
 
+			if (string.IsNullOrEmpty(newFileName)) return string.Empty;
+
 			// finally add back the extension
 			
 
@@ -1826,6 +1828,19 @@ namespace JMMServer
 			}
 
 			#endregion
+
+			#region Original File Name
+
+			if (action.Trim().Contains(Constants.FileRenameTag.OriginalFileName))
+			{
+				// remove the extension first 
+				string ext = Path.GetExtension(aniFile.FileName);
+				string partial = aniFile.FileName.Substring(0, aniFile.FileName.Length - ext.Length);
+
+				newFileName = newFileName.Replace(Constants.FileRenameTag.OriginalFileName, partial);
+			}
+
+			#endregion
 		}
 
 		private static string GetAction(string line)
@@ -1935,6 +1950,24 @@ namespace JMMServer
 			}
 
 			return false;
+		}
+
+		public static string GetNewFileName(VideoLocal vid)
+		{
+			try
+			{
+				RenameScriptRepository repScripts = new RenameScriptRepository();
+				RenameScript defaultScript = repScripts.GetDefaultScript();
+
+				if (defaultScript == null) return string.Empty;
+
+				return GetNewFileName(vid, defaultScript.ScriptName);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return string.Empty;
+			}
 		}
 	}
 }

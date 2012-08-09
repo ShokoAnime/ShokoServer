@@ -87,6 +87,20 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<CommandRequest> GetAllCommandRequestGeneral()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var crs = session
+					.CreateCriteria(typeof(CommandRequest))
+					.Add(!Restrictions.Eq("CommandType", (int)CommandRequestType.HashFile))
+					.Add(!Restrictions.Eq("CommandType", (int)CommandRequestType.ImageDownload))
+					.List<CommandRequest>();
+
+				return new List<CommandRequest>(crs);
+			}
+		}
+
 		public CommandRequest GetNextDBCommandRequestHasher()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
@@ -105,6 +119,19 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<CommandRequest> GetAllCommandRequestHasher()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var crs = session
+					.CreateCriteria(typeof(CommandRequest))
+					.Add(Restrictions.Eq("CommandType", (int)CommandRequestType.HashFile))
+					.List<CommandRequest>();
+
+				return new List<CommandRequest>(crs);
+			}
+		}
+
 		public CommandRequest GetNextDBCommandRequestImages()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
@@ -120,6 +147,19 @@ namespace JMMServer.Repositories
 				if (crs.Count > 0) return crs[0];
 
 				return null;
+			}
+		}
+
+		public List<CommandRequest> GetAllCommandRequestImages()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var crs = session
+					.CreateCriteria(typeof(CommandRequest))
+					.Add(Restrictions.Eq("CommandType", (int)CommandRequestType.ImageDownload))
+					.List<CommandRequest>();
+
+				return new List<CommandRequest>(crs);
 			}
 		}
 

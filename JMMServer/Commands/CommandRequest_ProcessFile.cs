@@ -280,7 +280,9 @@ namespace JMMServer.Commands
 				}
 			}
 
+			vidLocal.RenameIfRequired();
 			vidLocal.MoveFileIfRequired();
+			
 
 			// update stats for groups and series
 			if (ser != null)

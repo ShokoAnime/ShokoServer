@@ -58,6 +58,7 @@ namespace JMMServer
 			public static readonly string VideoCodec = "%vid"; //tracks separated with '
 			public static readonly string AudioCodec = "%aud"; //tracks separated with '
 			public static readonly string VideoBitDepth = "%bit"; // 8bit, 10bit
+			public static readonly string OriginalFileName = "%sna"; // The original file name as specified by the sub group
 
 
 			/*

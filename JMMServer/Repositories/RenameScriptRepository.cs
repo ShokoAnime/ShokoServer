@@ -43,6 +43,18 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public RenameScript GetDefaultScript()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				RenameScript cr = session
+					.CreateCriteria(typeof(RenameScript))
+					.Add(Restrictions.Eq("IsEnabledOnImport", 1))
+					.UniqueResult<RenameScript>();
+				return cr;
+			}
+		}
+
 		public void Delete(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

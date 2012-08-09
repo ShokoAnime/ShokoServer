@@ -265,10 +265,97 @@ namespace JMMServer
 			btnAllowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
 			btnDisallowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
 
+			btnHasherClear.Click += new RoutedEventHandler(btnHasherClear_Click);
+			btnGeneralClear.Click += new RoutedEventHandler(btnGeneralClear_Click);
+			btnImagesClear.Click += new RoutedEventHandler(btnImagesClear_Click);
+
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
 		}
+
+		void btnImagesClear_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				this.Cursor = Cursors.Wait;
+				JMMService.CmdProcessorImages.Stop();
+
+				// wait until the queue stops
+				while (JMMService.CmdProcessorImages.ProcessingCommands)
+				{
+					Thread.Sleep(200);
+				}
+				Thread.Sleep(200);
+
+				CommandRequestRepository repCR = new CommandRequestRepository();
+				foreach (CommandRequest cr in repCR.GetAllCommandRequestImages())
+					repCR.Delete(cr.CommandRequestID);
+
+				JMMService.CmdProcessorImages.Init();
+			}
+			catch (Exception ex)
+			{
+				Utils.ShowErrorMessage(ex.Message);
+			}
+			this.Cursor = Cursors.Arrow;
+		}
+
+		void btnGeneralClear_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				this.Cursor = Cursors.Wait;
+				JMMService.CmdProcessorGeneral.Stop();
+
+				// wait until the queue stops
+				while (JMMService.CmdProcessorGeneral.ProcessingCommands)
+				{
+					Thread.Sleep(200);
+				}
+				Thread.Sleep(200);
+
+				CommandRequestRepository repCR = new CommandRequestRepository();
+				foreach (CommandRequest cr in repCR.GetAllCommandRequestGeneral())
+					repCR.Delete(cr.CommandRequestID);
+
+				JMMService.CmdProcessorGeneral.Init();
+			}
+			catch (Exception ex)
+			{
+				Utils.ShowErrorMessage(ex.Message);
+			}
+			this.Cursor = Cursors.Arrow;
+		}
+
+		void btnHasherClear_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				this.Cursor = Cursors.Wait;
+				JMMService.CmdProcessorHasher.Stop();
+
+				// wait until the queue stops
+				while (JMMService.CmdProcessorHasher.ProcessingCommands)
+				{
+					Thread.Sleep(200);
+				}
+				Thread.Sleep(200);
+
+				CommandRequestRepository repCR = new CommandRequestRepository();
+				foreach (CommandRequest cr in repCR.GetAllCommandRequestHasher())
+					repCR.Delete(cr.CommandRequestID);
+
+				JMMService.CmdProcessorHasher.Init();
+			}
+			catch (Exception ex)
+			{
+				Utils.ShowErrorMessage(ex.Message);
+			}
+			this.Cursor = Cursors.Arrow;
+		}
+
+		
 
 		void toggleAllowMultipleInstances(object sender, RoutedEventArgs e)
 		{
@@ -831,6 +918,7 @@ namespace JMMServer
 
 							repXRefs.Save(xref);
 
+							vid.RenameIfRequired();
 							vid.MoveFileIfRequired();
 
 							// update stats for groups and series
