@@ -1357,8 +1357,48 @@ namespace JMMServer
 				}
 				#endregion
 
+				#region Test if censored
+				string tagCensored = Constants.FileRenameTag.Censored.Substring(1, Constants.FileRenameTag.Censored.Length - 1); // remove % at the front
+				if (test.Trim().Equals(tagCensored, StringComparison.InvariantCultureIgnoreCase))
+				{
+					bool isCensored = aniFile.IsCensored == 1;
+
+					if (!isCensored)
+					{
+						if (notCondition) return true;
+						else return false;
+					}
+					else
+					{
+						if (notCondition) return false;
+						else return true;
+					}
+				}
+				#endregion
+
+				#region Test if Deprecated
+				string tagDeprecated = Constants.FileRenameTag.Deprecated.Substring(1, Constants.FileRenameTag.Deprecated.Length - 1); // remove % at the front
+				if (test.Trim().Equals(tagDeprecated, StringComparison.InvariantCultureIgnoreCase))
+				{
+					bool isDeprecated = aniFile.IsDeprecated == 1;
+
+					if (!isDeprecated)
+					{
+						if (notCondition) return true;
+						else return false;
+					}
+					else
+					{
+						if (notCondition) return false;
+						else return true;
+					}
+				}
+				#endregion
+
 				#region Test if file has more than one episode
 				#endregion
+
+
 
 				return false;
 			}
@@ -1838,6 +1878,24 @@ namespace JMMServer
 				string partial = aniFile.FileName.Substring(0, aniFile.FileName.Length - ext.Length);
 
 				newFileName = newFileName.Replace(Constants.FileRenameTag.OriginalFileName, partial);
+			}
+
+			#endregion
+
+			#region Censored
+
+			if (action.Trim().Contains(Constants.FileRenameTag.Censored))
+			{
+				newFileName = newFileName.Replace(Constants.FileRenameTag.Censored, "cen");
+			}
+
+			#endregion
+
+			#region Deprecated
+
+			if (action.Trim().Contains(Constants.FileRenameTag.Deprecated))
+			{
+				newFileName = newFileName.Replace(Constants.FileRenameTag.Deprecated, "depr");
 			}
 
 			#endregion

@@ -59,13 +59,14 @@ namespace JMMServer
 			public static readonly string AudioCodec = "%aud"; //tracks separated with '
 			public static readonly string VideoBitDepth = "%bit"; // 8bit, 10bit
 			public static readonly string OriginalFileName = "%sna"; // The original file name as specified by the sub group
+			public static readonly string Censored = "%cen"; 
+			public static readonly string Deprecated = "%dep";
 
 
 			/*
 			%md5 / %MD5	 md5 sum (lower/upper)
 			%sha / %SHA	 sha1 sum (lower/upper)
 			%inv	 Invalid crc string
-			%cen	 Censored string
 			 * */
 		}
 
