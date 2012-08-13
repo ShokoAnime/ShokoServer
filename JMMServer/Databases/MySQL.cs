@@ -119,6 +119,7 @@ namespace JMMServer.Databases
 				UpdateSchema_021(versionNumber);
 				UpdateSchema_022(versionNumber);
 				UpdateSchema_023(versionNumber);
+				UpdateSchema_024(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -1031,6 +1032,52 @@ namespace JMMServer.Databases
 				" Script text character set utf8, " +
 				" IsEnabledOnImport int NOT NULL, " +
 				" PRIMARY KEY (`RenameScriptID`) ) ; ");
+
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_024(int currentVersionNumber)
+		{
+			int thisVersion = 24;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE `AniDB_File` ADD `IsCensored` int NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_File` ADD `IsDeprecated` int NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_File` ADD `InternalVersion` int NULL ;");
+
+			cmds.Add("UPDATE AniDB_File SET IsCensored = 0 ;");
+			cmds.Add("UPDATE AniDB_File SET IsDeprecated = 0 ;");
+			cmds.Add("UPDATE AniDB_File SET InternalVersion = 1 ;");
+
+			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `IsCensored` `IsCensored` int NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `IsDeprecated` `IsDeprecated` int NOT NULL ;");
+			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `InternalVersion` `InternalVersion` int NOT NULL ;");
 
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

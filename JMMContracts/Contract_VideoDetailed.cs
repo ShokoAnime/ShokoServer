@@ -63,6 +63,9 @@ namespace JMMContracts
 		public string AniDB_MD5 { get; set; }
 		public string AniDB_SHA1 { get; set; }
 		public int AniDB_File_FileVersion { get; set; }
+		public int AniDB_File_IsCensored { get; set; }
+		public int AniDB_File_IsDeprecated { get; set; }
+		public int AniDB_File_InternalVersion { get; set; }
 
 		// Languages
 		public string LanguagesAudio { get; set; }

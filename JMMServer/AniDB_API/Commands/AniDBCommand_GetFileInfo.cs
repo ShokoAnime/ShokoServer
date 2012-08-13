@@ -81,7 +81,7 @@ namespace AniDBAPI.Commands
 
 		public void Init(IHash fileData, bool force)
 		{
-			int fByte1 = 125; // fmask - byte1 (old 120 Added other episodes)
+			int fByte1 = 127; // fmask - byte1 (old 120 Added other episodes)
 			int fByte2 = 248; // old 72 fmask - byte2 (Added FileSize, SHA1, MD5)
 			int fByte3 = 255; // fmask - byte3
 			int fByte4 = 249; // fmask - byte4

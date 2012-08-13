@@ -70,6 +70,15 @@ namespace AniDBAPI
 
 		public int FileVersion { get; set; }
 
+		public int IsCensored { get; set; }
+
+		public int IsDeprecated { get; set; }
+
+		public int InternalVersion
+		{
+			get { return 2; }
+		}
+
 
         #endregion
         // default constructor
@@ -105,6 +114,8 @@ namespace AniDBAPI
 			Version = 0;
 			IsWatched = 0;
 			FileVersion = 1;
+			IsCensored = 0;
+			IsDeprecated = 0;
 		}
 
         public string Info
@@ -135,50 +146,51 @@ namespace AniDBAPI
 			// 3. 12 ** group id
 			// 4. 2723 ** lid
             // 5. ** other episodes
-			// 6. state
+			// 6. ** isDeprecated
+			// 7. state
 			
-            // 6 ** Size
-            // 7. c646d82a184a33f4e4f98af39f29a044 ** ed2k hash
-			// 8. ** md5
-            // 9. ** sha1
-            // 10. 8452c4bf ** crc32
-			// 11. high ** quality
-			// 12. HDTV ** source
-			// 13. Vorbis (Ogg Vorbis) ** audio codec
-			// 14. 148 ** audio bit rate
-			// 15. H264/AVC ** video codec
-			// 16. 1773 ** video bit rate
-			// 17. 1280x720 ** video res
-			// 18. mkv ** file extension
+            // 8 ** Size
+            // 9. c646d82a184a33f4e4f98af39f29a044 ** ed2k hash
+			// 10. ** md5
+            // 11. ** sha1
+            // 12. 8452c4bf ** crc32
+			// 13. high ** quality
+			// 14. HDTV ** source
+			// 15. Vorbis (Ogg Vorbis) ** audio codec
+			// 16. 148 ** audio bit rate
+			// 17. H264/AVC ** video codec
+			// 18. 1773 ** video bit rate
+			// 19. 1280x720 ** video res
+			// 20. mkv ** file extension
 
-            // 19. Audio Langugages.
-            // 20. Subtitle languages.
+            // 21. Audio Langugages.
+            // 22. Subtitle languages.
 
 
-			// 21. 1470 ** length in seconds
-			// 22.   ** description
-			// 23. 1239494400 ** release date ** date is the time of the event (in seconds since 1.1.1970) 
+			// 23. 1470 ** length in seconds
+			// 24.   ** description
+			// 25. 1239494400 ** release date ** date is the time of the event (in seconds since 1.1.1970) 
 			
-            // 24. Episode FileName
+            // 26. Episode FileName
             
-            // 25. 2 ** episode #
-			// 26. The Day It Began ** ep name 
-			// 27. Hajimari no Hi ** ep name romaji
-			// 28. ** ep name kanji
-			// 29. 712 ** episode rating (7.12)
-			// 30. 14 ** episode vote count
-			// 31. Eclipse Productions ** group name
-			// 32. Eclipse ** group name short
+            // 27. 2 ** episode #
+			// 28. The Day It Began ** ep name 
+			// 29. Hajimari no Hi ** ep name romaji
+			// 30. ** ep name kanji
+			// 31. 712 ** episode rating (7.12)
+			// 32. 14 ** episode vote count
+			// 33. Eclipse Productions ** group name
+			// 34. Eclipse ** group name short
 
-		    this.FileSize = long.Parse(sDetails[7].Trim());
-			this.ED2KHash = AniDBAPILib.ProcessAniDBString(sDetails[8].Trim()).ToUpper();
-            this.MD5 = AniDBAPILib.ProcessAniDBString(sDetails[9].Trim()).ToUpper();
-            this.SHA1 = AniDBAPILib.ProcessAniDBString(sDetails[10].Trim()).ToUpper();
-			this.CRC = AniDBAPILib.ProcessAniDBString(sDetails[11].Trim()).ToUpper();
+		    this.FileSize = long.Parse(sDetails[8].Trim());
+			this.ED2KHash = AniDBAPILib.ProcessAniDBString(sDetails[9].Trim()).ToUpper();
+            this.MD5 = AniDBAPILib.ProcessAniDBString(sDetails[10].Trim()).ToUpper();
+            this.SHA1 = AniDBAPILib.ProcessAniDBString(sDetails[11].Trim()).ToUpper();
+			this.CRC = AniDBAPILib.ProcessAniDBString(sDetails[12].Trim()).ToUpper();
 			FileID = int.Parse(sDetails[0].Trim());
 			AnimeID = int.Parse(sDetails[1].Trim());
 
-			int state = int.Parse(sDetails[6].Trim());
+			int state = int.Parse(sDetails[7].Trim());
 			if (state == 0 || state == 1)
 				FileVersion = 1;
 			else
@@ -188,7 +200,14 @@ namespace AniDBAPI
 				if (BitMaskHelper.IsSet(eState, AniDBFileState.FILE_ISV3)) FileVersion = 3;
 				if (BitMaskHelper.IsSet(eState, AniDBFileState.FILE_ISV4)) FileVersion = 4;
 				if (BitMaskHelper.IsSet(eState, AniDBFileState.FILE_ISV5)) FileVersion = 5;
+
+				if (BitMaskHelper.IsSet(eState, AniDBFileState.FILE_CEN))
+					IsCensored = 1;
 			}
+
+			int isdep = 0;
+			if (int.TryParse(sDetails[6].Trim(), out isdep))
+				IsDeprecated = isdep == 0 ? 0 : 1;
 
             EpisodesRAW = sDetails[2].Trim();
             EpisodesPercentRAW = "100";
@@ -213,38 +232,38 @@ namespace AniDBAPI
             // 1030, 49 Means content starts at 51% of the episode 1030. 
  
             GroupID = int.Parse(sDetails[3].Trim());
-		    File_Source = AniDBAPILib.ProcessAniDBString(sDetails[13].Trim());
-			File_AudioCodec = AniDBAPILib.ProcessAniDBString(sDetails[14].Trim());
-			File_VideoCodec = AniDBAPILib.ProcessAniDBString(sDetails[16].Trim());
-			File_VideoResolution = AniDBAPILib.ProcessAniDBString(sDetails[18].Trim());
-			File_FileExtension = AniDBAPILib.ProcessAniDBString(sDetails[19].Trim());
+		    File_Source = AniDBAPILib.ProcessAniDBString(sDetails[14].Trim());
+			File_AudioCodec = AniDBAPILib.ProcessAniDBString(sDetails[15].Trim());
+			File_VideoCodec = AniDBAPILib.ProcessAniDBString(sDetails[17].Trim());
+			File_VideoResolution = AniDBAPILib.ProcessAniDBString(sDetails[19].Trim());
+			File_FileExtension = AniDBAPILib.ProcessAniDBString(sDetails[20].Trim());
 		    
-            File_LengthSeconds = AniDBAPILib.ProcessAniDBInt(sDetails[22].Trim());
-            File_Description = AniDBAPILib.ProcessAniDBString(sDetails[23].Trim());
-			File_ReleaseDate = AniDBAPILib.ProcessAniDBInt(sDetails[24].Trim());
+            File_LengthSeconds = AniDBAPILib.ProcessAniDBInt(sDetails[23].Trim());
+            File_Description = AniDBAPILib.ProcessAniDBString(sDetails[24].Trim());
+			File_ReleaseDate = AniDBAPILib.ProcessAniDBInt(sDetails[25].Trim());
 			
 
-            LanguagesRAW = AniDBAPILib.ProcessAniDBString(sDetails[20].Trim());
-            SubtitlesRAW = AniDBAPILib.ProcessAniDBString(sDetails[21].Trim());
+            LanguagesRAW = AniDBAPILib.ProcessAniDBString(sDetails[21].Trim());
+            SubtitlesRAW = AniDBAPILib.ProcessAniDBString(sDetails[22].Trim());
 
-            FileName = AniDBAPILib.ProcessAniDBString(sDetails[25].Trim());
+            FileName = AniDBAPILib.ProcessAniDBString(sDetails[26].Trim());
 
 			// mylist values
-			string mlState = sDetails[26].Trim();
-			string mlFileState = sDetails[27].Trim();
-			string mlViewed = sDetails[28].Trim();
-			string mlViewDate = sDetails[29].Trim();
-			string mlStorage = sDetails[30].Trim();
-			string mlSource = sDetails[31].Trim();
-			string mlOther = sDetails[32].Trim();
+			string mlState = sDetails[27].Trim();
+			string mlFileState = sDetails[28].Trim();
+			string mlViewed = sDetails[29].Trim();
+			string mlViewDate = sDetails[30].Trim();
+			string mlStorage = sDetails[31].Trim();
+			string mlSource = sDetails[32].Trim();
+			string mlOther = sDetails[33].Trim();
 
 			// amask
-			Anime_GroupName = AniDBAPILib.ProcessAniDBString(sDetails[39].Trim());
-			Anime_GroupNameShort = AniDBAPILib.ProcessAniDBString(sDetails[40].Trim());
+			Anime_GroupName = AniDBAPILib.ProcessAniDBString(sDetails[40].Trim());
+			Anime_GroupNameShort = AniDBAPILib.ProcessAniDBString(sDetails[41].Trim());
 
 			IsWatched = 0; // 0 = false, 1 = true
-			Episode_Rating = AniDBAPILib.ProcessAniDBInt(sDetails[37].Trim());
-			Episode_Votes = AniDBAPILib.ProcessAniDBInt(sDetails[38].Trim());
+			Episode_Rating = AniDBAPILib.ProcessAniDBInt(sDetails[38].Trim());
+			Episode_Votes = AniDBAPILib.ProcessAniDBInt(sDetails[39].Trim());
 
 		    Version = LastVersion;
 		}

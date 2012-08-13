@@ -33,6 +33,7 @@ namespace JMMContracts
 		public int AniDB_Calendar_UpdateFrequency { get; set; }
 		public int AniDB_Anime_UpdateFrequency { get; set; }
 		public int AniDB_MyListStats_UpdateFrequency { get; set; }
+		public int AniDB_File_UpdateFrequency { get; set; }
 
 		// Web Cache
 		public string WebCache_Address { get; set; }

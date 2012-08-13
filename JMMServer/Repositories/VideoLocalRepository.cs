@@ -132,6 +132,32 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<VideoLocal> GetByAniDBResolution(string res)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+
+				var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, AniDB_File as xref WHERE vl.Hash = xref.Hash AND vl.FileSize = xref.FileSize AND xref.File_VideoResolution= :fileres")
+					.SetParameter("fileres", res)
+					.List<VideoLocal>();
+
+				return new List<VideoLocal>(vidfiles);
+			}
+		}
+
+		public List<VideoLocal> GetByInternalVersion(int iver)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+
+				var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, AniDB_File as xref WHERE vl.Hash = xref.Hash AND vl.FileSize = xref.FileSize AND xref.InternalVersion= :iver")
+					.SetParameter("iver", iver)
+					.List<VideoLocal>();
+
+				return new List<VideoLocal>(vidfiles);
+			}
+		}
+
 		/// <summary>
 		/// returns all the VideoLocal records associate with an AniDB_Anime Record
 		/// </summary>

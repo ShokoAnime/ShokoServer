@@ -56,6 +56,7 @@ namespace JMMFileHelper
 					info.AudioCodec = info.AudioCodec.Replace("A_AAC/MPEG4/LC/SBR", "AAC");
 					info.AudioCodec = info.AudioCodec.Replace("A_AAC", "AAC");
 					info.AudioCodec = info.AudioCodec.Replace("A_AC3", "AC3");
+
 				}
 				else
 				{

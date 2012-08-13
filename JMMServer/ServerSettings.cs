@@ -499,6 +499,23 @@ namespace JMMServer
 			}
 		}
 
+		public static ScheduledUpdateFrequency AniDB_File_UpdateFrequency
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				int val = 1;
+				if (int.TryParse(appSettings["AniDB_File_UpdateFrequency"], out val))
+					return (ScheduledUpdateFrequency)val;
+				else
+					return ScheduledUpdateFrequency.Daily; // default value
+			}
+			set
+			{
+				UpdateSetting("AniDB_File_UpdateFrequency", ((int)value).ToString());
+			}
+		}
+
 		#endregion
 
 		#region Web Cache
@@ -1338,6 +1355,7 @@ namespace JMMServer
 			contract.AniDB_Calendar_UpdateFrequency = (int)ServerSettings.AniDB_Calendar_UpdateFrequency;
 			contract.AniDB_Anime_UpdateFrequency = (int)ServerSettings.AniDB_Anime_UpdateFrequency;
 			contract.AniDB_MyListStats_UpdateFrequency = (int)ServerSettings.AniDB_MyListStats_UpdateFrequency;
+			contract.AniDB_File_UpdateFrequency = (int)ServerSettings.AniDB_File_UpdateFrequency;
 
 			// Web Cache
 			contract.WebCache_Address = ServerSettings.WebCache_Address;

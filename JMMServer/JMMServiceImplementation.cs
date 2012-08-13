@@ -1477,6 +1477,11 @@ namespace JMMServer
 			return "";
 		}
 
+		public int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
+		{
+			return Importer.UpdateAniDBFileData(missingInfo, outOfDate, countOnly);
+		}
+
 		public string UpdateFileData(int videoLocalID)
 		{
 
@@ -2560,6 +2565,7 @@ namespace JMMServer
 				ServerSettings.AniDB_Calendar_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_Calendar_UpdateFrequency;
 				ServerSettings.AniDB_Anime_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_Anime_UpdateFrequency;
 				ServerSettings.AniDB_MyListStats_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_MyListStats_UpdateFrequency;
+				ServerSettings.AniDB_File_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_File_UpdateFrequency;
 
 				// Web Cache
 				ServerSettings.WebCache_Address = contractIn.WebCache_Address;

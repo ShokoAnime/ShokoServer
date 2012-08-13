@@ -41,6 +41,9 @@ namespace JMMServer.Entities
 		public string FileName { get; set; }
 		public long FileSize { get; set; }
 		public int FileVersion { get; set; }
+		public int IsCensored { get; set; }
+		public int IsDeprecated { get; set; }
+		public int InternalVersion { get; set; }
 		#endregion
 
 
@@ -352,6 +355,9 @@ namespace JMMServer.Entities
 			this.MD5 = fileInfo.MD5;
 			this.SHA1 = fileInfo.SHA1;
 			this.FileVersion = fileInfo.FileVersion;
+			this.IsCensored = fileInfo.IsCensored;
+			this.IsDeprecated = fileInfo.IsDeprecated;
+			this.InternalVersion = fileInfo.InternalVersion;
 
 			this.languagesRAW = fileInfo.LanguagesRAW;
 			this.subtitlesRAW = fileInfo.SubtitlesRAW;
@@ -383,6 +389,11 @@ namespace JMMServer.Entities
 			this.Hash = fileInfo.Hash;
 			this.MD5 = fileInfo.MD5;
 			this.SHA1 = fileInfo.SHA1;
+
+			this.FileVersion = 1;
+			this.IsCensored = 0;
+			this.IsDeprecated = 0;
+			this.InternalVersion = 0;
 
 			this.languagesRAW = fileInfo.LanguagesRAW;
 			this.subtitlesRAW = fileInfo.SubtitlesRAW;

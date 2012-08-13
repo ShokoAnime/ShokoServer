@@ -33,6 +33,9 @@ namespace JMMServer.Mappings
 			Map(x => x.FileName).Not.Nullable();
 			Map(x => x.FileSize).Not.Nullable();
 			Map(x => x.FileVersion).Not.Nullable();
+			Map(x => x.IsCensored).Not.Nullable();
+			Map(x => x.IsDeprecated).Not.Nullable();
+			Map(x => x.InternalVersion).Not.Nullable();
 			Map(x => x.GroupID).Not.Nullable();
 			Map(x => x.Hash).Not.Nullable();
 			Map(x => x.IsWatched).Not.Nullable();

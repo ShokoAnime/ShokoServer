@@ -139,6 +139,7 @@ namespace JMMServer.Databases
 				UpdateSchema_019(versionNumber);
 				UpdateSchema_020(versionNumber);
 				UpdateSchema_021(versionNumber);
+				UpdateSchema_022(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -851,6 +852,44 @@ namespace JMMServer.Databases
 				" RenameScriptID ASC " +
 				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
 				" ) ON [PRIMARY] ");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_022(int currentVersionNumber)
+		{
+			int thisVersion = 22;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE AniDB_File ADD IsCensored int NULL");
+			cmds.Add("ALTER TABLE AniDB_File ADD IsDeprecated int NULL");
+			cmds.Add("ALTER TABLE AniDB_File ADD InternalVersion int NULL");
+
+			cmds.Add("UPDATE AniDB_File SET IsCensored = 0");
+			cmds.Add("UPDATE AniDB_File SET IsDeprecated = 0");
+			cmds.Add("UPDATE AniDB_File SET InternalVersion = 1");
+
+			cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN IsCensored int NOT NULL");
+			cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN IsDeprecated int NOT NULL");
+			cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN InternalVersion int NOT NULL");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
@@ -2373,3 +2412,4 @@ namespace JMMServer.Databases
 		public string DatabaseName { get; set; }
 	}
 }
+

@@ -623,7 +623,53 @@ namespace JMMServer
 			}
 		}
 
-		
+
+		public static int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
+		{
+			List<int> vidsToUpdate = new List<int>();
+			try
+			{
+				AniDB_FileRepository repFiles = new AniDB_FileRepository();
+				VideoLocalRepository repVids = new VideoLocalRepository();
+
+				if (missingInfo)
+				{
+					List<VideoLocal> vids = repVids.GetByAniDBResolution("0x0");
+
+					foreach (VideoLocal vid in vids)
+					{
+						if (!vidsToUpdate.Contains(vid.VideoLocalID))
+							vidsToUpdate.Add(vid.VideoLocalID);
+					}
+				}
+
+				if (outOfDate)
+				{
+					List<VideoLocal> vids = repVids.GetByInternalVersion(1);
+
+					foreach (VideoLocal vid in vids)
+					{
+						if (!vidsToUpdate.Contains(vid.VideoLocalID))
+							vidsToUpdate.Add(vid.VideoLocalID);
+					}
+				}
+
+				if (!countOnly)
+				{
+					foreach (int id in vidsToUpdate)
+					{
+						CommandRequest_GetFile cmd = new CommandRequest_GetFile(id, true);
+						cmd.Save();
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return vidsToUpdate.Count;
+		}
 
 		public static void CheckForTvDBUpdates(bool forceRefresh)
 		{
@@ -846,6 +892,48 @@ namespace JMMServer
 
 			CommandRequest_TraktUpdateAllSeries cmd = new CommandRequest_TraktUpdateAllSeries(false);
 			cmd.Save();
+		}
+
+		public static void CheckForAniDBFileUpdate(bool forceRefresh)
+		{
+			if (ServerSettings.AniDB_File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+			int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_File_UpdateFrequency);
+
+			// check for any updated anime info every 12 hours
+			ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+			ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
+			if (sched != null)
+			{
+				// if we have run this in the last 12 hours and are not forcing it, then exit
+				TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+				if (tsLastRun.TotalHours < freqHours)
+				{
+					if (!forceRefresh) return;
+				}
+			}
+
+			UpdateAniDBFileData(true, false, false);
+
+			// files which have been hashed, but don't have an associated episode
+			VideoLocalRepository repVidLocals = new VideoLocalRepository();
+			List<VideoLocal> filesWithoutEpisode = repVidLocals.GetVideosWithoutEpisode();
+
+			foreach (VideoLocal vl in filesWithoutEpisode)
+			{
+				CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
+				cmd.Save();
+			}
+
+			if (sched == null)
+			{
+				sched = new ScheduledUpdate();
+				sched.UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates;
+				sched.UpdateDetails = "";
+			}
+			sched.LastUpdate = DateTime.Now;
+			repSched.Save(sched);
 		}
 	}
 }

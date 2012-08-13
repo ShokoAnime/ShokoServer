@@ -1125,6 +1125,7 @@ namespace JMMServer
 
 			return;*/
 
+			//Importer.UpdateAniDBFileData(true, true);
 			
 
 			AboutForm frm = new AboutForm();
@@ -1656,6 +1657,7 @@ namespace JMMServer
 			Importer.CheckForTraktSyncUpdate(false);
 			Importer.CheckForMALUpdate(false);
 			Importer.CheckForMyListStatsUpdate(false);
+			Importer.CheckForAniDBFileUpdate(false);
 		}
 
 		public static void StartWatchingFiles()

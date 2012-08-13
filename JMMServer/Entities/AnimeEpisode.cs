@@ -357,6 +357,9 @@ namespace JMMServer.Entities
 						contract.AniDB_MD5 = anifile.MD5;
 						contract.AniDB_SHA1 = anifile.SHA1;
 						contract.AniDB_File_FileVersion = anifile.FileVersion;
+						contract.AniDB_File_IsCensored = anifile.IsCensored;
+						contract.AniDB_File_IsDeprecated = anifile.IsDeprecated;
+						contract.AniDB_File_InternalVersion = anifile.InternalVersion;
 
 						// languages
 						contract.LanguagesAudio = anifile.LanguagesRAW;

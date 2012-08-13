@@ -599,6 +599,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		void ClearGeneralQueue();
+
+		[OperationContract]
+		int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly);
 	}
 
 }

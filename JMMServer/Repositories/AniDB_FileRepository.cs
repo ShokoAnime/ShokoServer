@@ -101,6 +101,19 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<AniDB_File> GetByResolution(string res)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var objs = session
+					.CreateCriteria(typeof(AniDB_File))
+					.Add(Restrictions.Eq("File_VideoResolution", res))
+					.List<AniDB_File>();
+
+				return new List<AniDB_File>(objs);
+			}
+		}
+
 		public void Delete(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
