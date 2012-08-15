@@ -98,6 +98,7 @@ namespace JMMServer.Databases
 				UpdateSchema_020(versionNumber);
 				UpdateSchema_021(versionNumber);
 				UpdateSchema_022(versionNumber);
+				UpdateSchema_023(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -731,11 +732,50 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 			cmds.Add("ALTER TABLE AniDB_File ADD IsCensored int NULL");
 			cmds.Add("ALTER TABLE AniDB_File ADD IsDeprecated int NULL");
-			cmds.Add("ALTER TABLE AniDB_File ADD FileVersion int NULL");
+
+			try
+			{
+				foreach (string cmdTable in cmds)
+				{
+					SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+					sqCommand.Connection = myConn;
+					sqCommand.ExecuteNonQuery();
+				}
+			}
+			catch { }
+
+			cmds.Clear();
+			cmds.Add("ALTER TABLE AniDB_File ADD InternalVersion int NULL");
 
 			cmds.Add("UPDATE AniDB_File SET IsCensored = 0");
 			cmds.Add("UPDATE AniDB_File SET IsDeprecated = 0");
 			cmds.Add("UPDATE AniDB_File SET InternalVersion = 1");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_023(int currentVersionNumber)
+		{
+			int thisVersion = 23;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("UPDATE JMMUser SET CanEditServerSettings = 1");
 
 			foreach (string cmdTable in cmds)
 			{
