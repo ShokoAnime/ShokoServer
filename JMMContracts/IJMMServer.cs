@@ -199,7 +199,7 @@ namespace JMMContracts
 		List<Contract_VideoLocal> GetAllManuallyLinkedFiles(int userID);
 
 		[OperationContract]
-		List<Contract_AnimeEpisode> GetAllEpisodesWithMultipleFiles(int userID);
+		List<Contract_AnimeEpisode> GetAllEpisodesWithMultipleFiles(int userID, bool onlyFinishedSeries);
 
 		[OperationContract]
 		void ReevaluateDuplicateFiles();

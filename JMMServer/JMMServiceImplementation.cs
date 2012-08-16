@@ -3547,15 +3547,50 @@ namespace JMMServer
 			}
 		}
 
-		public List<Contract_AnimeEpisode> GetAllEpisodesWithMultipleFiles(int userID)
+		public List<Contract_AnimeEpisode> GetAllEpisodesWithMultipleFiles(int userID, bool onlyFinishedSeries)
 		{
 			List<Contract_AnimeEpisode> eps = new List<Contract_AnimeEpisode>();
 			try
 			{
 				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+				Dictionary<int, int> dictSeriesAnime = new Dictionary<int, int>();
+				Dictionary<int, bool> dictAnimeFinishedAiring = new Dictionary<int, bool>();
+				Dictionary<int, bool> dictSeriesFinishedAiring = new Dictionary<int, bool>();
+
+				if (onlyFinishedSeries)
+				{
+					List<AnimeSeries> allSeries = repSeries.GetAll();
+					foreach (AnimeSeries ser in allSeries)
+						dictSeriesAnime[ser.AnimeSeriesID] = ser.AniDB_ID;
+
+					List<AniDB_Anime> allAnime = repAnime.GetAll();
+					foreach (AniDB_Anime anime in allAnime)
+						dictAnimeFinishedAiring[anime.AnimeID] = anime.FinishedAiring;
+
+					foreach (KeyValuePair<int, int> kvp in dictSeriesAnime)
+					{
+						if (dictAnimeFinishedAiring.ContainsKey(kvp.Value))
+							dictSeriesFinishedAiring[kvp.Key] = dictAnimeFinishedAiring[kvp.Value];
+					}
+				}
 
 				foreach (AnimeEpisode ep in repEps.GetEpisodesWithMultipleFiles())
+				{
+					if (onlyFinishedSeries)
+					{
+						bool finishedAiring = false;
+						if (dictSeriesFinishedAiring.ContainsKey(ep.AnimeSeriesID))
+							finishedAiring = dictSeriesFinishedAiring[ep.AnimeSeriesID];
+
+						if (!finishedAiring) continue;
+
+					}
+
 					eps.Add(ep.ToContract(true, userID));
+				}
 
 				return eps;
 			}

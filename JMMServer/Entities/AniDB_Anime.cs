@@ -67,6 +67,19 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public bool FinishedAiring
+		{
+			get
+			{
+				if (!EndDate.HasValue) return false; // ongoing
+
+				// all series have finished airing 
+				if (EndDate.Value < DateTime.Now) return true;
+
+				return false;
+			}
+		}
+
 		public string AnimeTypeDescription
 		{
 			get
