@@ -602,6 +602,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly);
+
+		[OperationContract]
+		List<Contract_GroupFileSummary> GetGroupFileSummary(int animeID);
 	}
 
 }

@@ -3941,6 +3941,185 @@ namespace JMMServer
 			}
 		}
 
+		public List<Contract_GroupFileSummary> GetGroupFileSummary(int animeID)
+		{
+			List<Contract_GroupFileSummary> vidQuals = new List<Contract_GroupFileSummary>();
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+			VideoLocalRepository repVids = new VideoLocalRepository();
+			AniDB_FileRepository repAniFile = new AniDB_FileRepository();
+
+			try
+			{
+				AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+				
+				if (anime == null) return vidQuals;
+
+				List<VideoLocal> vids = repVids.GetByAniDBAnimeID(animeID);
+
+				foreach (VideoLocal vid in vids)
+				{
+					List<AnimeEpisode> eps = vid.AnimeEpisodes;
+
+					if (eps.Count == 0) continue;
+					AnimeEpisode animeEp = eps[0];
+					if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode || animeEp.EpisodeTypeEnum == enEpisodeType.Special)
+					{
+						AniDB_Episode anidbEp = animeEp.AniDB_Episode;
+
+						// get the anibd file info
+						AniDB_File aniFile = vid.AniDBFile;
+						if (aniFile != null)
+						{
+							// match based on group / video sorce / video res
+							bool foundSummaryRecord = false;
+							foreach (Contract_GroupFileSummary contract in vidQuals)
+							{
+								if (contract.GroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase))
+								{
+									foundSummaryRecord = true;
+
+									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
+									if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+
+									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+									{
+										if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
+											contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
+									}
+								}
+							}
+							if (!foundSummaryRecord)
+							{
+								Contract_GroupFileSummary contract = new Contract_GroupFileSummary();
+								contract.FileCountNormal = 0;
+								contract.FileCountSpecials = 0;
+								if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
+								if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+								contract.GroupName = aniFile.Anime_GroupName;
+								contract.GroupNameShort = aniFile.Anime_GroupNameShort;
+								contract.NormalEpisodeNumbers = new List<int>();
+								if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+								{
+									if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
+										contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
+								}
+
+								vidQuals.Add(contract);
+							}
+						}
+						else
+						{
+							// look at the Video Info record
+							VideoInfo vinfo = vid.VideoInfo;
+							if (vinfo != null)
+							{
+								bool foundSummaryRecord = false;
+								foreach (Contract_GroupFileSummary contract in vidQuals)
+								{
+									if (contract.GroupName.Equals("NO GROUP INFO", StringComparison.InvariantCultureIgnoreCase))
+									{
+										foundSummaryRecord = true;
+										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
+										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+
+										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+										{
+											if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
+												contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
+										}
+									}
+								}
+								if (!foundSummaryRecord)
+								{
+									Contract_GroupFileSummary contract = new Contract_GroupFileSummary();
+									contract.FileCountNormal = 0;
+									contract.FileCountSpecials = 0;
+									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
+									if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+									contract.GroupName = "NO GROUP INFO";
+									contract.GroupNameShort = "NO GROUP INFO";
+									contract.NormalEpisodeNumbers = new List<int>();
+									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+									{
+										if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
+											contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
+									}
+									vidQuals.Add(contract);
+								}
+							}
+						}
+					}
+				}
+
+				foreach (Contract_GroupFileSummary contract in vidQuals)
+				{
+					contract.NormalComplete = contract.FileCountNormal >= anime.EpisodeCountNormal;
+					contract.SpecialsComplete = (contract.FileCountSpecials >= anime.EpisodeCountSpecial) && (anime.EpisodeCountSpecial > 0);
+
+					contract.NormalEpisodeNumberSummary = "";
+					contract.NormalEpisodeNumbers.Sort();
+					int lastEpNum = 0;
+					int baseEpNum = 0;
+					foreach (int epNum in contract.NormalEpisodeNumbers)
+					{
+						if (baseEpNum == 0)
+						{
+							baseEpNum = epNum;
+							lastEpNum = epNum;
+						}
+
+						if (epNum == lastEpNum) continue;
+
+						int epNumDiff = epNum - lastEpNum;
+						if (epNumDiff == 1)
+						{
+							lastEpNum = epNum;
+							continue;
+						}
+
+
+						// this means we have missed an episode
+						if (contract.NormalEpisodeNumberSummary.Length > 0)
+							contract.NormalEpisodeNumberSummary += ", ";
+
+						if (baseEpNum == lastEpNum)
+							contract.NormalEpisodeNumberSummary += string.Format("{0}", baseEpNum);
+						else
+							contract.NormalEpisodeNumberSummary += string.Format("{0}-{1}", baseEpNum, lastEpNum);
+
+						lastEpNum = epNum;
+						baseEpNum = epNum;
+
+					}
+
+					if (contract.NormalEpisodeNumbers.Count > 0)
+					{
+						if (contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1] >= baseEpNum)
+						{
+							// this means we have missed an episode
+							if (contract.NormalEpisodeNumberSummary.Length > 0)
+								contract.NormalEpisodeNumberSummary += ", ";
+
+							if (baseEpNum == contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1])
+								contract.NormalEpisodeNumberSummary += string.Format("{0}", baseEpNum);
+							else
+								contract.NormalEpisodeNumberSummary += string.Format("{0}-{1}", baseEpNum, contract.NormalEpisodeNumbers[contract.NormalEpisodeNumbers.Count - 1]);
+						}
+					}
+				}
+
+				vidQuals.Sort();
+				return vidQuals;
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return vidQuals;
+			}
+		}
+
 		public Contract_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID)
 		{
 			Contract_AniDB_AnimeCrossRefs result = new Contract_AniDB_AnimeCrossRefs();

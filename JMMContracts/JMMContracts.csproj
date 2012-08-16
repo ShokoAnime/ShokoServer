@@ -96,6 +96,7 @@
     <Compile Include="Contract_CrossRef_AniDB_TvDB_Episode.cs" />
     <Compile Include="Contract_DuplicateFile.cs" />
     <Compile Include="Contract_FileFfdshowPreset.cs" />
+    <Compile Include="Contract_GroupFileSummary.cs" />
     <Compile Include="Contract_GroupFilter.cs" />
     <Compile Include="Contract_GroupFilterCondition.cs" />
     <Compile Include="Contract_GroupFilterExtended.cs" />
