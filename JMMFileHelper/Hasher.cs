@@ -65,21 +65,27 @@ namespace JMMFileHelper
 		public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getED2k, bool getCRC32, bool getMD5, bool getSHA1)
 		{
 			// the DLL is returning the wrong results for CRC's so don't use it
-			//bool justHash = !getED2k && !getMD5 && !getSHA1;
-			bool justHash = false;
+			bool gotED2k = false;
+			bool gotMD5 = false;
+			bool gotSHA1 = false;
 
-			if (UseDll() && justHash)
+			bool stillNeedInfo = false;
+			Hashes rhash = new Hashes();
+			if (UseDll())
 			{
 				byte[] hash = new byte[56];
-				Hashes rhash = new Hashes();
+
 
 				if (CalculateHashes_dll(strPath, ref hash, onHashProgress, getCRC32, getMD5, getSHA1))
 				{
 					rhash.ed2k = HashToString(hash, 0, 16);
-					if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
+					//if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
 					if (getMD5) rhash.md5 = HashToString(hash, 20, 16);
 					if (getSHA1) rhash.sha1 = HashToString(hash, 36, 20);
 
+					gotED2k = getED2k;
+					gotMD5 = getMD5;
+					gotSHA1 = getSHA1;
 				}
 				else
 				{
@@ -88,9 +94,30 @@ namespace JMMFileHelper
 					rhash.md5 = string.Empty;
 					rhash.sha1 = string.Empty;
 				}
-				return rhash;
+
 			}
-			return CalculateHashes_here(strPath, onHashProgress, getED2k, getCRC32, getMD5, getSHA1);
+			else
+				stillNeedInfo = true;
+			
+			if (gotED2k)
+			{
+				if (getCRC32) stillNeedInfo = true;
+			}
+
+			bool getED2kTemp = getED2k && !gotED2k;
+			bool getMD5Temp = getMD5 && !gotMD5;
+			bool getSHA1Temp = getSHA1 && !gotSHA1;
+
+			if (stillNeedInfo)
+			{
+				Hashes rhashTemp = CalculateHashes_here(strPath, onHashProgress, getED2kTemp, getCRC32, getMD5Temp, getSHA1Temp);
+				rhash.crc32 = rhashTemp.crc32;
+				if (string.IsNullOrEmpty(rhash.ed2k)) rhash.ed2k = rhashTemp.ed2k;
+				if (string.IsNullOrEmpty(rhash.md5)) rhash.md5 = rhashTemp.md5;
+				if (string.IsNullOrEmpty(rhash.sha1)) rhash.sha1 = rhashTemp.sha1;
+			}
+
+			return rhash;
 		}
 
 		protected static Hashes CalculateHashes_here(string strPath, OnHashProgress onHashProgress, bool getED2k, bool getCRC32, bool getMD5, bool getSHA1)
