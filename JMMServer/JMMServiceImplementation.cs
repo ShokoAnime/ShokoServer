@@ -2215,7 +2215,7 @@ namespace JMMServer
 						if (dictUserRecords.ContainsKey(ep.AnimeEpisodeID))
 							epuser = dictUserRecords[ep.AnimeEpisodeID];
 
-						eps.Add(ep.ToContract(dictAniEps[ep.AniDB_EpisodeID], epVids, epuser));
+						eps.Add(ep.ToContract(dictAniEps[ep.AniDB_EpisodeID], epVids, epuser, null));
 					}
 				}
 
@@ -3589,7 +3589,7 @@ namespace JMMServer
 
 					}
 
-					eps.Add(ep.ToContract(true, userID));
+					eps.Add(ep.ToContract(true, userID, null));
 				}
 
 				return eps;
@@ -5205,7 +5205,7 @@ namespace JMMServer
 				AnimeEpisode ep = repEps.GetByAniDBEpisodeID(anieps[0].EpisodeID);
 				if (ep == null) return null;
 
-				return ep.ToContract(true, userID);
+				return ep.ToContract(true, userID, null);
 
 			}
 			catch (Exception ex)
@@ -5265,7 +5265,7 @@ namespace JMMServer
 							if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
 								userRecord = dictEpUsers[ep.AnimeEpisodeID];
 
-							Contract_AnimeEpisode epContract = ep.ToContract(anidbep, new List<VideoLocal>(), userRecord);
+							Contract_AnimeEpisode epContract = ep.ToContract(anidbep, new List<VideoLocal>(), userRecord, series.GetUserRecord(userID));
 							candidateEps.Add(epContract);
 						}
 					}
@@ -5286,7 +5286,7 @@ namespace JMMServer
 					// now refresh from the database to get file count
 					AnimeEpisode epFresh = repEps.GetByID(canEp.AnimeEpisodeID);
 					if (epFresh.VideoLocals.Count > 0)
-						return epFresh.ToContract(true, userID);
+						return epFresh.ToContract(true, userID, series.GetUserRecord(userID));
 				}
 				
 				return null;
@@ -5295,6 +5295,91 @@ namespace JMMServer
 			{
 				logger.ErrorException(ex.ToString(), ex);
 				return null;
+			}
+		}
+
+		public List<Contract_AnimeEpisode> GetAllUnwatchedEpisodes(int animeSeriesID, int userID)
+		{
+			List<Contract_AnimeEpisode> ret = new List<Contract_AnimeEpisode>();
+
+			try
+			{
+				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
+				AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
+
+				// get all the data first
+				// we do this to reduce the amount of database calls, which makes it a lot faster
+				AnimeSeries series = repAnimeSer.GetByID(animeSeriesID);
+				if (series == null) return null;
+
+				//List<AnimeEpisode> epList = repEps.GetUnwatchedEpisodes(animeSeriesID, userID);
+				List<AnimeEpisode> epList = new List<AnimeEpisode>();
+				Dictionary<int, AnimeEpisode_User> dictEpUsers = new Dictionary<int, AnimeEpisode_User>();
+				foreach (AnimeEpisode_User userRecord in repEpUser.GetByUserIDAndSeriesID(userID, animeSeriesID))
+					dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
+
+				foreach (AnimeEpisode animeep in repEps.GetBySeriesID(animeSeriesID))
+				{
+					if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
+					{
+						epList.Add(animeep);
+						continue;
+					}
+
+					AnimeEpisode_User usrRec = dictEpUsers[animeep.AnimeEpisodeID];
+					if (usrRec.WatchedCount == 0 || !usrRec.WatchedDate.HasValue)
+						epList.Add(animeep);
+				}
+
+				AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
+				List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(series.AniDB_ID);
+				Dictionary<int, AniDB_Episode> dictAniEps = new Dictionary<int, AniDB_Episode>();
+				foreach (AniDB_Episode aniep in aniEpList)
+					dictAniEps[aniep.EpisodeID] = aniep;
+
+				List<Contract_AnimeEpisode> candidateEps = new List<Contract_AnimeEpisode>();
+				foreach (AnimeEpisode ep in epList)
+				{
+					if (dictAniEps.ContainsKey(ep.AniDB_EpisodeID))
+					{
+						AniDB_Episode anidbep = dictAniEps[ep.AniDB_EpisodeID];
+						if (anidbep.EpisodeType == (int)enEpisodeType.Episode || anidbep.EpisodeType == (int)enEpisodeType.Special)
+						{
+							AnimeEpisode_User userRecord = null;
+							if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
+								userRecord = dictEpUsers[ep.AnimeEpisodeID];
+
+							Contract_AnimeEpisode epContract = ep.ToContract(anidbep, new List<VideoLocal>(), userRecord, series.GetUserRecord(userID));
+							candidateEps.Add(epContract);
+						}
+					}
+				}
+
+				if (candidateEps.Count == 0) return null;
+
+				// sort by episode type and number to find the next episode
+				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
+				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
+				candidateEps = Sorting.MultiSort<Contract_AnimeEpisode>(candidateEps, sortCriteria);
+
+				// this will generate a lot of queries when the user doesn have files
+				// for these episodes
+				foreach (Contract_AnimeEpisode canEp in candidateEps)
+				{
+					// now refresh from the database to get file count
+					AnimeEpisode epFresh = repEps.GetByID(canEp.AnimeEpisodeID);
+					if (epFresh.VideoLocals.Count > 0)
+						ret.Add(epFresh.ToContract(true, userID, null));
+				}
+
+				return ret;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ret;
 			}
 		}
 

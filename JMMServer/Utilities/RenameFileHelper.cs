@@ -810,7 +810,7 @@ namespace JMMServer
 					}
 					else
 					{
-						if (aniFile.FileVersion == testEpNumber) return false;
+						if (episodes[0].EpisodeNumber == testEpNumber) return false;
 						else return true;
 					}
 				}

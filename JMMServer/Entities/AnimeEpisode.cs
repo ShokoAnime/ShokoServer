@@ -47,7 +47,7 @@ namespace JMMServer.Entities
 			return repEpUser.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
 		}
 
-		public Contract_AnimeEpisode ToContract(bool getFileCount, int userID)
+		public Contract_AnimeEpisode ToContract(bool getFileCount, int userID, AnimeSeries_User seruser)
 		{
 			Contract_AnimeEpisode contract = new Contract_AnimeEpisode();
 			contract.AniDB_EpisodeID = this.AniDB_EpisodeID;
@@ -74,6 +74,10 @@ namespace JMMServer.Entities
 				contract.WatchedDate = epuser.WatchedDate;
 			}
 
+			if (seruser == null)
+				contract.UnwatchedEpCountSeries = 0;
+			else
+				contract.UnwatchedEpCountSeries = seruser.UnwatchedEpisodeCount;
 
 			AniDB_Episode aniEp = this.AniDB_Episode;
 			contract.AniDB_AirDate = aniEp.AirDateAsDate;
@@ -102,10 +106,10 @@ namespace JMMServer.Entities
 
 		public Contract_AnimeEpisode ToContract(int userID)
 		{
-			return ToContract(true, userID);
+			return ToContract(true, userID, null);
 		}
 
-		public Contract_AnimeEpisode ToContract(AniDB_Episode aniEp, List<VideoLocal> epVids, AnimeEpisode_User epuser)
+		public Contract_AnimeEpisode ToContract(AniDB_Episode aniEp, List<VideoLocal> epVids, AnimeEpisode_User epuser, AnimeSeries_User seruser)
 		{
 			Contract_AnimeEpisode contract = new Contract_AnimeEpisode();
 			contract.AniDB_EpisodeID = this.AniDB_EpisodeID;
@@ -130,6 +134,10 @@ namespace JMMServer.Entities
 				contract.WatchedDate = epuser.WatchedDate;
 			}
 
+			if (seruser == null)
+				contract.UnwatchedEpCountSeries = 0;
+			else
+				contract.UnwatchedEpCountSeries = seruser.UnwatchedEpisodeCount;
 			
 			contract.AniDB_AirDate = aniEp.AirDateAsDate;
 			contract.AniDB_EnglishName = aniEp.EnglishName;

@@ -22,6 +22,7 @@ namespace JMMContracts
 		public int WatchedCount { get; set; }
 		public int StoppedCount { get; set; }
 		public int LocalFileCount { get; set; }
+		public int UnwatchedEpCountSeries { get; set; }
 
 		// from AniDB_Episode
 		public int AniDB_LengthSeconds { get; set; }
