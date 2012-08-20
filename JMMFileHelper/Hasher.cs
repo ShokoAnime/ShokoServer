@@ -199,8 +199,9 @@ namespace JMMFileHelper
 
 			if (getED2k)
 			{
-				byte[] baHashFinal = md4.ComputeHash(baED2KHash);
-				rhash.ed2k = BitConverter.ToString(baHashFinal).Replace("-", "").ToUpper();
+				//byte[] baHashFinal = md4.ComputeHash(baED2KHash);
+				//rhash.ed2k = BitConverter.ToString(baHashFinal).Replace("-", "").ToUpper();
+				rhash.ed2k = nBlocks > 1 ? BitConverter.ToString(md4.ComputeHash(baED2KHash)).Replace("-", "").ToUpper() : BitConverter.ToString(baED2KHash).Replace("-", "").ToUpper();
 			}
 			if (getCRC32) rhash.crc32 = BitConverter.ToString(crc32.Hash).Replace("-", "").ToUpper();
 			if (getMD5) rhash.md5 = BitConverter.ToString(md5.Hash).Replace("-", "").ToUpper();
