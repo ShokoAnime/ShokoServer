@@ -1913,6 +1913,7 @@ namespace JMMServer
 
 		private static bool EvaluateTest(string line, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime, VideoInfo vi)
 		{
+			line = line.Trim();
 			// determine if this line has a test
 			foreach (char c in validTests)
 			{
@@ -1938,7 +1939,8 @@ namespace JMMServer
 						{
 							foundAND = true;
 							string thisLineRemainder = line.Substring(posStart + 1, line.Length - posStart - 1).Trim(); // remove any spacing
-							char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
+							//char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
+							char thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
 
 							int posStartNew = thisLineRemainder.IndexOf('(');
 							int posEndNew = thisLineRemainder.IndexOf(')');
@@ -1964,7 +1966,8 @@ namespace JMMServer
 							if (posStart > 0)
 							{
 								string thisLineRemainder = line.Substring(posStart + 1, line.Length - posStart - 1).Trim(); // remove any spacing
-								char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
+								//char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
+								char thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
 
 								int posStartNew = thisLineRemainder.IndexOf('(');
 								int posEndNew = thisLineRemainder.IndexOf(')');
@@ -1987,6 +1990,8 @@ namespace JMMServer
 
 		private static bool EvaluateTest(char testChar, string testCondition, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime, VideoInfo vi)
 		{
+			testCondition = testCondition.Trim();
+
 			switch (testChar)
 			{
 				case 'A': return EvaluateTestA(testCondition, vid, aniFile);
