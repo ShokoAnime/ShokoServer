@@ -608,6 +608,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AnimeEpisode> GetAllUnwatchedEpisodes(int animeSeriesID, int userID);
+
+		[OperationContract]
+		List<Contract_VideoDetailed> GetFilesByGroup(int animeID, string relGroupName, int userID);
 	}
 
 }
