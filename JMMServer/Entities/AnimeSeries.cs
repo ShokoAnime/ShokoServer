@@ -364,7 +364,140 @@ namespace JMMServer.Entities
 			//return "";
 		}
 
-		public void UpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)
+	    internal class EpisodeList : List<EpisodeList.StatEpisodes>
+	    {
+            public EpisodeList(enAnimeType ept)
+            {
+                AnimeType = ept;
+            }
+	        private enAnimeType AnimeType { get; set; }
+            System.Text.RegularExpressions.Regex partmatch = new System.Text.RegularExpressions.Regex("part (\\d.*?) of (\\d.*)");
+            System.Text.RegularExpressions.Regex remsymbols = new System.Text.RegularExpressions.Regex("[^A-Za-z0-9 ]");
+	        private System.Text.RegularExpressions.Regex remmultispace = new System.Text.RegularExpressions.Regex("\\s+");
+            public void Add(AnimeEpisode ep, bool available)
+            {
+                if ((AnimeType == enAnimeType.OVA) || (AnimeType == enAnimeType.Movie))
+                {
+                    AniDB_Episode aniEp = ep.AniDB_Episode;
+                    string ename = aniEp.EnglishName.ToLower();
+                    System.Text.RegularExpressions.Match m = partmatch.Match(ename);
+                    StatEpisodes.StatEpisode s = new StatEpisodes.StatEpisode();
+                    s.Available = available;
+                    if (m.Success)
+                    {
+                        int part_number = 0;
+                        int part_count = 0;
+                        int.TryParse(m.Groups[1].Value, out part_number);
+                        int.TryParse(m.Groups[2].Value, out part_count);
+                        string rname = partmatch.Replace(ename, string.Empty);
+                        rname = remsymbols.Replace(rname, string.Empty);
+                        rname = remmultispace.Replace(rname, " ");
+
+
+                        s.EpisodeType = StatEpisodes.StatEpisode.EpType.Part;
+                        s.PartCount = part_count;
+                        s.Match = rname.Trim();
+                        if ((s.Match == "complete movie") || (s.Match == "movie") || (s.Match == "ova"))
+                            s.Match = string.Empty;
+                    }
+                    else
+                    {
+                        if ((ename == "complete movie") || (ename == "movie") || (ename == "ova"))
+                        {
+                            s.Match = string.Empty;
+                        }
+                        else
+                        {
+                            string rname = partmatch.Replace(aniEp.EnglishName.ToLower(), string.Empty);
+                            rname = remsymbols.Replace(rname, string.Empty);
+                            rname = remmultispace.Replace(rname, " ");
+                            s.Match = rname.Trim();
+                        }
+                        s.EpisodeType = StatEpisodes.StatEpisode.EpType.Complete;
+                        s.PartCount = 0;
+                    }
+                    StatEpisodes fnd = null;
+                    foreach (StatEpisodes k in this)
+                    {
+                        foreach (StatEpisodes.StatEpisode ss in k)
+                        {
+                            if (ss.Match == s.Match)
+                            {
+                                fnd = k;
+                                break;
+                            }
+                        }
+                        if (fnd!=null)
+                            break;
+                    }
+                    if (fnd==null)
+                    {
+                        StatEpisodes eps = new StatEpisodes();
+                        eps.Add(s);
+                        Add(eps);
+                    }
+                    else
+                        fnd.Add(s);
+                }
+                else
+                {
+                    StatEpisodes eps=new StatEpisodes();
+                    StatEpisodes.StatEpisode es=new StatEpisodes.StatEpisode();
+                    es.Match = string.Empty;
+                    es.EpisodeType = StatEpisodes.StatEpisode.EpType.Complete;
+                    es.PartCount = 0;
+                    es.Available = available;
+                    eps.Add(es);
+                    this.Add(eps);
+                }
+            }
+
+	        public class StatEpisodes : List<StatEpisodes.StatEpisode>
+	        {
+	            public class StatEpisode
+	            {
+	                public enum EpType
+	                {
+	                    Complete,
+	                    Part
+	                }
+
+	                public string Match;
+	                public int PartCount;
+	                public EpType EpisodeType { get; set; }
+	                public bool Available { get; set; }
+
+	            }
+
+	            public bool Available
+	            {
+	                get
+	                {
+	                    int maxcnt = 0;
+                        foreach (StatEpisode k in this)
+                        {
+                            if (k.PartCount>maxcnt)
+                                maxcnt = k.PartCount;
+                        }
+                        int[] parts=new int[maxcnt+1];
+	                    foreach (StatEpisode k in this)
+	                    {
+	                        if ((k.EpisodeType == StatEpisode.EpType.Complete) && (k.Available))
+	                            return true;
+	                        if ((k.EpisodeType == StatEpisode.EpType.Part) && (k.Available))
+	                        {
+	                            parts[k.PartCount]++;
+                                if (parts[k.PartCount] == k.PartCount)
+                                    return true;
+	                        }
+	                    }
+	                    return false;
+	                }
+	            }
+	        }
+	    }
+
+	    public void UpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)
 		{
 			
 			DateTime start = DateTime.Now;
@@ -479,22 +612,18 @@ namespace JMMServer.Entities
 			logger.Trace("Updated WATCHED stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
 			start = DateTime.Now;
             
-            //INSERT
-		    bool movieType = false;
-            System.Text.RegularExpressions.Regex partmatch = new System.Text.RegularExpressions.Regex("Part (.*?) of (.*)");
-            AniDB_Anime aniDB_Anime = this.Anime;
-		    int[] parts = new int[100]; //More than 100 parts is impossible.
 
-            if (this.Anime!=null)
-            {
-                if (this.Anime.AnimeTypeEnum==enAnimeType.Movie)
-                    movieType = true;
-            }
-            //INSERT
 
 
 			if (missingEpsStats)
 			{
+                enAnimeType animeType=enAnimeType.TVSeries;
+                AniDB_Anime aniDB_Anime = this.Anime;
+                if (this.Anime != null)
+                {
+                    animeType = this.Anime.AnimeTypeEnum;
+                }
+
 				MissingEpisodeCount = 0;
 				MissingEpisodeCountGroups = 0;
 
@@ -535,6 +664,9 @@ namespace JMMServer.Entities
 				}
 
 				int latestLocalEpNumber = 0;
+			    EpisodeList epReleasedList = new EpisodeList(animeType);
+                EpisodeList epGroupReleasedList =new EpisodeList(animeType);
+
 				foreach (AnimeEpisode ep in eps)
 				{
 					//List<VideoLocal> vids = ep.VideoLocals;
@@ -571,37 +703,30 @@ namespace JMMServer.Entities
 						if (userReleaseGroups.Contains(gs.GroupID) && gs.HasGroupReleasedEpisode(thisEpNum)) epReleasedGroup = true;
 					}
 
-                    //INSERT
-                    if ((movieType) && (vids.Count > 0))
-                    {
-                        if (aniEp.EnglishName.ToLower() == "complete movie")
-                        {
-                            MissingEpisodeCount = 0;
-                            MissingEpisodeCountGroups = 0;
-                            break;
-                        }
-                        System.Text.RegularExpressions.Match m = partmatch.Match(aniEp.EnglishName);
-                        if (m.Success)
-                        {
-                            int part_number = 0;
-                            int part_count = 0;
-                            int.TryParse(m.Groups[1].Value, out part_number);
-                            int.TryParse(m.Groups[2].Value, out part_count);
-                            parts[part_count]++;
-                            if (parts[part_count] == part_count)
-                            {
-                                MissingEpisodeCount = 0;
-                                break;
-                            }
-                        }
-                    }
 
-				    //INSERT
-					if (epReleased && vids.Count == 0) 
-						MissingEpisodeCount++;
-					if (epReleasedGroup && vids.Count == 0) 
-						MissingEpisodeCountGroups++;
+				    try
+				    {
+                        epReleasedList.Add(ep, (!epReleased || vids.Count != 0));
+                        epGroupReleasedList.Add(ep, (!epReleasedGroup || vids.Count != 0));
+
+				    }
+				    catch (Exception e)
+				    {
+				        logger.Trace("Error {0}", e.ToString());
+                        throw;
+				    }
 				}
+                foreach(EpisodeList.StatEpisodes eplst in epReleasedList)
+                {
+                    if (!eplst.Available)
+				        MissingEpisodeCount++;
+                }
+                foreach(EpisodeList.StatEpisodes eplst in epGroupReleasedList)
+                {
+                    if (!eplst.Available)
+				        MissingEpisodeCountGroups++;
+                }
+
 				this.LatestLocalEpisodeNumber = latestLocalEpNumber;
 			}
 
