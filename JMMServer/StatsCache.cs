@@ -57,6 +57,7 @@ namespace JMMServer
 		public Dictionary<int, int> StatGroupEpisodeCount = null; // AnimeGroupID
 		public Dictionary<int, decimal> StatGroupAniDBRating = null; // AnimeGroupID / AniDBVote
 
+	    public Dictionary<int, Dictionary<int, HashSet<int>>> StatUserGroupFilter = null;
 
 		public StatsCache()
 		{
@@ -92,8 +93,135 @@ namespace JMMServer
 			StatGroupSeriesCount = new Dictionary<int, int>();
 			StatGroupEpisodeCount = new Dictionary<int, int>();
 			StatGroupAniDBRating = new Dictionary<int, decimal>();
+
+            StatUserGroupFilter = new Dictionary<int, Dictionary<int, HashSet<int>>>();
 		}
 
+        public void UpdateGroupFilterUsingGroupFilter(int groupfilter)
+        {
+            AnimeGroupRepository repGroups = new AnimeGroupRepository();
+            AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
+            JMMUserRepository repUser =new JMMUserRepository();
+            GroupFilterRepository repGrpFilter=new GroupFilterRepository();
+            GroupFilter gf = repGrpFilter.GetByID(groupfilter);
+            if (gf==null)
+                return;
+
+            foreach(JMMUser user in repUser.GetAll())
+            {
+                Dictionary<int, HashSet<int>> groupfilters;
+                if (StatUserGroupFilter.ContainsKey(user.JMMUserID))
+                    groupfilters = StatUserGroupFilter[user.JMMUserID];
+                else
+                {
+                    groupfilters = new Dictionary<int, HashSet<int>>();
+                    StatUserGroupFilter.Add(user.JMMUserID, groupfilters);
+                }
+                HashSet<int> groups;
+                if (groupfilters.ContainsKey(groupfilter))
+                    groups = groupfilters[groupfilter];
+                else
+                {
+                    groups = new HashSet<int>();
+                    groupfilters.Add(groupfilter, groups);
+                }
+                groups.Clear();
+                List<AnimeGroup> allGrps = repGroups.GetAllTopLevelGroups(); // No Need of subgroups
+
+                foreach (AnimeGroup grp in allGrps)
+                {
+                    AnimeGroup_User userRec = repUserGroups.GetByUserAndGroupID(user.JMMUserID, grp.AnimeGroupID);
+                    if (EvaluateGroupFilter(gf, grp, user, userRec))
+                        groups.Add(grp.AnimeGroupID);
+                }
+            }
+        }
+        public void UpdateGroupFilterUsingUser(int userid)
+        {
+            AnimeGroupRepository repGroups = new AnimeGroupRepository();
+            AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
+            JMMUserRepository repUser = new JMMUserRepository();
+            GroupFilterRepository repGrpFilter = new GroupFilterRepository();
+            JMMUser user = repUser.GetByID(userid);
+            if (user == null)
+                return;
+            Dictionary<int, HashSet<int>> groupfilters;
+            if (StatUserGroupFilter.ContainsKey(user.JMMUserID))
+                groupfilters = StatUserGroupFilter[user.JMMUserID];
+            else
+            {
+                groupfilters = new Dictionary<int, HashSet<int>>();
+                StatUserGroupFilter.Add(user.JMMUserID, groupfilters);
+            }
+            List<GroupFilter> gfs = repGrpFilter.GetAll();
+		    GroupFilter gfgf = new GroupFilter();
+			gfgf.GroupFilterName = "All";
+            gfs.Add(gfgf);
+            foreach(GroupFilter gf in gfs)
+            {
+                HashSet<int> groups;
+                if (groupfilters.ContainsKey(gf.GroupFilterID))
+                    groups = groupfilters[gf.GroupFilterID];
+                else
+                {
+                    groups = new HashSet<int>();
+                    groupfilters.Add(gf.GroupFilterID, groups);
+                }
+                groups.Clear();
+                List<AnimeGroup> allGrps = repGroups.GetAllTopLevelGroups(); // No Need of subgroups
+
+                foreach (AnimeGroup grp in allGrps)
+                {
+                    AnimeGroup_User userRec = repUserGroups.GetByUserAndGroupID(user.JMMUserID, grp.AnimeGroupID);
+                    if (EvaluateGroupFilter(gf, grp, user, userRec))
+                        groups.Add(grp.AnimeGroupID);
+                }
+            }
+        }
+        public void UpdateGroupFilterUsingGroup(int groupid)
+        {
+            AnimeGroupRepository repGroups = new AnimeGroupRepository();
+            AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
+            JMMUserRepository repUser = new JMMUserRepository();
+            GroupFilterRepository repGrpFilter = new GroupFilterRepository();
+
+            AnimeGroup grp = repGroups.GetByID(groupid);
+            if (grp.AnimeGroupParentID.HasValue)
+                return;
+            foreach (JMMUser user in repUser.GetAll())
+            {
+                AnimeGroup_User userRec = repUserGroups.GetByUserAndGroupID(user.JMMUserID, groupid);
+            
+                Dictionary<int, HashSet<int>> groupfilters;
+                if (StatUserGroupFilter.ContainsKey(user.JMMUserID))
+                    groupfilters = StatUserGroupFilter[user.JMMUserID];
+                else
+                {
+                    groupfilters = new Dictionary<int, HashSet<int>>();
+                    StatUserGroupFilter.Add(user.JMMUserID, groupfilters);
+                }
+                List<GroupFilter> gfs = repGrpFilter.GetAll();
+                GroupFilter gfgf = new GroupFilter();
+                gfgf.GroupFilterName = "All";
+                gfs.Add(gfgf);
+
+                foreach (GroupFilter gf in gfs)
+                {
+                    HashSet<int> groups;
+                    if (groupfilters.ContainsKey(gf.GroupFilterID))
+                        groups = groupfilters[gf.GroupFilterID];
+                    else
+                    {
+                        groups = new HashSet<int>();
+                        groupfilters.Add(gf.GroupFilterID, groups);
+                    }
+                    if (groups.Contains(groupid))
+                        groups.Remove(groupid);
+                    if (EvaluateGroupFilter(gf, grp, user, userRec))
+                        groups.Add(grp.AnimeGroupID);
+                }
+            }
+        }
 		public void UpdateUsingAniDBFile(string hash)
 		{
 			try
@@ -466,7 +594,14 @@ namespace JMMServer
 						Stat_SubtitleLanguages += subLan;
 					}
 					this.StatGroupSubtitleLanguages[grp.AnimeGroupID] = Stat_SubtitleLanguages;
-				}
+
+                    ts = DateTime.Now - start;
+                    logger.Trace("Updating cached stats for GROUP - STEP 9 ({0}) in {1} ms", grp.GroupName, ts.TotalMilliseconds);
+                    start = DateTime.Now;
+                    UpdateGroupFilterUsingGroup(grp.AnimeGroupID);
+                    ts = DateTime.Now - start;
+                    logger.Trace("Updating cached stats for GROUP - END ({0}) in {1} ms", grp.GroupName, ts.TotalMilliseconds);
+                }
 			}
 			catch (Exception ex)
 			{
@@ -893,7 +1028,7 @@ namespace JMMServer
 					}
 					this.StatGroupSubtitleLanguages[ag.AnimeGroupID] = Stat_SubtitleLanguages;
 
-
+                    UpdateGroupFilterUsingGroup(ag.AnimeGroupID);
 				}
 
 

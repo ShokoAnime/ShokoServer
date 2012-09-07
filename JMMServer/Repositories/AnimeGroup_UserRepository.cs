@@ -25,6 +25,9 @@ namespace JMMServer.Repositories
 			}
 			//logger.Trace("Updating group stats by group from AnimeGroup_UserRepository.Save: {0}", obj.AnimeGroupID);
 			//StatsCache.Instance.UpdateUsingGroup(obj.AnimeGroupID);
+            logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Save: {0}", obj.AnimeGroupID);
+		    StatsCache.Instance.UpdateGroupFilterUsingGroup(obj.AnimeGroupID);
+
 		}
 
 		public AnimeGroup_User GetByID(int id)
@@ -88,26 +91,32 @@ namespace JMMServer.Repositories
 
 		public void Delete(int id)
 		{
-			AnimeGroup_User cr = null;
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				// populate the database
-				using (var transaction = session.BeginTransaction())
-				{
-					cr = GetByID(id);
-					if (cr != null)
-					{
-						session.Delete(cr);
-						transaction.Commit();
-					}
-				}
-			}
+		    AnimeGroup_User cr = null;
+		    using (var session = JMMService.SessionFactory.OpenSession())
+		    {
+		        // populate the database
+		        using (var transaction = session.BeginTransaction())
+		        {
+		            cr = GetByID(id);
+		            if (cr != null)
+		            {
+		                session.Delete(cr);
+		                transaction.Commit();
+		            }
+		        }
+		    }
+		    if (cr != null)
+		    {
+		        logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}", cr.AnimeGroupID);
+		        StatsCache.Instance.UpdateGroupFilterUsingGroup(cr.AnimeGroupID);
+		    }
+		}
 
-			//if (cr != null)
+	    //if (cr != null)
 			//{
 			//	logger.Trace("Updating group stats by group from AnimeGroupRepository.Delete: {0}", cr.AnimeGroupID);
 			//	StatsCache.Instance.UpdateUsingGroup(cr.AnimeGroupID);
 			//}
-		}
+
 	}
 }

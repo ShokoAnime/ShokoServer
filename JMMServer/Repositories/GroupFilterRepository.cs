@@ -4,11 +4,14 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NLog;
 
 namespace JMMServer.Repositories
 {
 	public class GroupFilterRepository
 	{
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
 		public void Save(GroupFilter obj)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
@@ -20,6 +23,8 @@ namespace JMMServer.Repositories
 					transaction.Commit();
 				}
 			}
+            logger.Trace("Updating group filter stats by groupfilter from GroupFilterRepository.Save: {0}", obj.GroupFilterID);
+            StatsCache.Instance.UpdateGroupFilterUsingGroupFilter(obj.GroupFilterID);
 		}
 
 		public GroupFilter GetByID(int id)

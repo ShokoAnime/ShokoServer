@@ -4,11 +4,15 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NLog;
 
 namespace JMMServer.Repositories
 {
 	public class GroupFilterConditionRepository
 	{
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
+
 		public void Save(GroupFilterCondition obj)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
@@ -20,6 +24,9 @@ namespace JMMServer.Repositories
 					transaction.Commit();
 				}
 			}
+
+            logger.Trace("Updating group filter stats by groupfilter condition from GroupFilterConditionRepository.Save: {0}", obj.GroupFilterID);
+            StatsCache.Instance.UpdateGroupFilterUsingGroupFilter(obj.GroupFilterID);
 		}
 
 		public GroupFilterCondition GetByID(int id)
@@ -69,12 +76,13 @@ namespace JMMServer.Repositories
 
 		public void Delete(int id)
 		{
+		    GroupFilterCondition cr= null;
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				// populate the database
 				using (var transaction = session.BeginTransaction())
 				{
-					GroupFilterCondition cr = GetByID(id);
+					cr = GetByID(id);
 					if (cr != null)
 					{
 						session.Delete(cr);
@@ -82,6 +90,11 @@ namespace JMMServer.Repositories
 					}
 				}
 			}
+            if (cr!=null)
+            {
+                logger.Trace("Updating group filter stats by groupfilter condition from GroupFilterConditionRepository.Delete: {0}", cr.GroupFilterID);
+                StatsCache.Instance.UpdateGroupFilterUsingGroupFilter(cr.GroupFilterID);
+            }
 		}
 	}
 }

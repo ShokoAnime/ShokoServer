@@ -478,6 +478,20 @@ namespace JMMServer.Entities
 			TimeSpan ts = DateTime.Now - start;
 			logger.Trace("Updated WATCHED stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
 			start = DateTime.Now;
+            
+            //INSERT
+		    bool movieType = false;
+            System.Text.RegularExpressions.Regex partmatch = new System.Text.RegularExpressions.Regex("Part (.*?) of (.*)");
+            AniDB_Anime aniDB_Anime = this.Anime;
+		    int[] parts = new int[100]; //More than 100 parts is impossible.
+
+            if (this.Anime!=null)
+            {
+                if (this.Anime.AnimeTypeEnum==enAnimeType.Movie)
+                    movieType = true;
+            }
+            //INSERT
+
 
 			if (missingEpsStats)
 			{
@@ -557,6 +571,32 @@ namespace JMMServer.Entities
 						if (userReleaseGroups.Contains(gs.GroupID) && gs.HasGroupReleasedEpisode(thisEpNum)) epReleasedGroup = true;
 					}
 
+                    //INSERT
+                    if ((movieType) && (vids.Count > 0))
+                    {
+                        if (aniEp.EnglishName.ToLower() == "complete movie")
+                        {
+                            MissingEpisodeCount = 0;
+                            MissingEpisodeCountGroups = 0;
+                            break;
+                        }
+                        System.Text.RegularExpressions.Match m = partmatch.Match(aniEp.EnglishName);
+                        if (m.Success)
+                        {
+                            int part_number = 0;
+                            int part_count = 0;
+                            int.TryParse(m.Groups[1].Value, out part_number);
+                            int.TryParse(m.Groups[2].Value, out part_count);
+                            parts[part_count]++;
+                            if (parts[part_count] == part_count)
+                            {
+                                MissingEpisodeCount = 0;
+                                break;
+                            }
+                        }
+                    }
+
+				    //INSERT
 					if (epReleased && vids.Count == 0) 
 						MissingEpisodeCount++;
 					if (epReleasedGroup && vids.Count == 0) 

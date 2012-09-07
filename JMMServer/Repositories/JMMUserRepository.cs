@@ -23,6 +23,8 @@ namespace JMMServer.Repositories
 					transaction.Commit();
 				}
 			}
+            logger.Trace("Updating group filter stats by user from JMMUserRepository.Save: {0}", obj.JMMUserID);
+            StatsCache.Instance.UpdateGroupFilterUsingUser(obj.JMMUserID);
 		}
 
 		public JMMUser GetByID(int id)

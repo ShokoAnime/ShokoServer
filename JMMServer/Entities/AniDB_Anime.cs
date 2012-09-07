@@ -1564,6 +1564,13 @@ namespace JMMServer.Entities
 
 			foreach (AniDB_Anime_Relation rel in anime.RelatedAnime)
 			{
+                string relationtype = rel.RelationType.ToLower();
+                if ((relationtype == "same setting") || (relationtype == "alternative setting") ||
+                    (relationtype == "character") || (relationtype == "other"))
+                {
+                    //Filter these relations these will fix messes, like Gundam , Clamp, etc.
+                    continue;
+                }
 				AniDB_Anime relAnime = repAnime.GetByAnimeID(rel.RelatedAnimeID);
 				if (relAnime!= null && !relListIDs.Contains(relAnime.AnimeID))
 				{

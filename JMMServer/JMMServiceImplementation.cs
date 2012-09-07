@@ -246,7 +246,7 @@ namespace JMMServer
 					if (gf == null) return retGroups;	
 				}
 
-				Contract_GroupFilterExtended contract = gf.ToContractExtended(user);
+				//Contract_GroupFilterExtended contract = gf.ToContractExtended(user);
 
 				AnimeGroupRepository repGroups = new AnimeGroupRepository();
 				List<AnimeGroup> allGrps = repGroups.GetAll();
@@ -266,31 +266,33 @@ namespace JMMServer
 				List<AnimeSeries> allSeries = new List<AnimeSeries>();
 				if (getSingleSeriesGroups)
 					allSeries = repSeries.GetAll();
+                if ((StatsCache.Instance.StatUserGroupFilter.ContainsKey(user.JMMUserID)) && (StatsCache.Instance.StatUserGroupFilter[user.JMMUserID].ContainsKey(gf.GroupFilterID)))
+                {
+                    HashSet<int> groups = StatsCache.Instance.StatUserGroupFilter[user.JMMUserID][gf.GroupFilterID];
 
-				foreach (AnimeGroup grp in allGrps)
-				{
-					AnimeGroup_User userRec = null;
-					if (dictUserRecords.ContainsKey(grp.AnimeGroupID))
-						userRec = dictUserRecords[grp.AnimeGroupID];
+                    foreach (AnimeGroup grp in allGrps)
+                    {
+                        AnimeGroup_User userRec = null;
+                        if (dictUserRecords.ContainsKey(grp.AnimeGroupID))
+                            userRec = dictUserRecords[grp.AnimeGroupID];
+                        if (groups.Contains(grp.AnimeGroupID))
+                        {
+                            Contract_AnimeGroup contractGrp = grp.ToContract(userRec);
+                            if (getSingleSeriesGroups)
+                            {
+                                if (contractGrp.Stat_SeriesCount == 1)
+                                {
+                                    AnimeSeries ser = GetSeriesForGroup(grp.AnimeGroupID, allSeries);
+                                    if (ser != null)
+                                        contractGrp.SeriesForNameOverride = ser.ToContract(ser.GetUserRecord(userID));
 
-					if (StatsCache.Instance.EvaluateGroupFilter(gf, grp, user, userRec))
-					{
-						Contract_AnimeGroup contractGrp = grp.ToContract(userRec);
-						if (getSingleSeriesGroups)
-						{
-							if (contractGrp.Stat_SeriesCount == 1)
-							{
-								AnimeSeries ser = GetSeriesForGroup(grp.AnimeGroupID, allSeries);
-								if (ser != null)
-									contractGrp.SeriesForNameOverride = ser.ToContract(ser.GetUserRecord(userID));
-
-							}
-						}
-						retGroups.Add(contractGrp);
-					}
-				}
-
-				ts = DateTime.Now - start;
+                                }
+                            }
+                            retGroups.Add(contractGrp);
+                        }
+                    }
+                }
+			    ts = DateTime.Now - start;
 				msg = string.Format("Got groups for filter EVAL: {0} - {1} in {2} ms", gf.GroupFilterName, retGroups.Count, ts.TotalMilliseconds);
 				logger.Info(msg);
 
@@ -368,18 +370,11 @@ namespace JMMServer
 				start = DateTime.Now;
 
 				AnimeGroupRepository repGroups = new AnimeGroupRepository();
-				List<AnimeGroup> allGrps = repGroups.GetAll();
-				ts = DateTime.Now - start;
+			    List<AnimeGroup> allGrps = repGroups.GetAllTopLevelGroups();
+                ts = DateTime.Now - start;
 				logger.Info("GetAllGroups (Database) in {0} ms", ts.TotalMilliseconds);
 				start = DateTime.Now;
 
-				AnimeGroup_UserRepository repUserRecords = new AnimeGroup_UserRepository();
-				List<AnimeGroup_User> userRecords = repUserRecords.GetByUserID(userID);
-				Dictionary<int, AnimeGroup_User> dictUserRecords = new Dictionary<int, AnimeGroup_User>();
-				foreach (AnimeGroup_User userRec in userRecords)
-					dictUserRecords[userRec.AnimeGroupID] = userRec;
-
-				start = DateTime.Now;
 				foreach (GroupFilter gf in allGfs)
 				{
 					Contract_GroupFilter gfContract = gf.ToContract();
@@ -387,19 +382,20 @@ namespace JMMServer
 					gfeContract.GroupFilter = gfContract;
 					gfeContract.GroupCount = 0;
 					gfeContract.SeriesCount = 0;
+                    if ((StatsCache.Instance.StatUserGroupFilter.ContainsKey(user.JMMUserID)) && (StatsCache.Instance.StatUserGroupFilter[userID].ContainsKey(gf.GroupFilterID)))
+                    {
+                        HashSet<int> groups = StatsCache.Instance.StatUserGroupFilter[user.JMMUserID][gf.GroupFilterID];
 
-					foreach (AnimeGroup grp in allGrps)
-					{
-						AnimeGroup_User userRec = null;
-						if (dictUserRecords.ContainsKey(grp.AnimeGroupID))
-							userRec = dictUserRecords[grp.AnimeGroupID];
-
-						// calculate stats
-						if (StatsCache.Instance.EvaluateGroupFilter(gf, grp, user, userRec))
-							gfeContract.GroupCount++;
-					}
-
-					gfs.Add(gfeContract);
+                        foreach (AnimeGroup grp in allGrps)
+                        {
+                            if (groups.Contains(grp.AnimeGroupID))
+                            {
+                                // calculate stats
+                                gfeContract.GroupCount++;
+                            }
+                        }
+                    }
+				    gfs.Add(gfeContract);
 				}
 
 				ts = DateTime.Now - start;

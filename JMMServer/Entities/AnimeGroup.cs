@@ -93,6 +93,15 @@ namespace JMMServer.Entities
 			List<AniDB_Anime_Relation> relations = anime.RelatedAnime;
 			foreach (AniDB_Anime_Relation rel in relations)
 			{
+
+                string relationtype = rel.RelationType.ToLower();
+                if ((relationtype == "same setting") || (relationtype == "alternative setting") ||
+                    (relationtype == "character") || (relationtype == "other"))
+                {
+                    //Filter these relations these will fix messes, like Gundam , Clamp, etc.
+                    continue;
+                }
+
 				// we actually need to get the series, because it might have been added to another group already
 				AnimeSeries ser = repSeries.GetByAnimeID(rel.RelatedAnimeID);
 				if (ser != null)

@@ -59,13 +59,15 @@ namespace JMMServer.Entities
 			//logger.Info("GetAllGroups (Database) in {0} ms", ts.TotalMilliseconds);
 			//start = DateTime.Now;
 
-			foreach (AnimeGroup grp in allGrps)
-			{
-				// calculate stats
-				if (StatsCache.Instance.EvaluateGroupFilter(this, grp, user, grp.GetUserRecord(user.JMMUserID)))
-					contract.GroupCount++;
-			}
-
+             if ((StatsCache.Instance.StatUserGroupFilter.ContainsKey(user.JMMUserID)) && (StatsCache.Instance.StatUserGroupFilter[user.JMMUserID].ContainsKey(this.GroupFilterID)))
+             {
+                 HashSet<int> groups = StatsCache.Instance.StatUserGroupFilter[user.JMMUserID][GroupFilterID];
+                 foreach (AnimeGroup grp in allGrps)
+                 {
+                     if (groups.Contains(grp.AnimeGroupID))
+                         contract.GroupCount++;
+                 }
+             }
 			return contract;
 		}
 	}
