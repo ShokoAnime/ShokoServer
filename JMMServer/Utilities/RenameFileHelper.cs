@@ -41,7 +41,7 @@ namespace JMMServer
 		/// <param name="test"></param>
 		/// <param name="vid"></param>
 		/// <returns></returns>
-		private static bool EvaluateTestA(string test, VideoLocal vid, AniDB_File aniFile)
+		private static bool EvaluateTestA(string test, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes)
 		{
 			try
 			{
@@ -55,12 +55,10 @@ namespace JMMServer
 				int animeID = 0;
 				int.TryParse(test, out animeID);
 
-				if (aniFile == null) return false;
-
 				if (notCondition)
-					return animeID != aniFile.AnimeID;
+					return animeID != episodes[0].AnimeID;
 				else
-					return animeID == aniFile.AnimeID;
+					return animeID == episodes[0].AnimeID;
 				
 			}
 			catch (Exception ex)
@@ -171,39 +169,10 @@ namespace JMMServer
 			try
 			{
 				bool notCondition = false;
-				if (test.Substring(0, 1).Equals("!"))
-				{
-					notCondition = true;
-					test = test.Substring(1, test.Length - 1);
-				}
+				bool greaterThan = false; bool greaterThanEqual = false;
+				bool lessThan = false; bool lessThanEqual = false;
 
-				bool greaterThan = false;
-				bool greaterThanEqual = false;
-				if (test.Substring(0, 1).Equals(">"))
-				{
-					greaterThan = true;
-					test = test.Substring(1, test.Length - 1);
-					if (test.Substring(0, 1).Equals("="))
-					{
-						greaterThan = false;
-						greaterThanEqual = true;
-						test = test.Substring(1, test.Length - 1);
-					}
-				}
-
-				bool lessThan = false;
-				bool lessThanEqual = false;
-				if (test.Substring(0, 1).Equals("<"))
-				{
-					lessThan = true;
-					test = test.Substring(1, test.Length - 1);
-					if (test.Substring(0, 1).Equals("="))
-					{
-						lessThan = false;
-						lessThanEqual = true;
-						test = test.Substring(1, test.Length - 1);
-					}
-				}
+				ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual, ref lessThan, ref lessThanEqual);
 
 				if (aniFile == null) return false;
 
@@ -262,7 +231,7 @@ namespace JMMServer
 			}
 		}
 
-		private static bool EvaluateTestZ(string test, VideoLocal vid, AniDB_File aniFile, VideoInfo vi)
+		private static bool EvaluateTestZ(string test, VideoLocal vid, VideoInfo vi)
 		{
 			try
 			{
@@ -271,8 +240,6 @@ namespace JMMServer
 				bool lessThan = false; bool lessThanEqual = false;
 
 				ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual, ref lessThan, ref lessThanEqual);
-
-				if (aniFile == null) return false;
 
 				int testBitDepth = 0;
 				int.TryParse(test, out testBitDepth);
@@ -342,13 +309,16 @@ namespace JMMServer
 
 				ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual, ref lessThan, ref lessThanEqual);
 
-				if (aniFile == null) return false;
 				if (vi == null) return false;
 
 				int testWidth = 0;
 				int.TryParse(test, out testWidth);
 
-				int width = Utils.GetVideoWidth(aniFile.File_VideoResolution);
+				int width = 0;
+
+				if (aniFile != null)
+					width = Utils.GetVideoWidth(aniFile.File_VideoResolution);
+
 				if (width == 0)
 					width = Utils.GetVideoWidth(vi.VideoResolution);
 
@@ -414,13 +384,15 @@ namespace JMMServer
 
 				ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual, ref lessThan, ref lessThanEqual);
 
-				if (aniFile == null) return false;
 				if (vi == null) return false;
 
 				int testHeight = 0;
 				int.TryParse(test, out testHeight);
 
-				int height = Utils.GetVideoHeight(aniFile.File_VideoResolution);
+				int height = 0;
+				if (aniFile != null)
+					height = Utils.GetVideoHeight(aniFile.File_VideoResolution);
+
 				if (height == 0)
 					height = Utils.GetVideoHeight(vi.VideoResolution);
 
@@ -614,7 +586,7 @@ namespace JMMServer
 			}
 		}
 
-		private static bool EvaluateTestT(string test, VideoLocal vid, AniDB_File aniFile, AniDB_Anime anime)
+		private static bool EvaluateTestT(string test, VideoLocal vid, AniDB_Anime anime)
 		{
 			try
 			{
@@ -624,8 +596,6 @@ namespace JMMServer
 					notCondition = true;
 					test = test.Substring(1, test.Length - 1);
 				}
-
-				if (aniFile == null) return false;
 
 				bool hasType = !string.IsNullOrEmpty(anime.AnimeTypeRAW);
 				if (test.Trim().Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) && !hasType)
@@ -659,46 +629,15 @@ namespace JMMServer
 			}
 		}
 
-		private static bool EvaluateTestY(string test, VideoLocal vid, AniDB_File aniFile, AniDB_Anime anime)
+		private static bool EvaluateTestY(string test, VideoLocal vid, AniDB_Anime anime)
 		{
 			try
 			{
 				bool notCondition = false;
-				if (test.Substring(0, 1).Equals("!"))
-				{
-					notCondition = true;
-					test = test.Substring(1, test.Length - 1);
-				}
+				bool greaterThan = false; bool greaterThanEqual = false;
+				bool lessThan = false; bool lessThanEqual = false;
 
-				bool greaterThan = false;
-				bool greaterThanEqual = false;
-				if (test.Substring(0, 1).Equals(">"))
-				{
-					greaterThan = true;
-					test = test.Substring(1, test.Length - 1);
-					if (test.Substring(0, 1).Equals("="))
-					{
-						greaterThan = false;
-						greaterThanEqual = true;
-						test = test.Substring(1, test.Length - 1);
-					}
-				}
-
-				bool lessThan = false;
-				bool lessThanEqual = false;
-				if (test.Substring(0, 1).Equals("<"))
-				{
-					lessThan = true;
-					test = test.Substring(1, test.Length - 1);
-					if (test.Substring(0, 1).Equals("="))
-					{
-						lessThan = false;
-						lessThanEqual = true;
-						test = test.Substring(1, test.Length - 1);
-					}
-				}
-
-				if (aniFile == null) return false;
+				ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual, ref lessThan, ref lessThanEqual);
 
 				int testYear = 0;
 				int.TryParse(test, out testYear);
@@ -755,46 +694,15 @@ namespace JMMServer
 			}
 		}
 
-		private static bool EvaluateTestE(string test, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes)
+		private static bool EvaluateTestE(string test, VideoLocal vid, List<AniDB_Episode> episodes)
 		{
 			try
 			{
 				bool notCondition = false;
-				if (test.Substring(0, 1).Equals("!"))
-				{
-					notCondition = true;
-					test = test.Substring(1, test.Length - 1);
-				}
+				bool greaterThan = false; bool greaterThanEqual = false;
+				bool lessThan = false; bool lessThanEqual = false;
 
-				bool greaterThan = false;
-				bool greaterThanEqual = false;
-				if (test.Substring(0, 1).Equals(">"))
-				{
-					greaterThan = true;
-					test = test.Substring(1, test.Length - 1);
-					if (test.Substring(0, 1).Equals("="))
-					{
-						greaterThan = false;
-						greaterThanEqual = true;
-						test = test.Substring(1, test.Length - 1);
-					}
-				}
-
-				bool lessThan = false;
-				bool lessThanEqual = false;
-				if (test.Substring(0, 1).Equals("<"))
-				{
-					lessThan = true;
-					test = test.Substring(1, test.Length - 1);
-					if (test.Substring(0, 1).Equals("="))
-					{
-						lessThan = false;
-						lessThanEqual = true;
-						test = test.Substring(1, test.Length - 1);
-					}
-				}
-
-				if (aniFile == null) return false;
+				ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual, ref lessThan, ref lessThanEqual);
 
 				int testEpNumber = 0;
 				int.TryParse(test, out testEpNumber);
@@ -851,7 +759,7 @@ namespace JMMServer
 			}
 		}
 
-		private static bool EvaluateTestH(string test, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes)
+		private static bool EvaluateTestH(string test, VideoLocal vid, List<AniDB_Episode> episodes)
 		{
 			try
 			{
@@ -861,8 +769,6 @@ namespace JMMServer
 					notCondition = true;
 					test = test.Substring(1, test.Length - 1);
 				}
-
-				if (aniFile == null) return false;
 
 				string epType = "";
 				switch (episodes[0].EpisodeTypeEnum)
@@ -947,7 +853,7 @@ namespace JMMServer
 			}
 		}
 
-		private static bool EvaluateTestX(string test, VideoLocal vid, AniDB_File aniFile, AniDB_Anime anime)
+		private static bool EvaluateTestX(string test, VideoLocal vid, AniDB_Anime anime)
 		{
 			try
 			{
@@ -956,8 +862,6 @@ namespace JMMServer
 				bool lessThan = false; bool lessThanEqual = false;
 
 				ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual, ref lessThan, ref lessThanEqual);
-
-				if (aniFile == null) return false;
 
 				int epCount = 0;
 				int.TryParse(test, out epCount);
@@ -1033,8 +937,6 @@ namespace JMMServer
 				}
 
 				
-
-				if (aniFile == null) return false;
 				if (anime == null) return false;
 
 				#region Test if Anime ID exists - yes it always does
@@ -1195,7 +1097,7 @@ namespace JMMServer
 				string tagGroupShortName = Constants.FileRenameTag.GroupShortName.Substring(1, Constants.FileRenameTag.GroupShortName.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagGroupShortName, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if (string.IsNullOrEmpty(aniFile.Anime_GroupNameShort))
+					if (aniFile == null || string.IsNullOrEmpty(aniFile.Anime_GroupNameShort))
 					{
 						if (notCondition) return true;
 						else return false;
@@ -1213,7 +1115,7 @@ namespace JMMServer
 				string tagGroupLongName = Constants.FileRenameTag.GroupLongName.Substring(1, Constants.FileRenameTag.GroupLongName.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagGroupLongName, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if (string.IsNullOrEmpty(aniFile.Anime_GroupName))
+					if (aniFile == null || string.IsNullOrEmpty(aniFile.Anime_GroupName))
 					{
 						if (notCondition) return true;
 						else return false;
@@ -1266,7 +1168,7 @@ namespace JMMServer
 				string tagDubLanguage = Constants.FileRenameTag.DubLanguage.Substring(1, Constants.FileRenameTag.DubLanguage.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagDubLanguage, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if (aniFile.Languages.Count == 0)
+					if (aniFile == null || aniFile.Languages.Count == 0)
 					{
 						if (notCondition) return true;
 						else return false;
@@ -1283,7 +1185,7 @@ namespace JMMServer
 				string tagSubLanguage = Constants.FileRenameTag.SubLanguage.Substring(1, Constants.FileRenameTag.SubLanguage.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagSubLanguage, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if (aniFile.Subtitles.Count == 0)
+					if (aniFile == null || aniFile.Subtitles.Count == 0)
 					{
 						if (notCondition) return true;
 						else return false;
@@ -1300,7 +1202,7 @@ namespace JMMServer
 				string tagVideoCodec = Constants.FileRenameTag.VideoCodec.Substring(1, Constants.FileRenameTag.VideoCodec.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagVideoCodec, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if (string.IsNullOrEmpty(aniFile.File_VideoCodec))
+					if (aniFile == null || string.IsNullOrEmpty(aniFile.File_VideoCodec))
 					{
 						if (notCondition) return true;
 						else return false;
@@ -1317,7 +1219,7 @@ namespace JMMServer
 				string tagAudioCodec = Constants.FileRenameTag.AudioCodec.Substring(1, Constants.FileRenameTag.AudioCodec.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagAudioCodec, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if (string.IsNullOrEmpty(aniFile.File_AudioCodec))
+					if (aniFile == null || string.IsNullOrEmpty(aniFile.File_AudioCodec))
 					{
 						if (notCondition) return true;
 						else return false;
@@ -1361,7 +1263,9 @@ namespace JMMServer
 				string tagCensored = Constants.FileRenameTag.Censored.Substring(1, Constants.FileRenameTag.Censored.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagCensored, StringComparison.InvariantCultureIgnoreCase))
 				{
-					bool isCensored = aniFile.IsCensored == 1;
+					bool isCensored = false;
+					if (aniFile != null)
+						isCensored = aniFile.IsCensored == 1;
 
 					if (!isCensored)
 					{
@@ -1380,7 +1284,9 @@ namespace JMMServer
 				string tagDeprecated = Constants.FileRenameTag.Deprecated.Substring(1, Constants.FileRenameTag.Deprecated.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagDeprecated, StringComparison.InvariantCultureIgnoreCase))
 				{
-					bool isDeprecated = aniFile.IsDeprecated == 1;
+					bool isDeprecated = false;
+					if (aniFile != null)
+						isDeprecated = aniFile.IsDeprecated == 1;
 
 					if (!isDeprecated)
 					{
@@ -1446,19 +1352,34 @@ namespace JMMServer
 
 			string newFileName = string.Empty;
 
-			// get all the data so we don't need to get multiple times
-			AniDB_File aniFile = vid.AniDBFile;
-			if (aniFile == null) return string.Empty;
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+			List<AniDB_Episode> episodes = new List<AniDB_Episode>();
+			AniDB_Anime anime = null;
 
 			VideoInfo vi = vid.VideoInfo;
 			if (vi == null) return string.Empty;
 
-			List<AniDB_Episode> episodes = aniFile.Episodes;
-			if (episodes.Count == 0) return string.Empty;
+			// get all the data so we don't need to get multiple times
+			AniDB_File aniFile = vid.AniDBFile;
+			if (aniFile == null)
+			{
+				List<AnimeEpisode> animeEps = vid.AnimeEpisodes;
+				if (animeEps.Count == 0) return string.Empty;
 
-			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-			AniDB_Anime anime = repAnime.GetByAnimeID(episodes[0].AnimeID);
-			if (anime == null) return string.Empty;
+				episodes.Add(animeEps[0].AniDB_Episode);
+
+				anime = repAnime.GetByAnimeID(episodes[0].AnimeID);
+				if (anime == null) return string.Empty;
+			}
+			else
+			{
+				episodes = aniFile.Episodes;
+				if (episodes.Count == 0) return string.Empty;
+				
+				anime = repAnime.GetByAnimeID(episodes[0].AnimeID);
+				if (anime == null) return string.Empty;
+			}
 
 			foreach (string line in lines)
 			{
@@ -1481,22 +1402,29 @@ namespace JMMServer
 				}
 				else
 				{
-					if (EvaluateTest(thisLine, vid, aniFile, episodes, anime, vi))
+					try
 					{
-						Debug.WriteLine(string.Format("Line passed: {0}", thisLine));
-						// if the line has passed the tests, then perform the action
+						if (EvaluateTest(thisLine, vid, aniFile, episodes, anime, vi))
+						{
+							Debug.WriteLine(string.Format("Line passed: {0}", thisLine));
+							// if the line has passed the tests, then perform the action
 
-						string action = GetAction(thisLine);
+							string action = GetAction(thisLine);
 
-						// if the action is fail, we don't want to rename
-						if (action.ToUpper().Trim().Equals(Constants.FileRenameReserved.Fail, StringComparison.InvariantCultureIgnoreCase))
-							return string.Empty;
+							// if the action is fail, we don't want to rename
+							if (action.ToUpper().Trim().Equals(Constants.FileRenameReserved.Fail, StringComparison.InvariantCultureIgnoreCase))
+								return string.Empty;
 
-						PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime, vi);
+							PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime, vi);
+						}
+						else
+						{
+							Debug.WriteLine(string.Format("Line failed: {0}", thisLine));
+						}
 					}
-					else
+					catch (Exception ex)
 					{
-						Debug.WriteLine(string.Format("Line failed: {0}", thisLine));
+						throw;
 					}
 				}
 			}
@@ -1518,12 +1446,19 @@ namespace JMMServer
 			string actionType = action.Substring(0, posStart);
 			string parameter = action.Substring(posStart + 1, action.Length - posStart - 1);
 
-			// action is to add the the new file name
-			if (actionType.Trim().Equals(Constants.FileRenameReserved.Add, StringComparison.InvariantCultureIgnoreCase))
-				PerformActionOnFileNameADD(ref newFileName, parameter, vid, aniFile, episodes, anime, vi);
+			try
+			{
+				// action is to add the the new file name
+				if (actionType.Trim().Equals(Constants.FileRenameReserved.Add, StringComparison.InvariantCultureIgnoreCase))
+					PerformActionOnFileNameADD(ref newFileName, parameter, vid, aniFile, episodes, anime, vi);
 
-			if (actionType.Trim().Equals(Constants.FileRenameReserved.Replace, StringComparison.InvariantCultureIgnoreCase))
-				PerformActionOnFileNameREPLACE(ref newFileName, parameter, vid, aniFile, episodes, anime, vi);
+				if (actionType.Trim().Equals(Constants.FileRenameReserved.Replace, StringComparison.InvariantCultureIgnoreCase))
+					PerformActionOnFileNameREPLACE(ref newFileName, parameter, vid, aniFile, episodes, anime, vi);
+			}
+			catch (Exception ex)
+			{
+				throw;
+			}
 		}
 
 		private static void PerformActionOnFileNameREPLACE(ref string newFileName, string action, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime, VideoInfo vi)
@@ -1690,7 +1625,7 @@ namespace JMMServer
 
 			if (action.Trim().ToLower().Contains(Constants.FileRenameTag.GroupShortName.ToLower()))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.GroupShortName, aniFile.Anime_GroupNameShort);
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.GroupShortName, aniFile.Anime_GroupNameShort);
 			}
 
 			#endregion
@@ -1699,7 +1634,7 @@ namespace JMMServer
 
 			if (action.Trim().ToLower().Contains(Constants.FileRenameTag.GroupLongName.ToLower()))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.GroupLongName, aniFile.Anime_GroupName);
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.GroupLongName, aniFile.Anime_GroupName);
 			}
 
 			#endregion
@@ -1726,7 +1661,7 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.CRCUpper))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.CRCUpper, aniFile.CRC.ToUpper());
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.CRCUpper, aniFile.CRC.ToUpper());
 			}
 
 			#endregion
@@ -1735,7 +1670,7 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.CRCLower))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.CRCLower, aniFile.CRC.ToLower());
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.CRCLower, aniFile.CRC.ToLower());
 			}
 
 			#endregion
@@ -1744,7 +1679,7 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.FileVersion))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.FileVersion, aniFile.FileVersion.ToString());
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.FileVersion, aniFile.FileVersion.ToString());
 			}
 
 			#endregion
@@ -1753,7 +1688,7 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.DubLanguage))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.DubLanguage, aniFile.LanguagesRAW);
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.DubLanguage, aniFile.LanguagesRAW);
 			}
 
 			#endregion
@@ -1762,7 +1697,7 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.SubLanguage))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.SubLanguage, aniFile.SubtitlesRAW);
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.SubLanguage, aniFile.SubtitlesRAW);
 			}
 
 			#endregion
@@ -1771,7 +1706,7 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.VideoCodec))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec, aniFile.File_VideoCodec);
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec, aniFile.File_VideoCodec);
 			}
 
 			#endregion
@@ -1780,7 +1715,7 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.AudioCodec))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec, aniFile.File_AudioCodec);
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec, aniFile.File_AudioCodec);
 			}
 
 			#endregion
@@ -1798,7 +1733,7 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.Source))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.Source, aniFile.File_Source);
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.Source, aniFile.File_Source);
 			}
 
 			#endregion
@@ -1816,10 +1751,14 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.Resolution))
 			{
-				string res = aniFile.File_VideoResolution;
+				string res = "";
 				bool hasResolution = true;
-				if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
-				if (aniFile.File_VideoResolution.Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
+				if (aniFile != null)
+				{
+					res = aniFile.File_VideoResolution;
+					if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
+					if (aniFile.File_VideoResolution.Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
+				}
 				if (!hasResolution)
 				{
 					// try the video info
@@ -1846,7 +1785,7 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.FileID))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.FileID, aniFile.FileID.ToString());
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.FileID, aniFile.FileID.ToString());
 			}
 
 			#endregion
@@ -1864,7 +1803,7 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.GroupID))
 			{
-				newFileName = newFileName.Replace(Constants.FileRenameTag.GroupID, aniFile.GroupID.ToString());
+				if (aniFile != null) newFileName = newFileName.Replace(Constants.FileRenameTag.GroupID, aniFile.GroupID.ToString());
 			}
 
 			#endregion
@@ -1874,10 +1813,13 @@ namespace JMMServer
 			if (action.Trim().Contains(Constants.FileRenameTag.OriginalFileName))
 			{
 				// remove the extension first 
-				string ext = Path.GetExtension(aniFile.FileName);
-				string partial = aniFile.FileName.Substring(0, aniFile.FileName.Length - ext.Length);
+				if (aniFile != null)
+				{
+					string ext = Path.GetExtension(aniFile.FileName);
+					string partial = aniFile.FileName.Substring(0, aniFile.FileName.Length - ext.Length);
 
-				newFileName = newFileName.Replace(Constants.FileRenameTag.OriginalFileName, partial);
+					newFileName = newFileName.Replace(Constants.FileRenameTag.OriginalFileName, partial);
+				}
 			}
 
 			#endregion
@@ -1994,17 +1936,17 @@ namespace JMMServer
 
 			switch (testChar)
 			{
-				case 'A': return EvaluateTestA(testCondition, vid, aniFile);
+				case 'A': return EvaluateTestA(testCondition, vid, aniFile, episodes);
 				case 'D': return EvaluateTestD(testCondition, vid, aniFile);
 				case 'S': return EvaluateTestS(testCondition, vid, aniFile);
 				case 'F': return EvaluateTestF(testCondition, vid, aniFile);
 				case 'R': return EvaluateTestR(testCondition, vid, aniFile);
-				case 'Z': return EvaluateTestZ(testCondition, vid, aniFile, vi);
-				case 'T': return EvaluateTestT(testCondition, vid, aniFile, anime);
-				case 'Y': return EvaluateTestY(testCondition, vid, aniFile, anime);
-				case 'E': return EvaluateTestE(testCondition, vid, aniFile, episodes);
-				case 'H': return EvaluateTestH(testCondition, vid, aniFile, episodes);
-				case 'X': return EvaluateTestX(testCondition, vid, aniFile, anime);
+				case 'Z': return EvaluateTestZ(testCondition, vid, vi);
+				case 'T': return EvaluateTestT(testCondition, vid, anime);
+				case 'Y': return EvaluateTestY(testCondition, vid, anime);
+				case 'E': return EvaluateTestE(testCondition, vid, episodes);
+				case 'H': return EvaluateTestH(testCondition, vid, episodes);
+				case 'X': return EvaluateTestX(testCondition, vid, anime);
 				case 'C': return EvaluateTestC(testCondition, vid, aniFile);
 				case 'J': return EvaluateTestJ(testCondition, vid, aniFile);
 				case 'I': return EvaluateTestI(testCondition, vid, aniFile, episodes, anime, vi);

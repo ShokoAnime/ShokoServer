@@ -7631,6 +7631,9 @@ namespace JMMServer
 				}
 				else
 				{
+					if (videoLocalID == 726)
+						Debug.Write("test");
+
 					ret.VideoLocal = null;
 					ret.NewFileName = RenameFileHelper.GetNewFileName(vid, renameRules);
 					if (string.IsNullOrEmpty(ret.NewFileName)) ret.Success = false;
