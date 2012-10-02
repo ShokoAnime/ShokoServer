@@ -713,49 +713,54 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public string GetFormattedTitle(List<AniDB_Anime_Title> titles)
+		{
+			foreach (NamingLanguage nlan in Languages.PreferredNamingLanguages)
+			{
+				string thisLanguage = nlan.Language.Trim().ToUpper();
+					
+				// Romaji and English titles will be contained in MAIN and/or OFFICIAL
+				// we won't use synonyms for these two languages
+				if (thisLanguage.Equals(Constants.AniDBLanguageType.Romaji) || thisLanguage.Equals(Constants.AniDBLanguageType.English))
+				{
+					foreach (AniDB_Anime_Title title in titles)
+					{
+						string titleType = title.TitleType.Trim().ToUpper();
+						// first try the  Main title
+						if (titleType == Constants.AnimeTitleType.Main.ToUpper() && title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
+					}
+				}
+
+				// now try the official title
+				foreach (AniDB_Anime_Title title in titles)
+				{
+					string titleType = title.TitleType.Trim().ToUpper();
+					if (titleType == Constants.AnimeTitleType.Official.ToUpper() && title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
+				}
+
+				// try synonyms
+				if (ServerSettings.LanguageUseSynonyms)
+				{
+					foreach (AniDB_Anime_Title title in titles)
+					{
+						string titleType = title.TitleType.Trim().ToUpper();
+						if (titleType == Constants.AnimeTitleType.Synonym.ToUpper() && title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
+					}
+				}
+
+			}
+
+			// otherwise just use the main title
+			return this.MainTitle;
+
+		}
 
 		public string FormattedTitle
 		{
 			get
 			{
 				List<AniDB_Anime_Title> thisTitles = this.Titles;
-				foreach (NamingLanguage nlan in Languages.PreferredNamingLanguages)
-				{
-					string thisLanguage = nlan.Language.Trim().ToUpper();
-					
-					// Romaji and English titles will be contained in MAIN and/or OFFICIAL
-					// we won't use synonyms for these two languages
-					if (thisLanguage.Equals(Constants.AniDBLanguageType.Romaji) || thisLanguage.Equals(Constants.AniDBLanguageType.English))
-					{
-						foreach (AniDB_Anime_Title title in thisTitles)
-						{
-							string titleType = title.TitleType.Trim().ToUpper();
-							// first try the  Main title
-							if (titleType == Constants.AnimeTitleType.Main.ToUpper() && title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
-						}
-					}
-
-					// now try the official title
-					foreach (AniDB_Anime_Title title in thisTitles)
-					{
-						string titleType = title.TitleType.Trim().ToUpper();
-						if (titleType == Constants.AnimeTitleType.Official.ToUpper() && title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
-					}
-
-					// try synonyms
-					if (ServerSettings.LanguageUseSynonyms)
-					{
-						foreach (AniDB_Anime_Title title in thisTitles)
-						{
-							string titleType = title.TitleType.Trim().ToUpper();
-							if (titleType == Constants.AnimeTitleType.Synonym.ToUpper() && title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
-						}
-					}
-
-				}
-
-				// otherwise just use the main title
-				return this.MainTitle;
+				return GetFormattedTitle(thisTitles);
 			}
 		}
 
@@ -1275,7 +1280,7 @@ namespace JMMServer.Entities
 			return sb.ToString();
 		}
 
-		public Contract_AniDBAnime ToContract(bool getDefaultImages)
+		public Contract_AniDBAnime ToContract(bool getDefaultImages, List<AniDB_Anime_Title> titles)
 		{
 			Contract_AniDBAnime contract = new Contract_AniDBAnime();
 
@@ -1311,7 +1316,12 @@ namespace JMMServer.Entities
 			contract.TempVoteCount = this.TempVoteCount;
 			contract.URL = this.URL;
 			contract.VoteCount = this.VoteCount;
-			contract.FormattedTitle = this.FormattedTitle;
+
+			if (titles == null)
+				contract.FormattedTitle = this.FormattedTitle;
+			else
+				contract.FormattedTitle = GetFormattedTitle(titles);
+
 			contract.DisableExternalLinksFlag = this.DisableExternalLinksFlag;
 
 			if (getDefaultImages)
@@ -1331,7 +1341,7 @@ namespace JMMServer.Entities
 
 		public Contract_AniDBAnime ToContract()
 		{
-			return ToContract(false);
+			return ToContract(false, null);
 		}
 
 		public Contract_AniDB_AnimeDetailed ToContractDetailed()

@@ -39,6 +39,7 @@ using JMMServer.Commands.WebCache;
 using System.Diagnostics;
 using JMMServer.UI;
 using System.ServiceModel.Dispatcher;
+using BinaryNorthwest;
 
 namespace JMMServer
 {
@@ -1126,6 +1127,10 @@ namespace JMMServer
 			return;*/
 
 			//Importer.UpdateAniDBFileData(true, true);
+
+			JMMServiceImplementation imp = new JMMServiceImplementation();
+			imp.GetAllSeries(1);
+			return;
 			
 
 			AboutForm frm = new AboutForm();
@@ -1151,6 +1156,8 @@ namespace JMMServer
 			if (ServerSettings.MinimizeOnStartup) MinimizeToTray();
 
 			tabControl1.SelectedIndex = 4; // setup
+
+			Utils.ClearAutoUpdateCache();
 
 			ShowDatabaseSetup();
 
@@ -1349,6 +1356,7 @@ namespace JMMServer
 		void workerTraktFriends_DoWork(object sender, DoWorkEventArgs e)
 		{
 			List<object> allInfo = new List<object>();
+			List<TraktActivityContainer> allInfoTemp = new List<TraktActivityContainer>();
 
 			if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
 			{
@@ -1356,18 +1364,33 @@ namespace JMMServer
 				return;
 			}
 
+			TraktTV_ActivitySummary summAll = TraktTVHelper.GetActivityFriends(false);
+			if (summAll != null)
+			{
+				foreach (TraktTV_Activity act in summAll.activity)
+					allInfoTemp.Add(new TraktActivityContainer { ActivityDate = Utils.GetAniDBDateAsDate(act.timestamp).Value, Activity = act });
+			}
+
+			TraktTV_ActivitySummary summShouts = TraktTVHelper.GetActivityFriends(true);
+			if (summShouts != null)
+			{
+				foreach (TraktTV_Activity act in summShouts.activity)
+					allInfoTemp.Add(new TraktActivityContainer { ActivityDate = Utils.GetAniDBDateAsDate(act.timestamp).Value, Activity = act });
+			}
+
+			// sort by episode type and number to find the next episode
+			List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+			sortCriteria.Add(new SortPropOrFieldAndDirection("ActivityDate", true, SortType.eDateTime));
+			allInfoTemp = Sorting.MultiSort<TraktActivityContainer>(allInfoTemp, sortCriteria);
+
+			foreach (TraktActivityContainer act in allInfoTemp)
+				allInfo.Add(act.Activity);
+
 			List<TraktTVFriendRequest> requests = TraktTVHelper.GetFriendsRequests();
 			if (requests != null)
 			{
 				foreach (TraktTVFriendRequest req in requests)
-					allInfo.Add(req);
-			}
-
-			TraktTV_ActivitySummary summ = TraktTVHelper.GetActivityFriends();
-			if (summ != null)
-			{
-				foreach (TraktTV_Activity act in summ.activity)
-					allInfo.Add(act);
+					allInfo.Insert(0, req);
 			}
 
 			e.Result = allInfo;

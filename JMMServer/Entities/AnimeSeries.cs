@@ -250,12 +250,12 @@ namespace JMMServer.Entities
 			CrossRef_AniDB_Other movieDBCrossRef = this.CrossRefMovieDB;
 			List<CrossRef_AniDB_MAL> malDBCrossRef = this.CrossRefMAL;
 
-			return this.ToContract(anime, tvDBCrossRef, movieDBCrossRef, userRecord, tvDBCrossRef != null ? tvDBCrossRef.TvDBSeries : null, malDBCrossRef, false, null, null, null);
+			return this.ToContract(anime, tvDBCrossRef, movieDBCrossRef, userRecord, tvDBCrossRef != null ? tvDBCrossRef.TvDBSeries : null, malDBCrossRef, false, null, null, null, null);
 		}
 
 		public Contract_AnimeSeries ToContract(AniDB_Anime animeRec, CrossRef_AniDB_TvDB tvDBCrossRef, CrossRef_AniDB_Other movieDBCrossRef,
 			AnimeSeries_User userRecord, TvDB_Series tvseries, List<CrossRef_AniDB_MAL> malDBCrossRef, bool passedDefaultImages, AniDB_Anime_DefaultImage defPoster,
-			AniDB_Anime_DefaultImage defFanart, AniDB_Anime_DefaultImage defWideBanner)
+			AniDB_Anime_DefaultImage defFanart, AniDB_Anime_DefaultImage defWideBanner, List<AniDB_Anime_Title> titles)
 		{
 			Contract_AnimeSeries contract = new Contract_AnimeSeries();
 
@@ -297,7 +297,7 @@ namespace JMMServer.Entities
 			contract.AniDBAnime = null;
 			if (animeRec != null)
 			{
-				Contract_AniDBAnime animecontract = animeRec.ToContract();
+				Contract_AniDBAnime animecontract = animeRec.ToContract(false, titles);
 
 				AniDB_Anime_DefaultImage defaultPoster = null;
 				if (passedDefaultImages)

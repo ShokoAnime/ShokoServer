@@ -57,5 +57,10 @@ namespace JMMServer.Providers.TraktTV
 				return 0;
 			}
 		}
+
+		public override string ToString()
+		{
+			return string.Format("{0}/{1} - {2}", ActivityAction, ActivityType, Utils.GetAniDBDateAsDate(timestamp));
+		}
 	}
 }

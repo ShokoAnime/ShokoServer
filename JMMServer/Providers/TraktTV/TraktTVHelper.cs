@@ -198,7 +198,7 @@ namespace JMMServer.Providers.TraktTV
 			return shouts;
 		}
 
-		public static TraktTV_ActivitySummary GetActivityFriends()
+		public static TraktTV_ActivitySummary GetActivityFriends(bool shoutsOnly)
 		{
 			TraktTV_ActivitySummary summ = null;
 			try
@@ -207,6 +207,8 @@ namespace JMMServer.Providers.TraktTV
 					return null;
 
 				string url = string.Format(Constants.TraktTvURLs.URLGetActivityFriends, Constants.TraktTvURLs.APIKey);
+				if (shoutsOnly)
+					url = string.Format(Constants.TraktTvURLs.URLGetActivityFriendsShoutsOnly, Constants.TraktTvURLs.APIKey);
 				logger.Trace("GetActivityFriends: {0}", url);
 
 				TraktTVPost_GetFriends cmdFriends = new TraktTVPost_GetFriends();
@@ -280,8 +282,20 @@ namespace JMMServer.Providers.TraktTV
 							}
 						}
 					}
+
+					// a shout on just the show
+					if (act.episode == null && act.show != null)
+					{
+						Trakt_Show show = repShows.GetByTraktID(act.show.TraktID);
+						if (show == null)
+						{
+							show = new Trakt_Show();
+							show.Populate(act.show);
+							repShows.Save(show);
+						}
+					}
 				}
-				
+
 			}
 			catch (Exception ex)
 			{

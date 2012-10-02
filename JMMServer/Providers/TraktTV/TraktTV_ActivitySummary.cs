@@ -16,5 +16,7 @@ namespace JMMServer.Providers.TraktTV
 
 		[DataMember]
 		public List<TraktTV_Activity> activity { get; set; }
+
+		
 	}
 }

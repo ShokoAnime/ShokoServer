@@ -30,7 +30,7 @@ namespace JMMServer.Entities
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			AniDB_Anime an = repAnime.GetByAnimeID(AnimeID);
 			if (an != null)
-				contract.Anime = an.ToContract(true);
+				contract.Anime = an.ToContract(true, null);
 
 			return contract;
 		}

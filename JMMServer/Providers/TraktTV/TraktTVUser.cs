@@ -139,7 +139,7 @@ namespace JMMServer.Providers.TraktTV
 
 							AniDB_Anime anime = repAnime.GetByAnimeID(animeID.Value);
 							if (anime != null)
-								watchedEp.Anime = anime.ToContract(true);
+								watchedEp.Anime = anime.ToContract(true, null);
 
 						}
 					}

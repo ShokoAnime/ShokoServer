@@ -270,6 +270,7 @@
     <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
     <Compile Include="Providers\MyAnimeList\MALHelper.cs" />
+    <Compile Include="Providers\TraktTV\TraktActivityContainer.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShoutShow.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_Activity.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_ActivitySummary.cs" />
