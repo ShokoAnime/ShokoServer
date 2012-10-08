@@ -1576,7 +1576,7 @@ namespace JMMServer
 
 			if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNumber.ToLower()))
 			{
-				int zeroPadding = 1;
+				int zeroPadding = 2;
 				string prefix = "";
 
 				if (episodes[0].EpisodeTypeEnum == AniDBAPI.enEpisodeType.Credits) prefix = "C";
