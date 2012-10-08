@@ -21,6 +21,8 @@ using AniDBAPI.Commands;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Commands.MAL;
 using System.Diagnostics;
+using System.Collections;
+using JMMServer.Databases;
 
 namespace JMMServer
 {
@@ -5613,6 +5615,65 @@ namespace JMMServer
 						}
 					}
 				}				
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return retEps;
+		}
+
+		public List<Contract_AnimeEpisode> GetEpisodesRecentlyAddedSummary(int maxRecords, int jmmuserID)
+		{
+			List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
+			try
+			{
+				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				JMMUserRepository repUsers = new JMMUserRepository();
+				VideoLocalRepository repVids = new VideoLocalRepository();
+
+				JMMUser user = repUsers.GetByID(jmmuserID);
+				if (user == null) return retEps;
+
+				string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
+						"From VideoLocal vl " +
+						"INNER JOIN CrossRef_File_Episode xref ON vl.Hash = xref.Hash " +
+						"INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
+						"GROUP BY ae.AnimeSeriesID " +
+						"ORDER BY MaxDate desc ";
+				ArrayList results = DatabaseHelper.GetData(sql);
+
+				int numEps = 0;
+				foreach (object[] res in results)
+				{
+					int animeSeriesID = int.Parse(res[0].ToString());
+
+					AnimeSeries ser = repSeries.GetByID(animeSeriesID);
+					if (ser == null) continue;
+
+					if (!user.AllowedSeries(ser)) continue;
+
+					List<VideoLocal> vids = repVids.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
+					if (vids.Count == 0) continue;
+
+					List<AnimeEpisode> eps = vids[0].AnimeEpisodes;
+					if (eps.Count == 0) continue;
+
+					Contract_AnimeEpisode epContract = eps[0].ToContract(jmmuserID);
+					if (epContract != null)
+					{
+						retEps.Add(epContract);
+						numEps++;
+
+						// Lets only return the specified amount
+						if (retEps.Count == maxRecords) return retEps;
+					}
+
+
+				}
 			}
 			catch (Exception ex)
 			{

@@ -132,6 +132,19 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<VideoLocal> GetMostRecentlyAddedForAnime(int maxResults, int animeID)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeid ORDER BY vl.DateTimeCreated Desc")
+					.SetParameter("animeid", animeID)
+					.SetMaxResults(maxResults)
+					.List<VideoLocal>();
+
+				return new List<VideoLocal>(vidfiles);
+			}
+		}
+
 		public List<VideoLocal> GetByAniDBResolution(string res)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

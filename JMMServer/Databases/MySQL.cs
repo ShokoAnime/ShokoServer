@@ -7,6 +7,7 @@ using System.Data.SqlClient;
 using MySql.Data.MySqlClient;
 using JMMServer.Repositories;
 using JMMServer.Entities;
+using System.Collections;
 
 
 namespace JMMServer.Databases
@@ -78,10 +79,39 @@ namespace JMMServer.Databases
 			}
 		}
 
+		public static ArrayList GetData(string sql)
+		{
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				ArrayList rowList = new ArrayList();
+				conn.Open();
+				using (MySqlCommand command = new MySqlCommand(sql, conn))
+				{
+					try
+					{
+						MySqlDataReader reader = command.ExecuteReader();
+						while (reader.Read())
+						{
+							object[] values = new object[reader.FieldCount];
+							reader.GetValues(values);
+							rowList.Add(values);
+						}
+					}
+					catch (Exception ex)
+					{
+						logger.Error(sql + " - " + ex.Message);
+					}
+				}
+				return rowList;
+			}
+		}
+
 		public static bool TestLogin()
 		{
 			return true;
 		}
+
+		
 
 		#region Schema Updates
 

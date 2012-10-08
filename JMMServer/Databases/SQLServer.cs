@@ -10,6 +10,7 @@ using JMMServer.Repositories;
 using NLog;
 using Microsoft.SqlServer.Management.Smo;
 using Microsoft.SqlServer.Management.Common;
+using System.Collections;
 
 namespace JMMServer.Databases
 {
@@ -42,6 +43,29 @@ namespace JMMServer.Databases
 			if (count > 0) return true;
 
 			return false;
+		}
+
+		public static ArrayList GetData(string sql)
+		{
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				ArrayList rowList = new ArrayList();
+				using (SqlCommand command = new SqlCommand(sql, tmpConn))
+				{
+					tmpConn.Open();
+					SqlDataReader reader = command.ExecuteReader();
+
+					
+					while (reader.Read())
+					{
+						object[] values = new object[reader.FieldCount];
+						reader.GetValues(values);
+						rowList.Add(values);
+					}
+				}
+				return rowList;
+			}
 		}
 
 		public static bool TestLogin()

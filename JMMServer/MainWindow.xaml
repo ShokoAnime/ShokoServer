@@ -456,7 +456,7 @@
                 </TabItem>
 
                 <!-- Streaming tab-->
-                <TabItem Header="Streaming" Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=ServerOnline, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TabItem Header="Streaming" Visibility="Collapsed">
 
                     <Grid>
                         <Grid.ColumnDefinitions>

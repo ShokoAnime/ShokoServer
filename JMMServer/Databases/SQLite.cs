@@ -8,6 +8,7 @@ using System.Data.SQLite;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using NLog;
+using System.Collections;
 
 namespace JMMServer.Databases
 {
@@ -61,6 +62,35 @@ namespace JMMServer.Databases
 				SQLiteConnection.CreateFile(GetDatabaseFilePath());
 
 			ServerSettings.DatabaseFile = GetDatabaseFilePath();
+		}
+
+		public static ArrayList GetData(string sql)
+		{
+			ArrayList rowList = new ArrayList();
+			try
+			{
+				SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+				myConn.Open();
+
+				SQLiteCommand sqCommand = new SQLiteCommand(sql);
+				sqCommand.Connection = myConn;
+				SQLiteDataReader reader = sqCommand.ExecuteReader();
+
+				while (reader.Read())
+				{
+					object[] values = new object[reader.FieldCount];
+					reader.GetValues(values);
+					rowList.Add(values);
+				}
+
+				myConn.Close();
+				reader.Close();
+			}
+			catch (Exception ex)
+			{
+				logger.Error(sql + " - " + ex.Message);
+			}
+			return rowList;
 		}
 
 		#region Schema Updates

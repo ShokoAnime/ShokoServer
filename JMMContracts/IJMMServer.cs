@@ -611,6 +611,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_VideoDetailed> GetFilesByGroup(int animeID, string relGroupName, int userID);
+
+		[OperationContract]
+		List<Contract_AnimeEpisode> GetEpisodesRecentlyAddedSummary(int maxRecords, int jmmuserID);
 	}
 
 }

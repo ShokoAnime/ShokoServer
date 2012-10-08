@@ -40,6 +40,7 @@ using System.Diagnostics;
 using JMMServer.UI;
 using System.ServiceModel.Dispatcher;
 using BinaryNorthwest;
+using System.Collections;
 
 namespace JMMServer
 {
@@ -1128,9 +1129,7 @@ namespace JMMServer
 
 			//Importer.UpdateAniDBFileData(true, true);
 
-			JMMServiceImplementation imp = new JMMServiceImplementation();
-			imp.GetAllSeries(1);
-			return;
+			
 			
 
 			AboutForm frm = new AboutForm();

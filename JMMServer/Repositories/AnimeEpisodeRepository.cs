@@ -122,6 +122,21 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<AnimeEpisode> GetMostRecentlyAdded(int seriesID)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var eps = session
+					.CreateCriteria(typeof(AnimeEpisode))
+					.Add(Restrictions.Eq("AnimeSeriesID", seriesID))
+					.AddOrder(Order.Desc("DateTimeCreated"))
+					.SetMaxResults(1)
+					.List<AnimeEpisode>();
+
+				return new List<AnimeEpisode>(eps);
+			}
+		}
+
 		public void Delete(int id)
 		{
 			AnimeEpisode cr = GetByID(id);

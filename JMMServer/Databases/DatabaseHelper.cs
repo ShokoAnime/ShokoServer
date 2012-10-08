@@ -10,6 +10,7 @@ using FluentNHibernate.Cfg.Db;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Threading;
+using System.Collections;
 
 namespace JMMServer.Databases
 {
@@ -135,6 +136,27 @@ namespace JMMServer.Databases
 			{
 				logger.ErrorException("Could not init database: " + ex.ToString(), ex);
 				return false;
+			}
+		}
+
+		public static ArrayList GetData(string sql)
+		{
+			try
+			{
+				if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLSERVER")
+					return SQLServer.GetData(sql);
+				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE")
+					return SQLite.GetData(sql);
+				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL")
+					return MySQL.GetData(sql);
+
+				return new ArrayList();
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Could not init database: " + ex.ToString(), ex);
+				return new ArrayList();
 			}
 		}
 
