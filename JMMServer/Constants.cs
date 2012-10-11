@@ -18,6 +18,13 @@ namespace JMMServer
 		public static readonly int FlagLinkMAL = 4;
 		public static readonly int FlagLinkMovieDB = 8;
 
+		public struct DatabaseType
+		{
+			public static readonly string SqlServer = "SQLSERVER";
+			public static readonly string Sqlite = "SQLITE";
+			public static readonly string MySQL = "MYSQL";
+		}
+
 
 		#region Labels
 

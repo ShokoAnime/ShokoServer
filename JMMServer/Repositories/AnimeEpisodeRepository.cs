@@ -5,6 +5,8 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using BinaryNorthwest;
+using System.Collections;
+using JMMServer.Databases;
 
 namespace JMMServer.Repositories
 {
@@ -102,10 +104,43 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var eps = session.CreateQuery("FROM AnimeEpisode x WHERE x.AniDB_EpisodeID IN (Select xref.EpisodeID FROM CrossRef_File_Episode xref WHERE xref.Hash IN (Select vl.Hash from VideoLocal vl) GROUP BY xref.EpisodeID HAVING COUNT(xref.EpisodeID) > 1)")
-					.List<AnimeEpisode>();
+				//FROM AnimeEpisode x WHERE x.AniDB_EpisodeID IN (Select xref.EpisodeID FROM CrossRef_File_Episode xref WHERE xref.Hash IN (Select vl.Hash from VideoLocal vl) GROUP BY xref.EpisodeID HAVING COUNT(xref.EpisodeID) > 1)
 
-				return new List<AnimeEpisode>(eps);
+
+				//FROM AnimeEpisode x INNER JOIN (select xref.EpisodeID as EpisodeID from CrossRef_File_Episode xref inner join VideoLocal vl ON xref.Hash = vl.Hash group by xref.EpisodeID  having count(xref.EpisodeID)>1) g ON g.EpisodeID = x.AniDB_EpisodeID
+
+				if (ServerSettings.DatabaseType.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
+				{
+					// work around for MySQL performance issue when handling sub queries
+					List<AnimeEpisode> epList = new List<AnimeEpisode>();
+					string sql = "Select x.AnimeEpisodeID " +
+						"FROM AnimeEpisode x " +
+						"INNER JOIN  " +
+						"(select xref.EpisodeID as EpisodeID " +
+						"from CrossRef_File_Episode xref " +
+						"inner join VideoLocal vl ON xref.Hash = vl.Hash " +
+						"group by xref.EpisodeID  having count(xref.EpisodeID)>1) " +
+						"g ON g.EpisodeID = x.AniDB_EpisodeID " +
+						" ";
+					ArrayList results = DatabaseHelper.GetData(sql);
+
+					foreach (object[] res in results)
+					{
+						int animeEpisodeID = int.Parse(res[0].ToString());
+						AnimeEpisode ep = GetByID(animeEpisodeID);
+						if (ep != null)
+							epList.Add(ep);
+					}
+
+					return epList;
+				}
+				else
+				{
+					var eps = session.CreateQuery("FROM AnimeEpisode x WHERE x.AniDB_EpisodeID IN (Select xref.EpisodeID FROM CrossRef_File_Episode xref WHERE xref.Hash IN (Select vl.Hash from VideoLocal vl) GROUP BY xref.EpisodeID HAVING COUNT(xref.EpisodeID) > 1)")
+						.List<AnimeEpisode>();
+
+					return new List<AnimeEpisode>(eps);
+				}
 			}
 		}
 

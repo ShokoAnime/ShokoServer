@@ -20,8 +20,8 @@ namespace JMMServer.Databases
 
 		public static ISessionFactory CreateSessionFactory()
 		{
-			
-			if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLSERVER")
+
+			if (ServerSettings.DatabaseType.Trim().Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
 			{
 				string connectionstring = string.Format(@"data source={0};initial catalog={1};persist security info=True;user id={2};password={3}",
 					ServerSettings.DatabaseServer, ServerSettings.DatabaseName, ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword);
@@ -34,7 +34,7 @@ namespace JMMServer.Databases
 					m.FluentMappings.AddFromAssemblyOf<JMMService>())
 				.BuildSessionFactory();
 			}
-			else if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE")
+			else if (ServerSettings.DatabaseType.Trim().Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
 			{
 				return Fluently.Configure()
 				.Database(SQLiteConfiguration.Standard
@@ -43,7 +43,7 @@ namespace JMMServer.Databases
 					m.FluentMappings.AddFromAssemblyOf<JMMService>())
 				.BuildSessionFactory();
 			}
-			else if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL")
+			else if (ServerSettings.DatabaseType.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
 			{
 				return Fluently.Configure()
 				.Database(MySQLConfiguration.Standard.ConnectionString(x => x.Database(ServerSettings.MySQL_SchemaName)
@@ -143,11 +143,11 @@ namespace JMMServer.Databases
 		{
 			try
 			{
-				if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLSERVER")
+				if (ServerSettings.DatabaseType.Trim().Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
 					return SQLServer.GetData(sql);
-				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE")
+				else if (ServerSettings.DatabaseType.Trim().Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
 					return SQLite.GetData(sql);
-				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL")
+				else if (ServerSettings.DatabaseType.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
 					return MySQL.GetData(sql);
 
 				return new ArrayList();
