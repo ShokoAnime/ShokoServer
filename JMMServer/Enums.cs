@@ -5,6 +5,28 @@ using System.Text;
 
 namespace JMMServer
 {
+	public enum RatingCollectionState
+	{
+		All = 0,
+		InMyCollection = 1,
+		AllEpisodesInMyCollection = 2,
+		NotInMyCollection = 3
+	}
+
+	public enum RatingWatchedState
+	{
+		All = 0,
+		AllEpisodesWatched = 1,
+		NotWatched = 2
+	}
+
+	public enum RatingVotedState
+	{
+		All = 0,
+		Voted = 1,
+		NotVoted = 2
+	}
+
 	[Flags]
 	public enum AniDBFileState
 	{

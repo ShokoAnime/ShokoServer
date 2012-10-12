@@ -1651,6 +1651,336 @@ namespace JMMServer
 			return contracts;
 		}
 
+		public List<Contract_AnimeRating> GetAnimeRatings(int collectionState, int watchedState, int ratingVotedState, int userID)
+		{
+			List<Contract_AnimeRating> contracts = new List<Contract_AnimeRating>();
+
+			try
+			{
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				List<AnimeSeries> series = repSeries.GetAll();
+				Dictionary<int, AnimeSeries> dictSeries = new Dictionary<int, AnimeSeries>();
+				foreach (AnimeSeries ser in series)
+					dictSeries[ser.AniDB_ID] = ser;
+
+				RatingCollectionState _collectionState = (RatingCollectionState)collectionState;
+				RatingWatchedState _watchedState = (RatingWatchedState)watchedState;
+				RatingVotedState _ratingVotedState = (RatingVotedState)ratingVotedState;
+
+				DateTime start = DateTime.Now;
+
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+				/*
+				// build a dictionary of categories
+				AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
+				AniDB_Anime_CategoryRepository repAnimeCat = new AniDB_Anime_CategoryRepository();
+
+				List<AniDB_Category> allCatgeories = repCats.GetAll();
+				Dictionary<int, AniDB_Category> allCatgeoriesDict = new Dictionary<int, AniDB_Category>();
+				foreach (AniDB_Category cat in allCatgeories)
+					allCatgeoriesDict[cat.CategoryID] = cat;
+
+
+				List<AniDB_Anime_Category> allAnimeCatgeories = repAnimeCat.GetAll();
+				Dictionary<int, List<AniDB_Anime_Category>> allAnimeCatgeoriesDict = new Dictionary<int, List<AniDB_Anime_Category>>(); // 
+				foreach (AniDB_Anime_Category aniCat in allAnimeCatgeories)
+				{
+					if (!allAnimeCatgeoriesDict.ContainsKey(aniCat.AnimeID))
+						allAnimeCatgeoriesDict[aniCat.AnimeID] = new List<AniDB_Anime_Category>();
+
+					allAnimeCatgeoriesDict[aniCat.AnimeID].Add(aniCat);
+				}
+
+				// build a dictionary of titles
+				AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
+
+
+				List<AniDB_Anime_Title> allTitles = repTitles.GetAll();
+				Dictionary<int, List<AniDB_Anime_Title>> allTitlesDict = new Dictionary<int, List<AniDB_Anime_Title>>();
+				foreach (AniDB_Anime_Title title in allTitles)
+				{
+					if (!allTitlesDict.ContainsKey(title.AnimeID))
+						allTitlesDict[title.AnimeID] = new List<AniDB_Anime_Title>();
+
+					allTitlesDict[title.AnimeID].Add(title);
+				}
+
+
+				// build a dictionary of tags
+				AniDB_TagRepository repTags = new AniDB_TagRepository();
+				AniDB_Anime_TagRepository repAnimeTag = new AniDB_Anime_TagRepository();
+
+				List<AniDB_Tag> allTags = repTags.GetAll();
+				Dictionary<int, AniDB_Tag> allTagsDict = new Dictionary<int, AniDB_Tag>();
+				foreach (AniDB_Tag tag in allTags)
+					allTagsDict[tag.TagID] = tag;
+
+
+				List<AniDB_Anime_Tag> allAnimeTags = repAnimeTag.GetAll();
+				Dictionary<int, List<AniDB_Anime_Tag>> allAnimeTagsDict = new Dictionary<int, List<AniDB_Anime_Tag>>(); // 
+				foreach (AniDB_Anime_Tag aniTag in allAnimeTags)
+				{
+					if (!allAnimeTagsDict.ContainsKey(aniTag.AnimeID))
+						allAnimeTagsDict[aniTag.AnimeID] = new List<AniDB_Anime_Tag>();
+
+					allAnimeTagsDict[aniTag.AnimeID].Add(aniTag);
+				}
+
+				// build a dictionary of languages
+				AdhocRepository rep = new AdhocRepository();
+				Dictionary<int, LanguageStat> dictAudioStats = rep.GetAudioLanguageStatsForAnime();
+				Dictionary<int, LanguageStat> dictSubtitleStats = rep.GetSubtitleLanguageStatsForAnime();
+
+				Dictionary<int, string> dictAnimeVideoQualStats = rep.GetAllVideoQualityByAnime();
+				Dictionary<int, AnimeVideoQualityStat> dictAnimeEpisodeVideoQualStats = rep.GetEpisodeVideoQualityStatsByAnime();
+				 * */
+
+				List<AniDB_Anime> animes = repAnime.GetAll();
+
+				// user votes
+				AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
+				List<AniDB_Vote> allVotes = repVotes.GetAll();
+
+				JMMUserRepository repUsers = new JMMUserRepository();
+				JMMUser user = repUsers.GetByID(userID);
+				if (user == null) return contracts;
+
+				int i = 0;
+
+
+
+				foreach (AniDB_Anime anime in animes)
+				{
+					i++;
+
+					// evaluate collection states
+					if (_collectionState == RatingCollectionState.AllEpisodesInMyCollection)
+					{
+						if (!anime.FinishedAiring) continue;
+						if (!dictSeries.ContainsKey(anime.AnimeID)) continue;
+						if (dictSeries[anime.AnimeID].MissingEpisodeCount > 0) continue;
+					}
+
+					if (_collectionState == RatingCollectionState.InMyCollection)
+						if (!dictSeries.ContainsKey(anime.AnimeID)) continue;
+
+					if (_collectionState == RatingCollectionState.NotInMyCollection)
+						if (dictSeries.ContainsKey(anime.AnimeID)) continue;
+
+					if (!user.AllowedAnime(anime)) continue;
+
+					// evaluate watched states
+					if (_watchedState == RatingWatchedState.AllEpisodesWatched)
+					{
+						if (!dictSeries.ContainsKey(anime.AnimeID)) continue;
+						AnimeSeries_User userRec = dictSeries[anime.AnimeID].GetUserRecord(userID);
+						if (userRec == null) continue;
+						if (userRec.UnwatchedEpisodeCount > 0) continue;
+					}
+
+					if (_watchedState == RatingWatchedState.NotWatched)
+					{
+						if (dictSeries.ContainsKey(anime.AnimeID))
+						{
+							AnimeSeries_User userRec = dictSeries[anime.AnimeID].GetUserRecord(userID);
+							if (userRec != null)
+							{
+								if (userRec.UnwatchedEpisodeCount == 0) continue;
+							}
+						}
+					}
+
+					// evaluate voted states
+					if (_ratingVotedState == RatingVotedState.Voted)
+					{
+						bool voted = false;
+						foreach (AniDB_Vote vote in allVotes)
+						{
+							if (vote.EntityID == anime.AnimeID && (vote.VoteType == (int)AniDBVoteType.Anime || vote.VoteType == (int)AniDBVoteType.AnimeTemp))
+							{
+								voted = true;
+								break;
+							}
+						}
+
+						if (!voted) continue;
+					}
+
+					if (_ratingVotedState == RatingVotedState.NotVoted)
+					{
+						bool voted = false;
+						foreach (AniDB_Vote vote in allVotes)
+						{
+							if (vote.EntityID == anime.AnimeID && (vote.VoteType == (int)AniDBVoteType.Anime || vote.VoteType == (int)AniDBVoteType.AnimeTemp))
+							{
+								voted = true;
+								break;
+							}
+						}
+
+						if (voted) continue;
+					}
+
+					Contract_AnimeRating contract = new Contract_AnimeRating();
+					contract.AnimeID = anime.AnimeID;
+
+
+					Contract_AniDB_AnimeDetailed contractAnimeDetailed = new Contract_AniDB_AnimeDetailed();
+
+					contractAnimeDetailed.AnimeTitles = new List<Contract_AnimeTitle>();
+					contractAnimeDetailed.Categories = new List<Contract_AnimeCategory>();
+					contractAnimeDetailed.Tags = new List<Contract_AnimeTag>();
+					contractAnimeDetailed.UserVote = null;
+
+					contractAnimeDetailed.AniDBAnime = anime.ToContract();
+
+					/*
+					if (dictAnimeVideoQualStats.ContainsKey(anime.AnimeID))
+						contractAnimeDetailed.Stat_AllVideoQuality = dictAnimeVideoQualStats[anime.AnimeID];
+					else contractAnimeDetailed.Stat_AllVideoQuality = "";
+
+					contractAnimeDetailed.Stat_AllVideoQuality_Episodes = "";
+
+					// All Video Quality Episodes
+					// Try to determine if this anime has all the episodes available at a certain video quality
+					// e.g.  the series has all episodes in blu-ray
+					if (dictAnimeEpisodeVideoQualStats.ContainsKey(anime.AnimeID))
+					{
+						AnimeVideoQualityStat stat = dictAnimeEpisodeVideoQualStats[anime.AnimeID];
+						foreach (KeyValuePair<string, int> kvp in stat.VideoQualityEpisodeCount)
+						{
+							if (kvp.Value >= anime.EpisodeCountNormal)
+							{
+								if (contractAnimeDetailed.Stat_AllVideoQuality_Episodes.Length > 0) contractAnimeDetailed.Stat_AllVideoQuality_Episodes += ",";
+								contractAnimeDetailed.Stat_AllVideoQuality_Episodes += kvp.Key;
+							}
+						}
+					}
+
+					List<string> audioLanguageList = new List<string>();
+					List<string> subtitleLanguageList = new List<string>();
+
+					// get audio languages
+					if (dictAudioStats.ContainsKey(anime.AnimeID))
+					{
+						foreach (string lanName in dictAudioStats[anime.AnimeID].LanguageNames)
+						{
+							if (!audioLanguageList.Contains(lanName)) audioLanguageList.Add(lanName);
+						}
+					}
+
+					// get subtitle languages
+					if (dictSubtitleStats.ContainsKey(anime.AnimeID))
+					{
+						foreach (string lanName in dictSubtitleStats[anime.AnimeID].LanguageNames)
+						{
+							if (!subtitleLanguageList.Contains(lanName)) subtitleLanguageList.Add(lanName);
+						}
+					}
+
+					contractAnimeDetailed.Stat_AudioLanguages = "";
+					foreach (string audioLan in audioLanguageList)
+					{
+						if (contractAnimeDetailed.Stat_AudioLanguages.Length > 0) contractAnimeDetailed.Stat_AudioLanguages += ",";
+						contractAnimeDetailed.Stat_AudioLanguages += audioLan;
+					}
+
+					contractAnimeDetailed.Stat_SubtitleLanguages = "";
+					foreach (string subLan in subtitleLanguageList)
+					{
+						if (contractAnimeDetailed.Stat_SubtitleLanguages.Length > 0) contractAnimeDetailed.Stat_SubtitleLanguages += ",";
+						contractAnimeDetailed.Stat_SubtitleLanguages += subLan;
+					}
+
+
+					if (allTitlesDict.ContainsKey(anime.AnimeID))
+					{
+						foreach (AniDB_Anime_Title title in allTitlesDict[anime.AnimeID])
+						{
+							Contract_AnimeTitle ctitle = new Contract_AnimeTitle();
+							ctitle.AnimeID = title.AnimeID;
+							ctitle.Language = title.Language;
+							ctitle.Title = title.Title;
+							ctitle.TitleType = title.TitleType;
+							contractAnimeDetailed.AnimeTitles.Add(ctitle);
+						}
+					}
+
+
+					if (allAnimeCatgeoriesDict.ContainsKey(anime.AnimeID))
+					{
+						List<AniDB_Anime_Category> aniCats = allAnimeCatgeoriesDict[anime.AnimeID];
+						foreach (AniDB_Anime_Category aniCat in aniCats)
+						{
+							if (allCatgeoriesDict.ContainsKey(aniCat.CategoryID))
+							{
+								AniDB_Category cat = allCatgeoriesDict[aniCat.CategoryID];
+
+								Contract_AnimeCategory ccat = new Contract_AnimeCategory();
+								ccat.CategoryDescription = cat.CategoryDescription;
+								ccat.CategoryID = cat.CategoryID;
+								ccat.CategoryName = cat.CategoryName;
+								ccat.IsHentai = cat.IsHentai;
+								ccat.ParentID = cat.ParentID;
+								ccat.Weighting = aniCat.Weighting;
+								contractAnimeDetailed.Categories.Add(ccat);
+
+							}
+						}
+					}
+
+					if (allAnimeTagsDict.ContainsKey(anime.AnimeID))
+					{
+						List<AniDB_Anime_Tag> aniTags = allAnimeTagsDict[anime.AnimeID];
+						foreach (AniDB_Anime_Tag aniTag in aniTags)
+						{
+							if (allTagsDict.ContainsKey(aniTag.TagID))
+							{
+								AniDB_Tag tag = allTagsDict[aniTag.TagID];
+
+								Contract_AnimeTag ctag = new Contract_AnimeTag();
+								ctag.Approval = aniTag.Approval;
+								ctag.GlobalSpoiler = tag.GlobalSpoiler;
+								ctag.LocalSpoiler = tag.LocalSpoiler;
+								ctag.Spoiler = tag.Spoiler;
+								ctag.TagCount = tag.TagCount;
+								ctag.TagDescription = tag.TagDescription;
+								ctag.TagID = tag.TagID;
+								ctag.TagName = tag.TagName;
+								contractAnimeDetailed.Tags.Add(ctag);
+							}
+						}
+					}*/
+
+					// get user vote
+					foreach (AniDB_Vote vote in allVotes)
+					{
+						if (vote.EntityID == anime.AnimeID && (vote.VoteType == (int)AniDBVoteType.Anime || vote.VoteType == (int)AniDBVoteType.AnimeTemp))
+						{
+							contractAnimeDetailed.UserVote = vote.ToContract();
+							break;
+						}
+					}
+
+					contract.AnimeDetailed = contractAnimeDetailed;
+
+					if (dictSeries.ContainsKey(anime.AnimeID))
+					{
+						contract.AnimeSeries = dictSeries[anime.AnimeID].ToContract(dictSeries[anime.AnimeID].GetUserRecord(userID));
+					}
+
+					contracts.Add(contract);
+
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return contracts;
+		}
+
 		public List<Contract_AniDB_AnimeDetailed> GetAllAnimeDetailed()
 		{
 			List<Contract_AniDB_AnimeDetailed> contracts = new List<Contract_AniDB_AnimeDetailed>();

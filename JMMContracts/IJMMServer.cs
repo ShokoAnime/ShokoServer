@@ -614,6 +614,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AnimeEpisode> GetEpisodesRecentlyAddedSummary(int maxRecords, int jmmuserID);
+
+		[OperationContract]
+		List<Contract_AnimeRating> GetAnimeRatings(int collectionState, int watchedState, int ratingVotedState, int userID);
 	}
 
 }
