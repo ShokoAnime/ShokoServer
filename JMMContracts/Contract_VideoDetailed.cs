@@ -31,6 +31,7 @@ namespace JMMContracts
 		public string VideoLocal_MD5 { get; set; }
 		public string VideoLocal_SHA1 { get; set; }
 		public int VideoLocal_HashSource { get; set; }
+		public int VideoLocal_IsVariation { get; set; }
 
 		// VideoInfo
 		public int VideoInfo_VideoInfoID { get; set; }

@@ -25,6 +25,7 @@ namespace JMMServer.Mappings
 			Map(x => x.HashSource).Not.Nullable();
 			Map(x => x.ImportFolderID).Not.Nullable();
 			Map(x => x.IsIgnored).Not.Nullable();
+			Map(x => x.IsVariation).Not.Nullable();
         }
 	}
 }

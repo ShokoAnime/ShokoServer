@@ -20,6 +20,7 @@ namespace JMMContracts
 		public int IsIgnored { get; set; }
 		public DateTime? WatchedDate { get; set; }
 		public DateTime DateTimeUpdated { get; set; }
+		public int IsVariation { get; set; }
 
 		public Contract_ImportFolder ImportFolder { get; set; }
 

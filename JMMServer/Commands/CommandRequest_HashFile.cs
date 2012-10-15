@@ -145,6 +145,7 @@ namespace JMMServer.Commands
 				vlocal.MD5 = "";
 				vlocal.SHA1 = "";
 				vlocal.IsIgnored = 0;
+				vlocal.IsVariation = 0;
 			}
 
 			// check if we need to get a hash this file

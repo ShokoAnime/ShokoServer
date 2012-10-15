@@ -150,6 +150,7 @@ namespace JMMServer.Databases
 				UpdateSchema_022(versionNumber);
 				UpdateSchema_023(versionNumber);
 				UpdateSchema_024(versionNumber);
+				UpdateSchema_025(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -1108,6 +1109,44 @@ namespace JMMServer.Databases
 			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `IsCensored` `IsCensored` int NOT NULL ;");
 			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `IsDeprecated` `IsDeprecated` int NOT NULL ;");
 			cmds.Add("ALTER TABLE `AniDB_File` CHANGE COLUMN `InternalVersion` `InternalVersion` int NOT NULL ;");
+
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_025(int currentVersionNumber)
+		{
+			int thisVersion = 25;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE `VideoLocal` ADD `IsVariation` int NULL ;");
+			cmds.Add("UPDATE VideoLocal SET IsVariation = 0 ;");
+			cmds.Add("ALTER TABLE `VideoLocal` CHANGE COLUMN `IsCensored` `IsVariation` int NOT NULL ;");
 
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

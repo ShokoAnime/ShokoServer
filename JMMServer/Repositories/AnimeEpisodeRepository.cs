@@ -100,7 +100,7 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public List<AnimeEpisode> GetEpisodesWithMultipleFiles()
+		public List<AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -118,8 +118,12 @@ namespace JMMServer.Repositories
 						"INNER JOIN  " +
 						"(select xref.EpisodeID as EpisodeID " +
 						"from CrossRef_File_Episode xref " +
-						"inner join VideoLocal vl ON xref.Hash = vl.Hash " +
-						"group by xref.EpisodeID  having count(xref.EpisodeID)>1) " +
+						"inner join VideoLocal vl ON xref.Hash = vl.Hash ";
+
+					if (ignoreVariations)
+						sql += " where IsVariation = 0 ";
+
+					sql += "group by xref.EpisodeID  having count(xref.EpisodeID)>1) " +
 						"g ON g.EpisodeID = x.AniDB_EpisodeID " +
 						" ";
 					ArrayList results = DatabaseHelper.GetData(sql);
@@ -136,7 +140,16 @@ namespace JMMServer.Repositories
 				}
 				else
 				{
-					var eps = session.CreateQuery("FROM AnimeEpisode x WHERE x.AniDB_EpisodeID IN (Select xref.EpisodeID FROM CrossRef_File_Episode xref WHERE xref.Hash IN (Select vl.Hash from VideoLocal vl) GROUP BY xref.EpisodeID HAVING COUNT(xref.EpisodeID) > 1)")
+					string sql = "FROM AnimeEpisode x WHERE x.AniDB_EpisodeID IN " +
+						"(Select xref.EpisodeID FROM CrossRef_File_Episode xref WHERE xref.Hash IN " +
+						"(Select vl.Hash from VideoLocal vl ";
+
+					if (ignoreVariations)
+						sql += " where IsVariation = 0 ";
+
+					sql += ") GROUP BY xref.EpisodeID HAVING COUNT(xref.EpisodeID) > 1)";
+
+					var eps = session.CreateQuery(sql)
 						.List<AnimeEpisode>();
 
 					return new List<AnimeEpisode>(eps);

@@ -29,6 +29,7 @@ namespace JMMServer.Entities
 		public int IsIgnored { get; set; }
 		public DateTime DateTimeUpdated { get; set; }
 		public DateTime DateTimeCreated { get; set; }
+		public int IsVariation { get; set; }
 
 		public string ToStringDetailed()
 		{
@@ -569,6 +570,7 @@ namespace JMMServer.Entities
 			contract.ImportFolder = this.ImportFolder.ToContract();
 			contract.ImportFolderID = this.ImportFolderID;
 			contract.IsIgnored = this.IsIgnored;
+			contract.IsVariation = this.IsVariation;
 			contract.MD5 = this.MD5;
 			contract.SHA1 = this.SHA1;
 			contract.VideoLocalID = this.VideoLocalID;
@@ -606,6 +608,7 @@ namespace JMMServer.Entities
 			contract.VideoLocal_FileSize = this.FileSize;
 			contract.VideoLocalID = this.VideoLocalID;
 			contract.VideoLocal_IsIgnored = this.IsIgnored;
+			contract.VideoLocal_IsVariation = this.IsVariation;
 
 			contract.VideoLocal_MD5 = this.MD5;
 			contract.VideoLocal_SHA1 = this.SHA1;
@@ -714,6 +717,7 @@ namespace JMMServer.Entities
 			contract.ImportFolder = this.ImportFolder.ToContract();
 			contract.ImportFolderID = this.ImportFolderID;
 			contract.IsIgnored = this.IsIgnored;
+			contract.IsVariation = this.IsVariation;
 			contract.MD5 = this.MD5;
 			contract.SHA1 = this.SHA1;
 			contract.VideoLocalID = this.VideoLocalID;

@@ -323,6 +323,7 @@ namespace JMMServer.Entities
 						contract.VideoLocal_WatchedDate = vidUser.WatchedDate;
 					}
 					contract.VideoLocal_IsIgnored = vid.IsIgnored;
+					contract.VideoLocal_IsVariation = vid.IsVariation;
 
 					// Import Folder
 					ImportFolder ns = vid.ImportFolder; // to prevent multiple db calls

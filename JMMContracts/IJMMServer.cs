@@ -199,7 +199,7 @@ namespace JMMContracts
 		List<Contract_VideoLocal> GetAllManuallyLinkedFiles(int userID);
 
 		[OperationContract]
-		List<Contract_AnimeEpisode> GetAllEpisodesWithMultipleFiles(int userID, bool onlyFinishedSeries);
+		List<Contract_AnimeEpisode> GetAllEpisodesWithMultipleFiles(int userID, bool onlyFinishedSeries, bool ignoreVariations);
 
 		[OperationContract]
 		void ReevaluateDuplicateFiles();
@@ -617,6 +617,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AnimeRating> GetAnimeRatings(int collectionState, int watchedState, int ratingVotedState, int userID);
+
+		[OperationContract]
+		string SetVariationStatusOnFile(int videoLocalID, bool isVariation);
 	}
 
 }

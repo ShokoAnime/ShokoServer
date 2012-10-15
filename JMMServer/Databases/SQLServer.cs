@@ -164,6 +164,7 @@ namespace JMMServer.Databases
 				UpdateSchema_020(versionNumber);
 				UpdateSchema_021(versionNumber);
 				UpdateSchema_022(versionNumber);
+				UpdateSchema_023(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -914,6 +915,36 @@ namespace JMMServer.Databases
 			cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN IsCensored int NOT NULL");
 			cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN IsDeprecated int NOT NULL");
 			cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN InternalVersion int NOT NULL");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_023(int currentVersionNumber)
+		{
+			int thisVersion = 23;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE VideoLocal ADD IsVariation int NULL");
+			cmds.Add("UPDATE VideoLocal SET IsVariation = 0");
+			cmds.Add("ALTER TABLE VideoLocal ALTER COLUMN IsVariation int NOT NULL");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))

@@ -129,6 +129,7 @@ namespace JMMServer.Databases
 				UpdateSchema_021(versionNumber);
 				UpdateSchema_022(versionNumber);
 				UpdateSchema_023(versionNumber);
+				UpdateSchema_024(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -806,6 +807,32 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 
 			cmds.Add("UPDATE JMMUser SET CanEditServerSettings = 1");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_024(int currentVersionNumber)
+		{
+			int thisVersion = 24;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+			cmds.Add("ALTER TABLE VideoLocal ADD IsVariation int NULL");
+			cmds.Add("UPDATE VideoLocal SET IsVariation = 0");
 
 			foreach (string cmdTable in cmds)
 			{

@@ -1104,6 +1104,29 @@ namespace JMMServer
 			}
 		}
 
+		public string SetVariationStatusOnFile(int videoLocalID, bool isVariation)
+		{
+
+			try
+			{
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				VideoLocal vid = repVids.GetByID(videoLocalID);
+				if (vid == null)
+					return "Could not find video record";
+
+				vid.IsVariation = isVariation ? 1 : 0;
+				repVids.Save(vid);
+
+				return "";
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return ex.Message;
+			}
+		}
+
 		public string AssociateSingleFile(int videoLocalID, int animeEpisodeID)
 		{
 
@@ -3890,7 +3913,7 @@ namespace JMMServer
 			}
 		}
 
-		public List<Contract_AnimeEpisode> GetAllEpisodesWithMultipleFiles(int userID, bool onlyFinishedSeries)
+		public List<Contract_AnimeEpisode> GetAllEpisodesWithMultipleFiles(int userID, bool onlyFinishedSeries, bool ignoreVariations)
 		{
 			List<Contract_AnimeEpisode> eps = new List<Contract_AnimeEpisode>();
 			try
@@ -3920,7 +3943,7 @@ namespace JMMServer
 					}
 				}
 
-				foreach (AnimeEpisode ep in repEps.GetEpisodesWithMultipleFiles())
+				foreach (AnimeEpisode ep in repEps.GetEpisodesWithMultipleFiles(ignoreVariations))
 				{
 					if (onlyFinishedSeries)
 					{
