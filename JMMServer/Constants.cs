@@ -18,6 +18,9 @@ namespace JMMServer
 		public static readonly int FlagLinkMAL = 4;
 		public static readonly int FlagLinkMovieDB = 8;
 
+		public static readonly string NO_GROUP_INFO = "NO GROUP INFO";
+		public static readonly string NO_SOURCE_INFO = "NO SOURCE INFO";
+
 		public struct DatabaseType
 		{
 			public static readonly string SqlServer = "SQLSERVER";

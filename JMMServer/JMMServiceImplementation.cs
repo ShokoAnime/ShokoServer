@@ -4046,7 +4046,18 @@ namespace JMMServer
 							{
 								vids.Add(vid.ToContractDetailed(userID));
 							}
-							
+
+						}
+						else
+						{
+							// match based on group / video sorce / video res
+							if (relGroupName.Equals(Constants.NO_GROUP_INFO, StringComparison.InvariantCultureIgnoreCase) &&
+								videoSource.Equals(Constants.NO_SOURCE_INFO, StringComparison.InvariantCultureIgnoreCase) &&
+								resolution.Equals(vidInfo.VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
+								thisBitDepth == videoBitDepth)
+							{
+								vids.Add(vid.ToContractDetailed(userID));
+							}
 						}
 					}
 				}
@@ -4091,6 +4102,13 @@ namespace JMMServer
 								vids.Add(vid.ToContractDetailed(userID));
 							}
 
+						}
+						else
+						{
+							if (relGroupName.Equals(Constants.NO_GROUP_INFO, StringComparison.InvariantCultureIgnoreCase))
+							{
+								vids.Add(vid.ToContractDetailed(userID));
+							}
 						}
 					}
 				}
@@ -4257,8 +4275,8 @@ namespace JMMServer
 								bool foundSummaryRecord = false;
 								foreach (Contract_GroupVideoQuality contract in vidQuals)
 								{
-									if (contract.GroupName.Equals("NO GROUP INFO", StringComparison.InvariantCultureIgnoreCase) &&
-										contract.VideoSource.Equals("NO SOURCE INFO", StringComparison.InvariantCultureIgnoreCase) &&
+									if (contract.GroupName.Equals(Constants.NO_GROUP_INFO, StringComparison.InvariantCultureIgnoreCase) &&
+										contract.VideoSource.Equals(Constants.NO_SOURCE_INFO, StringComparison.InvariantCultureIgnoreCase) &&
 										contract.Resolution.Equals(vinfo.VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
 										contract.VideoBitDepth == bitDepth)
 									{
@@ -4280,10 +4298,10 @@ namespace JMMServer
 									contract.FileCountSpecials = 0;
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
-									contract.GroupName = "NO GROUP INFO";
-									contract.GroupNameShort = "NO GROUP INFO";
+									contract.GroupName = Constants.NO_GROUP_INFO;
+									contract.GroupNameShort = Constants.NO_GROUP_INFO;
 									contract.Resolution = vinfo.VideoResolution;
-									contract.VideoSource = "NO SOURCE INFO";
+									contract.VideoSource = Constants.NO_SOURCE_INFO;
 									contract.VideoBitDepth = bitDepth;
 									contract.Ranking = Utils.GetOverallVideoSourceRanking(contract.Resolution, contract.VideoSource, bitDepth);
 									contract.NormalEpisodeNumbers = new List<int>();
