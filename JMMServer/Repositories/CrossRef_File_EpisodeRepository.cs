@@ -131,6 +131,7 @@ namespace JMMServer.Repositories
 			{
 				logger.Trace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {0}", animeID);
 				StatsCache.Instance.UpdateUsingAnime(animeID);
+				StatsCache.Instance.UpdateAnimeContract(animeID);
 			}
 		}
 	}

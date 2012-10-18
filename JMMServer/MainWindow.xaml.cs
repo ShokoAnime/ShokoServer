@@ -1129,7 +1129,7 @@ namespace JMMServer
 
 			//Importer.UpdateAniDBFileData(true, true);
 
-			
+			AniDB_Anime anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(4880, true, false);
 			
 
 			AboutForm frm = new AboutForm();

@@ -151,6 +151,7 @@ namespace JMMServer.Databases
 				UpdateSchema_023(versionNumber);
 				UpdateSchema_024(versionNumber);
 				UpdateSchema_025(versionNumber);
+				UpdateSchema_026(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -1147,6 +1148,50 @@ namespace JMMServer.Databases
 			cmds.Add("ALTER TABLE `VideoLocal` ADD `IsVariation` int NULL ;");
 			cmds.Add("UPDATE VideoLocal SET IsVariation = 0 ;");
 			cmds.Add("ALTER TABLE `VideoLocal` CHANGE COLUMN `IsCensored` `IsVariation` int NOT NULL ;");
+
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_026(int currentVersionNumber)
+		{
+			int thisVersion = 26;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE AniDB_Recommendation( " +
+				" AniDB_RecommendationID INT NOT NULL AUTO_INCREMENT, " +
+				" AnimeID int NOT NULL, " +
+				" UserID int NOT NULL, " +
+				" RecommendationType int NOT NULL, " +
+				" RecommendationText text character set utf8, " +
+				" PRIMARY KEY (`AniDB_RecommendationID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `AniDB_Recommendation` ADD UNIQUE INDEX `UIX_AniDB_Recommendation` (`AnimeID` ASC, `UserID` ASC) ;");
 
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

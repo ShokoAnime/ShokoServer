@@ -5,6 +5,7 @@ using System.Text;
 using System.Xml;
 using System.IO;
 using JMMServer;
+using JMMServer.AniDB_API.Raws;
 
 namespace AniDBAPI.Commands
 {
@@ -71,6 +72,13 @@ namespace AniDBAPI.Commands
 		{
 			get { return similarAnime; }
 			set { similarAnime = value; }
+		}
+
+		private List<Raw_AniDB_Recommendation> recommendations = new List<Raw_AniDB_Recommendation>();
+		public List<Raw_AniDB_Recommendation> Recommendations
+		{
+			get { return recommendations; }
+			set { recommendations = value; }
 		}
 
 		private bool createAnimeSeriesRecord = true;
@@ -152,7 +160,9 @@ namespace AniDBAPI.Commands
 
 			JMMService.LastAniDBMessage = DateTime.Now;
 			JMMService.LastAniDBHTTPMessage = DateTime.Now;
+
 			XmlDocument docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
+			//XmlDocument docAnime = LoadAnimeHTTPFromFile(animeID);
 
 			if (xmlResult.Trim().Length > 0)
 				WriteAnimeHTTPToFile(animeID, xmlResult);
@@ -169,6 +179,7 @@ namespace AniDBAPI.Commands
 				characters = AniDBHTTPHelper.ProcessCharacters(docAnime, animeID);
 				relations = AniDBHTTPHelper.ProcessRelations(docAnime, animeID);
 				similarAnime = AniDBHTTPHelper.ProcessSimilarAnime(docAnime, animeID);
+				recommendations = AniDBHTTPHelper.ProcessRecommendations(docAnime, animeID);
 				return enHelperActivityType.GotAnimeInfoHTTP;
 			}
 			else

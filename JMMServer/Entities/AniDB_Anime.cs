@@ -11,6 +11,8 @@ using JMMContracts;
 using System.IO;
 using JMMServer.ImageDownload;
 using System.Diagnostics;
+using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -543,6 +545,12 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public List<AniDB_Anime_Category> GetAnimeCategories(ISession session)
+		{
+			AniDB_Anime_CategoryRepository repCatXRef = new AniDB_Anime_CategoryRepository();
+			return repCatXRef.GetByAnimeID(session, AnimeID);
+		}
+
 		[XmlIgnore]
 		public List<AniDB_Category> AniDBCategories
 		{
@@ -553,6 +561,12 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public List<AniDB_Category> GetAniDBCategories(ISession session)
+		{
+			AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
+			return repCats.GetByAnimeID(session, AnimeID);
+		}
+
 		[XmlIgnore]
 		public List<AniDB_Tag> AniDBTags
 		{
@@ -561,6 +575,12 @@ namespace JMMServer.Entities
 				AniDB_TagRepository repTags = new AniDB_TagRepository();
 				return repTags.GetByAnimeID(AnimeID);
 			}
+		}
+
+		public List<AniDB_Tag> GetAniDBTags(ISession session)
+		{
+			AniDB_TagRepository repTags = new AniDB_TagRepository();
+			return repTags.GetByAnimeID(session, AnimeID);
 		}
 
 		[XmlIgnore]
@@ -589,6 +609,12 @@ namespace JMMServer.Entities
 				AniDB_Anime_TagRepository repAnimeTags = new AniDB_Anime_TagRepository();
 				return repAnimeTags.GetByAnimeID(AnimeID);
 			}
+		}
+
+		public List<AniDB_Anime_Tag> GetAnimeTags(ISession session)
+		{
+			AniDB_Anime_TagRepository repAnimeTags = new AniDB_Anime_TagRepository();
+			return repAnimeTags.GetByAnimeID(session, AnimeID);
 		}
 
 		[XmlIgnore]
@@ -783,6 +809,21 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public AniDB_Vote GetUserVote(ISession session)
+		{
+			try
+			{
+				AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
+				AniDB_Vote dbVote = repVotes.GetByAnimeID(session, this.AnimeID);
+				return dbVote;
+			}
+			catch (Exception ex)
+			{
+				logger.Error("Error in  UserVote: {0}", ex.ToString());
+				return null;
+			}
+		}
+
 
 		public string PreferredTitle
 		{
@@ -892,22 +933,49 @@ namespace JMMServer.Entities
 
 		public void PopulateAndSaveFromHTTP(Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps, List<Raw_AniDB_Anime_Title> titles,
 			List<Raw_AniDB_Category> cats, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars, List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
-			bool downloadRelations)
+			List<Raw_AniDB_Recommendation> recs, bool downloadRelations)
 		{
+			logger.Trace("------------------------------------------------");
+			logger.Trace(string.Format("PopulateAndSaveFromHTTP: for {0} - {1}", animeInfo.AnimeID, animeInfo.MainTitle)); 
+			logger.Trace("------------------------------------------------"); 
+
+			DateTime start0 = DateTime.Now;
+
 			Populate(animeInfo);
 
 			// save now for FK purposes
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			repAnime.Save(this);
 
+			DateTime start = DateTime.Now;
+
 			CreateEpisodes(eps);
+			TimeSpan ts = DateTime.Now - start; logger.Trace(string.Format("CreateEpisodes in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+
 			CreateTitles(titles);
+			ts = DateTime.Now - start; logger.Trace(string.Format("CreateTitles in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+
 			CreateCategories(cats);
+			ts = DateTime.Now - start; logger.Trace(string.Format("CreateCategories in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+
 			CreateTags(tags);
+			ts = DateTime.Now - start; logger.Trace(string.Format("CreateTags in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+
 			CreateCharacters(chars);
+			ts = DateTime.Now - start; logger.Trace(string.Format("CreateCharacters in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+
 			CreateRelations(rels, downloadRelations);
+			ts = DateTime.Now - start; logger.Trace(string.Format("CreateRelations in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+
 			CreateSimilarAnime(sims);
+			ts = DateTime.Now - start; logger.Trace(string.Format("CreateSimilarAnime in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+
+			CreateRecommendations(recs);
+			ts = DateTime.Now - start; logger.Trace(string.Format("CreateRecommendations in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+
 			repAnime.Save(this);
+			ts = DateTime.Now - start0; logger.Trace(string.Format("TOTAL TIME in : {0}", ts.TotalMilliseconds));
+			logger.Trace("------------------------------------------------"); 
 		}
 
 		/// <summary>
@@ -936,39 +1004,92 @@ namespace JMMServer.Entities
 			this.EpisodeCountSpecial = 0;
 			this.EpisodeCountNormal = 0;
 
-			foreach (Raw_AniDB_Episode epraw in eps)
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				List<AniDB_Episode> existingEps = repEps.GetByAnimeIDAndEpisodeTypeNumber(epraw.AnimeID, (enEpisodeType)epraw.EpisodeType, epraw.EpisodeNumber);
-				// we need to do this check because some times AniDB will replace an existing episode with a new episode
+				List<AnimeEpisode> animeEpsToDelete = new List<AnimeEpisode>();
+				List<AniDB_Episode> aniDBEpsToDelete = new List<AniDB_Episode>();
 
-				// delete any old records
-				foreach (AniDB_Episode epOld in existingEps)
+				foreach (Raw_AniDB_Episode epraw in eps)
 				{
-					if (epOld.EpisodeID != epraw.EpisodeID)
-					{
-						// first delete any AnimeEpisode records that point to the new anidb episode
-						AnimeEpisodeRepository repAnimeEps = new AnimeEpisodeRepository();
-						AnimeEpisode aniep = repAnimeEps.GetByAniDBEpisodeID(epOld.EpisodeID);
-						if (aniep != null)
-							repAnimeEps.Delete(aniep.AnimeEpisodeID);
+					//List<AniDB_Episode> existingEps = repEps.GetByAnimeIDAndEpisodeTypeNumber(epraw.AnimeID, (enEpisodeType)epraw.EpisodeType, epraw.EpisodeNumber);
+					// we need to do this check because some times AniDB will replace an existing episode with a new episode
 
-						repEps.Delete(epOld.AniDB_EpisodeID);
+					var tempEps = session
+						.CreateCriteria(typeof(AniDB_Episode))
+						.Add(Restrictions.Eq("AnimeID", epraw.AnimeID))
+						.Add(Restrictions.Eq("EpisodeNumber", epraw.EpisodeNumber))
+						.Add(Restrictions.Eq("EpisodeType", epraw.EpisodeType))
+						.List<AniDB_Episode>();
+
+					List<AniDB_Episode> existingEps = new List<AniDB_Episode>(tempEps);
+
+					// delete any old records
+					foreach (AniDB_Episode epOld in existingEps)
+					{
+						if (epOld.EpisodeID != epraw.EpisodeID)
+						{
+							// first delete any AnimeEpisode records that point to the new anidb episode
+							AnimeEpisodeRepository repAnimeEps = new AnimeEpisodeRepository();
+							AnimeEpisode aniep = repAnimeEps.GetByAniDBEpisodeID(epOld.EpisodeID);
+							if (aniep != null)
+							{
+								//repAnimeEps.Delete(aniep.AnimeEpisodeID);
+								animeEpsToDelete.Add(aniep);
+							}
+
+							//repEps.Delete(epOld.AniDB_EpisodeID);
+							aniDBEpsToDelete.Add(epOld);
+						}
 					}
+				}
+				using (var transaction = session.BeginTransaction())
+				{
+					foreach (AnimeEpisode ep in animeEpsToDelete)
+						session.Delete(ep);
+
+					transaction.Commit();
+				}
+
+				using (var transaction = session.BeginTransaction())
+				{
+					foreach (AniDB_Episode ep in aniDBEpsToDelete)
+						session.Delete(ep);
+
+					transaction.Commit();
 				}
 
 
-				AniDB_Episode ep = repEps.GetByEpisodeID(epraw.EpisodeID);
-				if (ep == null) ep = new AniDB_Episode();
 
-				ep.Populate(epraw);
-				repEps.Save(ep);
 
-				// since the HTTP api doesn't return a count of the number of specials, we will calculate it here
-				if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode)
-					this.EpisodeCountNormal++;
+				List<AniDB_Episode> epsToSave = new List<AniDB_Episode>();
+				foreach (Raw_AniDB_Episode epraw in eps)
+				{
+					AniDB_Episode epNew = session
+						.CreateCriteria(typeof(AniDB_Episode))
+						.Add(Restrictions.Eq("EpisodeID", epraw.EpisodeID))
+						.UniqueResult<AniDB_Episode>();
 
-				if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special)
-					this.EpisodeCountSpecial++;
+
+					if (epNew == null) epNew = new AniDB_Episode();
+
+					epNew.Populate(epraw);
+					epsToSave.Add(epNew);
+
+					// since the HTTP api doesn't return a count of the number of specials, we will calculate it here
+					if (epNew.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode)
+						this.EpisodeCountNormal++;
+
+					if (epNew.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special)
+						this.EpisodeCountSpecial++;
+				}
+				using (var transaction = session.BeginTransaction())
+				{
+					foreach (AniDB_Episode rec in epsToSave)
+						session.SaveOrUpdate(rec);
+
+					transaction.Commit();
+				}
+
 			}
 
 			this.EpisodeCount = EpisodeCountSpecial + EpisodeCountNormal;
@@ -980,22 +1101,38 @@ namespace JMMServer.Entities
 
 			this.AllTitles = "";
 
-			// first delete all existing titles for this anime
-			AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
-			List<AniDB_Anime_Title> existingtitles = repTitles.GetByAnimeID(this.AnimeID);
-			foreach (AniDB_Anime_Title animetitle in existingtitles)
-			{
-				repTitles.Delete(animetitle.AniDB_Anime_TitleID);
-			}
+			List<AniDB_Anime_Title> titlesToDelete = new List<AniDB_Anime_Title>();
+			List<AniDB_Anime_Title> titlesToSave = new List<AniDB_Anime_Title>();
 
-			foreach (Raw_AniDB_Anime_Title rawtitle in titles)
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_Anime_Title title = new AniDB_Anime_Title();
-				title.Populate(rawtitle);
-				repTitles.Save(title);
+				var titlesTemp = session
+					.CreateCriteria(typeof(AniDB_Anime_Title))
+					.Add(Restrictions.Eq("AnimeID", this.AnimeID))
+					.List<AniDB_Anime_Title>();
 
-				if (this.AllTitles.Length > 0) this.AllTitles += "|";
-				this.AllTitles += rawtitle.Title;
+				titlesToDelete = new List<AniDB_Anime_Title>(titlesTemp);
+
+				foreach (Raw_AniDB_Anime_Title rawtitle in titles)
+				{
+					AniDB_Anime_Title title = new AniDB_Anime_Title();
+					title.Populate(rawtitle);
+					titlesToSave.Add(title);
+
+					if (this.AllTitles.Length > 0) this.AllTitles += "|";
+					this.AllTitles += rawtitle.Title;
+				}
+
+				using (var transaction = session.BeginTransaction())
+				{
+					foreach (AniDB_Anime_Title tit in titlesToDelete)
+						session.Delete(tit);
+
+					foreach (AniDB_Anime_Title tit in titlesToSave)
+						session.SaveOrUpdate(tit);
+
+					transaction.Commit();
+				}
 			}
 		}
 
@@ -1013,28 +1150,37 @@ namespace JMMServer.Entities
 			List<AniDB_Category> catsToSave = new List<AniDB_Category>();
 			List<AniDB_Anime_Category> xrefsToSave = new List<AniDB_Anime_Category>();
 
-			foreach (Raw_AniDB_Category rawcat in cats)
-			{
-				count++;
-
-				AniDB_Category cat = repCats.GetByCategoryID(rawcat.CategoryID);
-				if (cat == null) cat = new AniDB_Category();
-
-				cat.Populate(rawcat);
-				catsToSave.Add(cat);
-
-				AniDB_Anime_Category anime_cat = repXRefs.GetByAnimeIDAndCategoryID(rawcat.AnimeID, rawcat.CategoryID);
-				if (anime_cat == null) anime_cat = new AniDB_Anime_Category();
-
-				anime_cat.Populate(rawcat);
-				xrefsToSave.Add(anime_cat);
-
-				if (this.AllCategories.Length > 0) this.AllCategories += "|";
-				this.AllCategories += cat.CategoryName;
-			}
-
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
+				foreach (Raw_AniDB_Category rawcat in cats)
+				{
+					count++;
+
+					AniDB_Category cat = session
+					.CreateCriteria(typeof(AniDB_Category))
+					.Add(Restrictions.Eq("CategoryID", rawcat.CategoryID))
+					.UniqueResult<AniDB_Category>();
+
+					if (cat == null) cat = new AniDB_Category();
+
+					cat.Populate(rawcat);
+					catsToSave.Add(cat);
+
+					AniDB_Anime_Category anime_cat = session
+						.CreateCriteria(typeof(AniDB_Anime_Category))
+						.Add(Restrictions.Eq("AnimeID", rawcat.AnimeID))
+						.Add(Restrictions.Eq("CategoryID", rawcat.CategoryID))
+						.UniqueResult<AniDB_Anime_Category>();
+
+					if (anime_cat == null) anime_cat = new AniDB_Anime_Category();
+
+					anime_cat.Populate(rawcat);
+					xrefsToSave.Add(anime_cat);
+
+					if (this.AllCategories.Length > 0) this.AllCategories += "|";
+					this.AllCategories += cat.CategoryName;
+				}
+
 				using (var transaction = session.BeginTransaction())
 				{
 					foreach (AniDB_Category cat in catsToSave)
@@ -1046,7 +1192,6 @@ namespace JMMServer.Entities
 					transaction.Commit();
 				}
 			}
-
 		}
 
 		private void CreateTags(List<Raw_AniDB_Tag> tags)
@@ -1061,26 +1206,26 @@ namespace JMMServer.Entities
 			List<AniDB_Tag> tagsToSave = new List<AniDB_Tag>();
 			List<AniDB_Anime_Tag> xrefsToSave = new List<AniDB_Anime_Tag>();
 
-			foreach (Raw_AniDB_Tag rawtag in tags)
-			{
-				AniDB_Tag tag = repTags.GetByTagID(rawtag.TagID);
-				if (tag == null) tag = new AniDB_Tag();
-
-				tag.Populate(rawtag);
-				tagsToSave.Add(tag);
-
-				AniDB_Anime_Tag anime_tag = repTagsXRefs.GetByAnimeIDAndTagID(rawtag.AnimeID, rawtag.TagID);
-				if (anime_tag == null) anime_tag = new AniDB_Anime_Tag();
-
-				anime_tag.Populate(rawtag);
-				xrefsToSave.Add(anime_tag);
-
-				if (this.AllTags.Length > 0) this.AllTags += "|";
-				this.AllTags += tag.TagName;
-			}
-
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
+				foreach (Raw_AniDB_Tag rawtag in tags)
+				{
+					AniDB_Tag tag = repTags.GetByTagID(rawtag.TagID, session);
+					if (tag == null) tag = new AniDB_Tag();
+
+					tag.Populate(rawtag);
+					tagsToSave.Add(tag);
+
+					AniDB_Anime_Tag anime_tag = repTagsXRefs.GetByAnimeIDAndTagID(session, rawtag.AnimeID, rawtag.TagID);
+					if (anime_tag == null) anime_tag = new AniDB_Anime_Tag();
+
+					anime_tag.Populate(rawtag);
+					xrefsToSave.Add(anime_tag);
+
+					if (this.AllTags.Length > 0) this.AllTags += "|";
+					this.AllTags += tag.TagName;
+				}
+
 				using (var transaction = session.BeginTransaction())
 				{
 					foreach (AniDB_Tag tag in tagsToSave)
@@ -1103,60 +1248,80 @@ namespace JMMServer.Entities
 			AniDB_Character_SeiyuuRepository repCharSeiyuu = new AniDB_Character_SeiyuuRepository();
 			AniDB_SeiyuuRepository repSeiyuu = new AniDB_SeiyuuRepository();
 
-			// delete all the existing cross references just in case one has been removed
-			List<AniDB_Anime_Character> animeChars = repAnimeChars.GetByAnimeID(AnimeID);
-			foreach (AniDB_Anime_Character xref in animeChars)
-				repAnimeChars.Delete(xref.AniDB_Anime_CharacterID);
-
-			List<AniDB_Character> chrsToSave = new List<AniDB_Character>();
-			List<AniDB_Anime_Character> xrefsToSave = new List<AniDB_Anime_Character>();
-
-			Dictionary<int, AniDB_Seiyuu> seiyuuToSave = new Dictionary<int, AniDB_Seiyuu>();
-			List<AniDB_Character_Seiyuu> seiyuuXrefToSave = new List<AniDB_Character_Seiyuu>();
-
-			foreach (Raw_AniDB_Character rawchar in chars)
-			{
-				AniDB_Character chr = repChars.GetByCharID(rawchar.CharID);
-				if (chr == null)
-					chr = new AniDB_Character();
-
-				// delete existing relationships to seiyuu's
-				List<AniDB_Character_Seiyuu> allCharSei = repCharSeiyuu.GetByCharID(rawchar.CharID);
-				foreach (AniDB_Character_Seiyuu xref in allCharSei)
-					repCharSeiyuu.Delete(xref.AniDB_Character_SeiyuuID);
-
-				chr.PopulateFromHTTP(rawchar);
-				chrsToSave.Add(chr);
-
-				// create cross ref's between anime and character, but don't actually download anything
-				AniDB_Anime_Character anime_char = new AniDB_Anime_Character();
-				anime_char.Populate(rawchar);
-				xrefsToSave.Add(anime_char);
-
-				foreach (Raw_AniDB_Seiyuu rawSeiyuu in rawchar.Seiyuus)
-				{
-					// save the link between character and seiyuu
-					AniDB_Character_Seiyuu acc = repCharSeiyuu.GetByCharIDAndSeiyuuID(rawchar.CharID, rawSeiyuu.SeiyuuID);
-					if (acc == null)
-					{
-						acc = new AniDB_Character_Seiyuu();
-						acc.CharID = chr.CharID;
-						acc.SeiyuuID = rawSeiyuu.SeiyuuID;
-						seiyuuXrefToSave.Add(acc);
-					}
-
-					// save the seiyuu
-					AniDB_Seiyuu seiyuu = repSeiyuu.GetBySeiyuuID(rawSeiyuu.SeiyuuID);
-					if (seiyuu == null) seiyuu = new AniDB_Seiyuu();
-					seiyuu.PicName = rawSeiyuu.PicName;
-					seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
-					seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
-					seiyuuToSave[seiyuu.SeiyuuID] = seiyuu;
-				}
-			}
 
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
+				// delete all the existing cross references just in case one has been removed
+				List<AniDB_Anime_Character> animeChars = repAnimeChars.GetByAnimeID(session, AnimeID);
+
+				using (var transaction = session.BeginTransaction())
+				{
+					foreach (AniDB_Anime_Character xref in animeChars)
+						session.Delete(xref);
+
+					transaction.Commit();
+				}
+				
+
+				List<AniDB_Character> chrsToSave = new List<AniDB_Character>();
+				List<AniDB_Anime_Character> xrefsToSave = new List<AniDB_Anime_Character>();
+
+				Dictionary<int, AniDB_Seiyuu> seiyuuToSave = new Dictionary<int, AniDB_Seiyuu>();
+				List<AniDB_Character_Seiyuu> seiyuuXrefToSave = new List<AniDB_Character_Seiyuu>();
+
+				// delete existing relationships to seiyuu's
+				List<AniDB_Character_Seiyuu> charSeiyuusToDelete = new List<AniDB_Character_Seiyuu>();
+				foreach (Raw_AniDB_Character rawchar in chars)
+				{
+					// delete existing relationships to seiyuu's
+					List<AniDB_Character_Seiyuu> allCharSei = repCharSeiyuu.GetByCharID(session, rawchar.CharID);
+					foreach (AniDB_Character_Seiyuu xref in allCharSei)
+						charSeiyuusToDelete.Add(xref);
+				}
+				using (var transaction = session.BeginTransaction())
+				{
+					foreach (AniDB_Character_Seiyuu xref in charSeiyuusToDelete)
+						session.Delete(xref);
+
+					transaction.Commit();
+				}
+
+				foreach (Raw_AniDB_Character rawchar in chars)
+				{
+					AniDB_Character chr = repChars.GetByCharID(session, rawchar.CharID);
+					if (chr == null)
+						chr = new AniDB_Character();
+
+					chr.PopulateFromHTTP(rawchar);
+					chrsToSave.Add(chr);
+
+					// create cross ref's between anime and character, but don't actually download anything
+					AniDB_Anime_Character anime_char = new AniDB_Anime_Character();
+					anime_char.Populate(rawchar);
+					xrefsToSave.Add(anime_char);
+
+					foreach (Raw_AniDB_Seiyuu rawSeiyuu in rawchar.Seiyuus)
+					{
+						// save the link between character and seiyuu
+						AniDB_Character_Seiyuu acc = repCharSeiyuu.GetByCharIDAndSeiyuuID(session, rawchar.CharID, rawSeiyuu.SeiyuuID);
+						if (acc == null)
+						{
+							acc = new AniDB_Character_Seiyuu();
+							acc.CharID = chr.CharID;
+							acc.SeiyuuID = rawSeiyuu.SeiyuuID;
+							seiyuuXrefToSave.Add(acc);
+						}
+
+						// save the seiyuu
+						AniDB_Seiyuu seiyuu = repSeiyuu.GetBySeiyuuID(session, rawSeiyuu.SeiyuuID);
+						if (seiyuu == null) seiyuu = new AniDB_Seiyuu();
+						seiyuu.PicName = rawSeiyuu.PicName;
+						seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
+						seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
+						seiyuuToSave[seiyuu.SeiyuuID] = seiyuu;
+					}
+				}
+
 				using (var transaction = session.BeginTransaction())
 				{
 					foreach (AniDB_Character chr in chrsToSave)
@@ -1174,6 +1339,8 @@ namespace JMMServer.Entities
 					transaction.Commit();
 				}
 			}
+
+			
 		}
 
 		private void CreateRelations(List<Raw_AniDB_RelatedAnime> rels, bool downloadRelations)
@@ -1182,27 +1349,45 @@ namespace JMMServer.Entities
 
 			AniDB_Anime_RelationRepository repRels = new AniDB_Anime_RelationRepository();
 
-			foreach (Raw_AniDB_RelatedAnime rawrel in rels)
+			List<AniDB_Anime_Relation> relsToSave = new List<AniDB_Anime_Relation>();
+			List<CommandRequest_GetAnimeHTTP> cmdsToSave = new List<CommandRequest_GetAnimeHTTP>();
+
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_Anime_Relation anime_rel = repRels.GetByAnimeIDAndRelationID(rawrel.AnimeID, rawrel.RelatedAnimeID);
-				if (anime_rel == null) anime_rel = new AniDB_Anime_Relation();
-
-				anime_rel.Populate(rawrel);
-				repRels.Save(anime_rel);
-
-				if (downloadRelations && ServerSettings.AutoGroupSeries)
+				foreach (Raw_AniDB_RelatedAnime rawrel in rels)
 				{
-					logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
-						this.MainTitle, this.AnimeID, rawrel.RelatedAnimeID);
+					AniDB_Anime_Relation anime_rel = repRels.GetByAnimeIDAndRelationID(rawrel.AnimeID, rawrel.RelatedAnimeID);
+					if (anime_rel == null) anime_rel = new AniDB_Anime_Relation();
 
-					// I have disable the downloading of relations here because of banning issues
-					// basically we will download immediate relations, but not relations of relations
+					anime_rel.Populate(rawrel);
+					relsToSave.Add(anime_rel);
 
-					//CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(rawrel.RelatedAnimeID, false, downloadRelations);
-					CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(rawrel.RelatedAnimeID, false, false);
-					cr_anime.Save();
+					if (downloadRelations && ServerSettings.AutoGroupSeries)
+					{
+						logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
+							this.MainTitle, this.AnimeID, anime_rel.RelatedAnimeID);
+
+						// I have disable the downloading of relations here because of banning issues
+						// basically we will download immediate relations, but not relations of relations
+
+						//CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(rawrel.RelatedAnimeID, false, downloadRelations);
+						CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(anime_rel.RelatedAnimeID, false, false);
+						cmdsToSave.Add(cr_anime);
+					}
+				}
+
+				using (var transaction = session.BeginTransaction())
+				{
+					foreach (AniDB_Anime_Relation anime_rel in relsToSave)
+						session.SaveOrUpdate(anime_rel);
+
+					transaction.Commit();
 				}
 			}
+
+			// this is not part of the session/transaction because it does other operations in the save
+			foreach (CommandRequest_GetAnimeHTTP cmd in cmdsToSave)
+				cmd.Save();
 		}
 
 		private void CreateSimilarAnime(List<Raw_AniDB_SimilarAnime> sims)
@@ -1211,24 +1396,60 @@ namespace JMMServer.Entities
 
 			AniDB_Anime_SimilarRepository repSim = new AniDB_Anime_SimilarRepository();
 
-			foreach (Raw_AniDB_SimilarAnime rawsim in sims)
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_Anime_Similar anime_sim = repSim.GetByAnimeIDAndSimilarID(rawsim.AnimeID, rawsim.SimilarAnimeID);
-				if (anime_sim == null) anime_sim = new AniDB_Anime_Similar();
+				List<AniDB_Anime_Similar> recsToSave = new List<AniDB_Anime_Similar>();
 
-				anime_sim.Populate(rawsim);
-				repSim.Save(anime_sim);
-
-				// Have commented this out for now, because it ends up downloading most of the database
-				/*
-				if (ServerSettings.AniDB_DownloadRelatedAnime)
+				foreach (Raw_AniDB_SimilarAnime rawsim in sims)
 				{
-					logger.Info("Adding command to download similar anime for {0} ({1}), similar anime ID = {2}",
-						this.MainTitle, this.AnimeID, rawsim.SimilarAnimeID);
-					CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(rawsim.SimilarAnimeID, false);
-					cr_anime.Priority = (int)CommandRequestPriority.Priority10; // set as low priority, so that we get info about animes we actually have first
-					cr_anime.Save();
-				}*/
+					AniDB_Anime_Similar anime_sim = repSim.GetByAnimeIDAndSimilarID(session, rawsim.AnimeID, rawsim.SimilarAnimeID);
+					if (anime_sim == null) anime_sim = new AniDB_Anime_Similar();
+
+					anime_sim.Populate(rawsim);
+					recsToSave.Add(anime_sim);
+				}
+
+				using (var transaction = session.BeginTransaction())
+				{
+					foreach (AniDB_Anime_Similar rec in recsToSave)
+						session.SaveOrUpdate(rec);
+
+					transaction.Commit();
+				}
+			}
+		}
+
+		private void CreateRecommendations(List<Raw_AniDB_Recommendation> recs)
+		{
+			if (recs == null) return;
+
+			//AniDB_RecommendationRepository repRecs = new AniDB_RecommendationRepository();
+
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				List<AniDB_Recommendation> recsToSave = new List<AniDB_Recommendation>();
+
+				foreach (Raw_AniDB_Recommendation rawRec in recs)
+				{
+					AniDB_Recommendation rec = session
+						.CreateCriteria(typeof(AniDB_Recommendation))
+						.Add(Restrictions.Eq("AnimeID", rawRec.AnimeID))
+						.Add(Restrictions.Eq("UserID", rawRec.UserID))
+						.UniqueResult<AniDB_Recommendation>();
+
+					if (rec == null)
+						rec = new AniDB_Recommendation();
+					rec.Populate(rawRec);
+					recsToSave.Add(rec);
+				}
+
+				using (var transaction = session.BeginTransaction())
+				{
+					foreach (AniDB_Recommendation rec in recsToSave)
+						session.SaveOrUpdate(rec);
+
+					transaction.Commit();
+				}
 			}
 		}
 
@@ -1512,6 +1733,160 @@ namespace JMMServer.Entities
 			}
 
 			//logger.Trace(" XXXX 11");
+
+			return contract;
+		}
+
+		public Contract_AniDB_AnimeDetailed ToContractDetailed(ISession session)
+		{
+			logger.Trace(" XXXX 01");
+			AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
+			AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
+			AniDB_TagRepository repTags = new AniDB_TagRepository();
+
+			Contract_AniDB_AnimeDetailed contract = new Contract_AniDB_AnimeDetailed();
+
+			contract.AnimeTitles = new List<Contract_AnimeTitle>();
+			contract.Categories = new List<Contract_AnimeCategory>();
+			contract.Tags = new List<Contract_AnimeTag>();
+
+			contract.AniDBAnime = this.ToContract();
+
+			logger.Trace(" XXXX 02");
+
+			// get all the anime titles
+			List<AniDB_Anime_Title> animeTitles = repTitles.GetByAnimeID(session, AnimeID);
+			if (animeTitles != null)
+			{
+				foreach (AniDB_Anime_Title title in animeTitles)
+				{
+					Contract_AnimeTitle ctitle = new Contract_AnimeTitle();
+					ctitle.AnimeID = title.AnimeID;
+					ctitle.Language = title.Language;
+					ctitle.Title = title.Title;
+					ctitle.TitleType = title.TitleType;
+					contract.AnimeTitles.Add(ctitle);
+				}
+			}
+
+			logger.Trace(" XXXX 03");
+
+			Dictionary<int, AniDB_Anime_Category> dictAnimeCats = new Dictionary<int, AniDB_Anime_Category>();
+			foreach (AniDB_Anime_Category animeCat in GetAnimeCategories(session))
+				dictAnimeCats[animeCat.CategoryID] = animeCat;
+
+			foreach (AniDB_Category cat in GetAniDBCategories(session))
+			{
+				Contract_AnimeCategory ccat = new Contract_AnimeCategory();
+				ccat.CategoryDescription = cat.CategoryDescription;
+				ccat.CategoryID = cat.CategoryID;
+				ccat.CategoryName = cat.CategoryName;
+				ccat.IsHentai = cat.IsHentai;
+				ccat.ParentID = cat.ParentID;
+
+				if (dictAnimeCats.ContainsKey(cat.CategoryID))
+					ccat.Weighting = dictAnimeCats[cat.CategoryID].Weighting;
+				else
+					ccat.Weighting = 0;
+				contract.Categories.Add(ccat);
+			}
+
+			logger.Trace(" XXXX 04");
+
+			Dictionary<int, AniDB_Anime_Tag> dictAnimeTags = new Dictionary<int, AniDB_Anime_Tag>();
+			foreach (AniDB_Anime_Tag animeTag in GetAnimeTags(session))
+				dictAnimeTags[animeTag.TagID] = animeTag;
+
+			foreach (AniDB_Tag tag in GetAniDBTags(session))
+			{
+				Contract_AnimeTag ctag = new Contract_AnimeTag();
+
+				ctag.GlobalSpoiler = tag.GlobalSpoiler;
+				ctag.LocalSpoiler = tag.LocalSpoiler;
+				ctag.Spoiler = tag.Spoiler;
+				ctag.TagCount = tag.TagCount;
+				ctag.TagDescription = tag.TagDescription;
+				ctag.TagID = tag.TagID;
+				ctag.TagName = tag.TagName;
+
+				if (dictAnimeTags.ContainsKey(tag.TagID))
+					ctag.Approval = dictAnimeTags[tag.TagID].Approval;
+				else
+					ctag.Approval = 0;
+				contract.Tags.Add(ctag);
+			}
+
+			logger.Trace(" XXXX 05");
+			AniDB_Vote userVote = this.GetUserVote(session);
+			if (userVote != null)
+				contract.UserVote = userVote.ToContract();
+
+			AdhocRepository repAdHoc = new AdhocRepository();
+			List<string> audioLanguages = new List<string>();
+			List<string> subtitleLanguages = new List<string>();
+
+			logger.Trace(" XXXX 06");
+
+			// audio languages
+			Dictionary<int, LanguageStat> dicAudio = repAdHoc.GetAudioLanguageStatsByAnime(session, this.AnimeID);
+			foreach (KeyValuePair<int, LanguageStat> kvp in dicAudio)
+			{
+				foreach (string lanName in kvp.Value.LanguageNames)
+				{
+					if (!audioLanguages.Contains(lanName))
+						audioLanguages.Add(lanName);
+				}
+			}
+
+			logger.Trace(" XXXX 07");
+
+			// subtitle languages
+			Dictionary<int, LanguageStat> dicSubtitle = repAdHoc.GetSubtitleLanguageStatsByAnime(session, this.AnimeID);
+			foreach (KeyValuePair<int, LanguageStat> kvp in dicSubtitle)
+			{
+				foreach (string lanName in kvp.Value.LanguageNames)
+				{
+					if (!subtitleLanguages.Contains(lanName))
+						subtitleLanguages.Add(lanName);
+				}
+			}
+
+			logger.Trace(" XXXX 08");
+
+			contract.Stat_AudioLanguages = "";
+			foreach (string audioLan in audioLanguages)
+			{
+				if (contract.Stat_AudioLanguages.Length > 0) contract.Stat_AudioLanguages += ",";
+				contract.Stat_AudioLanguages += audioLan;
+			}
+
+			logger.Trace(" XXXX 09");
+
+			contract.Stat_SubtitleLanguages = "";
+			foreach (string subLan in subtitleLanguages)
+			{
+				if (contract.Stat_SubtitleLanguages.Length > 0) contract.Stat_SubtitleLanguages += ",";
+				contract.Stat_SubtitleLanguages += subLan;
+			}
+
+			logger.Trace(" XXXX 10");
+			contract.Stat_AllVideoQuality = repAdHoc.GetAllVideoQualityForAnime(this.AnimeID);
+
+			contract.Stat_AllVideoQuality_Episodes = "";
+			AnimeVideoQualityStat stat = repAdHoc.GetEpisodeVideoQualityStatsForAnime(this.AnimeID);
+			if (stat != null && stat.VideoQualityEpisodeCount.Count > 0)
+			{
+				foreach (KeyValuePair<string, int> kvp in stat.VideoQualityEpisodeCount)
+				{
+					if (kvp.Value >= EpisodeCountNormal)
+					{
+						if (contract.Stat_AllVideoQuality_Episodes.Length > 0) contract.Stat_AllVideoQuality_Episodes += ",";
+						contract.Stat_AllVideoQuality_Episodes += kvp.Key;
+					}
+				}
+			}
+
+			logger.Trace(" XXXX 11");
 
 			return contract;
 		}

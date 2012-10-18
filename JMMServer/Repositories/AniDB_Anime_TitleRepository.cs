@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -53,6 +54,16 @@ namespace JMMServer.Repositories
 
 				return new List<AniDB_Anime_Title>(titles);
 			}
+		}
+
+		public List<AniDB_Anime_Title> GetByAnimeID(ISession session, int id)
+		{
+			var titles = session
+				.CreateCriteria(typeof(AniDB_Anime_Title))
+				.Add(Restrictions.Eq("AnimeID", id))
+				.List<AniDB_Anime_Title>();
+
+			return new List<AniDB_Anime_Title>(titles);
 		}
 
 		public List<AniDB_Anime_Title> GetByAnimeIDLanguageTypeValue(int animeID, string language, string titleType, string titleValue)

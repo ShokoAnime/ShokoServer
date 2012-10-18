@@ -131,7 +131,7 @@ namespace JMMServer.Repositories
 					foreach (object[] res in results)
 					{
 						int animeEpisodeID = int.Parse(res[0].ToString());
-						AnimeEpisode ep = GetByID(animeEpisodeID);
+						AnimeEpisode ep = session.Get<AnimeEpisode>(animeEpisodeID);
 						if (ep != null)
 							epList.Add(ep);
 					}

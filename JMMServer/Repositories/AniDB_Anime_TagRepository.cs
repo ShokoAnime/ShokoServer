@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -55,6 +56,16 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public AniDB_Anime_Tag GetByAnimeIDAndTagID(ISession session, int animeid, int tagid)
+		{
+			AniDB_Anime_Tag cr = session
+				.CreateCriteria(typeof(AniDB_Anime_Tag))
+				.Add(Restrictions.Eq("AnimeID", animeid))
+				.Add(Restrictions.Eq("TagID", tagid))
+				.UniqueResult<AniDB_Anime_Tag>();
+			return cr;
+		}
+
 		public List<AniDB_Anime_Tag> GetByAnimeID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
@@ -66,6 +77,16 @@ namespace JMMServer.Repositories
 
 				return new List<AniDB_Anime_Tag>(tags);
 			}
+		}
+
+		public List<AniDB_Anime_Tag> GetByAnimeID(ISession session, int id)
+		{
+			var tags = session
+				.CreateCriteria(typeof(AniDB_Anime_Tag))
+				.Add(Restrictions.Eq("AnimeID", id))
+				.List<AniDB_Anime_Tag>();
+
+			return new List<AniDB_Anime_Tag>(tags);
 		}
 
 		/// <summary>

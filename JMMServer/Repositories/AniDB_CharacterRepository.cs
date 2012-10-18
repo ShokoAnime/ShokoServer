@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -52,6 +53,15 @@ namespace JMMServer.Repositories
 					.UniqueResult<AniDB_Character>();
 				return cr;
 			}
+		}
+
+		public AniDB_Character GetByCharID(ISession session, int id)
+		{
+			AniDB_Character cr = session
+				.CreateCriteria(typeof(AniDB_Character))
+				.Add(Restrictions.Eq("CharID", id))
+				.UniqueResult<AniDB_Character>();
+			return cr;
 		}
 
 		public void Delete(int id)

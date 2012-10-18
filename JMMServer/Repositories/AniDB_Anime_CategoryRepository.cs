@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -67,6 +68,17 @@ namespace JMMServer.Repositories
 
 				return new List<AniDB_Anime_Category>(cats);
 			}
+		}
+
+		public List<AniDB_Anime_Category> GetByAnimeID(ISession session, int id)
+		{
+			var cats = session
+				.CreateCriteria(typeof(AniDB_Anime_Category))
+				.Add(Restrictions.Eq("AnimeID", id))
+				.AddOrder(Order.Desc("Weighting"))
+				.List<AniDB_Anime_Category>();
+
+			return new List<AniDB_Anime_Category>(cats);
 		}
 
 		/// <summary>

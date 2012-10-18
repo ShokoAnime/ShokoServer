@@ -4,13 +4,15 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
-using NHibernate;
+using NLog;
 
 namespace JMMServer.Repositories
 {
-	public class AniDB_SeiyuuRepository
+	public class AniDB_RecommendationRepository
 	{
-		public void Save(AniDB_Seiyuu obj)
+		private static Logger logger = LogManager.GetCurrentClassLogger();
+
+		public void Save(AniDB_Recommendation obj)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -23,46 +25,26 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public AniDB_Seiyuu GetByID(int id)
+		public AniDB_Recommendation GetByID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return session.Get<AniDB_Seiyuu>(id);
+				return session.Get<AniDB_Recommendation>(id);
 			}
 		}
 
-		public List<AniDB_Seiyuu> GetAll()
+		public AniDB_Recommendation GetByAnimeID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var objs = session
-					.CreateCriteria(typeof(AniDB_Seiyuu))
-					.List<AniDB_Seiyuu>();
-
-				return new List<AniDB_Seiyuu>(objs);
-			}
-		}
-
-		public AniDB_Seiyuu GetBySeiyuuID(int id)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				AniDB_Seiyuu cr = session
-					.CreateCriteria(typeof(AniDB_Seiyuu))
-					.Add(Restrictions.Eq("SeiyuuID", id))
-					.UniqueResult<AniDB_Seiyuu>();
+				AniDB_Recommendation cr = session
+					.CreateCriteria(typeof(AniDB_Recommendation))
+					.Add(Restrictions.Eq("AnimeID", id))
+					.UniqueResult<AniDB_Recommendation>();
 				return cr;
 			}
 		}
 
-		public AniDB_Seiyuu GetBySeiyuuID(ISession session, int id)
-		{
-			AniDB_Seiyuu cr = session
-				.CreateCriteria(typeof(AniDB_Seiyuu))
-				.Add(Restrictions.Eq("SeiyuuID", id))
-				.UniqueResult<AniDB_Seiyuu>();
-			return cr;
-		}
 
 		public void Delete(int id)
 		{
@@ -71,7 +53,7 @@ namespace JMMServer.Repositories
 				// populate the database
 				using (var transaction = session.BeginTransaction())
 				{
-					AniDB_Seiyuu cr = GetByID(id);
+					AniDB_Recommendation cr = GetByID(id);
 					if (cr != null)
 					{
 						session.Delete(cr);

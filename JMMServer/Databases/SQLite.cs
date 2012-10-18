@@ -130,6 +130,7 @@ namespace JMMServer.Databases
 				UpdateSchema_022(versionNumber);
 				UpdateSchema_023(versionNumber);
 				UpdateSchema_024(versionNumber);
+				UpdateSchema_025(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -833,6 +834,41 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 			cmds.Add("ALTER TABLE VideoLocal ADD IsVariation int NULL");
 			cmds.Add("UPDATE VideoLocal SET IsVariation = 0");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_025(int currentVersionNumber)
+		{
+			int thisVersion = 25;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE AniDB_Recommendation( " +
+				" AniDB_RecommendationID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" AnimeID int NOT NULL, " +
+				" UserID int NOT NULL, " +
+				" RecommendationType int NOT NULL, " +
+				" RecommendationText text " +
+				" ); ");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Recommendation ON AniDB_Recommendation(AnimeID, UserID);");
+
 
 			foreach (string cmdTable in cmds)
 			{

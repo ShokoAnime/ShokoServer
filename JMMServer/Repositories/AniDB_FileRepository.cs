@@ -116,12 +116,14 @@ namespace JMMServer.Repositories
 
 		public void Delete(int id)
 		{
+			int animeID = 0;
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				// populate the database
 				using (var transaction = session.BeginTransaction())
 				{
 					AniDB_File cr = GetByID(id);
+					animeID = cr.AnimeID;
 					if (cr != null)
 					{
 						session.Delete(cr);
@@ -129,6 +131,9 @@ namespace JMMServer.Repositories
 					}
 				}
 			}
+
+			if (animeID > 0)
+				StatsCache.Instance.UpdateAnimeContract(animeID);
 		}
 	}
 }

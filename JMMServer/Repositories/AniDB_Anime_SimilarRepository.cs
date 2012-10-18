@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -41,6 +42,16 @@ namespace JMMServer.Repositories
 					.UniqueResult<AniDB_Anime_Similar>();
 				return cr;
 			}
+		}
+
+		public AniDB_Anime_Similar GetByAnimeIDAndSimilarID(ISession session, int animeid, int similaranimeid)
+		{
+			AniDB_Anime_Similar cr = session
+				.CreateCriteria(typeof(AniDB_Anime_Similar))
+				.Add(Restrictions.Eq("AnimeID", animeid))
+				.Add(Restrictions.Eq("SimilarAnimeID", similaranimeid))
+				.UniqueResult<AniDB_Anime_Similar>();
+			return cr;
 		}
 
 		public List<AniDB_Anime_Similar> GetByAnimeID(int id)

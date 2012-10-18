@@ -9,6 +9,7 @@ using JMMContracts;
 using System.Diagnostics;
 using JMMServer.Providers.TraktTV;
 using System.Globalization;
+using NHibernate;
 
 namespace JMMServer
 {
@@ -57,6 +58,8 @@ namespace JMMServer
 		public Dictionary<int, int> StatGroupEpisodeCount = null; // AnimeGroupID
 		public Dictionary<int, decimal> StatGroupAniDBRating = null; // AnimeGroupID / AniDBVote
 
+		public Dictionary<int, Contract_AniDB_AnimeDetailed> StatAnimeContracts = null; // AnimeID / Contract_AniDB_AnimeDetailed
+
 	    public Dictionary<int, Dictionary<int, HashSet<int>>> StatUserGroupFilter = null;
 
 		public StatsCache()
@@ -93,6 +96,7 @@ namespace JMMServer
 			StatGroupSeriesCount = new Dictionary<int, int>();
 			StatGroupEpisodeCount = new Dictionary<int, int>();
 			StatGroupAniDBRating = new Dictionary<int, decimal>();
+			StatAnimeContracts = new Dictionary<int, Contract_AniDB_AnimeDetailed>();
 
             StatUserGroupFilter = new Dictionary<int, Dictionary<int, HashSet<int>>>();
 		}
@@ -232,6 +236,7 @@ namespace JMMServer
 				if (anifile == null) return;
 
 				UpdateUsingAnime(anifile.AnimeID);
+				UpdateAnimeContract(anifile.AnimeID);
 
 				TimeSpan ts = DateTime.Now - start;
 				logger.Info("Updated cached stats file ({0}) in {1} ms", hash, ts.TotalMilliseconds);
@@ -256,6 +261,63 @@ namespace JMMServer
 				if (ser == null) return;
 
 				UpdateUsingSeries(ser.AnimeSeriesID);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+		}
+
+		public void UpdateAnimeContract(ISession session, int animeID)
+		{
+			try
+			{
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+				AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+				if (anime == null) return;
+
+				StatAnimeContracts[anime.AnimeID] = anime.ToContractDetailed(session);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+		}
+
+		public void UpdateAnimeContract(int animeID)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				UpdateAnimeContract(session, animeID);
+			}
+		}
+
+		public void UpdateAllAnimeContracts()
+		{
+			try
+			{
+				DateTime start = DateTime.Now;
+
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					var series = session
+						.CreateCriteria(typeof(AnimeSeries))
+						.List<AnimeSeries>();
+
+					List <AnimeSeries> allSeries = new List<AnimeSeries>(series);
+					foreach (AnimeSeries ser in allSeries)
+					{
+						UpdateAnimeContract(session, ser.AniDB_ID);
+					}
+
+					TimeSpan ts = DateTime.Now - start;
+					logger.Info("Updated All Anime Contracts: {0} in {1} ms", allSeries.Count, ts.TotalMilliseconds);
+				}
+
+				
 			}
 			catch (Exception ex)
 			{
@@ -1034,6 +1096,8 @@ namespace JMMServer
 
 				ts = DateTime.Now - start;
 				logger.Info("GetAllGroups (Contracts) in {0} ms", ts.TotalMilliseconds);
+
+				//UpdateAllAnimeContracts();
 
 			}
 			catch (Exception ex)

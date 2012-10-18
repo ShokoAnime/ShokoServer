@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -43,6 +44,16 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public AniDB_Character_Seiyuu GetByCharIDAndSeiyuuID(ISession session, int animeid, int catid)
+		{
+			AniDB_Character_Seiyuu cr = session
+				.CreateCriteria(typeof(AniDB_Character_Seiyuu))
+				.Add(Restrictions.Eq("CharID", animeid))
+				.Add(Restrictions.Eq("SeiyuuID", catid))
+				.UniqueResult<AniDB_Character_Seiyuu>();
+			return cr;
+		}
+
 		public List<AniDB_Character_Seiyuu> GetByCharID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
@@ -54,6 +65,16 @@ namespace JMMServer.Repositories
 
 				return new List<AniDB_Character_Seiyuu>(objs);
 			}
+		}
+
+		public List<AniDB_Character_Seiyuu> GetByCharID(ISession session, int id)
+		{
+			var objs = session
+				.CreateCriteria(typeof(AniDB_Character_Seiyuu))
+				.Add(Restrictions.Eq("CharID", id))
+				.List<AniDB_Character_Seiyuu>();
+
+			return new List<AniDB_Character_Seiyuu>(objs);
 		}
 
 		public List<AniDB_Character_Seiyuu> GetBySeiyuuID(int id)

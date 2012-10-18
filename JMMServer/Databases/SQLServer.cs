@@ -165,6 +165,7 @@ namespace JMMServer.Databases
 				UpdateSchema_021(versionNumber);
 				UpdateSchema_022(versionNumber);
 				UpdateSchema_023(versionNumber);
+				UpdateSchema_024(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -945,6 +946,46 @@ namespace JMMServer.Databases
 			cmds.Add("ALTER TABLE VideoLocal ADD IsVariation int NULL");
 			cmds.Add("UPDATE VideoLocal SET IsVariation = 0");
 			cmds.Add("ALTER TABLE VideoLocal ALTER COLUMN IsVariation int NOT NULL");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_024(int currentVersionNumber)
+		{
+			int thisVersion = 24;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE AniDB_Recommendation ( " +
+				" AniDB_RecommendationID int IDENTITY(1,1) NOT NULL, " +
+				" AnimeID int NOT NULL, " +
+				" UserID int NOT NULL, " +
+				" RecommendationType int NOT NULL, " +
+				" RecommendationText nvarchar(MAX), " +
+				" CONSTRAINT [PK_AniDB_Recommendation] PRIMARY KEY CLUSTERED " +
+				" ( " +
+				" AniDB_RecommendationID ASC " +
+				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+				" ) ON [PRIMARY] ");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Recommendation ON AniDB_Recommendation(AnimeID, UserID)");
 
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))

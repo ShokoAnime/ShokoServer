@@ -853,7 +853,7 @@ namespace JMMServer
 				if (anime == null)
 					anime = new AniDB_Anime();
 				anime.PopulateAndSaveFromHTTP(getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Categories, getAnimeCmd.Tags,
-					getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, downloadRelations);
+					getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations, downloadRelations);
 
 				// Request an image download
 				CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID, JMMImageType.AniDB_Cover, false);
@@ -869,6 +869,7 @@ namespace JMMServer
 
 				// update cached stats
 				StatsCache.Instance.UpdateUsingAnime(anime.AnimeID);
+				StatsCache.Instance.UpdateAnimeContract(anime.AnimeID);
 
 				// download character images
 				foreach (AniDB_Anime_Character animeChar in anime.AnimeCharacters)

@@ -5,6 +5,7 @@ using System.Text;
 using NHibernateTest;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -41,6 +42,15 @@ namespace JMMServer.Repositories
 					.UniqueResult<AniDB_Anime>();
 				return cr;
 			}
+		}
+
+		public AniDB_Anime GetByAnimeID(ISession session, int id)
+		{
+			AniDB_Anime cr = session
+				.CreateCriteria(typeof(AniDB_Anime))
+				.Add(Restrictions.Eq("AnimeID", id))
+				.UniqueResult<AniDB_Anime>();
+			return cr;
 		}
 
 		public List<AniDB_Anime> GetAll()

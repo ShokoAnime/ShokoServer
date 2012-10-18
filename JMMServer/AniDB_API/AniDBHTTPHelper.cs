@@ -548,6 +548,42 @@ namespace AniDBAPI
 			return rels;
 		}
 
+		public static List<Raw_AniDB_Recommendation> ProcessRecommendations(XmlDocument docAnime, int animeID)
+		{
+			List<Raw_AniDB_Recommendation> recs = new List<Raw_AniDB_Recommendation>();
+
+			try
+			{
+				if (docAnime["anime"]["recommendations"] != null)
+				{
+					XmlNodeList recItems = docAnime["anime"]["recommendations"].GetElementsByTagName("recommendation");
+					if (recItems != null)
+					{
+						foreach (XmlNode node in recItems)
+						{
+							try
+							{
+								Raw_AniDB_Recommendation rec = new Raw_AniDB_Recommendation();
+								rec.ProcessFromHTTPResult(node, animeID);
+								recs.Add(rec);
+							}
+							catch (Exception ex)
+							{
+								//BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
+							}
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in AniDBHTTPHelper.ProcessRecommendations: {0}", ex);
+				return null;
+			}
+
+			return recs;
+		}
+
 		public static List<Raw_AniDB_Episode> ProcessEpisodes(XmlDocument docAnime, int animeID)
 		{
 			List<Raw_AniDB_Episode> eps = new List<Raw_AniDB_Episode>();

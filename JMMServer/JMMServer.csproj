@@ -179,6 +179,7 @@
     <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyAlert.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyList.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyMessage.cs" />
+    <Compile Include="AniDB_API\Raws\Raw_AniDB_Recommendation.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_RelatedAnime.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Review.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Seiyuu.cs" />
@@ -251,6 +252,7 @@
     <Compile Include="Databases\DatabaseHelper.cs" />
     <Compile Include="Databases\MySQL.cs" />
     <Compile Include="Entities\AniDB_MylistStats.cs" />
+    <Compile Include="Entities\AniDB_Recommendation.cs" />
     <Compile Include="Entities\BookmarkedAnime.cs" />
     <Compile Include="Entities\CrossRef_AniDB_MAL.cs" />
     <Compile Include="Entities\CrossRef_AniDB_TvDB_Episode.cs" />
@@ -260,6 +262,7 @@
     <Compile Include="FileRenamer.cs" />
     <Compile Include="JMMServiceImplementationMetro.cs" />
     <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
+    <Compile Include="Mappings\AniDB_RecommendationMap.cs" />
     <Compile Include="Mappings\BookmarkedAnimeMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TvDB_EpisodeMap.cs" />
@@ -284,6 +287,7 @@
     <Compile Include="Providers\TraktTV\TraktTV_UserActivity.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_When.cs" />
     <Compile Include="Repositories\AniDB_MylistStatsRepository.cs" />
+    <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />

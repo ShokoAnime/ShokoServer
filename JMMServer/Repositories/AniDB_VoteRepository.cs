@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -21,7 +22,10 @@ namespace JMMServer.Repositories
 				}
 			}
 			if (obj.VoteType == (int)AniDBVoteType.Anime || obj.VoteType == (int)AniDBVoteType.AnimeTemp)
+			{
 				StatsCache.Instance.UpdateUsingAnime(obj.EntityID);
+				StatsCache.Instance.UpdateAnimeContract(obj.EntityID);
+			}
 		}
 
 		public AniDB_Vote GetByID(int id)
@@ -93,6 +97,25 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public AniDB_Vote GetByAnimeID(ISession session, int animeID)
+		{
+			var votes = session
+				.CreateCriteria(typeof(AniDB_Vote))
+				.Add(Restrictions.Eq("EntityID", animeID))
+				.List<AniDB_Vote>();
+
+			List<AniDB_Vote> tempList = new List<AniDB_Vote>(votes);
+			List<AniDB_Vote> retList = new List<AniDB_Vote>();
+
+			foreach (AniDB_Vote vt in tempList)
+			{
+				if (vt.VoteType == (int)AniDBVoteType.Anime || vt.VoteType == (int)AniDBVoteType.AnimeTemp)
+					return vt;
+			}
+
+			return null;
+		}
+
 		public void Delete(int id)
 		{
 			int? animeID = null;
@@ -113,7 +136,10 @@ namespace JMMServer.Repositories
 				}
 			}
 			if (animeID.HasValue)
+			{
 				StatsCache.Instance.UpdateUsingAnime(animeID.Value);
+				StatsCache.Instance.UpdateAnimeContract(animeID.Value);
+			}
 		}
 	}
 }
