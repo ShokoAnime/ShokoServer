@@ -162,7 +162,7 @@ namespace JMMServer
 
 			//show the Tray Notify Icon
 			TippuTrayNotify.Visible = true;
-			
+
 
 			CreateMenus();
 
@@ -357,7 +357,7 @@ namespace JMMServer
 			this.Cursor = Cursors.Arrow;
 		}
 
-		
+
 
 		void toggleAllowMultipleInstances(object sender, RoutedEventArgs e)
 		{
@@ -366,9 +366,9 @@ namespace JMMServer
 			ServerState.Instance.DisallowMultipleInstances = !ServerState.Instance.DisallowMultipleInstances;
 		}
 
-		
 
-		
+
+
 
 		void btnLogs_Click(object sender, RoutedEventArgs e)
 		{
@@ -439,7 +439,7 @@ namespace JMMServer
 				ServerSettings.BaseImagesPathIsDefault = false;
 				btnChooseImagesFolder.Visibility = System.Windows.Visibility.Visible;
 			}
-			
+
 		}
 
 		#region Database settings and initial start up
@@ -510,19 +510,19 @@ namespace JMMServer
 
 			switch (cboDatabaseType.SelectedIndex)
 			{
-				case 0: 
-					ServerState.Instance.DatabaseIsSQLite = true; 
+				case 0:
+					ServerState.Instance.DatabaseIsSQLite = true;
 					break;
 				case 1:
 
-					bool anySettingsMSSQL= !string.IsNullOrEmpty(ServerSettings.DatabaseName) || !string.IsNullOrEmpty(ServerSettings.DatabasePassword)
+					bool anySettingsMSSQL = !string.IsNullOrEmpty(ServerSettings.DatabaseName) || !string.IsNullOrEmpty(ServerSettings.DatabasePassword)
 						|| !string.IsNullOrEmpty(ServerSettings.DatabaseServer) || !string.IsNullOrEmpty(ServerSettings.DatabaseUsername);
 
 					if (anySettingsMSSQL)
 					{
 						txtMSSQL_DatabaseName.Text = ServerSettings.DatabaseName;
 						txtMSSQL_Password.Password = ServerSettings.DatabasePassword;
-						
+
 						cboMSSQLServerList.Text = ServerSettings.DatabaseServer;
 						txtMSSQL_Username.Text = ServerSettings.DatabaseUsername;
 					}
@@ -533,11 +533,11 @@ namespace JMMServer
 						cboMSSQLServerList.Text = "localhost";
 						txtMSSQL_Username.Text = "sa";
 					}
-					ServerState.Instance.DatabaseIsSQLServer = true; 
+					ServerState.Instance.DatabaseIsSQLServer = true;
 					break;
-				case 2: 
+				case 2:
 
-					bool anySettingsMySQL= !string.IsNullOrEmpty(ServerSettings.MySQL_SchemaName) || !string.IsNullOrEmpty(ServerSettings.MySQL_Password)
+					bool anySettingsMySQL = !string.IsNullOrEmpty(ServerSettings.MySQL_SchemaName) || !string.IsNullOrEmpty(ServerSettings.MySQL_Password)
 						|| !string.IsNullOrEmpty(ServerSettings.MySQL_Hostname) || !string.IsNullOrEmpty(ServerSettings.MySQL_Username);
 
 					if (anySettingsMySQL)
@@ -555,7 +555,7 @@ namespace JMMServer
 						txtMySQL_Username.Text = "root";
 					}
 
-					ServerState.Instance.DatabaseIsMySQL = true; 
+					ServerState.Instance.DatabaseIsMySQL = true;
 					break;
 			}
 		}
@@ -568,7 +568,7 @@ namespace JMMServer
 				ServerInfo.Instance.RefreshImportFolders();
 				ServerState.Instance.CurrentSetupStatus = "Complete!";
 				ServerState.Instance.ServerOnline = true;
-				
+
 				tabControl1.SelectedIndex = 0;
 			}
 			else
@@ -641,7 +641,7 @@ namespace JMMServer
 
 		void workerSetupDB_DoWork(object sender, DoWorkEventArgs e)
 		{
-			
+
 			try
 			{
 				ServerState.Instance.ServerOnline = false;
@@ -797,7 +797,7 @@ namespace JMMServer
 
 		void workerMyAnime2_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
-			
+
 		}
 
 		void workerMyAnime2_DoWork(object sender, DoWorkEventArgs e)
@@ -825,7 +825,7 @@ namespace JMMServer
 
 				List<VideoLocal> vids = repVids.GetVideosWithoutEpisode();
 				ma2Progress.TotalFiles = vids.Count;
-				
+
 				foreach (VideoLocal vid in vids)
 				{
 					ma2Progress.CurrentFile = ma2Progress.CurrentFile + 1;
@@ -899,7 +899,7 @@ namespace JMMServer
 								grp.EpisodeAddedDate = DateTime.Now;
 								repGroups.Save(grp);
 							}
-							
+
 
 							AnimeEpisode epAnime = repEps.GetByAniDBEpisodeID(episodeID);
 							if (epAnime == null)
@@ -944,7 +944,7 @@ namespace JMMServer
 
 						}
 						myReader2.Close();
-						
+
 
 						//Console.WriteLine(myReader.GetString(0));
 					}
@@ -988,7 +988,7 @@ namespace JMMServer
 
 		private void ImportLinksFromMA2(string databasePath)
 		{
-			
+
 		}
 
 		#endregion
@@ -1129,8 +1129,8 @@ namespace JMMServer
 
 			//Importer.UpdateAniDBFileData(true, true);
 
-			AniDB_Anime anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(4880, true, false);
-			
+
+
 
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
@@ -1324,7 +1324,7 @@ namespace JMMServer
 
 		private void StartUp()
 		{
-			
+
 		}
 
 		void workerTraktFriends_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -1420,7 +1420,7 @@ namespace JMMServer
 				workerTraktFriends.RunWorkerAsync();
 			}
 		}
-		
+
 
 		void autoUpdateTimerShort_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
 		{
@@ -1430,7 +1430,7 @@ namespace JMMServer
 			UpdateTraktFriendInfo(false);
 
 			//CheckVersion();
-			
+
 			autoUpdateTimerShort.Enabled = true;
 		}
 
@@ -1549,7 +1549,7 @@ namespace JMMServer
 				ServerState.Instance.NewVersionAvailable = false;
 				ServerState.Instance.NewVersionDownloadLink = "";
 				ServerState.Instance.NewVersionNumber = "";
-				
+
 				// check for new version
 				AppVersionsResult appv = XMLService.GetAppVersions();
 				if (appv != null)
@@ -1581,7 +1581,7 @@ namespace JMMServer
 						}
 					}
 
-					
+
 				}
 
 			}
@@ -1729,10 +1729,32 @@ namespace JMMServer
 		static void fsw_Created(object sender, FileSystemEventArgs e)
 		{
 			logger.Info("New file created: {0}: {1}", e.FullPath, e.ChangeType);
-			if (e.ChangeType == WatcherChangeTypes.Created && FileHashHelper.IsVideo(e.FullPath))
+
+			if (e.ChangeType == WatcherChangeTypes.Created)
 			{
-				CommandRequest_HashFile cmd = new CommandRequest_HashFile(e.FullPath, false);
-				cmd.Save();
+				if (Directory.Exists(e.FullPath))
+				{  // When the path that was created represents a directory we need to manually get the contained files to add.
+					// The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
+					// an event for the directory and not the contained files. However, if the folder is copied from a different drive then
+					// a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
+					string[] files = Directory.GetFiles(e.FullPath, "*.*", SearchOption.AllDirectories);
+
+					foreach (string file in files)
+					{
+						if (FileHashHelper.IsVideo(file))
+						{
+							logger.Info("Found file {0} under folder {1}", file, e.FullPath);
+
+							CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
+							cmd.Save();
+						}
+					}
+				}
+				else if (FileHashHelper.IsVideo(e.FullPath))
+				{
+					CommandRequest_HashFile cmd = new CommandRequest_HashFile(e.FullPath, false);
+					cmd.Save();
+				}
 			}
 		}
 
@@ -1853,7 +1875,7 @@ namespace JMMServer
 			}
 		}
 
-		
+
 
 		private static void StartBinaryHost()
 		{
@@ -1940,7 +1962,7 @@ namespace JMMServer
 			logger.Trace("Now Accepting client connections for images (metro)...");
 		}
 
-		
+
 		private static void StartMetroHost()
 		{
 			BasicHttpBinding binding = new BasicHttpBinding();

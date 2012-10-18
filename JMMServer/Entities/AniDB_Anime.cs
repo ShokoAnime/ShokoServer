@@ -1739,7 +1739,7 @@ namespace JMMServer.Entities
 
 		public Contract_AniDB_AnimeDetailed ToContractDetailed(ISession session)
 		{
-			logger.Trace(" XXXX 01");
+			//logger.Trace(" XXXX 01");
 			AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
 			AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
 			AniDB_TagRepository repTags = new AniDB_TagRepository();
@@ -1752,7 +1752,7 @@ namespace JMMServer.Entities
 
 			contract.AniDBAnime = this.ToContract();
 
-			logger.Trace(" XXXX 02");
+			//logger.Trace(" XXXX 02");
 
 			// get all the anime titles
 			List<AniDB_Anime_Title> animeTitles = repTitles.GetByAnimeID(session, AnimeID);
@@ -1769,7 +1769,7 @@ namespace JMMServer.Entities
 				}
 			}
 
-			logger.Trace(" XXXX 03");
+			//logger.Trace(" XXXX 03");
 
 			Dictionary<int, AniDB_Anime_Category> dictAnimeCats = new Dictionary<int, AniDB_Anime_Category>();
 			foreach (AniDB_Anime_Category animeCat in GetAnimeCategories(session))
@@ -1791,7 +1791,7 @@ namespace JMMServer.Entities
 				contract.Categories.Add(ccat);
 			}
 
-			logger.Trace(" XXXX 04");
+			//logger.Trace(" XXXX 04");
 
 			Dictionary<int, AniDB_Anime_Tag> dictAnimeTags = new Dictionary<int, AniDB_Anime_Tag>();
 			foreach (AniDB_Anime_Tag animeTag in GetAnimeTags(session))
@@ -1816,7 +1816,7 @@ namespace JMMServer.Entities
 				contract.Tags.Add(ctag);
 			}
 
-			logger.Trace(" XXXX 05");
+			//logger.Trace(" XXXX 05");
 			AniDB_Vote userVote = this.GetUserVote(session);
 			if (userVote != null)
 				contract.UserVote = userVote.ToContract();
@@ -1825,7 +1825,7 @@ namespace JMMServer.Entities
 			List<string> audioLanguages = new List<string>();
 			List<string> subtitleLanguages = new List<string>();
 
-			logger.Trace(" XXXX 06");
+			//logger.Trace(" XXXX 06");
 
 			// audio languages
 			Dictionary<int, LanguageStat> dicAudio = repAdHoc.GetAudioLanguageStatsByAnime(session, this.AnimeID);
@@ -1838,7 +1838,7 @@ namespace JMMServer.Entities
 				}
 			}
 
-			logger.Trace(" XXXX 07");
+			//logger.Trace(" XXXX 07");
 
 			// subtitle languages
 			Dictionary<int, LanguageStat> dicSubtitle = repAdHoc.GetSubtitleLanguageStatsByAnime(session, this.AnimeID);
@@ -1851,7 +1851,7 @@ namespace JMMServer.Entities
 				}
 			}
 
-			logger.Trace(" XXXX 08");
+			//logger.Trace(" XXXX 08");
 
 			contract.Stat_AudioLanguages = "";
 			foreach (string audioLan in audioLanguages)
@@ -1860,7 +1860,7 @@ namespace JMMServer.Entities
 				contract.Stat_AudioLanguages += audioLan;
 			}
 
-			logger.Trace(" XXXX 09");
+			//logger.Trace(" XXXX 09");
 
 			contract.Stat_SubtitleLanguages = "";
 			foreach (string subLan in subtitleLanguages)
@@ -1869,7 +1869,7 @@ namespace JMMServer.Entities
 				contract.Stat_SubtitleLanguages += subLan;
 			}
 
-			logger.Trace(" XXXX 10");
+			//logger.Trace(" XXXX 10");
 			contract.Stat_AllVideoQuality = repAdHoc.GetAllVideoQualityForAnime(this.AnimeID);
 
 			contract.Stat_AllVideoQuality_Episodes = "";
@@ -1886,7 +1886,7 @@ namespace JMMServer.Entities
 				}
 			}
 
-			logger.Trace(" XXXX 11");
+			//logger.Trace(" XXXX 11");
 
 			return contract;
 		}
