@@ -33,15 +33,16 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public AniDB_Recommendation GetByAnimeID(int id)
+		public List<AniDB_Recommendation> GetByAnimeID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_Recommendation cr = session
+				var votes = session
 					.CreateCriteria(typeof(AniDB_Recommendation))
 					.Add(Restrictions.Eq("AnimeID", id))
-					.UniqueResult<AniDB_Recommendation>();
-				return cr;
+					.List<AniDB_Recommendation>();
+
+				return new List<AniDB_Recommendation>(votes);
 			}
 		}
 

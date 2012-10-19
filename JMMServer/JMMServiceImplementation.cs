@@ -8357,6 +8357,26 @@ namespace JMMServer
 				return ex.Message;
 			}
 		}
+
+		public List<Contract_AniDB_Recommendation> GetAniDBRecommendations(int animeID)
+		{
+			List<Contract_AniDB_Recommendation> contracts = new List<Contract_AniDB_Recommendation>();
+			try
+			{
+				
+				AniDB_RecommendationRepository repBA = new AniDB_RecommendationRepository();
+
+				foreach (AniDB_Recommendation rec in repBA.GetByAnimeID(animeID))
+					contracts.Add(rec.ToContract());
+
+				return contracts;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return contracts;
+			}
+		}
 	}
 
 	

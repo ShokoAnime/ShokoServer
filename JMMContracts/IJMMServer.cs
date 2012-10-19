@@ -620,6 +620,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		string SetVariationStatusOnFile(int videoLocalID, bool isVariation);
+
+		[OperationContract]
+		List<Contract_AniDB_Recommendation> GetAniDBRecommendations(int animeID);
 	}
 
 }

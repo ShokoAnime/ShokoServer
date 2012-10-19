@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using AniDBAPI;
+using JMMContracts;
 
 namespace JMMServer.Entities
 {
@@ -36,6 +37,19 @@ namespace JMMServer.Entities
 		public override string ToString()
 		{
 			return string.Format("Recommendation: {0} - {1}", UserID, RecommendationText);
+		}
+
+		public Contract_AniDB_Recommendation ToContract()
+		{
+			Contract_AniDB_Recommendation contract = new Contract_AniDB_Recommendation();
+
+			contract.AniDB_RecommendationID = AniDB_RecommendationID;
+			contract.AnimeID = AnimeID;
+			contract.UserID = UserID;
+			contract.RecommendationType = RecommendationType;
+			contract.RecommendationText = RecommendationText;
+
+			return contract;
 		}
 	}
 }
