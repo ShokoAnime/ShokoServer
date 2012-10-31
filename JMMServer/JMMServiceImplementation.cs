@@ -5926,7 +5926,7 @@ namespace JMMServer
 					AnimeSeries series = repAnimeSer.GetByID(userRecord.AnimeSeriesID);
 					if (series == null) continue;
 
-					//if (!user.AllowedSeries(series)) continue;
+					if (!user.AllowedSeries(series)) continue;
 
 					Contract_AnimeEpisode ep = GetNextUnwatchedEpisode(userRecord.AnimeSeriesID, jmmuserID);
 					if (ep != null)

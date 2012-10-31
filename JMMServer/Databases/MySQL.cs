@@ -1147,7 +1147,7 @@ namespace JMMServer.Databases
 
 			cmds.Add("ALTER TABLE `VideoLocal` ADD `IsVariation` int NULL ;");
 			cmds.Add("UPDATE VideoLocal SET IsVariation = 0 ;");
-			cmds.Add("ALTER TABLE `VideoLocal` CHANGE COLUMN `IsCensored` `IsVariation` int NOT NULL ;");
+			cmds.Add("ALTER TABLE `VideoLocal` CHANGE COLUMN `IsVariation` `IsVariation` int NOT NULL ;");
 
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
