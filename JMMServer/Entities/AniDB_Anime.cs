@@ -655,10 +655,10 @@ namespace JMMServer.Entities
 				List<AniDB_Category> categories = new List<AniDB_Category>();
 				foreach (AniDB_Anime_Category cat in AnimeCategories)
 				{
-					AniDB_Category newcat = repCat.GetByID(cat.CategoryID);
+					AniDB_Category newcat = repCat.GetByCategoryID(cat.CategoryID);
 					if (newcat != null) categories.Add(newcat);
 				}
-				categories.Sort();
+				//categories.Sort();
 				return categories;
 			}
 		}
