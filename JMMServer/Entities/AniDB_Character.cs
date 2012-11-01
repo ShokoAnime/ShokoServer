@@ -93,6 +93,24 @@ namespace JMMServer.Entities
 			return contract;
 		}
 
+		public MetroContract_AniDB_Character ToContractMetro(AniDB_Anime_Character charRel)
+		{
+			MetroContract_AniDB_Character contract = new MetroContract_AniDB_Character();
+
+			contract.AniDB_CharacterID = this.AniDB_CharacterID;
+			contract.CharID = this.CharID;
+			contract.CharName = this.CharName;
+			contract.CharKanjiName = this.CharKanjiName;
+			contract.CharDescription = this.CharDescription;
+
+			contract.CharType = charRel.CharType;
+
+			contract.ImageType = (int)JMMImageType.AniDB_Character;
+			contract.ImageID = this.AniDB_CharacterID;
+
+			return contract;
+		}
+
 		public AniDB_Seiyuu Seiyuu
 		{
 			get

@@ -412,12 +412,140 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public ImageDetails DefaultPosterDetailsNoBlanks
+		{
+			get
+			{
+				ImageDetails details = new ImageDetails() { ImageType = JMMImageType.AniDB_Cover, ImageID = this.AnimeID };
+
+				if (DefaultPoster == null)
+					return details;
+				else
+				{
+					ImageEntityType imageType = (ImageEntityType)DefaultPoster.ImageParentType;
+
+					switch (imageType)
+					{
+						case ImageEntityType.AniDB_Cover:
+							return details;
+
+						case ImageEntityType.TvDB_Cover:
+
+							TvDB_ImagePosterRepository repTvPosters = new TvDB_ImagePosterRepository();
+							TvDB_ImagePoster tvPoster = repTvPosters.GetByID(DefaultPoster.ImageParentID);
+							if (tvPoster != null)
+								details = new ImageDetails() { ImageType = JMMImageType.TvDB_Cover, ImageID = tvPoster.TvDB_ImagePosterID };
+
+							return details;
+
+						case ImageEntityType.Trakt_Poster:
+
+							Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
+							Trakt_ImagePoster traktPoster = repTraktPosters.GetByID(DefaultPoster.ImageParentID);
+							if (traktPoster != null)
+								details = new ImageDetails() { ImageType = JMMImageType.Trakt_Poster, ImageID = traktPoster.Trakt_ImagePosterID };
+
+							return details;
+
+						case ImageEntityType.MovieDB_Poster:
+
+							MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
+							MovieDB_Poster moviePoster = repMoviePosters.GetByID(DefaultPoster.ImageParentID);
+							if (moviePoster != null)
+								details = new ImageDetails() { ImageType = JMMImageType.MovieDB_Poster, ImageID = moviePoster.MovieDB_PosterID };
+
+							return details;
+
+					}
+				}
+
+				return details;
+			}
+		}
+
 		public AniDB_Anime_DefaultImage DefaultFanart
 		{
 			get
 			{
 				AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
 				return repDefaults.GetByAnimeIDAndImagezSizeType(this.AnimeID, (int)ImageSizeType.Fanart);
+			}
+		}
+
+		public ImageDetails DefaultFanartDetailsNoBlanks
+		{
+			get
+			{
+				Random fanartRandom = new Random();
+
+				ImageDetails details = null;
+				if (DefaultFanart == null)
+				{
+					// get a random fanart (only tvdb)
+					CrossRef_AniDB_TvDB xref = CrossRefTvDB;
+					if (xref == null) return null;
+
+					TvDB_Series tvseries = TvDBSeries;
+					if (tvseries == null) return null;
+
+					if (this.AnimeTypeEnum == enAnimeType.Movie)
+					{
+						List<MovieDB_Fanart> fanarts = MovieDBFanarts;
+						if (fanarts.Count == 0) return null;
+
+						MovieDB_Fanart movieFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
+						details = new ImageDetails() { ImageType = JMMImageType.MovieDB_FanArt, ImageID = movieFanart.MovieDB_FanartID };
+						return details;
+					}
+					else
+					{
+						List<TvDB_ImageFanart> fanarts = TvDBImageFanarts;
+						if (fanarts.Count == 0) return null;
+
+						TvDB_ImageFanart tvFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
+						details = new ImageDetails() { ImageType = JMMImageType.TvDB_FanArt, ImageID = tvFanart.TvDB_ImageFanartID };
+						return details;
+					}
+
+				}
+				else
+				{
+					ImageEntityType imageType = (ImageEntityType)DefaultPoster.ImageParentType;
+
+					switch (imageType)
+					{
+
+						case ImageEntityType.TvDB_FanArt:
+
+							TvDB_ImageFanartRepository repTvFanarts = new TvDB_ImageFanartRepository();
+							TvDB_ImageFanart tvFanart = repTvFanarts.GetByID(DefaultFanart.ImageParentID);
+							if (tvFanart != null)
+								details = new ImageDetails() { ImageType = JMMImageType.TvDB_FanArt, ImageID = tvFanart.TvDB_ImageFanartID };
+
+							return details;
+
+						case ImageEntityType.Trakt_Fanart:
+
+							Trakt_ImageFanartRepository repTraktFanarts = new Trakt_ImageFanartRepository();
+							Trakt_ImageFanart traktFanart = repTraktFanarts.GetByID(DefaultFanart.ImageParentID);
+							if (traktFanart != null)
+								details = new ImageDetails() { ImageType = JMMImageType.Trakt_Fanart, ImageID = traktFanart.Trakt_ImageFanartID };
+
+							return details;
+
+						case ImageEntityType.MovieDB_FanArt:
+
+							MovieDB_FanartRepository repMovieFanarts = new MovieDB_FanartRepository();
+							MovieDB_Fanart movieFanart = repMovieFanarts.GetByID(DefaultFanart.ImageParentID);
+							if (movieFanart != null)
+								details = new ImageDetails() { ImageType = JMMImageType.MovieDB_FanArt, ImageID = movieFanart.MovieDB_FanartID };
+
+							return details;
+
+					}
+				}
+
+				return null;
 			}
 		}
 

@@ -260,7 +260,9 @@
     <Compile Include="Entities\Playlist.cs" />
     <Compile Include="Entities\RenameScript.cs" />
     <Compile Include="FileRenamer.cs" />
+    <Compile Include="ImageDownload\ImageDetails.cs" />
     <Compile Include="JMMServiceImplementationMetro.cs" />
+    <Compile Include="JMMServiceImplementationREST.cs" />
     <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
     <Compile Include="Mappings\AniDB_RecommendationMap.cs" />
     <Compile Include="Mappings\BookmarkedAnimeMap.cs" />

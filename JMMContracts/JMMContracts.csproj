@@ -53,6 +53,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
@@ -154,7 +155,11 @@
     <Compile Include="IJMMServer.cs" />
     <Compile Include="IJMMServerImage.cs" />
     <Compile Include="IJMMServerMetro.cs" />
+    <Compile Include="IJMMServerREST.cs" />
     <Compile Include="MediaInfoResult.cs" />
+    <Compile Include="MetroContract_AniDB_Character.cs" />
+    <Compile Include="MetroContract_Anime_Detail.cs" />
+    <Compile Include="MetroContract_Anime_Summary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

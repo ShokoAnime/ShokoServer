@@ -41,6 +41,7 @@ using JMMServer.UI;
 using System.ServiceModel.Dispatcher;
 using BinaryNorthwest;
 using System.Collections;
+using System.ServiceModel.Web;
 
 namespace JMMServer
 {
@@ -62,6 +63,7 @@ namespace JMMServer
 		private static string baseAddressBinaryString = @"http://localhost:{0}/JMMServerBinary";
 		private static string baseAddressMetroString = @"http://localhost:{0}/JMMServerMetro";
 		private static string baseAddressMetroImageString = @"http://localhost:{0}/JMMServerMetroImage";
+		private static string baseAddressRESTString = @"http://localhost:{0}/JMMServerREST";
 		//private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
 		//private static ServiceHost host = null;
 		//private static ServiceHost hostTCP = null;
@@ -69,6 +71,7 @@ namespace JMMServer
 		private static ServiceHost hostBinary = null;
 		private static ServiceHost hostMetro = null;
 		private static ServiceHost hostMetroImage = null;
+		private static WebServiceHost hostREST = null;
 
 		private static BackgroundWorker workerImport = new BackgroundWorker();
 		private static BackgroundWorker workerScanFolder = new BackgroundWorker();
@@ -116,6 +119,14 @@ namespace JMMServer
 			get
 			{
 				return new Uri(string.Format(baseAddressMetroImageString, ServerSettings.JMMServerPort));
+			}
+		}
+
+		public static Uri baseAddressREST
+		{
+			get
+			{
+				return new Uri(string.Format(baseAddressRESTString, ServerSettings.JMMServerPort));
 			}
 		}
 
@@ -698,6 +709,7 @@ namespace JMMServer
 				StartBinaryHost();
 				StartMetroHost();
 				StartImageHostMetro();
+				StartRESTHost();
 
 				//  Load all stats
 				ServerState.Instance.CurrentSetupStatus = "Initializing Stats...";
@@ -1899,6 +1911,14 @@ namespace JMMServer
 
 			hostBinary.AddServiceEndpoint(typeof(IJMMServer), binding, baseAddressBinary);
 
+			// ** DISCOVERY ** //
+			// make the service discoverable by adding the discovery behavior
+			//hostBinary.Description.Behaviors.Add(new ServiceDiscoveryBehavior());
+
+			// ** DISCOVERY ** //
+			// add the discovery endpoint that specifies where to publish the services
+			//hostBinary.AddServiceEndpoint(new UdpDiscoveryEndpoint());
+
 
 			// Open the ServiceHost to start listening for messages. Since
 			// no endpoints are explicitly configured, the runtime will create
@@ -1991,6 +2011,15 @@ namespace JMMServer
 			logger.Trace("Now Accepting client connections for metro apps...");
 		}
 
+		private static void StartRESTHost()
+		{
+			hostREST = new WebServiceHost(typeof(JMMServiceImplementationREST), baseAddressREST);
+			ServiceEndpoint ep = hostREST.AddServiceEndpoint(typeof(IJMMServerREST), new WebHttpBinding(), "");
+			ServiceDebugBehavior stp = hostREST.Description.Behaviors.Find<ServiceDebugBehavior>();
+			stp.HttpHelpPageEnabled = false;
+			hostREST.Open();
+		}
+
 		private static void ReadFiles()
 		{
 			// Steps for processing a file
@@ -2051,6 +2080,9 @@ namespace JMMServer
 
 			if (hostMetroImage != null)
 				hostMetroImage.Close();
+
+			if (hostREST != null)
+				hostREST.Close();
 		}
 
 		private static void SetupAniDBProcessor()

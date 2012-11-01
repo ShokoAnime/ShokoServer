@@ -37,6 +37,32 @@ namespace JMMServer.Entities
 
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
+		public string SeriesName
+		{
+			get
+			{
+				string seriesName = "";
+				if (!string.IsNullOrEmpty(SeriesNameOverride))
+					seriesName = SeriesNameOverride;
+				else
+				{
+					if (ServerSettings.SeriesNameSource == DataSourceType.AniDB)
+						seriesName = Anime.FormattedTitle;
+					else
+					{
+						TvDB_Series tvdb = this.TvDBSeries;
+
+						if (tvdb != null && !string.IsNullOrEmpty(tvdb.SeriesName) && !tvdb.SeriesName.ToUpper().Contains("**DUPLICATE"))
+							seriesName = tvdb.SeriesName;
+						else
+							seriesName = Anime.FormattedTitle;
+					}
+				}
+
+				return seriesName;
+			}
+
+		}
 
 		public string GenresRaw
 		{
@@ -48,6 +74,7 @@ namespace JMMServer.Entities
 					return Anime.CategoriesString;
 			}
 		}
+
 
 		public List<AnimeEpisode> AnimeEpisodes
 		{
@@ -64,6 +91,17 @@ namespace JMMServer.Entities
 			{
 				CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
 				return repCrossRef.GetByAnimeID(this.AniDB_ID);
+			}
+		}
+
+		public TvDB_Series TvDBSeries
+		{
+			get
+			{
+				CrossRef_AniDB_TvDB xref = CrossRefTvDB;
+				if (xref == null) return null;
+
+				return xref.TvDBSeries;
 			}
 		}
 
