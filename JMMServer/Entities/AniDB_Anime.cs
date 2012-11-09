@@ -13,6 +13,7 @@ using JMMServer.ImageDownload;
 using System.Diagnostics;
 using NHibernate.Criterion;
 using NHibernate;
+using BinaryNorthwest;
 
 namespace JMMServer.Entities
 {
@@ -174,6 +175,148 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public List<TvDB_Episode> TvDBEpisodes
+		{
+			get
+			{
+				CrossRef_AniDB_TvDB xref = CrossRefTvDB;
+				if (xref == null) return new List<TvDB_Episode>();
+
+				TvDB_EpisodeRepository repEps = new TvDB_EpisodeRepository();
+				List<TvDB_Episode> tvDBEpisodes = repEps.GetBySeriesID(xref.TvDBID);
+
+				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+				sortCriteria.Add(new SortPropOrFieldAndDirection("SeasonNumber", false, SortType.eInteger));
+				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
+				tvDBEpisodes = Sorting.MultiSort<TvDB_Episode>(tvDBEpisodes, sortCriteria);
+
+				return tvDBEpisodes;
+			}
+		}
+
+		private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
+		public Dictionary<int, TvDB_Episode> DictTvDBEpisodes
+		{
+			get
+			{
+				if (dictTvDBEpisodes == null)
+				{
+					try
+					{
+						if (TvDBEpisodes != null)
+						{
+							dictTvDBEpisodes = new Dictionary<int, TvDB_Episode>();
+							// create a dictionary of absolute episode numbers for tvdb episodes
+							// sort by season and episode number
+							// ignore season 0, which is used for specials
+							List<TvDB_Episode> eps = TvDBEpisodes;
+
+							int i = 1;
+							foreach (TvDB_Episode ep in eps)
+							{
+								dictTvDBEpisodes[i] = ep;
+								i++;
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						logger.ErrorException(ex.ToString(), ex);
+					}
+				}
+				return dictTvDBEpisodes;
+			}
+		}
+
+		private Dictionary<int, int> dictTvDBSeasons = null;
+		public Dictionary<int, int> DictTvDBSeasons
+		{
+			get
+			{
+				if (dictTvDBSeasons == null)
+				{
+					try
+					{
+						if (TvDBEpisodes != null)
+						{
+							dictTvDBSeasons = new Dictionary<int, int>();
+							// create a dictionary of season numbers and the first episode for that season
+
+							List<TvDB_Episode> eps = TvDBEpisodes;
+							int i = 1;
+							int lastSeason = -999;
+							foreach (TvDB_Episode ep in eps)
+							{
+								if (ep.SeasonNumber != lastSeason)
+									dictTvDBSeasons[ep.SeasonNumber] = i;
+
+								lastSeason = ep.SeasonNumber;
+								i++;
+
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						logger.ErrorException(ex.ToString(), ex);
+					}
+				}
+				return dictTvDBSeasons;
+			}
+		}
+
+		private Dictionary<int, int> dictTvDBSeasonsSpecials = null;
+		public Dictionary<int, int> DictTvDBSeasonsSpecials
+		{
+			get
+			{
+				if (dictTvDBSeasonsSpecials == null)
+				{
+					try
+					{
+						if (TvDBEpisodes != null)
+						{
+							dictTvDBSeasonsSpecials = new Dictionary<int, int>();
+							// create a dictionary of season numbers and the first episode for that season
+
+							List<TvDB_Episode> eps = TvDBEpisodes;
+							int i = 1;
+							int lastSeason = -999;
+							foreach (TvDB_Episode ep in eps)
+							{
+								if (ep.SeasonNumber > 0) continue;
+
+								int thisSeason = 0;
+								if (ep.AirsBeforeSeason.HasValue) thisSeason = ep.AirsBeforeSeason.Value;
+								if (ep.AirsAfterSeason.HasValue) thisSeason = ep.AirsAfterSeason.Value;
+
+								if (thisSeason != lastSeason)
+									dictTvDBSeasonsSpecials[thisSeason] = i;
+
+								lastSeason = thisSeason;
+								i++;
+
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						logger.ErrorException(ex.ToString(), ex);
+					}
+				}
+				return dictTvDBSeasonsSpecials;
+			}
+		}
+
+		public List<CrossRef_AniDB_TvDB_Episode> CrossRefTvDBEpisodes
+		{
+			get
+			{
+				CrossRef_AniDB_TvDB_EpisodeRepository repCrossRef = new CrossRef_AniDB_TvDB_EpisodeRepository();
+				return repCrossRef.GetByAnimeID(AnimeID);
+			}
+		}
+
 		public CrossRef_AniDB_TvDB CrossRefTvDB
 		{
 			get
@@ -252,17 +395,7 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public List<TvDB_Episode> TvDBEpisodes
-		{
-			get
-			{
-				CrossRef_AniDB_TvDB xref = CrossRefTvDB;
-				if (xref == null) return new List<TvDB_Episode>();
-
-				TvDB_EpisodeRepository repEps = new TvDB_EpisodeRepository();
-				return repEps.GetBySeriesID(xref.TvDBID);
-			}
-		}
+		
 
 		public List<TvDB_ImageFanart> TvDBImageFanarts
 		{
@@ -510,7 +643,7 @@ namespace JMMServer.Entities
 				}
 				else
 				{
-					ImageEntityType imageType = (ImageEntityType)DefaultPoster.ImageParentType;
+					ImageEntityType imageType = (ImageEntityType)DefaultFanart.ImageParentType;
 
 					switch (imageType)
 					{
@@ -546,6 +679,81 @@ namespace JMMServer.Entities
 				}
 
 				return null;
+			}
+		}
+
+		public string DefaultFanartOnlineURL
+		{
+			get
+			{
+				Random fanartRandom = new Random();
+
+
+				if (DefaultFanart == null)
+				{
+					// get a random fanart (only tvdb)
+					CrossRef_AniDB_TvDB xref = CrossRefTvDB;
+					if (xref == null) return "";
+
+					TvDB_Series tvseries = TvDBSeries;
+					if (tvseries == null) return "";
+
+					if (this.AnimeTypeEnum == enAnimeType.Movie)
+					{
+						List<MovieDB_Fanart> fanarts = MovieDBFanarts;
+						if (fanarts.Count == 0) return "";
+
+						MovieDB_Fanart movieFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
+						return movieFanart.URL;
+					}
+					else
+					{
+						List<TvDB_ImageFanart> fanarts = TvDBImageFanarts;
+						if (fanarts.Count == 0) return null;
+
+						TvDB_ImageFanart tvFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
+						return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
+					}
+
+				}
+				else
+				{
+					ImageEntityType imageType = (ImageEntityType)DefaultFanart.ImageParentType;
+
+					switch (imageType)
+					{
+
+						case ImageEntityType.TvDB_FanArt:
+
+							TvDB_ImageFanartRepository repTvFanarts = new TvDB_ImageFanartRepository();
+							TvDB_ImageFanart tvFanart = repTvFanarts.GetByID(DefaultFanart.ImageParentID);
+							if (tvFanart != null)
+								return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
+
+							break;
+
+						case ImageEntityType.Trakt_Fanart:
+
+							Trakt_ImageFanartRepository repTraktFanarts = new Trakt_ImageFanartRepository();
+							Trakt_ImageFanart traktFanart = repTraktFanarts.GetByID(DefaultFanart.ImageParentID);
+							if (traktFanart != null)
+								return traktFanart.ImageURL;
+
+							break;
+
+						case ImageEntityType.MovieDB_FanArt:
+
+							MovieDB_FanartRepository repMovieFanarts = new MovieDB_FanartRepository();
+							MovieDB_Fanart movieFanart = repMovieFanarts.GetByID(DefaultFanart.ImageParentID);
+							if (movieFanart != null)
+								return movieFanart.URL;
+
+							break;
+
+					}
+				}
+
+				return "";
 			}
 		}
 
@@ -1683,6 +1891,83 @@ namespace JMMServer.Entities
 
 				AniDB_Anime_DefaultImage defBanner = this.DefaultWideBanner;
 				if (defBanner != null) contract.DefaultImageWideBanner = defBanner.ToContract();
+			}
+
+			return contract;
+		}
+
+		public JMMServer.Providers.Azure.AnimeFull ToContractAzure()
+		{
+			JMMServer.Providers.Azure.AnimeFull contract = new JMMServer.Providers.Azure.AnimeFull();
+			contract.Detail = new Providers.Azure.AnimeDetail();
+			contract.Characters = new List<Providers.Azure.AnimeCharacter>();
+			contract.Shouts = new List<Providers.Azure.AnimeShout>();
+
+			contract.Detail.AllCategories = this.CategoriesString;
+			contract.Detail.AnimeID = this.AnimeID;
+			contract.Detail.AnimeName = this.MainTitle;
+			contract.Detail.AnimeType = this.AnimeTypeDescription;
+			contract.Detail.Description = this.Description;
+			contract.Detail.EndDateLong = Utils.GetAniDBDateAsSeconds(this.EndDate);
+			contract.Detail.StartDateLong = Utils.GetAniDBDateAsSeconds(this.AirDate);
+			contract.Detail.EpisodeCountNormal = this.EpisodeCountNormal;
+			contract.Detail.EpisodeCountSpecial = this.EpisodeCountSpecial;
+			contract.Detail.FanartURL = DefaultFanartOnlineURL;
+			contract.Detail.OverallRating = this.AniDBRating;
+			contract.Detail.PosterURL = string.Format(Constants.URLS.AniDB_Images, Picname);
+			contract.Detail.TotalVotes = this.AniDBTotalVotes;
+
+			AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
+			AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
+
+			List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(AnimeID);
+
+			if (animeChars != null || animeChars.Count > 0)
+			{
+				// first get all the main characters
+				foreach (AniDB_Anime_Character animeChar in animeChars.Where(item => item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
+				{
+					AniDB_Character chr = repChar.GetByCharID(animeChar.CharID);
+					if (chr != null)
+						contract.Characters.Add(chr.ToContractAzure(animeChar));
+				}
+
+				// now get the rest
+				foreach (AniDB_Anime_Character animeChar in animeChars.Where(item => !item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
+				{
+					AniDB_Character chr = repChar.GetByCharID(animeChar.CharID);
+					if (chr != null)
+						contract.Characters.Add(chr.ToContractAzure(animeChar));
+
+				}
+			}
+
+			AniDB_RecommendationRepository repBA = new AniDB_RecommendationRepository();
+
+			foreach (AniDB_Recommendation rec in repBA.GetByAnimeID(AnimeID))
+			{
+				JMMServer.Providers.Azure.AnimeShout shout = new JMMServer.Providers.Azure.AnimeShout();
+
+				shout.UserID = rec.UserID;
+				shout.UserName = "";
+
+				// shout details
+				shout.ShoutText = rec.RecommendationText;
+				shout.IsSpoiler = false;
+				shout.ShoutDateLong = 0;
+
+				shout.ImageURL = string.Empty;
+
+				AniDBRecommendationType recType = (AniDBRecommendationType)rec.RecommendationType;
+				switch (recType)
+				{
+					case AniDBRecommendationType.ForFans: shout.ShoutType = (int)WhatPeopleAreSayingType.AniDBForFans; break;
+					case AniDBRecommendationType.MustSee: shout.ShoutType = (int)WhatPeopleAreSayingType.AniDBMustSee; break;
+					case AniDBRecommendationType.Recommended: shout.ShoutType = (int)WhatPeopleAreSayingType.AniDBRecommendation; break;
+				}
+
+				shout.Source = "AniDB";
+				contract.Shouts.Add(shout);
 			}
 
 			return contract;

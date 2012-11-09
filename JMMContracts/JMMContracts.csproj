@@ -159,7 +159,9 @@
     <Compile Include="MediaInfoResult.cs" />
     <Compile Include="MetroContract_AniDB_Character.cs" />
     <Compile Include="MetroContract_Anime_Detail.cs" />
+    <Compile Include="MetroContract_Anime_Episode.cs" />
     <Compile Include="MetroContract_Anime_Summary.cs" />
+    <Compile Include="MetroContract_Shout.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

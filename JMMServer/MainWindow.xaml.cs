@@ -42,6 +42,8 @@ using System.ServiceModel.Dispatcher;
 using BinaryNorthwest;
 using System.Collections;
 using System.ServiceModel.Web;
+using JMMServer.Providers.Azure;
+using JMMServer.Commands.Azure;
 
 namespace JMMServer
 {
@@ -1141,8 +1143,34 @@ namespace JMMServer
 
 			//Importer.UpdateAniDBFileData(true, true);
 
+			//JMMServiceImplementationMetro imp = new JMMServiceImplementationMetro();
+			//imp.GetAnimeDetail(4880);
 
+			/*CrossRef_AniDB_MALRepository rep = new CrossRef_AniDB_MALRepository();
+			foreach (JMMServer.Entities.CrossRef_AniDB_MAL xref in rep.GetAll())
+			{
+				//AzureWebAPI.Send_CrossRef_AniDB_MAL(xref);
+				break;
+			}
 
+			AniDB_Anime anime2 = JMMService.AnidbProcessor.GetAnimeInfoHTTP(9127, true, false);
+
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			List<AniDB_Anime> allAnime = repAnime.GetAll();
+			int cnt = 0;
+			foreach (AniDB_Anime anime in allAnime)
+			{
+				cnt++;
+				logger.Info(string.Format("Uploading anime {0} of {1} - {2}", cnt, allAnime.Count, anime.MainTitle));
+
+				try
+				{
+					//CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
+					//cmdAzure.Save();
+				}
+				catch { }
+			}
+			*/
 
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;

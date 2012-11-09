@@ -32,5 +32,30 @@ namespace JMMServer.Entities
 
 			return contract;
 		}
+
+		public JMMServer.Providers.Azure.CrossRef_AniDB_MAL ToContractAzure()
+		{
+			JMMServer.Providers.Azure.CrossRef_AniDB_MAL contract = new JMMServer.Providers.Azure.CrossRef_AniDB_MAL();
+
+			contract.AnimeID = AnimeID;
+			contract.MALID = MALID;
+			contract.MALTitle = MALTitle;
+			contract.StartEpisodeType = StartEpisodeType;
+			contract.StartEpisodeNumber = StartEpisodeNumber;
+			contract.CrossRefSource = CrossRefSource;
+
+			contract.AnimeID = AnimeID;
+			contract.CrossRefSource = CrossRefSource;
+			contract.MALID = MALID;
+			contract.MALTitle = MALTitle;
+			contract.StartEpisodeNumber = StartEpisodeNumber;
+			contract.StartEpisodeType = AnimeID;
+
+			contract.Username = ServerSettings.AniDB_Username;
+			if (ServerSettings.WebCache_Anonymous)
+				contract.Username = Constants.AnonWebCacheUsername;
+
+			return contract;
+		}
 	}
 }

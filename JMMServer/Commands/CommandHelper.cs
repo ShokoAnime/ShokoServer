@@ -6,6 +6,7 @@ using JMMServer.Entities;
 using JMMServer.Commands.WebCache;
 using JMMServer.Commands.MAL;
 using JMMServer.Commands.AniDB;
+using JMMServer.Commands.Azure;
 
 namespace JMMServer.Commands
 {
@@ -82,6 +83,7 @@ namespace JMMServer.Commands
 		// CommandRequest_MALUploadStatusToMAL
 		// CommandRequest_MALDownloadStatusFromMAL
 		// CommandRequest_WebCacheSendAniDB_File
+		// CommandRequest_Azure_SendAnimeFull
 		//------
 		// Pri 10
 		//------
@@ -92,6 +94,11 @@ namespace JMMServer.Commands
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
 			{
+				case CommandRequestType.Azure_SendAnimeFull:
+					CommandRequest_Azure_SendAnimeFull cr_CommandRequest_Azure_SendAnimeFull = new CommandRequest_Azure_SendAnimeFull();
+					cr_CommandRequest_Azure_SendAnimeFull.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_CommandRequest_Azure_SendAnimeFull;
+
 				case CommandRequestType.AniDB_UpdateMylistStats:
 					CommandRequest_UpdateMylistStats cr_AniDB_UpdateMylistStats = new CommandRequest_UpdateMylistStats();
 					cr_AniDB_UpdateMylistStats.LoadFromDBCommand(crdb);

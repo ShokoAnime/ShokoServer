@@ -53,6 +53,7 @@ namespace JMMServer.Entities
 				this.CharDescription = rawChar.CharDescription;
 				this.CharName = rawChar.CharName;
 				this.CreatorListRaw = rawChar.CreatorListRaw;
+				this.PicName = rawChar.PicName;
 			}
 		}
 
@@ -107,6 +108,37 @@ namespace JMMServer.Entities
 
 			contract.ImageType = (int)JMMImageType.AniDB_Character;
 			contract.ImageID = this.AniDB_CharacterID;
+
+			AniDB_Seiyuu seiyuu = this.Seiyuu;
+			if (seiyuu != null)
+			{
+				contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
+				contract.SeiyuuName = seiyuu.SeiyuuName;
+				contract.SeiyuuImageType = (int)JMMImageType.AniDB_Creator;
+				contract.SeiyuuImageID = seiyuu.AniDB_SeiyuuID;
+			}
+
+			return contract;
+		}
+
+		public JMMServer.Providers.Azure.AnimeCharacter ToContractAzure(AniDB_Anime_Character charRel)
+		{
+			JMMServer.Providers.Azure.AnimeCharacter contract = new JMMServer.Providers.Azure.AnimeCharacter();
+
+			contract.CharID = this.CharID;
+			contract.CharName = this.CharName;
+			contract.CharKanjiName = this.CharKanjiName;
+			contract.CharDescription = this.CharDescription;
+			contract.CharType = charRel.CharType;
+			contract.CharImageURL = string.Format(Constants.URLS.AniDB_Images, PicName);
+
+			AniDB_Seiyuu seiyuu = this.Seiyuu;
+			if (seiyuu != null)
+			{
+				contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
+				contract.SeiyuuName = seiyuu.SeiyuuName;
+				contract.SeiyuuImageURL = string.Format(Constants.URLS.AniDB_Images, seiyuu.PicName);
+			}
 
 			return contract;
 		}

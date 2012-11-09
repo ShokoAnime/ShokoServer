@@ -5,6 +5,14 @@ using System.Text;
 
 namespace JMMServer
 {
+	public enum WhatPeopleAreSayingType
+	{
+		TraktShout = 1,
+		AniDBRecommendation = 2,
+		AniDBMustSee = 3,
+		AniDBForFans = 4,
+	}
+
 	public enum AniDBRecommendationType
 	{
 		ForFans = 1,
@@ -123,7 +131,8 @@ namespace JMMServer
 		MAL_DownloadWatchedStates = 63,
 		WebCache_SendAniDB_File = 64,
 		WebCache_GetAniDB_File = 65,
-		AniDB_UpdateMylistStats = 66
+		AniDB_UpdateMylistStats = 66,
+		Azure_SendAnimeFull = 70
 	}
 
 	public enum CommandRequestPriority

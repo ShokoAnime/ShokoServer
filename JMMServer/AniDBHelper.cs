@@ -13,6 +13,7 @@ using System.IO;
 using AniDBAPI.Commands;
 using JMMServer.Commands;
 using JMMServer.WebCache;
+using JMMServer.Commands.Azure;
 
 namespace JMMServer
 {
@@ -897,7 +898,8 @@ namespace JMMServer
 				}
 				
 				//OnGotAnimeInfoEvent(new GotAnimeInfoEventArgs(getAnimeCmd.Anime.AnimeID));
-
+				CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
+				cmdAzure.Save();
 				
 			}
 
