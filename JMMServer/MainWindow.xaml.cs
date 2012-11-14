@@ -1172,9 +1172,68 @@ namespace JMMServer
 			}
 			*/
 
+			/*List<int> animeIDs = new List<int>();
+			for (int i=1;i<6000;i++)
+			{
+				animeIDs.Add(i);
+			}
+
+			string aids = "";
+			var shuffledList = animeIDs.OrderBy(a => Guid.NewGuid());
+			foreach (int animeID in shuffledList)
+			{
+				if (!string.IsNullOrEmpty(aids)) aids += ",";
+				aids += animeID;
+			}
+
+			logger.Info(aids);
+			*/
+
+			//SendToAzure();
+
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();
+		}
+
+		private void SendToAzure()
+		{
+			Dictionary<int, int> validAnimeIDs = new Dictionary<int, int>();
+
+			string line;
+
+			// Read the file and display it line by line.
+			System.IO.StreamReader file =
+			   new System.IO.StreamReader(@"e:\animetitles.txt");
+			while ((line = file.ReadLine()) != null)
+			{
+				string[] titlesArray = line.Split('|');
+
+				try
+				{
+					int aid = int.Parse(titlesArray[0]);
+					validAnimeIDs[aid] = aid;
+				}
+				catch { }
+			}
+
+			file.Close();
+
+			string aids = "3180,1440,1469,1705,5507,172,3576,3563,3221,1447,4956,1945,4894,793,2084,285,708,4888,3496,2878,580,5690,3179,5992,3397,1855,756,2668,4832,3946,494,97,3918,5243,1618,5076,2629,1867,943,5858,431,2547,1602,3046,2888,2905,1958,791,1949,3385,5704,3726,3776,4780,2241,3636,2928,3970,1847,4543,4934,2769,253,3910,4,5971,5432,2708,5591,586,2427,499,3606,15,475,3339,5172,5109,1344,5361,2918,3875,2958,2348,2134,1952,2917,990,2603,1995,2845,1290,3471,5969,5674,958,595,726,5726,5159,746,2610,3649,1075,5407";
+			string[] aidArray = aids.Split(',');
+
+			logger.Info(string.Format("Queueing {0} anime updates", aidArray.Length));
+			int cnt = 0;
+			foreach (string animeid in aidArray)
+			{
+				if (validAnimeIDs.ContainsKey(int.Parse(animeid)))
+				{
+					CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(int.Parse(animeid), true, false);
+					cmd.Save();
+					cnt++;
+				}
+			}
+			logger.Info(string.Format("Queued {0} anime updates", cnt)); 
 		}
 
 		private void DownloadAllImages()

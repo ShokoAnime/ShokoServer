@@ -132,7 +132,7 @@ namespace JMMServer
 
 				if (aniFile == null) return false;
 
-				if (test.Trim().Equals(Constants.FileRenameReserved.None, StringComparison.InvariantCultureIgnoreCase) && vid.AniDBFile.Subtitles.Count == 0)
+				if (test.Trim().Equals(Constants.FileRenameReserved.None, StringComparison.InvariantCultureIgnoreCase) && vid.GetAniDBFile().Subtitles.Count == 0)
 				{
 					if (notCondition)
 						return false;
@@ -994,7 +994,7 @@ namespace JMMServer
 				string tagAnimeNameEnglish = Constants.FileRenameTag.AnimeNameEnglish.Substring(1, Constants.FileRenameTag.AnimeNameEnglish.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagAnimeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
 				{
-					foreach (AniDB_Anime_Title ti in anime.Titles)
+					foreach (AniDB_Anime_Title ti in anime.GetTitles())
 					{
 						if (ti.Language.Equals(Constants.AniDBLanguageType.English, StringComparison.InvariantCultureIgnoreCase))
 						{
@@ -1018,7 +1018,7 @@ namespace JMMServer
 				string tagAnimeNameKanji = Constants.FileRenameTag.AnimeNameKanji.Substring(1, Constants.FileRenameTag.AnimeNameKanji.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagAnimeNameKanji, StringComparison.InvariantCultureIgnoreCase))
 				{
-					foreach (AniDB_Anime_Title ti in anime.Titles)
+					foreach (AniDB_Anime_Title ti in anime.GetTitles())
 					{
 						if (ti.Language.Equals(Constants.AniDBLanguageType.Kanji, StringComparison.InvariantCultureIgnoreCase))
 						{
@@ -1040,7 +1040,7 @@ namespace JMMServer
 				string tagAnimeNameRomaji = Constants.FileRenameTag.AnimeNameRomaji.Substring(1, Constants.FileRenameTag.AnimeNameRomaji.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagAnimeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
 				{
-					foreach (AniDB_Anime_Title ti in anime.Titles)
+					foreach (AniDB_Anime_Title ti in anime.GetTitles())
 					{
 						if (ti.Language.Equals(Constants.AniDBLanguageType.Romaji, StringComparison.InvariantCultureIgnoreCase))
 						{
@@ -1361,10 +1361,10 @@ namespace JMMServer
 			if (vi == null) return string.Empty;
 
 			// get all the data so we don't need to get multiple times
-			AniDB_File aniFile = vid.AniDBFile;
+			AniDB_File aniFile = vid.GetAniDBFile();
 			if (aniFile == null)
 			{
-				List<AnimeEpisode> animeEps = vid.AnimeEpisodes;
+				List<AnimeEpisode> animeEps = vid.GetAnimeEpisodes();
 				if (animeEps.Count == 0) return string.Empty;
 
 				episodes.Add(animeEps[0].AniDB_Episode);
@@ -1516,7 +1516,7 @@ namespace JMMServer
 
 			if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameEnglish.ToLower()))
 			{
-				foreach (AniDB_Anime_Title ti in anime.Titles)
+				foreach (AniDB_Anime_Title ti in anime.GetTitles())
 				{
 					if (ti.Language.Equals(Constants.AniDBLanguageType.English, StringComparison.InvariantCultureIgnoreCase))
 					{
@@ -1536,7 +1536,7 @@ namespace JMMServer
 
 			if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameRomaji.ToLower()))
 			{
-				foreach (AniDB_Anime_Title ti in anime.Titles)
+				foreach (AniDB_Anime_Title ti in anime.GetTitles())
 				{
 					if (ti.Language.Equals(Constants.AniDBLanguageType.Romaji, StringComparison.InvariantCultureIgnoreCase))
 					{
@@ -1556,7 +1556,7 @@ namespace JMMServer
 
 			if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameKanji.ToLower()))
 			{
-				foreach (AniDB_Anime_Title ti in anime.Titles)
+				foreach (AniDB_Anime_Title ti in anime.GetTitles())
 				{
 					if (ti.Language.Equals(Constants.AniDBLanguageType.Kanji, StringComparison.InvariantCultureIgnoreCase))
 					{

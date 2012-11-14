@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -34,26 +35,36 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_Anime_Relation cr = session
-					.CreateCriteria(typeof(AniDB_Anime_Relation))
-					.Add(Restrictions.Eq("AnimeID", animeid))
-					.Add(Restrictions.Eq("RelatedAnimeID", relatedanimeid))
-					.UniqueResult<AniDB_Anime_Relation>();
-				return cr;
+				return GetByAnimeIDAndRelationID(session, animeid, relatedanimeid);
 			}
+		}
+
+		public AniDB_Anime_Relation GetByAnimeIDAndRelationID(ISession session, int animeid, int relatedanimeid)
+		{
+			AniDB_Anime_Relation cr = session
+				.CreateCriteria(typeof(AniDB_Anime_Relation))
+				.Add(Restrictions.Eq("AnimeID", animeid))
+				.Add(Restrictions.Eq("RelatedAnimeID", relatedanimeid))
+				.UniqueResult<AniDB_Anime_Relation>();
+			return cr;
 		}
 
 		public List<AniDB_Anime_Relation> GetByAnimeID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var cats = session
-					.CreateCriteria(typeof(AniDB_Anime_Relation))
-					.Add(Restrictions.Eq("AnimeID", id))
-					.List<AniDB_Anime_Relation>();
-
-				return new List<AniDB_Anime_Relation>(cats);
+				return GetByAnimeID(session, id);
 			}
+		}
+
+		public List<AniDB_Anime_Relation> GetByAnimeID(ISession session, int id)
+		{
+			var cats = session
+				.CreateCriteria(typeof(AniDB_Anime_Relation))
+				.Add(Restrictions.Eq("AnimeID", id))
+				.List<AniDB_Anime_Relation>();
+
+			return new List<AniDB_Anime_Relation>(cats);
 		}
 
 		public void Delete(int id)

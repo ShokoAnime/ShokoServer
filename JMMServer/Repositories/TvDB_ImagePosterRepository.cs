@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -26,8 +27,13 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return session.Get<TvDB_ImagePoster>(id);
+				return GetByID(session, id);
 			}
+		}
+
+		public TvDB_ImagePoster GetByID(ISession session, int id)
+		{
+			return session.Get<TvDB_ImagePoster>(id);
 		}
 
 		public TvDB_ImagePoster GetByTvDBID(int id)
@@ -58,13 +64,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var objs = session
-					.CreateCriteria(typeof(TvDB_ImagePoster))
-					.Add(Restrictions.Eq("SeriesID", seriesID))
-					.List<TvDB_ImagePoster>();
-
-				return new List<TvDB_ImagePoster>(objs);
+				return GetBySeriesID(session, seriesID);
 			}
+		}
+
+		public List<TvDB_ImagePoster> GetBySeriesID(ISession session, int seriesID)
+		{
+			var objs = session
+				.CreateCriteria(typeof(TvDB_ImagePoster))
+				.Add(Restrictions.Eq("SeriesID", seriesID))
+				.List<TvDB_ImagePoster>();
+
+			return new List<TvDB_ImagePoster>(objs);
 		}
 
 		public void Delete(int id)

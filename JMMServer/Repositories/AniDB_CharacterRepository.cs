@@ -47,11 +47,7 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_Character cr = session
-					.CreateCriteria(typeof(AniDB_Character))
-					.Add(Restrictions.Eq("CharID", id))
-					.UniqueResult<AniDB_Character>();
-				return cr;
+				return GetByCharID(session, id);
 			}
 		}
 

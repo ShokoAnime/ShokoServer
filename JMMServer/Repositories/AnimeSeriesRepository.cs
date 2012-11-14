@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -69,45 +70,65 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return session.Get<AnimeSeries>(id);
+				return GetByID(session, id);
 			}
+		}
+
+		public AnimeSeries GetByID(ISession session, int id)
+		{
+			return session.Get<AnimeSeries>(id);
 		}
 
 		public AnimeSeries GetByAnimeID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AnimeSeries cr = session
-					.CreateCriteria(typeof(AnimeSeries))
-					.Add(Restrictions.Eq("AniDB_ID", id))
-					.UniqueResult<AnimeSeries>();
-				return cr;
+				return GetByAnimeID(session, id);
 			}
+		}
+
+		public AnimeSeries GetByAnimeID(ISession session, int id)
+		{
+			AnimeSeries cr = session
+				.CreateCriteria(typeof(AnimeSeries))
+				.Add(Restrictions.Eq("AniDB_ID", id))
+				.UniqueResult<AnimeSeries>();
+			return cr;
 		}
 
 		public List<AnimeSeries> GetAll()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var series = session
-					.CreateCriteria(typeof(AnimeSeries))
-					.List<AnimeSeries>();
-
-				return new List<AnimeSeries>(series);
+				return GetAll(session);
 			}
+		}
+
+		public List<AnimeSeries> GetAll(ISession session)
+		{
+			var series = session
+				.CreateCriteria(typeof(AnimeSeries))
+				.List<AnimeSeries>();
+
+			return new List<AnimeSeries>(series);
 		}
 
 		public List<AnimeSeries> GetByGroupID(int groupid)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var series = session
-					.CreateCriteria(typeof(AnimeSeries))
-					.Add(Restrictions.Eq("AnimeGroupID", groupid))
-					.List<AnimeSeries>();
-
-				return new List<AnimeSeries>(series);
+				return GetByGroupID(session, groupid);
 			}
+		}
+
+		public List<AnimeSeries> GetByGroupID(ISession session, int groupid)
+		{
+			var series = session
+				.CreateCriteria(typeof(AnimeSeries))
+				.Add(Restrictions.Eq("AnimeGroupID", groupid))
+				.List<AnimeSeries>();
+
+			return new List<AnimeSeries>(series);
 		}
 
 		
@@ -130,14 +151,19 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var sers = session
-					.CreateCriteria(typeof(AnimeSeries))
-					.AddOrder(Order.Desc("DateTimeCreated"))
-					.SetMaxResults(maxResults + 15)
-					.List<AnimeSeries>();
-
-				return new List<AnimeSeries>(sers);
+				return GetMostRecentlyAdded(session, maxResults);
 			}
+		}
+
+		public List<AnimeSeries> GetMostRecentlyAdded(ISession session, int maxResults)
+		{
+			var sers = session
+				.CreateCriteria(typeof(AnimeSeries))
+				.AddOrder(Order.Desc("DateTimeCreated"))
+				.SetMaxResults(maxResults + 15)
+				.List<AnimeSeries>();
+
+			return new List<AnimeSeries>(sers);
 		}
 
 		public void Delete(int id)

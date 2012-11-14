@@ -259,13 +259,14 @@ namespace JMMServer.Providers.MyAnimeList
 			CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
 			foreach (AnimeSeries ser in allSeries)
 			{
-				AniDB_Anime anime = ser.Anime;
+				AniDB_Anime anime = ser.GetAnime();
 				if (anime == null) continue;
 
 				if (anime.IsMALLinkDisabled) continue;
 
 				// don't scan if it is associated on the TvDB
-				if (anime.CrossRefMAL == null || anime.CrossRefMAL.Count == 0)
+				List<CrossRef_AniDB_MAL> xrefs = anime.GetCrossRefMAL();
+				if (xrefs == null || xrefs.Count == 0)
 				{
 					logger.Trace(string.Format("Found anime without MAL association: {0} ({1})", anime.AnimeID, anime.MainTitle));
 
@@ -352,17 +353,17 @@ namespace JMMServer.Providers.MyAnimeList
 				}
 
 				// look for MAL Links
-				List<CrossRef_AniDB_MAL> crossRefs = ser.Anime.CrossRefMAL;
+				List<CrossRef_AniDB_MAL> crossRefs = ser.GetAnime().GetCrossRefMAL();
 				if (crossRefs == null || crossRefs.Count == 0)
 				{
-					logger.Warn("Could not find MAL link for : {0} ({1})", ser.Anime.FormattedTitle, ser.Anime.AnimeID);
+					logger.Warn("Could not find MAL link for : {0} ({1})", ser.GetAnime().GetFormattedTitle(), ser.GetAnime().AnimeID);
 					return;
 				}
 
 				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
 				AniDB_FileRepository repFiles = new AniDB_FileRepository();
 
-				List<AnimeEpisode> eps = ser.AnimeEpisodes;
+				List<AnimeEpisode> eps = ser.GetAnimeEpisodes();
 
 				// find the anidb user
 				JMMUserRepository repUsers = new JMMUserRepository();
@@ -372,8 +373,8 @@ namespace JMMServer.Providers.MyAnimeList
 				JMMUser user = aniDBUsers[0];
 
 				int score = 0;
-				if (ser.Anime.UserVote != null)
-					score = (int)(ser.Anime.UserVote.VoteValue / 100);
+				if (ser.GetAnime().UserVote != null)
+					score = (int)(ser.GetAnime().UserVote.VoteValue / 100);
 
 				// e.g.
 				// AniDB - Code Geass R2
@@ -408,8 +409,8 @@ namespace JMMServer.Providers.MyAnimeList
 							// find the total episode count
 							if (totalEpCount < 0)
 							{
-								if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode) totalEpCount = ser.Anime.EpisodeCountNormal;
-								if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special) totalEpCount = ser.Anime.EpisodeCountSpecial;
+								if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode) totalEpCount = ser.GetAnime().EpisodeCountNormal;
+								if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special) totalEpCount = ser.GetAnime().EpisodeCountSpecial;
 								totalEpCount = totalEpCount - xref.StartEpisodeNumber + 1;
 							}
 
@@ -457,13 +458,13 @@ namespace JMMServer.Providers.MyAnimeList
 
 					if (lastWatchedEpNumber > totalEpCount)
 					{
-						logger.Error("updateMAL, episode number > matching anime episode total : {0} ({1}) / {2}", ser.Anime.FormattedTitle, ser.Anime.AnimeID, epNumber);
+						logger.Error("updateMAL, episode number > matching anime episode total : {0} ({1}) / {2}", ser.GetAnime().GetFormattedTitle(), ser.GetAnime().AnimeID, epNumber);
 						continue;
 					}
 
 					if (malID <= 0 || totalEpCount <= 0)
 					{
-						logger.Warn("Could not find MAL link for : {0} ({1})", ser.Anime.FormattedTitle, ser.Anime.AnimeID);
+						logger.Warn("Could not find MAL link for : {0} ({1})", ser.GetAnime().GetFormattedTitle(), ser.GetAnime().AnimeID);
 						continue;
 					}
 					else

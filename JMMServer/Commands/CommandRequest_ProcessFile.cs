@@ -103,32 +103,6 @@ namespace JMMServer.Commands
 
 			int animeID = 0;
 
-			/*// get from web cache
-			if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get && !ForceAniDB)
-			{
-				AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
-				if (fr != null)
-				{
-					// check if we already have a record
-					aniFile = repAniFile.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
-
-					if (aniFile == null)
-						aniFile = new AniDB_File();
-
-					aniFile.Populate(fr);
-
-					//overwrite with local file name
-					string localFileName = Path.GetFileName(vidLocal.FilePath);
-					aniFile.FileName = localFileName;
-
-					repAniFile.Save(aniFile, false);
-					aniFile.CreateLanguages();
-					aniFile.CreateCrossEpisodes(localFileName);
-
-					animeID = aniFile.AnimeID;
-				}
-			}*/
-
 			if (aniFile == null)
 			{
 				// get info from AniDB
@@ -303,7 +277,7 @@ namespace JMMServer.Commands
 			// lets also try adding to the users trakt collecion by sync'ing the series
 			if (ser != null)
 			{
-				CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.Anime.MainTitle);
+				CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
 				cmdTrakt.Save();
 			}
 

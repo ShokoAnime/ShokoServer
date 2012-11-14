@@ -78,7 +78,7 @@ namespace JMMServer.Providers.TraktTV
 				password = Utils.CalculateSHA1(ServerSettings.Trakt_Password, Encoding.Default);
 
 				imdb_id = "";
-				AnimeSeries ser = aniepisode.AnimeSeries;
+				AnimeSeries ser = aniepisode.GetAnimeSeries();
 				if (ser == null) return false;
 
 				CrossRef_AniDB_TraktRepository repCrossRef = new CrossRef_AniDB_TraktRepository();
@@ -135,7 +135,7 @@ namespace JMMServer.Providers.TraktTV
 				traktEpNum = -1;
 				traktSeason = -1;
 
-				AnimeSeries ser = aniepisode.AnimeSeries;
+				AnimeSeries ser = aniepisode.GetAnimeSeries();
 				if (ser == null) return;
 
 				//Dictionary<int, int> dictTraktSeasons = GetDictTraktSeasons(show);

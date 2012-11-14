@@ -250,17 +250,26 @@ namespace JMMServer
 
 		public void UpdateUsingAnime(int animeID)
 		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				UpdateUsingAnime(session, animeID);
+			}
+
+		}
+
+		public void UpdateUsingAnime(ISession session, int animeID)
+		{
 			try
 			{
 				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+				AniDB_Anime anime = repAnime.GetByAnimeID(session, animeID);
 				if (anime == null) return;
 
 				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-				AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+				AnimeSeries ser = repSeries.GetByAnimeID(session, animeID);
 				if (ser == null) return;
 
-				UpdateUsingSeries(ser.AnimeSeriesID);
+				UpdateUsingSeries(session, ser.AnimeSeriesID);
 			}
 			catch (Exception ex)
 			{
@@ -274,7 +283,7 @@ namespace JMMServer
 			try
 			{
 				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+				AniDB_Anime anime = repAnime.GetByAnimeID(session, animeID);
 				if (anime == null) return;
 
 				StatAnimeContracts[anime.AnimeID] = anime.ToContractDetailed(session);
@@ -332,21 +341,29 @@ namespace JMMServer
 		/// <param name="animeSeriesID"></param>
 		public void UpdateUsingSeries(int animeSeriesID)
 		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				UpdateUsingSeries(session, animeSeriesID);
+			}
+		}
+
+		public void UpdateUsingSeries(ISession session, int animeSeriesID)
+		{
 			try
 			{
 				DateTime start = DateTime.Now;
-				
+
 				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-				AnimeSeries ser = repSeries.GetByID(animeSeriesID);
+				AnimeSeries ser = repSeries.GetByID(session, animeSeriesID);
 				if (ser == null) return;
 
 				foreach (AnimeGroup grp in ser.AllGroupsAbove)
 				{
-					UpdateUsingGroup(grp.AnimeGroupID);
+					UpdateUsingGroup(session, grp.AnimeGroupID);
 				}
 
 				TimeSpan ts = DateTime.Now - start;
-				logger.Info("Updated cached stats series ({0}) in {1} ms", ser.Anime.MainTitle, ts.TotalMilliseconds);
+				logger.Info("Updated cached stats series ({0}) in {1} ms", ser.GetAnime().MainTitle, ts.TotalMilliseconds);
 			}
 			catch (Exception ex)
 			{
@@ -356,12 +373,20 @@ namespace JMMServer
 
 		public void UpdateUsingGroup(int animeGroupID)
 		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				UpdateUsingGroup(session, animeGroupID);
+			}
+		}
+
+		public void UpdateUsingGroup(ISession session, int animeGroupID)
+		{
 			try
 			{
 				DateTime start = DateTime.Now;
 
 				AnimeGroupRepository repGroups = new AnimeGroupRepository();
-				AnimeGroup thisgrp = repGroups.GetByID(animeGroupID);
+				AnimeGroup thisgrp = repGroups.GetByID(session, animeGroupID);
 				
 				if (thisgrp == null) return;
 
@@ -374,7 +399,7 @@ namespace JMMServer
 				int? groupID = thisgrp.AnimeGroupParentID;
 				while (groupID.HasValue)
 				{
-					AnimeGroup grpTemp = repGroups.GetByID(groupID.Value);
+					AnimeGroup grpTemp = repGroups.GetByID(session, groupID.Value);
 					if (grpTemp != null)
 					{
 						allgroups.Add(grpTemp);
@@ -422,12 +447,12 @@ namespace JMMServer
 					int epCount = 0;
 
 
-					foreach (AnimeSeries series in grp.AllSeries)
+					foreach (AnimeSeries series in grp.GetAllSeries(session))
 					{
 						seriesCount++;
 
-						List<VideoLocal> vidsTemp = repVids.GetByAniDBAnimeID(series.AniDB_ID);
-						List<CrossRef_File_Episode> crossRefs = repXrefs.GetByAnimeID(series.AniDB_ID);
+						List<VideoLocal> vidsTemp = repVids.GetByAniDBAnimeID(session, series.AniDB_ID);
+						List<CrossRef_File_Episode> crossRefs = repXrefs.GetByAnimeID(session, series.AniDB_ID);
 
 						Dictionary<int, List<CrossRef_File_Episode>> dictCrossRefs = new Dictionary<int, List<CrossRef_File_Episode>>();
 						foreach (CrossRef_File_Episode xref in crossRefs)
@@ -447,7 +472,7 @@ namespace JMMServer
 						// Also look at languages
 						Dictionary<string, int> vidQualEpCounts = new Dictionary<string,int>(); // video quality, count of episodes
 
-						foreach (AnimeEpisode ep in series.AnimeEpisodes)
+						foreach (AnimeEpisode ep in series.GetAnimeEpisodes(session))
 						{
 							if (ep.EpisodeTypeEnum != AniDBAPI.enEpisodeType.Episode) continue;
 
@@ -468,7 +493,7 @@ namespace JMMServer
 							List<string> qualityAddedSoFar = new List<string>(); // handle mutliple files of the same quality for one episode
 							foreach (VideoLocal vid in epVids)
 							{
-								AniDB_File anifile = vid.AniDBFile;
+								AniDB_File anifile = vid.GetAniDBFile(session);
 								if (anifile == null) continue;
 
 								if (!qualityAddedSoFar.Contains(anifile.File_Source))
@@ -487,9 +512,9 @@ namespace JMMServer
 						logger.Trace("Updating cached stats for GROUP/Series - STEP 3 ({0}/{1}) in {2} ms",grp.GroupName, series.AnimeSeriesID, ts.TotalMilliseconds);
 						start = DateTime.Now;
 
-						
 
-						AniDB_Anime anime = series.Anime;
+
+						AniDB_Anime anime = series.GetAnime(session);
 
 						epCount = epCount + anime.EpisodeCountNormal;
 
@@ -511,7 +536,7 @@ namespace JMMServer
 						start = DateTime.Now;
 
 						// audio languages
-						Dictionary<int, LanguageStat> dicAudio = repAdHoc.GetAudioLanguageStatsByAnime(anime.AnimeID);
+						Dictionary<int, LanguageStat> dicAudio = repAdHoc.GetAudioLanguageStatsByAnime(session, anime.AnimeID);
 						foreach (KeyValuePair<int, LanguageStat> kvp in dicAudio)
 						{
 							foreach (string lanName in kvp.Value.LanguageNames)
@@ -526,7 +551,7 @@ namespace JMMServer
 						start = DateTime.Now;
 
 						// subtitle languages
-						Dictionary<int, LanguageStat> dicSubtitle = repAdHoc.GetSubtitleLanguageStatsByAnime(anime.AnimeID);
+						Dictionary<int, LanguageStat> dicSubtitle = repAdHoc.GetSubtitleLanguageStatsByAnime(session, anime.AnimeID);
 						foreach (KeyValuePair<int, LanguageStat> kvp in dicSubtitle)
 						{
 							foreach (string lanName in kvp.Value.LanguageNames)
@@ -607,11 +632,11 @@ namespace JMMServer
 
 						// for the group, if any of the series don't have a tvdb link
 						// we will consider the group as not having a tvdb link
-						if (series.CrossRefTvDB == null) hasTvDB = false;
+						if (series.GetCrossRefTvDB() == null) hasTvDB = false;
 						if (series.CrossRefMovieDB == null) hasMovieDB = false;
 						if (series.CrossRefMAL == null) hasMAL = false;
 
-						if (series.CrossRefTvDB == null && series.CrossRefMovieDB == null) hasMovieDBOrTvDB = false;
+						if (series.GetCrossRefTvDB() == null && series.CrossRefMovieDB == null) hasMovieDBOrTvDB = false;
 					}
 
 
@@ -670,6 +695,8 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 			}
 		}
+
+
 
 		public void InitStats()
 		{

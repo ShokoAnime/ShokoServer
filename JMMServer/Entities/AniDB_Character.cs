@@ -7,6 +7,7 @@ using JMMContracts;
 using JMMServer.Repositories;
 using System.IO;
 using JMMServer.ImageDownload;
+using NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -87,14 +88,14 @@ namespace JMMServer.Entities
 			contract.CharType = charRel.CharType;
 
 			contract.Seiyuu = null;
-			AniDB_Seiyuu seiyuu = this.Seiyuu;
+			AniDB_Seiyuu seiyuu = this.GetSeiyuu();
 			if (seiyuu != null)
 				contract.Seiyuu = seiyuu.ToContract();
 
 			return contract;
 		}
 
-		public MetroContract_AniDB_Character ToContractMetro(AniDB_Anime_Character charRel)
+		public MetroContract_AniDB_Character ToContractMetro(ISession session, AniDB_Anime_Character charRel)
 		{
 			MetroContract_AniDB_Character contract = new MetroContract_AniDB_Character();
 
@@ -109,7 +110,7 @@ namespace JMMServer.Entities
 			contract.ImageType = (int)JMMImageType.AniDB_Character;
 			contract.ImageID = this.AniDB_CharacterID;
 
-			AniDB_Seiyuu seiyuu = this.Seiyuu;
+			AniDB_Seiyuu seiyuu = this.GetSeiyuu(session);
 			if (seiyuu != null)
 			{
 				contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
@@ -132,7 +133,7 @@ namespace JMMServer.Entities
 			contract.CharType = charRel.CharType;
 			contract.CharImageURL = string.Format(Constants.URLS.AniDB_Images, PicName);
 
-			AniDB_Seiyuu seiyuu = this.Seiyuu;
+			AniDB_Seiyuu seiyuu = this.GetSeiyuu();
 			if (seiyuu != null)
 			{
 				contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
@@ -143,22 +144,27 @@ namespace JMMServer.Entities
 			return contract;
 		}
 
-		public AniDB_Seiyuu Seiyuu
+		public AniDB_Seiyuu GetSeiyuu()
 		{
-			get
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_Character_SeiyuuRepository repCharSeiyuu = new AniDB_Character_SeiyuuRepository();
-				List<AniDB_Character_Seiyuu> charSeiyuus = repCharSeiyuu.GetByCharID(CharID);
-
-				if (charSeiyuus.Count > 0)
-				{
-					// just use the first creator
-					AniDB_SeiyuuRepository repCreators = new AniDB_SeiyuuRepository();
-					return repCreators.GetBySeiyuuID(charSeiyuus[0].SeiyuuID);
-				}
-
-				return null;
+				return GetSeiyuu(session);
 			}
+		}
+
+		public AniDB_Seiyuu GetSeiyuu(ISession session)
+		{
+			AniDB_Character_SeiyuuRepository repCharSeiyuu = new AniDB_Character_SeiyuuRepository();
+			List<AniDB_Character_Seiyuu> charSeiyuus = repCharSeiyuu.GetByCharID(session, CharID);
+
+			if (charSeiyuus.Count > 0)
+			{
+				// just use the first creator
+				AniDB_SeiyuuRepository repCreators = new AniDB_SeiyuuRepository();
+				return repCreators.GetBySeiyuuID(session, charSeiyuus[0].SeiyuuID);
+			}
+
+			return null;
 		}
 	}
 }

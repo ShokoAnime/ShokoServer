@@ -5,6 +5,7 @@ using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
 using JMMServer.Repositories;
+using NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -100,18 +101,18 @@ namespace JMMServer.Entities
 		}
 
 
-		public void CreateAnimeEpisode(int animeSeriesID)
+		public void CreateAnimeEpisode(ISession session, int animeSeriesID)
 		{
 			// check if there is an existing episode for this EpisodeID
 			AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-			List<AnimeEpisode> existingEps = repEps.GetByAniEpisodeIDAndSeriesID(EpisodeID, animeSeriesID);
+			List<AnimeEpisode> existingEps = repEps.GetByAniEpisodeIDAndSeriesID(session, EpisodeID, animeSeriesID);
 
 			if (existingEps.Count == 0)
 			{
 				AnimeEpisode animeEp = new AnimeEpisode();
 				animeEp.Populate(this);
 				animeEp.AnimeSeriesID = animeSeriesID;
-				repEps.Save(animeEp);
+				repEps.Save(session, animeEp);
 			}
 		}
 	}

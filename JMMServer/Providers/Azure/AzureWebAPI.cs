@@ -20,7 +20,6 @@ namespace JMMServer.Providers.Azure
 			string uri = string.Format(@"http://jmm.azurewebsites.net/api/animefull");
 			AnimeFull obj = data.ToContractAzure();
 			string json = JSONHelper.Serialize<AnimeFull>(obj);
-
 			SendData(uri, json, "POST");
 		}
 

@@ -7,6 +7,7 @@ using NLog;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using NHibernate;
 
 namespace JMMServer.Commands
 {
@@ -64,8 +65,16 @@ namespace JMMServer.Commands
 
 		public void Save()
 		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				Save(session);
+			}
+		}
+
+		public void Save(ISession session)
+		{
 			CommandRequestRepository repCR = new CommandRequestRepository();
-			CommandRequest crTemp = repCR.GetByCommandID(this.CommandID);
+			CommandRequest crTemp = repCR.GetByCommandID(session, this.CommandID);
 			if (crTemp != null)
 			{
 				// we will always mylist watched state changes
@@ -73,13 +82,13 @@ namespace JMMServer.Commands
 				// them all in the order they were requested
 				if (CommandType != (int)CommandRequestType.AniDB_UpdateWatchedUDP)
 				{
-					logger.Trace("Command already in queue with identifier so skipping: {0}", this.CommandID);
+					//logger.Trace("Command already in queue with identifier so skipping: {0}", this.CommandID);
 					return;
 				}
 			}
 
 			CommandRequest cri = this.ToDatabaseObject();
-			repCR.Save(cri);
+			repCR.Save(session, cri);
 
 			if (CommandType == (int)CommandRequestType.HashFile)
 				JMMService.CmdProcessorHasher.NotifyOfNewCommand();

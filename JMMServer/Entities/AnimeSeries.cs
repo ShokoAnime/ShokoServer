@@ -5,6 +5,7 @@ using System.Text;
 using NLog;
 using JMMServer.Repositories;
 using JMMContracts;
+using NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -31,36 +32,41 @@ namespace JMMServer.Entities
 		{
 			get
 			{
-				return Anime.Year;
+				return GetAnime().Year;
 			}
 		}
 
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public string SeriesName
+		public string GetSeriesName()
 		{
-			get
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				string seriesName = "";
-				if (!string.IsNullOrEmpty(SeriesNameOverride))
-					seriesName = SeriesNameOverride;
+				return GetSeriesName(session);
+			}
+		}
+
+		public string GetSeriesName(ISession session)
+		{
+			string seriesName = "";
+			if (!string.IsNullOrEmpty(SeriesNameOverride))
+				seriesName = SeriesNameOverride;
+			else
+			{
+				if (ServerSettings.SeriesNameSource == DataSourceType.AniDB)
+					seriesName = GetAnime(session).GetFormattedTitle();
 				else
 				{
-					if (ServerSettings.SeriesNameSource == DataSourceType.AniDB)
-						seriesName = Anime.FormattedTitle;
+					TvDB_Series tvdb = this.GetTvDBSeries(session);
+
+					if (tvdb != null && !string.IsNullOrEmpty(tvdb.SeriesName) && !tvdb.SeriesName.ToUpper().Contains("**DUPLICATE"))
+						seriesName = tvdb.SeriesName;
 					else
-					{
-						TvDB_Series tvdb = this.TvDBSeries;
-
-						if (tvdb != null && !string.IsNullOrEmpty(tvdb.SeriesName) && !tvdb.SeriesName.ToUpper().Contains("**DUPLICATE"))
-							seriesName = tvdb.SeriesName;
-						else
-							seriesName = Anime.FormattedTitle;
-					}
+						seriesName = GetAnime(session).GetFormattedTitle(session);
 				}
-
-				return seriesName;
 			}
+
+			return seriesName;
 
 		}
 
@@ -68,41 +74,56 @@ namespace JMMServer.Entities
 		{
 			get
 			{
-				if (Anime == null)
+				if (GetAnime() == null)
 					return "";
 				else
-					return Anime.CategoriesString;
+					return GetAnime().CategoriesString;
 			}
 		}
 
 
-		public List<AnimeEpisode> AnimeEpisodes
+		public List<AnimeEpisode> GetAnimeEpisodes()
 		{
-			get
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-				return repEpisodes.GetBySeriesID(AnimeSeriesID);
+				return GetAnimeEpisodes(session);
 			}
 		}
 
-		public CrossRef_AniDB_TvDB CrossRefTvDB
+		public List<AnimeEpisode> GetAnimeEpisodes(ISession session)
 		{
-			get
+			AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
+			return repEpisodes.GetBySeriesID(session, AnimeSeriesID);
+		}
+
+		public CrossRef_AniDB_TvDB GetCrossRefTvDB()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
-				return repCrossRef.GetByAnimeID(this.AniDB_ID);
+				return GetCrossRefTvDB(session);
 			}
 		}
 
-		public TvDB_Series TvDBSeries
+		public CrossRef_AniDB_TvDB GetCrossRefTvDB(ISession session)
 		{
-			get
-			{
-				CrossRef_AniDB_TvDB xref = CrossRefTvDB;
-				if (xref == null) return null;
+			CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
+			return repCrossRef.GetByAnimeID(session, this.AniDB_ID);
+		}
 
-				return xref.TvDBSeries;
+		public TvDB_Series GetTvDBSeries()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return GetTvDBSeries(session);
 			}
+		}
+
+		public TvDB_Series GetTvDBSeries(ISession session)
+		{
+			CrossRef_AniDB_TvDB xref = GetCrossRefTvDB(session);
+			if (xref == null) return null;
+
+			return xref.GetTvDBSeries(session);
 		}
 
 		public CrossRef_AniDB_Trakt CrossRefTrakt
@@ -137,7 +158,7 @@ namespace JMMServer.Entities
 			AnimeEpisode watchedep = null;
 			AnimeEpisode_User userRecordWatched = null;
 
-			foreach (AnimeEpisode ep in AnimeEpisodes)
+			foreach (AnimeEpisode ep in GetAnimeEpisodes())
 			{
 				AnimeEpisode_User userRecord = ep.GetUserRecord(userID);
 				if (userRecord != null && ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode)
@@ -160,26 +181,39 @@ namespace JMMServer.Entities
 
 		public AnimeSeries_User GetUserRecord(int userID)
 		{
-			AnimeSeries_UserRepository repUser = new AnimeSeries_UserRepository();
-			return repUser.GetByUserAndSeriesID(userID, this.AnimeSeriesID);
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return GetUserRecord(session, userID);
+			}
 		}
 
-		public AniDB_Anime Anime
+		public AnimeSeries_User GetUserRecord(ISession session, int userID)
 		{
-			get
+			AnimeSeries_UserRepository repUser = new AnimeSeries_UserRepository();
+			return repUser.GetByUserAndSeriesID(session, userID, this.AnimeSeriesID);
+		}
+
+		public AniDB_Anime GetAnime()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				AniDB_Anime anidb_anime = repAnime.GetByAnimeID(this.AniDB_ID);
-				return anidb_anime;
+				return GetAnime(session);
 			}
+		}
+
+		public AniDB_Anime GetAnime(ISession session)
+		{
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			AniDB_Anime anidb_anime = repAnime.GetByAnimeID(session, this.AniDB_ID);
+			return anidb_anime;
 		}
 
 		public DateTime? AirDate
 		{
 			get
 			{
-				if (Anime != null)
-					return Anime.AirDate;
+				if (GetAnime() != null)
+					return GetAnime().AirDate;
 				return DateTime.Now;
 
 			}
@@ -189,8 +223,8 @@ namespace JMMServer.Entities
 		{
 			get
 			{
-				if (Anime != null)
-					return Anime.EndDate;
+				if (GetAnime() != null)
+					return GetAnime().EndDate;
 				return null;
 
 			}
@@ -207,12 +241,20 @@ namespace JMMServer.Entities
 
 		public void CreateAnimeEpisodes()
 		{
-			AniDB_Anime anime = Anime;
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				CreateAnimeEpisodes(session);
+			}
+		}
+
+		public void CreateAnimeEpisodes(ISession session)
+		{
+			AniDB_Anime anime = GetAnime(session);
 			if (anime == null) return;
 
-			foreach (AniDB_Episode ep in anime.AniDBEpisodes)
+			foreach (AniDB_Episode ep in anime.GetAniDBEpisodes(session))
 			{
-				ep.CreateAnimeEpisode(this.AnimeSeriesID);
+				ep.CreateAnimeEpisode(session, this.AnimeSeriesID);
 			}
 		}
 
@@ -283,12 +325,12 @@ namespace JMMServer.Entities
 
 		public Contract_AnimeSeries ToContract(AnimeSeries_User userRecord)
 		{
-			AniDB_Anime anime = this.Anime;
-			CrossRef_AniDB_TvDB tvDBCrossRef = this.CrossRefTvDB;
+			AniDB_Anime anime = this.GetAnime();
+			CrossRef_AniDB_TvDB tvDBCrossRef = this.GetCrossRefTvDB();
 			CrossRef_AniDB_Other movieDBCrossRef = this.CrossRefMovieDB;
 			List<CrossRef_AniDB_MAL> malDBCrossRef = this.CrossRefMAL;
 
-			return this.ToContract(anime, tvDBCrossRef, movieDBCrossRef, userRecord, tvDBCrossRef != null ? tvDBCrossRef.TvDBSeries : null, malDBCrossRef, false, null, null, null, null);
+			return this.ToContract(anime, tvDBCrossRef, movieDBCrossRef, userRecord, tvDBCrossRef != null ? tvDBCrossRef.GetTvDBSeries() : null, malDBCrossRef, false, null, null, null, null);
 		}
 
 		public Contract_AnimeSeries ToContract(AniDB_Anime animeRec, CrossRef_AniDB_TvDB tvDBCrossRef, CrossRef_AniDB_Other movieDBCrossRef,
@@ -341,7 +383,7 @@ namespace JMMServer.Entities
 				if (passedDefaultImages)
 					defaultPoster = defPoster;
 				else
-					defaultPoster = animeRec.DefaultPoster;
+					defaultPoster = animeRec.GetDefaultPoster();
 
 				if (defaultPoster == null)
 					animecontract.DefaultImagePoster = null;
@@ -353,7 +395,7 @@ namespace JMMServer.Entities
 				if (passedDefaultImages)
 					defaultFanart = defFanart;
 				else
-					defaultFanart = animeRec.DefaultFanart;
+					defaultFanart = animeRec.GetDefaultFanart();
 
 				if (defaultFanart == null)
 					animecontract.DefaultImageFanart = null;
@@ -364,7 +406,7 @@ namespace JMMServer.Entities
 				if (passedDefaultImages)
 					defaultWideBanner = defWideBanner;
 				else
-					defaultWideBanner = animeRec.DefaultWideBanner;
+					defaultWideBanner = animeRec.GetDefaultWideBanner();
 
 				if (defaultWideBanner == null)
 					animecontract.DefaultImageWideBanner = null;
@@ -398,7 +440,7 @@ namespace JMMServer.Entities
 
 		public override string ToString()
 		{
-			return string.Format("Series: {0} ({1})", Anime.MainTitle, AnimeSeriesID);
+			return string.Format("Series: {0} ({1})", GetAnime().MainTitle, AnimeSeriesID);
 			//return "";
 		}
 
@@ -551,7 +593,7 @@ namespace JMMServer.Entities
 			List<JMMUser> allUsers = repUsers.GetAll();
 
 			DateTime startEps = DateTime.Now;
-			List<AnimeEpisode> eps = AnimeEpisodes;
+			List<AnimeEpisode> eps = GetAnimeEpisodes();
 			TimeSpan tsEps = DateTime.Now - startEps;
 			logger.Trace("Got episodes for SERIES {0} in {1}ms", this.ToString(), tsEps.TotalMilliseconds);
 
@@ -656,10 +698,10 @@ namespace JMMServer.Entities
 			if (missingEpsStats)
 			{
                 enAnimeType animeType=enAnimeType.TVSeries;
-                AniDB_Anime aniDB_Anime = this.Anime;
-                if (this.Anime != null)
+				AniDB_Anime aniDB_Anime = this.GetAnime();
+				if (aniDB_Anime != null)
                 {
-                    animeType = this.Anime.AnimeTypeEnum;
+					animeType = aniDB_Anime.AnimeTypeEnum;
                 }
 
 				MissingEpisodeCount = 0;
@@ -693,7 +735,7 @@ namespace JMMServer.Entities
 					//List<VideoLocal> vids = ep.VideoLocals;
 					foreach (VideoLocal vid in vids)
 					{
-						AniDB_File anifile = vid.AniDBFile;
+						AniDB_File anifile = vid.GetAniDBFile();
 						if (anifile != null)
 						{
 							if (!userReleaseGroups.Contains(anifile.GroupID)) userReleaseGroups.Add(anifile.GroupID);

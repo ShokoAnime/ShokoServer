@@ -575,9 +575,10 @@ namespace JMMServer
 					logger.Info("Deleting video local record: {0}", vid.FullServerPath);
 
 					AnimeSeries ser = null;
-					if (vid.AnimeEpisodes.Count > 0)
+					List<AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
+					if (animeEpisodes.Count > 0)
 					{
-						ser = vid.AnimeEpisodes[0].AnimeSeries;
+						ser = animeEpisodes[0].GetAnimeSeries();
 						if (ser != null && !affectedSeries.ContainsKey(ser.AnimeSeriesID))
 							affectedSeries.Add(ser.AnimeSeriesID, ser);
 					}

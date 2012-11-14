@@ -5,6 +5,7 @@ using System.Text;
 using NHibernate.Criterion;
 using JMMServer;
 using JMMServer.Entities;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -14,12 +15,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				// populate the database
-				using (var transaction = session.BeginTransaction())
-				{
-					session.SaveOrUpdate(obj);
-					transaction.Commit();
-				}
+				Save(session, obj);
+			}
+		}
+
+
+		public void Save(ISession session, CommandRequest obj)
+		{
+			// populate the database
+			using (var transaction = session.BeginTransaction())
+			{
+				session.SaveOrUpdate(obj);
+				transaction.Commit();
 			}
 		}
 
@@ -40,12 +47,17 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				CommandRequest cr = session
-					.CreateCriteria(typeof(CommandRequest))
-					.Add(Restrictions.Eq("CommandID", cmdid))
-					.UniqueResult<CommandRequest>();
-				return cr;
+				return GetByCommandID(session, cmdid);
 			}
+		}
+
+		public CommandRequest GetByCommandID(ISession session, string cmdid)
+		{
+			CommandRequest cr = session
+				.CreateCriteria(typeof(CommandRequest))
+				.Add(Restrictions.Eq("CommandID", cmdid))
+				.UniqueResult<CommandRequest>();
+			return cr;
 		}
 
 		public void Delete(int id)

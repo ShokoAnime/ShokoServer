@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -40,13 +41,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AnimeSeries_User cr = session
-					.CreateCriteria(typeof(AnimeSeries_User))
-					.Add(Restrictions.Eq("JMMUserID", userid))
-					.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
-					.UniqueResult<AnimeSeries_User>();
-				return cr;
+				return GetByUserAndSeriesID(session, userid, seriesid);
 			}
+		}
+
+		public AnimeSeries_User GetByUserAndSeriesID(ISession session, int userid, int seriesid)
+		{
+			AnimeSeries_User cr = session
+				.CreateCriteria(typeof(AnimeSeries_User))
+				.Add(Restrictions.Eq("JMMUserID", userid))
+				.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
+				.UniqueResult<AnimeSeries_User>();
+			return cr;
 		}
 
 		public List<AnimeSeries_User> GetByUserID(int userid)
@@ -91,15 +97,20 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var series = session
-					.CreateCriteria(typeof(AnimeSeries_User))
-					.Add(Restrictions.Eq("JMMUserID", userID))
-					.Add(Restrictions.Gt("UnwatchedEpisodeCount", 0))
-					.AddOrder(Order.Desc("WatchedDate"))
-					.List<AnimeSeries_User>();
-
-				return new List<AnimeSeries_User>(series);
+				return GetMostRecentlyWatched(session, userID);
 			}
+		}
+
+		public List<AnimeSeries_User> GetMostRecentlyWatched(ISession session, int userID)
+		{
+			var series = session
+				.CreateCriteria(typeof(AnimeSeries_User))
+				.Add(Restrictions.Eq("JMMUserID", userID))
+				.Add(Restrictions.Gt("UnwatchedEpisodeCount", 0))
+				.AddOrder(Order.Desc("WatchedDate"))
+				.List<AnimeSeries_User>();
+
+			return new List<AnimeSeries_User>(series);
 		}
 
 		public void Delete(int id)

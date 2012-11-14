@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -53,13 +54,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var xrefs = session
-					.CreateCriteria(typeof(CrossRef_File_Episode))
-					.Add(Restrictions.Eq("AnimeID", animeID))
-					.List<CrossRef_File_Episode>();
-
-				return new List<CrossRef_File_Episode>(xrefs);
+				return GetByAnimeID(session, animeID);
 			}
+		}
+
+		public List<CrossRef_File_Episode> GetByAnimeID(ISession session, int animeID)
+		{
+			var xrefs = session
+				.CreateCriteria(typeof(CrossRef_File_Episode))
+				.Add(Restrictions.Eq("AnimeID", animeID))
+				.List<CrossRef_File_Episode>();
+
+			return new List<CrossRef_File_Episode>(xrefs);
 		}
 
 		public List<CrossRef_File_Episode> GetByFileNameAndSize(string filename, long filesize)

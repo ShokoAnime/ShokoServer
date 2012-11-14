@@ -14,6 +14,7 @@ using AniDBAPI.Commands;
 using JMMServer.Commands;
 using JMMServer.WebCache;
 using JMMServer.Commands.Azure;
+using NHibernate;
 
 namespace JMMServer
 {
@@ -811,6 +812,14 @@ namespace JMMServer
 
 		public AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh, bool downloadRelations)
 		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return GetAnimeInfoHTTP(session, animeID, forceRefresh, downloadRelations);
+			}
+		}
+
+		public AniDB_Anime GetAnimeInfoHTTP(ISession session, int animeID, bool forceRefresh, bool downloadRelations)
+		{
 			//if (!Login()) return null;
 
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
@@ -821,14 +830,14 @@ namespace JMMServer
 				skip = false;
 			else
 			{
-				anime = repAnime.GetByAnimeID(animeID);
+				anime = repAnime.GetByAnimeID(session, animeID);
 				if (anime == null) skip = false;
 			}
 
 			if (skip)
 			{
 				if (anime == null)
-					anime = repAnime.GetByAnimeID(animeID);
+					anime = repAnime.GetByAnimeID(session, animeID);
 
 				return anime;
 
@@ -850,32 +859,32 @@ namespace JMMServer
 
 				logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
-				anime = repAnime.GetByAnimeID(animeID);
+				anime = repAnime.GetByAnimeID(session, animeID);
 				if (anime == null)
 					anime = new AniDB_Anime();
-				anime.PopulateAndSaveFromHTTP(getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Categories, getAnimeCmd.Tags,
+				anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Categories, getAnimeCmd.Tags,
 					getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations, downloadRelations);
 
 				// Request an image download
 				CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID, JMMImageType.AniDB_Cover, false);
-				cmd.Save();
+				cmd.Save(session);
 				// create AnimeEpisode records for all episodes in this anime
 				// only if we have a series
 				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-				AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+				AnimeSeries ser = repSeries.GetByAnimeID(session, animeID);
 				if (ser != null)
 				{
-					ser.CreateAnimeEpisodes();
+					ser.CreateAnimeEpisodes(session);
 				}
 
 				// update cached stats
-				StatsCache.Instance.UpdateUsingAnime(anime.AnimeID);
-				StatsCache.Instance.UpdateAnimeContract(anime.AnimeID);
+				StatsCache.Instance.UpdateUsingAnime(session, anime.AnimeID);
+				StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
 
 				// download character images
-				foreach (AniDB_Anime_Character animeChar in anime.AnimeCharacters)
+				foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session))
 				{
-					AniDB_Character chr = animeChar.Character;
+					AniDB_Character chr = animeChar.GetCharacter(session);
 					if (chr == null) continue;
 
 					if (!string.IsNullOrEmpty(chr.PosterPath) && !File.Exists(chr.PosterPath))
@@ -885,7 +894,7 @@ namespace JMMServer
 						cmd.Save();
 					}
 
-					AniDB_Seiyuu seiyuu = chr.Seiyuu;
+					AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
 					if (seiyuu == null || string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
 
 					if (!File.Exists(seiyuu.PosterPath))
@@ -899,7 +908,7 @@ namespace JMMServer
 				
 				//OnGotAnimeInfoEvent(new GotAnimeInfoEventArgs(getAnimeCmd.Anime.AnimeID));
 				CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
-				cmdAzure.Save();
+				cmdAzure.Save(session);
 				
 			}
 

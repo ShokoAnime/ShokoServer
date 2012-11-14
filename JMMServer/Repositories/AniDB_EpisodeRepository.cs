@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using AniDBAPI;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -47,13 +48,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var eps = session
-					.CreateCriteria(typeof(AniDB_Episode))
-					.Add(Restrictions.Eq("AnimeID", id))
-					.List<AniDB_Episode>();
-
-				return new List<AniDB_Episode>(eps);
+				return GetByAnimeID(session, id);
 			}
+		}
+
+		public List<AniDB_Episode> GetByAnimeID(ISession session, int id)
+		{
+			var eps = session
+				.CreateCriteria(typeof(AniDB_Episode))
+				.Add(Restrictions.Eq("AnimeID", id))
+				.List<AniDB_Episode>();
+
+			return new List<AniDB_Episode>(eps);
 		}
 
 		public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)

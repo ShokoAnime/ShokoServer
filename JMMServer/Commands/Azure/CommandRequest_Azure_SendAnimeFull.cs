@@ -50,7 +50,7 @@ namespace JMMServer.Commands.Azure
 				if (!process) return;
 
 				AniDB_AnimeRepository rep = new AniDB_AnimeRepository();
-				AniDB_Anime anime = rep.GetByID(AnimeID);
+				AniDB_Anime anime = rep.GetByAnimeID(AnimeID);
 				if (anime == null) return;
 
 				AzureWebAPI.Send_AnimeFull(anime);

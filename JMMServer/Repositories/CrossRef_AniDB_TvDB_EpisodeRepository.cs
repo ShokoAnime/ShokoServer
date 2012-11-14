@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -46,13 +47,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var objs = session
-					.CreateCriteria(typeof(CrossRef_AniDB_TvDB_Episode))
-					.Add(Restrictions.Eq("AnimeID", id))
-					.List<CrossRef_AniDB_TvDB_Episode>();
-
-				return new List<CrossRef_AniDB_TvDB_Episode>(objs);
+				return GetByAnimeID(session, id);
 			}
+		}
+
+		public List<CrossRef_AniDB_TvDB_Episode> GetByAnimeID(ISession session, int id)
+		{
+			var objs = session
+				.CreateCriteria(typeof(CrossRef_AniDB_TvDB_Episode))
+				.Add(Restrictions.Eq("AnimeID", id))
+				.List<CrossRef_AniDB_TvDB_Episode>();
+
+			return new List<CrossRef_AniDB_TvDB_Episode>(objs);
 		}
 
 		public List<CrossRef_AniDB_TvDB_Episode> GetAll()

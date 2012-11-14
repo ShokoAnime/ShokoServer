@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using BinaryNorthwest;
+using NHibernate;
 
 
 namespace JMMServer.Repositories
@@ -49,14 +50,19 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AnimeEpisode_User obj = session
-					.CreateCriteria(typeof(AnimeEpisode_User))
-					.Add(Restrictions.Eq("JMMUserID", userid))
-					.Add(Restrictions.Eq("AnimeEpisodeID", epid))
-					.UniqueResult<AnimeEpisode_User>();
-
-				return obj;
+				return GetByUserIDAndEpisodeID(session, userid, epid);
 			}
+		}
+
+		public AnimeEpisode_User GetByUserIDAndEpisodeID(ISession session, int userid, int epid)
+		{
+			AnimeEpisode_User obj = session
+				.CreateCriteria(typeof(AnimeEpisode_User))
+				.Add(Restrictions.Eq("JMMUserID", userid))
+				.Add(Restrictions.Eq("AnimeEpisodeID", epid))
+				.UniqueResult<AnimeEpisode_User>();
+
+			return obj;
 		}
 
 		public List<AnimeEpisode_User> GetByUserID(int userid)
@@ -76,16 +82,21 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var eps = session
-					.CreateCriteria(typeof(AnimeEpisode_User))
-					.Add(Restrictions.Eq("JMMUserID", userID))
-					.Add(Restrictions.Gt("WatchedCount", 0))
-					.AddOrder(Order.Desc("WatchedDate"))
-					.SetMaxResults(100)
-					.List<AnimeEpisode_User>();
-
-				return new List<AnimeEpisode_User>(eps);
+				return GetMostRecentlyWatched(session, userID);
 			}
+		}
+
+		public List<AnimeEpisode_User> GetMostRecentlyWatched(ISession session, int userID)
+		{
+			var eps = session
+				.CreateCriteria(typeof(AnimeEpisode_User))
+				.Add(Restrictions.Eq("JMMUserID", userID))
+				.Add(Restrictions.Gt("WatchedCount", 0))
+				.AddOrder(Order.Desc("WatchedDate"))
+				.SetMaxResults(100)
+				.List<AnimeEpisode_User>();
+
+			return new List<AnimeEpisode_User>(eps);
 		}
 
 		public List<AnimeEpisode_User> GetByEpisodeID(int epid)
@@ -105,14 +116,19 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var eps = session
-					.CreateCriteria(typeof(AnimeEpisode_User))
-					.Add(Restrictions.Eq("JMMUserID", userid))
-					.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
-					.List<AnimeEpisode_User>();
-
-				return new List<AnimeEpisode_User>(eps);
+				return GetByUserIDAndSeriesID(session, userid, seriesid);
 			}
+		}
+
+		public List<AnimeEpisode_User> GetByUserIDAndSeriesID(ISession session, int userid, int seriesid)
+		{
+			var eps = session
+				.CreateCriteria(typeof(AnimeEpisode_User))
+				.Add(Restrictions.Eq("JMMUserID", userid))
+				.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
+				.List<AnimeEpisode_User>();
+
+			return new List<AnimeEpisode_User>(eps);
 		}
 
 		public void Delete(int id)

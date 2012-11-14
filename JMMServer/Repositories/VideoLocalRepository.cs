@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -75,14 +76,19 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var eps = session
-					.CreateCriteria(typeof(VideoLocal))
-					.AddOrder(Order.Desc("DateTimeCreated"))
-					.SetMaxResults(maxResults + 15)
-					.List<VideoLocal>();
-
-				return new List<VideoLocal>(eps);
+				return GetMostRecentlyAdded(session, maxResults);
 			}
+		}
+
+		public List<VideoLocal> GetMostRecentlyAdded(ISession session, int maxResults)
+		{
+			var eps = session
+				.CreateCriteria(typeof(VideoLocal))
+				.AddOrder(Order.Desc("DateTimeCreated"))
+				.SetMaxResults(maxResults + 15)
+				.List<VideoLocal>();
+
+			return new List<VideoLocal>(eps);
 		}
 
 		public List<VideoLocal> GetRandomFiles(int maxResults)
@@ -116,33 +122,40 @@ namespace JMMServer.Repositories
 		/// </summary>
 		/// <param name="animeEpisodeID"></param>
 		/// <returns></returns>
+		/// 
 		public List<VideoLocal> GetByAniDBEpisodeID(int episodeID)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				/*var vidfiles = session.CreateQuery("FROM VideoLocal vl WHERE vl.Hash IN (Select Hash FROM CrossRef_File_Episode xref WHERE xref.EpisodeID= :episodeid)")
-					.SetParameter("episodeid", episodeID)
-					.List<VideoLocal>();*/
-
-				var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.EpisodeID= :episodeid")
-					.SetParameter("episodeid", episodeID)
-					.List<VideoLocal>();
-
-				return new List<VideoLocal>(vidfiles);
+				return GetByAniDBEpisodeID(session, episodeID);
 			}
+		}
+
+		public List<VideoLocal> GetByAniDBEpisodeID(ISession session, int episodeID)
+		{
+			var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.EpisodeID= :episodeid")
+				.SetParameter("episodeid", episodeID)
+				.List<VideoLocal>();
+
+			return new List<VideoLocal>(vidfiles);
 		}
 
 		public List<VideoLocal> GetMostRecentlyAddedForAnime(int maxResults, int animeID)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeid ORDER BY vl.DateTimeCreated Desc")
-					.SetParameter("animeid", animeID)
-					.SetMaxResults(maxResults)
-					.List<VideoLocal>();
-
-				return new List<VideoLocal>(vidfiles);
+				return GetMostRecentlyAddedForAnime(session, maxResults, animeID);
 			}
+		}
+
+		public List<VideoLocal> GetMostRecentlyAddedForAnime(ISession session, int maxResults, int animeID)
+		{
+			var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeid ORDER BY vl.DateTimeCreated Desc")
+				.SetParameter("animeid", animeID)
+				.SetMaxResults(maxResults)
+				.List<VideoLocal>();
+
+			return new List<VideoLocal>(vidfiles);
 		}
 
 		public List<VideoLocal> GetByAniDBResolution(string res)
@@ -180,16 +193,17 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				/*var vidfiles = session.CreateQuery("FROM VideoLocal vl WHERE vl.Hash IN (Select Hash FROM CrossRef_File_Episode xref WHERE xref.AnimeID= :animeID )")
-					.SetParameter("animeID", animeID)
-					.List<VideoLocal>();*/
-
-				var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeID")
-					.SetParameter("animeID", animeID)
-					.List<VideoLocal>();
-
-				return new List<VideoLocal>(vidfiles);
+				return GetByAniDBAnimeID(session, animeID);
 			}
+		}
+
+		public List<VideoLocal> GetByAniDBAnimeID(ISession session, int animeID)
+		{
+			var vidfiles = session.CreateQuery("Select vl FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeID")
+				.SetParameter("animeID", animeID)
+				.List<VideoLocal>();
+
+			return new List<VideoLocal>(vidfiles);
 		}
 
 		public List<VideoLocal> GetVideosWithoutImportFolder()

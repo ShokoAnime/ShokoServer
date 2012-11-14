@@ -37,7 +37,7 @@ namespace JMMServer.Entities
 			FileName = Path.GetFileName(vid.FullServerPath);
 			FileSize = vid.FileSize;
 			CrossRefSource = (int)JMMServer.CrossRefSource.User;
-			AnimeID = ep.AnimeSeries.AniDB_ID;
+			AnimeID = ep.GetAnimeSeries().AniDB_ID;
 			EpisodeID = ep.AniDB_EpisodeID;
 			Percentage = 100;
 			EpisodeOrder = 1;

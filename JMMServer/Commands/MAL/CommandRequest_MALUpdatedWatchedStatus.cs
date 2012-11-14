@@ -53,7 +53,7 @@ namespace JMMServer.Commands.MAL
 				AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
 				if (anime == null) return;
 
-				List<CrossRef_AniDB_MAL> crossRefs = anime.CrossRefMAL;
+				List<CrossRef_AniDB_MAL> crossRefs = anime.GetCrossRefMAL();
 				if (crossRefs == null || crossRefs.Count == 0)
 					return;
 

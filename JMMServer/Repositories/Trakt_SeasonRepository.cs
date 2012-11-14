@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -47,14 +48,19 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				Trakt_Season obj = session
-					.CreateCriteria(typeof(Trakt_Season))
-					.Add(Restrictions.Eq("Trakt_ShowID", id))
-					.Add(Restrictions.Eq("Season", season))
-					.UniqueResult<Trakt_Season>();
-
-				return obj;
+				return GetByShowIDAndSeason(session, id, season);
 			}
+		}
+
+		public Trakt_Season GetByShowIDAndSeason(ISession session, int id, int season)
+		{
+			Trakt_Season obj = session
+				.CreateCriteria(typeof(Trakt_Season))
+				.Add(Restrictions.Eq("Trakt_ShowID", id))
+				.Add(Restrictions.Eq("Season", season))
+				.UniqueResult<Trakt_Season>();
+
+			return obj;
 		}
 
 		public List<Trakt_Season> GetAll()

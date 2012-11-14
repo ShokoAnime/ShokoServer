@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -43,12 +44,17 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_File cr = session
-					.CreateCriteria(typeof(AniDB_File))
-					.Add(Restrictions.Eq("Hash", hash))
-					.UniqueResult<AniDB_File>();
-				return cr;
+				return GetByHash(session, hash);
 			}
+		}
+
+		public AniDB_File GetByHash(ISession session, string hash)
+		{
+			AniDB_File cr = session
+				.CreateCriteria(typeof(AniDB_File))
+				.Add(Restrictions.Eq("Hash", hash))
+				.UniqueResult<AniDB_File>();
+			return cr;
 		}
 
 		public AniDB_File GetByHashAndFileSize(string hash, long fsize)

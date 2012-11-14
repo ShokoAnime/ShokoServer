@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using JMMContracts;
+using NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -38,12 +39,12 @@ namespace JMMServer.Entities
 		/// </summary>
 		/// <param name="ser"></param>
 		/// <returns></returns>
-		public bool AllowedSeries(AnimeSeries ser)
+		public bool AllowedSeries(ISession session, AnimeSeries ser)
 		{
 			if (string.IsNullOrEmpty(HideCategories)) return true;
 
 			string[] cats = HideCategories.ToLower().Split(',');
-			string[] animeCats = ser.Anime.AllCategories.ToLower().Split('|');
+			string[] animeCats = ser.GetAnime(session).AllCategories.ToLower().Split('|');
 			foreach (string cat in cats)
 			{
 				if (!string.IsNullOrEmpty(cat) && animeCats.Contains(cat))
@@ -53,6 +54,14 @@ namespace JMMServer.Entities
 			}
 
 			return true;
+		}
+
+		public bool AllowedSeries(AnimeSeries ser)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return AllowedSeries(session, ser);
+			}
 		}
 
 		/// <summary>

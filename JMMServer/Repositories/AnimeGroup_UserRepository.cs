@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -42,13 +43,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AnimeGroup_User cr = session
-					.CreateCriteria(typeof(AnimeGroup_User))
-					.Add(Restrictions.Eq("JMMUserID", userid))
-					.Add(Restrictions.Eq("AnimeGroupID", groupid))
-					.UniqueResult<AnimeGroup_User>();
-				return cr;
+				return GetByUserAndGroupID(session, userid, groupid);
 			}
+		}
+
+		public AnimeGroup_User GetByUserAndGroupID(ISession session, int userid, int groupid)
+		{
+			AnimeGroup_User cr = session
+				.CreateCriteria(typeof(AnimeGroup_User))
+				.Add(Restrictions.Eq("JMMUserID", userid))
+				.Add(Restrictions.Eq("AnimeGroupID", groupid))
+				.UniqueResult<AnimeGroup_User>();
+			return cr;
 		}
 
 		public List<AnimeGroup_User> GetByUserID(int userid)
@@ -62,6 +68,16 @@ namespace JMMServer.Repositories
 
 				return new List<AnimeGroup_User>(grps);
 			}
+		}
+
+		public List<AnimeGroup_User> GetByUserID(ISession session, int userid)
+		{
+			var grps = session
+				.CreateCriteria(typeof(AnimeGroup_User))
+				.Add(Restrictions.Eq("JMMUserID", userid))
+				.List<AnimeGroup_User>();
+
+			return new List<AnimeGroup_User>(grps);
 		}
 
 		public List<AnimeGroup_User> GetByGroupID(int groupid)

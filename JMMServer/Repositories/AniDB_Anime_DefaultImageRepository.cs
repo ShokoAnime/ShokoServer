@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -34,25 +35,35 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var objs = session
-					.CreateCriteria(typeof(AniDB_Anime_DefaultImage))
-					.List<AniDB_Anime_DefaultImage>();
-
-				return new List<AniDB_Anime_DefaultImage>(objs); ;
+				return GetAll(session);
 			}
+		}
+
+		public List<AniDB_Anime_DefaultImage> GetAll(ISession session)
+		{
+			var objs = session
+				.CreateCriteria(typeof(AniDB_Anime_DefaultImage))
+				.List<AniDB_Anime_DefaultImage>();
+
+			return new List<AniDB_Anime_DefaultImage>(objs); 
 		}
 
 		public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(int animeid, int imageType)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_Anime_DefaultImage cr = session
-					.CreateCriteria(typeof(AniDB_Anime_DefaultImage))
-					.Add(Restrictions.Eq("AnimeID", animeid))
-					.Add(Restrictions.Eq("ImageType", imageType))
-					.UniqueResult<AniDB_Anime_DefaultImage>();
-				return cr;
+				return GetByAnimeIDAndImagezSizeType(session, animeid, imageType);
 			}
+		}
+
+		public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(ISession session, int animeid, int imageType)
+		{
+			AniDB_Anime_DefaultImage cr = session
+				.CreateCriteria(typeof(AniDB_Anime_DefaultImage))
+				.Add(Restrictions.Eq("AnimeID", animeid))
+				.Add(Restrictions.Eq("ImageType", imageType))
+				.UniqueResult<AniDB_Anime_DefaultImage>();
+			return cr;
 		}
 
 		public List<AniDB_Anime_DefaultImage> GetByAnimeID(int id)

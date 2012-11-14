@@ -129,7 +129,7 @@ namespace JMMServer.Commands
 		void  workerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
 			processingCommands = false;
-			logger.Trace("Stopping command worker (images)...");
+			//logger.Trace("Stopping command worker (images)...");
 			QueueState = "Idle";
 			QueueCount = 0;
 		}
@@ -137,7 +137,7 @@ namespace JMMServer.Commands
 		public void Init()
 		{
 			processingCommands = true;
-			logger.Trace("Starting command worker (images)...");
+			//logger.Trace("Starting command worker (images)...");
 			QueueState = "Starting command worker (images)...";
 			this.workerCommands.RunWorkerAsync();
 		}
@@ -155,12 +155,12 @@ namespace JMMServer.Commands
 			// if the worker is busy, it will pick up the next command from the DB
 			if (processingCommands)
 			{
-				logger.Trace("NotifyOfNewCommand (images) exiting, worker already busy");
+				//logger.Trace("NotifyOfNewCommand (images) exiting, worker already busy");
 				return;
 			}
 			
 			// otherwise need to start the worker again
-			logger.Trace("Restarting command worker (images)...");
+			//logger.Trace("Restarting command worker (images)...");
 
 			processingCommands = true;
 			if (!workerCommands.IsBusy)
@@ -190,7 +190,7 @@ namespace JMMServer.Commands
 							return;
 						}
 
-						logger.Trace("Images Queue is paused: {0}", pauseTime.Value);
+						//logger.Trace("Images Queue is paused: {0}", pauseTime.Value);
 						TimeSpan ts = DateTime.Now - pauseTime.Value;
 						if (ts.TotalHours >= 6)
 						{
@@ -202,14 +202,14 @@ namespace JMMServer.Commands
 					continue;
 				}
 
-				logger.Trace("Looking for next command request (images)...");
+				//logger.Trace("Looking for next command request (images)...");
 
 				CommandRequestRepository repCR = new CommandRequestRepository();
 				CommandRequest crdb = repCR.GetNextDBCommandRequestImages();
 				if (crdb == null) return;
 
 				QueueCount = repCR.GetQueuedCommandCountImages();
-				logger.Trace("{0} commands remaining in queue (images)", QueueCount);
+				//logger.Trace("{0} commands remaining in queue (images)", QueueCount);
 
 				if (workerCommands.CancellationPending)
 				{
@@ -217,12 +217,12 @@ namespace JMMServer.Commands
 					return;
 				}
 
-				logger.Trace("Next command request (images): {0}", crdb.CommandID);
+				//logger.Trace("Next command request (images): {0}", crdb.CommandID);
 
 				ICommandRequest icr = CommandHelper.GetCommand(crdb);
 				if (icr == null)
 				{
-					logger.Trace("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
+					//logger.Trace("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
 					return;
 				}
 
@@ -234,10 +234,10 @@ namespace JMMServer.Commands
 
 				QueueState = icr.PrettyDescription;
 
-				logger.Trace("Processing command request (images): {0}", crdb.CommandID);
+				//logger.Trace("Processing command request (images): {0}", crdb.CommandID);
 				icr.ProcessCommand();
 
-				logger.Trace("Deleting command request (images): {0}", crdb.CommandID);
+				//logger.Trace("Deleting command request (images): {0}", crdb.CommandID);
 				repCR.Delete(crdb.CommandRequestID);
 				QueueCount = repCR.GetQueuedCommandCountImages();
 			}

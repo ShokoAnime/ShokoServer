@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -31,19 +32,29 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return session.Get<GroupFilter>(id);
+				return GetByID(session,id);
 			}
+		}
+
+		public GroupFilter GetByID(ISession session, int id)
+		{
+			return session.Get<GroupFilter>(id);
 		}
 
 		public List<GroupFilter> GetAll()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var gfs = session
-					.CreateCriteria(typeof(GroupFilter))
-					.List<GroupFilter>();
-				return new List<GroupFilter>(gfs);
+				return GetAll(session);
 			}
+		}
+
+		public List<GroupFilter> GetAll(ISession session)
+		{
+			var gfs = session
+				.CreateCriteria(typeof(GroupFilter))
+				.List<GroupFilter>();
+			return new List<GroupFilter>(gfs);
 		}
 
 		public void Delete(int id)

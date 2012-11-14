@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMContracts;
 using JMMServer.Repositories;
+using NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -16,6 +17,14 @@ namespace JMMServer.Entities
 		public int ImageType { get; set; }
 
 		public Contract_AniDB_Anime_DefaultImage ToContract()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return ToContract(session);
+			}
+		}
+
+		public Contract_AniDB_Anime_DefaultImage ToContract(ISession session)
 		{
 			Contract_AniDB_Anime_DefaultImage contract = new Contract_AniDB_Anime_DefaultImage();
 
@@ -40,7 +49,7 @@ namespace JMMServer.Entities
 				case JMMImageType.TvDB_Banner:
 
 					TvDB_ImageWideBannerRepository repBanners = new TvDB_ImageWideBannerRepository();
-					TvDB_ImageWideBanner banner = repBanners.GetByID(ImageParentID);
+					TvDB_ImageWideBanner banner = repBanners.GetByID(session, ImageParentID);
 					if (banner != null) contract.TVWideBanner = banner.ToContract();
 
 					break;
@@ -48,7 +57,7 @@ namespace JMMServer.Entities
 				case JMMImageType.TvDB_Cover:
 
 					TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
-					TvDB_ImagePoster poster = repPosters.GetByID(ImageParentID);
+					TvDB_ImagePoster poster = repPosters.GetByID(session, ImageParentID);
 					if (poster != null) contract.TVPoster = poster.ToContract();
 
 					break;
@@ -56,7 +65,7 @@ namespace JMMServer.Entities
 				case JMMImageType.TvDB_FanArt:
 
 					TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
-					TvDB_ImageFanart fanart = repFanart.GetByID(ImageParentID);
+					TvDB_ImageFanart fanart = repFanart.GetByID(session, ImageParentID);
 					if (fanart != null) contract.TVFanart = fanart.ToContract();
 
 					break;
@@ -64,7 +73,7 @@ namespace JMMServer.Entities
 				case JMMImageType.MovieDB_Poster:
 
 					MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
-					MovieDB_Poster moviePoster = repMoviePosters.GetByID(ImageParentID);
+					MovieDB_Poster moviePoster = repMoviePosters.GetByID(session, ImageParentID);
 					if (moviePoster != null) contract.MoviePoster = moviePoster.ToContract();
 
 					break;
@@ -72,7 +81,7 @@ namespace JMMServer.Entities
 				case JMMImageType.MovieDB_FanArt:
 
 					MovieDB_FanartRepository repMovieFanart = new MovieDB_FanartRepository();
-					MovieDB_Fanart movieFanart = repMovieFanart.GetByID(ImageParentID);
+					MovieDB_Fanart movieFanart = repMovieFanart.GetByID(session, ImageParentID);
 					if (movieFanart != null) contract.MovieFanart = movieFanart.ToContract();
 
 					break;
@@ -80,7 +89,7 @@ namespace JMMServer.Entities
 				case JMMImageType.Trakt_Fanart:
 
 					Trakt_ImageFanartRepository repTraktFanart = new Trakt_ImageFanartRepository();
-					Trakt_ImageFanart traktFanart = repTraktFanart.GetByID(ImageParentID);
+					Trakt_ImageFanart traktFanart = repTraktFanart.GetByID(session, ImageParentID);
 					if (traktFanart != null) contract.TraktFanart = traktFanart.ToContract();
 
 					break;
@@ -88,7 +97,7 @@ namespace JMMServer.Entities
 				case JMMImageType.Trakt_Poster:
 
 					Trakt_ImagePosterRepository repTraktPoster = new Trakt_ImagePosterRepository();
-					Trakt_ImagePoster traktPoster = repTraktPoster.GetByID(ImageParentID);
+					Trakt_ImagePoster traktPoster = repTraktPoster.GetByID(session, ImageParentID);
 					if (traktPoster != null) contract.TraktPoster = traktPoster.ToContract();
 
 					break;

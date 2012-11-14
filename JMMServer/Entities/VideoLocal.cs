@@ -10,6 +10,7 @@ using JMMServer.Commands;
 using NLog;
 using BinaryNorthwest;
 using JMMServer.Commands.MAL;
+using NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -94,13 +95,18 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public AniDB_File AniDBFile
+		public AniDB_File GetAniDBFile()
 		{
-			get
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-				return repAniFile.GetByHash(Hash);
+				return GetAniDBFile(session);
 			}
+		}
+
+		public AniDB_File GetAniDBFile(ISession session)
+		{
+			AniDB_FileRepository repAniFile = new AniDB_FileRepository();
+			return repAniFile.GetByHash(session, Hash);
 		}
 
 		public VideoInfo VideoInfo
@@ -122,21 +128,25 @@ namespace JMMServer.Entities
 		{
 			get
 			{
-				AniDB_File anifile = AniDBFile;
+				AniDB_File anifile = GetAniDBFile();
 				if (anifile == null) return null;
 
 				AniDB_ReleaseGroupRepository repRG = new AniDB_ReleaseGroupRepository();
 				return repRG.GetByGroupID(anifile.GroupID);
 			}
 		}
-
-		public List<AnimeEpisode> AnimeEpisodes
+		public List<AnimeEpisode> GetAnimeEpisodes()
 		{
-			get
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-				return repEps.GetByHash(Hash);
+				return GetAnimeEpisodes(session);
 			}
+		}
+
+		public List<AnimeEpisode> GetAnimeEpisodes(ISession session)
+		{
+			AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+			return repEps.GetByHash(session, Hash);
 		}
 
 		public List<CrossRef_File_Episode> EpisodeCrossRefs
@@ -288,7 +298,7 @@ namespace JMMServer.Entities
 
 					if (epPercentWatched > 95)
 					{
-						ser = ep.AnimeSeries;
+						ser = ep.GetAnimeSeries();
 
 						if (user.IsAniDBUser == 0)
 							ep.SaveWatchedStatus(true, userID, watchedDate, updateWatchedDate);
@@ -326,7 +336,7 @@ namespace JMMServer.Entities
 				{
 					AnimeEpisode ep = repEpisodes.GetByAniDBEpisodeID(xrefEp.EpisodeID);
 					if (ep == null) continue;
-					ser = ep.AnimeSeries;
+					ser = ep.GetAnimeSeries();
 
 					// get all the files for this episode
 					int epPercentWatched = 0;
@@ -493,14 +503,14 @@ namespace JMMServer.Entities
 			string newFullPath = "";
 
 			// sort the episodes by air date, so that we will move the file to the location of the latest episode
-			List<AnimeEpisode> allEps = series.AnimeEpisodes;
+			List<AnimeEpisode> allEps = series.GetAnimeEpisodes();
 			List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
 			sortCriteria.Add(new SortPropOrFieldAndDirection("AniDB_EpisodeID", true, SortType.eInteger));
 			allEps = Sorting.MultiSort<AnimeEpisode>(allEps, sortCriteria);
 
 			foreach (AnimeEpisode ep in allEps)
 			{
-				foreach (VideoLocal vid in ep.VideoLocals)
+				foreach (VideoLocal vid in ep.GetVideoLocals())
 				{
 					if (vid.VideoLocalID != this.VideoLocalID)
 					{
@@ -524,7 +534,7 @@ namespace JMMServer.Entities
 			if (!foundLocation)
 			{
 				// we need to create a new folder
-				string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.Anime.MainTitle);
+				string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().MainTitle);
 				newFullPath = Path.Combine(destFolder.ImportFolderLocation, newFolderName);
 				if (!Directory.Exists(newFullPath))
 					Directory.CreateDirectory(newFullPath);
@@ -646,7 +656,7 @@ namespace JMMServer.Entities
 			}
 
 			// AniDB File
-			AniDB_File anifile = this.AniDBFile; // to prevent multiple db calls
+			AniDB_File anifile = this.GetAniDBFile(); // to prevent multiple db calls
 			if (anifile != null)
 			{
 				contract.AniDB_Anime_GroupName = anifile.Anime_GroupName;

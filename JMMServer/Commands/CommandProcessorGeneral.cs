@@ -130,7 +130,7 @@ namespace JMMServer.Commands
 		void  workerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
 			processingCommands = false;
-			logger.Trace("Stopping command worker...");
+			//logger.Trace("Stopping command worker...");
 			QueueState = "Idle";
 			QueueCount = 0;
 		}
@@ -138,7 +138,7 @@ namespace JMMServer.Commands
 		public void Init()
 		{
 			processingCommands = true;
-			logger.Trace("Starting command worker...");
+			//logger.Trace("Starting command worker...");
 			QueueState = "Starting command worker (hasher)...";
 			this.workerCommands.RunWorkerAsync();
 		}
@@ -161,7 +161,7 @@ namespace JMMServer.Commands
 			}
 			
 			// otherwise need to start the worker again
-			logger.Trace("Restarting command worker...");
+			//logger.Trace("Restarting command worker...");
 
 			processingCommands = true;
 			if (!workerCommands.IsBusy)
@@ -191,7 +191,7 @@ namespace JMMServer.Commands
 							return;
 						}
 
-						logger.Trace("Queue is paused: {0}", pauseTime.Value);
+						//logger.Trace("Queue is paused: {0}", pauseTime.Value);
 						TimeSpan ts = DateTime.Now - pauseTime.Value;
 						if (ts.TotalHours >= 6)
 						{
@@ -204,7 +204,7 @@ namespace JMMServer.Commands
 				}
 
 
-				logger.Trace("Looking for next command request...");
+				//logger.Trace("Looking for next command request...");
 
 				CommandRequestRepository repCR = new CommandRequestRepository();
 				CommandRequest crdb = repCR.GetNextDBCommandRequestGeneral();
@@ -217,9 +217,9 @@ namespace JMMServer.Commands
 				}
 
 				QueueCount = repCR.GetQueuedCommandCountGeneral();
-				logger.Trace("{0} commands remaining in queue", QueueCount);
+				//logger.Trace("{0} commands remaining in queue", QueueCount);
 
-				logger.Trace("Next command request: {0}", crdb.CommandID);
+				//logger.Trace("Next command request: {0}", crdb.CommandID);
 
 				ICommandRequest icr = CommandHelper.GetCommand(crdb);
 				if (icr == null)
@@ -236,10 +236,10 @@ namespace JMMServer.Commands
 					return;
 				}
 
-				logger.Trace("Processing command request: {0}", crdb.CommandID);
+				//logger.Trace("Processing command request: {0}", crdb.CommandID);
 				icr.ProcessCommand();
 
-				logger.Trace("Deleting command request: {0}", crdb.CommandID);
+				//logger.Trace("Deleting command request: {0}", crdb.CommandID);
 				repCR.Delete(crdb.CommandRequestID);
 
 				QueueCount = repCR.GetQueuedCommandCountGeneral();

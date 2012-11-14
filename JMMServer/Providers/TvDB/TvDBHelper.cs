@@ -850,7 +850,7 @@ namespace JMMServer.Providers.TvDB
 			{
 				if (alreadyLinked.Contains(ser.AniDB_ID)) continue;
 
-				AniDB_Anime anime = ser.Anime;
+				AniDB_Anime anime = ser.GetAnime();
 
 				if (anime!= null)
 				{
@@ -913,7 +913,7 @@ namespace JMMServer.Providers.TvDB
 
 				foreach (AnimeSeries ser in repSeries.GetAll())
 				{
-					CrossRef_AniDB_TvDB xref = ser.CrossRefTvDB;
+					CrossRef_AniDB_TvDB xref = ser.GetCrossRefTvDB();
 					if (xref == null) continue;
 
 					if (!allTvDBIDs.Contains(xref.TvDBID)) allTvDBIDs.Add(xref.TvDBID);

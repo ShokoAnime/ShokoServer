@@ -89,7 +89,7 @@ namespace JMMServer.Commands
 						if (eps.Count > 0)
 						{
 							// all the eps should belong to the same anime
-							eps[0].AnimeSeries.UpdateStats(true, false, true);
+							eps[0].GetAnimeSeries().UpdateStats(true, false, true);
 							//eps[0].AnimeSeries.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
 						}
 					}

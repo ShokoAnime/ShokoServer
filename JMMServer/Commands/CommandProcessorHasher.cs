@@ -129,7 +129,7 @@ namespace JMMServer.Commands
 		void  workerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
 			processingCommands = false;
-			logger.Trace("Stopping command worker (hasher)...");
+			//logger.Trace("Stopping command worker (hasher)...");
 			QueueState = "Idle";
 			QueueCount = 0;
 		}
@@ -137,7 +137,7 @@ namespace JMMServer.Commands
 		public void Init()
 		{
 			processingCommands = true;
-			logger.Trace("Starting command worker (hasher)...");
+			//logger.Trace("Starting command worker (hasher)...");
 			QueueState = "Starting command worker (hasher)...";
 			this.workerCommands.RunWorkerAsync();
 		}
@@ -160,7 +160,7 @@ namespace JMMServer.Commands
 			}
 			
 			// otherwise need to start the worker again
-			logger.Trace("Restarting command worker (hasher)...");
+			//logger.Trace("Restarting command worker (hasher)...");
 
 			processingCommands = true;
 			if (!workerCommands.IsBusy)
@@ -190,7 +190,7 @@ namespace JMMServer.Commands
 							return;
 						}
 
-						logger.Trace("Hasher Queue is paused: {0}", pauseTime.Value);
+						//logger.Trace("Hasher Queue is paused: {0}", pauseTime.Value);
 						TimeSpan ts = DateTime.Now - pauseTime.Value;
 						if (ts.TotalHours >= 6)
 						{
@@ -202,7 +202,7 @@ namespace JMMServer.Commands
 					continue;
 				}
 
-				logger.Trace("Looking for next command request (hasher)...");
+				//logger.Trace("Looking for next command request (hasher)...");
 
 				CommandRequestRepository repCR = new CommandRequestRepository();
 				CommandRequest crdb = repCR.GetNextDBCommandRequestHasher();
@@ -215,9 +215,9 @@ namespace JMMServer.Commands
 				}
 
 				QueueCount = repCR.GetQueuedCommandCountHasher();
-				logger.Trace("{0} commands remaining in queue (hasher)", QueueCount);
+				//logger.Trace("{0} commands remaining in queue (hasher)", QueueCount);
 
-				logger.Trace("Next command request (hasher): {0}", crdb.CommandID);
+				//logger.Trace("Next command request (hasher): {0}", crdb.CommandID);
 
 				ICommandRequest icr = CommandHelper.GetCommand(crdb);
 				if (icr == null)
@@ -234,10 +234,10 @@ namespace JMMServer.Commands
 					return;
 				}
 
-				logger.Trace("Processing command request (hasher): {0}", crdb.CommandID);
+				//logger.Trace("Processing command request (hasher): {0}", crdb.CommandID);
 				icr.ProcessCommand();
 
-				logger.Trace("Deleting command request (hasher): {0}", crdb.CommandID);
+				//logger.Trace("Deleting command request (hasher): {0}", crdb.CommandID);
 				repCR.Delete(crdb.CommandRequestID);
 				QueueCount = repCR.GetQueuedCommandCountHasher();
 			}

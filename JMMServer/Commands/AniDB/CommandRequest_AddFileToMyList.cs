@@ -78,6 +78,7 @@ namespace JMMServer.Commands
 					JMMUserRepository repUsers = new JMMUserRepository();
 					List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
 
+					List<AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
 					if (aniDBUsers.Count > 0)
 					{
 						JMMUser juser = aniDBUsers[0];
@@ -87,9 +88,10 @@ namespace JMMServer.Commands
 						// if the the episode is watched we may want to set the file to watched as well
 						if (ServerSettings.Import_UseExistingFileWatchedStatus && !newWatchedStatus)
 						{
-							if (vid.AnimeEpisodes.Count > 0)
+							
+							if (animeEpisodes.Count > 0)
 							{
-								AnimeEpisode ep = vid.AnimeEpisodes[0];
+								AnimeEpisode ep = animeEpisodes[0];
 								AnimeEpisode_User epUser = null;
 
 								foreach (JMMUser tempuser in aniDBUsers)
@@ -110,7 +112,7 @@ namespace JMMServer.Commands
 						}
 					}
 
-					AnimeSeries ser = vid.AnimeEpisodes[0].AnimeSeries;
+					AnimeSeries ser = animeEpisodes[0].GetAnimeSeries();
 					// all the eps should belong to the same anime
 					ser.UpdateStats(true, true, true);
 					StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);

@@ -8,6 +8,7 @@ using JMMServer.Repositories;
 using JMMServer.Providers.TvDB;
 using JMMServer.WebCache;
 using JMMServer.Providers.TraktTV;
+using NHibernate;
 
 namespace JMMServer.Commands
 {
@@ -52,108 +53,111 @@ namespace JMMServer.Commands
 
 			try
 			{
-				// first check if the user wants to use the web cache
-				if (ServerSettings.WebCache_TvDB_Get)
+				using (var session = JMMService.SessionFactory.OpenSession())
 				{
-					try
+					// first check if the user wants to use the web cache
+					if (ServerSettings.WebCache_TvDB_Get)
 					{
-						CrossRef_AniDB_TraktResult crossRef = XMLService.Get_CrossRef_AniDB_Trakt(AnimeID);
-						if (crossRef != null)
+						try
 						{
-							TraktTVShow showInfo = TraktTVHelper.GetShowInfo(crossRef.TraktID);
-							if (showInfo != null)
+							CrossRef_AniDB_TraktResult crossRef = XMLService.Get_CrossRef_AniDB_Trakt(AnimeID);
+							if (crossRef != null)
 							{
-								logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID, showInfo.title);
-								TraktTVHelper.LinkAniDBTrakt(AnimeID, crossRef.TraktID, crossRef.TraktSeasonNumber, true);
-								return;
+								TraktTVShow showInfo = TraktTVHelper.GetShowInfo(crossRef.TraktID);
+								if (showInfo != null)
+								{
+									logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID, showInfo.title);
+									TraktTVHelper.LinkAniDBTrakt(AnimeID, crossRef.TraktID, crossRef.TraktSeasonNumber, true);
+									return;
+								}
 							}
 						}
-					}
-					catch (Exception ex)
-					{
-						logger.ErrorException(ex.ToString(), ex);
-					}
-				}
-
-				
-				// lets try to see locally if we have a tvDB link for this anime
-				// Trakt allows the use of TvDB ID's or their own Trakt ID's
-				CrossRef_AniDB_TvDBRepository repCrossRefTvDB = new CrossRef_AniDB_TvDBRepository();
-				CrossRef_AniDB_TvDB xrefTvDB = repCrossRefTvDB.GetByAnimeID(AnimeID);
-				if (xrefTvDB != null)
-				{
-					TraktTVShow showInfo = TraktTVHelper.GetShowInfo(xrefTvDB.TvDBID);
-					if (showInfo != null)
-					{
-						// make sure the season specified by TvDB also exists on Trakt
-						Trakt_ShowRepository repShow = new Trakt_ShowRepository();
-						Trakt_Show traktShow = repShow.GetByTraktID(showInfo.TraktID);
-						if (traktShow != null)
+						catch (Exception ex)
 						{
-							Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
-							Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(traktShow.Trakt_ShowID, xrefTvDB.TvDBSeasonNumber);
-							if (traktSeason != null)
-							{
-								logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}", AnimeID, showInfo.title);
-								TraktTVHelper.LinkAniDBTrakt(AnimeID, showInfo.TraktID, traktSeason.Season, true);
-								return;
-							}
+							logger.ErrorException(ex.ToString(), ex);
 						}
 					}
-				}
 
-				// if not lets try the tvdb web cache based on the same reasoning
-				if (ServerSettings.WebCache_TvDB_Get)
-				{
-					CrossRef_AniDB_TvDBResult crossRefTvDB = XMLService.Get_CrossRef_AniDB_TvDB(AnimeID);
-					if (crossRefTvDB != null)
+
+					// lets try to see locally if we have a tvDB link for this anime
+					// Trakt allows the use of TvDB ID's or their own Trakt ID's
+					CrossRef_AniDB_TvDBRepository repCrossRefTvDB = new CrossRef_AniDB_TvDBRepository();
+					CrossRef_AniDB_TvDB xrefTvDB = repCrossRefTvDB.GetByAnimeID(session, AnimeID);
+					if (xrefTvDB != null)
 					{
-						TraktTVShow showInfo = TraktTVHelper.GetShowInfo(crossRefTvDB.TvDBID);
+						TraktTVShow showInfo = TraktTVHelper.GetShowInfo(xrefTvDB.TvDBID);
 						if (showInfo != null)
 						{
 							// make sure the season specified by TvDB also exists on Trakt
 							Trakt_ShowRepository repShow = new Trakt_ShowRepository();
-							Trakt_Show traktShow = repShow.GetByTraktID(showInfo.TraktID);
+							Trakt_Show traktShow = repShow.GetByTraktID(session, showInfo.TraktID);
 							if (traktShow != null)
 							{
 								Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
-								Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(traktShow.Trakt_ShowID, crossRefTvDB.TvDBSeasonNumber);
+								Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(session, traktShow.Trakt_ShowID, xrefTvDB.TvDBSeasonNumber);
 								if (traktSeason != null)
 								{
-									logger.Trace("Found trakt match on web cache by using TvDBID {0} - id = {1}", AnimeID, showInfo.title);
+									logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}", AnimeID, showInfo.title);
 									TraktTVHelper.LinkAniDBTrakt(AnimeID, showInfo.TraktID, traktSeason.Season, true);
 									return;
 								}
 							}
 						}
 					}
-				}
-				
-				// finally lets try searching Trakt directly
-				string searchCriteria = "";
-				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
-				if (anime == null) return;
 
-				searchCriteria = anime.MainTitle;
-
-				// if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-				List<TraktTVShow> results = TraktTVHelper.SearchShow(searchCriteria);
-				logger.Trace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
-				if (ProcessSearchResults(results, searchCriteria)) return;
-
-
-				if (results.Count == 0)
-				{
-					foreach (AniDB_Anime_Title title in anime.Titles)
+					// if not lets try the tvdb web cache based on the same reasoning
+					if (ServerSettings.WebCache_TvDB_Get)
 					{
-						if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
+						CrossRef_AniDB_TvDBResult crossRefTvDB = XMLService.Get_CrossRef_AniDB_TvDB(AnimeID);
+						if (crossRefTvDB != null)
+						{
+							TraktTVShow showInfo = TraktTVHelper.GetShowInfo(crossRefTvDB.TvDBID);
+							if (showInfo != null)
+							{
+								// make sure the season specified by TvDB also exists on Trakt
+								Trakt_ShowRepository repShow = new Trakt_ShowRepository();
+								Trakt_Show traktShow = repShow.GetByTraktID(session, showInfo.TraktID);
+								if (traktShow != null)
+								{
+									Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
+									Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(session, traktShow.Trakt_ShowID, crossRefTvDB.TvDBSeasonNumber);
+									if (traktSeason != null)
+									{
+										logger.Trace("Found trakt match on web cache by using TvDBID {0} - id = {1}", AnimeID, showInfo.title);
+										TraktTVHelper.LinkAniDBTrakt(AnimeID, showInfo.TraktID, traktSeason.Season, true);
+										return;
+									}
+								}
+							}
+						}
+					}
 
-						if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
+					// finally lets try searching Trakt directly
+					string searchCriteria = "";
+					AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+					AniDB_Anime anime = repAnime.GetByAnimeID(session, AnimeID);
+					if (anime == null) return;
 
-						results = TraktTVHelper.SearchShow(searchCriteria);
-						logger.Trace("Found {0} trakt results for search on {1}", results.Count, title.Title);
-						if (ProcessSearchResults(results, title.Title)) return;
+					searchCriteria = anime.MainTitle;
+
+					// if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+					List<TraktTVShow> results = TraktTVHelper.SearchShow(searchCriteria);
+					logger.Trace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
+					if (ProcessSearchResults(session, results, searchCriteria)) return;
+
+
+					if (results.Count == 0)
+					{
+						foreach (AniDB_Anime_Title title in anime.GetTitles(session))
+						{
+							if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
+
+							if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
+
+							results = TraktTVHelper.SearchShow(searchCriteria);
+							logger.Trace("Found {0} trakt results for search on {1}", results.Count, title.Title);
+							if (ProcessSearchResults(session, results, title.Title)) return;
+						}
 					}
 				}
 
@@ -165,7 +169,7 @@ namespace JMMServer.Commands
 			}
 		}
 
-		private bool ProcessSearchResults(List<TraktTVShow> results, string searchCriteria)
+		private bool ProcessSearchResults(ISession session, List<TraktTVShow> results, string searchCriteria)
 		{
 			if (results.Count == 1)
 			{
@@ -174,7 +178,7 @@ namespace JMMServer.Commands
 				TraktTVShow showInfo = TraktTVHelper.GetShowInfo(results[0].TraktID);
 				if (showInfo != null)
 				{
-					TraktTVHelper.LinkAniDBTrakt(AnimeID, showInfo.TraktID, 1, false);
+					TraktTVHelper.LinkAniDBTrakt(session, AnimeID, showInfo.TraktID, 1, false);
 					return true;
 				}
 			}

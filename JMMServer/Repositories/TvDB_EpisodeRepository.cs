@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -46,13 +47,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var objs = session
-					.CreateCriteria(typeof(TvDB_Episode))
-					.Add(Restrictions.Eq("SeriesID", seriesID))
-					.List<TvDB_Episode>();
-
-				return new List<TvDB_Episode>(objs);
+				return GetBySeriesID(session, seriesID);
 			}
+		}
+
+		public List<TvDB_Episode> GetBySeriesID(ISession session, int seriesID)
+		{
+			var objs = session
+				.CreateCriteria(typeof(TvDB_Episode))
+				.Add(Restrictions.Eq("SeriesID", seriesID))
+				.List<TvDB_Episode>();
+
+			return new List<TvDB_Episode>(objs);
 		}
 
 		public List<int> GetSeasonNumbersForSeries(int seriesID)

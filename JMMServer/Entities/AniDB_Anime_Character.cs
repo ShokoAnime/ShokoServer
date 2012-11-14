@@ -5,6 +5,7 @@ using System.Text;
 using AniDBAPI;
 using JMMContracts;
 using JMMServer.Repositories;
+using NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -24,13 +25,19 @@ namespace JMMServer.Entities
 			this.EpisodeListRaw = rawChar.EpisodeListRaw;
 		}
 
-		public AniDB_Character Character
+		public AniDB_Character GetCharacter()
 		{
-			get
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
-				return repChar.GetByCharID(CharID);
+				return GetCharacter(session);
 			}
+		}
+
+		public AniDB_Character GetCharacter(ISession session)
+		{
+
+			AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
+			return repChar.GetByCharID(session, CharID);
 		}
 
 		public Contract_AniDB_Anime_Character ToContract()

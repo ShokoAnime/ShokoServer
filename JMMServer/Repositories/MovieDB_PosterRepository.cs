@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -13,12 +14,17 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				// populate the database
-				using (var transaction = session.BeginTransaction())
-				{
-					session.SaveOrUpdate(obj);
-					transaction.Commit();
-				}
+				Save(session, obj);
+			}
+		}
+
+		public void Save(ISession session, MovieDB_Poster obj)
+		{
+			// populate the database
+			using (var transaction = session.BeginTransaction())
+			{
+				session.SaveOrUpdate(obj);
+				transaction.Commit();
 			}
 		}
 
@@ -26,34 +32,49 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return session.Get<MovieDB_Poster>(id);
+				return GetByID(session, id);
 			}
+		}
+
+		public MovieDB_Poster GetByID(ISession session, int id)
+		{
+			return session.Get<MovieDB_Poster>(id);
 		}
 
 		public MovieDB_Poster GetByOnlineID(string id, string imageSize)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				MovieDB_Poster cr = session
-					.CreateCriteria(typeof(MovieDB_Poster))
-					.Add(Restrictions.Eq("ImageID", id))
-					.Add(Restrictions.Eq("ImageSize", imageSize))
-					.UniqueResult<MovieDB_Poster>();
-				return cr;
+				return GetByOnlineID(session, id, imageSize);
 			}
+		}
+
+		public MovieDB_Poster GetByOnlineID(ISession session, string id, string imageSize)
+		{
+			MovieDB_Poster cr = session
+				.CreateCriteria(typeof(MovieDB_Poster))
+				.Add(Restrictions.Eq("ImageID", id))
+				.Add(Restrictions.Eq("ImageSize", imageSize))
+				.UniqueResult<MovieDB_Poster>();
+			return cr;
 		}
 
 		public List<MovieDB_Poster> GetByMovieID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var objs = session
-					.CreateCriteria(typeof(MovieDB_Poster))
-					.Add(Restrictions.Eq("MovieId", id))
-					.List<MovieDB_Poster>();
-
-				return new List<MovieDB_Poster>(objs);
+				return GetByMovieID(session, id);
 			}
+		}
+
+		public List<MovieDB_Poster> GetByMovieID(ISession session, int id)
+		{
+			var objs = session
+				.CreateCriteria(typeof(MovieDB_Poster))
+				.Add(Restrictions.Eq("MovieId", id))
+				.List<MovieDB_Poster>();
+
+			return new List<MovieDB_Poster>(objs);
 		}
 
 		public List<MovieDB_Poster> GetAllOriginal()

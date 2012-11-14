@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -35,17 +36,27 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public AnimeGroup GetByID(ISession session, int id)
+		{
+			return session.Get<AnimeGroup>(id);
+		}
+
 		public List<AnimeGroup> GetByParentID(int parentid)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var grps = session
-					.CreateCriteria(typeof(AnimeGroup))
-					.Add(Restrictions.Eq("AnimeGroupParentID", parentid))
-					.List<AnimeGroup>();
-
-				return new List<AnimeGroup>(grps);
+				return GetByParentID(session, parentid);
 			}
+		}
+
+		public List<AnimeGroup> GetByParentID(ISession session, int parentid)
+		{
+			var grps = session
+				.CreateCriteria(typeof(AnimeGroup))
+				.Add(Restrictions.Eq("AnimeGroupParentID", parentid))
+				.List<AnimeGroup>();
+
+			return new List<AnimeGroup>(grps);
 		}
 
 		public List<AnimeGroup> GetAll()
@@ -58,6 +69,15 @@ namespace JMMServer.Repositories
 
 				return new List<AnimeGroup>(grps);
 			}
+		}
+
+		public List<AnimeGroup> GetAll(ISession session)
+		{
+			var grps = session
+				.CreateCriteria(typeof(AnimeGroup))
+				.List<AnimeGroup>();
+
+			return new List<AnimeGroup>(grps);
 		}
 
 		public List<AnimeGroup> GetAllTopLevelGroups()

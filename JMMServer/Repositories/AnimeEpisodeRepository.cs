@@ -7,6 +7,7 @@ using NHibernate.Criterion;
 using BinaryNorthwest;
 using System.Collections;
 using JMMServer.Databases;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -16,12 +17,17 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				// populate the database
-				using (var transaction = session.BeginTransaction())
-				{
-					session.SaveOrUpdate(obj);
-					transaction.Commit();
-				}
+				Save(session, obj);
+			}
+		}
+
+		public void Save(ISession session, AnimeEpisode obj)
+		{
+			// populate the database
+			using (var transaction = session.BeginTransaction())
+			{
+				session.SaveOrUpdate(obj);
+				transaction.Commit();
 			}
 		}
 
@@ -29,48 +35,68 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return session.Get<AnimeEpisode>(id);
+				return GetByID(session, id);
 			}
+		}
+
+		public AnimeEpisode GetByID(ISession session, int id)
+		{
+			return session.Get<AnimeEpisode>(id);
 		}
 
 		public List<AnimeEpisode> GetBySeriesID(int seriesid)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var eps = session
-					.CreateCriteria(typeof(AnimeEpisode))
-					.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
-					.List<AnimeEpisode>();
-
-				return new List<AnimeEpisode>(eps);
+				return GetBySeriesID(session, seriesid);
 			}
+		}
+
+		public List<AnimeEpisode> GetBySeriesID(ISession session, int seriesid)
+		{
+			var eps = session
+				.CreateCriteria(typeof(AnimeEpisode))
+				.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
+				.List<AnimeEpisode>();
+
+			return new List<AnimeEpisode>(eps);
 		}
 
 		public AnimeEpisode GetByAniDBEpisodeID(int epid)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AnimeEpisode obj = session
-					.CreateCriteria(typeof(AnimeEpisode))
-					.Add(Restrictions.Eq("AniDB_EpisodeID", epid))
-					.UniqueResult<AnimeEpisode>();
-
-				return obj;
+				return GetByAniDBEpisodeID(session, epid);
 			}
+		}
+
+		public AnimeEpisode GetByAniDBEpisodeID(ISession session, int epid)
+		{
+			AnimeEpisode obj = session
+				.CreateCriteria(typeof(AnimeEpisode))
+				.Add(Restrictions.Eq("AniDB_EpisodeID", epid))
+				.UniqueResult<AnimeEpisode>();
+
+			return obj;
 		}
 
 		public List<AnimeEpisode> GetByAniEpisodeIDAndSeriesID(int epid, int seriesid)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var eps = session
-					.CreateCriteria(typeof(AnimeEpisode))
-					.Add(Restrictions.Eq("AniDB_EpisodeID", epid))
-					.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
-					.List<AnimeEpisode>();
-
-				return new List<AnimeEpisode>(eps);
+				return GetByAniEpisodeIDAndSeriesID(session, epid, seriesid);
 			}
+		}
+
+		public List<AnimeEpisode> GetByAniEpisodeIDAndSeriesID(ISession session, int epid, int seriesid)
+		{
+			var eps = session
+				.CreateCriteria(typeof(AnimeEpisode))
+				.Add(Restrictions.Eq("AniDB_EpisodeID", epid))
+				.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
+				.List<AnimeEpisode>();
+
+			return new List<AnimeEpisode>(eps);
 		}
 
 		/// <summary>
@@ -81,22 +107,20 @@ namespace JMMServer.Repositories
 		/// </summary>
 		/// <param name="hash"></param>
 		/// <returns></returns>
+		public List<AnimeEpisode> GetByHash(ISession session, string hash)
+		{
+			var eps = session.CreateQuery("Select ae FROM AnimeEpisode as ae, CrossRef_File_Episode as xref WHERE ae.AniDB_EpisodeID = xref.EpisodeID AND xref.Hash= :Hash")
+				.SetParameter("Hash", hash)
+				.List<AnimeEpisode>();
+
+			return new List<AnimeEpisode>(eps);
+		}
+
 		public List<AnimeEpisode> GetByHash(string hash)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				/*var eps = session.CreateQuery("FROM AnimeEpisode ae WHERE ae.AniDB_EpisodeID IN (Select EpisodeID FROM CrossRef_File_Episode xref WHERE xref.Hash= :Hash)")
-					.SetParameter("Hash", hash)
-					.List<AnimeEpisode>();*/
-
-				var eps = session.CreateQuery("Select ae FROM AnimeEpisode as ae, CrossRef_File_Episode as xref WHERE ae.AniDB_EpisodeID = xref.EpisodeID AND xref.Hash= :Hash")
-					.SetParameter("Hash", hash)
-					.List<AnimeEpisode>();
-
-				// Select vl FROM AnimeEpisode as ae, CrossRef_File_Episode as xref WHERE as.AniDB_EpisodeID = xref.EpisodeID AND xref.Hash= :Hash
-
-
-				return new List<AnimeEpisode>(eps);
+				return GetByHash(session, hash);
 			}
 		}
 

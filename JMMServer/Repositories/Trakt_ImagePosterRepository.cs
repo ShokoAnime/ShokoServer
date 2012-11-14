@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -26,8 +27,13 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return session.Get<Trakt_ImagePoster>(id);
+				return GetByID(session, id);
 			}
+		}
+
+		public Trakt_ImagePoster GetByID(ISession session, int id)
+		{
+			return session.Get<Trakt_ImagePoster>(id);
 		}
 
 		public List<Trakt_ImagePoster> GetByShowID(int id)

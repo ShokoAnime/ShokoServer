@@ -167,89 +167,99 @@ namespace JMMServer.Repositories
 
 		public string GetAllVideoQualityForAnime(int animeID)
 		{
-			string vidQuals = "";
-
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				System.Data.IDbCommand command = session.Connection.CreateCommand();
-				command.CommandText = "SELECT anifile.File_Source ";
-				command.CommandText += "FROM AnimeSeries ser ";
-				command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
-				command.CommandText += "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID ";
-				command.CommandText += "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID ";
-				command.CommandText += "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID ";
-				command.CommandText += "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash ";
-				command.CommandText += "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "; // See Note 1
-				command.CommandText += "where anime.AnimeID = " + animeID.ToString();
-				command.CommandText += " GROUP BY anifile.File_Source ";
+				return GetAllVideoQualityForAnime(session, animeID);
+			}
+		}
 
-				using (IDataReader rdr = command.ExecuteReader())
+		public string GetAllVideoQualityForAnime(ISession session, int animeID)
+		{
+			string vidQuals = "";
+
+			System.Data.IDbCommand command = session.Connection.CreateCommand();
+			command.CommandText = "SELECT anifile.File_Source ";
+			command.CommandText += "FROM AnimeSeries ser ";
+			command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
+			command.CommandText += "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID ";
+			command.CommandText += "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID ";
+			command.CommandText += "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID ";
+			command.CommandText += "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash ";
+			command.CommandText += "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "; // See Note 1
+			command.CommandText += "where anime.AnimeID = " + animeID.ToString();
+			command.CommandText += " GROUP BY anifile.File_Source ";
+
+			using (IDataReader rdr = command.ExecuteReader())
+			{
+				while (rdr.Read())
 				{
-					while (rdr.Read())
-					{
-						string vidQual = rdr[0].ToString().Trim();
+					string vidQual = rdr[0].ToString().Trim();
 
-						if (vidQuals.Length > 0)
-							vidQuals += ",";
+					if (vidQuals.Length > 0)
+						vidQuals += ",";
 
-						vidQuals += vidQual;
-					}
+					vidQuals += vidQual;
 				}
 			}
 
 			return vidQuals;
 		}
 
+
 		public Dictionary<int, AnimeVideoQualityStat> GetEpisodeVideoQualityStatsByAnime()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return GetEpisodeVideoQualityStatsByAnime(session);
+			}
+		}
+
+		public Dictionary<int, AnimeVideoQualityStat> GetEpisodeVideoQualityStatsByAnime(ISession session)
 		{
 			Dictionary<int, AnimeVideoQualityStat> dictStats = new Dictionary<int, AnimeVideoQualityStat>();
 			
+			System.Data.IDbCommand command = session.Connection.CreateCommand();
+			command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
+			command.CommandText += "from AnimeSeries ser ";
+			command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
+			command.CommandText += "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID ";
+			command.CommandText += "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID ";
+			command.CommandText += "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID ";
+			command.CommandText += "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash ";
+			command.CommandText += "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "; // See Note 1
+			command.CommandText += "WHERE aniep.EpisodeType = 1 "; // normal episodes only
+			command.CommandText += "GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
+			command.CommandText += "ORDER BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
 
-			using (var session = JMMService.SessionFactory.OpenSession())
+			using (IDataReader rdr = command.ExecuteReader())
 			{
-				System.Data.IDbCommand command = session.Connection.CreateCommand();
-				command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
-				command.CommandText += "from AnimeSeries ser ";
-				command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
-				command.CommandText += "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID ";
-				command.CommandText += "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID ";
-				command.CommandText += "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID ";
-				command.CommandText += "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash ";
-				command.CommandText += "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "; // See Note 1
-				command.CommandText += "WHERE aniep.EpisodeType = 1 "; // normal episodes only
-				command.CommandText += "GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
-				command.CommandText += "ORDER BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
-
-				using (IDataReader rdr = command.ExecuteReader())
+				while (rdr.Read())
 				{
-					while (rdr.Read())
+					int animeID = int.Parse(rdr[0].ToString());
+					string mainTitle = rdr[1].ToString().Trim();
+					string vidQual = rdr[2].ToString().Trim();
+					int epNumber = int.Parse(rdr[3].ToString());
+
+					if (animeID == 7656)
 					{
-						int animeID = int.Parse(rdr[0].ToString());
-						string mainTitle = rdr[1].ToString().Trim();
-						string vidQual = rdr[2].ToString().Trim();
-						int epNumber = int.Parse(rdr[3].ToString());
+						Debug.Print("");
+					}
 
-						if (animeID == 7656)
-						{
-							Debug.Print("");
-						}
-
-						if (!dictStats.ContainsKey(animeID))
-						{
-							AnimeVideoQualityStat stat = new AnimeVideoQualityStat();
-							stat.AnimeID = animeID;
-							stat.MainTitle = mainTitle;
-							stat.VideoQualityEpisodeCount = new Dictionary<string, int>();
-							stat.VideoQualityEpisodeCount[vidQual] = 1;
-							dictStats[animeID] = stat;
-						}
+					if (!dictStats.ContainsKey(animeID))
+					{
+						AnimeVideoQualityStat stat = new AnimeVideoQualityStat();
+						stat.AnimeID = animeID;
+						stat.MainTitle = mainTitle;
+						stat.VideoQualityEpisodeCount = new Dictionary<string, int>();
+						stat.VideoQualityEpisodeCount[vidQual] = 1;
+						dictStats[animeID] = stat;
+					}
+					else
+					{
+						if (dictStats[animeID].VideoQualityEpisodeCount.ContainsKey(vidQual))
+							dictStats[animeID].VideoQualityEpisodeCount[vidQual]++;
 						else
-						{
-							if (dictStats[animeID].VideoQualityEpisodeCount.ContainsKey(vidQual))
-								dictStats[animeID].VideoQualityEpisodeCount[vidQual]++;
-							else
-								dictStats[animeID].VideoQualityEpisodeCount[vidQual] = 1;
-						}
+							dictStats[animeID].VideoQualityEpisodeCount[vidQual] = 1;
 					}
 				}
 			}
@@ -257,41 +267,38 @@ namespace JMMServer.Repositories
 			return dictStats;
 		}
 
-		public AnimeVideoQualityStat GetEpisodeVideoQualityStatsForAnime(int aID)
+		public AnimeVideoQualityStat GetEpisodeVideoQualityStatsForAnime(ISession session, int aID)
 		{
 			AnimeVideoQualityStat stat = new AnimeVideoQualityStat();
 			stat.VideoQualityEpisodeCount = new Dictionary<string, int>();
 
-			using (var session = JMMService.SessionFactory.OpenSession())
+			System.Data.IDbCommand command = session.Connection.CreateCommand();
+			command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
+			command.CommandText += "from AnimeSeries ser ";
+			command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
+			command.CommandText += "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID ";
+			command.CommandText += "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID ";
+			command.CommandText += "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID ";
+			command.CommandText += "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash ";
+			command.CommandText += "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "; // See Note 1
+			command.CommandText += "WHERE aniep.EpisodeType = 1 "; // normal episodes only
+			command.CommandText += "AND anime.AnimeID =  " + aID.ToString();
+			command.CommandText += " GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
+
+			using (IDataReader rdr = command.ExecuteReader())
 			{
-				System.Data.IDbCommand command = session.Connection.CreateCommand();
-				command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
-				command.CommandText += "from AnimeSeries ser ";
-				command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
-				command.CommandText += "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID ";
-				command.CommandText += "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID ";
-				command.CommandText += "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID ";
-				command.CommandText += "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash ";
-				command.CommandText += "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "; // See Note 1
-				command.CommandText += "WHERE aniep.EpisodeType = 1 "; // normal episodes only
-				command.CommandText += "AND anime.AnimeID =  " + aID.ToString();
-				command.CommandText += " GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
-
-				using (IDataReader rdr = command.ExecuteReader())
+				while (rdr.Read())
 				{
-					while (rdr.Read())
-					{
-						stat.AnimeID = int.Parse(rdr[0].ToString());
-						stat.MainTitle = rdr[1].ToString().Trim();
+					stat.AnimeID = int.Parse(rdr[0].ToString());
+					stat.MainTitle = rdr[1].ToString().Trim();
 
-						string vidQual = rdr[2].ToString().Trim();
-						int epNumber = int.Parse(rdr[3].ToString());
+					string vidQual = rdr[2].ToString().Trim();
+					int epNumber = int.Parse(rdr[3].ToString());
 
-						if (!stat.VideoQualityEpisodeCount.ContainsKey(vidQual))
-							stat.VideoQualityEpisodeCount[vidQual] = 1;
-						else
-							stat.VideoQualityEpisodeCount[vidQual]++;
-					}
+					if (!stat.VideoQualityEpisodeCount.ContainsKey(vidQual))
+						stat.VideoQualityEpisodeCount[vidQual] = 1;
+					else
+						stat.VideoQualityEpisodeCount[vidQual]++;
 				}
 			}
 

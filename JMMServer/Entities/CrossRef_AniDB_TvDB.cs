@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMContracts;
 using JMMServer.Repositories;
+using NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -15,13 +16,18 @@ namespace JMMServer.Entities
 		public int TvDBSeasonNumber { get; set; }
 		public int CrossRefSource { get; set; }
 
-		public TvDB_Series TvDBSeries
+
+		public TvDB_Series GetTvDBSeries()
 		{
-			get
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				TvDB_SeriesRepository repTvSeries = new TvDB_SeriesRepository();
-				return repTvSeries.GetByTvDBID(TvDBID);
+				return GetTvDBSeries(session);
 			}
+		}
+		public TvDB_Series GetTvDBSeries(ISession session)
+		{
+			TvDB_SeriesRepository repTvSeries = new TvDB_SeriesRepository();
+			return repTvSeries.GetByTvDBID(session, TvDBID);
 		}
 
 		public Contract_CrossRef_AniDB_TvDB ToContract()

@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -37,13 +38,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var votes = session
-					.CreateCriteria(typeof(AniDB_Recommendation))
-					.Add(Restrictions.Eq("AnimeID", id))
-					.List<AniDB_Recommendation>();
-
-				return new List<AniDB_Recommendation>(votes);
+				return GetByAnimeID(session, id);
 			}
+		}
+
+		public List<AniDB_Recommendation> GetByAnimeID(ISession session, int id)
+		{
+			var votes = session
+				.CreateCriteria(typeof(AniDB_Recommendation))
+				.Add(Restrictions.Eq("AnimeID", id))
+				.List<AniDB_Recommendation>();
+
+			return new List<AniDB_Recommendation>(votes);
 		}
 
 

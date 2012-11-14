@@ -8,6 +8,7 @@ using JMMServer.Providers.TvDB;
 using JMMServer.WebCache;
 using System.Xml;
 using JMMServer.Providers.MovieDB;
+using NHibernate;
 
 namespace JMMServer.Commands
 {
@@ -50,63 +51,66 @@ namespace JMMServer.Commands
 
 			try
 			{
-				// first check if the user wants to use the web cache
-				if (ServerSettings.WebCache_TvDB_Get)
+				using (var session = JMMService.SessionFactory.OpenSession())
 				{
-					try
+					// first check if the user wants to use the web cache
+					if (ServerSettings.WebCache_TvDB_Get)
 					{
-						MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
-
-						CrossRef_AniDB_OtherResult crossRef = XMLService.Get_CrossRef_AniDB_Other(AnimeID, CrossRefType.MovieDB);
-						if (crossRef != null)
+						try
 						{
-							int movieID = int.Parse(crossRef.CrossRefID);
-							MovieDB_Movie movie = repMovies.GetByOnlineID(movieID);
-							if (movie == null)
-							{
-								// update the info from online
-								MovieDBHelper.UpdateMovieInfo(movieID, true);
-								movie = repMovies.GetByOnlineID(movieID);
-							}
+							MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
 
-							if (movie != null)
+							CrossRef_AniDB_OtherResult crossRef = XMLService.Get_CrossRef_AniDB_Other(AnimeID, CrossRefType.MovieDB);
+							if (crossRef != null)
 							{
-								// since we are using the web cache result, let's save it
-								MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, true);
-								return;
+								int movieID = int.Parse(crossRef.CrossRefID);
+								MovieDB_Movie movie = repMovies.GetByOnlineID(session, movieID);
+								if (movie == null)
+								{
+									// update the info from online
+									MovieDBHelper.UpdateMovieInfo(session, movieID, true);
+									movie = repMovies.GetByOnlineID(movieID);
+								}
+
+								if (movie != null)
+								{
+									// since we are using the web cache result, let's save it
+									MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, true);
+									return;
+								}
+
 							}
-							
+						}
+						catch (Exception)
+						{
 						}
 					}
-					catch (Exception)
+
+					string searchCriteria = "";
+					AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+					AniDB_Anime anime = repAnime.GetByAnimeID(session, AnimeID);
+					if (anime == null) return;
+
+					searchCriteria = anime.MainTitle;
+
+					// if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+					List<MovieDB_Movie_Result> results = MovieDBHelper.Search(searchCriteria);
+					logger.Trace("Found {0} moviedb results for {1} on TheTvDB", results.Count, searchCriteria);
+					if (ProcessSearchResults(session, results, searchCriteria)) return;
+
+
+					if (results.Count == 0)
 					{
-					}
-				}
+						foreach (AniDB_Anime_Title title in anime.GetTitles(session))
+						{
+							if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
 
-				string searchCriteria = "";
-				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
-				if (anime == null) return;
+							if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
-				searchCriteria = anime.MainTitle;
-
-				// if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-				List<MovieDB_Movie_Result> results = MovieDBHelper.Search(searchCriteria);
-				logger.Trace("Found {0} moviedb results for {1} on TheTvDB", results.Count, searchCriteria);
-				if (ProcessSearchResults(results, searchCriteria)) return;
-
-
-				if (results.Count == 0)
-				{
-					foreach (AniDB_Anime_Title title in anime.Titles)
-					{
-						if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
-
-						if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
-
-						results = MovieDBHelper.Search(title.Title);
-						logger.Trace("Found {0} moviedb results for search on {1}", results.Count, title.Title);
-						if (ProcessSearchResults(results, title.Title)) return;
+							results = MovieDBHelper.Search(title.Title);
+							logger.Trace("Found {0} moviedb results for search on {1}", results.Count, title.Title);
+							if (ProcessSearchResults(session, results, title.Title)) return;
+						}
 					}
 				}
 
@@ -118,7 +122,7 @@ namespace JMMServer.Commands
 			}
 		}
 
-		private bool ProcessSearchResults(List<MovieDB_Movie_Result> results, string searchCriteria)
+		private bool ProcessSearchResults(ISession session, List<MovieDB_Movie_Result> results, string searchCriteria)
 		{
 			if (results.Count == 1)
 			{
@@ -126,7 +130,7 @@ namespace JMMServer.Commands
 				logger.Trace("Found 1 moviedb results for search on {0} --- Linked to {1} ({2})", searchCriteria, results[0].MovieName, results[0].MovieID);
 
 				int movieID = results[0].MovieID;
-				MovieDBHelper.UpdateMovieInfo(movieID, true);
+				MovieDBHelper.UpdateMovieInfo(session, movieID, true);
 				MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, false);
 				return true;
 			}

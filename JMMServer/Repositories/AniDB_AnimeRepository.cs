@@ -15,12 +15,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				// populate the database
-				using (var transaction = session.BeginTransaction())
-				{
-					session.SaveOrUpdate(obj);
-					transaction.Commit();
-				}
+				Save(session, obj);
+			}
+		}
+
+		public void Save(ISession session, AniDB_Anime obj)
+		{
+
+			// populate the database
+			using (var transaction = session.BeginTransaction())
+			{
+				session.SaveOrUpdate(obj);
+				transaction.Commit();
 			}
 		}
 
@@ -57,12 +63,17 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var objs = session
-					.CreateCriteria(typeof(AniDB_Anime))
-					.List<AniDB_Anime>();
-
-				return new List<AniDB_Anime>(objs);
+				return GetAll(session);
 			}
+		}
+
+		public List<AniDB_Anime> GetAll(ISession session)
+		{
+			var objs = session
+				.CreateCriteria(typeof(AniDB_Anime))
+				.List<AniDB_Anime>();
+
+			return new List<AniDB_Anime>(objs);
 		}
 
 		public List<AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)

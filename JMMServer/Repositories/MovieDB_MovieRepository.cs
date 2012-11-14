@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -13,12 +14,17 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				// populate the database
-				using (var transaction = session.BeginTransaction())
-				{
-					session.SaveOrUpdate(obj);
-					transaction.Commit();
-				}
+				Save(session, obj);
+			}
+		}
+
+		public void Save(ISession session, MovieDB_Movie obj)
+		{
+			// populate the database
+			using (var transaction = session.BeginTransaction())
+			{
+				session.SaveOrUpdate(obj);
+				transaction.Commit();
 			}
 		}
 
@@ -34,12 +40,17 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				MovieDB_Movie cr = session
-					.CreateCriteria(typeof(MovieDB_Movie))
-					.Add(Restrictions.Eq("MovieId", id))
-					.UniqueResult<MovieDB_Movie>();
-				return cr;
+				return GetByOnlineID(session, id);
 			}
+		}
+
+		public MovieDB_Movie GetByOnlineID(ISession session, int id)
+		{
+			MovieDB_Movie cr = session
+				.CreateCriteria(typeof(MovieDB_Movie))
+				.Add(Restrictions.Eq("MovieId", id))
+				.UniqueResult<MovieDB_Movie>();
+			return cr;
 		}
 
 		public List<MovieDB_Movie> GetAll()

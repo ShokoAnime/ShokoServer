@@ -6,6 +6,7 @@ using JMMContracts;
 using JMMServer.Repositories;
 using JMMServer.Commands;
 using AniDBAPI;
+using NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -43,11 +44,27 @@ namespace JMMServer.Entities
 
 		public AnimeEpisode_User GetUserRecord(int userID)
 		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return GetUserRecord(session, userID);
+			}
+		}
+
+		public AnimeEpisode_User GetUserRecord(ISession session, int userID)
+		{
 			AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
-			return repEpUser.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
+			return repEpUser.GetByUserIDAndEpisodeID(session, userID, this.AnimeEpisodeID);
 		}
 
 		public Contract_AnimeEpisode ToContract(bool getFileCount, int userID, AnimeSeries_User seruser)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return ToContract(session, getFileCount, userID, seruser);
+			}
+		}
+
+		public Contract_AnimeEpisode ToContract(ISession session, bool getFileCount, int userID, AnimeSeries_User seruser)
 		{
 			Contract_AnimeEpisode contract = new Contract_AnimeEpisode();
 			contract.AniDB_EpisodeID = this.AniDB_EpisodeID;
@@ -55,7 +72,7 @@ namespace JMMServer.Entities
 			contract.AnimeSeriesID = this.AnimeSeriesID;
 			contract.DateTimeUpdated = this.DateTimeUpdated;
 
-			AnimeEpisode_User epuser = this.GetUserRecord(userID);
+			AnimeEpisode_User epuser = this.GetUserRecord(session, userID);
 
 			if (epuser == null)
 			{
@@ -95,7 +112,7 @@ namespace JMMServer.Entities
 
 			// find the number of files we actually have for this episode
 			if (getFileCount)
-				contract.LocalFileCount = this.VideoLocals.Count;
+				contract.LocalFileCount = this.GetVideoLocals(session).Count;
 
 			contract.ReleaseGroups = new List<Contract_AniDBReleaseGroup>();
 
@@ -106,7 +123,15 @@ namespace JMMServer.Entities
 
 		public Contract_AnimeEpisode ToContract(int userID)
 		{
-			return ToContract(true, userID, null);
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return ToContract(session, userID);
+			}
+		}
+
+		public Contract_AnimeEpisode ToContract(ISession session, int userID)
+		{
+			return ToContract(session, true, userID, null);
 		}
 
 		public Contract_AnimeEpisode ToContract(AniDB_Episode aniEp, List<VideoLocal> epVids, AnimeEpisode_User epuser, AnimeSeries_User seruser)
@@ -192,7 +217,7 @@ namespace JMMServer.Entities
 
 
 			// find the number of files we actually have for this episode
-			contract.LocalFileCount = VideoLocals.Count;
+			contract.LocalFileCount = GetVideoLocals().Count;
 
 			contract.ReleaseGroups = new List<Contract_AniDBReleaseGroup>();
 
@@ -204,22 +229,32 @@ namespace JMMServer.Entities
 		/// <summary>
 		/// Gets the AnimeSeries this episode belongs to
 		/// </summary>
-		public AnimeSeries AnimeSeries
+		public AnimeSeries GetAnimeSeries()
 		{
-			get
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-				return repSeries.GetByID(this.AnimeSeriesID);
+				return GetAnimeSeries(session);
 			}
 		}
 
-		public List<VideoLocal> VideoLocals
+		public AnimeSeries GetAnimeSeries(ISession session)
 		{
-			get
+			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+			return repSeries.GetByID(session, this.AnimeSeriesID);
+		}
+
+		public List<VideoLocal> GetVideoLocals()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				VideoLocalRepository repVidLocals = new VideoLocalRepository();
-				return repVidLocals.GetByAniDBEpisodeID(AniDB_EpisodeID);
+				return GetVideoLocals(session);
 			}
+		}
+
+		public List<VideoLocal> GetVideoLocals(ISession session)
+		{
+			VideoLocalRepository repVidLocals = new VideoLocalRepository();
+			return repVidLocals.GetByAniDBEpisodeID(session, AniDB_EpisodeID);
 		}
 
 		public List<CrossRef_File_Episode> FileCrossRefs
@@ -344,7 +379,7 @@ namespace JMMServer.Entities
 					contract.VideoInfo_VideoInfoID = vi.VideoInfoID;
 
 					// AniDB File
-					AniDB_File anifile = vid.AniDBFile; // to prevent multiple db calls
+					AniDB_File anifile = vid.GetAniDBFile(); // to prevent multiple db calls
 					if (anifile != null)
 					{
 						contract.AniDB_Anime_GroupName = anifile.Anime_GroupName;
@@ -418,7 +453,7 @@ namespace JMMServer.Entities
 
 		public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, bool updateStatsCache, int userID, bool scrobbleTrakt)
 		{
-			foreach (VideoLocal vid in VideoLocals)
+			foreach (VideoLocal vid in GetVideoLocals())
 			{
 				vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, updateStatsCache, userID, scrobbleTrakt, true);
 			}

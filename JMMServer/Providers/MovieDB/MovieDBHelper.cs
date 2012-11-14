@@ -8,6 +8,7 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.Commands;
 using System.IO;
+using NHibernate;
 
 namespace JMMServer.Providers.MovieDB
 {
@@ -30,6 +31,14 @@ namespace JMMServer.Providers.MovieDB
 
 		private static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages)
 		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				SaveMovieToDatabase(session, searchResult, saveImages);
+			}
+		}
+
+		private static void SaveMovieToDatabase(ISession session, MovieDB_Movie_Result searchResult, bool saveImages)
+		{
 			MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
 			MovieDB_FanartRepository repFanart = new MovieDB_FanartRepository();
 			MovieDB_PosterRepository repPosters = new MovieDB_PosterRepository();
@@ -38,7 +47,7 @@ namespace JMMServer.Providers.MovieDB
 			MovieDB_Movie movie = repMovies.GetByOnlineID(searchResult.MovieID);
 			if (movie == null) movie = new MovieDB_Movie();
 			movie.Populate(searchResult);
-			repMovies.Save(movie);
+			repMovies.Save(session, movie);
 
 			if (!saveImages) return;
 
@@ -46,31 +55,31 @@ namespace JMMServer.Providers.MovieDB
 			{
 				if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
 				{
-					MovieDB_Poster poster = repPosters.GetByOnlineID(img.ImageID, img.ImageSize);
+					MovieDB_Poster poster = repPosters.GetByOnlineID(session, img.ImageID, img.ImageSize);
 					if (poster == null) poster = new MovieDB_Poster();
 					poster.Populate(img, movie.MovieId);
-					repPosters.Save(poster);
+					repPosters.Save(session, poster);
 
 					// download the image
 					if (!string.IsNullOrEmpty(poster.FullImagePath) && !File.Exists(poster.FullImagePath))
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
-						cmd.Save();
+						cmd.Save(session);
 					}
 				}
 				else
 				{
 					// fanart (backdrop)
-					MovieDB_Fanart fanart = repFanart.GetByOnlineID(img.ImageID, img.ImageSize);
+					MovieDB_Fanart fanart = repFanart.GetByOnlineID(session, img.ImageID, img.ImageSize);
 					if (fanart == null) fanart = new MovieDB_Fanart();
 					fanart.Populate(img, movie.MovieId);
-					repFanart.Save(fanart);
+					repFanart.Save(session, fanart);
 
 					// download the image
 					if (!string.IsNullOrEmpty(fanart.FullImagePath) && !File.Exists(fanart.FullImagePath))
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
-						cmd.Save();
+						cmd.Save(session);
 					}
 				}
 			}
@@ -118,6 +127,14 @@ namespace JMMServer.Providers.MovieDB
 
 		public static void UpdateMovieInfo(int movieID, bool saveImages)
 		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				UpdateMovieInfo(session, movieID, saveImages);
+			}
+		}
+
+		public static void UpdateMovieInfo(ISession session, int movieID, bool saveImages)
+		{
 
 			try
 			{
@@ -138,7 +155,7 @@ namespace JMMServer.Providers.MovieDB
 					if (searchResult.Populate(movie))
 					{
 						// save to the DB
-						SaveMovieToDatabase(searchResult, saveImages);
+						SaveMovieToDatabase(session, searchResult, saveImages);
 					}
 
 				}
@@ -211,16 +228,16 @@ namespace JMMServer.Providers.MovieDB
 			CrossRef_AniDB_OtherRepository repCrossRef = new CrossRef_AniDB_OtherRepository();
 			foreach (AnimeSeries ser in allSeries)
 			{
-				AniDB_Anime anime = ser.Anime;
+				AniDB_Anime anime = ser.GetAnime();
 				if (anime == null) continue;
 
 				if (anime.IsMovieDBLinkDisabled) continue;
 
 				// don't scan if it is associated on the TvDB
-				if (anime.CrossRefTvDB != null) continue;
+				if (anime.GetCrossRefTvDB() != null) continue;
 
 				// don't scan if it is associated on the MovieDB
-				if (anime.CrossRefMovieDB != null) continue;
+				if (anime.GetCrossRefMovieDB() != null) continue;
 
 				// don't scan if it is not a movie
 				if (!anime.SearchOnMovieDB)

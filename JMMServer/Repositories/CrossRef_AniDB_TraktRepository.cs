@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -34,12 +35,17 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				CrossRef_AniDB_Trakt cr = session
-					.CreateCriteria(typeof(CrossRef_AniDB_Trakt))
-					.Add(Restrictions.Eq("AnimeID", id))
-					.UniqueResult<CrossRef_AniDB_Trakt>();
-				return cr;
+				return GetByAnimeID(session, id);
 			}
+		}
+
+		public CrossRef_AniDB_Trakt GetByAnimeID(ISession session, int id)
+		{
+			CrossRef_AniDB_Trakt cr = session
+				.CreateCriteria(typeof(CrossRef_AniDB_Trakt))
+				.Add(Restrictions.Eq("AnimeID", id))
+				.UniqueResult<CrossRef_AniDB_Trakt>();
+			return cr;
 		}
 
 		public CrossRef_AniDB_Trakt GetByTraktID(string id, int season)

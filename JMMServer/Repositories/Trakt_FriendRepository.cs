@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -34,13 +35,18 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				Trakt_Friend obj = session
-					.CreateCriteria(typeof(Trakt_Friend))
-					.Add(Restrictions.Eq("Username", username))
-					.UniqueResult<Trakt_Friend>();
-
-				return obj;
+				return GetByUsername(session, username);
 			}
+		}
+
+		public Trakt_Friend GetByUsername(ISession session, string username)
+		{
+			Trakt_Friend obj = session
+				.CreateCriteria(typeof(Trakt_Friend))
+				.Add(Restrictions.Eq("Username", username))
+				.UniqueResult<Trakt_Friend>();
+
+			return obj;
 		}
 
 		public List<Trakt_Friend> GetAll()

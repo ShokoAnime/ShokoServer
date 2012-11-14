@@ -15,6 +15,15 @@ namespace JMMContracts
 		Contract_ServerStatus GetServerStatus();
 
 		[OperationContract]
+		Contract_ServerSettings GetServerSettings();
+
+		[OperationContract]
+		bool PostShoutShow(int animeID, string shoutText, bool isSpoiler, ref string returnMessage);
+
+		[OperationContract]
+		bool HasTraktLink(int animeID);
+
+		[OperationContract]
 		Contract_JMMUser AuthenticateUser(string username, string password);
 
 		[OperationContract]

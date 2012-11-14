@@ -164,6 +164,7 @@ namespace JMMServer
 				{
 					if (sessionFactory == null)
 					{
+						//logger.Info("Creating new session...");
 						sessionFactory = DatabaseHelper.CreateSessionFactory();
 					}
 					return JMMService.sessionFactory;

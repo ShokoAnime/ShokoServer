@@ -35,12 +35,17 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				AniDB_Category cr = session
-					.CreateCriteria(typeof(AniDB_Category))
-					.Add(Restrictions.Eq("CategoryID", id))
-					.UniqueResult<AniDB_Category>();
-				return cr;
+				return GetByCategoryID(session, id);
 			}
+		}
+
+		public AniDB_Category GetByCategoryID(ISession session, int id)
+		{
+			AniDB_Category cr = session
+				.CreateCriteria(typeof(AniDB_Category))
+				.Add(Restrictions.Eq("CategoryID", id))
+				.UniqueResult<AniDB_Category>();
+			return cr;
 		}
 
 		public List<AniDB_Category> GetByAnimeID(int animeID)

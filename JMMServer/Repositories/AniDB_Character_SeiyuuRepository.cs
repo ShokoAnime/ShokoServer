@@ -58,12 +58,7 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var objs = session
-					.CreateCriteria(typeof(AniDB_Character_Seiyuu))
-					.Add(Restrictions.Eq("CharID", id))
-					.List<AniDB_Character_Seiyuu>();
-
-				return new List<AniDB_Character_Seiyuu>(objs);
+				return GetByCharID(session, id);
 			}
 		}
 

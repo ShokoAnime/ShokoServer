@@ -11,6 +11,7 @@ using System.IO;
 using System.Net;
 using BinaryNorthwest;
 using JMMContracts;
+using NHibernate;
 
 namespace JMMServer.Providers.TraktTV
 {
@@ -142,6 +143,14 @@ namespace JMMServer.Providers.TraktTV
 
 		public static List<TraktTV_ShoutGet> GetShowShouts(int animeID)
 		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return GetShowShouts(session, animeID);
+			}
+		}
+
+		public static List<TraktTV_ShoutGet> GetShowShouts(ISession session, int animeID)
+		{
 			List<TraktTV_ShoutGet> shouts = null;
 			try
 			{
@@ -149,7 +158,7 @@ namespace JMMServer.Providers.TraktTV
 					return null;
 
 				CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
-				CrossRef_AniDB_Trakt traktXRef = repXrefTrakt.GetByAnimeID(animeID);
+				CrossRef_AniDB_Trakt traktXRef = repXrefTrakt.GetByAnimeID(session, animeID);
 				if (traktXRef == null) return null;
 
 				string url = string.Format(Constants.TraktTvURLs.URLGetShowShouts, Constants.TraktTvURLs.APIKey, traktXRef.TraktID);
@@ -165,7 +174,7 @@ namespace JMMServer.Providers.TraktTV
 				Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
 				foreach (TraktTV_ShoutGet shout in shouts)
 				{
-					Trakt_Friend traktFriend = repFriends.GetByUsername(shout.user.username);
+					Trakt_Friend traktFriend = repFriends.GetByUsername(session, shout.user.username);
 					if (traktFriend == null)
 					{
 						traktFriend = new Trakt_Friend();
@@ -184,7 +193,7 @@ namespace JMMServer.Providers.TraktTV
 						{
 							traktFriend.LastAvatarUpdate = DateTime.Now;
 							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktFriend.Trakt_FriendID, JMMImageType.Trakt_Friend, true);
-							cmd.Save();
+							cmd.Save(session);
 						}
 					}
 				}
@@ -549,6 +558,14 @@ namespace JMMServer.Providers.TraktTV
 
 		public static void LinkAniDBTrakt(int animeID, string traktID, int seasonNumber, bool fromWebCache)
 		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				LinkAniDBTrakt(session, animeID, traktID, seasonNumber, fromWebCache);
+			}
+		}
+
+		public static void LinkAniDBTrakt(ISession session, int animeID, string traktID, int seasonNumber, bool fromWebCache)
+		{
 			CrossRef_AniDB_TraktRepository repCrossRef = new CrossRef_AniDB_TraktRepository();
 			CrossRef_AniDB_Trakt xrefTemp = repCrossRef.GetByTraktID(traktID, seasonNumber);
 			if (xrefTemp != null)
@@ -586,7 +603,7 @@ namespace JMMServer.Providers.TraktTV
 			xref.TraktSeasonNumber = seasonNumber;
 			repCrossRef.Save(xref);
 
-			StatsCache.Instance.UpdateUsingAnime(animeID);
+			StatsCache.Instance.UpdateUsingAnime(session, animeID);
 
 			logger.Trace("Changed trakt association: {0}", animeID);
 
@@ -793,7 +810,7 @@ namespace JMMServer.Providers.TraktTV
 			{
 				if (alreadyLinked.Contains(ser.AniDB_ID)) continue;
 
-				AniDB_Anime anime = ser.Anime;
+				AniDB_Anime anime = ser.GetAnime();
 
 				if (anime != null)
 					logger.Trace("Found anime without Trakt association: " + anime.MainTitle);
@@ -849,7 +866,7 @@ namespace JMMServer.Providers.TraktTV
 				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
 					return;
 
-				CrossRef_AniDB_Trakt xref = ep.AnimeSeries.CrossRefTrakt;
+				CrossRef_AniDB_Trakt xref = ep.GetAnimeSeries().CrossRefTrakt;
 				if (xref == null) return;
 
 				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
@@ -865,7 +882,7 @@ namespace JMMServer.Providers.TraktTV
 				int retEpNum = -1;
 				int retSeason = -1;
 
-				GetTraktEpisodeNumber(ep, ep.AnimeSeries, show, xref.TraktSeasonNumber, ref retEpNum, ref retSeason, dictTraktEpisodes, dictTraktSpecials, dictTraktSeasons);
+				GetTraktEpisodeNumber(ep, ep.GetAnimeSeries(), show, xref.TraktSeasonNumber, ref retEpNum, ref retSeason, dictTraktEpisodes, dictTraktSpecials, dictTraktSeasons);
 				if (retEpNum < 0) return;
 
 				TraktTVPost_ShowScrobble postScrobble = new TraktTVPost_ShowScrobble();
@@ -914,8 +931,8 @@ namespace JMMServer.Providers.TraktTV
 			{
 				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
 					return;
-				
-				CrossRef_AniDB_Trakt xref = ep.AnimeSeries.CrossRefTrakt;
+
+				CrossRef_AniDB_Trakt xref = ep.GetAnimeSeries().CrossRefTrakt;
 				if (xref == null) return;
 
 				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
@@ -939,7 +956,7 @@ namespace JMMServer.Providers.TraktTV
 				int retEpNum = -1;
 				int retSeason = -1;
 
-				GetTraktEpisodeNumber(ep, ep.AnimeSeries, show, xref.TraktSeasonNumber, ref retEpNum, ref retSeason, dictTraktEpisodes, dictTraktSpecials, dictTraktSeasons);
+				GetTraktEpisodeNumber(ep, ep.GetAnimeSeries(), show, xref.TraktSeasonNumber, ref retEpNum, ref retSeason, dictTraktEpisodes, dictTraktSpecials, dictTraktSeasons);
 				if (retEpNum < 0) return;
 
 				TraktTVSeasonEpisode traktEp = new TraktTVSeasonEpisode();
@@ -1237,9 +1254,9 @@ namespace JMMServer.Providers.TraktTV
 				postSeen.year = show.Year;
 				postSeen.tvdb_id = show.TvDB_ID.Value.ToString();
 
-				foreach (AnimeEpisode ep in series.AnimeEpisodes)
+				foreach (AnimeEpisode ep in series.GetAnimeEpisodes())
 				{
-					if (ep.VideoLocals.Count > 0)
+					if (ep.GetVideoLocals().Count > 0)
 					{
 						retEpNum = -1;
 						retSeason = -1;
@@ -1300,7 +1317,7 @@ namespace JMMServer.Providers.TraktTV
 				foreach (AnimeSeries series in allSeries)
 				{
 					//SyncCollectionToTrakt_Series(series);
-					CommandRequest_TraktSyncCollectionSeries cmd = new CommandRequest_TraktSyncCollectionSeries(series.AnimeSeriesID, series.Anime.MainTitle);
+					CommandRequest_TraktSyncCollectionSeries cmd = new CommandRequest_TraktSyncCollectionSeries(series.AnimeSeriesID, series.GetAnime().MainTitle);
 					cmd.Save();
 				}
 

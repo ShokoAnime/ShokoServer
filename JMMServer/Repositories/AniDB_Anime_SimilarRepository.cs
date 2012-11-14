@@ -58,14 +58,19 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var cats = session
-					.CreateCriteria(typeof(AniDB_Anime_Similar))
-					.Add(Restrictions.Eq("AnimeID", id))
-					.AddOrder(Order.Desc("Approval"))
-					.List<AniDB_Anime_Similar>();
-
-				return new List<AniDB_Anime_Similar>(cats);
+				return GetByAnimeID(session, id);
 			}
+		}
+
+		public List<AniDB_Anime_Similar> GetByAnimeID(ISession session, int id)
+		{
+			var cats = session
+				.CreateCriteria(typeof(AniDB_Anime_Similar))
+				.Add(Restrictions.Eq("AnimeID", id))
+				.AddOrder(Order.Desc("Approval"))
+				.List<AniDB_Anime_Similar>();
+
+			return new List<AniDB_Anime_Similar>(cats);
 		}
 
 		public void Delete(int id)
