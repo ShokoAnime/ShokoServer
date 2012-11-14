@@ -260,7 +260,7 @@ namespace JMMServer.WebCache
 
 		public static CrossRef_AniDB_TvDBResult Get_CrossRef_AniDB_TvDB(int animeID)
 		{
-			if (!ServerSettings.WebCache_XRefFileEpisode_Get) return null;
+			if (!ServerSettings.WebCache_TvDB_Get) return null;
 
 			try
 			{
@@ -271,6 +271,9 @@ namespace JMMServer.WebCache
 				string uri = string.Format("http://{0}/GetCrossRef_AniDB_TvDB.aspx?uname={1}&AnimeID={2}",
 					ServerSettings.WebCache_Address, username, animeID);
 				string xml = GetData(uri);
+
+				logger.Info(uri);
+				logger.Info(xml);
 
 				if (xml.Trim().Length == 0) return null;
 
@@ -339,7 +342,7 @@ namespace JMMServer.WebCache
 
 		public static CrossRef_AniDB_OtherResult Get_CrossRef_AniDB_Other(int animeID, CrossRefType xrefType)
 		{
-			if (!ServerSettings.WebCache_XRefFileEpisode_Get) return null;
+			if (!ServerSettings.WebCache_TvDB_Get) return null;
 
 			try
 			{
@@ -403,7 +406,7 @@ namespace JMMServer.WebCache
 
 		public static CrossRef_AniDB_TraktResult Get_CrossRef_AniDB_Trakt(int animeID)
 		{
-			if (!ServerSettings.WebCache_XRefFileEpisode_Get) return null;
+			if (!ServerSettings.WebCache_TvDB_Get) return null;
 
 			try
 			{
@@ -477,7 +480,7 @@ namespace JMMServer.WebCache
 
 		public static List<CrossRef_AniDB_MALResult> Get_CrossRef_AniDB_MAL(int animeID)
 		{
-			if (!ServerSettings.WebCache_XRefFileEpisode_Get) return null;
+			if (!ServerSettings.WebCache_MAL_Get) return null;
 
 			try
 			{
