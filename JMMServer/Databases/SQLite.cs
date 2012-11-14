@@ -131,6 +131,7 @@ namespace JMMServer.Databases
 				UpdateSchema_023(versionNumber);
 				UpdateSchema_024(versionNumber);
 				UpdateSchema_025(versionNumber);
+				UpdateSchema_026(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -868,6 +869,34 @@ namespace JMMServer.Databases
 				" ); ");
 
 			cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Recommendation ON AniDB_Recommendation(AnimeID, UserID);");
+
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_026(int currentVersionNumber)
+		{
+			int thisVersion = 26;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE INDEX IX_CrossRef_File_Episode_Hash ON CrossRef_File_Episode(Hash);");
+			cmds.Add("CREATE INDEX IX_CrossRef_File_Episode_EpisodeID ON CrossRef_File_Episode(EpisodeID);");
 
 
 			foreach (string cmdTable in cmds)
