@@ -63,9 +63,6 @@ namespace JMMServer
 
 		public bool PostShoutShow(int animeID, string shoutText, bool isSpoiler, ref string returnMessage)
 		{
-			returnMessage = "This is an error";
-			return false;
-
 			return TraktTVHelper.PostShoutShow(animeID, shoutText, isSpoiler, ref returnMessage);
 		}
 
@@ -86,6 +83,58 @@ namespace JMMServer
 			}
 
 			return false;
+		}
+
+		public MetroContract_CommunityLinks GetCommunityLinks(int animeID)
+		{
+			MetroContract_CommunityLinks contract = new MetroContract_CommunityLinks();
+			try
+			{
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+					AniDB_Anime anime = repAnime.GetByAnimeID(session, animeID);
+					if (anime == null) return null;
+
+					//AniDB
+					contract.AniDB_ID = animeID;
+					contract.AniDB_URL = string.Format(Constants.URLS.AniDB_Series, animeID);
+					contract.AniDB_DiscussURL = string.Format(Constants.URLS.AniDB_SeriesDiscussion, animeID);
+
+					// Trakt
+					CrossRef_AniDB_Trakt traktRef = anime.GetCrossRefTrakt(session);
+					if (traktRef != null)
+					{
+						contract.Trakt_ID = traktRef.TraktID;
+						contract.Trakt_URL = string.Format(Constants.URLS.Trakt_Series, traktRef.TraktID);
+					}
+
+					// MAL
+					List<CrossRef_AniDB_MAL> malRef = anime.GetCrossRefMAL(session);
+					if (malRef != null && malRef.Count > 0)
+					{
+						contract.MAL_ID = malRef[0].MALID.ToString();
+						contract.MAL_URL = string.Format(Constants.URLS.MAL_Series, malRef[0].MALID);
+						//contract.MAL_DiscussURL = string.Format(Constants.URLS.MAL_SeriesDiscussion, malRef[0].MALID, malRef[0].MALTitle);
+						contract.MAL_DiscussURL = string.Format(Constants.URLS.MAL_Series, malRef[0].MALID);
+					}
+
+					// TvDB
+					CrossRef_AniDB_TvDB tvdbRef = anime.GetCrossRefTvDB(session);
+					if (tvdbRef != null)
+					{
+						contract.TvDB_ID = tvdbRef.TvDBID.ToString();
+						contract.TvDB_URL = string.Format(Constants.URLS.TvDB_Series, tvdbRef.TvDBID);
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return contract;
 		}
 
 		public Contract_JMMUser AuthenticateUser(string username, string password)
@@ -375,6 +424,126 @@ namespace JMMServer
 							logger.Info(string.Format("GetAnimeContinueWatching:Skipping Anime - no episodes: {0}", series.AniDB_ID));
 
 						
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return retAnime;
+		}
+
+		public List<MetroContract_Anime_Summary> GetAnimeCalendar(int jmmuserID, int startDateSecs, int endDateSecs, int maxRecords)
+		{
+			List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
+			try
+			{
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+					JMMUserRepository repUsers = new JMMUserRepository();
+					AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+
+					JMMUser user = repUsers.GetByID(session, jmmuserID);
+					if (user == null) return retAnime;
+
+					DateTime? startDate = Utils.GetAniDBDateAsDate(startDateSecs);
+					DateTime? endDate = Utils.GetAniDBDateAsDate(endDateSecs);
+
+					List<AniDB_Anime> animes = repAnime.GetForDate(session, startDate.Value, endDate.Value);
+					foreach (AniDB_Anime anidb_anime in animes)
+					{
+
+						if (!user.AllowedAnime(anidb_anime)) continue;
+
+						AnimeSeries ser = repSeries.GetByAnimeID(anidb_anime.AnimeID);
+
+						MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+
+						summ.AirDateAsSeconds = anidb_anime.AirDateAsSeconds;
+						summ.AnimeID = anidb_anime.AnimeID;
+						if (ser != null)
+						{
+							summ.AnimeName = ser.GetSeriesName(session);
+							summ.AnimeSeriesID = ser.AnimeSeriesID;
+						}
+						else
+						{
+							summ.AnimeName = anidb_anime.MainTitle;
+							summ.AnimeSeriesID = 0;
+						}
+						summ.BeginYear = anidb_anime.BeginYear;
+						summ.EndYear = anidb_anime.EndYear;
+						summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
+
+						ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
+						summ.ImageType = (int)imgDet.ImageType;
+						summ.ImageID = imgDet.ImageID;
+
+						retAnime.Add(summ);
+						if (retAnime.Count == maxRecords) break;
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return retAnime;
+		}
+
+		public List<MetroContract_Anime_Summary> SearchAnime(int jmmuserID, string queryText, int maxRecords)
+		{
+			List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
+			try
+			{
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+					JMMUserRepository repUsers = new JMMUserRepository();
+					AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+
+					JMMUser user = repUsers.GetByID(session, jmmuserID);
+					if (user == null) return retAnime;
+
+
+					List<AniDB_Anime> animes = repAnime.SearchByName(session, queryText);
+					foreach (AniDB_Anime anidb_anime in animes)
+					{
+
+						if (!user.AllowedAnime(anidb_anime)) continue;
+
+						AnimeSeries ser = repSeries.GetByAnimeID(anidb_anime.AnimeID);
+
+						MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+
+						summ.AirDateAsSeconds = anidb_anime.AirDateAsSeconds;
+						summ.AnimeID = anidb_anime.AnimeID;
+						if (ser != null)
+						{
+							summ.AnimeName = ser.GetSeriesName(session);
+							summ.AnimeSeriesID = ser.AnimeSeriesID;
+						}
+						else
+						{
+							summ.AnimeName = anidb_anime.MainTitle;
+							summ.AnimeSeriesID = 0;
+						}
+						summ.BeginYear = anidb_anime.BeginYear;
+						summ.EndYear = anidb_anime.EndYear;
+						summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
+
+						ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
+						summ.ImageType = (int)imgDet.ImageType;
+						summ.ImageID = imgDet.ImageID;
+
+						retAnime.Add(summ);
+						if (retAnime.Count == maxRecords) break;
 					}
 				}
 			}

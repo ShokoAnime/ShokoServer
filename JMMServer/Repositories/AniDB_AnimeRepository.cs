@@ -80,15 +80,30 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var objs = session
-					.CreateCriteria(typeof(AniDB_Anime))
-					.Add(Restrictions.Ge("AirDate", startDate))
-					.Add(Restrictions.Le("AirDate", endDate))
-					.AddOrder(Order.Asc("AirDate"))
-					.List<AniDB_Anime>();
-
-				return new List<AniDB_Anime>(objs);
+				return GetForDate(session, startDate, endDate);
 			}
+		}
+
+		public List<AniDB_Anime> GetForDate(ISession session, DateTime startDate, DateTime endDate)
+		{
+			var objs = session
+				.CreateCriteria(typeof(AniDB_Anime))
+				.Add(Restrictions.Ge("AirDate", startDate))
+				.Add(Restrictions.Le("AirDate", endDate))
+				.AddOrder(Order.Asc("AirDate"))
+				.List<AniDB_Anime>();
+
+			return new List<AniDB_Anime>(objs);
+		}
+
+		public List<AniDB_Anime> SearchByName(ISession session, string queryText)
+		{
+			var objs = session
+				.CreateCriteria(typeof(AniDB_Anime))
+				.Add(Restrictions.InsensitiveLike("AllTitles", queryText, MatchMode.Anywhere))
+				.List<AniDB_Anime>();
+
+			return new List<AniDB_Anime>(objs);
 		}
 
 		public void Delete(int id)

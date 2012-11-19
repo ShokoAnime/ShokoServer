@@ -10,6 +10,7 @@ namespace JMMContracts
 		public int AnimeID { get; set; }
 		public int AnimeSeriesID { get; set; }
 		public string AnimeName { get; set; }
+		public int AirDateAsSeconds { get; set; }
 		public int BeginYear { get; set; }
 		public int EndYear { get; set; }
 		public string PosterName { get; set; }

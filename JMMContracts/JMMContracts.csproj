@@ -161,6 +161,7 @@
     <Compile Include="MetroContract_Anime_Detail.cs" />
     <Compile Include="MetroContract_Anime_Episode.cs" />
     <Compile Include="MetroContract_Anime_Summary.cs" />
+    <Compile Include="MetroContract_CommunityLinks.cs" />
     <Compile Include="MetroContract_Shout.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

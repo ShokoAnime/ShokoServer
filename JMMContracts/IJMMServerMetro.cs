@@ -24,6 +24,12 @@ namespace JMMContracts
 		bool HasTraktLink(int animeID);
 
 		[OperationContract]
+		MetroContract_CommunityLinks GetCommunityLinks(int animeID);
+
+		[OperationContract]
+		List<MetroContract_Anime_Summary> SearchAnime(int jmmuserID, string queryText, int maxRecords);
+
+		[OperationContract]
 		Contract_JMMUser AuthenticateUser(string username, string password);
 
 		[OperationContract]
@@ -55,5 +61,8 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<MetroContract_Anime_Summary> GetSimilarAnimeForAnime(int animeID, int maxRecords, int jmmuserID);
+
+		[OperationContract]
+		List<MetroContract_Anime_Summary> GetAnimeCalendar(int jmmuserID, int startDateSecs, int endDateSecs, int maxRecords);
 	}
 }
