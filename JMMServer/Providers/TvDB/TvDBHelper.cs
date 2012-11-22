@@ -389,6 +389,9 @@ namespace JMMServer.Providers.TvDB
 			List<object> banners = ParseBanners(seriesID, doc);
 
 			int numFanartDownloaded = 0;
+			int numPostersDownloaded = 0;
+			int numBannersDownloaded = 0;
+
 			foreach (object obj in banners)
 			{
 				if (obj.GetType() == typeof(TvDB_ImageFanart))
@@ -409,13 +412,14 @@ namespace JMMServer.Providers.TvDB
 				if (obj.GetType() == typeof(TvDB_ImagePoster))
 				{
 					TvDB_ImagePoster img = obj as TvDB_ImagePoster;
-					if (ServerSettings.TvDB_AutoPosters)
+					if (ServerSettings.TvDB_AutoPosters && numPostersDownloaded < ServerSettings.TvDB_AutoPostersAmount)
 					{
 						bool fileExists = File.Exists(img.FullImagePath);
 						if (!fileExists || (fileExists && forceDownload))
 						{
 							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImagePosterID, JMMImageType.TvDB_Cover, forceDownload);
 							cmd.Save();
+							numPostersDownloaded++;
 						}
 					}
 				}
@@ -423,13 +427,14 @@ namespace JMMServer.Providers.TvDB
 				if (obj.GetType() == typeof(TvDB_ImageWideBanner))
 				{
 					TvDB_ImageWideBanner img = obj as TvDB_ImageWideBanner;
-					if (ServerSettings.TvDB_AutoWideBanners)
+					if (ServerSettings.TvDB_AutoWideBanners && numBannersDownloaded < ServerSettings.TvDB_AutoWideBannersAmount)
 					{
 						bool fileExists = File.Exists(img.FullImagePath);
 						if (!fileExists || (fileExists && forceDownload))
 						{
 							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageWideBannerID, JMMImageType.TvDB_Banner, forceDownload);
 							cmd.Save();
+							numBannersDownloaded++;
 						}
 					}
 				}
@@ -456,6 +461,10 @@ namespace JMMServer.Providers.TvDB
 				TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
 				TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
 				TvDB_ImageWideBannerRepository repWideBanners = new TvDB_ImageWideBannerRepository();
+
+				List<int> validFanartIDs = new List<int>();
+				List<int> validPosterIDs = new List<int>();
+				List<int> validBannerIDs = new List<int>();
 
 				foreach (XmlNode node in bannerItems)
 				{
@@ -498,6 +507,7 @@ namespace JMMServer.Providers.TvDB
 						repFanart.Save(img);
 
 						banners.Add(img);
+						validFanartIDs.Add(id);
 					}
 
 					if (imageType == JMMImageType.TvDB_Banner)
@@ -515,6 +525,7 @@ namespace JMMServer.Providers.TvDB
 						repWideBanners.Save(img);
 
 						banners.Add(img);
+						validBannerIDs.Add(id);
 					}
 
 					if (imageType == JMMImageType.TvDB_Cover)
@@ -536,8 +547,29 @@ namespace JMMServer.Providers.TvDB
 						repPosters.Save(img);
 
 						banners.Add(img);
+						validPosterIDs.Add(id);
 					}
 				}
+
+				// delete any banners from the database which are no longer valid
+				foreach (TvDB_ImageFanart img in repFanart.GetBySeriesID(seriesID))
+				{
+					if (!validFanartIDs.Contains(img.Id))
+						repFanart.Delete(img.TvDB_ImageFanartID);
+				}
+
+				foreach (TvDB_ImagePoster img in repPosters.GetBySeriesID(seriesID))
+				{
+					if (!validPosterIDs.Contains(img.Id))
+						repPosters.Delete(img.TvDB_ImagePosterID);
+				}
+
+				foreach (TvDB_ImageWideBanner img in repWideBanners.GetBySeriesID(seriesID))
+				{
+					if (!validBannerIDs.Contains(img.Id))
+						repWideBanners.Delete(img.TvDB_ImageWideBannerID);
+				}
+
 			}
 			catch (Exception ex)
 			{

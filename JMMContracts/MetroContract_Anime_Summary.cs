@@ -14,6 +14,7 @@ namespace JMMContracts
 		public int BeginYear { get; set; }
 		public int EndYear { get; set; }
 		public string PosterName { get; set; }
+		public int UnwatchedEpisodeCount { get; set; }
 
 		public int ImageType { get; set; }
 		public int ImageID { get; set; }

@@ -332,15 +332,41 @@ namespace JMMServer
 			}
 
 			// TvDB Posters
-			TvDB_ImagePosterRepository repTvPosters = new TvDB_ImagePosterRepository();
-			foreach (TvDB_ImagePoster tvPoster in repTvPosters.GetAll())
+			if (ServerSettings.TvDB_AutoPosters)
 			{
-				if (string.IsNullOrEmpty(tvPoster.FullImagePath)) continue;
-				bool fileExists = File.Exists(tvPoster.FullImagePath);
-				if (!fileExists)
+				TvDB_ImagePosterRepository repTvPosters = new TvDB_ImagePosterRepository();
+				Dictionary<int, int> postersCount = new Dictionary<int, int>();
+
+				// build a dictionary of series and how many images exist
+				List<TvDB_ImagePoster> allPosters = repTvPosters.GetAll();
+				foreach (TvDB_ImagePoster tvPoster in allPosters)
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvPoster.TvDB_ImagePosterID, JMMImageType.TvDB_Cover, false);
-					cmd.Save();
+					if (string.IsNullOrEmpty(tvPoster.FullImagePath)) continue;
+					bool fileExists = File.Exists(tvPoster.FullImagePath);
+
+					if (fileExists)
+					{
+						if (postersCount.ContainsKey(tvPoster.SeriesID))
+							postersCount[tvPoster.SeriesID] = postersCount[tvPoster.SeriesID] + 1;
+						else
+							postersCount[tvPoster.SeriesID] = 1;
+					}
+				}
+
+				foreach (TvDB_ImagePoster tvPoster in allPosters)
+				{
+					if (string.IsNullOrEmpty(tvPoster.FullImagePath)) continue;
+					bool fileExists = File.Exists(tvPoster.FullImagePath);
+
+					int postersAvailable = 0;
+					if (postersCount.ContainsKey(tvPoster.SeriesID))
+						postersAvailable = postersCount[tvPoster.SeriesID];
+
+					if (!fileExists && postersAvailable < ServerSettings.TvDB_AutoPostersAmount)
+					{
+						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvPoster.TvDB_ImagePosterID, JMMImageType.TvDB_Cover, false);
+						cmd.Save();
+					}
 				}
 			}
 
@@ -353,6 +379,7 @@ namespace JMMServer
 				List<TvDB_ImageFanart> allFanart = repTvFanart.GetAll();
 				foreach (TvDB_ImageFanart tvFanart in allFanart)
 				{
+					// build a dictionary of series and how many images exist
 					if (string.IsNullOrEmpty(tvFanart.FullImagePath)) continue;
 					bool fileExists = File.Exists(tvFanart.FullImagePath);
 
@@ -384,15 +411,41 @@ namespace JMMServer
 			}
 
 			// TvDB Wide Banners
-			TvDB_ImageWideBannerRepository repTvBanners = new TvDB_ImageWideBannerRepository();
-			foreach (TvDB_ImageWideBanner tvBanner in repTvBanners.GetAll())
+			if (ServerSettings.TvDB_AutoWideBanners)
 			{
-				if (string.IsNullOrEmpty(tvBanner.FullImagePath)) continue;
-				bool fileExists = File.Exists(tvBanner.FullImagePath);
-				if (!fileExists)
+				TvDB_ImageWideBannerRepository repTvBanners = new TvDB_ImageWideBannerRepository();
+				Dictionary<int, int> fanartCount = new Dictionary<int, int>();
+
+				// build a dictionary of series and how many images exist
+				List<TvDB_ImageWideBanner> allBanners = repTvBanners.GetAll();
+				foreach (TvDB_ImageWideBanner tvBanner in allBanners)
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvBanner.TvDB_ImageWideBannerID, JMMImageType.TvDB_Banner, false);
-					cmd.Save();
+					if (string.IsNullOrEmpty(tvBanner.FullImagePath)) continue;
+					bool fileExists = File.Exists(tvBanner.FullImagePath);
+
+					if (fileExists)
+					{
+						if (fanartCount.ContainsKey(tvBanner.SeriesID))
+							fanartCount[tvBanner.SeriesID] = fanartCount[tvBanner.SeriesID] + 1;
+						else
+							fanartCount[tvBanner.SeriesID] = 1;
+					}
+				}
+
+				foreach (TvDB_ImageWideBanner tvBanner in allBanners)
+				{
+					if (string.IsNullOrEmpty(tvBanner.FullImagePath)) continue;
+					bool fileExists = File.Exists(tvBanner.FullImagePath);
+
+					int bannersAvailable = 0;
+					if (fanartCount.ContainsKey(tvBanner.SeriesID))
+						bannersAvailable = fanartCount[tvBanner.SeriesID];
+
+					if (!fileExists && bannersAvailable < ServerSettings.TvDB_AutoWideBannersAmount)
+					{
+						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvBanner.TvDB_ImageWideBannerID, JMMImageType.TvDB_Banner, false);
+						cmd.Save();
+					}
 				}
 			}
 
@@ -410,93 +463,160 @@ namespace JMMServer
 			}
 
 			// MovieDB Posters
-			MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
-			foreach (MovieDB_Poster moviePoster in repMoviePosters.GetAll())
+			if (ServerSettings.MovieDB_AutoPosters)
 			{
-				if (string.IsNullOrEmpty(moviePoster.FullImagePath)) continue;
-				bool fileExists = File.Exists(moviePoster.FullImagePath);
-				if (!fileExists)
+				MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
+				Dictionary<int, int> postersCount = new Dictionary<int, int>();
+
+				// build a dictionary of series and how many images exist
+				List<MovieDB_Poster> allPosters = repMoviePosters.GetAll();
+				foreach (MovieDB_Poster moviePoster in allPosters)
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(moviePoster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
-					cmd.Save();
+					if (string.IsNullOrEmpty(moviePoster.FullImagePath)) continue;
+					bool fileExists = File.Exists(moviePoster.FullImagePath);
+
+					if (fileExists)
+					{
+						if (postersCount.ContainsKey(moviePoster.MovieId))
+							postersCount[moviePoster.MovieId] = postersCount[moviePoster.MovieId] + 1;
+						else
+							postersCount[moviePoster.MovieId] = 1;
+					}
+				}
+
+				foreach (MovieDB_Poster moviePoster in allPosters)
+				{
+					if (string.IsNullOrEmpty(moviePoster.FullImagePath)) continue;
+					bool fileExists = File.Exists(moviePoster.FullImagePath);
+
+					int postersAvailable = 0;
+					if (postersCount.ContainsKey(moviePoster.MovieId))
+						postersAvailable = postersCount[moviePoster.MovieId];
+
+					if (!fileExists && postersAvailable < ServerSettings.MovieDB_AutoPostersAmount)
+					{
+						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(moviePoster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
+						cmd.Save();
+					}
 				}
 			}
 
 			// MovieDB Fanart
-			MovieDB_FanartRepository repMovieFanarts = new MovieDB_FanartRepository();
-			foreach (MovieDB_Fanart movieFanart in repMovieFanarts.GetAll())
+			if (ServerSettings.MovieDB_AutoFanart)
 			{
-				if (string.IsNullOrEmpty(movieFanart.FullImagePath)) continue;
-				bool fileExists = File.Exists(movieFanart.FullImagePath);
-				if (!fileExists)
+				MovieDB_FanartRepository repMovieFanarts = new MovieDB_FanartRepository();
+				Dictionary<int, int> fanartCount = new Dictionary<int, int>();
+
+				// build a dictionary of series and how many images exist
+				List<MovieDB_Fanart> allFanarts = repMovieFanarts.GetAll();
+				foreach (MovieDB_Fanart movieFanart in allFanarts)
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(movieFanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
-					cmd.Save();
+					if (string.IsNullOrEmpty(movieFanart.FullImagePath)) continue;
+					bool fileExists = File.Exists(movieFanart.FullImagePath);
+
+					if (fileExists)
+					{
+						if (fanartCount.ContainsKey(movieFanart.MovieId))
+							fanartCount[movieFanart.MovieId] = fanartCount[movieFanart.MovieId] + 1;
+						else
+							fanartCount[movieFanart.MovieId] = 1;
+					}
+				}
+
+				foreach (MovieDB_Fanart movieFanart in repMovieFanarts.GetAll())
+				{
+					if (string.IsNullOrEmpty(movieFanart.FullImagePath)) continue;
+					bool fileExists = File.Exists(movieFanart.FullImagePath);
+
+					int fanartAvailable = 0;
+					if (fanartCount.ContainsKey(movieFanart.MovieId))
+						fanartAvailable = fanartCount[movieFanart.MovieId];
+
+					if (!fileExists && fanartAvailable < ServerSettings.MovieDB_AutoFanartAmount)
+					{
+						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(movieFanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
+						cmd.Save();
+					}
 				}
 			}
 
 			// Trakt Posters
-			Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
-			foreach (Trakt_ImagePoster traktPoster in repTraktPosters.GetAll())
+			if (ServerSettings.Trakt_DownloadPosters)
 			{
-				if (string.IsNullOrEmpty(traktPoster.FullImagePath)) continue;
-				bool fileExists = File.Exists(traktPoster.FullImagePath);
-				if (!fileExists)
+				Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
+				foreach (Trakt_ImagePoster traktPoster in repTraktPosters.GetAll())
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktPoster.Trakt_ImagePosterID, JMMImageType.Trakt_Poster, false);
-					cmd.Save();
+					if (string.IsNullOrEmpty(traktPoster.FullImagePath)) continue;
+					bool fileExists = File.Exists(traktPoster.FullImagePath);
+					if (!fileExists)
+					{
+						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktPoster.Trakt_ImagePosterID, JMMImageType.Trakt_Poster, false);
+						cmd.Save();
+					}
 				}
 			}
 
 			// Trakt Fanart
-			Trakt_ImageFanartRepository repTraktFanarts = new Trakt_ImageFanartRepository();
-			foreach (Trakt_ImageFanart traktFanart in repTraktFanarts.GetAll())
+			if (ServerSettings.Trakt_DownloadFanart)
 			{
-				if (string.IsNullOrEmpty(traktFanart.FullImagePath)) continue;
-				bool fileExists = File.Exists(traktFanart.FullImagePath);
-				if (!fileExists)
+				Trakt_ImageFanartRepository repTraktFanarts = new Trakt_ImageFanartRepository();
+				foreach (Trakt_ImageFanart traktFanart in repTraktFanarts.GetAll())
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktFanart.Trakt_ImageFanartID, JMMImageType.Trakt_Fanart, false);
-					cmd.Save();
+					if (string.IsNullOrEmpty(traktFanart.FullImagePath)) continue;
+					bool fileExists = File.Exists(traktFanart.FullImagePath);
+					if (!fileExists)
+					{
+						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktFanart.Trakt_ImageFanartID, JMMImageType.Trakt_Fanart, false);
+						cmd.Save();
+					}
 				}
 			}
 
 			// Trakt Episode
-			Trakt_EpisodeRepository repTraktEpisodes = new Trakt_EpisodeRepository();
-			foreach (Trakt_Episode traktEp in repTraktEpisodes.GetAll())
+			if (ServerSettings.Trakt_DownloadEpisodes)
 			{
-				if (string.IsNullOrEmpty(traktEp.FullImagePath)) continue;
-				bool fileExists = File.Exists(traktEp.FullImagePath);
-				if (!fileExists)
+				Trakt_EpisodeRepository repTraktEpisodes = new Trakt_EpisodeRepository();
+				foreach (Trakt_Episode traktEp in repTraktEpisodes.GetAll())
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktEp.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
-					cmd.Save();
+					if (string.IsNullOrEmpty(traktEp.FullImagePath)) continue;
+					bool fileExists = File.Exists(traktEp.FullImagePath);
+					if (!fileExists)
+					{
+						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktEp.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
+						cmd.Save();
+					}
 				}
 			}
 
 			// AniDB Characters
-			AniDB_CharacterRepository repChars = new AniDB_CharacterRepository();
-			foreach (AniDB_Character chr in repChars.GetAll())
+			if (ServerSettings.AniDB_DownloadCharacters)
 			{
-				if (string.IsNullOrEmpty(chr.PosterPath)) continue;
-				bool fileExists = File.Exists(chr.PosterPath);
-				if (!fileExists)
+				AniDB_CharacterRepository repChars = new AniDB_CharacterRepository();
+				foreach (AniDB_Character chr in repChars.GetAll())
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
-					cmd.Save();
+					if (string.IsNullOrEmpty(chr.PosterPath)) continue;
+					bool fileExists = File.Exists(chr.PosterPath);
+					if (!fileExists)
+					{
+						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
+						cmd.Save();
+					}
 				}
 			}
 
 			// AniDB Creators
-			AniDB_SeiyuuRepository repSeiyuu = new AniDB_SeiyuuRepository();
-			foreach (AniDB_Seiyuu seiyuu in repSeiyuu.GetAll())
+			if (ServerSettings.AniDB_DownloadCreators)
 			{
-				if (string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
-				bool fileExists = File.Exists(seiyuu.PosterPath);
-				if (!fileExists)
+				AniDB_SeiyuuRepository repSeiyuu = new AniDB_SeiyuuRepository();
+				foreach (AniDB_Seiyuu seiyuu in repSeiyuu.GetAll())
 				{
-					CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
-					cmd.Save();
+					if (string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
+					bool fileExists = File.Exists(seiyuu.PosterPath);
+					if (!fileExists)
+					{
+						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
+						cmd.Save();
+					}
 				}
 			}
 		}

@@ -53,6 +53,27 @@ namespace JMMServer
 			}
 		}
 
+		public static string JMMServerFilePort
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+
+				string serverPort = appSettings["JMMServerFilePort"];
+				if (string.IsNullOrEmpty(serverPort))
+				{
+					serverPort = "8112";
+					UpdateSetting("JMMServerFilePort", serverPort);
+				}
+
+				return serverPort;
+			}
+			set
+			{
+				UpdateSetting("JMMServerFilePort", value);
+			}
+		}
+
 		#region Database
 
 		public static string DatabaseType
@@ -516,6 +537,38 @@ namespace JMMServer
 			}
 		}
 
+		public static bool AniDB_DownloadCharacters
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool val = true;
+				if (!bool.TryParse(appSettings["AniDB_DownloadCharacters"], out val))
+					val = true; // default
+				return val;
+			}
+			set
+			{
+				UpdateSetting("AniDB_DownloadCharacters", value.ToString());
+			}
+		}
+
+		public static bool AniDB_DownloadCreators
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool val = true;
+				if (!bool.TryParse(appSettings["AniDB_DownloadCreators"], out val))
+					val = true; // default
+				return val;
+			}
+			set
+			{
+				UpdateSetting("AniDB_DownloadCreators", value.ToString());
+			}
+		}
+
 		#endregion
 
 		#region Web Cache
@@ -755,6 +808,22 @@ namespace JMMServer
 			}
 		}
 
+		public static int TvDB_AutoWideBannersAmount
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				int val = 0;
+				if (!int.TryParse(appSettings["TvDB_AutoWideBannersAmount"], out val))
+					val = 10; // default
+				return val;
+			}
+			set
+			{
+				UpdateSetting("TvDB_AutoWideBannersAmount", value.ToString());
+			}
+		}
+
 		public static bool TvDB_AutoPosters
 		{
 			get
@@ -767,6 +836,22 @@ namespace JMMServer
 			set
 			{
 				UpdateSetting("TvDB_AutoPosters", value.ToString());
+			}
+		}
+
+		public static int TvDB_AutoPostersAmount
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				int val = 0;
+				if (!int.TryParse(appSettings["TvDB_AutoPostersAmount"], out val))
+					val = 10; // default
+				return val;
+			}
+			set
+			{
+				UpdateSetting("TvDB_AutoPostersAmount", value.ToString());
 			}
 		}
 
@@ -850,6 +935,22 @@ namespace JMMServer
 			set
 			{
 				UpdateSetting("MovieDB_AutoPosters", value.ToString());
+			}
+		}
+
+		public static int MovieDB_AutoPostersAmount
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				int val = 0;
+				if (!int.TryParse(appSettings["MovieDB_AutoPostersAmount"], out val))
+					val = 10; // default
+				return val;
+			}
+			set
+			{
+				UpdateSetting("MovieDB_AutoPostersAmount", value.ToString());
 			}
 		}
 
@@ -1244,6 +1345,54 @@ namespace JMMServer
 			}
 		}
 
+		public static bool Trakt_DownloadFanart
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool val = true;
+				if (!bool.TryParse(appSettings["Trakt_DownloadFanart"], out val))
+					val = true; // default
+				return val;
+			}
+			set
+			{
+				UpdateSetting("Trakt_DownloadFanart", value.ToString());
+			}
+		}
+
+		public static bool Trakt_DownloadPosters
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool val = true;
+				if (!bool.TryParse(appSettings["Trakt_DownloadPosters"], out val))
+					val = true; // default
+				return val;
+			}
+			set
+			{
+				UpdateSetting("Trakt_DownloadPosters", value.ToString());
+			}
+		}
+
+		public static bool Trakt_DownloadEpisodes
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				bool val = true;
+				if (!bool.TryParse(appSettings["Trakt_DownloadEpisodes"], out val))
+					val = true; // default
+				return val;
+			}
+			set
+			{
+				UpdateSetting("Trakt_DownloadEpisodes", value.ToString());
+			}
+		}
+
 		#endregion
 
 		#region MAL
@@ -1357,6 +1506,9 @@ namespace JMMServer
 			contract.AniDB_MyListStats_UpdateFrequency = (int)ServerSettings.AniDB_MyListStats_UpdateFrequency;
 			contract.AniDB_File_UpdateFrequency = (int)ServerSettings.AniDB_File_UpdateFrequency;
 
+			contract.AniDB_DownloadCharacters = ServerSettings.AniDB_DownloadCharacters;
+			contract.AniDB_DownloadCreators = ServerSettings.AniDB_DownloadCreators;
+
 			// Web Cache
 			contract.WebCache_Address = ServerSettings.WebCache_Address;
 			contract.WebCache_Anonymous = ServerSettings.WebCache_Anonymous;
@@ -1375,7 +1527,9 @@ namespace JMMServer
 			contract.TvDB_AutoFanart = ServerSettings.TvDB_AutoFanart;
 			contract.TvDB_AutoFanartAmount = ServerSettings.TvDB_AutoFanartAmount;
 			contract.TvDB_AutoPosters = ServerSettings.TvDB_AutoPosters;
+			contract.TvDB_AutoPostersAmount = ServerSettings.TvDB_AutoPostersAmount;
 			contract.TvDB_AutoWideBanners = ServerSettings.TvDB_AutoWideBanners;
+			contract.TvDB_AutoWideBannersAmount = ServerSettings.TvDB_AutoWideBannersAmount;
 			contract.TvDB_UpdateFrequency = (int)ServerSettings.TvDB_UpdateFrequency;
 			contract.TvDB_Language = ServerSettings.TvDB_Language;
 
@@ -1383,6 +1537,7 @@ namespace JMMServer
 			contract.MovieDB_AutoFanart = ServerSettings.MovieDB_AutoFanart;
 			contract.MovieDB_AutoFanartAmount = ServerSettings.MovieDB_AutoFanartAmount;
 			contract.MovieDB_AutoPosters = ServerSettings.MovieDB_AutoPosters;
+			contract.MovieDB_AutoPostersAmount = ServerSettings.MovieDB_AutoPostersAmount;
 
 			// Import settings
 			contract.VideoExtensions = ServerSettings.VideoExtensions;
@@ -1406,6 +1561,9 @@ namespace JMMServer
 			contract.Trakt_Password = ServerSettings.Trakt_Password;
 			contract.Trakt_UpdateFrequency = (int)ServerSettings.Trakt_UpdateFrequency;
 			contract.Trakt_SyncFrequency = (int)ServerSettings.Trakt_SyncFrequency;
+			contract.Trakt_DownloadEpisodes = ServerSettings.Trakt_DownloadEpisodes;
+			contract.Trakt_DownloadFanart = ServerSettings.Trakt_DownloadFanart;
+			contract.Trakt_DownloadPosters = ServerSettings.Trakt_DownloadPosters;
 
 			// MAL
 			contract.MAL_Username = ServerSettings.MAL_Username;

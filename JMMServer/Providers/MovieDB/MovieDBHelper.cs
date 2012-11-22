@@ -51,6 +51,9 @@ namespace JMMServer.Providers.MovieDB
 
 			if (!saveImages) return;
 
+			int numFanartDownloaded = 0;
+			int numPostersDownloaded = 0;
+
 			foreach (MovieDB_Image_Result img in searchResult.Images)
 			{
 				if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
@@ -60,11 +63,15 @@ namespace JMMServer.Providers.MovieDB
 					poster.Populate(img, movie.MovieId);
 					repPosters.Save(session, poster);
 
-					// download the image
-					if (!string.IsNullOrEmpty(poster.FullImagePath) && !File.Exists(poster.FullImagePath))
+					if (ServerSettings.MovieDB_AutoPosters && numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
 					{
-						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
-						cmd.Save(session);
+						// download the image
+						if (!string.IsNullOrEmpty(poster.FullImagePath) && !File.Exists(poster.FullImagePath))
+						{
+							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
+							cmd.Save(session);
+							numPostersDownloaded++;
+						}
 					}
 				}
 				else
@@ -75,11 +82,15 @@ namespace JMMServer.Providers.MovieDB
 					fanart.Populate(img, movie.MovieId);
 					repFanart.Save(session, fanart);
 
-					// download the image
-					if (!string.IsNullOrEmpty(fanart.FullImagePath) && !File.Exists(fanart.FullImagePath))
+					if (ServerSettings.MovieDB_AutoFanart && numFanartDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
 					{
-						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
-						cmd.Save(session);
+						// download the image
+						if (!string.IsNullOrEmpty(fanart.FullImagePath) && !File.Exists(fanart.FullImagePath))
+						{
+							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
+							cmd.Save(session);
+							numFanartDownloaded++;
+						}
 					}
 				}
 			}

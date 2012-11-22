@@ -156,6 +156,7 @@
     <Compile Include="IJMMServerImage.cs" />
     <Compile Include="IJMMServerMetro.cs" />
     <Compile Include="IJMMServerREST.cs" />
+    <Compile Include="IJMMServerStreaming.cs" />
     <Compile Include="MediaInfoResult.cs" />
     <Compile Include="MetroContract_AniDB_Character.cs" />
     <Compile Include="MetroContract_Anime_Detail.cs" />

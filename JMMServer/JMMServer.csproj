@@ -264,6 +264,7 @@
     <Compile Include="ImageDownload\ImageDetails.cs" />
     <Compile Include="JMMServiceImplementationMetro.cs" />
     <Compile Include="JMMServiceImplementationREST.cs" />
+    <Compile Include="JMMServiceImplementationStreaming.cs" />
     <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
     <Compile Include="Mappings\AniDB_RecommendationMap.cs" />
     <Compile Include="Mappings\BookmarkedAnimeMap.cs" />

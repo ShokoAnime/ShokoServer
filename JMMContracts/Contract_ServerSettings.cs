@@ -35,6 +35,9 @@ namespace JMMContracts
 		public int AniDB_MyListStats_UpdateFrequency { get; set; }
 		public int AniDB_File_UpdateFrequency { get; set; }
 
+		public bool AniDB_DownloadCharacters { get; set; }
+		public bool AniDB_DownloadCreators { get; set; }
+
 		// Web Cache
 		public string WebCache_Address { get; set; }
 		public bool WebCache_Anonymous { get; set; }
@@ -53,7 +56,9 @@ namespace JMMContracts
 		public bool TvDB_AutoFanart { get; set; }
 		public int TvDB_AutoFanartAmount { get; set; }
 		public bool TvDB_AutoWideBanners { get; set; }
+		public int TvDB_AutoWideBannersAmount { get; set; }
 		public bool TvDB_AutoPosters { get; set; }
+		public int TvDB_AutoPostersAmount { get; set; }
 		public int TvDB_UpdateFrequency { get; set; }
 		public string TvDB_Language { get; set; }
 
@@ -61,6 +66,7 @@ namespace JMMContracts
 		public bool MovieDB_AutoFanart { get; set; }
 		public int MovieDB_AutoFanartAmount { get; set; }
 		public bool MovieDB_AutoPosters { get; set; }
+		public int MovieDB_AutoPostersAmount { get; set; }
 
 		// Import settings
 		public string VideoExtensions { get; set; }
@@ -84,6 +90,9 @@ namespace JMMContracts
 		public string Trakt_Password { get; set; }
 		public int Trakt_UpdateFrequency { get; set; }
 		public int Trakt_SyncFrequency { get; set; }
+		public bool Trakt_DownloadFanart { get; set; }
+		public bool Trakt_DownloadPosters { get; set; }
+		public bool Trakt_DownloadEpisodes { get; set; }
 
 		// MAL
 		public string MAL_Username { get; set; }

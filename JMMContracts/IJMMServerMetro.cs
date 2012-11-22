@@ -64,5 +64,11 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<MetroContract_Anime_Summary> GetAnimeCalendar(int jmmuserID, int startDateSecs, int endDateSecs, int maxRecords);
+
+		[OperationContract]
+		List<Contract_VideoDetailed> GetFilesForEpisode(int episodeID, int userID);
+
+		[OperationContract]
+		Contract_ToggleWatchedStatusOnEpisode_Response ToggleWatchedStatusOnEpisode(int animeEpisodeID, bool watchedStatus, int userID);
 	}
 }

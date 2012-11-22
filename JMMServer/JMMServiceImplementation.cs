@@ -2986,6 +2986,9 @@ namespace JMMServer
 				ServerSettings.AniDB_MyListStats_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_MyListStats_UpdateFrequency;
 				ServerSettings.AniDB_File_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_File_UpdateFrequency;
 
+				ServerSettings.AniDB_DownloadCharacters = contractIn.AniDB_DownloadCharacters;
+				ServerSettings.AniDB_DownloadCreators = contractIn.AniDB_DownloadCreators;
+
 				// Web Cache
 				ServerSettings.WebCache_Address = contractIn.WebCache_Address;
 				ServerSettings.WebCache_Anonymous = contractIn.WebCache_Anonymous;
@@ -3004,7 +3007,9 @@ namespace JMMServer
 				ServerSettings.TvDB_AutoFanart = contractIn.TvDB_AutoFanart;
 				ServerSettings.TvDB_AutoFanartAmount = contractIn.TvDB_AutoFanartAmount;
 				ServerSettings.TvDB_AutoPosters = contractIn.TvDB_AutoPosters;
+				ServerSettings.TvDB_AutoPostersAmount = contractIn.TvDB_AutoPostersAmount;
 				ServerSettings.TvDB_AutoWideBanners = contractIn.TvDB_AutoWideBanners;
+				ServerSettings.TvDB_AutoWideBannersAmount = contractIn.TvDB_AutoWideBannersAmount;
 				ServerSettings.TvDB_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.TvDB_UpdateFrequency;
 				ServerSettings.TvDB_Language = contractIn.TvDB_Language;
 
@@ -3012,6 +3017,7 @@ namespace JMMServer
 				ServerSettings.MovieDB_AutoFanart = contractIn.MovieDB_AutoFanart;
 				ServerSettings.MovieDB_AutoFanartAmount = contractIn.MovieDB_AutoFanartAmount;
 				ServerSettings.MovieDB_AutoPosters = contractIn.MovieDB_AutoPosters;
+				ServerSettings.MovieDB_AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
 
 				// Import settings
 				ServerSettings.VideoExtensions = contractIn.VideoExtensions;
@@ -3035,6 +3041,9 @@ namespace JMMServer
 				ServerSettings.Trakt_Password = contractIn.Trakt_Password;
 				ServerSettings.Trakt_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_UpdateFrequency;
 				ServerSettings.Trakt_SyncFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_SyncFrequency;
+				ServerSettings.Trakt_DownloadEpisodes = contractIn.Trakt_DownloadEpisodes;
+				ServerSettings.Trakt_DownloadFanart = contractIn.Trakt_DownloadFanart;
+				ServerSettings.Trakt_DownloadPosters = contractIn.Trakt_DownloadPosters;
 
 				// MAL
 				ServerSettings.MAL_Username = contractIn.MAL_Username;

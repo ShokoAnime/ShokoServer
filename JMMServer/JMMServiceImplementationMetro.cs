@@ -253,6 +253,8 @@ namespace JMMServer
 
 						if (!user.AllowedSeries(session, ser)) continue;
 
+						
+
 						List<VideoLocal> vids = repVids.GetMostRecentlyAddedForAnime(session, 1, ser.AniDB_ID);
 						if (vids.Count == 0) continue;
 
@@ -315,6 +317,8 @@ namespace JMMServer
 
 						if (!user.AllowedSeries(session, ser)) continue;
 
+						AnimeSeries_User serUser = ser.GetUserRecord(session, jmmuserID);
+
 						List<VideoLocal> vids = repVids.GetMostRecentlyAddedForAnime(session, 1, ser.AniDB_ID);
 						if (vids.Count == 0) continue;
 
@@ -332,7 +336,11 @@ namespace JMMServer
 							summ.AnimeSeriesID = ser.AnimeSeriesID;
 							summ.BeginYear = anidb_anime.BeginYear;
 							summ.EndYear = anidb_anime.EndYear;
-							summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
+							//summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
+							if (serUser != null)
+								summ.UnwatchedEpisodeCount = serUser.UnwatchedEpisodeCount;
+							else
+								summ.UnwatchedEpisodeCount = 0;
 
 							ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
 							summ.ImageType = (int)imgDet.ImageType;
@@ -395,6 +403,8 @@ namespace JMMServer
 							continue;
 						}
 
+						AnimeSeries_User serUser = series.GetUserRecord(session, jmmuserID);
+
 						Contract_AnimeEpisode ep = imp.GetNextUnwatchedEpisode(session, userRecord.AnimeSeriesID, jmmuserID);
 						if (ep != null)
 						{
@@ -406,7 +416,12 @@ namespace JMMServer
 							summ.AnimeSeriesID = series.AnimeSeriesID;
 							summ.BeginYear = anidb_anime.BeginYear;
 							summ.EndYear = anidb_anime.EndYear;
-							summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
+							//summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
+
+							if (serUser != null)
+								summ.UnwatchedEpisodeCount = serUser.UnwatchedEpisodeCount;
+							else
+								summ.UnwatchedEpisodeCount = 0;
 
 							ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
 							summ.ImageType = (int)imgDet.ImageType;
@@ -1144,6 +1159,59 @@ namespace JMMServer
 				return retAnime;
 			}
 
+		}
+
+		public List<Contract_VideoDetailed> GetFilesForEpisode(int episodeID, int userID)
+		{
+			try
+			{
+				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				AnimeEpisode ep = repEps.GetByID(episodeID);
+				if (ep != null)
+					return ep.GetVideoDetailedContracts(userID);
+				else
+					return new List<Contract_VideoDetailed>();
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return new List<Contract_VideoDetailed>();
+		}
+
+		public Contract_ToggleWatchedStatusOnEpisode_Response ToggleWatchedStatusOnEpisode(int animeEpisodeID, bool watchedStatus, int userID)
+		{
+			Contract_ToggleWatchedStatusOnEpisode_Response response = new Contract_ToggleWatchedStatusOnEpisode_Response();
+			response.ErrorMessage = "";
+			response.AnimeEpisode = null;
+
+			try
+			{
+				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				AnimeEpisode ep = repEps.GetByID(animeEpisodeID);
+				if (ep == null)
+				{
+					response.ErrorMessage = "Could not find anime episode record";
+					return response;
+				}
+
+				ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID, true);
+				ep.GetAnimeSeries().UpdateStats(true, false, true);
+				StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
+
+				// refresh from db
+				ep = repEps.GetByID(animeEpisodeID);
+
+				response.AnimeEpisode = ep.ToContract(userID);
+
+				return response;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				response.ErrorMessage = ex.Message;
+				return response;
+			}
 		}
 	}
 }

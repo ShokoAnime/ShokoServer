@@ -887,21 +887,27 @@ namespace JMMServer
 					AniDB_Character chr = animeChar.GetCharacter(session);
 					if (chr == null) continue;
 
-					if (!string.IsNullOrEmpty(chr.PosterPath) && !File.Exists(chr.PosterPath))
+					if (ServerSettings.AniDB_DownloadCharacters)
 					{
-						logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName, chr.CharID, chr.PosterPath);
-						cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
-						cmd.Save();
+						if (!string.IsNullOrEmpty(chr.PosterPath) && !File.Exists(chr.PosterPath))
+						{
+							logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName, chr.CharID, chr.PosterPath);
+							cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
+							cmd.Save();
+						}
 					}
 
-					AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
-					if (seiyuu == null || string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
-
-					if (!File.Exists(seiyuu.PosterPath))
+					if (ServerSettings.AniDB_DownloadCreators)
 					{
-						logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle, seiyuu.SeiyuuName, seiyuu.SeiyuuID, seiyuu.PosterPath);
-						cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
-						cmd.Save();
+						AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
+						if (seiyuu == null || string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
+
+						if (!File.Exists(seiyuu.PosterPath))
+						{
+							logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle, seiyuu.SeiyuuName, seiyuu.SeiyuuID, seiyuu.PosterPath);
+							cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
+							cmd.Save();
+						}
 					}
 
 				}

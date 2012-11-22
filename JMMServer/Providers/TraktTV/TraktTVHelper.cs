@@ -741,47 +741,58 @@ namespace JMMServer.Providers.TraktTV
 				Trakt_Show show = repShow.GetByTraktID(traktID);
 				if (show == null) return;
 
-				//download the fanart image for the show
-				Trakt_ImageFanartRepository repFanart = new Trakt_ImageFanartRepository();
-				Trakt_ImageFanart fanart = repFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
-				if (fanart != null)
-				{
-					if (!string.IsNullOrEmpty(fanart.FullImagePath))
-					{
-						if (!File.Exists(fanart.FullImagePath))
-						{
-							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.Trakt_ImageFanartID, JMMImageType.Trakt_Fanart, false);
-							cmd.Save();
-						}
-					}
-				}
 
-				// download the posters for seasons
-				Trakt_ImagePosterRepository repPosters = new Trakt_ImagePosterRepository();
-				foreach (Trakt_Season season in show.Seasons)
+				if (ServerSettings.Trakt_DownloadFanart)
 				{
-					Trakt_ImagePoster poster = repPosters.GetByShowIDAndSeason(season.Trakt_ShowID, season.Season);
-					if (poster != null)
+					//download the fanart image for the show
+					Trakt_ImageFanartRepository repFanart = new Trakt_ImageFanartRepository();
+					Trakt_ImageFanart fanart = repFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
+					if (fanart != null)
 					{
-						if (!string.IsNullOrEmpty(poster.FullImagePath))
+						if (!string.IsNullOrEmpty(fanart.FullImagePath))
 						{
-							if (!File.Exists(poster.FullImagePath))
+							if (!File.Exists(fanart.FullImagePath))
 							{
-								CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.Trakt_ImagePosterID, JMMImageType.Trakt_Poster, false);
+								CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.Trakt_ImageFanartID, JMMImageType.Trakt_Fanart, false);
 								cmd.Save();
 							}
 						}
 					}
+				}
 
-					// download the screenshots for episodes
-					foreach (Trakt_Episode ep in season.Episodes)
+				
+				// download the posters for seasons
+				Trakt_ImagePosterRepository repPosters = new Trakt_ImagePosterRepository();
+				foreach (Trakt_Season season in show.Seasons)
+				{
+					if (ServerSettings.Trakt_DownloadPosters)
 					{
-						if (!string.IsNullOrEmpty(ep.FullImagePath))
+						Trakt_ImagePoster poster = repPosters.GetByShowIDAndSeason(season.Trakt_ShowID, season.Season);
+						if (poster != null)
 						{
-							if (!File.Exists(ep.FullImagePath))
+							if (!string.IsNullOrEmpty(poster.FullImagePath))
 							{
-								CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(ep.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
-								cmd.Save();
+								if (!File.Exists(poster.FullImagePath))
+								{
+									CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.Trakt_ImagePosterID, JMMImageType.Trakt_Poster, false);
+									cmd.Save();
+								}
+							}
+						}
+					}
+
+					if (ServerSettings.Trakt_DownloadEpisodes)
+					{
+						// download the screenshots for episodes
+						foreach (Trakt_Episode ep in season.Episodes)
+						{
+							if (!string.IsNullOrEmpty(ep.FullImagePath))
+							{
+								if (!File.Exists(ep.FullImagePath))
+								{
+									CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(ep.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
+									cmd.Save();
+								}
 							}
 						}
 					}
