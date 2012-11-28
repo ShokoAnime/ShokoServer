@@ -70,5 +70,8 @@ namespace JMMContracts
 
 		[OperationContract]
 		Contract_ToggleWatchedStatusOnEpisode_Response ToggleWatchedStatusOnEpisode(int animeEpisodeID, bool watchedStatus, int userID);
+
+		[OperationContract]
+		string UpdateAnimeData(int animeID);
 	}
 }

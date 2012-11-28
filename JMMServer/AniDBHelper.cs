@@ -370,11 +370,25 @@ namespace JMMServer
 				Pause();
 
 				AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
-				cmdUpdateFile.Init(fileDataLocal, watched, watchedDate);
+				cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, true, null);
 				enHelperActivityType ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+				if (ev == enHelperActivityType.NoSuchMyListFile && watched)
+				{
+					// the file is not actually on the user list, so let's add it
+					// we do this by issueing the same command without the edit flag
+					cmdUpdateFile = new AniDBCommand_UpdateFile();
+					cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, false, ServerSettings.AniDB_MyList_StorageState);
+					ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+				}
 			}
 		}
 
+		/// <summary>
+		/// This is for generic files (manually linked)
+		/// </summary>
+		/// <param name="animeID"></param>
+		/// <param name="episodeNumber"></param>
+		/// <param name="watched"></param>
 		public void UpdateMyListFileStatus(int animeID, int episodeNumber, bool watched)
 		{
 			if (!ServerSettings.AniDB_MyList_AddFiles) return;
@@ -386,8 +400,17 @@ namespace JMMServer
 				Pause();
 
 				AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
-				cmdUpdateFile.Init(animeID, episodeNumber, watched);
+				cmdUpdateFile.Init(animeID, episodeNumber, watched, true);
 				enHelperActivityType ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+				if (ev == enHelperActivityType.NoSuchMyListFile && watched)
+				{
+					// the file is not actually on the user list, so let's add it
+					// we do this by issueing the same command without the edit flag
+					cmdUpdateFile = new AniDBCommand_UpdateFile();
+					cmdUpdateFile.Init(animeID, episodeNumber, watched, false);
+					ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+				
+				}
 			}
 		}
 

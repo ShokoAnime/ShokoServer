@@ -623,6 +623,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AniDB_Recommendation> GetAniDBRecommendations(int animeID);
+
+		[OperationContract]
+		void RescanManuallyLinkedFiles();
 	}
 
 }

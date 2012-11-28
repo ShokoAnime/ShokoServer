@@ -1115,13 +1115,60 @@ namespace JMMServer
 
 					AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
+					// first get the related anime
+					foreach (AniDB_Anime_Relation link in anime.GetRelatedAnime())
+					{
+						AniDB_Anime animeLink = repAnime.GetByAnimeID(link.RelatedAnimeID);
+
+						if (animeLink == null)
+						{
+							// try getting it from anidb now
+							animeLink = JMMService.AnidbProcessor.GetAnimeInfoHTTP(session, link.RelatedAnimeID, false, false);
+						}
+
+						if (animeLink == null) continue;
+						if (!juser.AllowedAnime(animeLink)) continue;
+
+						// check if this anime has a series
+						AnimeSeries ser = repSeries.GetByAnimeID(link.RelatedAnimeID);
+
+						MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+						summ.AnimeID = animeLink.AnimeID;
+						summ.AnimeName = animeLink.MainTitle;
+						summ.AnimeSeriesID = 0;
+
+						summ.BeginYear = animeLink.BeginYear;
+						summ.EndYear = animeLink.EndYear;
+						//summ.PosterName = animeLink.GetDefaultPosterPathNoBlanks(session);
+
+						summ.RelationshipType = link.RelationType;
+
+						ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks(session);
+						summ.ImageType = (int)imgDet.ImageType;
+						summ.ImageID = imgDet.ImageID;
+
+						if (ser != null)
+						{
+							summ.AnimeName = ser.GetSeriesName(session);
+							summ.AnimeSeriesID = ser.AnimeSeriesID;
+						}
+
+						retAnime.Add(summ);
+					}
+
+					// now get similar anime
 					foreach (AniDB_Anime_Similar link in anime.GetSimilarAnime(session))
 					{
 						AniDB_Anime animeLink = repAnime.GetByAnimeID(session, link.SimilarAnimeID);
-						if (animeLink != null)
+
+						if (animeLink == null)
 						{
-							if (!juser.AllowedAnime(animeLink)) continue;
+							// try getting it from anidb now
+							animeLink = JMMService.AnidbProcessor.GetAnimeInfoHTTP(session, link.SimilarAnimeID, false, false);
 						}
+
+						if (animeLink == null) continue;
+						if (!juser.AllowedAnime(animeLink)) continue;
 
 						// check if this anime has a series
 						AnimeSeries ser = repSeries.GetByAnimeID(session, link.SimilarAnimeID);
@@ -1133,7 +1180,9 @@ namespace JMMServer
 
 						summ.BeginYear = animeLink.BeginYear;
 						summ.EndYear = animeLink.EndYear;
-						summ.PosterName = animeLink.GetDefaultPosterPathNoBlanks(session);
+						//summ.PosterName = animeLink.GetDefaultPosterPathNoBlanks(session);
+
+						summ.RelationshipType = "Recommendation";
 
 						ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks(session);
 						summ.ImageType = (int)imgDet.ImageType;
@@ -1212,6 +1261,23 @@ namespace JMMServer
 				response.ErrorMessage = ex.Message;
 				return response;
 			}
+		}
+
+		public string UpdateAnimeData(int animeID)
+		{
+
+			try
+			{
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					JMMService.AnidbProcessor.GetAnimeInfoHTTP(session, animeID, true, false);
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return "";
 		}
 	}
 }

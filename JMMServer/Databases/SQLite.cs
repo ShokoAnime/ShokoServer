@@ -132,6 +132,7 @@ namespace JMMServer.Databases
 				UpdateSchema_024(versionNumber);
 				UpdateSchema_025(versionNumber);
 				UpdateSchema_026(versionNumber);
+				UpdateSchema_027(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -897,6 +898,33 @@ namespace JMMServer.Databases
 
 			cmds.Add("CREATE INDEX IX_CrossRef_File_Episode_Hash ON CrossRef_File_Episode(Hash);");
 			cmds.Add("CREATE INDEX IX_CrossRef_File_Episode_EpisodeID ON CrossRef_File_Episode(EpisodeID);");
+
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_027(int currentVersionNumber)
+		{
+			int thisVersion = 27;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("update CrossRef_File_Episode SET CrossRefSource=1 WHERE Hash IN (Select Hash from ANIDB_File) AND CrossRefSource=2;");
 
 
 			foreach (string cmdTable in cmds)

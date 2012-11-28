@@ -3507,6 +3507,26 @@ namespace JMMServer
 			}
 		}
 
+		public void RescanManuallyLinkedFiles()
+		{
+			try
+			{
+				// files which have been hashed, but don't have an associated episode
+				VideoLocalRepository repVidLocals = new VideoLocalRepository();
+				List<VideoLocal> files = repVidLocals.GetManuallyLinkedVideos();
+
+				foreach (VideoLocal vl in files)
+				{
+					CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
+					cmd.Save();
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.Message, ex);
+			}
+		}
+
 		
 
 		public void SetCommandProcessorHasherPaused(bool paused)

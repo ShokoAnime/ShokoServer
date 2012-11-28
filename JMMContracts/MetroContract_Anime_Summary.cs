@@ -18,5 +18,8 @@ namespace JMMContracts
 
 		public int ImageType { get; set; }
 		public int ImageID { get; set; }
+
+		public string RelationshipType { get; set; }
+		public string RelationshipDescription { get; set; }
 	}
 }

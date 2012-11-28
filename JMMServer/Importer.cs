@@ -1047,6 +1047,9 @@ namespace JMMServer
 				cmd.Save();
 			}
 
+			// now check for any files which have been manually linked and are less than 30 days old
+
+
 			if (sched == null)
 			{
 				sched = new ScheduledUpdate();

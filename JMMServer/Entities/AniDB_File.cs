@@ -486,11 +486,7 @@ namespace JMMServer.Entities
 				List<CrossRef_File_Episode> fileEps = repFileEpisodes.GetByHash(this.Hash);
 
 				foreach (CrossRef_File_Episode fileEp in fileEps)
-				{
-					// only delete cross refs from AniDB, not manual associations by the user
-					if (fileEp.CrossRefSource == (int)CrossRefSource.AniDB)
-						repFileEpisodes.Delete(fileEp.CrossRef_File_EpisodeID);
-				}
+					repFileEpisodes.Delete(fileEp.CrossRef_File_EpisodeID);
 
 				char apostrophe = ("'").ToCharArray()[0];
 				char epiSplit = ',';

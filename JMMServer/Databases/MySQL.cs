@@ -152,6 +152,7 @@ namespace JMMServer.Databases
 				UpdateSchema_024(versionNumber);
 				UpdateSchema_025(versionNumber);
 				UpdateSchema_026(versionNumber);
+				UpdateSchema_027(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -1192,6 +1193,42 @@ namespace JMMServer.Databases
 				" PRIMARY KEY (`AniDB_RecommendationID`) ) ; ");
 
 			cmds.Add("ALTER TABLE `AniDB_Recommendation` ADD UNIQUE INDEX `UIX_AniDB_Recommendation` (`AnimeID` ASC, `UserID` ASC) ;");
+
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void UpdateSchema_027(int currentVersionNumber)
+		{
+			int thisVersion = 27;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("update CrossRef_File_Episode SET CrossRefSource=1 WHERE Hash IN (Select Hash from ANIDB_File) AND CrossRefSource=2 ;");
 
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

@@ -46,7 +46,7 @@ namespace AniDBAPI.Commands
 				case "320":
 					return enHelperActivityType.NoSuchFile;
 				case "411":
-					return enHelperActivityType.NoSuchFile;
+					return enHelperActivityType.NoSuchMyListFile;
 
 				case "502":
 					return enHelperActivityType.LoginFailed;
@@ -78,7 +78,7 @@ namespace AniDBAPI.Commands
 			commandText += "&edit=1";
 		}*/
 
-		public void Init(IHash fileData, bool watched, DateTime? watchedDate)
+		public void Init(IHash fileData, bool watched, DateTime? watchedDate, bool isEdit, AniDBFileStatus? fileState)
 		{
 			FileData = fileData;
 			IsWatched = watched;
@@ -88,20 +88,25 @@ namespace AniDBAPI.Commands
 			commandText = "MYLISTADD size=" + fileData.FileSize.ToString();
 			commandText += "&ed2k=" + fileData.ED2KHash;
 			commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
+			if (fileState.HasValue)
+				commandText += "&state=" + (int)fileState;
 			if (watchedDate.HasValue)
 				commandText += "&viewdate=" + Utils.GetAniDBDateAsSeconds(watchedDate.Value).ToString();
-			commandText += "&edit=1";
+			if (isEdit)
+				commandText += "&edit=1";
 		}
 
-		public void Init(int animeID, int episodeNumber, bool watched)
+		public void Init(int animeID, int episodeNumber, bool watched, bool isEdit)
 		{
 			IsWatched = watched;
 
 			commandText = "MYLISTADD aid=" + animeID.ToString();
 			commandText += "&generic=1";
 			commandText += "&epno=" + episodeNumber.ToString();
+			commandText += "&state=" + (int)ServerSettings.AniDB_MyList_StorageState;
 			commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
-			commandText += "&edit=1";
+			if (isEdit)
+				commandText += "&edit=1";
 		}
 	}
 }

@@ -249,6 +249,7 @@
     <Compile Include="Commands\QueueCountEventArgs.cs" />
     <Compile Include="Commands\QueueStateEventArgs.cs" />
     <Compile Include="Constants.cs" />
+    <Compile Include="CustomHttpBinding.cs" />
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseHelper.cs" />
     <Compile Include="Databases\MySQL.cs" />

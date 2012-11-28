@@ -62,7 +62,7 @@ namespace JMMServer
 
 		//private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
 		private static string baseAddressImageString = @"http://localhost:{0}/JMMServerImage";
-		private static string baseAddressStreamingString = @"net.tcp://localhost:{0}/JMMServerStreaming";
+		private static string baseAddressStreamingString = @"http://localhost:{0}/JMMServerStreaming";
 		private static string baseAddressStreamingStringMex = @"net.tcp://localhost:{0}/JMMServerStreaming/mex";
 		private static string baseAddressBinaryString = @"http://localhost:{0}/JMMServerBinary";
 		private static string baseAddressMetroString = @"http://localhost:{0}/JMMServerMetro";
@@ -115,7 +115,7 @@ namespace JMMServer
 		{
 			get
 			{
-				return new Uri(string.Format(baseAddressStreamingString, ServerSettings.JMMServerFilePort));
+				return new Uri(string.Format(baseAddressStreamingString, ServerSettings.JMMServerPort));
 			}
 		}
 
@@ -224,6 +224,7 @@ namespace JMMServer
 			btnImportManualLinks.Click += new RoutedEventHandler(btnImportManualLinks_Click);
 			btnUpdateAniDBInfo.Click += new RoutedEventHandler(btnUpdateAniDBInfo_Click);
 			btnUploadAniFileCache.Click += new RoutedEventHandler(btnUploadAniFileCache_Click);
+			btnUploadAzureCache.Click += new RoutedEventHandler(btnUploadAzureCache_Click);
 
 			this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
 			downloadImagesWorker.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
@@ -306,6 +307,25 @@ namespace JMMServer
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
+		}
+
+		void btnUploadAzureCache_Click(object sender, RoutedEventArgs e)
+		{
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			List<AniDB_Anime> allAnime = repAnime.GetAll();
+			int cnt = 0;
+			foreach (AniDB_Anime anime in allAnime)
+			{
+				cnt++;
+				logger.Info(string.Format("Uploading anime {0} of {1} - {2}", cnt, allAnime.Count, anime.MainTitle));
+
+				try
+				{
+					CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
+					cmdAzure.Save();
+				}
+				catch { }
+			}
 		}
 
 		void btnImagesClear_Click(object sender, RoutedEventArgs e)
@@ -1277,6 +1297,12 @@ namespace JMMServer
 
 			tabControl1.SelectedIndex = 4; // setup
 
+			if (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
+					ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase))
+			{
+				btnUploadAzureCache.Visibility = System.Windows.Visibility.Visible;
+			}
+
 			Utils.ClearAutoUpdateCache();
 
 			ShowDatabaseSetup();
@@ -2064,24 +2090,29 @@ namespace JMMServer
 			logger.Trace("Now Accepting client connections for images...");
 		}
 
-		private static void StartStreamingHostHTTP()
+		private static void StartStreamingHost_HTTP()
 		{
 			BasicHttpBinding binding = new BasicHttpBinding();
 			binding.TransferMode = TransferMode.Streamed;
-			binding.MessageEncoding = WSMessageEncoding.Mtom;
+			binding.ReceiveTimeout = TimeSpan.MaxValue;
+			binding.SendTimeout = TimeSpan.MaxValue;
+			//binding.MessageEncoding = WSMessageEncoding.Mtom;
 			binding.MaxReceivedMessageSize = Int32.MaxValue;
-			//binding.Name = "httpLargeMessageStream";
+			binding.CloseTimeout = TimeSpan.MaxValue;
+			binding.Name = "FileStreaming";
+
+			binding.Security.Mode = BasicHttpSecurityMode.None;
 
 
 			// Create the ServiceHost.
-			hostStreaming = new ServiceHost(typeof(JMMServiceImplementationStreaming), new Uri("http://localhost:8112/JMMServerStreaming"));
+			hostStreaming = new ServiceHost(typeof(JMMServiceImplementationStreaming), baseAddressStreaming);
 			// Enable metadata publishing.
 			ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
 			smb.HttpGetEnabled = true;
 			smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
 			hostStreaming.Description.Behaviors.Add(smb);
 
-			hostStreaming.AddServiceEndpoint(typeof(IJMMServerStreaming), binding, new Uri("http://localhost:8112/JMMServerStreaming"));
+			hostStreaming.AddServiceEndpoint(typeof(IJMMServerStreaming), binding, baseAddressStreaming);
 			hostStreaming.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName, MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
 
 			// Open the ServiceHost to start listening for messages. Since
@@ -2094,6 +2125,29 @@ namespace JMMServer
 
 		private static void StartStreamingHost()
 		{
+			BinaryOverHTTPBinding binding = new BinaryOverHTTPBinding();
+
+			// Create the ServiceHost.
+			hostStreaming = new ServiceHost(typeof(JMMServiceImplementationStreaming), baseAddressStreaming);
+			// Enable metadata publishing.
+			ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
+			smb.HttpGetEnabled = true;
+			smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
+			hostStreaming.Description.Behaviors.Add(smb);
+
+			hostStreaming.AddServiceEndpoint(typeof(IJMMServerStreaming), binding, baseAddressStreaming);
+			hostStreaming.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName, MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
+
+			// Open the ServiceHost to start listening for messages. Since
+			// no endpoints are explicitly configured, the runtime will create
+			// one endpoint per base address for each service contract implemented
+			// by the service.
+			hostStreaming.Open();
+			logger.Trace("Now Accepting client connections for images...");
+		}
+
+		private static void StartStreamingHost_TCP()
+		{
 			NetTcpBinding netTCPbinding = new NetTcpBinding();
 			netTCPbinding.TransferMode = TransferMode.Streamed;
 			netTCPbinding.ReceiveTimeout = TimeSpan.MaxValue;
@@ -2101,9 +2155,16 @@ namespace JMMServer
 			netTCPbinding.MaxReceivedMessageSize = Int32.MaxValue;
 			netTCPbinding.CloseTimeout = TimeSpan.MaxValue;
 
+			netTCPbinding.Security.Mode = SecurityMode.Transport;
+			netTCPbinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.None;
+			//netTCPbinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.None;
+			//netTCPbinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.None;
+			//netTCPbinding.Security.Message.ClientCredentialType = MessageCredentialType.None;
+
 			hostStreaming = new ServiceHost(typeof(JMMServiceImplementationStreaming));
 			hostStreaming.AddServiceEndpoint(typeof(IJMMServerStreaming), netTCPbinding, baseAddressStreaming);
 			hostStreaming.Description.Behaviors.Add(new ServiceMetadataBehavior());
+			
 			Binding mexBinding = MetadataExchangeBindings.CreateMexTcpBinding();
 			hostStreaming.AddServiceEndpoint(typeof(IMetadataExchange), mexBinding, baseAddressStreamingMex);
 

@@ -73,7 +73,7 @@ namespace AniDBAPI.Commands
 				}
 				if (commandType != enAniDBCommandType.Login)
 				{
-					logger.Trace("ANIDB_UDP_COMMS commandText: {0}", mcommandText);
+					logger.Info("ANIDB_UDP_COMMS commandText: {0}", mcommandText);
 				}
 				else
 				{
@@ -237,12 +237,12 @@ namespace AniDBAPI.Commands
 				if (i != 2)
 				{
 					socketResponse = decodedstring;
-					logger.Trace("ANIDB_UDP_COMMS socketResponse: {0}", socketResponse);
+					logger.Info("ANIDB_UDP_COMMS socketResponse: {0}", socketResponse);
 				}
 				else
 				{
 					socketResponse = decodedstring.Substring(0, foundpos + 1);
-					logger.Trace("ANIDB_UDP_COMMS truncated socketResponse: {0}", socketResponse);
+					logger.Info("ANIDB_UDP_COMMS truncated socketResponse: {0}", socketResponse);
 				}
 			}
 			int val = 0;
