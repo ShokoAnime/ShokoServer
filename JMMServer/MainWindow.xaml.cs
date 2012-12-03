@@ -457,8 +457,8 @@ namespace JMMServer
 		{
 			/*string errorMsg = "";
 			string streamingAddress = "";
-			
-			Utils.StartStreamingVideo("localhost", @"E:\Test\Mobile_Suit_Gundam_00_Season_2_Ep02_Twin_Drive_[1080p,BluRay,x264]_-_THORA.mkv", "12000", "30", "1280",
+
+			Utils.StartStreamingVideo("localhost", @"e:\test\[Frostii]_K-On!_-_S5_(1280x720_Blu-ray_H264)_[8B9E0A76].mkv", "12000", "30", "1280",
 				"128", "44100", "8088", ref errorMsg, ref streamingAddress);
 
 			return;*/
