@@ -4268,86 +4268,27 @@ namespace JMMServer
 					timingEps += ts.TotalMilliseconds;
 
 					if (eps.Count == 0) continue;
-					AnimeEpisode animeEp = eps[0];
-					if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode || animeEp.EpisodeTypeEnum == enEpisodeType.Special)
+					foreach (AnimeEpisode animeEp in eps)
 					{
-						start = DateTime.Now;
-						AniDB_Episode anidbEp = animeEp.AniDB_Episode;
-						ts = DateTime.Now - start;
-						timingAniEps += ts.TotalMilliseconds;
-
-						// get the anibd file info
-						start = DateTime.Now;
-						AniDB_File aniFile = vid.GetAniDBFile();
-						ts = DateTime.Now - start;
-						timingAniFile += ts.TotalMilliseconds;
-						if (aniFile != null)
+						//AnimeEpisode animeEp = eps[0];
+						if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode || animeEp.EpisodeTypeEnum == enEpisodeType.Special)
 						{
 							start = DateTime.Now;
-							VideoInfo vinfo = vid.VideoInfo;
+							AniDB_Episode anidbEp = animeEp.AniDB_Episode;
 							ts = DateTime.Now - start;
-							timingVidInfo += ts.TotalMilliseconds;
-							int bitDepth = 8;
-							if (vinfo != null)
+							timingAniEps += ts.TotalMilliseconds;
+
+							// get the anibd file info
+							start = DateTime.Now;
+							AniDB_File aniFile = vid.GetAniDBFile();
+							ts = DateTime.Now - start;
+							timingAniFile += ts.TotalMilliseconds;
+							if (aniFile != null)
 							{
-								if (!int.TryParse(vinfo.VideoBitDepth, out bitDepth))
-									bitDepth = 8;
-							}
-
-							// match based on group / video sorce / video res
-							bool foundSummaryRecord = false;
-							foreach (Contract_GroupVideoQuality contract in vidQuals)
-							{
-								string contractSource = SimplifyVideoSource(contract.VideoSource);
-								string fileSource = SimplifyVideoSource(aniFile.File_Source);
-
-
-								if (contract.GroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) &&
-									contractSource.Equals(fileSource, StringComparison.InvariantCultureIgnoreCase) &&
-									contract.Resolution.Equals(aniFile.File_VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
-									contract.VideoBitDepth == bitDepth)
-								{
-									foundSummaryRecord = true;
-
-									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
-									if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
-
-									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
-									{
-										if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
-											contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
-									}
-								}
-							}
-							if (!foundSummaryRecord)
-							{
-								Contract_GroupVideoQuality contract = new Contract_GroupVideoQuality();
-								contract.FileCountNormal = 0;
-								contract.FileCountSpecials = 0;
-								if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
-								if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
-								contract.GroupName = aniFile.Anime_GroupName;
-								contract.GroupNameShort = aniFile.Anime_GroupNameShort;
-								contract.VideoBitDepth = bitDepth;
-								contract.Resolution = aniFile.File_VideoResolution;
-								contract.VideoSource = SimplifyVideoSource(aniFile.File_Source);
-								contract.Ranking = Utils.GetOverallVideoSourceRanking(contract.Resolution, contract.VideoSource, bitDepth);
-								contract.NormalEpisodeNumbers = new List<int>();
-								if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
-								{
-									if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
-										contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
-								}
-
-								vidQuals.Add(contract);
-							}
-						}
-						else
-						{
-							// look at the Video Info record
-							VideoInfo vinfo = vid.VideoInfo;
-							if (vinfo != null)
-							{
+								start = DateTime.Now;
+								VideoInfo vinfo = vid.VideoInfo;
+								ts = DateTime.Now - start;
+								timingVidInfo += ts.TotalMilliseconds;
 								int bitDepth = 8;
 								if (vinfo != null)
 								{
@@ -4355,15 +4296,21 @@ namespace JMMServer
 										bitDepth = 8;
 								}
 
+								// match based on group / video sorce / video res
 								bool foundSummaryRecord = false;
 								foreach (Contract_GroupVideoQuality contract in vidQuals)
 								{
-									if (contract.GroupName.Equals(Constants.NO_GROUP_INFO, StringComparison.InvariantCultureIgnoreCase) &&
-										contract.VideoSource.Equals(Constants.NO_SOURCE_INFO, StringComparison.InvariantCultureIgnoreCase) &&
-										contract.Resolution.Equals(vinfo.VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
+									string contractSource = SimplifyVideoSource(contract.VideoSource);
+									string fileSource = SimplifyVideoSource(aniFile.File_Source);
+
+
+									if (contract.GroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) &&
+										contractSource.Equals(fileSource, StringComparison.InvariantCultureIgnoreCase) &&
+										contract.Resolution.Equals(aniFile.File_VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
 										contract.VideoBitDepth == bitDepth)
 									{
 										foundSummaryRecord = true;
+
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
 
@@ -4381,11 +4328,11 @@ namespace JMMServer
 									contract.FileCountSpecials = 0;
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
-									contract.GroupName = Constants.NO_GROUP_INFO;
-									contract.GroupNameShort = Constants.NO_GROUP_INFO;
-									contract.Resolution = vinfo.VideoResolution;
-									contract.VideoSource = Constants.NO_SOURCE_INFO;
+									contract.GroupName = aniFile.Anime_GroupName;
+									contract.GroupNameShort = aniFile.Anime_GroupNameShort;
 									contract.VideoBitDepth = bitDepth;
+									contract.Resolution = aniFile.File_VideoResolution;
+									contract.VideoSource = SimplifyVideoSource(aniFile.File_Source);
 									contract.Ranking = Utils.GetOverallVideoSourceRanking(contract.Resolution, contract.VideoSource, bitDepth);
 									contract.NormalEpisodeNumbers = new List<int>();
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
@@ -4393,7 +4340,63 @@ namespace JMMServer
 										if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
 											contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
 									}
+
 									vidQuals.Add(contract);
+								}
+							}
+							else
+							{
+								// look at the Video Info record
+								VideoInfo vinfo = vid.VideoInfo;
+								if (vinfo != null)
+								{
+									int bitDepth = 8;
+									if (vinfo != null)
+									{
+										if (!int.TryParse(vinfo.VideoBitDepth, out bitDepth))
+											bitDepth = 8;
+									}
+
+									bool foundSummaryRecord = false;
+									foreach (Contract_GroupVideoQuality contract in vidQuals)
+									{
+										if (contract.GroupName.Equals(Constants.NO_GROUP_INFO, StringComparison.InvariantCultureIgnoreCase) &&
+											contract.VideoSource.Equals(Constants.NO_SOURCE_INFO, StringComparison.InvariantCultureIgnoreCase) &&
+											contract.Resolution.Equals(vinfo.VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
+											contract.VideoBitDepth == bitDepth)
+										{
+											foundSummaryRecord = true;
+											if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
+											if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+
+											if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+											{
+												if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
+													contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
+											}
+										}
+									}
+									if (!foundSummaryRecord)
+									{
+										Contract_GroupVideoQuality contract = new Contract_GroupVideoQuality();
+										contract.FileCountNormal = 0;
+										contract.FileCountSpecials = 0;
+										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
+										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+										contract.GroupName = Constants.NO_GROUP_INFO;
+										contract.GroupNameShort = Constants.NO_GROUP_INFO;
+										contract.Resolution = vinfo.VideoResolution;
+										contract.VideoSource = Constants.NO_SOURCE_INFO;
+										contract.VideoBitDepth = bitDepth;
+										contract.Ranking = Utils.GetOverallVideoSourceRanking(contract.Resolution, contract.VideoSource, bitDepth);
+										contract.NormalEpisodeNumbers = new List<int>();
+										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+										{
+											if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
+												contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
+										}
+										vidQuals.Add(contract);
+									}
 								}
 							}
 						}
@@ -4496,67 +4499,32 @@ namespace JMMServer
 
 				foreach (VideoLocal vid in vids)
 				{
+					if (vid.FilePath.Contains(@"[DB]_Naruto_Shippuuden_078-079_[0DFB6FE0]"))
+						Debug.Write("Test");
+
 					List<AnimeEpisode> eps = vid.GetAnimeEpisodes();
 
 					if (eps.Count == 0) continue;
-					AnimeEpisode animeEp = eps[0];
-					if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode || animeEp.EpisodeTypeEnum == enEpisodeType.Special)
+
+					foreach (AnimeEpisode animeEp in eps)
 					{
-						AniDB_Episode anidbEp = animeEp.AniDB_Episode;
-
-						// get the anibd file info
-						AniDB_File aniFile = vid.GetAniDBFile();
-						if (aniFile != null)
+						//AnimeEpisode animeEp = eps[0];
+						if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode || animeEp.EpisodeTypeEnum == enEpisodeType.Special)
 						{
-							// match based on group / video sorce / video res
-							bool foundSummaryRecord = false;
-							foreach (Contract_GroupFileSummary contract in vidQuals)
-							{
-								if (contract.GroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase))
-								{
-									foundSummaryRecord = true;
+							AniDB_Episode anidbEp = animeEp.AniDB_Episode;
 
-									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
-									if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
-
-									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
-									{
-										if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
-											contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
-									}
-								}
-							}
-							if (!foundSummaryRecord)
+							// get the anibd file info
+							AniDB_File aniFile = vid.GetAniDBFile();
+							if (aniFile != null)
 							{
-								Contract_GroupFileSummary contract = new Contract_GroupFileSummary();
-								contract.FileCountNormal = 0;
-								contract.FileCountSpecials = 0;
-								if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
-								if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
-								contract.GroupName = aniFile.Anime_GroupName;
-								contract.GroupNameShort = aniFile.Anime_GroupNameShort;
-								contract.NormalEpisodeNumbers = new List<int>();
-								if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
-								{
-									if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
-										contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
-								}
-
-								vidQuals.Add(contract);
-							}
-						}
-						else
-						{
-							// look at the Video Info record
-							VideoInfo vinfo = vid.VideoInfo;
-							if (vinfo != null)
-							{
+								// match based on group / video sorce / video res
 								bool foundSummaryRecord = false;
 								foreach (Contract_GroupFileSummary contract in vidQuals)
 								{
-									if (contract.GroupName.Equals("NO GROUP INFO", StringComparison.InvariantCultureIgnoreCase))
+									if (contract.GroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase))
 									{
 										foundSummaryRecord = true;
+
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
 
@@ -4574,15 +4542,57 @@ namespace JMMServer
 									contract.FileCountSpecials = 0;
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
-									contract.GroupName = "NO GROUP INFO";
-									contract.GroupNameShort = "NO GROUP INFO";
+									contract.GroupName = aniFile.Anime_GroupName;
+									contract.GroupNameShort = aniFile.Anime_GroupNameShort;
 									contract.NormalEpisodeNumbers = new List<int>();
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
 									{
 										if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
 											contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
 									}
+
 									vidQuals.Add(contract);
+								}
+							}
+							else
+							{
+								// look at the Video Info record
+								VideoInfo vinfo = vid.VideoInfo;
+								if (vinfo != null)
+								{
+									bool foundSummaryRecord = false;
+									foreach (Contract_GroupFileSummary contract in vidQuals)
+									{
+										if (contract.GroupName.Equals("NO GROUP INFO", StringComparison.InvariantCultureIgnoreCase))
+										{
+											foundSummaryRecord = true;
+											if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
+											if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+
+											if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+											{
+												if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
+													contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
+											}
+										}
+									}
+									if (!foundSummaryRecord)
+									{
+										Contract_GroupFileSummary contract = new Contract_GroupFileSummary();
+										contract.FileCountNormal = 0;
+										contract.FileCountSpecials = 0;
+										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
+										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+										contract.GroupName = "NO GROUP INFO";
+										contract.GroupNameShort = "NO GROUP INFO";
+										contract.NormalEpisodeNumbers = new List<int>();
+										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
+										{
+											if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
+												contract.NormalEpisodeNumbers.Add(anidbEp.EpisodeNumber);
+										}
+										vidQuals.Add(contract);
+									}
 								}
 							}
 						}
