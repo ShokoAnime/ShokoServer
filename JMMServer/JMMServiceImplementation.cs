@@ -7272,6 +7272,7 @@ namespace JMMServer
 
 			Dictionary<int, AniDB_Anime> animeCache = new Dictionary<int, AniDB_Anime>();
 			Dictionary<int, List<Contract_GroupVideoQuality>> gvqCache = new Dictionary<int, List<Contract_GroupVideoQuality>>();
+			Dictionary<int, List<Contract_GroupFileSummary>> gfqCache = new Dictionary<int, List<Contract_GroupFileSummary>>();
 
 			try
 			{
@@ -7364,6 +7365,25 @@ namespace JMMServer
 
 									contract.GroupFileSummary += string.Format("{0} - {1}/{2}/{3}bit ({4})", gvq.GroupNameShort, gvq.Resolution, gvq.VideoSource, gvq.VideoBitDepth, gvq.NormalEpisodeNumberSummary);
 								}
+
+								contract.GroupFileSummarySimple = "";
+								List<Contract_GroupFileSummary> summFiles = null;
+								if (gfqCache.ContainsKey(ser.AniDB_ID))
+									summFiles = gfqCache[ser.AniDB_ID];
+								else
+								{
+									summFiles = GetGroupFileSummary(anime.AnimeID);
+									gfqCache[ser.AniDB_ID] = summFiles;
+								}
+
+								foreach (Contract_GroupFileSummary gfq in summFiles)
+								{
+									if (contract.GroupFileSummarySimple.Length > 0)
+										contract.GroupFileSummarySimple += ", ";
+
+									contract.GroupFileSummarySimple += string.Format("{0} ({1})", gfq.GroupNameShort, gfq.NormalEpisodeNumberSummary);
+								}
+
 								ts = DateTime.Now - start;
 								timingQuality += ts.TotalMilliseconds;
 								animeCache[ser.AniDB_ID] = anime;

@@ -13,6 +13,7 @@ namespace JMMContracts
 		public int EpisodeNumber { get; set; }
 		public int EpisodeType { get; set; }
 		public string GroupFileSummary { get; set; }
+		public string GroupFileSummarySimple { get; set; }
 
 		public Contract_AnimeSeries AnimeSeries { get; set; }
 	}
