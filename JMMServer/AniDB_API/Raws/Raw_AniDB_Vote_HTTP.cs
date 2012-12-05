@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using AniDBAPI;
 using System.Xml;
+using System.Globalization;
 
 namespace JMMServer.AniDB_API.Raws
 {
@@ -12,6 +13,8 @@ namespace JMMServer.AniDB_API.Raws
 		public int EntityID { get; set; }
 		public int VoteValue { get; set; }
 		public enAniDBVoteType VoteType { get; set; }
+
+
 
 		public Raw_AniDB_Vote_HTTP()
 		{
@@ -23,10 +26,13 @@ namespace JMMServer.AniDB_API.Raws
 
 		public void ProcessAnime(XmlNode node)
 		{
+			NumberStyles style = NumberStyles.Number;
+			CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
+
 			this.VoteType = enAniDBVoteType.Anime;
 			this.EntityID = int.Parse(node.Attributes["aid"].Value);
 			double val = 0;
-			double.TryParse(node.InnerText, out val);
+			double.TryParse(node.InnerText.Trim(), style, culture, out val);
 			int ival = 0;
 			int.TryParse((val * (double)100).ToString(), out ival);
 			VoteValue = ival;
@@ -34,10 +40,13 @@ namespace JMMServer.AniDB_API.Raws
 
 		public void ProcessAnimeTemp(XmlNode node)
 		{
+			NumberStyles style = NumberStyles.Number;
+			CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
+
 			this.VoteType = enAniDBVoteType.AnimeTemp;
 			this.EntityID = int.Parse(node.Attributes["aid"].Value);
 			double val = 0;
-			double.TryParse(node.InnerText, out val);
+			double.TryParse(node.InnerText.Trim(), style, culture, out val);
 			int ival = 0;
 			int.TryParse((val * (double)100).ToString(), out ival);
 			VoteValue = ival;
@@ -45,10 +54,13 @@ namespace JMMServer.AniDB_API.Raws
 
 		public void ProcessEpisode(XmlNode node)
 		{
+			NumberStyles style = NumberStyles.Number;
+			CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
+
 			this.VoteType = enAniDBVoteType.Episode;
 			this.EntityID = int.Parse(node.Attributes["eid"].Value);
 			double val = 0;
-			double.TryParse(node.InnerText, out val);
+			double.TryParse(node.InnerText.Trim(), style, culture, out val);
 			int ival = 0;
 			int.TryParse((val * (double)100).ToString(), out ival);
 			VoteValue = ival;
