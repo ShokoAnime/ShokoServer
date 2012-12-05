@@ -1233,6 +1233,10 @@ namespace JMMServer
 
 			//SendToAzure();
 
+			JMMService.AnidbProcessor.IsBanned = true;
+			JMMService.AnidbProcessor.BanOrigin = "HTTP";
+			JMMService.AnidbProcessor.BanTime = DateTime.Now;
+
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();

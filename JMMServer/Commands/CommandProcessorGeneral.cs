@@ -67,6 +67,7 @@ namespace JMMServer.Commands
 						QueueState = "Idle";
 						pauseTime = null;
 						JMMService.AnidbProcessor.IsBanned = false;
+						JMMService.AnidbProcessor.BanOrigin = "";
 					}
 					ServerInfo.Instance.GeneralQueuePaused = paused;
 					ServerInfo.Instance.GeneralQueueRunning = !paused;

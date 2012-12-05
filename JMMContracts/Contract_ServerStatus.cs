@@ -15,5 +15,6 @@ namespace JMMContracts
 		public string ImagesQueueState { get; set; }
 		public bool IsBanned { get; set; }
 		public string BanReason { get; set; }
+		public string BanOrigin { get; set; }
 	}
 }

@@ -656,7 +656,9 @@
                 Visibility="{Binding Source={x:Static local:ServerInfo.Instance}, Path=IsBanned, Converter={StaticResource BooleanToVisibilityConverter}}">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
                 <Image Height="16" Width="16" Source="/Images/16_exclamation.png" Margin="0,0,5,0"/>
-                <TextBlock VerticalAlignment="Center" Text="Paused due to BAN from AniDB" Margin="0,0,5,0" FontWeight="Bold"/>
+                <TextBlock VerticalAlignment="Center" Text="Paused due to BAN from AniDB (" Margin="0,0,0,0" FontWeight="Bold"/>
+                <TextBlock VerticalAlignment="Center" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=BanOrigin}" FontWeight="Bold"/>
+                <TextBlock VerticalAlignment="Center" Margin="0,0,0,0" Text=")" FontWeight="Bold"/>
                 <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=BanReason}"/>
                 <local:HyperLinkStandard VerticalAlignment="Center" Margin="10,0,0,0" DisplayText="What does this mean?" Grid.Column="1"
                                                                         URL="http://code.google.com/p/jmm/wiki/User_Manual#Banned_from_AniDB?"/>

@@ -229,6 +229,18 @@ namespace JMMServer
 			}
 		}
 
+		private string banOrigin = "";
+		public string BanOrigin
+		{
+			get { return banOrigin; }
+			set
+			{
+				banOrigin = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("BanOrigin"));
+			}
+
+		}
+
 		private bool isBanned = false;
 		public bool IsBanned
 		{

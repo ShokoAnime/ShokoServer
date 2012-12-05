@@ -19,8 +19,10 @@ namespace AniDBAPI.Commands
 			if (index > -1)
 			{
 				JMMService.AnidbProcessor.IsBanned = true;
+				JMMService.AnidbProcessor.BanOrigin = "HTTP";
 				return true;
 			}
+			
 			return false;
 		}
 	}

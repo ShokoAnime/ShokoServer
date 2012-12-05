@@ -2892,6 +2892,7 @@ namespace JMMServer
 
 				contract.IsBanned = JMMService.AnidbProcessor.IsBanned;
 				contract.BanReason = JMMService.AnidbProcessor.BanTime.ToString();
+				contract.BanOrigin = JMMService.AnidbProcessor.BanOrigin;
 			}
 			catch (Exception ex)
 			{

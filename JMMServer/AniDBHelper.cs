@@ -74,6 +74,17 @@ namespace JMMServer
 
 		}
 
+		private string banOrigin = "";
+		public string BanOrigin
+		{
+			get { return banOrigin; }
+			set { 
+				banOrigin = value;
+				ServerInfo.Instance.BanOrigin = value;
+			}
+
+		}
+
 		private bool isInvalidSession = false;
 		public bool IsInvalidSession
 		{

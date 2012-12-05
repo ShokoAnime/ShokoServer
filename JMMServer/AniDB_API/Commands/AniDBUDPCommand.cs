@@ -253,9 +253,15 @@ namespace AniDBAPI.Commands
 			// if we get banned pause the command processor for a while
 			// so we don't make the ban worse
 			if (ResponseCode == 555)
+			{
 				JMMService.AnidbProcessor.IsBanned = true;
+				JMMService.AnidbProcessor.BanOrigin = "UDP";
+			}
 			else
+			{
 				JMMService.AnidbProcessor.IsBanned = false;
+				JMMService.AnidbProcessor.BanOrigin = "";
+			}
 
 			// 598 unknown command usually means we had connections issue
 			// reset login status to start again
