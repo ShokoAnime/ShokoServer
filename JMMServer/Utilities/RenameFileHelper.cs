@@ -1669,11 +1669,15 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.CRCUpper))
 			{
-				string crc = vid.CRC32.ToUpper();
+				string crc = vid.CRC32;
 				if (string.IsNullOrEmpty(crc) && aniFile != null)
-					crc = aniFile.CRC.ToUpper();
+					crc = aniFile.CRC;
 
-				newFileName = newFileName.Replace(Constants.FileRenameTag.CRCUpper, crc);
+				if (!string.IsNullOrEmpty(crc))
+				{
+					crc = crc.ToUpper();
+					newFileName = newFileName.Replace(Constants.FileRenameTag.CRCUpper, crc);
+				}
 			}
 
 			#endregion
@@ -1682,11 +1686,15 @@ namespace JMMServer
 
 			if (action.Trim().Contains(Constants.FileRenameTag.CRCLower))
 			{
-				string crc = vid.CRC32.ToLower();
+				string crc = vid.CRC32;
 				if (string.IsNullOrEmpty(crc) && aniFile != null)
-					crc = aniFile.CRC.ToLower();
+					crc = aniFile.CRC;
 
-				newFileName = newFileName.Replace(Constants.FileRenameTag.CRCLower, crc);
+				if (!string.IsNullOrEmpty(crc))
+				{
+					crc = crc.ToLower();
+					newFileName = newFileName.Replace(Constants.FileRenameTag.CRCLower, crc);
+				}
 			}
 
 			#endregion
