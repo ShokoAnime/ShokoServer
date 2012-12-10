@@ -455,13 +455,13 @@ namespace JMMServer
 
 		void btnChooseVLCLocation_Click(object sender, RoutedEventArgs e)
 		{
-			/*string errorMsg = "";
+			string errorMsg = "";
 			string streamingAddress = "";
 
 			Utils.StartStreamingVideo("localhost", @"e:\test\[Frostii]_K-On!_-_S5_(1280x720_Blu-ray_H264)_[8B9E0A76].mkv", "12000", "30", "1280",
 				"128", "44100", "8088", ref errorMsg, ref streamingAddress);
 
-			return;*/
+			return;
 
 			System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
 			if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -1233,9 +1233,9 @@ namespace JMMServer
 
 			//SendToAzure();
 
-			JMMService.AnidbProcessor.IsBanned = true;
-			JMMService.AnidbProcessor.BanOrigin = "HTTP";
-			JMMService.AnidbProcessor.BanTime = DateTime.Now;
+			//JMMService.AnidbProcessor.IsBanned = true;
+			//JMMService.AnidbProcessor.BanOrigin = "HTTP";
+			//JMMService.AnidbProcessor.BanTime = DateTime.Now;
 
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;

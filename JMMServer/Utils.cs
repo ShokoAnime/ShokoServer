@@ -705,10 +705,23 @@ namespace JMMServer
 				errorMessage = "";
 				streamingUri = string.Format("http://{0}:{1}", ipAddress, port);
 
-				string vlcStartTemplate = @" -v {0} --sout=#transcode%vcodec=WMV2,vb={1},fps={2},width={3},acodec=wma2,ab={4},channels=1,samplerate={5},soverlay+:http%mux=asf,dst=:{6}/+ --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep --sout-transcode-high-priority --sub-language=en";
+				string encoderOptions = "vcodec=h264,vb=1768,venc=x264{profile=baseline,preset=faster,no-cabac,trellis=0,keyint=50},deinterlace=-1,aenc=ffmpeg{aac-profile=low},acodec=mp4a,ab=512,samplerate=48000,channels=2,audio-sync";
+				string subtitleTranscoder = "soverlay";
+				//string muxerOptions = ":standard{access=file,mux=ts,dst=#OUT#}";
+				string muxerOptions = ":standard{access=file,mux=ts,dst=8088}";
+
+				string sout = "#transcode{" + encoderOptions + "," + subtitleTranscoder;
+				//if (!Context.Profile.TranscoderParameters.ContainsKey("noResize") || Context.Profile.TranscoderParameters["noResize"] != "yes")
+				//	sout += ",width=" + Context.OutputSize.Width + ",height=" + Context.OutputSize.Height;
+				sout += "}" + muxerOptions;
+
+
+				//string vlcStartTemplate = @" -v {0} --sout=#transcode%vcodec=WMV2,vb={1},fps={2},width={3},acodec=wma2,ab={4},channels=1,samplerate={5},soverlay+:http%mux=asf,dst=:{6}/+ --no-sout-rtp-sap --no-sout-standard-sap --sout-all --ttl=1 --sout-keep --sout-transcode-high-priority --sub-language=en";
+				string vlcStartTemplate = @" -v {0} --ffmpeg-hw --sout-ffmpeg-strict=-2 --sout={1}";
 
 				string vlcStop = @"/F /IM vlc.exe";
-				string vlcStart = string.Format(vlcStartTemplate, fileName, vidBitRate, fps, resWidth, audioBitRate, audioSamplerate, port);
+				//string vlcStart = string.Format(vlcStartTemplate, fileName, vidBitRate, fps, resWidth, audioBitRate, audioSamplerate, port);
+				string vlcStart = string.Format(vlcStartTemplate, fileName, sout);
 				vlcStart = vlcStart.Replace("%", "{");
 				vlcStart = vlcStart.Replace("+", "}");
 
