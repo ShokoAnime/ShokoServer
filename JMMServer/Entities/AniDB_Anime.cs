@@ -1348,6 +1348,11 @@ namespace JMMServer.Entities
 			return repEps.GetByAnimeID(session, AnimeID);
 		}
 
+		public AniDB_Anime()
+		{
+			this.DisableExternalLinksFlag = 0;
+		}
+
 		private void Populate(Raw_AniDB_Anime animeInfo)
 		{
 			this.AirDate = animeInfo.AirDate;
@@ -1390,7 +1395,7 @@ namespace JMMServer.Entities
 			this.TempVoteCount = animeInfo.TempVoteCount;
 			this.URL = animeInfo.URL;
 			this.VoteCount = animeInfo.VoteCount;
-			this.DisableExternalLinksFlag = 0;
+			
 		}
 
 		public void PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps, List<Raw_AniDB_Anime_Title> titles,
