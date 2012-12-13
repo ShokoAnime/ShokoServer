@@ -60,12 +60,23 @@ namespace JMMServer.Commands
 
 			try
 			{
-				if (FileID > 0)
-					JMMService.AnidbProcessor.DeleteFileFromMyList(FileID);
-				else
-					JMMService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
+				if (ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.Delete)
+				{
+					if (FileID > 0)
+						JMMService.AnidbProcessor.DeleteFileFromMyList(FileID);
+					else
+						JMMService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
 
-				logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
+					logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
+				}
+				else
+				{
+					if (FileID < 0)
+					{
+						JMMService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
+						logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
+					}
+				}
 			}
 			catch (Exception ex)
 			{

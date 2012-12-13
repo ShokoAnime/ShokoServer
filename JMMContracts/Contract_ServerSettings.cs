@@ -22,6 +22,7 @@ namespace JMMContracts
 
 		public bool AniDB_MyList_AddFiles { get; set; }
 		public int AniDB_MyList_StorageState { get; set; }
+		public int AniDB_MyList_DeleteType { get; set; }
 		// these two are used when you add a file on an import, or when you do a mylist sync
 		public bool AniDB_MyList_ReadWatched { get; set; } // update local to watched if anidb is watched
 		public bool AniDB_MyList_ReadUnwatched { get; set; } // update local to un-watched if anidb is un-watched

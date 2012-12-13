@@ -483,6 +483,25 @@ namespace JMMServer
 			return false;
 		}
 
+		public bool MarkFileAsDeleted(string hash, long fileSize)
+		{
+			if (!Login()) return false;
+
+			enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+			AniDBCommand_MarkFileAsDeleted cmdDelFile = null;
+
+			lock (lockAniDBConnections)
+			{
+				Pause();
+
+				cmdDelFile = new AniDBCommand_MarkFileAsDeleted();
+				cmdDelFile.Init(hash, fileSize);
+				ev = cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+			}
+
+			return true;
+		}
+
 		public bool DeleteFileFromMyList(string hash, long fileSize)
 		{
 			if (!ServerSettings.AniDB_MyList_AddFiles) return false;

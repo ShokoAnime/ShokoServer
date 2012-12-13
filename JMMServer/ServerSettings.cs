@@ -392,6 +392,22 @@ namespace JMMServer
 			}
 		}
 
+		public static AniDBFileDeleteType AniDB_MyList_DeleteType
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				int val = 0;
+				int.TryParse(appSettings["AniDB_MyList_DeleteType"], out val);
+
+				return (AniDBFileDeleteType)val;
+			}
+			set
+			{
+				UpdateSetting("AniDB_MyList_DeleteType", ((int)value).ToString());
+			}
+		}
+
 		public static bool AniDB_MyList_ReadUnwatched
 		{
 			get
@@ -1495,6 +1511,7 @@ namespace JMMServer
 
 			contract.AniDB_MyList_AddFiles = ServerSettings.AniDB_MyList_AddFiles;
 			contract.AniDB_MyList_StorageState = (int)ServerSettings.AniDB_MyList_StorageState;
+			contract.AniDB_MyList_DeleteType = (int)ServerSettings.AniDB_MyList_DeleteType;
 			contract.AniDB_MyList_ReadWatched = ServerSettings.AniDB_MyList_ReadWatched;
 			contract.AniDB_MyList_ReadUnwatched = ServerSettings.AniDB_MyList_ReadUnwatched;
 			contract.AniDB_MyList_SetWatched = ServerSettings.AniDB_MyList_SetWatched;

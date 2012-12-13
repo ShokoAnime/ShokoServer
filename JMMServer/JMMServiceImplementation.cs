@@ -2980,6 +2980,7 @@ namespace JMMServer
 				ServerSettings.AniDB_MyList_SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
 				ServerSettings.AniDB_MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
 				ServerSettings.AniDB_MyList_StorageState = (AniDBFileStatus)contractIn.AniDB_MyList_StorageState;
+				ServerSettings.AniDB_MyList_DeleteType = (AniDBFileDeleteType)contractIn.AniDB_MyList_DeleteType;
 
 				ServerSettings.AniDB_MyList_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_MyList_UpdateFrequency;
 				ServerSettings.AniDB_Calendar_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.AniDB_Calendar_UpdateFrequency;

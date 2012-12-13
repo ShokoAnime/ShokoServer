@@ -118,6 +118,9 @@ namespace JMMServer.Commands
 					// 1 . sync mylist items
 					foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
 					{
+						// ignore files mark as deleted by the user
+						if (myitem.State == (int)AniDBFileStatus.Deleted) continue;
+
 						totalItems++;
 						if (myitem.IsWatched) watchedItems++;
 

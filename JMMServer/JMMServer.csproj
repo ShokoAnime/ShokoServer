@@ -147,6 +147,7 @@
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetUpdated.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_Login.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_Logout.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsDeleted.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_NotifyGet.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_NotifyList.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_Ping.cs" />

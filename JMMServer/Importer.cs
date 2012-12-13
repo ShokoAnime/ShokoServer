@@ -670,6 +670,9 @@ namespace JMMServer
 					// delete video local record
 					logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
 					repVidLocals.Delete(vl.VideoLocalID);
+
+					CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
+					cmdDel.Save();
 				}
 			}
 
