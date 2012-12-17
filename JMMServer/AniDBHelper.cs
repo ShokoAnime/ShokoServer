@@ -902,76 +902,105 @@ namespace JMMServer
 				Pause();
 
 				getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
-				getAnimeCmd.Init(animeID, false);
+				getAnimeCmd.Init(animeID, false, forceRefresh, false);
 				getAnimeCmd.Process();
 			}
 
+			
 			if (getAnimeCmd.Anime != null)
 			{
-				//XMLService.Send_AniDB_Anime_Full(getAnimeCmd.AnimeID, getAnimeCmd.XmlResult);
+				anime = SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd);
 
-				logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
-
-				anime = repAnime.GetByAnimeID(session, animeID);
-				if (anime == null)
-					anime = new AniDB_Anime();
-				anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Categories, getAnimeCmd.Tags,
-					getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations, downloadRelations);
-
-				// Request an image download
-				CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID, JMMImageType.AniDB_Cover, false);
-				cmd.Save(session);
-				// create AnimeEpisode records for all episodes in this anime
-				// only if we have a series
-				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-				AnimeSeries ser = repSeries.GetByAnimeID(session, animeID);
-				if (ser != null)
+				if (forceRefresh)
 				{
-					ser.CreateAnimeEpisodes(session);
+					CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
+					cmdAzure.Save(session);
 				}
-
-				// update cached stats
-				StatsCache.Instance.UpdateUsingAnime(session, anime.AnimeID);
-				StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
-
-				// download character images
-				foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session))
-				{
-					AniDB_Character chr = animeChar.GetCharacter(session);
-					if (chr == null) continue;
-
-					if (ServerSettings.AniDB_DownloadCharacters)
-					{
-						if (!string.IsNullOrEmpty(chr.PosterPath) && !File.Exists(chr.PosterPath))
-						{
-							logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName, chr.CharID, chr.PosterPath);
-							cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
-							cmd.Save();
-						}
-					}
-
-					if (ServerSettings.AniDB_DownloadCreators)
-					{
-						AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
-						if (seiyuu == null || string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
-
-						if (!File.Exists(seiyuu.PosterPath))
-						{
-							logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle, seiyuu.SeiyuuName, seiyuu.SeiyuuID, seiyuu.PosterPath);
-							cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
-							cmd.Save();
-						}
-					}
-
-				}
-				
-				//OnGotAnimeInfoEvent(new GotAnimeInfoEventArgs(getAnimeCmd.Anime.AnimeID));
-				CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
-				cmdAzure.Save(session);
 				
 			}
 
+			return anime;
+		}
 
+		private AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations, AniDBHTTPCommand_GetFullAnime getAnimeCmd)
+		{
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+			AniDB_Anime anime = null;
+
+			logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
+
+			anime = repAnime.GetByAnimeID(session, animeID);
+			if (anime == null)
+				anime = new AniDB_Anime();
+			anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Categories, getAnimeCmd.Tags,
+				getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations, downloadRelations);
+
+			// Request an image download
+			CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID, JMMImageType.AniDB_Cover, false);
+			cmd.Save(session);
+			// create AnimeEpisode records for all episodes in this anime
+			// only if we have a series
+			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+			AnimeSeries ser = repSeries.GetByAnimeID(session, animeID);
+			if (ser != null)
+			{
+				ser.CreateAnimeEpisodes(session);
+			}
+
+			// update cached stats
+			StatsCache.Instance.UpdateUsingAnime(session, anime.AnimeID);
+			StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
+
+			// download character images
+			foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session))
+			{
+				AniDB_Character chr = animeChar.GetCharacter(session);
+				if (chr == null) continue;
+
+				if (ServerSettings.AniDB_DownloadCharacters)
+				{
+					if (!string.IsNullOrEmpty(chr.PosterPath) && !File.Exists(chr.PosterPath))
+					{
+						logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName, chr.CharID, chr.PosterPath);
+						cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
+						cmd.Save();
+					}
+				}
+
+				if (ServerSettings.AniDB_DownloadCreators)
+				{
+					AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
+					if (seiyuu == null || string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
+
+					if (!File.Exists(seiyuu.PosterPath))
+					{
+						logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle, seiyuu.SeiyuuName, seiyuu.SeiyuuID, seiyuu.PosterPath);
+						cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
+						cmd.Save();
+					}
+				}
+
+			}
+
+			return anime;
+		}
+
+		public AniDB_Anime GetAnimeInfoHTTPFromCache(ISession session, int animeID, bool downloadRelations)
+		{
+			AniDBHTTPCommand_GetFullAnime getAnimeCmd = null;
+			lock (lockAniDBConnections)
+			{
+				getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
+				getAnimeCmd.Init(animeID, false, false, true);
+				getAnimeCmd.Process();
+			}
+
+			AniDB_Anime anime = null;
+			if (getAnimeCmd.Anime != null)
+			{
+				anime = SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd);
+
+			}
 			return anime;
 		}
 

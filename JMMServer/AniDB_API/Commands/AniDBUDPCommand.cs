@@ -63,9 +63,11 @@ namespace AniDBAPI.Commands
 			int maxpart = 1;
 			string fulldesc = "";
 			string decodedstring = "";
+			DateTime start = DateTime.Now;
+
 			do
 			{
-
+				
 				if (part > 0)
 				{
 					mcommandText = mcommandText.Replace("part=" + (part - 1).ToString(), "part=" + part.ToString());
@@ -73,7 +75,8 @@ namespace AniDBAPI.Commands
 				}
 				if (commandType != enAniDBCommandType.Login)
 				{
-					logger.Info("ANIDB_UDP_COMMS commandText: {0}", mcommandText);
+					string msg = string.Format("UDP_COMMAND: {0}", mcommandText);
+					JMMService.LogToDatabase(Constants.DBLogType.APIAniDBUDP, msg);
 				}
 				else
 				{
@@ -237,12 +240,18 @@ namespace AniDBAPI.Commands
 				if (i != 2)
 				{
 					socketResponse = decodedstring;
-					logger.Info("ANIDB_UDP_COMMS socketResponse: {0}", socketResponse);
+
+					TimeSpan ts = DateTime.Now - start;
+					string msg = string.Format("UDP_RESPONSE in {0} ms - {1} ", ts.TotalMilliseconds, socketResponse);
+					JMMService.LogToDatabase(Constants.DBLogType.APIAniDBUDP, msg);
 				}
 				else
 				{
 					socketResponse = decodedstring.Substring(0, foundpos + 1);
-					logger.Info("ANIDB_UDP_COMMS truncated socketResponse: {0}", socketResponse);
+
+					TimeSpan ts = DateTime.Now - start;
+					string msg = string.Format("UDP_RESPONSE_TRUNC in {0}ms - {1} ", ts.TotalMilliseconds, socketResponse);
+					JMMService.LogToDatabase(Constants.DBLogType.APIAniDBUDP, msg);
 				}
 			}
 			int val = 0;

@@ -214,7 +214,16 @@ namespace JMMServer.Commands
 			if (missingEpisodes && !animeRecentlyUpdated)
 			{
 				logger.Debug("Getting Anime record from AniDB....");
-				anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AutoGroupSeries);
+
+				// try using the cache first
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					anime = JMMService.AnidbProcessor.GetAnimeInfoHTTPFromCache(session, animeID, ServerSettings.AutoGroupSeries);
+				}
+
+				// if not in cache try from AniDB
+				if (anime == null)
+					anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AutoGroupSeries);
 			}
 
 			// create the group/series/episode records if needed

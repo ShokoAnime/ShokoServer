@@ -196,6 +196,7 @@
     <Compile Include="Commands\AniDB\CommandRequest_GetFile.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_UpdateMylistStats.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeFull.cs" />
+    <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeXML.cs" />
     <Compile Include="Commands\CommandHelper.cs" />
     <Compile Include="Commands\CommandProcessorGeneral.cs" />
     <Compile Include="Commands\CommandProcessorHasher.cs" />
@@ -260,6 +261,7 @@
     <Compile Include="Entities\CrossRef_AniDB_MAL.cs" />
     <Compile Include="Entities\CrossRef_AniDB_TvDB_Episode.cs" />
     <Compile Include="Entities\FileFfdshowPreset.cs" />
+    <Compile Include="Entities\LogMessage.cs" />
     <Compile Include="Entities\Playlist.cs" />
     <Compile Include="Entities\RenameScript.cs" />
     <Compile Include="FileRenamer.cs" />
@@ -273,8 +275,10 @@
     <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TvDB_EpisodeMap.cs" />
     <Compile Include="Mappings\FileFfdshowPresetMap.cs" />
+    <Compile Include="Mappings\LogMessageMap.cs" />
     <Compile Include="Mappings\PlaylistMap.cs" />
     <Compile Include="Mappings\RenameScriptMap.cs" />
+    <Compile Include="Providers\Azure\Azure_AnimeXML.cs" />
     <Compile Include="Providers\Azure\AzureWebAPI.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeCharacter.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeDetail.cs" />
@@ -304,6 +308,7 @@
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\FileFfdshowPresetRepository.cs" />
+    <Compile Include="Repositories\LogMessageRepository.cs" />
     <Compile Include="Repositories\PlaylistRepository.cs" />
     <Compile Include="Repositories\RenameScriptRepository.cs" />
     <Compile Include="Security\CRC32.cs" />

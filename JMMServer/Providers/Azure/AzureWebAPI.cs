@@ -5,6 +5,7 @@ using System.Text;
 using System.Net;
 using System.IO;
 using NLog;
+using System.Web;
 
 namespace JMMServer.Providers.Azure
 {
@@ -21,6 +22,50 @@ namespace JMMServer.Providers.Azure
 			AnimeFull obj = data.ToContractAzure();
 			string json = JSONHelper.Serialize<AnimeFull>(obj);
 			SendData(uri, json, "POST");
+		}
+
+		public static void Send_AnimeXML(AnimeXML data)
+		{
+			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+			//string uri = string.Format(@"http://localhost:50994/api/animexml");
+			string uri = string.Format(@"http://jmm.azurewebsites.net/api/animexml");
+			string json = JSONHelper.Serialize<AnimeXML>(data);
+			SendData(uri, json, "POST");
+		}
+
+		public static string Get_AnimeXML(int animeID)
+		{
+			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+			//string uri = string.Format(@"http://localhost:50994/api/animexml/{0}", animeID);
+			string uri = string.Format(@"http://jmm.azurewebsites.net/api/animexml/{0}", animeID);
+
+			DateTime start = DateTime.Now;
+			string msg = string.Format("Getting Anime XML Data From Cache: {0}", animeID);
+			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+			string xml = GetDataXML(uri);
+
+			// remove the string container
+			int iStart = xml.IndexOf("<?xml");
+			if (iStart > 0)
+			{
+				string end = "</string>";
+				int iEnd = xml.IndexOf(end);
+				if (iEnd > 0)
+				{
+					xml = xml.Substring(iStart, iEnd - iStart -1);
+				}
+			}
+
+			TimeSpan ts = DateTime.Now - start;
+			string content = xml;
+			if (content.Length > 100) content = content.Substring(0, 100);
+			msg = string.Format("Got Anime XML Data From Cache: {0} - {1} - {2}", animeID, ts.TotalMilliseconds, content);
+			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+			return xml;
 		}
 
 		public static void Send_CrossRef_AniDB_MAL(JMMServer.Entities.CrossRef_AniDB_MAL data)
@@ -48,11 +93,14 @@ namespace JMMServer.Providers.Azure
 				req = WebRequest.Create(uri);
 				//req.Method = "POST";        // Post method
 				req.Method = verb;        // Post method, or PUT
-				req.ContentType = "application/json";     // content type
+				req.ContentType = "application/json; charset=UTF-8";     // content type
 				req.Proxy = null;
 
 				// Wrap the request stream with a text-based writer
-				StreamWriter writer = new StreamWriter(req.GetRequestStream());
+				Encoding encoding = null;
+				encoding = Encoding.UTF8;
+
+				StreamWriter writer = new StreamWriter(req.GetRequestStream(), encoding);
 				// Write the XML text into the stream
 				writer.WriteLine(json);
 				writer.Close();
@@ -76,6 +124,52 @@ namespace JMMServer.Providers.Azure
 				if (req != null) req.GetRequestStream().Close();
 				if (rsp != null) rsp.GetResponseStream().Close();
 			}
+		}
+
+		private static string GetDataXML(string uri)
+		{
+			try
+			{
+				DateTime start = DateTime.Now;
+
+				HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(uri);
+				webReq.Timeout = 60000; // 60 seconds
+				webReq.Proxy = null;
+				webReq.Method = "GET";
+				webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
+				webReq.ContentType = "text/xml";     // content type
+				webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+
+				HttpWebResponse WebResponse = (HttpWebResponse)webReq.GetResponse();
+
+				Stream responseStream = WebResponse.GetResponseStream();
+				String enco = WebResponse.CharacterSet;
+				Encoding encoding = null;
+				if (!String.IsNullOrEmpty(enco))
+					encoding = Encoding.GetEncoding(WebResponse.CharacterSet);
+				if (encoding == null)
+					encoding = Encoding.Default;
+				StreamReader Reader = new StreamReader(responseStream, encoding);
+
+				string output = Reader.ReadToEnd();
+				output = HttpUtility.HtmlDecode(output);
+
+
+				WebResponse.Close();
+				responseStream.Close();
+
+				return output;
+			}
+			catch (WebException webEx)
+			{
+				logger.Error("Error(1) in AzureWebAPI.GetData: {0}", webEx);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error(2) in AzureWebAPI.GetData: {0}", ex);
+			}
+
+			return "";
 		}
 
 		/*public static void Delete_CrossRef_AniDB_MAL(int animeID, int epType, int epNumber)

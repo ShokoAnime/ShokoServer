@@ -8,6 +8,8 @@ using NHibernate;
 using JMMServer.Databases;
 using NLog;
 using JMMServer.Providers.TvDB;
+using JMMServer.Repositories;
+using JMMServer.Entities;
 
 namespace JMMServer
 {
@@ -25,6 +27,22 @@ namespace JMMServer
 		private static readonly object lockLastAniDBPing = new object();
 
 		public static bool DebugFlag = false;
+
+		public static void LogToDatabase(string logType, string logMessage)
+		{
+			LogMessageRepository rep = new LogMessageRepository();
+			LogMessage dbLog = new LogMessage();
+			dbLog.LogType = logType;
+			dbLog.LogContent = logMessage;
+			dbLog.LogDate = DateTime.Now;
+
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				rep.Save(session, dbLog);
+			}
+
+			logger.Info(string.Format("{0} - {1}", logType, logMessage));
+		}
 
 		private static DateTime lastAniDBMessage = DateTime.Now;
 		public static DateTime LastAniDBMessage

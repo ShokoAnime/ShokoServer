@@ -6,6 +6,7 @@ using System.Xml;
 using System.IO;
 using JMMServer;
 using JMMServer.AniDB_API.Raws;
+using JMMServer.Providers.Azure;
 
 namespace AniDBAPI.Commands
 {
@@ -18,6 +19,10 @@ namespace AniDBAPI.Commands
 			set { animeID = value; }
 		}
 
+		public bool ForceFromAniDB {get; set;}
+		public bool CacheOnly { get; set; }
+
+		
 		private Raw_AniDB_Anime anime;
 		public Raw_AniDB_Anime Anime
 		{
@@ -158,11 +163,44 @@ namespace AniDBAPI.Commands
 			string fileName = string.Format("AnimeDoc_{0}.xml", animeID);
 			string fileNameWithPath = Path.Combine(filePath, fileName);
 
-			JMMService.LastAniDBMessage = DateTime.Now;
-			JMMService.LastAniDBHTTPMessage = DateTime.Now;
+			if (!CacheOnly)
+			{
+				JMMService.LastAniDBMessage = DateTime.Now;
+				JMMService.LastAniDBHTTPMessage = DateTime.Now;
+			}
 
-			XmlDocument docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
-			//XmlDocument docAnime = LoadAnimeHTTPFromFile(animeID);
+			XmlDocument docAnime = null;
+
+			if (CacheOnly)
+			{
+				xmlResult = AzureWebAPI.Get_AnimeXML(animeID);
+				if (!string.IsNullOrEmpty(xmlResult))
+				{
+					docAnime = new XmlDocument();
+					docAnime.LoadXml(xmlResult);
+				}
+			}
+			else
+			{
+				if (!ForceFromAniDB)
+				{
+					xmlResult = AzureWebAPI.Get_AnimeXML(animeID);
+					if (string.IsNullOrEmpty(xmlResult))
+					{
+						docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
+					}
+					else
+					{
+						docAnime = new XmlDocument();
+						docAnime.LoadXml(xmlResult);
+					}
+				}
+				else
+				{
+					docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
+					//XmlDocument docAnime = LoadAnimeHTTPFromFile(animeID);
+				}
+			}
 
 			if (xmlResult.Trim().Length > 0)
 				WriteAnimeHTTPToFile(animeID, xmlResult);
@@ -188,13 +226,16 @@ namespace AniDBAPI.Commands
 			}
 		}
 
+
 		public AniDBHTTPCommand_GetFullAnime()
 		{
 			commandType = enAniDBCommandType.GetAnimeInfoHTTP;
 		}
 
-		public void Init(int animeID, bool createSeriesRecord)
+		public void Init(int animeID, bool createSeriesRecord, bool forceFromAniDB, bool cacheOnly)
 		{
+			this.ForceFromAniDB = forceFromAniDB;
+			this.CacheOnly = cacheOnly;
 			this.animeID = animeID;
 			commandID = animeID.ToString();
 			this.createAnimeSeriesRecord = createSeriesRecord;

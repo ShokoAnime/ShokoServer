@@ -88,12 +88,18 @@ namespace JMMServer.Commands
 		// Pri 10
 		//------
 		// CommandRequest_UpdateMylistStats
+		// CommandRequest_Azure_SendAnimeXML
 
 		public static ICommandRequest GetCommand(CommandRequest crdb)
 		{
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
 			{
+				case CommandRequestType.Azure_SendAnimeXML:
+					CommandRequest_Azure_SendAnimeXML cr_CommandRequest_Azure_SendAnimeXML = new CommandRequest_Azure_SendAnimeXML();
+					cr_CommandRequest_Azure_SendAnimeXML.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_CommandRequest_Azure_SendAnimeXML;
+
 				case CommandRequestType.Azure_SendAnimeFull:
 					CommandRequest_Azure_SendAnimeFull cr_CommandRequest_Azure_SendAnimeFull = new CommandRequest_Azure_SendAnimeFull();
 					cr_CommandRequest_Azure_SendAnimeFull.LoadFromDBCommand(crdb);

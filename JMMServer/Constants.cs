@@ -28,6 +28,13 @@ namespace JMMServer
 			public static readonly string MySQL = "MYSQL";
 		}
 
+		public struct DBLogType
+		{
+			public static readonly string APIAniDBHTTP = "AniDB HTTP";
+			public static readonly string APIAniDBUDP = "AniDB UDP";
+			public static readonly string APIAzureHTTP = "Cache HTTP";
+		}
+
 
 		#region Labels
 

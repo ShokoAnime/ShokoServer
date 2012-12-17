@@ -1232,6 +1232,26 @@ namespace JMMServer
 			*/
 
 			//SendToAzure();
+			//SendToAzureXML();
+
+			try
+			{
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					AniDB_Anime anime = JMMService.AnidbProcessor.GetAnimeInfoHTTPFromCache(session, 5842, false);
+				}
+			}
+			catch (Exception ex)
+			{
+				Utils.ShowErrorMessage(ex);
+			}
+
+			//CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(3482, false, false);
+			//cmd.Save();
+
+			//string xml = AzureWebAPI.Get_AnimeXML(3483);
+			//XmlDocument docAnime = new XmlDocument();
+			//docAnime.LoadXml(xml);
 
 			//JMMService.AnidbProcessor.IsBanned = true;
 			//JMMService.AnidbProcessor.BanOrigin = "HTTP";
@@ -1240,6 +1260,28 @@ namespace JMMServer
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();
+		}
+
+		private void SendToAzureXML()
+		{
+			
+			DateTime dt = DateTime.Now.AddYears(-2);
+			AniDB_AnimeRepository rep = new AniDB_AnimeRepository();
+			List<AniDB_Anime> allAnime = rep.GetAll();
+
+			int sentAnime = 0;
+			foreach (AniDB_Anime anime in rep.GetAll())
+			{
+				if (!anime.EndDate.HasValue) continue;
+
+				if (anime.EndDate.Value > dt) continue;
+
+				sentAnime++;
+				CommandRequest_Azure_SendAnimeXML cmd = new CommandRequest_Azure_SendAnimeXML(anime.AnimeID);
+				cmd.Save();
+			}
+
+			logger.Info(string.Format("Sent Anime XML to Cache: {0} out of {1}", sentAnime, allAnime.Count));
 		}
 
 		private void SendToAzure()
@@ -1265,7 +1307,7 @@ namespace JMMServer
 
 			file.Close();
 
-			string aids = "5960,1941,538,215,4295,2660,985,3110,451,3571,10,1885,3065,4370,466,4160,758,3165,3921,1901,1113,2806,4505,3181,4374,2835,1184,4986,5329,4244,3279,4561,597,2392,2505,3882,2008,3835,261,4985,4915,2454,5786,912,2626,5284,4821,352,2136,2188,4792,387,5128,685,4242,5230,2731,3451,1482,3091,674,5263,5031,3333,5828,841,4735,5096,4808,3743,5072,4378,765,1805,4639,5818,966,775,4647,384,3586,3099,2088,1546,1641,340,4120,1756,1387,1925,2592,3045,1156,1331,2050,1263,2090,3807,5619,3622,1696,4829,5755,5151,1716,3349,5518,4588,5915,4082,1760,152,302,39,3366,2278,2499,3529,1083,1294,4768,4329,4389,2065,5314,2790,3038,2096,375,5930,138,4903,1780,5138,2163,4299,2149,3587,5815,4400,81,3017,4958,3674,982,1342,5651,1475,5448,5827,5742,5705,5589,4114,5173,1620,1313,5725,201,4051,849,3676,5741";
+			string aids = "3642,3588,2420,948,394,4944,550,2311,5734,3583,1664,3842,5978,5935,2255,2978,1393,5760,5790,2666,2183,5218,2664,2953,5375,489,5465,1592,4770,3593,2324,850,4670,2404,661,4011,4396,4045,5497,4121,3162,2456,2876,5121,4292,4341,5584,1205,2970,1991,556,5938,2585,5042,4766,5219,3740,3568,2359,1016,3690,4437,233,2394,3305,4952,3977,3426,159,403,1032,1532,3672,2519,1386,175,4803,1525,5851,4440,1188,2229,280,3658,4724,3083,869,938,5562,701,3039,3121,2063,3537,2409,5194,1210,2319,2230,1698,574,4636,3068,5676,3775,2085,1999,5264,5834,843,4401,4166,1791,4904,2061,2162,3164,610,5710,5416,4015,3599,3274,3793,4696,4839,627,1138,2946,3269,3798,3922,1515,3286,953,986,2461,2252,2967,4982,5633,472,3904,5680,4993,5282,5035,4699,2695,5756,2305,1065,2265,4507,5061,107,677,5256,2223,673,609,2418,1727,4415,2396,5570,1241,4026,5893,4257,3273,3784,3543,642,1224,4537,3877,2110,903,5098,3161,3188,2910,981,4565,5421,5088,3577,4587,5911,4376,1029,1655,4212,129,4872,5250,1712,5682,4613,4049,577,3808,1679,2544,1103,2870,2351,2512,5848,870,3734,4280,2092,2391,4178,3518,3547,5693,523,4361,161,519,1279,3410,3562,2577,1972,5685,1172,4620,3941,3173,5779,951,559,1669,2545,4359,5143,5900,1980,3864,930,5795,5856,2383,648,4237,3881,2144,887,3130,5419,2874,5721,2013,1245,2346,893,1456,2927,3006,124,3139,4063";
 			string[] aidArray = aids.Split(',');
 
 			logger.Info(string.Format("Queueing {0} anime updates", aidArray.Length));

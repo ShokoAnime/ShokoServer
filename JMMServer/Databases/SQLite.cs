@@ -133,6 +133,7 @@ namespace JMMServer.Databases
 				UpdateSchema_025(versionNumber);
 				UpdateSchema_026(versionNumber);
 				UpdateSchema_027(versionNumber);
+				UpdateSchema_028(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -925,6 +926,38 @@ namespace JMMServer.Databases
 			List<string> cmds = new List<string>();
 
 			cmds.Add("update CrossRef_File_Episode SET CrossRefSource=1 WHERE Hash IN (Select Hash from ANIDB_File) AND CrossRefSource=2;");
+
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_028(int currentVersionNumber)
+		{
+			int thisVersion = 28;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE LogMessage( " +
+				" LogMessageID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" LogType text, " +
+				" LogContent text, " +
+				" LogDate timestamp NOT NULL " +
+				" ); ");
 
 
 			foreach (string cmdTable in cmds)

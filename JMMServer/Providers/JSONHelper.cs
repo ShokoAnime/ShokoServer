@@ -13,7 +13,8 @@ namespace JMMServer.Providers
 			System.Runtime.Serialization.Json.DataContractJsonSerializer serializer = new System.Runtime.Serialization.Json.DataContractJsonSerializer(obj.GetType());
 			MemoryStream ms = new MemoryStream();
 			serializer.WriteObject(ms, obj);
-			string retVal = Encoding.Default.GetString(ms.ToArray());
+			//string retVal = Encoding.Default.GetString(ms.ToArray());
+			string retVal = Encoding.UTF8.GetString(ms.ToArray());
 			ms.Dispose();
 			return retVal;
 		}
