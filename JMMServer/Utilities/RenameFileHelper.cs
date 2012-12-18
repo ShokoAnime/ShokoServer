@@ -1206,6 +1206,30 @@ namespace JMMServer
 				}
 				#endregion
 
+				#region Test if Video resolution exists
+				string tagVidRes = Constants.FileRenameTag.Resolution.Substring(1, Constants.FileRenameTag.Resolution.Length - 1); // remove % at the front
+				if (test.Trim().Equals(tagVidRes, StringComparison.InvariantCultureIgnoreCase))
+				{
+					string vidRes = "";
+					if (aniFile != null)
+						vidRes = aniFile.File_VideoResolution;
+
+					if (string.IsNullOrEmpty(vidRes) && vi != null)
+						vidRes = vi.VideoResolution;
+
+					if (string.IsNullOrEmpty(vidRes))
+					{
+						if (notCondition) return true;
+						else return false;
+					}
+					else
+					{
+						if (notCondition) return false;
+						else return true;
+					}
+				}
+				#endregion
+
 				#region Test file has a video codec defined
 				string tagVideoCodec = Constants.FileRenameTag.VideoCodec.Substring(1, Constants.FileRenameTag.VideoCodec.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagVideoCodec, StringComparison.InvariantCultureIgnoreCase))
