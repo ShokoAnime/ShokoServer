@@ -11,6 +11,7 @@ using NLog;
 using BinaryNorthwest;
 using JMMServer.Commands.MAL;
 using NHibernate;
+using System.Threading;
 
 namespace JMMServer.Entities
 {
@@ -557,8 +558,60 @@ namespace JMMServer.Entities
 			}
 			else
 			{
+				string originalFileName = this.FullServerPath;
+				FileInfo fi = new FileInfo(originalFileName);
+
 				// now move the file
 				File.Move(this.FullServerPath, newFullServerPath);
+
+				// move any subtitle files
+				foreach (string subtitleFile in GetPossibleSubtitleFiles(originalFileName))
+				{
+					if (File.Exists(subtitleFile))
+					{
+						FileInfo fiSub = new FileInfo(subtitleFile);
+						string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath), fiSub.Name);
+						if (File.Exists(newSubPath))
+						{
+							// if the file already exists, we can just delete the source file instead
+							// this is safer than deleting and moving
+							File.Delete(newSubPath);
+						}
+						else
+							File.Move(subtitleFile, newSubPath);
+					}
+				}
+
+				// check for any empty folders in drop folder
+				// only for the drop folder
+				if (this.ImportFolder.IsDropSource == 1)
+				{
+					foreach (string folderName in Directory.GetDirectories(this.ImportFolder.ImportFolderLocation, "*", SearchOption.AllDirectories))
+					{
+						if (Directory.Exists(folderName))
+						{
+							if (Directory.GetFiles(folderName, "*", SearchOption.AllDirectories).Length == 0)
+							{
+								try
+								{
+									Directory.Delete(folderName, true);
+								}
+								catch (IOException)
+								{
+									Thread.Sleep(0);
+									Directory.Delete(folderName, false);
+								}
+								catch (Exception ex)
+								{
+									logger.ErrorException(ex.ToString(), ex);
+								}
+							}
+						}
+					}
+				}
+
+				
+
 			}
 
 			this.ImportFolderID = newFolderID;
@@ -566,6 +619,18 @@ namespace JMMServer.Entities
 			VideoLocalRepository repVids = new VideoLocalRepository();
 			repVids.Save(this);
 
+		}
+
+		private List<string> GetPossibleSubtitleFiles(string fileName)
+		{
+			List<string> subtileFiles = new List<string>();
+			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".srt"));
+			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".ass"));
+			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".ssa"));
+			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".idx"));
+			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".sub"));
+
+			return subtileFiles;
 		}
 
 		public Contract_VideoLocal ToContract(int userID)
