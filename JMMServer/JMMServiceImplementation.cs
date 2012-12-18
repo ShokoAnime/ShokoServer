@@ -4122,11 +4122,12 @@ namespace JMMServer
 						{
 							videoSource = SimplifyVideoSource(videoSource);
 							string fileSource = SimplifyVideoSource(aniFile.File_Source);
+							string vidResAniFile = Utils.GetStandardisedVideoResolution(aniFile.File_VideoResolution);
 
 							// match based on group / video sorce / video res
 							if (relGroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) &&
 								videoSource.Equals(fileSource, StringComparison.InvariantCultureIgnoreCase) &&
-								resolution.Equals(aniFile.File_VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
+								resolution.Equals(vidResAniFile, StringComparison.InvariantCultureIgnoreCase) &&
 								thisBitDepth == videoBitDepth)
 							{
 								vids.Add(vid.ToContractDetailed(userID));
@@ -4135,10 +4136,12 @@ namespace JMMServer
 						}
 						else
 						{
+							string vidResInfo = Utils.GetStandardisedVideoResolution(vidInfo.VideoResolution);
+
 							// match based on group / video sorce / video res
 							if (relGroupName.Equals(Constants.NO_GROUP_INFO, StringComparison.InvariantCultureIgnoreCase) &&
 								videoSource.Equals(Constants.NO_SOURCE_INFO, StringComparison.InvariantCultureIgnoreCase) &&
-								resolution.Equals(vidInfo.VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
+								resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase) &&
 								thisBitDepth == videoBitDepth)
 							{
 								vids.Add(vid.ToContractDetailed(userID));
@@ -4298,6 +4301,8 @@ namespace JMMServer
 										bitDepth = 8;
 								}
 
+								string vidResAniFile = Utils.GetStandardisedVideoResolution(aniFile.File_VideoResolution);
+
 								// match based on group / video sorce / video res
 								bool foundSummaryRecord = false;
 								foreach (Contract_GroupVideoQuality contract in vidQuals)
@@ -4305,10 +4310,12 @@ namespace JMMServer
 									string contractSource = SimplifyVideoSource(contract.VideoSource);
 									string fileSource = SimplifyVideoSource(aniFile.File_Source);
 
+									string vidResContract = Utils.GetStandardisedVideoResolution(contract.Resolution);
+									
 
 									if (contract.GroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) &&
 										contractSource.Equals(fileSource, StringComparison.InvariantCultureIgnoreCase) &&
-										contract.Resolution.Equals(aniFile.File_VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
+										vidResContract.Equals(vidResAniFile, StringComparison.InvariantCultureIgnoreCase) &&
 										contract.VideoBitDepth == bitDepth)
 									{
 										foundSummaryRecord = true;
@@ -4333,7 +4340,7 @@ namespace JMMServer
 									contract.GroupName = aniFile.Anime_GroupName;
 									contract.GroupNameShort = aniFile.Anime_GroupNameShort;
 									contract.VideoBitDepth = bitDepth;
-									contract.Resolution = aniFile.File_VideoResolution;
+									contract.Resolution = vidResAniFile;
 									contract.VideoSource = SimplifyVideoSource(aniFile.File_Source);
 									contract.Ranking = Utils.GetOverallVideoSourceRanking(contract.Resolution, contract.VideoSource, bitDepth);
 									contract.NormalEpisodeNumbers = new List<int>();
@@ -4359,12 +4366,17 @@ namespace JMMServer
 											bitDepth = 8;
 									}
 
+									string vidResInfo = Utils.GetStandardisedVideoResolution(vinfo.VideoResolution);
+
 									bool foundSummaryRecord = false;
 									foreach (Contract_GroupVideoQuality contract in vidQuals)
 									{
+										string vidResContract = Utils.GetStandardisedVideoResolution(contract.Resolution);
+										
+
 										if (contract.GroupName.Equals(Constants.NO_GROUP_INFO, StringComparison.InvariantCultureIgnoreCase) &&
 											contract.VideoSource.Equals(Constants.NO_SOURCE_INFO, StringComparison.InvariantCultureIgnoreCase) &&
-											contract.Resolution.Equals(vinfo.VideoResolution, StringComparison.InvariantCultureIgnoreCase) &&
+											vidResContract.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase) &&
 											contract.VideoBitDepth == bitDepth)
 										{
 											foundSummaryRecord = true;
@@ -4387,7 +4399,7 @@ namespace JMMServer
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
 										contract.GroupName = Constants.NO_GROUP_INFO;
 										contract.GroupNameShort = Constants.NO_GROUP_INFO;
-										contract.Resolution = vinfo.VideoResolution;
+										contract.Resolution = vidResInfo;
 										contract.VideoSource = Constants.NO_SOURCE_INFO;
 										contract.VideoBitDepth = bitDepth;
 										contract.Ranking = Utils.GetOverallVideoSourceRanking(contract.Resolution, contract.VideoSource, bitDepth);
@@ -4482,6 +4494,8 @@ namespace JMMServer
 				return vidQuals;
 			}
 		}
+
+		
 
 		public List<Contract_GroupFileSummary> GetGroupFileSummary(int animeID)
 		{
@@ -7828,6 +7842,8 @@ namespace JMMServer
 			return retAnime;
 		}
 
+
+
 		public void RemoveIgnoreAnime(int ignoreAnimeID)
 		{
 			try
@@ -8497,6 +8513,34 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 				return contracts;
 			}
+		}
+
+		public List<Contract_LogMessage> GetLogMessages(string logType)
+		{
+			List<Contract_LogMessage> retLogs = new List<Contract_LogMessage>();
+			try
+			{
+				List<LogMessage> logs = null;
+				LogMessageRepository repIgnore = new LogMessageRepository();
+
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					if (string.IsNullOrEmpty(logType))
+						logs = repIgnore.GetAll(session);
+					else
+						logs = repIgnore.GetByLogType(session, logType);
+
+					foreach (LogMessage log in logs)
+						retLogs.Add(log.ToContract());
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return retLogs;
 		}
 	}
 

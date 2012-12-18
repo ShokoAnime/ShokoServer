@@ -109,6 +109,7 @@
     <Compile Include="Contract_ImportFolder.cs" />
     <Compile Include="Contract_ImportFolder_SaveResponse.cs" />
     <Compile Include="Contract_JMMUser.cs" />
+    <Compile Include="Contract_LogMessage.cs" />
     <Compile Include="Contract_MALAnimeResponse.cs" />
     <Compile Include="Contract_MissingEpisode.cs" />
     <Compile Include="Contract_MissingFile.cs" />

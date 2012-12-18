@@ -597,6 +597,63 @@ namespace JMMServer
 		}
 		#endregion
 
+		/// <summary>
+		/// This method attempts to take a video resolution, and return something that is closer to a standard
+		/// </summary>
+		/// <param name="res"></param>
+		/// <returns></returns>
+		public static string GetStandardisedVideoResolution(string res)
+		{
+			double width = (double)GetVideoWidth(res);
+			double height = (double)GetVideoHeight(res);
+
+			if (width <= 0 || height <= 0) return res;
+
+			/*
+			 * ~16x9 
+			640x360
+			720x400
+			720x480
+			848x480
+			1280x720
+			1920x1080
+
+			 * ~ 4x3
+			640x480
+			1280x960
+			1024x576
+			*/
+
+			if (VideoResolutionWithFivePercent(width, height, 640, 360)) return "640x360";
+			if (VideoResolutionWithFivePercent(width, height, 720, 400)) return "720x400";
+			if (VideoResolutionWithFivePercent(width, height, 720, 480)) return "720x480";
+			if (VideoResolutionWithFivePercent(width, height, 848, 480)) return "848x480";
+			if (VideoResolutionWithFivePercent(width, height, 1280, 720)) return "1280x720";
+			if (VideoResolutionWithFivePercent(width, height, 1920, 1080)) return "1920x1080";
+
+			if (VideoResolutionWithFivePercent(width, height, 640, 480)) return "640x480";
+			if (VideoResolutionWithFivePercent(width, height, 1280, 960)) return "1280x960";
+			if (VideoResolutionWithFivePercent(width, height, 1024, 576)) return "1024x576";
+
+			return res;
+
+		}
+
+		private static bool VideoResolutionWithFivePercent(double width, double height, int testWidth, int testHeight)
+		{
+			// get %5 differentials
+			double widthLower = width * (double)0.95;
+			double widthUpper = width * (double)1.05;
+
+			double heightLower = height * (double)0.95;
+			double heightUpper = height * (double)1.05;
+
+			if (testWidth >= widthLower && testWidth <= widthUpper && testHeight >= heightLower && testHeight <= heightUpper)
+				return true;
+			else
+				return false;
+		}
+
 		public static int GetVideoWidth(string videoResolution)
 		{
 			int videoWidth = 0;

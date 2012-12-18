@@ -626,6 +626,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		void RescanManuallyLinkedFiles();
+
+		[OperationContract]
+		List<Contract_LogMessage> GetLogMessages(string logType);
 	}
 
 }
