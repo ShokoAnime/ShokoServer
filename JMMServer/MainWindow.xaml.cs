@@ -1873,6 +1873,7 @@ namespace JMMServer
 			Importer.CheckForMALUpdate(false);
 			Importer.CheckForMyListStatsUpdate(false);
 			Importer.CheckForAniDBFileUpdate(false);
+			Importer.CheckForLogClean();
 		}
 
 		public static void StartWatchingFiles()

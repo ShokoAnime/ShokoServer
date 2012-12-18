@@ -1062,5 +1062,48 @@ namespace JMMServer
 			sched.LastUpdate = DateTime.Now;
 			repSched.Save(sched);
 		}
+
+		public static void CheckForLogClean()
+		{
+			int freqHours = 24;
+
+			// check for any updated anime info every 12 hours
+			ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+			ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.LogClean);
+			if (sched != null)
+			{
+				// if we have run this in the last 24 hours and are not forcing it, then exit
+				TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+				if (tsLastRun.TotalHours < freqHours) return;
+			}
+
+			// files which have been hashed, but don't have an associated episode
+			LogMessageRepository repVidLocals = new LogMessageRepository();
+
+			DateTime logCutoff = DateTime.Now.AddDays(-30);
+			//DateTime logCutoff = DateTime.Now.AddMinutes(-45);
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				foreach (LogMessage log in repVidLocals.GetAll(session))
+				{
+					if (log.LogDate < logCutoff)
+						repVidLocals.Delete(session, log.LogMessageID);
+				}
+			}
+
+			// now check for any files which have been manually linked and are less than 30 days old
+
+
+			if (sched == null)
+			{
+				sched = new ScheduledUpdate();
+				sched.UpdateType = (int)ScheduledUpdateType.LogClean;
+				sched.UpdateDetails = "";
+			}
+			sched.LastUpdate = DateTime.Now;
+			repSched.Save(sched);
+		}
 	}
 }

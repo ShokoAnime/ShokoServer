@@ -217,7 +217,8 @@ namespace JMMServer
 		TraktUpdate = 7,
 		MALUpdate = 8,
 		AniDBMylistStats = 9,
-		AniDBFileUpdates = 10
+		AniDBFileUpdates = 10,
+		LogClean = 11
 	}
 
 	public enum JMMImageType
