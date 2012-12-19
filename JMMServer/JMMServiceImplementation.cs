@@ -4067,6 +4067,14 @@ namespace JMMServer
 						continue;
 					}
 
+					// make sure that they are not actually the same file
+					if (df.FullServerPath1.Equals(df.FullServerPath2, StringComparison.InvariantCultureIgnoreCase))
+					{
+						string msg = string.Format("Deleting duplicate file record as they are actually point to the same file: {0}", df.FullServerPath1);
+						logger.Info(msg);
+						repDupFiles.Delete(df.DuplicateFileID);
+					}
+
 					// check if both files still exist
 					if (!File.Exists(df.FullServerPath1) || !File.Exists(df.FullServerPath2))
 					{

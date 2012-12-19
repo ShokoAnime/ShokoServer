@@ -565,7 +565,7 @@ namespace JMMServer.Entities
 				File.Move(this.FullServerPath, newFullServerPath);
 
 				// move any subtitle files
-				foreach (string subtitleFile in GetPossibleSubtitleFiles(originalFileName))
+				foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
 				{
 					if (File.Exists(subtitleFile))
 					{
@@ -621,17 +621,7 @@ namespace JMMServer.Entities
 
 		}
 
-		private List<string> GetPossibleSubtitleFiles(string fileName)
-		{
-			List<string> subtileFiles = new List<string>();
-			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".srt"));
-			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".ass"));
-			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".ssa"));
-			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".idx"));
-			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".sub"));
-
-			return subtileFiles;
-		}
+		
 
 		public Contract_VideoLocal ToContract(int userID)
 		{

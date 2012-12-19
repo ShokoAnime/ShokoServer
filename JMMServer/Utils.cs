@@ -597,6 +597,19 @@ namespace JMMServer
 		}
 		#endregion
 
+
+		public static List<string> GetPossibleSubtitleFiles(string fileName)
+		{
+			List<string> subtileFiles = new List<string>();
+			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".srt"));
+			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".ass"));
+			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".ssa"));
+			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".idx"));
+			subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName), Path.GetFileNameWithoutExtension(fileName) + ".sub"));
+
+			return subtileFiles;
+		}
+
 		/// <summary>
 		/// This method attempts to take a video resolution, and return something that is closer to a standard
 		/// </summary>
