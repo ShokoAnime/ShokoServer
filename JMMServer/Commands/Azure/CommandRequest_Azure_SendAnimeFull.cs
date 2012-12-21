@@ -53,6 +53,8 @@ namespace JMMServer.Commands.Azure
 				AniDB_Anime anime = rep.GetByAnimeID(AnimeID);
 				if (anime == null) return;
 
+				if (anime.AllCategories.ToUpper().Contains("18 RESTRICTED")) return;
+
 				AzureWebAPI.Send_AnimeFull(anime);
 			}
 			catch (Exception ex)
