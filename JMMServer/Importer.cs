@@ -1105,5 +1105,39 @@ namespace JMMServer
 			sched.LastUpdate = DateTime.Now;
 			repSched.Save(sched);
 		}
+
+		public static void UpdateAniDBTitles()
+		{
+			int freqHours = 100;
+
+			bool process = (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
+					ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
+
+			if (!process) return;
+
+			// check for any updated anime info every 100 hours
+			ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+
+			ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AniDBTitles);
+			if (sched != null)
+			{
+				// if we have run this in the last 100 hours and are not forcing it, then exit
+				TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+				if (tsLastRun.TotalHours < freqHours) return;
+			}
+
+			if (sched == null)
+			{
+				sched = new ScheduledUpdate();
+				sched.UpdateType = (int)ScheduledUpdateType.AniDBTitles;
+				sched.UpdateDetails = "";
+			}
+			sched.LastUpdate = DateTime.Now;
+			repSched.Save(sched);
+
+			CommandRequest_GetAniDBTitles cmd = new CommandRequest_GetAniDBTitles();
+			cmd.Save();
+		}
 	}
 }

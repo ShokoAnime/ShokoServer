@@ -6,6 +6,8 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
 using System.IO;
+using JMMServer.Providers.Azure;
+using JMMServer.Commands.Azure;
 
 namespace JMMServer.Commands
 {
@@ -21,15 +23,11 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Getting AniDB Titles from HTTP API");
+				return string.Format("Getting AniDB Titles");
 			}
 		}
 
 		public CommandRequest_GetAniDBTitles()
-		{
-		}
-
-		public CommandRequest_GetAniDBTitles(string hash, bool watched)
 		{
 			this.CommandType = (int)CommandRequestType.AniDB_GetTitles;
 			this.Priority = (int)DefaultPriority;
@@ -44,6 +42,11 @@ namespace JMMServer.Commands
 			
 			try
 			{
+				bool process = (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
+					ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
+
+				if (!process) return;
+
 				string url = Constants.AniDBTitlesURL;
 				logger.Trace("Get AniDB Titles: {0}", url);
 
@@ -61,12 +64,9 @@ namespace JMMServer.Commands
 				zis.Close();
 
 				AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
-				
 
-
-
-				/*string[] lines = b.ToString().Split('\n');
-				Dictionary<int, AniDB_Anime_Title> titles = new Dictionary<int, AniDB_Anime_Title>();
+				string[] lines = b.ToString().Split('\n');
+				Dictionary<int, AnimeIDTitle> titles = new Dictionary<int, AnimeIDTitle>();
 				foreach (string line in lines)
 				{
 					if (line.Trim().Length == 0 || line.Trim().Substring(0, 1) == "#") continue;
@@ -78,80 +78,40 @@ namespace JMMServer.Commands
 					if (animeID == 0) continue;
 
 					string titleType = fields[1].Trim().ToLower();
-					string language = fields[2].Trim().ToLower();
+					//string language = fields[2].Trim().ToLower();
 					string titleValue = fields[3].Trim();
 
-					List<AniDB_Anime_Title> existingtitles = repTitles.GetByAnimeIDLanguageTypeValue(animeID, language, titleType, titleValue);
-					if (existingtitles.Count == 0)
-					{
-					}
-
-					foreach (AniDB_Anime_Title animetitle in existingtitles)
-					{
-						if (animetitle.Title != titleValue)
-						{
-							animetitle.Title = titleValue;
-							repTitles.Save(animetitle);
-						}
-					}
 
 
-					AniDB_Title thisTitle = null;
+					AnimeIDTitle thisTitle = null;
 					if (titles.ContainsKey(animeID))
 					{
 						thisTitle = titles[animeID];
 					}
 					else
 					{
-						thisTitle = new AniDB_Title();
+						thisTitle = new AnimeIDTitle();
+						thisTitle.AnimeIDTitleId = 0;
+						thisTitle.MainTitle = titleValue;
 						thisTitle.AnimeID = animeID;
+						titles[animeID] = thisTitle;
 					}
 
-					if (titleType == 1 || titleType == 4)
-					{
-						if (language == "EN") thisTitle.EnglishName = titleValue;
-						if (language == "X-JAT") thisTitle.RomajiName = titleValue;
-					}
+					if (!string.IsNullOrEmpty(thisTitle.Titles))
+						thisTitle.Titles += "|";
 
-					if (titleType == 2) thisTitle.Synonyms.Add(titleValue);
-					if (titleType == 3) thisTitle.ShortTitles.Add(titleValue);
+					if (titleType.Equals("1"))
+						thisTitle.MainTitle = titleValue;
 
-					titles[animeID] = thisTitle;
+					thisTitle.Titles += titleValue;
 				}
 
-				foreach (AniDB_Title aniTitle in titles.Values)
+				foreach (AnimeIDTitle aniTitle in titles.Values)
 				{
-					AniDB_Anime anime = new AniDB_Anime();
-					if (!anime.Load(aniTitle.AnimeID))
-					{
-						anime.AnimeID = aniTitle.AnimeID;
-
-						// populate with blank values instead of nulls
-						anime.AnimeNfoID = "";
-						anime.AnimeType = -1;
-						anime.AwardList = "";
-						anime.CharacterIDListRAW = "";
-						anime.DateRecordUpdated = "";
-						anime.DateTimeUpdated = DateTime.Now.AddDays(-20); // we do this so it is not excluded from updates
-						anime.Description = "";
-						anime.GenreRAW = "";
-						anime.ImageEnabled = 1;
-						anime.OtherName = "";
-						anime.Picname = "";
-						anime.RelatedAnimeIdsRAW = "";
-						anime.RelatedAnimeTypesRAW = "";
-						anime.ReviewIDListRAW = "";
-						anime.KanjiName = "";
-						anime.URL = "";
-					}
-					anime.RomajiName = aniTitle.RomajiName;
-					anime.EnglishName = aniTitle.EnglishName;
-					anime.Synonyms = aniTitle.SynonymDBList;
-					anime.ShortNames = aniTitle.ShortTitlesDBList;
-
-					anime.Save(true, false, false);
-				}*/
-
+					//AzureWebAPI.Send_AnimeTitle(aniTitle);
+					CommandRequest_Azure_SendAnimeTitle cmdAzure = new CommandRequest_Azure_SendAnimeTitle(aniTitle.AnimeID, aniTitle.MainTitle, aniTitle.Titles);
+					cmdAzure.Save();
+				}
 				
 			}
 			catch (Exception ex)
@@ -167,7 +127,7 @@ namespace JMMServer.Commands
 		/// </summary>
 		public override void GenerateCommandID()
 		{
-			this.CommandID = string.Format("CommandRequest_GetAniDBTitles");
+			this.CommandID = string.Format("CommandRequest_GetAniDBTitles_{0}",DateTime.Now.ToString());
 		}
 
 		public override bool LoadFromDBCommand(CommandRequest cq)

@@ -550,11 +550,18 @@ namespace JMMServer.Entities
 
 			logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
 
+			
+
 			if (File.Exists(newFullServerPath))
 			{
 				// if the file already exists, we can just delete the source file instead
 				// this is safer than deleting and moving
 				File.Delete(this.FullServerPath);
+
+				this.ImportFolderID = newFolderID;
+				this.FilePath = newPartialPath;
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				repVids.Save(this);
 			}
 			else
 			{
@@ -563,6 +570,11 @@ namespace JMMServer.Entities
 
 				// now move the file
 				File.Move(this.FullServerPath, newFullServerPath);
+
+				this.ImportFolderID = newFolderID;
+				this.FilePath = newPartialPath;
+				VideoLocalRepository repVids = new VideoLocalRepository();
+				repVids.Save(this);
 
 				// move any subtitle files
 				foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
@@ -610,14 +622,7 @@ namespace JMMServer.Entities
 					}
 				}
 
-				
-
 			}
-
-			this.ImportFolderID = newFolderID;
-			this.FilePath = newPartialPath;
-			VideoLocalRepository repVids = new VideoLocalRepository();
-			repVids.Save(this);
 
 		}
 

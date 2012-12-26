@@ -1807,6 +1807,9 @@ namespace JMMServer
 					if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
 					if (aniFile.File_VideoResolution.Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
 				}
+				else
+					hasResolution = false;
+
 				if (!hasResolution)
 				{
 					// try the video info

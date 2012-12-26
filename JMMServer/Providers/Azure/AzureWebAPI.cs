@@ -34,6 +34,16 @@ namespace JMMServer.Providers.Azure
 			SendData(uri, json, "POST");
 		}
 
+		public static void Send_AnimeTitle(AnimeIDTitle data)
+		{
+			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+			//string uri = string.Format(@"http://localhost:50994/api/animexml");
+			string uri = string.Format(@"http://jmm.azurewebsites.net/api/animeidtitle");
+			string json = JSONHelper.Serialize<AnimeIDTitle>(data);
+			SendData(uri, json, "POST");
+		}
+
 		public static string Get_AnimeXML(int animeID)
 		{
 			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;

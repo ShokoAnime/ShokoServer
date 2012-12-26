@@ -196,6 +196,7 @@
     <Compile Include="Commands\AniDB\CommandRequest_GetFile.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_UpdateMylistStats.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeFull.cs" />
+    <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeTitle.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeXML.cs" />
     <Compile Include="Commands\CommandHelper.cs" />
     <Compile Include="Commands\CommandProcessorGeneral.cs" />
@@ -278,6 +279,7 @@
     <Compile Include="Mappings\LogMessageMap.cs" />
     <Compile Include="Mappings\PlaylistMap.cs" />
     <Compile Include="Mappings\RenameScriptMap.cs" />
+    <Compile Include="Providers\Azure\Azure_AnimeIDTitle.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeXML.cs" />
     <Compile Include="Providers\Azure\AzureWebAPI.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeCharacter.cs" />
@@ -756,11 +758,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)*.dll" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	
-xcopy "$(TargetDir)*.exe" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)*.pdb" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)*.manifest" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

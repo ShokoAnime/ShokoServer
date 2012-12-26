@@ -133,7 +133,8 @@ namespace JMMServer
 		WebCache_GetAniDB_File = 65,
 		AniDB_UpdateMylistStats = 66,
 		Azure_SendAnimeFull = 70,
-		Azure_SendAnimeXML = 71
+		Azure_SendAnimeXML = 71,
+		Azure_SendAnimeTitle = 72,
 	}
 
 	public enum CommandRequestPriority
@@ -148,6 +149,7 @@ namespace JMMServer
 		Priority8 = 8,
 		Priority9 = 9,
 		Priority10 = 10,
+		Priority11 = 11,
 		Default = 99
 	}
 
