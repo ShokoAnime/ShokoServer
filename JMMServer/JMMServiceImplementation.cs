@@ -3949,8 +3949,14 @@ namespace JMMServer
 				if (vid == null) return "Database entry does not exist";
 
 				logger.Info("Deleting video local record and file: {0}", vid.FullServerPath);
-				if (!File.Exists(vid.FullServerPath)) return "File could not be found";
-				File.Delete(vid.FullServerPath);
+				if (File.Exists(vid.FullServerPath))
+				{
+					try
+					{
+						File.Delete(vid.FullServerPath);
+					}
+					catch { }
+				}
 
 				AnimeSeries ser = null;
 				List<AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
