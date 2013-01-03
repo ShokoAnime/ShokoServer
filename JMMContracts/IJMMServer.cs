@@ -629,6 +629,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_LogMessage> GetLogMessages(string logType);
+
+		[OperationContract]
+		List<Contract_AnimeSearch> OnlineAnimeTitleSearch(string titleQuery);
 	}
 
 }

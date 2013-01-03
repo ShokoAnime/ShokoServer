@@ -79,6 +79,7 @@
     <Compile Include="Contract_AnimeGroup_Save.cs" />
     <Compile Include="Contract_AnimeGroup_SaveResponse.cs" />
     <Compile Include="Contract_AnimeRating.cs" />
+    <Compile Include="Contract_AnimeSearch.cs" />
     <Compile Include="Contract_AnimeSeries.cs" />
     <Compile Include="Contract_AniDB_AnimeDetailed.cs" />
     <Compile Include="Contract_AnimeSeries_Save.cs" />

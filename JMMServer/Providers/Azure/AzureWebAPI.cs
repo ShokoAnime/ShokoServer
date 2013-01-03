@@ -44,6 +44,26 @@ namespace JMMServer.Providers.Azure
 			SendData(uri, json, "POST");
 		}
 
+		public static List<AnimeIDTitle> Get_AnimeTitle(string query)
+		{
+			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+			string uri = string.Format(@"http://jmm.azurewebsites.net/api/animeidtitle/{0}", query);
+			string msg = string.Format("Getting Anime Title Data From Cache: {0}", query);
+
+			DateTime start = DateTime.Now;
+			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+			string json = GetDataJson(uri);
+
+			TimeSpan ts = DateTime.Now - start;
+			msg = string.Format("Got Anime Title Data From Cache: {0} - {1}", query, ts.TotalMilliseconds);
+			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+			List<AnimeIDTitle> titles = JSONHelper.Deserialize<List<AnimeIDTitle>>(json);
+
+			return titles;
+		}
+
 		public static string Get_AnimeXML(int animeID)
 		{
 			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
@@ -134,6 +154,47 @@ namespace JMMServer.Providers.Azure
 				if (req != null) req.GetRequestStream().Close();
 				if (rsp != null) rsp.GetResponseStream().Close();
 			}
+		}
+
+		private static string GetDataJson(string uri)
+		{
+			try
+			{
+				DateTime start = DateTime.Now;
+
+				HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(uri);
+				webReq.Timeout = 60000; // 60 seconds
+				webReq.Proxy = null;
+				webReq.Method = "GET";
+				webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
+				webReq.ContentType = "application/json; charset=UTF-8";     // content type
+				webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+
+				HttpWebResponse WebResponse = (HttpWebResponse)webReq.GetResponse();
+
+				Stream responseStream = WebResponse.GetResponseStream();
+				Encoding encoding = Encoding.UTF8; 
+				StreamReader Reader = new StreamReader(responseStream, encoding);
+
+				string output = Reader.ReadToEnd();
+				output = HttpUtility.HtmlDecode(output);
+
+
+				WebResponse.Close();
+				responseStream.Close();
+
+				return output;
+			}
+			catch (WebException webEx)
+			{
+				logger.Error("Error(1) in AzureWebAPI.GetData: {0}", webEx);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error(2) in AzureWebAPI.GetData: {0}", ex);
+			}
+
+			return "";
 		}
 
 		private static string GetDataXML(string uri)

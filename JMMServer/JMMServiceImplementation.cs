@@ -8556,6 +8556,51 @@ namespace JMMServer
 
 			return retLogs;
 		}
+
+		public List<Contract_AnimeSearch> OnlineAnimeTitleSearch(string titleQuery)
+		{
+			List<Contract_AnimeSearch> retTitles = new List<Contract_AnimeSearch>();
+			try
+			{
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+				List<JMMServer.Providers.Azure.AnimeIDTitle> titles = JMMServer.Providers.Azure.AzureWebAPI.Get_AnimeTitle(titleQuery);
+				
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					foreach (JMMServer.Providers.Azure.AnimeIDTitle tit in titles)
+					{
+						Contract_AnimeSearch res = new Contract_AnimeSearch();
+						res.AnimeID = tit.AnimeID;
+						res.MainTitle = tit.MainTitle;
+						res.Titles = tit.Titles;
+
+						// check for existing series and group details
+						AnimeSeries ser = repSeries.GetByAnimeID(tit.AnimeID);
+						if (ser != null)
+						{
+							res.SeriesExists = true;
+							res.AnimeSeriesID = ser.AnimeSeriesID;
+							res.AnimeSeriesName = ser.GetAnime(session).GetFormattedTitle(session);
+						}
+						else
+						{
+							res.SeriesExists = false;
+						}
+
+
+						retTitles.Add(res);
+					}
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+
+			return retTitles;
+		}
 	}
 
 	
