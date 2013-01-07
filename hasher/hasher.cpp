@@ -166,6 +166,20 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(const TCHAR
 	if (hFile == INVALID_HANDLE_VALUE)
 		return 2;
 
+	// If the current OS is Vista or later, set the file IO priority to background. This will allow the
+	// hashing to operate at full speed unless other, higher IO (low and above) is scheduled. This allows
+	// the hashing to be relatively unobtrusive. Remember, this is just a hint, so other factors can come
+	// in to play that could cause the IO to be issued at the Normal level.
+	OSVERSIONINFOW osVersion;
+	SecureZeroMemory(&osVersion, sizeof(OSVERSIONINFOW));
+	osVersion.dwOSVersionInfoSize = sizeof(OSVERSIONINFOW);
+	if (GetVersionExW(&osVersion) && osVersion.dwMajorVersion > 5)
+	{
+		FILE_IO_PRIORITY_HINT_INFO priorityHint;
+		priorityHint.PriorityHint = IoPriorityHintVeryLow;
+		SetFileInformationByHandle(hFile, FileIoPriorityHintInfo, &priorityHint, sizeof(priorityHint));
+	}
+
 	//allocate data
 	char * blocks[NumBlocks] = {0};
 	OVERLAPPED overlapped[NumBlocks] = {0};
