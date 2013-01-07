@@ -14,7 +14,7 @@ namespace JMMServer
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		private static readonly char[] validTests = "AGFEHXRTYDSCIZJWU".ToCharArray();
+		private static readonly char[] validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
 		/* TESTS
 		A	int     Anime id
 		G	int     Group id
@@ -33,6 +33,29 @@ namespace JMMServer
 		Z	int 	Video Bith Depth [8,10]
 		W	int 	Video Resolution Width [720, 1280, 1920, ...]
 		U	int 	Video Resolution Height [576, 720, 1080, ...]
+		M	null 	empty - test whether the file is manually linked
+		 */
+
+		/* TESTS - Alphabetical
+		A	int     Anime id
+		C   text	Video Codec (one of the video tracks) [H264/AVC, DivX5/6, unknown, VP Other, WMV9 (also WMV3), XviD, ...]
+		D	text	Dub language (one of the audio tracks) [japanese, english, ...]
+		E	text	Episode number
+		F	int     File version (ie 1, 2, 3 etc) Can use ! , > , >= , < , <=
+		G	int     Group id
+		H   text    Episode Type (E=episode, S=special, T=trailer, C=credit, P=parody, O=other)
+		I	text	Tag has a value. Do not use %, i.e. I(eng) [eng, kan, rom, ...]
+		J   text	Audio Codec (one of the audio tracks) [AC3, FLAC, MP3 CBR, MP3 VBR, Other, unknown, Vorbis (Ogg Vorbis)  ...]
+		M	null 	empty - test whether the file is manually linked
+		N	null 	empty - test whether the file has any episodes linked to it
+		R	text	Rip source [Blu-ray, unknown, camcorder, TV, DTV, VHS, VCD, SVCD, LD, DVD, HKDVD, www]
+		S	text	Sub language (one of the subtitle tracks) [japanese, english, ...]
+		T	text	Type [unknown, TV, OVA, Movie, Other, web]
+		U	int 	Video Resolution Height [576, 720, 1080, ...]
+		W	int 	Video Resolution Width [720, 1280, 1920, ...]
+		X	text	Total number of episodes
+		Y	int    	Year
+		Z	int 	Video Bith Depth [8,10]
 		 */
 
 		/// <summary>
@@ -60,6 +83,80 @@ namespace JMMServer
 				else
 					return animeID == episodes[0].AnimeID;
 				
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Test if the file is manually linked
+		/// No test parameter is required
+		/// </summary>
+		/// <param name="test"></param>
+		/// <param name="vid"></param>
+		/// <returns></returns>
+		private static bool EvaluateTestM(string test, AniDB_File aniFile, List<AniDB_Episode> episodes)
+		{
+			try
+			{
+				bool notCondition = false;
+				if (!string.IsNullOrEmpty(test) && test.Substring(0, 1).Equals("!"))
+					notCondition = true;
+
+				// for a file to be manually linked it must NOT have an anifile, but does need episodes attached
+				bool manuallyLinked = false;
+				if (aniFile == null)
+				{
+					manuallyLinked = true;
+					if (episodes == null || episodes.Count == 0)
+						manuallyLinked = false;
+				}
+
+				if (notCondition)
+					return !manuallyLinked;
+				else
+					return manuallyLinked;
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Test if the file has any episodes linked
+		/// No test parameter is required
+		/// </summary>
+		/// <param name="test"></param>
+		/// <param name="vid"></param>
+		/// <returns></returns>
+		private static bool EvaluateTestN(string test, AniDB_File aniFile, List<AniDB_Episode> episodes)
+		{
+			try
+			{
+				bool notCondition = false;
+				if (!string.IsNullOrEmpty(test) && test.Substring(0, 1).Equals("!"))
+					notCondition = true;
+
+				bool epsLinked = false;
+				if (aniFile == null)
+				{
+					if (episodes != null && episodes.Count > 0)
+						epsLinked = true;
+				}
+				else
+					epsLinked = true;
+
+				if (notCondition)
+					return !epsLinked;
+				else
+					return epsLinked;
+
 			}
 			catch (Exception ex)
 			{
@@ -2079,6 +2176,8 @@ namespace JMMServer
 				case 'I': return EvaluateTestI(testCondition, vid, aniFile, episodes, anime, vi);
 				case 'W': return EvaluateTestW(testCondition, vid, aniFile, vi);
 				case 'U': return EvaluateTestU(testCondition, vid, aniFile, vi);
+				case 'M': return EvaluateTestM(testCondition, aniFile, episodes);
+				case 'N': return EvaluateTestN(testCondition, aniFile, episodes);
 			}
 
 			return false;
