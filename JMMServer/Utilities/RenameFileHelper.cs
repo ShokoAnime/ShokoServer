@@ -939,23 +939,90 @@ namespace JMMServer
 				
 				if (anime == null) return false;
 
-				#region Test if Anime ID exists - yes it always does
-				// Test if Anime ID exists - yes it always does
+				#region Test if Anime ID exists
+				// Test if Anime ID exists
+
 				string tagAnimeID = Constants.FileRenameTag.AnimeID.Substring(1, Constants.FileRenameTag.AnimeID.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagAnimeID, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if (notCondition) return false;
-					else return true;
+					// manually linked files won't have an anime id
+					if (aniFile != null)
+					{
+						if (notCondition) return false;
+						else return true;
+					}
+					else
+					{
+						if (notCondition) return true;
+						else return false;
+					}
 				}
 				#endregion
 
-				#region Test if Episode Number exists - yes it always does
-				// Test if Episode Number exists - yes it always does
+				#region Test if Group ID exists
+				// Test if Group ID exists
+
+				string tagGroupID = Constants.FileRenameTag.GroupID.Substring(1, Constants.FileRenameTag.GroupID.Length - 1); // remove % at the front
+				if (test.Trim().Equals(tagGroupID, StringComparison.InvariantCultureIgnoreCase))
+				{
+					// manually linked files won't have an group id
+					if (aniFile != null)
+					{
+						if (notCondition) return false;
+						else return true;
+					}
+					else
+					{
+						if (notCondition) return false;
+						else return true;
+					}
+				}
+				#endregion
+
+				#region Test if Original File Name exists
+				// Test if Original File Nameexists
+
+				string tagOriginalFileName = Constants.FileRenameTag.OriginalFileName.Substring(1, Constants.FileRenameTag.OriginalFileName.Length - 1); // remove % at the front
+				if (test.Trim().Equals(tagOriginalFileName, StringComparison.InvariantCultureIgnoreCase))
+				{
+					// manually linked files won't have an Original File Name
+					if (aniFile != null)
+					{
+						if (string.IsNullOrEmpty(aniFile.FileName))
+						{
+							if (notCondition) return true;
+							else return false;
+						}
+						else
+						{
+							if (notCondition) return false;
+							else return true;
+						}
+					}
+					else
+					{
+						if (notCondition) return true;
+						else return false;
+					}
+				}
+				#endregion
+
+				#region Test if Episode Number exists
+				// Test if Episode Number exists
 				string tagEpisodeNumber = Constants.FileRenameTag.EpisodeNumber.Substring(1, Constants.FileRenameTag.EpisodeNumber.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagEpisodeNumber, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if (notCondition) return false;
-					else return true;
+					// manually linked files won't have an Episode Number
+					if (aniFile != null)
+					{
+						if (notCondition) return false;
+						else return true;
+					}
+					else
+					{
+						if (notCondition) return true;
+						else return false;
+					}
 				}
 				#endregion
 
@@ -964,8 +1031,17 @@ namespace JMMServer
 				string tagFileVersion = Constants.FileRenameTag.FileVersion.Substring(1, Constants.FileRenameTag.FileVersion.Length - 1); // remove % at the front
 				if (test.Trim().Equals(tagFileVersion, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if (notCondition) return false;
-					else return true;
+					// manually linked files won't have an anime id
+					if (aniFile != null)
+					{
+						if (notCondition) return false;
+						else return true;
+					}
+					else
+					{
+						if (notCondition) return true;
+						else return false;
+					}
 				}
 
 				#endregion
