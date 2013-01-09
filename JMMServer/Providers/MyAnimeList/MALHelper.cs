@@ -231,7 +231,7 @@ namespace JMMServer.Providers.MyAnimeList
 			        "&ccedil;",	"&egrave;",	"&eacute;",	"&ecirc;",	"&euml;",	"&igrave;",	"&iacute;",
 			        "&icirc;",	"&iuml;",	"&eth;",	"&ntilde;",	"&ograve;",	"&oacute;",	"&ocirc;",
 			        "&otilde;",	"&ouml;",	"&oslash;",	"&ugrave;",	"&uacute;",	"&ucirc;",	"&uuml;",	
-			        "&yacute;",	"&thorn;",	"&yuml;",	"&mdash;"};
+			        "&yacute;",	"&thorn;",	"&yuml;"};
 
 
 			if (entityCharacters.Length != entityNames.Length)
