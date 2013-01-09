@@ -60,6 +60,9 @@ namespace JMMServer
 		private static DateTime lastTraktInfoUpdate = DateTime.Now;
 		private static DateTime lastVersionCheck = DateTime.Now.AddDays(-5);
 
+		private static BlockingList<FileSystemEventArgs> queueFileEvents = new BlockingList<FileSystemEventArgs>();
+		private static BackgroundWorker workerFileEvents = new BackgroundWorker();
+
 		//private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
 		private static string baseAddressImageString = @"http://localhost:{0}/JMMServerImage";
 		private static string baseAddressStreamingString = @"http://localhost:{0}/JMMServerStreaming";
@@ -161,6 +164,12 @@ namespace JMMServer
 
 			//HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
 
+			try
+			{
+				UnhandledExceptionManager.AddHandler();
+			}
+			catch {}
+
 			if (!ServerSettings.AllowMultipleInstances)
 			{
 				try
@@ -180,7 +189,10 @@ namespace JMMServer
 			}
 			ServerSettings.DebugSettingsToLog();
 
-
+			workerFileEvents.WorkerReportsProgress = false;
+			workerFileEvents.WorkerSupportsCancellation = false;
+			workerFileEvents.DoWork += new DoWorkEventHandler(workerFileEvents_DoWork);
+			workerFileEvents.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerFileEvents_RunWorkerCompleted);
 
 
 			//Create an instance of the NotifyIcon Class
@@ -307,6 +319,63 @@ namespace JMMServer
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
+			workerFileEvents.RunWorkerAsync();
+		}
+
+		void workerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+		{
+			logger.Info("Stopped thread for processing file creation events");
+		}
+
+		void workerFileEvents_DoWork(object sender, DoWorkEventArgs e)
+		{
+			logger.Info("Started thread for processing file creation events");
+			foreach (FileSystemEventArgs evt in queueFileEvents)
+			{
+				try
+				{
+					// this is a message to stop processing
+					if (evt == null) return;
+
+					logger.Info("New file created: {0}: {1}", evt.FullPath, evt.ChangeType);
+
+					if (evt.ChangeType == WatcherChangeTypes.Created)
+					{
+						if (Directory.Exists(evt.FullPath))
+						{  // When the path that was created represents a directory we need to manually get the contained files to add.
+							// The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
+							// an event for the directory and not the contained files. However, if the folder is copied from a different drive then
+							// a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
+							string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
+
+							foreach (string file in files)
+							{
+								if (FileHashHelper.IsVideo(file))
+								{
+									logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+
+									CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
+									cmd.Save();
+								}
+							}
+						}
+						else if (FileHashHelper.IsVideo(evt.FullPath))
+						{
+							CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+							cmd.Save();
+						}
+					}
+
+					queueFileEvents.Remove(evt);
+				}
+				catch (Exception ex)
+				{
+					logger.ErrorException(ex.Message, ex);
+					queueFileEvents.Remove(evt);
+					Thread.Sleep(1000);
+				}
+			}
+
 		}
 
 		void btnUploadAzureCache_Click(object sender, RoutedEventArgs e)
@@ -1314,7 +1383,7 @@ namespace JMMServer
 
 			file.Close();
 
-			string aids = "2947,4318,676,3095,578,2798,1049,4532,4615,1636,1010,3976,3838,1933,1640,4623,1997,5446,2761,5984,5325,319,1966,1012,767,2895,2302,5968,4204,2651,5359,5581,1136,2397,4555,3040,2393,3646,2574,671,1132,547,1613,5752,5433,1121,3527,2154,5183,3467,2937,3996,4940,5135,1749,1431,2320,409,4562,3238,1345,5486,1357,5252,2256,5119,1866,1419,842,3866,1416,649,3626,2864,3323,3204,5944,1723,4596,3825,4087,2441,4889,872,1068,3999,581,4869,2028,1324,5931,141,3311,4418,1858,3234,1215,4409,4957,2366,781,4601,1954,3247,2137,3119,68,1919,3693,3611,3753,3159,1935,830,4246,4885,3138,5326,5819,4256,5797,3735,1799,3128,4926,845,646,2933,2249,4297,254,5059,2055,4863,3140,426,5564,2623,5260,1182,5475,1578,3926,1335,2333,616,405,3604,4793,2187,670,5537,3092,3224,5967,1984,5637,634,630,2466,4971,3762,4291,5253,2352,3211,1834,2336,757,1355,712,583,4711,770,432,2564,5933,1543,5533,2105,395,5868,3823,3916,366,5773,5689,5996,5936,1041,3966,414,4419,5906,2357,3728,622,3430,4633,2375,3174,1910,5699,1514,145,108,834,4858,659,1004,2331,5315,5478,5077,2210,1391,5468,2452,31,3016,524,3517,2792,5842,1701,2497,993,1146,256,5254,3806,4070,1054,1487,5369,3952,5308,1707,4385,585,1353,4845,1986,3014,4474,5364,4890,4395,4717,1815,5093,5729,3533,1928,4355,3936,3435,3834,3090,5947,3280,2268,2297,3596,4640,2344,2827,3790,2659,5650,5638,1181,3657,2599,5065,5449,47,2530,2451,1046,5560,5067,1587,143,1788,955,5372,158,2811,2121,1781,5617,1099,1651,5392,413,2431,1269,3416,3558,3938,537,1888,1458,1463,4700,3135,106,5749,380,3531,2502,2098,3723,5658,1026,4247,2158,1747,5545,4180";
+			string aids = "1554,968,2304,3464,4490,2625,3154,808,3856,2354,3829,1880,3209,628,5634,827,4266,3284,2847,3613,4172,3262,561,3210,2987,2709,2295,1507,2159,2306,5063,2219,2614,3906,1235,4686,2074,4473,329,5809,2059,4629,2473,5737,1927,4386,2202,2645,5051,545,5877,3417,2998,698,3293,2834,1372,343,5000,5668,820,5239,4231,1161,2857,3850,2416,2721,5686,3157,103,952,1079,2017,1424,4309,2267,2787,3271,1165,1211,3362,4897,1523,3109,4666,2858,5352,5078,3920,163,2234,4377,2131,3396,5386,2191,3102,2786,3195,3964,4068,2066,1490,5538,1656,3178,1575,1089,562,5759,3115,187,4093,4262,5286,5698,771,2944,5997,3880,4405,5428,4911,2462,602,5629,5054,208,5719,3727,4136,3129,284,2747,656,5366,1557,3093,2335,2126,731,5847,4922,3321,4774,914,301,4023,2269,5091,1030,810,2749,2448,2631,3023,5060,3888,5246,5988,4669,4182,2450,4032,714,3219,2043,28,3640,2248,1920,652,2546,2952,351,3037,2500,2776,5411,4491,5434,206,4481,4117,1682,5374,5563,5272,3005,1736,860,902,2195,3087,4933,4055,3954,1622,1862,5150,540,5925,5251,3317,4123,4108,401,3505,4333,154,1683,2771,248,4569,4579,2464,4790,242,2429,5022,1944,4970,3961,4747,599,4348,1757,1934,2824,3630,4875,1569,4305,1289,330,857,2477,836,3749,888,3296,3370,273,4275,1581,4365,32,382,3449,18,1617,5420,1291,5516,3337,4052,5395,257,1358,5447,2080,4755,2460,1218,250,1983,1733,4016,5317,5310,1071,5892,3015,3004,5075,3499,1989,823,386,4891,4176,2622,5767,3905,4760,5196,1802,692,93,2109,3454,4936,3127,2398,1900,1512,3231,2501,1007,2401,4630,1093,5534,4235,3575,4062,5384,3544,3810,4084,5331,4450,5100,238,1886,5566,662,4346,4661,3013,4265,5365,1711,3281,1623,4241,5330,4467,4424,1072,3177,1096,2965,498,2310,1362,232,3715,3884,3381,4578,3136,2494,2837,2151,1237,4854,3886,5412,5249,1503,2049,5905,5735,3419,1470,4964,1284,315,4397,5853,247,5642,4731,3763,5443,3107";
 			string[] aidArray = aids.Split(',');
 
 			logger.Info(string.Format("Queueing {0} anime updates", aidArray.Length));
@@ -1930,33 +1999,13 @@ namespace JMMServer
 
 		static void fsw_Created(object sender, FileSystemEventArgs e)
 		{
-			logger.Info("New file created: {0}: {1}", e.FullPath, e.ChangeType);
-
-			if (e.ChangeType == WatcherChangeTypes.Created)
+			try
 			{
-				if (Directory.Exists(e.FullPath))
-				{  // When the path that was created represents a directory we need to manually get the contained files to add.
-					// The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
-					// an event for the directory and not the contained files. However, if the folder is copied from a different drive then
-					// a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
-					string[] files = Directory.GetFiles(e.FullPath, "*.*", SearchOption.AllDirectories);
-
-					foreach (string file in files)
-					{
-						if (FileHashHelper.IsVideo(file))
-						{
-							logger.Info("Found file {0} under folder {1}", file, e.FullPath);
-
-							CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
-							cmd.Save();
-						}
-					}
-				}
-				else if (FileHashHelper.IsVideo(e.FullPath))
-				{
-					CommandRequest_HashFile cmd = new CommandRequest_HashFile(e.FullPath, false);
-					cmd.Save();
-				}
+				queueFileEvents.Add(e);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
 			}
 		}
 

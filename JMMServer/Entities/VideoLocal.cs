@@ -576,22 +576,29 @@ namespace JMMServer.Entities
 				VideoLocalRepository repVids = new VideoLocalRepository();
 				repVids.Save(this);
 
-				// move any subtitle files
-				foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
+				try
 				{
-					if (File.Exists(subtitleFile))
+					// move any subtitle files
+					foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
 					{
-						FileInfo fiSub = new FileInfo(subtitleFile);
-						string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath), fiSub.Name);
-						if (File.Exists(newSubPath))
+						if (File.Exists(subtitleFile))
 						{
-							// if the file already exists, we can just delete the source file instead
-							// this is safer than deleting and moving
-							File.Delete(newSubPath);
+							FileInfo fiSub = new FileInfo(subtitleFile);
+							string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath), fiSub.Name);
+							if (File.Exists(newSubPath))
+							{
+								// if the file already exists, we can just delete the source file instead
+								// this is safer than deleting and moving
+								File.Delete(newSubPath);
+							}
+							else
+								File.Move(subtitleFile, newSubPath);
 						}
-						else
-							File.Move(subtitleFile, newSubPath);
 					}
+				}
+				catch (Exception ex)
+				{
+					logger.ErrorException(ex.ToString(), ex);
 				}
 
 				// check for any empty folders in drop folder
@@ -608,11 +615,11 @@ namespace JMMServer.Entities
 								{
 									Directory.Delete(folderName, true);
 								}
-								catch (IOException)
+								/*catch (IOException)
 								{
 									Thread.Sleep(0);
 									Directory.Delete(folderName, false);
-								}
+								}*/
 								catch (Exception ex)
 								{
 									logger.ErrorException(ex.ToString(), ex);
