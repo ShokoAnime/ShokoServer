@@ -46,19 +46,69 @@ namespace JMMServer.Providers.MyAnimeList
 			}
 			if (searchResultXML.Trim().Length == 0) return GetEmptyAnimes();
 
-			searchResultXML = ReplaceEntityNamesByCharacter(searchResultXML);
-
-			XmlSerializer serializer = new XmlSerializer(typeof(anime));
+			searchResultXML = HttpUtility.HtmlDecode(searchResultXML);
 			XmlDocument docSearchResult = new XmlDocument();
 			docSearchResult.LoadXml(searchResultXML);
 
-			XmlNodeReader reader = new XmlNodeReader(docSearchResult.DocumentElement);
-			object obj = serializer.Deserialize(reader);
-			anime animes = (anime)obj;
+			anime animes = GetEmptyAnimes();
+			List<animeEntry> entries = new List<animeEntry>();
 
-			if (animes == null || animes.entry == null)
-				animes = GetEmptyAnimes();
+			if (docSearchResult != null && docSearchResult["anime"] != null)
+			{
+				XmlNodeList searchItems = docSearchResult["anime"].GetElementsByTagName("entry");
 
+				foreach (XmlNode node in searchItems)
+				{
+					try
+					{
+						animeEntry entry = new animeEntry();
+						// default values
+						entry.end_date = string.Empty;
+						entry.english = string.Empty;
+						entry.episodes = 0;
+						entry.id = 0;
+						entry.image = string.Empty;
+						entry.score = 0;
+						entry.start_date = string.Empty;
+						entry.status = string.Empty;
+						entry.synonyms = string.Empty;
+						entry.synopsis = string.Empty;
+						entry.title = string.Empty;
+						entry.type = string.Empty;
+
+						entry.end_date = AniDBHTTPHelper.TryGetProperty(node, "end_date");
+						entry.english = AniDBHTTPHelper.TryGetProperty(node, "english");
+						entry.image = AniDBHTTPHelper.TryGetProperty(node, "image");
+
+						int eps = 0;
+						int id = 0;
+						decimal score = 0;
+
+						int.TryParse(AniDBHTTPHelper.TryGetProperty(node, "episodes"), out eps);
+						int.TryParse(AniDBHTTPHelper.TryGetProperty(node, "id"), out id);
+						decimal.TryParse(AniDBHTTPHelper.TryGetProperty(node, "score"), out score);
+
+						entry.episodes = eps;
+						entry.id = id;
+						entry.score = score;
+
+						entry.start_date = AniDBHTTPHelper.TryGetProperty(node, "start_date");
+						entry.status = AniDBHTTPHelper.TryGetProperty(node, "status");
+						entry.synonyms = AniDBHTTPHelper.TryGetProperty(node, "synonyms");
+						entry.synopsis = AniDBHTTPHelper.TryGetProperty(node, "synopsis");
+						entry.title = AniDBHTTPHelper.TryGetProperty(node, "title");
+						entry.type = AniDBHTTPHelper.TryGetProperty(node, "type");
+
+						entries.Add(entry);
+					}
+					catch (Exception ex)
+					{
+						logger.ErrorException(ex.ToString(), ex);
+					}
+				}
+			}
+
+			animes.entry = entries.ToArray();
 			return animes;
 		}
 
@@ -181,7 +231,7 @@ namespace JMMServer.Providers.MyAnimeList
 			        "&ccedil;",	"&egrave;",	"&eacute;",	"&ecirc;",	"&euml;",	"&igrave;",	"&iacute;",
 			        "&icirc;",	"&iuml;",	"&eth;",	"&ntilde;",	"&ograve;",	"&oacute;",	"&ocirc;",
 			        "&otilde;",	"&ouml;",	"&oslash;",	"&ugrave;",	"&uacute;",	"&ucirc;",	"&uuml;",	
-			        "&yacute;",	"&thorn;",	"&yuml;"};
+			        "&yacute;",	"&thorn;",	"&yuml;",	"&mdash;"};
 
 
 			if (entityCharacters.Length != entityNames.Length)
