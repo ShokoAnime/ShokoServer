@@ -49,6 +49,7 @@ namespace JMMServer.Providers.MyAnimeList
 
 			searchResultXML = HttpUtility.HtmlDecode(searchResultXML);
 			searchResultXML = HttpUtilityV2.HtmlDecode(searchResultXML);
+			searchResultXML = searchResultXML.Replace("&", "&amp;");
 			XmlDocument docSearchResult = new XmlDocument();
 			docSearchResult.LoadXml(searchResultXML);
 
