@@ -734,7 +734,7 @@ namespace JMMServer
 			return int.MaxValue;
 		}
 
-		public static void GetFilesForImportFolder(string folderLocation, ref List<string> fileList)
+		/*public static void GetFilesForImportFolder(string folderLocation, ref List<string> fileList)
 		{
 			if (Directory.Exists(folderLocation))
 			{
@@ -755,6 +755,32 @@ namespace JMMServer
 						logger.Warn("Error accessing: {0} - {1}", dirName, ex.Message);
 					}
 				}
+			}
+		}*/
+
+		public static void GetFilesForImportFolder(string sDir, ref List<string> fileList)
+		{
+			try
+			{
+				// get root level files
+				fileList.AddRange(Directory.GetFiles(sDir, "*.*", SearchOption.TopDirectoryOnly));
+
+				// search sub folders
+				foreach (string d in Directory.GetDirectories(sDir))
+				{
+					DirectoryInfo di = new DirectoryInfo(d);
+					bool isSystem = (di.Attributes & FileAttributes.System) == FileAttributes.System;
+					if (isSystem) 
+						continue;
+
+					//fileList.AddRange(Directory.GetFiles(d, "*.*", SearchOption.TopDirectoryOnly));
+
+					GetFilesForImportFolder(d, ref fileList);
+				}
+			}
+			catch (System.Exception excpt)
+			{
+				Console.WriteLine(excpt.Message);
 			}
 		}
 
