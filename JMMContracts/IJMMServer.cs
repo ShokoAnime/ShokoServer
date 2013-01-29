@@ -403,7 +403,7 @@ namespace JMMContracts
 		void DeleteFileFromMyList(int fileID);
 
 		[OperationContract]
-		List<Contract_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly);
+		List<Contract_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly, int airingState);
 
 		[OperationContract]
 		void IgnoreAnime(int animeID, int ignoreType, int userID);

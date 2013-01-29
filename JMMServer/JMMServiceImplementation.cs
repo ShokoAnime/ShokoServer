@@ -7304,11 +7304,13 @@ namespace JMMServer
 			cmd.Save();
 		}
 
-		public List<Contract_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly)
+		public List<Contract_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly, int airingState)
 		{
 
 			List<Contract_MissingEpisode> contracts = new List<Contract_MissingEpisode>();
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+			AiringState airState = (AiringState)airingState;
 
 			Dictionary<int, AniDB_Anime> animeCache = new Dictionary<int, AniDB_Anime>();
 			Dictionary<int, List<Contract_GroupVideoQuality>> gvqCache = new Dictionary<int, List<Contract_GroupVideoQuality>>();
@@ -7328,6 +7330,11 @@ namespace JMMServer
 
 					int missingEps = ser.MissingEpisodeCount;
 					if (onlyMyGroups) missingEps = ser.MissingEpisodeCountGroups;
+
+					bool finishedAiring = ser.GetAnime().FinishedAiring;
+
+					if (!finishedAiring && airState == AiringState.FinishedAiring) continue;
+					if (finishedAiring && airState == AiringState.StillAiring) continue;
 
 					DateTime start = DateTime.Now;
 					TimeSpan ts = DateTime.Now - start;
