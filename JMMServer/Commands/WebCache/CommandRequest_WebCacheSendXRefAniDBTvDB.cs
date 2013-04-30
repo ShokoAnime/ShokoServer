@@ -7,6 +7,7 @@ using JMMServer.Entities;
 using JMMServer.WebCache;
 using System.Xml;
 using JMMServer.Providers.TvDB;
+using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands
 {
@@ -45,19 +46,17 @@ namespace JMMServer.Commands
 			
 			try
 			{
-				CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
-				CrossRef_AniDB_TvDB xref = repCrossRef.GetByID(CrossRef_AniDB_TvDBID);
+				if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
+
+				CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+				CrossRef_AniDB_TvDBV2 xref = repCrossRef.GetByID(CrossRef_AniDB_TvDBID);
 				if (xref == null) return;
 
-				TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
-				TvDB_Series tvSeries = repSeries.GetByTvDBID(xref.TvDBID);
-				if (tvSeries == null)
-					tvSeries = TvDBHelper.GetSeriesInfoOnline(xref.TvDBID);
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+				AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+				if (anime == null) return;
 
-				string seriesName = "";
-				if (tvSeries != null) seriesName = tvSeries.SeriesName;
-
-				XMLService.Send_CrossRef_AniDB_TvDB(xref, seriesName);
+				AzureWebAPI.Send_CrossRefAniDBTvDB(xref, anime.MainTitle);
 			}
 			catch (Exception ex)
 			{

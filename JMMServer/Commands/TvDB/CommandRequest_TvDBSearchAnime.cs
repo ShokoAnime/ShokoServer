@@ -49,77 +49,76 @@ namespace JMMServer.Commands
 
 			try
 			{
-				// first check if the user wants to use the web cache
-				if (ServerSettings.WebCache_TvDB_Get)
+				using (var session = JMMService.SessionFactory.OpenSession())
 				{
-					try
+					// first check if the user wants to use the web cache
+					if (ServerSettings.WebCache_TvDB_Get)
 					{
-						CrossRef_AniDB_TvDBResult crossRef = XMLService.Get_CrossRef_AniDB_TvDB(AnimeID);
-						if (crossRef != null)
+						try
 						{
-							TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(crossRef.TvDBID);
-							if (tvser != null)
+							List<JMMServer.Providers.Azure.CrossRef_AniDB_TvDB> cacheResults = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTvDB(AnimeID);
+							if (cacheResults != null && cacheResults.Count > 0)
 							{
-								/*// since we are using the web cache result, let's save it
-								CrossRef_AniDB_TvDBRepository repCrossRefs = new CrossRef_AniDB_TvDBRepository();
-								CrossRef_AniDB_TvDB xref = repCrossRefs.GetByAnimeID(AnimeID);
-								if (xref == null)
-									xref = new CrossRef_AniDB_TvDB();
+								// check again to see if there are any links, user may have manually added links while
+								// this command was in the queue
+								CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+								List<CrossRef_AniDB_TvDBV2> xrefTemp = repCrossRef.GetByAnimeID(AnimeID);
+								if (xrefTemp != null && xrefTemp.Count > 0) return;
 
-								xref.AnimeID = crossRef.AnimeID;
-								xref.CrossRefSource = (int)CrossRefSource.WebCache;
-								xref.TvDBID = crossRef.TvDBID;
-								xref.TvDBSeasonNumber = crossRef.TvDBSeasonNumber;
-								repCrossRefs.Save(xref);*/
-
-								logger.Trace("Found tvdb match on web cache for {0} - id = {1}", AnimeID, tvser.SeriesID);
-								TvDBHelper.LinkAniDBTvDB(AnimeID, crossRef.TvDBID, crossRef.TvDBSeasonNumber, true);
+								foreach (JMMServer.Providers.Azure.CrossRef_AniDB_TvDB xref in cacheResults)
+								{
+									TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(cacheResults[0].TvDBID);
+									if (tvser != null)
+									{
+										logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
+										TvDBHelper.LinkAniDBTvDB(AnimeID, (AniDBAPI.enEpisodeType)cacheResults[0].AniDBStartEpisodeType, cacheResults[0].AniDBStartEpisodeNumber,
+											cacheResults[0].TvDBID, cacheResults[0].TvDBSeasonNumber, cacheResults[0].TvDBStartEpisodeNumber, true);
+									}
+									else
+									{
+										//if we got a TvDB ID from the web cache, but couldn't find it on TheTvDB.com, it could mean 2 things
+										//1. thetvdb.com is offline
+										//2. the id is no longer valid
+										// if the id is no longer valid we should remove it from the web cache
+										/*if (TvDBHelper.ConfirmTvDBOnline())
+										{
+											
+										}*/
+									}
+								}
 								return;
 							}
-							else
-							{
-								//if we got a TvDB ID from the web cache, but couldn't find it on TheTvDB.com, it could mean 2 things
-								//1. thetvdb.com is offline
-								//2. the id is no longer valid
-								// if the id is no longer valid we should remove it from the web cache
-								if (TvDBHelper.ConfirmTvDBOnline())
-								{
-									// remove from web cache
-									CommandRequest_WebCacheDeleteXRefAniDBTvDBAll req = new CommandRequest_WebCacheDeleteXRefAniDBTvDBAll(crossRef.TvDBID);
-									req.Save();
-								}
-							}
+						}
+						catch (Exception)
+						{
 						}
 					}
-					catch (Exception)
+
+					string searchCriteria = "";
+					AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+					AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
+					if (anime == null) return;
+
+					searchCriteria = anime.MainTitle;
+
+					// if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+					List<TVDBSeriesSearchResult> results = JMMService.TvdbHelper.SearchSeries(searchCriteria);
+					logger.Trace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
+					if (ProcessSearchResults(results, searchCriteria)) return;
+
+
+					if (results.Count == 0)
 					{
-					}
-				}
+						foreach (AniDB_Anime_Title title in anime.GetTitles())
+						{
+							if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
 
-				string searchCriteria = "";
-				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
-				if (anime == null) return;
+							if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
-				searchCriteria = anime.MainTitle;
-
-				// if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-				List<TVDBSeriesSearchResult> results = JMMService.TvdbHelper.SearchSeries(searchCriteria);
-				logger.Trace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
-				if (ProcessSearchResults(results, searchCriteria)) return;
-
-
-				if (results.Count == 0)
-				{
-					foreach (AniDB_Anime_Title title in anime.GetTitles())
-					{
-						if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
-
-						if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
-
-						results = JMMService.TvdbHelper.SearchSeries(title.Title);
-						logger.Trace("Found {0} tvdb results for search on {1}", results.Count, title.Title);
-						if (ProcessSearchResults(results, title.Title)) return;
+							results = JMMService.TvdbHelper.SearchSeries(title.Title);
+							logger.Trace("Found {0} tvdb results for search on {1}", results.Count, title.Title);
+							if (ProcessSearchResults(results, title.Title)) return;
+						}
 					}
 				}
 
@@ -138,7 +137,7 @@ namespace JMMServer.Commands
 				// since we are using this result, lets download the info
 				logger.Trace("Found 1 tvdb results for search on {0} --- Linked to {1} ({2})", searchCriteria, results[0].SeriesName, results[0].SeriesID);
 				TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
-				TvDBHelper.LinkAniDBTvDB(AnimeID, results[0].SeriesID, 1, false);
+				TvDBHelper.LinkAniDBTvDB(AnimeID, AniDBAPI.enEpisodeType.Episode, 1, results[0].SeriesID, 1, 1, false);
 				return true;
 			}
 			else if (results.Count > 1)
@@ -151,7 +150,7 @@ namespace JMMServer.Commands
 						// since we are using this result, lets download the info
 						logger.Trace("Found english result for search on {0} --- Linked to {1} ({2})", searchCriteria, sres.SeriesName, sres.SeriesID);
 						TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
-						TvDBHelper.LinkAniDBTvDB(AnimeID, sres.SeriesID, 1, false);
+						TvDBHelper.LinkAniDBTvDB(AnimeID, AniDBAPI.enEpisodeType.Episode, 1, sres.SeriesID, 1, 1, false);
 						return true;
 					}
 				}

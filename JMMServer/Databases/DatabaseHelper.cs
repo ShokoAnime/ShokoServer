@@ -459,5 +459,83 @@ namespace JMMServer.Databases
 				repCrossRefTrakt.Delete(xref.CrossRef_AniDB_TraktID);
 			}
 		}
+
+		public static void MigrateTvDBLinks_V1_to_V2()
+		{
+			try
+			{
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+				TvDB_EpisodeRepository repEps = new TvDB_EpisodeRepository();
+
+				CrossRef_AniDB_TvDBRepository repCrossRefTvDB = new CrossRef_AniDB_TvDBRepository();
+				CrossRef_AniDB_TvDBV2Repository repCrossRefTvDBNew = new CrossRef_AniDB_TvDBV2Repository();
+
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					List<CrossRef_AniDB_TvDB> xrefsTvDB = repCrossRefTvDB.GetAll();
+					foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
+					{
+						CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2();
+						xrefNew.AnimeID = xrefTvDB.AnimeID;
+						xrefNew.CrossRefSource = xrefTvDB.CrossRefSource;
+						xrefNew.TvDBID = xrefTvDB.TvDBID;
+						xrefNew.TvDBSeasonNumber = xrefTvDB.TvDBSeasonNumber;
+
+						TvDB_Series ser = xrefTvDB.GetTvDBSeries(session);
+						if (ser != null)
+							xrefNew.TvDBTitle = ser.SeriesName;
+
+						// determine start ep type
+						if (xrefTvDB.TvDBSeasonNumber == 0)
+							xrefNew.AniDBStartEpisodeType = (int)AniDBAPI.enEpisodeType.Special;
+						else
+							xrefNew.AniDBStartEpisodeType = (int)AniDBAPI.enEpisodeType.Episode;
+
+						xrefNew.AniDBStartEpisodeNumber = 1;
+						xrefNew.TvDBStartEpisodeNumber = 1;
+
+						repCrossRefTvDBNew.Save(xrefNew);
+					}
+
+					// create cross ref's for specials
+					foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
+					{
+						AniDB_Anime anime = repAnime.GetByAnimeID(xrefTvDB.AnimeID);
+						if (anime == null) continue;
+
+						// this anime has specials
+						if (anime.EpisodeCountSpecial <= 0) continue;
+
+						// this tvdb series has a season 0 (specials)
+						List<int> seasons = repEps.GetSeasonNumbersForSeries(xrefTvDB.TvDBID);
+						if (!seasons.Contains(0)) continue;
+
+						//make sure we are not doubling up
+						CrossRef_AniDB_TvDBV2 temp = repCrossRefTvDBNew.GetByTvDBID(xrefTvDB.TvDBID, 0, 1, xrefTvDB.AnimeID, (int)AniDBAPI.enEpisodeType.Special, 1);
+						if (temp != null) continue;
+
+						CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2();
+						xrefNew.AnimeID = xrefTvDB.AnimeID;
+						xrefNew.CrossRefSource = xrefTvDB.CrossRefSource;
+						xrefNew.TvDBID = xrefTvDB.TvDBID;
+						xrefNew.TvDBSeasonNumber = 0;
+						xrefNew.TvDBStartEpisodeNumber = 1;
+						xrefNew.AniDBStartEpisodeType = (int)AniDBAPI.enEpisodeType.Special;
+						xrefNew.AniDBStartEpisodeNumber = 1;
+
+						TvDB_Series ser = xrefTvDB.GetTvDBSeries(session);
+						if (ser != null)
+							xrefNew.TvDBTitle = ser.SeriesName;
+
+						repCrossRefTvDBNew.Save(xrefNew);
+					}
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Could not MigrateTvDBLinks_V1_to_V2: " + ex.ToString(), ex);
+			}
+		}
 	}
 }

@@ -6,6 +6,7 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.WebCache;
 using System.Xml;
+using JMMServer.Providers.Azure;
 
 
 namespace JMMServer.Commands
@@ -13,6 +14,11 @@ namespace JMMServer.Commands
 	public class CommandRequest_WebCacheDeleteXRefAniDBTvDB : CommandRequestImplementation, ICommandRequest
 	{
 		public int AnimeID { get; set; }
+		public int AniDBStartEpisodeType { get; set; }
+		public int AniDBStartEpisodeNumber { get; set; }
+		public int TvDBID { get; set; }
+		public int TvDBSeasonNumber { get; set; }
+		public int TvDBStartEpisodeNumber { get; set; }
 
 		public CommandRequestPriority DefaultPriority
 		{
@@ -31,9 +37,15 @@ namespace JMMServer.Commands
 		{
 		}
 
-		public CommandRequest_WebCacheDeleteXRefAniDBTvDB(int animeID)
+		public CommandRequest_WebCacheDeleteXRefAniDBTvDB(int animeID, int aniDBStartEpisodeType, int aniDBStartEpisodeNumber, int tvDBID,
+			int tvDBSeasonNumber, int tvDBStartEpisodeNumber)
 		{
 			this.AnimeID = animeID;
+			this.AniDBStartEpisodeType = aniDBStartEpisodeType;
+			this.AniDBStartEpisodeNumber = aniDBStartEpisodeNumber;
+			this.TvDBID = tvDBID;
+			this.TvDBSeasonNumber = tvDBSeasonNumber;
+			this.TvDBStartEpisodeNumber = tvDBStartEpisodeNumber;
 			this.CommandType = (int)CommandRequestType.WebCache_DeleteXRefAniDBTvDB;
 			this.Priority = (int)DefaultPriority;
 
@@ -45,7 +57,9 @@ namespace JMMServer.Commands
 			
 			try
 			{
-				XMLService.Delete_CrossRef_AniDB_TvDB(AnimeID);
+				if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
+
+				AzureWebAPI.Delete_CrossRefAniDBTvDB(AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber);
 			}
 			catch (Exception ex)
 			{
@@ -61,21 +75,34 @@ namespace JMMServer.Commands
 
 		public override bool LoadFromDBCommand(CommandRequest cq)
 		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
+			try
 			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
+				this.CommandID = cq.CommandID;
+				this.CommandRequestID = cq.CommandRequestID;
+				this.CommandType = cq.CommandType;
+				this.Priority = cq.Priority;
+				this.CommandDetails = cq.CommandDetails;
+				this.DateTimeUpdated = cq.DateTimeUpdated;
 
-				// populate the fields
-				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "AnimeID"));
+				// read xml to get parameters
+				if (this.CommandDetails.Trim().Length > 0)
+				{
+					XmlDocument docCreator = new XmlDocument();
+					docCreator.LoadXml(this.CommandDetails);
+
+					// populate the fields
+					this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "AnimeID"));
+					this.AniDBStartEpisodeType = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "AniDBStartEpisodeType"));
+					this.AniDBStartEpisodeNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "AniDBStartEpisodeNumber"));
+					this.TvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "TvDBID"));
+					this.TvDBSeasonNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "TvDBSeasonNumber"));
+					this.TvDBStartEpisodeNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "TvDBStartEpisodeNumber"));
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error processing CommandRequest_WebCacheDeleteXRefAniDBTvDB: {0}" + ex.ToString(), ex);
+				return true;
 			}
 
 			return true;

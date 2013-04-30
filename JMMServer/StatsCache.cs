@@ -632,11 +632,14 @@ namespace JMMServer
 
 						// for the group, if any of the series don't have a tvdb link
 						// we will consider the group as not having a tvdb link
-						if (series.GetCrossRefTvDB() == null) hasTvDB = false;
+
+						List<CrossRef_AniDB_TvDBV2> tvXrefs = series.GetCrossRefTvDBV2();
+
+						if (tvXrefs == null || tvXrefs.Count == 0) hasTvDB = false;
 						if (series.CrossRefMovieDB == null) hasMovieDB = false;
 						if (series.CrossRefMAL == null) hasMAL = false;
 
-						if (series.GetCrossRefTvDB() == null && series.CrossRefMovieDB == null) hasMovieDBOrTvDB = false;
+						if ((tvXrefs == null || tvXrefs.Count == 0) && series.CrossRefMovieDB == null) hasMovieDBOrTvDB = false;
 					}
 
 

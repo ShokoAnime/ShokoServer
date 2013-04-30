@@ -185,11 +185,16 @@ namespace JMMServer.Entities
 
 		public List<TvDB_Episode> GetTvDBEpisodes(ISession session)
 		{
-			CrossRef_AniDB_TvDB xref = GetCrossRefTvDB(session);
-			if (xref == null) return new List<TvDB_Episode>();
+			List<TvDB_Episode> tvDBEpisodes = new List<TvDB_Episode>();
+
+			List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
+			if (xrefs.Count == 0) return tvDBEpisodes;
 
 			TvDB_EpisodeRepository repEps = new TvDB_EpisodeRepository();
-			List<TvDB_Episode> tvDBEpisodes = repEps.GetBySeriesID(session, xref.TvDBID);
+			foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+			{
+				tvDBEpisodes.AddRange(repEps.GetBySeriesID(session, xref.TvDBID));
+			}
 
 			List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
 			sortCriteria.Add(new SortPropOrFieldAndDirection("SeasonNumber", false, SortType.eInteger));
@@ -347,17 +352,17 @@ namespace JMMServer.Entities
 			return repCrossRef.GetByAnimeID(session, AnimeID);
 		}
 
-		public CrossRef_AniDB_TvDB GetCrossRefTvDB()
+		public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return GetCrossRefTvDB(session);
+				return GetCrossRefTvDBV2(session);
 			}
 		}
 
-		public CrossRef_AniDB_TvDB GetCrossRefTvDB(ISession session)
+		public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2(ISession session)
 		{
-			CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
+			CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
 			return repCrossRef.GetByAnimeID(session, this.AnimeID);
 		}
 
@@ -428,7 +433,7 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public TvDB_Series GetTvDBSeries()
+		public List<TvDB_Series> GetTvDBSeries()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -436,13 +441,21 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public TvDB_Series GetTvDBSeries(ISession session)
+		public List<TvDB_Series> GetTvDBSeries(ISession session)
 		{
-			CrossRef_AniDB_TvDB xref = GetCrossRefTvDB(session);
-			if (xref == null) return null;
-
 			TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
-			return repSeries.GetByTvDBID(session, xref.TvDBID);
+
+			List<TvDB_Series> ret = new List<TvDB_Series>();
+			List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
+			if (xrefs.Count == 0) return ret;
+
+			foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+			{
+				TvDB_Series ser = repSeries.GetByTvDBID(session, xref.TvDBID);
+				if (ser != null) ret.Add(ser);
+			}
+
+			return ret;
 		}
 
 		public List<TvDB_ImageFanart> GetTvDBImageFanarts()
@@ -455,11 +468,19 @@ namespace JMMServer.Entities
 
 		public List<TvDB_ImageFanart> GetTvDBImageFanarts(ISession session)
 		{
-			CrossRef_AniDB_TvDB xref = GetCrossRefTvDB(session);
-			if (xref == null) return new List<TvDB_ImageFanart>();
+			List<TvDB_ImageFanart> ret = new List<TvDB_ImageFanart>();
+
+			List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
+			if (xrefs.Count == 0) return ret;
 
 			TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
-			return repFanart.GetBySeriesID(session, xref.TvDBID);
+			foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+			{
+				ret.AddRange(repFanart.GetBySeriesID(session, xref.TvDBID));
+			}
+
+			
+			return ret;
 		}
 
 		public List<TvDB_ImagePoster> GetTvDBImagePosters()
@@ -472,23 +493,42 @@ namespace JMMServer.Entities
 
 		public List<TvDB_ImagePoster> GetTvDBImagePosters(ISession session)
 		{
-			CrossRef_AniDB_TvDB xref = GetCrossRefTvDB(session);
-			if (xref == null) return new List<TvDB_ImagePoster>();
+			List<TvDB_ImagePoster> ret = new List<TvDB_ImagePoster>();
+
+			List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
+			if (xrefs.Count == 0) return ret;
 
 			TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
-			return repPosters.GetBySeriesID(session, xref.TvDBID);
+
+			foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+			{
+				ret.AddRange(repPosters.GetBySeriesID(session, xref.TvDBID));
+			}
+
+			return ret;
 		}
 
-		public List<TvDB_ImageWideBanner> TvDBImageWideBanners
+		public List<TvDB_ImageWideBanner> GetTvDBImageWideBanners()
 		{
-			get
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				CrossRef_AniDB_TvDB xref = GetCrossRefTvDB();
-				if (xref == null) return new List<TvDB_ImageWideBanner>();
-
-				TvDB_ImageWideBannerRepository repBanners = new TvDB_ImageWideBannerRepository();
-				return repBanners.GetBySeriesID(xref.TvDBID);
+				return GetTvDBImageWideBanners(session);
 			}
+		}
+
+		public List<TvDB_ImageWideBanner> GetTvDBImageWideBanners(ISession session)
+		{
+			List<TvDB_ImageWideBanner> ret = new List<TvDB_ImageWideBanner>();
+
+			List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2(session);
+			if (xrefs.Count == 0) return ret;
+
+			TvDB_ImageWideBannerRepository repBanners = new TvDB_ImageWideBannerRepository();
+			foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+			{
+				ret.AddRange(repBanners.GetBySeriesID(xref.TvDBID));
+			}
+			return ret;
 		}
 
 		public CrossRef_AniDB_Other GetCrossRefMovieDB()
@@ -722,12 +762,6 @@ namespace JMMServer.Entities
 			if (GetDefaultFanart() == null)
 			{
 				// get a random fanart (only tvdb)
-				CrossRef_AniDB_TvDB xref = GetCrossRefTvDB(session);
-				if (xref == null) return null;
-
-				TvDB_Series tvseries = GetTvDBSeries(session);
-				if (tvseries == null) return null;
-
 				if (this.AnimeTypeEnum == enAnimeType.Movie)
 				{
 					List<MovieDB_Fanart> fanarts = GetMovieDBFanarts(session);
@@ -803,13 +837,7 @@ namespace JMMServer.Entities
 
 			if (GetDefaultFanart() == null)
 			{
-				// get a random fanart (only tvdb)
-				CrossRef_AniDB_TvDB xref = GetCrossRefTvDB(session);
-				if (xref == null) return "";
-
-				TvDB_Series tvseries = GetTvDBSeries(session);
-				if (tvseries == null) return "";
-
+				// get a random fanart
 				if (this.AnimeTypeEnum == enAnimeType.Movie)
 				{
 					List<MovieDB_Fanart> fanarts = GetMovieDBFanarts(session);

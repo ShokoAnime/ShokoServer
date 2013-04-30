@@ -108,10 +108,10 @@ namespace JMMServer.Commands
 					// if not lets try the tvdb web cache based on the same reasoning
 					if (ServerSettings.WebCache_TvDB_Get)
 					{
-						CrossRef_AniDB_TvDBResult crossRefTvDB = XMLService.Get_CrossRef_AniDB_TvDB(AnimeID);
-						if (crossRefTvDB != null)
+						List<JMMServer.Providers.Azure.CrossRef_AniDB_TvDB> cacheResults = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTvDB(AnimeID);
+						if (cacheResults != null && cacheResults.Count > 0)
 						{
-							TraktTVShow showInfo = TraktTVHelper.GetShowInfo(crossRefTvDB.TvDBID);
+							TraktTVShow showInfo = TraktTVHelper.GetShowInfo(cacheResults[0].TvDBID);
 							if (showInfo != null)
 							{
 								// make sure the season specified by TvDB also exists on Trakt
@@ -120,7 +120,7 @@ namespace JMMServer.Commands
 								if (traktShow != null)
 								{
 									Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
-									Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(session, traktShow.Trakt_ShowID, crossRefTvDB.TvDBSeasonNumber);
+									Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(session, traktShow.Trakt_ShowID, cacheResults[0].TvDBSeasonNumber);
 									if (traktSeason != null)
 									{
 										logger.Trace("Found trakt match on web cache by using TvDBID {0} - id = {1}", AnimeID, showInfo.title);

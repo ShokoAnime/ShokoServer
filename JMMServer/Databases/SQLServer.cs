@@ -168,6 +168,7 @@ namespace JMMServer.Databases
 				UpdateSchema_024(versionNumber);
 				UpdateSchema_025(versionNumber);
 				UpdateSchema_026(versionNumber);
+				UpdateSchema_027(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -1069,6 +1070,52 @@ namespace JMMServer.Databases
 
 			UpdateDatabaseVersion(thisVersion);
 
+		}
+
+		private static void UpdateSchema_027(int currentVersionNumber)
+		{
+			int thisVersion = 27;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE CrossRef_AniDB_TvDBV2( " +
+				" CrossRef_AniDB_TvDBV2ID int IDENTITY(1,1) NOT NULL, " +
+				" AnimeID int NOT NULL, " +
+				" AniDBStartEpisodeType int NOT NULL, " +
+				" AniDBStartEpisodeNumber int NOT NULL, " +
+				" TvDBID int NOT NULL, " +
+				" TvDBSeasonNumber int NOT NULL, " +
+				" TvDBStartEpisodeNumber int NOT NULL, " +
+				" TvDBTitle nvarchar(MAX), " +
+				" CrossRefSource int NOT NULL, " +
+				" CONSTRAINT [PK_CrossRef_AniDB_TvDBV2] PRIMARY KEY CLUSTERED " +
+				" ( " +
+				" CrossRef_AniDB_TvDBV2ID ASC " +
+				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+				" ) ON [PRIMARY] ");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDBV2 ON CrossRef_AniDB_TvDBV2(AnimeID, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber)");
+
+			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+			{
+				tmpConn.Open();
+				foreach (string cmdTable in cmds)
+				{
+					using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+					{
+						command.ExecuteNonQuery();
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+			// Now do the migratiuon
+			DatabaseHelper.MigrateTvDBLinks_V1_to_V2();
 		}
 
 		private static void UpdateDatabaseVersion(int versionNumber)

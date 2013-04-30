@@ -1110,8 +1110,7 @@ namespace JMMServer
 		{
 			int freqHours = 100;
 
-			bool process = (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-					ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
+			bool process = ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase);
 
 			if (!process) return;
 

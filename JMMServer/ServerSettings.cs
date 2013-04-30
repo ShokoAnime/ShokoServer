@@ -1479,6 +1479,17 @@ namespace JMMServer
 
 		#endregion
 
+
+		public static string WebCacheAuthKey
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				//return appSettings["WebCacheAuthKey"];
+				return "E8886291-479C-41d6-BD2B-2EC573C5FD2A"; 			
+			}
+		}
+
 		public static void UpdateSetting(string key, string value)
 		{
 			System.Configuration.Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);

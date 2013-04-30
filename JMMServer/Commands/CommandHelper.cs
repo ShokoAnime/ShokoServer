@@ -244,11 +244,6 @@ namespace JMMServer.Commands
 					cr_DeleteXRefAniDBTvDB.LoadFromDBCommand(crdb);
 					return (ICommandRequest)cr_DeleteXRefAniDBTvDB;
 
-				case CommandRequestType.WebCache_DeleteXRefTvDB:
-					CommandRequest_WebCacheDeleteXRefAniDBTvDBAll cr_DeleteXRefTvDB = new CommandRequest_WebCacheDeleteXRefAniDBTvDBAll();
-					cr_DeleteXRefTvDB.LoadFromDBCommand(crdb);
-					return (ICommandRequest)cr_DeleteXRefTvDB;
-
 				case CommandRequestType.WebCache_SendXRefAniDBTvDB:
 					CommandRequest_WebCacheSendXRefAniDBTvDB cr_SendXRefAniDBTvDB = new CommandRequest_WebCacheSendXRefAniDBTvDB();
 					cr_SendXRefAniDBTvDB.LoadFromDBCommand(crdb);

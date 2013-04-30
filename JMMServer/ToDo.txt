@@ -1,0 +1,6 @@
+﻿TvDB Refactor
+------------
+JMMServiceImplementationMetro
+  - GetCommunityLinks
+  - GetAnimeDetail
+  - SetTvDBInfo

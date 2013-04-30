@@ -121,12 +121,13 @@ namespace JMMServer
 					}
 
 					// TvDB
-					CrossRef_AniDB_TvDB tvdbRef = anime.GetCrossRefTvDB(session);
+					// TODO - fix for multiple
+					/*CrossRef_AniDB_TvDB tvdbRef = anime.GetCrossRefTvDB(session);
 					if (tvdbRef != null)
 					{
 						contract.TvDB_ID = tvdbRef.TvDBID.ToString();
 						contract.TvDB_URL = string.Format(Constants.URLS.TvDB_Series, tvdbRef.TvDBID);
-					}
+					}*/
 				}
 			}
 			catch (Exception ex)
@@ -689,7 +690,21 @@ namespace JMMServer
 							Dictionary<int, TvDB_Episode> dictTvDBEpisodes = anime.GetDictTvDBEpisodes(session);
 							Dictionary<int, int> dictTvDBSeasons = anime.GetDictTvDBSeasons(session); 
 							Dictionary<int, int> dictTvDBSeasonsSpecials = anime.GetDictTvDBSeasonsSpecials(session);
-							CrossRef_AniDB_TvDB tvDBCrossRef = anime.GetCrossRefTvDB(session);
+
+							//TODO
+							CrossRef_AniDB_TvDB tvDBCrossRef = null;
+							List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs = anime.GetCrossRefTvDBV2(session);
+							if (tvDBCrossRefs.Count > 0)
+							{
+								tvDBCrossRef = new CrossRef_AniDB_TvDB();
+								tvDBCrossRef.AnimeID = tvDBCrossRefs[0].AnimeID;
+								//tvDBCrossRef.CrossRef_AniDB_TvDBID = tvDBCrossRefs[0].CrossRef_AniDB_TvDBV2ID;
+								tvDBCrossRef.CrossRefSource = tvDBCrossRefs[0].CrossRefSource;
+								tvDBCrossRef.TvDBID = tvDBCrossRefs[0].TvDBID;
+								tvDBCrossRef.TvDBSeasonNumber = tvDBCrossRefs[0].TvDBSeasonNumber;
+							}
+
+							//CrossRef_AniDB_TvDB tvDBCrossRef = anime.GetCrossRefTvDB(session);
 							List<CrossRef_AniDB_TvDB_Episode> tvDBCrossRefEpisodes = anime.GetCrossRefTvDBEpisodes(session);
 							Dictionary<int, int> dictTvDBCrossRefEpisodes = new Dictionary<int, int>();
 							foreach (CrossRef_AniDB_TvDB_Episode xrefEp in tvDBCrossRefEpisodes)
@@ -821,7 +836,20 @@ namespace JMMServer
 				Dictionary<int, TvDB_Episode> dictTvDBEpisodes = anime.GetDictTvDBEpisodes(session);
 				Dictionary<int, int> dictTvDBSeasons = anime.GetDictTvDBSeasons(session);
 				Dictionary<int, int> dictTvDBSeasonsSpecials = anime.GetDictTvDBSeasonsSpecials(session);
-				CrossRef_AniDB_TvDB tvDBCrossRef = anime.GetCrossRefTvDB(session);
+
+				// TODO
+				CrossRef_AniDB_TvDB tvDBCrossRef = null;
+				List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs = anime.GetCrossRefTvDBV2(session);
+				if (tvDBCrossRefs.Count > 0)
+				{
+					tvDBCrossRef = new CrossRef_AniDB_TvDB();
+					tvDBCrossRef.AnimeID = tvDBCrossRefs[0].AnimeID;
+					//tvDBCrossRef.CrossRef_AniDB_TvDBID = tvDBCrossRefs[0].CrossRef_AniDB_TvDBV2ID;
+					tvDBCrossRef.CrossRefSource = tvDBCrossRefs[0].CrossRefSource;
+					tvDBCrossRef.TvDBID = tvDBCrossRefs[0].TvDBID;
+					tvDBCrossRef.TvDBSeasonNumber = tvDBCrossRefs[0].TvDBSeasonNumber;
+				}
+
 				List<CrossRef_AniDB_TvDB_Episode> tvDBCrossRefEpisodes = anime.GetCrossRefTvDBEpisodes(session);
 				Dictionary<int, int> dictTvDBCrossRefEpisodes = new Dictionary<int, int>();
 				foreach (CrossRef_AniDB_TvDB_Episode xrefEp in tvDBCrossRefEpisodes)

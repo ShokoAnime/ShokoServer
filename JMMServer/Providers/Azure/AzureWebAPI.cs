@@ -6,19 +6,22 @@ using System.Net;
 using System.IO;
 using NLog;
 using System.Web;
+using JMMServer.Entities;
 
 namespace JMMServer.Providers.Azure
 {
 	public class AzureWebAPI
 	{
+		private static readonly string azureHostBaseAddress = "jmm.azurewebsites.net";
+		//private static readonly string azureHostBaseAddress = "localhost:50994";
+
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
 		public static void Send_AnimeFull(JMMServer.Entities.AniDB_Anime data)
 		{
 			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
-			//string uri = string.Format(@"http://localhost:50994/api/animefull");
-			string uri = string.Format(@"http://jmm.azurewebsites.net/api/animefull");
+			string uri = string.Format(@"http://{0}/api/animefull", azureHostBaseAddress);
 			AnimeFull obj = data.ToContractAzure();
 			string json = JSONHelper.Serialize<AnimeFull>(obj);
 			SendData(uri, json, "POST");
@@ -28,18 +31,70 @@ namespace JMMServer.Providers.Azure
 		{
 			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
-			//string uri = string.Format(@"http://localhost:50994/api/animexml");
-			string uri = string.Format(@"http://jmm.azurewebsites.net/api/animexml");
+			string uri = string.Format(@"http://{0}/api/animexml", azureHostBaseAddress);
 			string json = JSONHelper.Serialize<AnimeXML>(data);
 			SendData(uri, json, "POST");
+		}
+
+		public static void Delete_CrossRefAniDBTvDB(int animeID, int aniDBStartEpisodeType, int aniDBStartEpisodeNumber, int tvDBID,
+			int tvDBSeasonNumber, int tvDBStartEpisodeNumber)
+		{
+			// id = animeid
+			// p = username
+			// p2 = AniDBStartEpisodeType
+			// p3 = AniDBStartEpisodeNumber
+			// p4 = TvDBID
+			// p5 = TvDBSeasonNumber
+			// p6 = TvDBStartEpisodeNumber
+			// p7 = auth key
+
+			//localhost:50994
+			//jmm.azurewebsites.net
+			string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}&p3={4}&p4={5}&p5={6}&p6={7}&p7={8}", azureHostBaseAddress,
+				animeID, ServerSettings.AniDB_Username, aniDBStartEpisodeType, aniDBStartEpisodeNumber, tvDBID, tvDBSeasonNumber, tvDBStartEpisodeNumber, ServerSettings.WebCacheAuthKey);
+
+
+			string json = DeleteDataJson(uri);
+		}
+
+		public static void Send_CrossRefAniDBTvDB(CrossRef_AniDB_TvDBV2 data, string animeName)
+		{
+			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+			string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_TvDB", azureHostBaseAddress);
+
+			CrossRef_AniDB_TvDBInput input = new CrossRef_AniDB_TvDBInput(data, animeName);
+			string json = JSONHelper.Serialize<CrossRef_AniDB_TvDBInput>(input);
+			SendData(uri, json, "POST");
+		}
+
+		public static List<CrossRef_AniDB_TvDB> Get_CrossRefAniDBTvDB(int animeID)
+		{
+			//localhost:50994
+			//jmm.azurewebsites.net
+
+			string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_TvDB/{1}?p={2}",azureHostBaseAddress, animeID, "blank");
+			string msg = string.Format("Getting AniDB/TvDB Cross Ref From Cache: {0}", animeID);
+
+			DateTime start = DateTime.Now;
+			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+			string json = GetDataJson(uri);
+
+			TimeSpan ts = DateTime.Now - start;
+			msg = string.Format("Got AniDB/TvDB Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
+			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+			List<CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_TvDB>>(json);
+
+			return xrefs;
 		}
 
 		public static void Send_AnimeTitle(AnimeIDTitle data)
 		{
 			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
-			//string uri = string.Format(@"http://localhost:50994/api/animexml");
-			string uri = string.Format(@"http://jmm.azurewebsites.net/api/animeidtitle");
+			string uri = string.Format(@"http://{0}/api/animeidtitle", azureHostBaseAddress);
 			string json = JSONHelper.Serialize<AnimeIDTitle>(data);
 			SendData(uri, json, "POST");
 		}
@@ -47,7 +102,7 @@ namespace JMMServer.Providers.Azure
 		public static List<AnimeIDTitle> Get_AnimeTitle(string query)
 		{
 			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
-			string uri = string.Format(@"http://jmm.azurewebsites.net/api/animeidtitle/{0}", query);
+			string uri = string.Format(@"http://{0}/api/animeidtitle/{1}", azureHostBaseAddress, query);
 			string msg = string.Format("Getting Anime Title Data From Cache: {0}", query);
 
 			DateTime start = DateTime.Now;
@@ -68,8 +123,7 @@ namespace JMMServer.Providers.Azure
 		{
 			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
-			//string uri = string.Format(@"http://localhost:50994/api/animexml/{0}", animeID);
-			string uri = string.Format(@"http://jmm.azurewebsites.net/api/animexml/{0}", animeID);
+			string uri = string.Format(@"http://{0}/api/animexml/{1}", azureHostBaseAddress, animeID);
 
 			DateTime start = DateTime.Now;
 			string msg = string.Format("Getting Anime XML Data From Cache: {0}", animeID);
@@ -102,9 +156,7 @@ namespace JMMServer.Providers.Azure
 		{
 			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
-
-			//string uri = string.Format(@"http://localhost:50994/api/CrossRef_AniDB_MAL");
-			string uri = string.Format(@"http://jmm.azurewebsites.net/api/CrossRef_AniDB_MAL");
+			string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_MAL", azureHostBaseAddress);
 			CrossRef_AniDB_MAL fhr = data.ToContractAzure();
 			string json = JSONHelper.Serialize<CrossRef_AniDB_MAL>(fhr);
 
@@ -197,6 +249,47 @@ namespace JMMServer.Providers.Azure
 			return "";
 		}
 
+		private static string DeleteDataJson(string uri)
+		{
+			try
+			{
+				DateTime start = DateTime.Now;
+
+				HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(uri);
+				webReq.Timeout = 60000; // 60 seconds
+				webReq.Proxy = null;
+				webReq.Method = "DELETE";
+				webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
+				webReq.ContentType = "application/json; charset=UTF-8";     // content type
+				webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+
+				HttpWebResponse WebResponse = (HttpWebResponse)webReq.GetResponse();
+
+				Stream responseStream = WebResponse.GetResponseStream();
+				Encoding encoding = Encoding.UTF8;
+				StreamReader Reader = new StreamReader(responseStream, encoding);
+
+				string output = Reader.ReadToEnd();
+				output = HttpUtility.HtmlDecode(output);
+
+
+				WebResponse.Close();
+				responseStream.Close();
+
+				return output;
+			}
+			catch (WebException webEx)
+			{
+				logger.Error("Error(1) in AzureWebAPI.GetData: {0}", webEx);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error(2) in AzureWebAPI.GetData: {0}", ex);
+			}
+
+			return "";
+		}
+
 		private static string GetDataXML(string uri)
 		{
 			try
@@ -242,17 +335,5 @@ namespace JMMServer.Providers.Azure
 
 			return "";
 		}
-
-		/*public static void Delete_CrossRef_AniDB_MAL(int animeID, int epType, int epNumber)
-		{
-			if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
-			if (ServerSettings.WebCache_Anonymous) return;
-
-			string uri = string.Format("http://{0}/DeleteCrossRef_AniDB_MAL.aspx", ServerSettings.WebCache_Address);
-			DeleteCrossRef_AniDB_MALRequest req = new DeleteCrossRef_AniDB_MALRequest(animeID, epType, epNumber);
-			string xml = req.ToXML();
-
-			SendData(uri, xml);
-		}*/
 	}
 }

@@ -70,6 +70,7 @@
     <Compile Include="Contract_AniDB_Anime_Similar.cs" />
     <Compile Include="Contract_AniDB_Character.cs" />
     <Compile Include="Contract_AniDB_Character_Seiyuu.cs" />
+    <Compile Include="Contract_AniDB_Episode.cs" />
     <Compile Include="Contract_AniDB_Recommendation.cs" />
     <Compile Include="Contract_AniDB_Seiyuu.cs" />
     <Compile Include="Contract_AnimeCategory.cs" />
@@ -87,6 +88,7 @@
     <Compile Include="Contract_AnimeTag.cs" />
     <Compile Include="Contract_AnimeTitle.cs" />
     <Compile Include="Contract_AppVersions.cs" />
+    <Compile Include="Contract_Azure_CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Contract_BookmarkedAnime.cs" />
     <Compile Include="Contract_BookmarkedAnime_SaveResponse.cs" />
     <Compile Include="Contract_CrossRef_AniDB_MAL.cs" />
@@ -97,6 +99,7 @@
     <Compile Include="Contract_CrossRef_AniDB_TraktResult.cs" />
     <Compile Include="Contract_CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Contract_CrossRef_AniDB_TvDBResult.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_TvDBV2.cs" />
     <Compile Include="Contract_CrossRef_AniDB_TvDB_Episode.cs" />
     <Compile Include="Contract_DuplicateFile.cs" />
     <Compile Include="Contract_FileFfdshowPreset.cs" />

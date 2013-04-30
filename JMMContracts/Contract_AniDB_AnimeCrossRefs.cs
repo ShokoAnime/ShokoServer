@@ -10,8 +10,8 @@ namespace JMMContracts
 		public int AnimeID { get; set; }
 
 		// TvDB
-		public Contract_CrossRef_AniDB_TvDB CrossRef_AniDB_TvDB { get; set; }
-		public Contract_TvDB_Series TvDBSeries { get; set; }
+		public List<Contract_CrossRef_AniDB_TvDBV2> CrossRef_AniDB_TvDB { get; set; }
+		public List<Contract_TvDB_Series> TvDBSeries { get; set; }
 		public List<Contract_TvDB_Episode> TvDBEpisodes { get; set; }
 		public List<Contract_TvDB_ImageFanart> TvDBImageFanarts { get; set; }
 		public List<Contract_TvDB_ImagePoster> TvDBImagePosters { get; set; }
@@ -34,8 +34,8 @@ namespace JMMContracts
 
 		public Contract_AniDB_AnimeCrossRefs()
 		{
-			CrossRef_AniDB_TvDB = null;
-			TvDBSeries = null;
+			CrossRef_AniDB_TvDB = new List<Contract_CrossRef_AniDB_TvDBV2>();
+			TvDBSeries = new List<Contract_TvDB_Series>();
 			TvDBEpisodes = new List<Contract_TvDB_Episode>();
 			TvDBImageFanarts = new List<Contract_TvDB_ImageFanart>();
 			TvDBImagePosters = new List<Contract_TvDB_ImagePoster>();

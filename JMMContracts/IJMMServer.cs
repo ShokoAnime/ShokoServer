@@ -11,6 +11,9 @@ namespace JMMContracts
 	public interface IJMMServer
 	{
 		[OperationContract]
+		string RemoveLinkAniDBTvDBForAnime(int animeID);
+
+		[OperationContract]
 		List<Contract_AnimeEpisode> GetEpisodesForSeriesOld(int animeSeriesID);
 
 		[OperationContract]
@@ -220,10 +223,10 @@ namespace JMMContracts
 		Contract_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID);
 
 		[OperationContract]
-		Contract_CrossRef_AniDB_TvDBResult GetTVDBCrossRefWebCache(int animeID);
+		List<Contract_Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID);
 
 		[OperationContract]
-		Contract_CrossRef_AniDB_TvDB GetTVDBCrossRef(int animeID);
+		List<Contract_CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID);
 
 		[OperationContract]
 		List<Contract_TVDBSeriesSearchResult> SearchTheTvDB(string criteria);
@@ -232,10 +235,10 @@ namespace JMMContracts
 		List<int> GetSeasonNumbersForSeries(int seriesID);
 
 		[OperationContract]
-		string LinkAniDBTvDB(int animeID, int tvDBID, int seasonNumber);
+		string LinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber, int? crossRef_AniDB_TvDBV2ID);
 
 		[OperationContract]
-		string RemoveLinkAniDBTvDB(int animeID);
+		string RemoveLinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber);
 
 		[OperationContract]
 		List<Contract_TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID);
@@ -632,6 +635,9 @@ namespace JMMContracts
 
 		[OperationContract]
 		List<Contract_AnimeSearch> OnlineAnimeTitleSearch(string titleQuery);
+
+		[OperationContract]
+		List<Contract_AniDB_Episode> GetAniDBEpisodesForAnime(int animeID);
 	}
 
 }

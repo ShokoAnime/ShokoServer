@@ -98,6 +98,21 @@ namespace JMMServer.Repositories
 			}
 		}
 
+		public List<TvDB_Episode> GetBySeriesIDAndSeasonNumberSorted(int seriesID, int seasonNumber)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var objs = session
+					.CreateCriteria(typeof(TvDB_Episode))
+					.Add(Restrictions.Eq("SeriesID", seriesID))
+					.Add(Restrictions.Eq("SeasonNumber", seasonNumber))
+					.AddOrder(Order.Asc("EpisodeNumber"))
+					.List<TvDB_Episode>();
+
+				return new List<TvDB_Episode>(objs);
+			}
+		}
+
 		public List<TvDB_Episode> GetAll()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

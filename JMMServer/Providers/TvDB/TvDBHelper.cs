@@ -11,6 +11,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Commands;
+using AniDBAPI;
 
 namespace JMMServer.Providers.TvDB
 {
@@ -761,53 +762,68 @@ namespace JMMServer.Providers.TvDB
 		}
 
 
-		public static void LinkAniDBTvDB(int animeID, int tvDBID, int seasonNumber, bool fromWebCache)
+		public static string LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber, bool fromWebCache)
 		{
-			CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
-			CrossRef_AniDB_TvDB xrefTemp = repCrossRef.GetByTvDBID(tvDBID, seasonNumber);
-			if (xrefTemp != null)
+			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				string msg = string.Format("Not using TvDB link as one already exists {0} ({1}) - {2}", tvDBID, seasonNumber, animeID);
-				logger.Warn(msg);
-				return;
+				CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+				List<CrossRef_AniDB_TvDBV2> xrefTemp = repCrossRef.GetByAnimeIDEpTypeEpNumber(session, animeID, (int)aniEpType, aniEpNumber);
+				if (xrefTemp != null && xrefTemp.Count > 0)
+				{
+					string msg = string.Format("Not using TvDB link as one already exists at {0} EP# {1}", aniEpType, aniEpNumber);
+					logger.Warn(msg);
+					return msg;
+				}
+
+				// check if we have this information locally
+				// if not download it now
+				TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
+				TvDB_Series tvSeries = repSeries.GetByTvDBID(tvDBID);
+				if (tvSeries == null)
+				{
+					// we download the series info here just so that we have the basic info in the
+					// database before the queued task runs later
+					tvSeries = GetSeriesInfoOnline(tvDBID);
+				}
+
+				// download and update series info, episode info and episode images
+				// will also download fanart, posters and wide banners
+				CommandRequest_TvDBUpdateSeriesAndEpisodes cmdSeriesEps = new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvDBID, false);
+				cmdSeriesEps.Save();
+
+				CrossRef_AniDB_TvDBV2 xref = repCrossRef.GetByTvDBID(session, tvDBID, tvSeasonNumber, tvEpNumber, animeID, (int)aniEpType, aniEpNumber);
+				if (xref == null)
+					xref = new CrossRef_AniDB_TvDBV2();
+
+				xref.AnimeID = animeID;
+				xref.AniDBStartEpisodeType = (int)aniEpType;
+				xref.AniDBStartEpisodeNumber = aniEpNumber;
+
+				xref.TvDBID = tvDBID;
+				xref.TvDBSeasonNumber = tvSeasonNumber;
+				xref.TvDBStartEpisodeNumber = tvEpNumber;
+				if (tvSeries != null)
+					xref.TvDBTitle = tvSeries.SeriesName;
+
+				if (fromWebCache)
+					xref.CrossRefSource = (int)CrossRefSource.WebCache;
+				else
+					xref.CrossRefSource = (int)CrossRefSource.User;
+
+				repCrossRef.Save(xref);
+
+				StatsCache.Instance.UpdateUsingAnime(animeID);
+
+				logger.Trace("Changed tvdb association: {0}", animeID);
+
+				if (!fromWebCache)
+				{
+					CommandRequest_WebCacheSendXRefAniDBTvDB req = new CommandRequest_WebCacheSendXRefAniDBTvDB(xref.CrossRef_AniDB_TvDBV2ID);
+					req.Save();
+				}
 			}
 
-			// check if we have this information locally
-			// if not download it now
-			TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
-			TvDB_Series tvSeries = repSeries.GetByTvDBID(tvDBID);
-			if (tvSeries == null)
-			{
-				// we download the series info here just so that we have the basic info in the
-				// database before the queued task runs later
-				tvSeries = GetSeriesInfoOnline(tvDBID);
-			}
-
-			// download and update series info, episode info and episode images
-			// will also download fanart, posters and wide banners
-			CommandRequest_TvDBUpdateSeriesAndEpisodes cmdSeriesEps = new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvDBID, false);
-			cmdSeriesEps.Save();
-
-			CrossRef_AniDB_TvDB xref = repCrossRef.GetByAnimeID(animeID);
-			if (xref == null)
-				xref = new CrossRef_AniDB_TvDB();
-			
-			xref.AnimeID = animeID;
-			if (fromWebCache)
-				xref.CrossRefSource = (int)CrossRefSource.WebCache;
-			else
-				xref.CrossRefSource = (int)CrossRefSource.User;
-
-			xref.TvDBID = tvDBID;
-			xref.TvDBSeasonNumber = seasonNumber;
-			repCrossRef.Save(xref);
-
-			StatsCache.Instance.UpdateUsingAnime(animeID);
-
-			logger.Trace("Changed tvdb association: {0}", animeID);
-
-			CommandRequest_WebCacheSendXRefAniDBTvDB req = new CommandRequest_WebCacheSendXRefAniDBTvDB(xref.CrossRef_AniDB_TvDBID);
-			req.Save();
+			return "";
 		}
 
 		public static void LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID)
@@ -828,17 +844,18 @@ namespace JMMServer.Providers.TvDB
 		}
 
 		// Removes all TVDB information from a series, bringing it back to a blank state.
-		public static void RemoveLinkAniDBTvDB(AnimeSeries ser)
+		public static void RemoveLinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber)
 		{
-			CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
-			CrossRef_AniDB_TvDB xref = repCrossRef.GetByAnimeID(ser.AniDB_ID);
+			CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+			CrossRef_AniDB_TvDBV2 xref = repCrossRef.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID, (int)aniEpType, aniEpNumber);
 			if (xref == null) return;
 			
-			repCrossRef.Delete(xref.CrossRef_AniDB_TvDBID);
+			repCrossRef.Delete(xref.CrossRef_AniDB_TvDBV2ID);
 
-			StatsCache.Instance.UpdateUsingAnime(ser.AniDB_ID);
+			StatsCache.Instance.UpdateUsingAnime(animeID);
 
-			CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(ser.AniDB_ID);
+			CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(animeID, (int)aniEpType, aniEpNumber,
+				tvDBID, tvSeasonNumber, tvEpNumber);
 			req.Save();
 		}
 
@@ -945,10 +962,13 @@ namespace JMMServer.Providers.TvDB
 
 				foreach (AnimeSeries ser in repSeries.GetAll())
 				{
-					CrossRef_AniDB_TvDB xref = ser.GetCrossRefTvDB();
-					if (xref == null) continue;
+					List<CrossRef_AniDB_TvDBV2> xrefs = ser.GetCrossRefTvDBV2();
+					if (xrefs == null) continue;
 
-					if (!allTvDBIDs.Contains(xref.TvDBID)) allTvDBIDs.Add(xref.TvDBID);
+					foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+					{
+						if (!allTvDBIDs.Contains(xref.TvDBID)) allTvDBIDs.Add(xref.TvDBID);
+					}
 				}
 
 				// get the time we last did a TvDB update

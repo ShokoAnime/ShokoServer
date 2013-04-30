@@ -240,7 +240,6 @@
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTrakt.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTvDB.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefFileEpisode.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTvDBAll.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendAniDB_File.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendFileHash.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBMAL.cs" />
@@ -260,6 +259,7 @@
     <Compile Include="Entities\AniDB_Recommendation.cs" />
     <Compile Include="Entities\BookmarkedAnime.cs" />
     <Compile Include="Entities\CrossRef_AniDB_MAL.cs" />
+    <Compile Include="Entities\CrossRef_AniDB_TvDBV2.cs" />
     <Compile Include="Entities\CrossRef_AniDB_TvDB_Episode.cs" />
     <Compile Include="Entities\FileFfdshowPreset.cs" />
     <Compile Include="Entities\LogMessage.cs" />
@@ -274,6 +274,7 @@
     <Compile Include="Mappings\AniDB_RecommendationMap.cs" />
     <Compile Include="Mappings\BookmarkedAnimeMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_TvDBV2Map.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TvDB_EpisodeMap.cs" />
     <Compile Include="Mappings\FileFfdshowPresetMap.cs" />
     <Compile Include="Mappings\LogMessageMap.cs" />
@@ -287,6 +288,8 @@
     <Compile Include="Providers\Azure\Azure_AnimeFull.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeShout.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_MAL.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDB.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDBInput.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
@@ -308,6 +311,7 @@
     <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
+    <Compile Include="Repositories\CrossRef_AniDB_TvDBV2Repository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\FileFfdshowPresetRepository.cs" />
     <Compile Include="Repositories\LogMessageRepository.cs" />
@@ -757,13 +761,13 @@
     <Resource Include="Images\Pause.png" />
     <Resource Include="Images\Play.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="ToDo.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)*.dll" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	
-xcopy "$(TargetDir)*.exe" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)*.pdb" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)*.manifest" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

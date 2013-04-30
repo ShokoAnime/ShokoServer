@@ -245,7 +245,7 @@ namespace JMMServer.Providers.MovieDB
 				if (anime.IsMovieDBLinkDisabled) continue;
 
 				// don't scan if it is associated on the TvDB
-				if (anime.GetCrossRefTvDB() != null) continue;
+				if (anime.GetCrossRefTvDBV2().Count > 0) continue;
 
 				// don't scan if it is associated on the MovieDB
 				if (anime.GetCrossRefMovieDB() != null) continue;

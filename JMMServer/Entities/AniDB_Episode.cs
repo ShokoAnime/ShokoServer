@@ -6,6 +6,7 @@ using System.Xml.Serialization;
 using AniDBAPI;
 using JMMServer.Repositories;
 using NHibernate;
+using JMMContracts;
 
 namespace JMMServer.Entities
 {
@@ -114,6 +115,27 @@ namespace JMMServer.Entities
 				animeEp.AnimeSeriesID = animeSeriesID;
 				repEps.Save(session, animeEp);
 			}
+		}
+
+		public Contract_AniDB_Episode ToContract()
+		{
+			Contract_AniDB_Episode contract = new Contract_AniDB_Episode();
+
+			contract.AniDB_EpisodeID = AniDB_EpisodeID;
+			contract.EpisodeID = EpisodeID;
+			contract.AnimeID = AnimeID;
+			contract.LengthSeconds = LengthSeconds;
+			contract.Rating = Rating;
+			contract.Votes = Votes;
+			contract.EpisodeNumber = EpisodeNumber;
+			contract.EpisodeType = EpisodeType;
+			contract.EpisodeType = EpisodeType;
+			contract.RomajiName = RomajiName;
+			contract.EnglishName = EnglishName;
+			contract.AirDate = AirDate;
+			contract.DateTimeUpdated = DateTimeUpdated;
+
+			return contract;
 		}
 	}
 }
