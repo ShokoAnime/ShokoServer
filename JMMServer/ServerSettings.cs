@@ -1485,8 +1485,11 @@ namespace JMMServer
 			get
 			{
 				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				//return appSettings["WebCacheAuthKey"];
-				return "E8886291-479C-41d6-BD2B-2EC573C5FD2A"; 			
+				return appSettings["WebCacheAuthKey"];
+			}
+			set
+			{
+				UpdateSetting("WebCacheAuthKey", value);
 			}
 		}
 

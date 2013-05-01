@@ -263,6 +263,40 @@ namespace JMMServer
 			}
 		}
 
+		private bool waitingOnResponseAniDBUDP = false;
+		public bool WaitingOnResponseAniDBUDP
+		{
+			get { return waitingOnResponseAniDBUDP; }
+			set
+			{
+				waitingOnResponseAniDBUDP = value;
+				NotWaitingOnResponseAniDBUDP = !value;
+				OnPropertyChanged(new PropertyChangedEventArgs("WaitingOnResponseAniDBUDP"));
+			}
+		}
+
+		private bool notWaitingOnResponseAniDBUDP = true;
+		public bool NotWaitingOnResponseAniDBUDP
+		{
+			get { return notWaitingOnResponseAniDBUDP; }
+			set
+			{
+				notWaitingOnResponseAniDBUDP = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("NotWaitingOnResponseAniDBUDP"));
+			}
+		}
+
+		private string waitingOnResponseAniDBUDPString = "Idle";
+		public string WaitingOnResponseAniDBUDPString
+		{
+			get { return waitingOnResponseAniDBUDPString; }
+			set
+			{
+				waitingOnResponseAniDBUDPString = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("WaitingOnResponseAniDBUDPString"));
+			}
+		}
+
 		public ObservableCollection<ImportFolder> ImportFolders { get; set; }
 
 		public void RefreshImportFolders()
