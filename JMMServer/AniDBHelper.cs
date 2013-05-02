@@ -122,8 +122,39 @@ namespace JMMServer
 
 		}
 
+		private int? extendPauseSecs = null;
+		public int? ExtendPauseSecs
+		{
+			get { return extendPauseSecs; }
+			set { extendPauseSecs = value; }
+
+		}
+
+		private string extendPauseReason = "";
+		public string ExtendPauseReason
+		{
+			get { return extendPauseReason; }
+			set { extendPauseReason = value; }
+		}
+
 		public AniDBHelper()
 		{
+		}
+
+		public void ExtendPause(int secsToPause, string pauseReason)
+		{
+			ExtendPauseSecs = secsToPause;
+			ExtendPauseReason = pauseReason;
+			ServerInfo.Instance.ExtendedPauseString = string.Format("Paused communications for {0} seconds: {1} ", secsToPause, pauseReason);
+			ServerInfo.Instance.HasExtendedPause = true;
+		}
+
+		public void ResetExtendPause()
+		{
+			ExtendPauseSecs = null;
+			ExtendPauseReason = "";
+			ServerInfo.Instance.ExtendedPauseString = "";
+			ServerInfo.Instance.HasExtendedPause = false;
 		}
 
 		public void Init(string userName, string password, string serverName, string serverPort, string clientPort)
@@ -169,6 +200,10 @@ namespace JMMServer
 
 		void logoutTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
 		{
+			TimeSpan tsAniDBUDPTemp = DateTime.Now - JMMService.LastAniDBUDPMessage;
+			if (ExtendPauseSecs.HasValue && tsAniDBUDPTemp.TotalSeconds >= ExtendPauseSecs.Value)
+				ResetExtendPause();
+
 			if (!isLoggedOn) return;
 
 			// don't ping when anidb is taking a long time to respond
@@ -193,7 +228,7 @@ namespace JMMServer
 				TimeSpan tsAniDBUDP = DateTime.Now - JMMService.LastAniDBUDPMessage;
 
 				// if we haven't sent a command for 20 seconds, send a ping just to keep the connection alive
-				if (tsAniDBUDP.TotalSeconds >= 20 && tsPing.TotalSeconds >= 20 && !IsBanned)
+				if (tsAniDBUDP.TotalSeconds >= 20 && tsPing.TotalSeconds >= 20 && !IsBanned && !ExtendPauseSecs.HasValue)
 				{
 					AniDBCommand_Ping ping = new AniDBCommand_Ping();
 					ping.Init();
@@ -214,12 +249,15 @@ namespace JMMServer
 			int pauseDuration = AniDBDelay;
 			if (pauseType == AniDBPause.Short) pauseDuration = AniDBDelay_Short;
 
+			if (ExtendPauseSecs.HasValue) pauseDuration = ExtendPauseSecs.Value * 1000;
+
 			// do not send more than one message every 2 (2.4 to make sure) seconds
 			while (DateTime.Now < JMMService.LastAniDBMessage.AddMilliseconds(pauseDuration))
 			{
 				// pretend to do something....
-				Thread.Sleep(100);
+				Thread.Sleep(200);
 			}
+			ResetExtendPause();
 		}
 
 		private void SetWaitingOnResponse(bool isWaiting)

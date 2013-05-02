@@ -154,6 +154,7 @@ namespace JMMServer.Databases
 				UpdateSchema_026(versionNumber);
 				UpdateSchema_027(versionNumber);
 				UpdateSchema_028(versionNumber);
+				UpdateSchema_029(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -1294,6 +1295,55 @@ namespace JMMServer.Databases
 
 			UpdateDatabaseVersion(thisVersion);
 
+		}
+
+		private static void UpdateSchema_029(int currentVersionNumber)
+		{
+			int thisVersion = 29;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE CrossRef_AniDB_TvDBV2( " +
+				" CrossRef_AniDB_TvDBV2ID INT NOT NULL AUTO_INCREMENT, " +
+				" AnimeID int NOT NULL, " +
+				" AniDBStartEpisodeType int NOT NULL, " +
+				" AniDBStartEpisodeNumber int NOT NULL, " +
+				" TvDBID int NOT NULL, " +
+				" TvDBSeasonNumber int NOT NULL, " +
+				" TvDBStartEpisodeNumber int NOT NULL, " +
+				" TvDBTitle text character set utf8, " +
+				" CrossRefSource int NOT NULL, " +
+				" PRIMARY KEY (`CrossRef_AniDB_TvDBV2ID`) ) ; ");
+
+			cmds.Add("ALTER TABLE `CrossRef_AniDB_TvDBV2` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TvDBV2` (`AnimeID` ASC, `TvDBID` ASC, `TvDBSeasonNumber` ASC, `TvDBStartEpisodeNumber` ASC, `AniDBStartEpisodeType` ASC, `AniDBStartEpisodeNumber` ASC) ;");
+
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
+
+			UpdateDatabaseVersion(thisVersion);
+
+			// Now do the migratiuon
+			DatabaseHelper.MigrateTvDBLinks_V1_to_V2();
 		}
 
 		public static void UpdateSchema_Fix()

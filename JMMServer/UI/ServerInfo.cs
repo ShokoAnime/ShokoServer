@@ -297,6 +297,28 @@ namespace JMMServer
 			}
 		}
 
+		private string extendedPauseString = "";
+		public string ExtendedPauseString
+		{
+			get { return extendedPauseString; }
+			set
+			{
+				extendedPauseString = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("ExtendedPauseString"));
+			}
+		}
+
+		private bool hasExtendedPause = false;
+		public bool HasExtendedPause
+		{
+			get { return hasExtendedPause; }
+			set
+			{
+				hasExtendedPause = value;
+				OnPropertyChanged(new PropertyChangedEventArgs("HasExtendedPause"));
+			}
+		}
+
 		public ObservableCollection<ImportFolder> ImportFolders { get; set; }
 
 		public void RefreshImportFolders()

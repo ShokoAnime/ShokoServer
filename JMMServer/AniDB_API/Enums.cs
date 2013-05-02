@@ -158,8 +158,14 @@ namespace AniDBAPI
 		PingFailed = 901,
 		PingPong = 902,
 
-		UnknownCommand = 950,
-		Banned = 951
+		UnknownCommand_598 = 950,
+		Banned_555 = 951,
+		AccessDenied_505 = 952,
+		InternalServerError_600 = 953,
+		OutOfService_601 = 954,
+		ServerBusy_602 = 955,
+		Timeout_604 = 956,
+		InvalidSession_506 = 957
 	}
 
 	

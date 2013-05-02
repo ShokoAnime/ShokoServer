@@ -134,6 +134,7 @@ namespace JMMServer.Databases
 				UpdateSchema_026(versionNumber);
 				UpdateSchema_027(versionNumber);
 				UpdateSchema_028(versionNumber);
+				UpdateSchema_029(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -970,6 +971,47 @@ namespace JMMServer.Databases
 			myConn.Close();
 
 			UpdateDatabaseVersion(thisVersion);
+		}
+
+		private static void UpdateSchema_029(int currentVersionNumber)
+		{
+			int thisVersion = 29;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+			myConn.Open();
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("CREATE TABLE CrossRef_AniDB_TvDBV2( " +
+				" CrossRef_AniDB_TvDBV2ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+				" AnimeID int NOT NULL, " +
+				" AniDBStartEpisodeType int NOT NULL, " +
+				" AniDBStartEpisodeNumber int NOT NULL, " +
+				" TvDBID int NOT NULL, " +
+				" TvDBSeasonNumber int NOT NULL, " +
+				" TvDBStartEpisodeNumber int NOT NULL, " +
+				" TvDBTitle text, " +
+				" CrossRefSource int NOT NULL " +
+				" ); ");
+
+			cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDBV2 ON CrossRef_AniDB_TvDBV2(AnimeID, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber);");
+
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = myConn;
+				sqCommand.ExecuteNonQuery();
+			}
+
+			myConn.Close();
+
+			UpdateDatabaseVersion(thisVersion);
+
+			// Now do the migratiuon
+			DatabaseHelper.MigrateTvDBLinks_V1_to_V2();
 		}
 
 		private static void UpdateDatabaseVersion(int versionNumber)

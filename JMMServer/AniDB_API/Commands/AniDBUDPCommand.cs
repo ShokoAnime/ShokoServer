@@ -272,13 +272,33 @@ namespace AniDBAPI.Commands
 				JMMService.AnidbProcessor.BanOrigin = "";
 			}
 
-			// 598 unknown command usually means we had connections issue
+			// 598 UNKNOWN COMMAND usually means we had connections issue
+			// 506 INVALID SESSION
+			// 505 ILLEGAL INPUT OR ACCESS DENIED
 			// reset login status to start again
-			if (ResponseCode == 598)
+			if (ResponseCode == 598 || ResponseCode == 506 || ResponseCode == 506)
 			{
 				JMMService.AnidbProcessor.IsInvalidSession = true;
 				logger.Trace("FORCING Logout because of invalid session");
 				ForceReconnection();
+			}
+
+			// 600 INTERNAL SERVER ERROR
+			// 601 ANIDB OUT OF SERVICE - TRY AGAIN LATER
+			// 602 SERVER BUSY - TRY AGAIN LATER
+			// 604 TIMEOUT - DELAY AND RESUBMIT
+			if (ResponseCode == 600 || ResponseCode == 601 || ResponseCode == 602 || ResponseCode == 604)
+			{
+				string errormsg = "";
+				switch (ResponseCode)
+				{
+					case 600: errormsg = "600 INTERNAL SERVER ERROR"; break;
+					case 601: errormsg = "601 ANIDB OUT OF SERVICE - TRY AGAIN LATER"; break;
+					case 602: errormsg = "602 SERVER BUSY - TRY AGAIN LATER"; break;
+					case 604: errormsg = "TIMEOUT - DELAY AND RESUBMIT"; break;
+				}
+				logger.Trace("FORCING Logout because of invalid session");
+				JMMService.AnidbProcessor.ExtendPause(300, errormsg);
 			}
 			
 		}

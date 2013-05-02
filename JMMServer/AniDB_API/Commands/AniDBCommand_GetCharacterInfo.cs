@@ -46,8 +46,8 @@ namespace AniDBAPI.Commands
 			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
 			// handle 555 BANNED and 598 - UNKNOWN COMMAND
-			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand;
-			if (ResponseCode == 555) return enHelperActivityType.Banned;
+			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+			if (ResponseCode == 555) return enHelperActivityType.Banned_555;
 
 			if (errorOccurred) return enHelperActivityType.NoSuchChar;
 
