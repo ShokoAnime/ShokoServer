@@ -12,6 +12,7 @@ namespace JMMContracts
 		public int ApplyToSeries { get; set; }
 		public int BaseCondition { get; set; }
 		public string SortingCriteria { get; set; }
+		public int? Locked { get; set; }
 
 		public List<Contract_GroupFilterCondition> FilterConditions { get; set; }
 	}

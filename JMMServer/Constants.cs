@@ -21,6 +21,11 @@ namespace JMMServer
 		public static readonly string NO_GROUP_INFO = "NO GROUP INFO";
 		public static readonly string NO_SOURCE_INFO = "NO SOURCE INFO";
 
+		public struct GroupFilterName
+		{
+			public static readonly string ContinueWatching = "Continue Watching (SYSTEM)";
+		}
+
 		public struct DatabaseType
 		{
 			public static readonly string SqlServer = "SQLSERVER";

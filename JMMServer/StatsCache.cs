@@ -806,10 +806,10 @@ namespace JMMServer
 
 				// TvDB
 				start = DateTime.Now;
-				CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
-				List<CrossRef_AniDB_TvDB> allCrossRefs = repCrossRef.GetAll();
+				CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+				List<CrossRef_AniDB_TvDBV2> allCrossRefs = repCrossRef.GetAll();
 				List<int> animeWithTvDBCrossRef = new List<int>();
-				foreach (CrossRef_AniDB_TvDB xref in allCrossRefs)
+				foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
 				{
 					if (!animeWithTvDBCrossRef.Contains(xref.AnimeID)) animeWithTvDBCrossRef.Add(xref.AnimeID);
 				}
@@ -853,7 +853,7 @@ namespace JMMServer
 					List<AnimeSeries> seriesForGroup = new List<AnimeSeries>();
 					GetAnimeSeriesRecursive(ag, ref seriesForGroup, allSeries, allGroupsDict);
 
-					if (ag.AnimeGroupID == 166)
+					if (ag.AnimeGroupID == 915)
 					{
 						Console.Write("");
 					}

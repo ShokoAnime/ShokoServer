@@ -81,16 +81,24 @@ namespace AniDBAPI
 				Raw_AniDB_GroupStatus grp = new Raw_AniDB_GroupStatus();
 				grp.AnimeID = animeID;
 
-				// {int group id}|{str group name}|{int completion state}|{int last episode number}|{int rating}|{int votes}|{str episode range}\n
-				string[] flds = sDetails[i].Substring(0).Split('|');
-				grp.GroupID = int.Parse(flds[0]);
-				grp.GroupName = flds[1];
-				grp.CompletionState = int.Parse(flds[2]);
-				grp.LastEpisodeNumber = int.Parse(flds[3]);
-				grp.Rating = int.Parse(flds[4]);
-				grp.Votes = int.Parse(flds[5]);
-				grp.EpisodeRange = flds[6];
-				groups.Add(grp);
+				try
+				{
+
+					// {int group id}|{str group name}|{int completion state}|{int last episode number}|{int rating}|{int votes}|{str episode range}\n
+					string[] flds = sDetails[i].Substring(0).Split('|');
+					grp.GroupID = int.Parse(flds[0]);
+					grp.GroupName = flds[1];
+					grp.CompletionState = int.Parse(flds[2]);
+					grp.LastEpisodeNumber = int.Parse(flds[3]);
+					grp.Rating = int.Parse(flds[4]);
+					grp.Votes = int.Parse(flds[5]);
+					grp.EpisodeRange = flds[6];
+					groups.Add(grp);
+				}
+				catch (Exception ex)
+				{
+					NLog.LogManager.GetCurrentClassLogger().ErrorException(ex.ToString(), ex);
+				}
 
 				//BaseConfig.MyAnimeLog.Write("grp: {0}", grp);
 			}

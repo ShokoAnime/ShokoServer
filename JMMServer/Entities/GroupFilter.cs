@@ -15,6 +15,7 @@ namespace JMMServer.Entities
 		public int ApplyToSeries { get; set; }
 		public int BaseCondition { get; set; }
 		public string SortingCriteria { get; set; }
+		public int? Locked { get; set; }
 
 		public override string ToString()
 		{
@@ -52,6 +53,7 @@ namespace JMMServer.Entities
 			contract.ApplyToSeries = this.ApplyToSeries;
 			contract.BaseCondition = this.BaseCondition;
 			contract.SortingCriteria = this.SortingCriteria;
+			contract.Locked = this.Locked;
 
 			contract.FilterConditions = new List<Contract_GroupFilterCondition>();
 			foreach (GroupFilterCondition gfc in GetFilterConditions(session))

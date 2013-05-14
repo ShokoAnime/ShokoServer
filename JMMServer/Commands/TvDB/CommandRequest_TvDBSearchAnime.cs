@@ -137,7 +137,7 @@ namespace JMMServer.Commands
 				// since we are using this result, lets download the info
 				logger.Trace("Found 1 tvdb results for search on {0} --- Linked to {1} ({2})", searchCriteria, results[0].SeriesName, results[0].SeriesID);
 				TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
-				TvDBHelper.LinkAniDBTvDB(AnimeID, AniDBAPI.enEpisodeType.Episode, 1, results[0].SeriesID, 1, 1, false);
+				TvDBHelper.LinkAniDBTvDB(AnimeID, AniDBAPI.enEpisodeType.Episode, 1, results[0].SeriesID, 1, 1, true);
 				return true;
 			}
 			else if (results.Count > 1)
@@ -150,7 +150,7 @@ namespace JMMServer.Commands
 						// since we are using this result, lets download the info
 						logger.Trace("Found english result for search on {0} --- Linked to {1} ({2})", searchCriteria, sres.SeriesName, sres.SeriesID);
 						TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
-						TvDBHelper.LinkAniDBTvDB(AnimeID, AniDBAPI.enEpisodeType.Episode, 1, sres.SeriesID, 1, 1, false);
+						TvDBHelper.LinkAniDBTvDB(AnimeID, AniDBAPI.enEpisodeType.Episode, 1, sres.SeriesID, 1, 1, true);
 						return true;
 					}
 				}

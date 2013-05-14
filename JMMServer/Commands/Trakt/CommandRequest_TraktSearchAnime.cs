@@ -81,11 +81,11 @@ namespace JMMServer.Commands
 
 					// lets try to see locally if we have a tvDB link for this anime
 					// Trakt allows the use of TvDB ID's or their own Trakt ID's
-					CrossRef_AniDB_TvDBRepository repCrossRefTvDB = new CrossRef_AniDB_TvDBRepository();
-					CrossRef_AniDB_TvDB xrefTvDB = repCrossRefTvDB.GetByAnimeID(session, AnimeID);
-					if (xrefTvDB != null)
+					CrossRef_AniDB_TvDBV2Repository repCrossRefTvDB = new CrossRef_AniDB_TvDBV2Repository();
+					List<CrossRef_AniDB_TvDBV2> xrefTvDBs = repCrossRefTvDB.GetByAnimeID(session, AnimeID);
+					if (xrefTvDBs != null && xrefTvDBs.Count == 1)  //TODO this is temporary code, until trakt also allows multiple links
 					{
-						TraktTVShow showInfo = TraktTVHelper.GetShowInfo(xrefTvDB.TvDBID);
+						TraktTVShow showInfo = TraktTVHelper.GetShowInfo(xrefTvDBs[0].TvDBID);
 						if (showInfo != null)
 						{
 							// make sure the season specified by TvDB also exists on Trakt
@@ -94,7 +94,7 @@ namespace JMMServer.Commands
 							if (traktShow != null)
 							{
 								Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
-								Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(session, traktShow.Trakt_ShowID, xrefTvDB.TvDBSeasonNumber);
+								Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(session, traktShow.Trakt_ShowID, xrefTvDBs[0].TvDBSeasonNumber);
 								if (traktSeason != null)
 								{
 									logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}", AnimeID, showInfo.title);

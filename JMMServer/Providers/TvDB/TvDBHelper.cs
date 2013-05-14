@@ -762,7 +762,7 @@ namespace JMMServer.Providers.TvDB
 		}
 
 
-		public static string LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber, bool fromWebCache)
+		public static string LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -805,7 +805,7 @@ namespace JMMServer.Providers.TvDB
 				if (tvSeries != null)
 					xref.TvDBTitle = tvSeries.SeriesName;
 
-				if (fromWebCache)
+				if (excludeFromWebCache)
 					xref.CrossRefSource = (int)CrossRefSource.WebCache;
 				else
 					xref.CrossRefSource = (int)CrossRefSource.User;
@@ -816,7 +816,7 @@ namespace JMMServer.Providers.TvDB
 
 				logger.Trace("Changed tvdb association: {0}", animeID);
 
-				if (!fromWebCache)
+				if (!excludeFromWebCache)
 				{
 					CommandRequest_WebCacheSendXRefAniDBTvDB req = new CommandRequest_WebCacheSendXRefAniDBTvDB(xref.CrossRef_AniDB_TvDBV2ID);
 					req.Save();
@@ -861,11 +861,11 @@ namespace JMMServer.Providers.TvDB
 
 		public static void DownloadAllEpisodes()
 		{
-			CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
-			List<CrossRef_AniDB_TvDB> allCrossRefs = repCrossRef.GetAll();
+			CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+			List<CrossRef_AniDB_TvDBV2> allCrossRefs = repCrossRef.GetAll();
 
 			List<int> tvDBIDs = new List<int>();
-			foreach (CrossRef_AniDB_TvDB xref in allCrossRefs)
+			foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
 			{
 				if (!tvDBIDs.Contains(xref.TvDBID)) tvDBIDs.Add(xref.TvDBID);
 			}
@@ -887,10 +887,10 @@ namespace JMMServer.Providers.TvDB
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			List<AnimeSeries> allSeries = repSeries.GetAll();
 
-			CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
-			List<CrossRef_AniDB_TvDB> allCrossRefs = repCrossRef.GetAll();
+			CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+			List<CrossRef_AniDB_TvDBV2> allCrossRefs = repCrossRef.GetAll();
 			List<int> alreadyLinked = new List<int>();
-			foreach (CrossRef_AniDB_TvDB xref in allCrossRefs)
+			foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
 			{
 				alreadyLinked.Add(xref.AnimeID);
 			}
@@ -920,10 +920,10 @@ namespace JMMServer.Providers.TvDB
 
 		public static void UpdateAllInfo(bool force)
 		{
-			CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
-			List<CrossRef_AniDB_TvDB> allCrossRefs = repCrossRef.GetAll();
+			CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+			List<CrossRef_AniDB_TvDBV2> allCrossRefs = repCrossRef.GetAll();
 			List<int> alreadyLinked = new List<int>();
-			foreach (CrossRef_AniDB_TvDB xref in allCrossRefs)
+			foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
 			{
 				CommandRequest_TvDBUpdateSeriesAndEpisodes cmd = new CommandRequest_TvDBUpdateSeriesAndEpisodes(xref.TvDBID, force);
 				cmd.Save();

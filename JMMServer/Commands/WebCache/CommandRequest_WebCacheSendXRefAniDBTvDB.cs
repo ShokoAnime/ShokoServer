@@ -46,7 +46,7 @@ namespace JMMServer.Commands
 			
 			try
 			{
-				if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
+				//if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
 
 				CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
 				CrossRef_AniDB_TvDBV2 xref = repCrossRef.GetByID(CrossRef_AniDB_TvDBID);

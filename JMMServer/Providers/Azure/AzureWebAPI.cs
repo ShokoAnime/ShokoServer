@@ -70,10 +70,11 @@ namespace JMMServer.Providers.Azure
 
 		public static List<CrossRef_AniDB_TvDB> Get_CrossRefAniDBTvDB(int animeID)
 		{
-			//localhost:50994
-			//jmm.azurewebsites.net
+			string username = ServerSettings.AniDB_Username;
+			if (ServerSettings.WebCache_Anonymous)
+				username = Constants.AnonWebCacheUsername;
 
-			string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_TvDB/{1}?p={2}",azureHostBaseAddress, animeID, "blank");
+			string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_TvDB/{1}?p={2}", azureHostBaseAddress, animeID, username);
 			string msg = string.Format("Getting AniDB/TvDB Cross Ref From Cache: {0}", animeID);
 
 			DateTime start = DateTime.Now;

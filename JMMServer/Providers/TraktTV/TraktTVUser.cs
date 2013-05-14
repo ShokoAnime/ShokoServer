@@ -125,9 +125,11 @@ namespace JMMServer.Providers.TraktTV
 						else
 						{
 							// try the tvdb id instead
+							//TODO
+							/*
 							CrossRef_AniDB_TvDB xrefTvDB = repXrefTvDB.GetByTvDBID(int.Parse(wtch.show.tvdb_id), int.Parse(wtch.episode.season));
 							if (xrefTvDB != null)
-								animeID = xrefTvDB.AnimeID;
+								animeID = xrefTvDB.AnimeID;*/
 						}
 
 						if (animeID.HasValue)

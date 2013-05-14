@@ -316,6 +316,8 @@ namespace JMMServer
 			return retGroups;
 		}
 
+		
+
 		/// <summary>
 		/// Can only be used when the group only has one series
 		/// </summary>
@@ -6132,7 +6134,95 @@ namespace JMMServer
 				return null;
 			}
 		}
+		/*
+		public List<Contract_AnimeEpisode> GetContinueWatchingFilter(int userID)
+		{
+			List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
+			try
+			{
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					DateTime start = DateTime.Now;
+					GroupFilterRepository repGF = new GroupFilterRepository();
 
+					JMMUserRepository repUsers = new JMMUserRepository();
+					JMMUser user = repUsers.GetByID(session, userID);
+					if (user == null) return retEps;
+
+					GroupFilter gf = null;
+
+					if (groupFilterID == -999)
+					{
+						// all groups
+						gf = new GroupFilter();
+						gf.GroupFilterName = "All";
+					}
+					else
+					{
+						gf = repGF.GetByID(session, groupFilterID);
+						if (gf == null) return retEps;
+					}
+
+					//Contract_GroupFilterExtended contract = gf.ToContractExtended(user);
+
+					AnimeGroupRepository repGroups = new AnimeGroupRepository();
+					List<AnimeGroup> allGrps = repGroups.GetAll(session);
+
+					AnimeGroup_UserRepository repUserRecords = new AnimeGroup_UserRepository();
+					List<AnimeGroup_User> userRecords = repUserRecords.GetByUserID(session, userID);
+					Dictionary<int, AnimeGroup_User> dictUserRecords = new Dictionary<int, AnimeGroup_User>();
+					foreach (AnimeGroup_User userRec in userRecords)
+						dictUserRecords[userRec.AnimeGroupID] = userRec;
+
+					TimeSpan ts = DateTime.Now - start;
+					string msg = string.Format("Got groups for filter DB: {0} - {1} in {2} ms", gf.GroupFilterName, allGrps.Count, ts.TotalMilliseconds);
+					logger.Info(msg);
+					start = DateTime.Now;
+
+					AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+					List<AnimeSeries> allSeries = new List<AnimeSeries>();
+					if (getSingleSeriesGroups)
+						allSeries = repSeries.GetAll(session);
+					if ((StatsCache.Instance.StatUserGroupFilter.ContainsKey(user.JMMUserID)) && (StatsCache.Instance.StatUserGroupFilter[user.JMMUserID].ContainsKey(gf.GroupFilterID)))
+					{
+						HashSet<int> groups = StatsCache.Instance.StatUserGroupFilter[user.JMMUserID][gf.GroupFilterID];
+
+						foreach (AnimeGroup grp in allGrps)
+						{
+							AnimeGroup_User userRec = null;
+							if (dictUserRecords.ContainsKey(grp.AnimeGroupID))
+								userRec = dictUserRecords[grp.AnimeGroupID];
+							if (groups.Contains(grp.AnimeGroupID))
+							{
+								Contract_AnimeGroup contractGrp = grp.ToContract(userRec);
+								if (getSingleSeriesGroups)
+								{
+									if (contractGrp.Stat_SeriesCount == 1)
+									{
+										AnimeSeries ser = GetSeriesForGroup(grp.AnimeGroupID, allSeries);
+										if (ser != null)
+											contractGrp.SeriesForNameOverride = ser.ToContract(ser.GetUserRecord(session, userID));
+
+									}
+								}
+								retSeries.Add(contractGrp);
+							}
+						}
+					}
+					ts = DateTime.Now - start;
+					msg = string.Format("Got groups for filter EVAL: {0} - {1} in {2} ms", gf.GroupFilterName, retSeries.Count, ts.TotalMilliseconds);
+					logger.Info(msg);
+
+					return retSeries;
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return retSeries;
+		}
+		*/
 		/// <summary>
 		/// Gets a list of episodes watched based on the most recently watched series
 		/// It will return the next episode to watch in the most recent 10 series
@@ -7705,7 +7795,7 @@ namespace JMMServer
 		public Contract_Trakt_Activity GetTraktFriendInfo(int maxResults, bool animeOnly, bool getShouts, bool getScrobbles)
 		{
 			CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
-			CrossRef_AniDB_TvDBRepository repXrefTvDB = new CrossRef_AniDB_TvDBRepository();
+			CrossRef_AniDB_TvDBV2Repository repXrefTvDB = new CrossRef_AniDB_TvDBV2Repository();
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
@@ -7755,13 +7845,15 @@ namespace JMMServer
 						else
 						{
 							// try the tvdb id instead
-							CrossRef_AniDB_TvDB xrefTvDB = null;
+							//TODO
+							/*
+							CrossRef_AniDB_TvDBV2 xrefTvDB = null;
 
 							if (act.episode != null)
 								xrefTvDB = repXrefTvDB.GetByTvDBID(int.Parse(act.show.tvdb_id), int.Parse(act.episode.season));
 
 							if (xrefTvDB != null)
-								animeID = xrefTvDB.AnimeID;
+								animeID = xrefTvDB.AnimeID;*/
 						}
 					}
 

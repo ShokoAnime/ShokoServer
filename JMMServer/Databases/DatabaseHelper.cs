@@ -167,6 +167,7 @@ namespace JMMServer.Databases
 
 			ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Group Filters)...";
 			CreateInitialGroupFilters();
+			CreateContinueWatchingGroupFilter();
 
 			ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Rename Script)...";
 			CreateInitialRenameScript();
@@ -535,6 +536,49 @@ namespace JMMServer.Databases
 			catch (Exception ex)
 			{
 				logger.ErrorException("Could not MigrateTvDBLinks_V1_to_V2: " + ex.ToString(), ex);
+			}
+		}
+
+		private static void CreateContinueWatchingGroupFilter()
+		{
+			// group filters
+			GroupFilterRepository repFilters = new GroupFilterRepository();
+			GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
+
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				// check if it already exists
+				List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
+
+				if (lockedGFs != null)
+				{
+					// if it already exists we can leave
+					foreach (GroupFilter gfTemp in lockedGFs)
+						if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase)) return;
+				}
+
+				GroupFilter gf = new GroupFilter();
+				gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
+				gf.Locked = 1;
+				gf.SortingCriteria = "4;2"; // by last watched episode desc
+				gf.ApplyToSeries = 0;
+				gf.BaseCondition = 1; // all
+
+				repFilters.Save(gf);
+
+				GroupFilterCondition gfc = new GroupFilterCondition();
+				gfc.ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes;
+				gfc.ConditionOperator = (int)GroupFilterOperator.Include;
+				gfc.ConditionParameter = "";
+				gfc.GroupFilterID = gf.GroupFilterID;
+				repGFC.Save(gfc);
+
+				gfc = new GroupFilterCondition();
+				gfc.ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes;
+				gfc.ConditionOperator = (int)GroupFilterOperator.Include;
+				gfc.ConditionParameter = "";
+				gfc.GroupFilterID = gf.GroupFilterID;
+				repGFC.Save(gfc);
 			}
 		}
 	}

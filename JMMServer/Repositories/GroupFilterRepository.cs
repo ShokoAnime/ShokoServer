@@ -57,6 +57,15 @@ namespace JMMServer.Repositories
 			return new List<GroupFilter>(gfs);
 		}
 
+		public List<GroupFilter> GetLockedGroupFilters(ISession session)
+		{
+			var gfs = session
+				.CreateCriteria(typeof(GroupFilter))
+				.Add(Restrictions.Eq("Locked", 1))
+				.List<GroupFilter>();
+			return new List<GroupFilter>(gfs);
+		}
+
 		public void Delete(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

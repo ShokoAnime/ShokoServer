@@ -692,11 +692,11 @@ namespace JMMServer
 							Dictionary<int, int> dictTvDBSeasonsSpecials = anime.GetDictTvDBSeasonsSpecials(session);
 
 							//TODO
-							CrossRef_AniDB_TvDB tvDBCrossRef = null;
+							CrossRef_AniDB_TvDBV2 tvDBCrossRef = null;
 							List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs = anime.GetCrossRefTvDBV2(session);
 							if (tvDBCrossRefs.Count > 0)
 							{
-								tvDBCrossRef = new CrossRef_AniDB_TvDB();
+								tvDBCrossRef = new CrossRef_AniDB_TvDBV2();
 								tvDBCrossRef.AnimeID = tvDBCrossRefs[0].AnimeID;
 								//tvDBCrossRef.CrossRef_AniDB_TvDBID = tvDBCrossRefs[0].CrossRef_AniDB_TvDBV2ID;
 								tvDBCrossRef.CrossRefSource = tvDBCrossRefs[0].CrossRefSource;
@@ -758,10 +758,9 @@ namespace JMMServer
 										contract.AirDate = anidbep.AirDateFormatted;
 
 										// tvdb
-										SetTvDBInfo(dictTvDBEpisodes, dictTvDBSeasons, dictTvDBSeasonsSpecials, tvDBCrossRef, dictTvDBCrossRefEpisodes, anidbep, ref contract);
-										/*contract.EpisodeOverview = "";
-										contract.ImageType = "";
-										contract.ImageID = "";*/
+										//TODO
+										//SetTvDBInfo(dictTvDBEpisodes, dictTvDBSeasons, dictTvDBSeasonsSpecials, tvDBCrossRef, dictTvDBCrossRefEpisodes, anidbep, ref contract);
+										
 
 										ret.NextEpisodesToWatch.Add(contract);
 										cnt++;
