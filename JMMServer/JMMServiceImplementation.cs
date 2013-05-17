@@ -6134,95 +6134,100 @@ namespace JMMServer
 				return null;
 			}
 		}
-		/*
-		public List<Contract_AnimeEpisode> GetContinueWatchingFilter(int userID)
+		
+		public List<Contract_AnimeEpisode> GetContinueWatchingFilter(int userID, int maxRecords)
 		{
 			List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
 			try
 			{
 				using (var session = JMMService.SessionFactory.OpenSession())
 				{
-					DateTime start = DateTime.Now;
 					GroupFilterRepository repGF = new GroupFilterRepository();
 
 					JMMUserRepository repUsers = new JMMUserRepository();
 					JMMUser user = repUsers.GetByID(session, userID);
 					if (user == null) return retEps;
 
+					// find the locked Continue Watching Filter
 					GroupFilter gf = null;
-
-					if (groupFilterID == -999)
+					List<GroupFilter> lockedGFs = repGF.GetLockedGroupFilters(session);
+					if (lockedGFs != null)
 					{
-						// all groups
-						gf = new GroupFilter();
-						gf.GroupFilterName = "All";
-					}
-					else
-					{
-						gf = repGF.GetByID(session, groupFilterID);
-						if (gf == null) return retEps;
+						// if it already exists we can leave
+						foreach (GroupFilter gfTemp in lockedGFs)
+						{
+							if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase))
+							{
+								gf = gfTemp;
+								break;
+							}
+						}
 					}
 
-					//Contract_GroupFilterExtended contract = gf.ToContractExtended(user);
+					if (gf == null) return retEps;
 
+					// Get all the groups 
+					// it is more efficient to just get the full list of groups and then filter them later
 					AnimeGroupRepository repGroups = new AnimeGroupRepository();
 					List<AnimeGroup> allGrps = repGroups.GetAll(session);
 
+					// get all the user records
 					AnimeGroup_UserRepository repUserRecords = new AnimeGroup_UserRepository();
 					List<AnimeGroup_User> userRecords = repUserRecords.GetByUserID(session, userID);
 					Dictionary<int, AnimeGroup_User> dictUserRecords = new Dictionary<int, AnimeGroup_User>();
 					foreach (AnimeGroup_User userRec in userRecords)
 						dictUserRecords[userRec.AnimeGroupID] = userRec;
 
-					TimeSpan ts = DateTime.Now - start;
-					string msg = string.Format("Got groups for filter DB: {0} - {1} in {2} ms", gf.GroupFilterName, allGrps.Count, ts.TotalMilliseconds);
-					logger.Info(msg);
-					start = DateTime.Now;
+					// get all the groups in this filter for this user
+					HashSet<int> groups = StatsCache.Instance.StatUserGroupFilter[user.JMMUserID][gf.GroupFilterID];
 
-					AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-					List<AnimeSeries> allSeries = new List<AnimeSeries>();
-					if (getSingleSeriesGroups)
-						allSeries = repSeries.GetAll(session);
-					if ((StatsCache.Instance.StatUserGroupFilter.ContainsKey(user.JMMUserID)) && (StatsCache.Instance.StatUserGroupFilter[user.JMMUserID].ContainsKey(gf.GroupFilterID)))
+					List<Contract_AnimeGroup> comboGroups = new List<Contract_AnimeGroup>();
+					foreach (AnimeGroup grp in allGrps)
 					{
-						HashSet<int> groups = StatsCache.Instance.StatUserGroupFilter[user.JMMUserID][gf.GroupFilterID];
-
-						foreach (AnimeGroup grp in allGrps)
+						if (groups.Contains(grp.AnimeGroupID))
 						{
 							AnimeGroup_User userRec = null;
-							if (dictUserRecords.ContainsKey(grp.AnimeGroupID))
-								userRec = dictUserRecords[grp.AnimeGroupID];
-							if (groups.Contains(grp.AnimeGroupID))
-							{
-								Contract_AnimeGroup contractGrp = grp.ToContract(userRec);
-								if (getSingleSeriesGroups)
-								{
-									if (contractGrp.Stat_SeriesCount == 1)
-									{
-										AnimeSeries ser = GetSeriesForGroup(grp.AnimeGroupID, allSeries);
-										if (ser != null)
-											contractGrp.SeriesForNameOverride = ser.ToContract(ser.GetUserRecord(session, userID));
+							if (dictUserRecords.ContainsKey(grp.AnimeGroupID)) userRec = dictUserRecords[grp.AnimeGroupID];
 
-									}
+							Contract_AnimeGroup rec = grp.ToContract(userRec);
+							comboGroups.Add(rec);
+						}
+					}
+
+					// apply sorting
+					List<SortPropOrFieldAndDirection> sortCriteria = GroupFilterHelper.GetSortDescriptions(gf);
+					comboGroups = Sorting.MultiSort<Contract_AnimeGroup>(comboGroups, sortCriteria);
+
+					if ((StatsCache.Instance.StatUserGroupFilter.ContainsKey(user.JMMUserID)) && (StatsCache.Instance.StatUserGroupFilter[user.JMMUserID].ContainsKey(gf.GroupFilterID)))
+					{
+						AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+						foreach (Contract_AnimeGroup grp in comboGroups)
+						{
+							foreach (AnimeSeries ser in repSeries.GetByGroupID(session, grp.AnimeGroupID))
+							{
+								if (!user.AllowedSeries(ser)) continue;
+
+								Contract_AnimeEpisode ep = GetNextUnwatchedEpisode(session, ser.AnimeSeriesID, userID);
+								if (ep != null)
+								{
+									retEps.Add(ep);
+
+									// Lets only return the specified amount
+									if (retEps.Count == maxRecords)
+										return retEps;
 								}
-								retSeries.Add(contractGrp);
 							}
 						}
 					}
-					ts = DateTime.Now - start;
-					msg = string.Format("Got groups for filter EVAL: {0} - {1} in {2} ms", gf.GroupFilterName, retSeries.Count, ts.TotalMilliseconds);
-					logger.Info(msg);
-
-					return retSeries;
 				}
 			}
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
-			return retSeries;
+			return retEps;
 		}
-		*/
+		
 		/// <summary>
 		/// Gets a list of episodes watched based on the most recently watched series
 		/// It will return the next episode to watch in the most recent 10 series

@@ -568,6 +568,8 @@
     <Compile Include="UI\PasswordBoxAssistant.cs" />
     <Compile Include="UI\ServerInfo.cs" />
     <Compile Include="UnhandledExceptionManager.cs" />
+    <Compile Include="Utilities\GroupFilterHelper.cs" />
+    <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
     <Compile Include="Utilities\RenameFileHelper.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WatchedUnwatchedCount.cs" />
@@ -770,11 +772,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)*.dll" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	
-xcopy "$(TargetDir)*.exe" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)*.pdb" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)*.manifest" "C:\Projects\SVN\JMM\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

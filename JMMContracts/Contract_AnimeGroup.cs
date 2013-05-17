@@ -61,5 +61,10 @@ namespace JMMContracts
 		{
 			return SortName.CompareTo(obj.SortName);
 		}
+
+		public override string ToString()
+		{
+			return string.Format("{0} -  Ep Added: {1} - Unwatched Eps: {2}", GroupName, EpisodeAddedDate, UnwatchedEpisodeCount);
+		}
 	}
 }

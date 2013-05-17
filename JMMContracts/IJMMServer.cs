@@ -11,6 +11,9 @@ namespace JMMContracts
 	public interface IJMMServer
 	{
 		[OperationContract]
+		List<Contract_AnimeEpisode> GetContinueWatchingFilter(int userID, int maxRecords);
+
+		[OperationContract]
 		string RemoveLinkAniDBTvDBForAnime(int animeID);
 
 		[OperationContract]

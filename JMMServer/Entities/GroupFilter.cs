@@ -31,6 +31,41 @@ namespace JMMServer.Entities
 			}
 		}
 
+		public List<GroupFilterSortingCriteria> SortCriteriaList
+		{
+			get
+			{
+				List<GroupFilterSortingCriteria> sortCriteriaList = new List<GroupFilterSortingCriteria>();
+
+				if (!string.IsNullOrEmpty(SortingCriteria))
+				{
+					string[] scrit = SortingCriteria.Split('|');
+					foreach (string sortpair in scrit)
+					{
+						string[] spair = sortpair.Split(';');
+						if (spair.Length != 2) continue;
+
+						int stype = 0;
+						int sdir = 0;
+
+						int.TryParse(spair[0], out stype);
+						int.TryParse(spair[1], out sdir);
+
+						if (stype > 0 && sdir > 0)
+						{
+							GroupFilterSortingCriteria gfsc = new GroupFilterSortingCriteria();
+							gfsc.GroupFilterID = this.GroupFilterID;
+							gfsc.SortType = (GroupFilterSorting)stype;
+							gfsc.SortDirection = (GroupFilterSortDirection)sdir;
+							sortCriteriaList.Add(gfsc);
+						}
+					}
+				}
+
+				return sortCriteriaList;
+			}
+		}
+
 		public List<GroupFilterCondition> GetFilterConditions(ISession session)
 		{
 			GroupFilterConditionRepository repConds = new GroupFilterConditionRepository();

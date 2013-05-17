@@ -155,6 +155,7 @@ namespace JMMServer.Databases
 				UpdateSchema_027(versionNumber);
 				UpdateSchema_028(versionNumber);
 				UpdateSchema_029(versionNumber);
+				UpdateSchema_030(versionNumber);
 			}
 			catch (Exception ex)
 			{
@@ -1344,6 +1345,46 @@ namespace JMMServer.Databases
 
 			// Now do the migratiuon
 			DatabaseHelper.MigrateTvDBLinks_V1_to_V2();
+		}
+
+		private static void UpdateSchema_030(int currentVersionNumber)
+		{
+			int thisVersion = 30;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE `GroupFilter` ADD `Locked` int NULL ;");
+
+			ExecuteSQLCommands(cmds);
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void ExecuteSQLCommands(List<string> cmds)
+		{
+			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+			{
+				conn.Open();
+
+				foreach (string sql in cmds)
+				{
+					using (MySqlCommand command = new MySqlCommand(sql, conn))
+					{
+						try
+						{
+							command.ExecuteNonQuery();
+						}
+						catch (Exception ex)
+						{
+							logger.Error(sql + " - " + ex.Message);
+						}
+					}
+				}
+			}
 		}
 
 		public static void UpdateSchema_Fix()

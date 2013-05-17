@@ -1130,6 +1130,14 @@ namespace JMMServer.Databases
 
 			cmds.Add("ALTER TABLE GroupFilter ADD Locked int NULL");
 
+			ExecuteSQLCommands(cmds);
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
+		private static void ExecuteSQLCommands(List<string> cmds)
+		{
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
 				ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
 			{
@@ -1142,9 +1150,6 @@ namespace JMMServer.Databases
 					}
 				}
 			}
-
-			UpdateDatabaseVersion(thisVersion);
-
 		}
 
 		private static void UpdateDatabaseVersion(int versionNumber)
