@@ -142,6 +142,7 @@ namespace JMMServer
 		Azure_SendAnimeFull = 70,
 		Azure_SendAnimeXML = 71,
 		Azure_SendAnimeTitle = 72,
+        AniDB_GetEpisodeUDP = 80,
 	}
 
 	public enum CommandRequestPriority

@@ -193,6 +193,7 @@
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="BitMaskHelper.cs" />
     <Compile Include="BlockingList.cs" />
+    <Compile Include="Commands\AniDB\CommandRequest_GetEpisode.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetFile.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_UpdateMylistStats.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeFull.cs" />

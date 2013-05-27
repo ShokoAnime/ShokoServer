@@ -123,9 +123,6 @@ namespace AniDBAPI.Commands
 			key = "AniDBCommand_GetEpisodeInfo_" + EpisodeID.ToString();
 			commandText = "EPISODE eid=" + episodeID.ToString();
 
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetEpisodeInfo.Process: Request: {0}", commandText);
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetEpisodeInfo.Init: {0}", key);
-
 			commandID = episodeID.ToString();
 		}
 

@@ -79,6 +79,7 @@ namespace AniDBAPI
 			get { return 2; }
 		}
 
+        public string OtherEpisodesRAW { get; set; }
 
         #endregion
         // default constructor
@@ -116,6 +117,7 @@ namespace AniDBAPI
 			FileVersion = 1;
 			IsCensored = 0;
 			IsDeprecated = 0;
+            OtherEpisodesRAW = string.Empty;
 		}
 
         public string Info
@@ -211,6 +213,7 @@ namespace AniDBAPI
 
             EpisodesRAW = sDetails[2].Trim();
             EpisodesPercentRAW = "100";
+            OtherEpisodesRAW = string.Empty;
             if (sDetails[5].Trim().Length > 0)
             {
                 string[] Eps = sDetails[5].Trim().Split('\'');
@@ -219,8 +222,13 @@ namespace AniDBAPI
                     foreach (string ep in Eps)
                     {
                         string[] ep2 = ep.Split(',');
-                        if (ep2.Length>0)
+                        if (ep2.Length > 0)
+                        {
                             EpisodesRAW += "," + ep2[0];
+                            if (!string.IsNullOrEmpty(OtherEpisodesRAW))
+                                OtherEpisodesRAW += ",";
+                            OtherEpisodesRAW += ep2[0];
+                        }
                         if (ep2.Length > 1)
                             EpisodesPercentRAW += "," + ep2[1];
                         else

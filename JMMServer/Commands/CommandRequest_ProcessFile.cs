@@ -11,6 +11,7 @@ using AniDBAPI;
 using System.Xml;
 using JMMServer.WebCache;
 using JMMServer.Commands.MAL;
+using JMMServer.Commands.AniDB;
 
 namespace JMMServer.Commands
 {
@@ -125,6 +126,20 @@ namespace JMMServer.Commands
 					repAniFile.Save(aniFile, false);
 					aniFile.CreateLanguages();
 					aniFile.CreateCrossEpisodes(localFileName);
+
+                    if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
+                    {
+                        string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
+                        foreach (string epid in epIDs)
+                        {
+                            int id = 0;
+                            if (int.TryParse(epid, out id))
+                            {
+                                CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
+                                cmdEp.Save();
+                            }
+                        }
+                    }
 
 					animeID = aniFile.AnimeID;
 				}

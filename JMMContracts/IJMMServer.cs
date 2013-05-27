@@ -10,6 +10,9 @@ namespace JMMContracts
 	[ServiceContract]
 	public interface IJMMServer
 	{
+        [OperationContract]
+        string UpdateEpisodeData(int episodeID);
+
 		[OperationContract]
 		List<Contract_AnimeEpisode> GetContinueWatchingFilter(int userID, int maxRecords);
 

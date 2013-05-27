@@ -341,6 +341,41 @@ namespace JMMServer
 			}
 		}
 
+        public Raw_AniDB_Episode GetEpisodeInfo(int episodeID)
+        {
+            if (!Login()) return null;
+
+            enHelperActivityType ev = enHelperActivityType.NoSuchEpisode;
+            AniDBCommand_GetEpisodeInfo getInfoCmd = null;
+
+            lock (lockAniDBConnections)
+            {
+                Pause(AniDBPause.Short);
+
+                getInfoCmd = new AniDBCommand_GetEpisodeInfo();
+                getInfoCmd.Init(episodeID, true);
+                SetWaitingOnResponse(true);
+                ev = getInfoCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                SetWaitingOnResponse(false);
+            }
+
+            if (ev == enHelperActivityType.GotEpisodeInfo && getInfoCmd != null && getInfoCmd.EpisodeInfo != null)
+            {
+                try
+                {
+                    logger.Trace("ProcessResult_GetEpisodeInfo: {0}", getInfoCmd.EpisodeInfo.ToString());
+                    return getInfoCmd.EpisodeInfo;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex.ToString());
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
 		public Raw_AniDB_File GetFileInfo(IHash vidLocal)
 		{
 			if (!Login()) return null;
@@ -370,6 +405,8 @@ namespace JMMServer
 						CommandRequest_GetReleaseGroup cmdRelgrp = new CommandRequest_GetReleaseGroup(getInfoCmd.fileInfo.GroupID, false);
 						cmdRelgrp.Save();
 					}
+
+                    
 
 					return getInfoCmd.fileInfo;
 				}
@@ -1069,6 +1106,10 @@ namespace JMMServer
 			{
 				ser.CreateAnimeEpisodes(session);
 			}
+
+            // update any files, that may have been linked
+            /*CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
+            repCrossRefs.GetByAnimeID(*/
 
 			// update cached stats
 			StatsCache.Instance.UpdateUsingAnime(session, anime.AnimeID);

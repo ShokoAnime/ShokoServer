@@ -24,6 +24,7 @@ using System.Diagnostics;
 using System.Collections;
 using JMMServer.Databases;
 using NHibernate;
+using JMMServer.Commands.AniDB;
 
 namespace JMMServer
 {
@@ -1552,6 +1553,8 @@ namespace JMMServer
 				CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
 				cmd.Save();
 
+
+
 			}
 			catch (Exception ex)
 			{
@@ -1560,6 +1563,22 @@ namespace JMMServer
 			}
 			return "";
 		}
+
+        public string UpdateEpisodeData(int episodeID)
+        {
+
+            try
+            {
+                CommandRequest_GetEpisode cmd = new CommandRequest_GetEpisode(episodeID);
+                cmd.Save();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+            return "";
+        }
 
 		public string RescanFile(int videoLocalID)
 		{
@@ -2669,10 +2688,19 @@ namespace JMMServer
 						{
 							if (xref.EpisodeID == dictAniEps[ep.AniDB_EpisodeID].EpisodeID)
 							{
+                                // don't add the same file twice, this will occur when
+                                // one file appears over more than one episodes
+                                Dictionary<string, string> addedFiles = new Dictionary<string, string>();
 								foreach (VideoLocal vl in vids)
 								{
-									if (string.Equals(xref.Hash,vl.Hash, StringComparison.InvariantCultureIgnoreCase))
-										epVids.Add(vl);
+                                    if (string.Equals(xref.Hash, vl.Hash, StringComparison.InvariantCultureIgnoreCase))
+                                    {
+                                        if (!addedFiles.ContainsKey(xref.Hash.Trim().ToUpper()))
+                                        {
+                                            addedFiles[xref.Hash.Trim().ToUpper()] = xref.Hash.Trim().ToUpper();
+                                            epVids.Add(vl);
+                                        }
+                                    }
 								}
 							}
 						}

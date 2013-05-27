@@ -30,6 +30,7 @@ namespace JMMServer.Commands
 		//------
 		// CommandRequest_GetUpdated
 		// CommandRequest_ReadMediaInfo
+        // CommandRequest_GetEpsode
 		//------
 		// Pri 5
 		//------
@@ -99,6 +100,11 @@ namespace JMMServer.Commands
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
 			{
+                case CommandRequestType.AniDB_GetEpisodeUDP:
+                    CommandRequest_GetEpisode cr_CommandRequest_GetEpisode = new CommandRequest_GetEpisode();
+                    cr_CommandRequest_GetEpisode.LoadFromDBCommand(crdb);
+                    return (ICommandRequest)cr_CommandRequest_GetEpisode;
+
 				case CommandRequestType.Azure_SendAnimeTitle:
 					CommandRequest_Azure_SendAnimeTitle cr_CommandRequest_Azure_SendAnimeTitle = new CommandRequest_Azure_SendAnimeTitle();
 					cr_CommandRequest_Azure_SendAnimeTitle.LoadFromDBCommand(crdb);
