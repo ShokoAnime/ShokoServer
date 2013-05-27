@@ -307,6 +307,8 @@
     <Compile Include="Providers\TraktTV\TraktTV_Timestamps.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_UserActivity.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_When.cs" />
+    <Compile Include="Providers\TvDB\TvDBDetails.cs" />
+    <Compile Include="Providers\TvDB\TvDBSummary.cs" />
     <Compile Include="Repositories\AniDB_MylistStatsRepository.cs" />
     <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
