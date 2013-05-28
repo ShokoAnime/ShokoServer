@@ -16,8 +16,13 @@ namespace JMMServer
 			foreach (ImportFolder ifolder in shares)
 			{
 				string importLocation = ifolder.ImportFolderLocation;
-				importLocation = importLocation.TrimEnd('\\');
-				if (fileName.StartsWith(ifolder.ImportFolderLocation))
+				string importLocationFull = importLocation.TrimEnd('\\');
+
+                // add back the trailing back slashes
+                importLocationFull = importLocationFull + "\\";
+
+                importLocation = importLocation.TrimEnd('\\');
+                if (fileName.StartsWith(importLocationFull))
 				{
 					importFolderID = ifolder.ImportFolderID;
 					filePath = fileName.Replace(importLocation, "");
