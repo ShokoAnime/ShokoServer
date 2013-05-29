@@ -767,12 +767,15 @@ namespace JMMServer.Providers.TvDB
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-				List<CrossRef_AniDB_TvDBV2> xrefTemp = repCrossRef.GetByAnimeIDEpTypeEpNumber(session, animeID, (int)aniEpType, aniEpNumber);
-				if (xrefTemp != null && xrefTemp.Count > 0)
+				List<CrossRef_AniDB_TvDBV2> xrefTemps = repCrossRef.GetByAnimeIDEpTypeEpNumber(session, animeID, (int)aniEpType, aniEpNumber);
+				if (xrefTemps != null && xrefTemps.Count > 0)
 				{
-					string msg = string.Format("Not using TvDB link as one already exists at {0} EP# {1}", aniEpType, aniEpNumber);
-					logger.Warn(msg);
-					return msg;
+                    foreach (CrossRef_AniDB_TvDBV2 xrefTemp in xrefTemps)
+                    {
+                        // delete the existing one if we are updating
+                        TvDBHelper.RemoveLinkAniDBTvDB(xrefTemp.AnimeID, (enEpisodeType)xrefTemp.AniDBStartEpisodeType, xrefTemp.AniDBStartEpisodeNumber,
+                            xrefTemp.TvDBID, xrefTemp.TvDBSeasonNumber, xrefTemp.TvDBStartEpisodeNumber);
+                    }
 				}
 
 				// check if we have this information locally
