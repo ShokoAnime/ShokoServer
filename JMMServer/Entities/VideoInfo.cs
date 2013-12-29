@@ -20,5 +20,6 @@ namespace JMMServer.Entities
 		public string AudioCodec { get; set; }
 		public string AudioBitrate { get; set; }
 		public long Duration { get; set; }
-	}
+        public string FullInfo { get; set; }
+    }
 }

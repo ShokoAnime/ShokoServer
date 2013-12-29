@@ -325,7 +325,7 @@ namespace JMMServer
 		/// <param name="animeGroupID"></param>
 		/// <param name="allSeries"></param>
 		/// <returns></returns>
-		private AnimeSeries GetSeriesForGroup(int animeGroupID, List<AnimeSeries> allSeries)
+		public static AnimeSeries GetSeriesForGroup(int animeGroupID, List<AnimeSeries> allSeries)
 		{
 			try
 			{

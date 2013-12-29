@@ -156,7 +156,8 @@ namespace JMMServer.Databases
 				UpdateSchema_028(versionNumber);
 				UpdateSchema_029(versionNumber);
 				UpdateSchema_030(versionNumber);
-			}
+                UpdateSchema_031(versionNumber);
+            }
 			catch (Exception ex)
 			{
 				logger.ErrorException("Error updating schema: " + ex.ToString(), ex);
@@ -1363,6 +1364,23 @@ namespace JMMServer.Databases
 			UpdateDatabaseVersion(thisVersion);
 
 		}
+		private static void UpdateSchema_031(int currentVersionNumber)
+		{
+			int thisVersion = 31;
+			if (currentVersionNumber >= thisVersion) return;
+
+			logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+			List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE VideoInfo ADD FullInfo varchar(10000) NULL");
+            
+			ExecuteSQLCommands(cmds);
+
+			UpdateDatabaseVersion(thisVersion);
+
+		}
+
 
 		private static void ExecuteSQLCommands(List<string> cmds)
 		{

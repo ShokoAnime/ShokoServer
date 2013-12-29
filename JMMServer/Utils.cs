@@ -14,7 +14,7 @@ using System.Threading;
 
 namespace JMMServer
 {
-	public class Utils
+	public static class Utils
 	{
 		public const int LastYear = 2050;
 
@@ -29,7 +29,18 @@ namespace JMMServer
 		extern static IntPtr GetProcAddress(IntPtr hModule, string methodName);
 
 		private static Logger logger = LogManager.GetCurrentClassLogger();
+        
+        //Remove in .NET 4.0
+        public static void CopyTo(this Stream input, Stream output, int bufferSize=0x1000)
+        {
+            byte[] buffer = new byte[bufferSize];
+            int bytesRead;
 
+            while ((bytesRead = input.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                output.Write(buffer, 0, bytesRead);
+            }
+        }
 		public static string CalculateSHA1(string text, Encoding enc)
 		{
 			byte[] buffer = enc.GetBytes(text);

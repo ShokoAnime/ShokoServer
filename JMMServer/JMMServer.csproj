@@ -14,6 +14,7 @@
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -24,6 +25,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -33,6 +35,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>db.ico</ApplicationIcon>
@@ -107,11 +110,14 @@
       <HintPath>..\Dependencies\System.Data.SQLite.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Net" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.ServiceModel.Web" />
     <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xaml" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -267,8 +273,10 @@
     <Compile Include="Entities\Playlist.cs" />
     <Compile Include="Entities\RenameScript.cs" />
     <Compile Include="FileRenamer.cs" />
+    <Compile Include="FileServer\FileServer.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
     <Compile Include="JMMServiceImplementationMetro.cs" />
+    <Compile Include="JMMServiceImplementationPlex.cs" />
     <Compile Include="JMMServiceImplementationREST.cs" />
     <Compile Include="JMMServiceImplementationStreaming.cs" />
     <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
@@ -553,6 +561,7 @@
     <Compile Include="ServerSettings.cs" />
     <Compile Include="ServerState.cs" />
     <Compile Include="StatsCache.cs" />
+    <Compile Include="SubStream.cs" />
     <Compile Include="UI\AboutForm.xaml.cs">
       <DependentUpon>AboutForm.xaml</DependentUpon>
     </Compile>
@@ -672,6 +681,20 @@
     <None Include="Providers\MyAnimeList\XMLSchema\VerifyCredentials.xsd">
       <SubType>Designer</SubType>
     </None>
+    <None Include="Resources\plex_404.bin" />
+    <None Include="Resources\plex_404V.bin" />
+    <None Include="Resources\plex_credits.bin" />
+    <None Include="Resources\plex_episodes.bin" />
+    <None Include="Resources\plex_misc.bin" />
+    <None Include="Resources\plex_movies.bin" />
+    <None Include="Resources\plex_others.bin" />
+    <None Include="Resources\plex_ovas.bin" />
+    <None Include="Resources\plex_parodies.bin" />
+    <None Include="Resources\plex_specials.bin" />
+    <None Include="Resources\plex_trailers.bin" />
+    <None Include="Resources\plex_tvepisodes.bin" />
+    <None Include="Resources\plex_unsort.bin" />
+    <None Include="Resources\plex_webclips.bin" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_add.png" />

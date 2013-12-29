@@ -26,6 +26,7 @@ namespace JMMServer.Mappings
 			Map(x => x.VideoFrameRate).Not.Nullable();
 			Map(x => x.VideoResolution).Not.Nullable();
 			Map(x => x.VideoBitDepth);
+            Map(x => x.FullInfo);
         }
 	}
 }

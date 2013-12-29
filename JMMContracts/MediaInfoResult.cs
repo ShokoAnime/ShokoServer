@@ -15,5 +15,7 @@ namespace JMMContracts
 		public string AudioCodec { get; set; }
 		public string AudioBitrate { get; set; }
 		public int Duration { get; set; }
+
+        public string FullInfo { get; set; }
 	}
 }

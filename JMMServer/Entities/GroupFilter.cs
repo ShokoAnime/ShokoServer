@@ -10,7 +10,7 @@ namespace JMMServer.Entities
 {
 	public class GroupFilter
 	{
-		public int GroupFilterID { get; private set; }
+		public int GroupFilterID { get; set; }
 		public string GroupFilterName { get; set; }
 		public int ApplyToSeries { get; set; }
 		public int BaseCondition { get; set; }

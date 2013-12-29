@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
+
 using JMMServer.Databases;
+using JMMServer.FileServer;
 using NHibernate;
 using JMMServer.Commands;
 using JMMServer.Repositories;
@@ -71,7 +74,12 @@ namespace JMMServer
 		private static string baseAddressMetroString = @"http://localhost:{0}/JMMServerMetro";
 		private static string baseAddressMetroImageString = @"http://localhost:{0}/JMMServerMetroImage";
 		private static string baseAddressRESTString = @"http://localhost:{0}/JMMServerREST";
-		//private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
+        private static string baseAddressPlexString = @"http://localhost:{0}/JMMServerPlex";
+
+	    public static string PathAddressREST = "JMMServerREST";
+        public static string PathAddressPlex = "JMMServerPlex";
+
+        //private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
 		//private static ServiceHost host = null;
 		//private static ServiceHost hostTCP = null;
 		private static ServiceHost hostImage = null;
@@ -80,6 +88,9 @@ namespace JMMServer
 		private static ServiceHost hostMetro = null;
 		private static ServiceHost hostMetroImage = null;
 		private static WebServiceHost hostREST = null;
+        private static WebServiceHost hostPlex = null;
+	    //private static MessagingServer hostFile = null;
+        private static FileServer.FileServer hostFile = null;
 
 		private static BackgroundWorker workerImport = new BackgroundWorker();
 		private static BackgroundWorker workerScanFolder = new BackgroundWorker();
@@ -153,7 +164,13 @@ namespace JMMServer
 				return new Uri(string.Format(baseAddressRESTString, ServerSettings.JMMServerPort));
 			}
 		}
-
+        public static Uri baseAddressPlex
+        {
+            get
+            {
+                return new Uri(string.Format(baseAddressPlexString, ServerSettings.JMMServerPort));
+            }
+        }
 
 		private Mutex mutex;
 		private readonly string mutexName = "JmmServer3.0Mutex";
@@ -187,7 +204,7 @@ namespace JMMServer
 					mutex = new Mutex(true, mutexName);
 				}
 			}
-			ServerSettings.DebugSettingsToLog();
+            ServerSettings.DebugSettingsToLog();
 
 			workerFileEvents.WorkerReportsProgress = false;
 			workerFileEvents.WorkerSupportsCancellation = false;
@@ -319,7 +336,7 @@ namespace JMMServer
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
-			workerFileEvents.RunWorkerAsync();
+            workerFileEvents.RunWorkerAsync();
 		}
 
 		void workerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -794,7 +811,8 @@ namespace JMMServer
 				Thread.Sleep(1000);
 
 				ServerState.Instance.CurrentSetupStatus = "Setting up database...";
-				if (!DatabaseHelper.InitDB())
+                logger.Info("Setting up database...");
+                if (!DatabaseHelper.InitDB())
 				{
 					ServerState.Instance.DatabaseAvailable = false;
 
@@ -807,20 +825,25 @@ namespace JMMServer
 				}
 				else
 					ServerState.Instance.DatabaseAvailable = true;
+                logger.Info("Initializing Session Factory...");
 
 
 				//init session factory
 				ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
 				ISessionFactory temp = JMMService.SessionFactory;
 
-				ServerState.Instance.CurrentSetupStatus = "Initializing Hosts...";
+                logger.Info("Initializing Hosts...");
+                ServerState.Instance.CurrentSetupStatus = "Initializing Hosts...";
+                FileServer.FileServer.RegisterFirewallAndHttpUser(int.Parse(ServerSettings.JMMServerPort),int.Parse(ServerSettings.JMMServerFilePort));
 				SetupAniDBProcessor();
 				StartImageHost();
 				StartBinaryHost();
 				StartMetroHost();
 				StartImageHostMetro();
-				StartRESTHost();
-				StartStreamingHost();
+                StartPlexHost();
+			    StartFileHost();
+                StartRESTHost();
+                StartStreamingHost();
 
 				//  Load all stats
 				ServerState.Instance.CurrentSetupStatus = "Initializing Stats...";
@@ -1148,6 +1171,8 @@ namespace JMMServer
 				StartBinaryHost();
 				StartImageHost();
 				StartImageHostMetro();
+			    StartPlexHost();
+			    StartFileHost();
 				StartStreamingHost();
 				StartRESTHost();
 
@@ -1468,10 +1493,12 @@ namespace JMMServer
 			{
 				btnUploadAzureCache.Visibility = System.Windows.Visibility.Visible;
 			}
+            logger.Info("Clearing Cache...");
 
 			Utils.ClearAutoUpdateCache();
 
 			ShowDatabaseSetup();
+            logger.Info("Initializing DB...");
 
 			workerSetupDB.RunWorkerAsync();
 
@@ -1481,7 +1508,8 @@ namespace JMMServer
 				ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);
 			}
 
-			automaticUpdater.ForceCheckForUpdate(true);
+            logger.Info("Checking for updates...");
+            automaticUpdater.ForceCheckForUpdate(true);
 		}
 
 
@@ -2377,10 +2405,27 @@ namespace JMMServer
 			logger.Trace("Now Accepting client connections for metro apps...");
 		}
 
-		private static void StartRESTHost()
+
+	    private static void StartPlexHost()
+	    {
+	        hostPlex = new WebServiceHost(typeof (JMMServiceImplementationPlex), baseAddressPlex);
+	        ServiceEndpoint ep = hostPlex.AddServiceEndpoint(typeof (IJMMServerPlex), new WebHttpBinding(), "");
+	        ServiceDebugBehavior stp = hostPlex.Description.Behaviors.Find<ServiceDebugBehavior>();
+	        stp.HttpHelpPageEnabled = false;
+            hostPlex.Open();
+	    }
+
+	    private static void StartFileHost()
+	    {
+            hostFile = new FileServer.FileServer(int.Parse(ServerSettings.JMMServerFilePort));
+            hostFile.Start();
+//                new MessagingServer(new ServiceFactory(), new MessagingServerConfiguration(new HttpMessageFactory()));
+ //           hostFile.Start(new IPEndPoint(IPAddress.Any, int.Parse(ServerSettings.JMMServerFilePort)));
+	    }
+	    private static void StartRESTHost()
 		{
 			hostREST = new WebServiceHost(typeof(JMMServiceImplementationREST), baseAddressREST);
-			ServiceEndpoint ep = hostREST.AddServiceEndpoint(typeof(IJMMServerREST), new WebHttpBinding(), "");
+            ServiceEndpoint ep = hostREST.AddServiceEndpoint(typeof(IJMMServerREST), new WebHttpBinding() { CloseTimeout = TimeSpan.FromMinutes(20), OpenTimeout = TimeSpan.FromMinutes(20), SendTimeout = TimeSpan.FromMinutes(20), MaxBufferSize = 65536, MaxBufferPoolSize = 524288, MaxReceivedMessageSize = 107374182400, TransferMode = TransferMode.StreamedResponse }, "");
 			ServiceDebugBehavior stp = hostREST.Description.Behaviors.Find<ServiceDebugBehavior>();
 			stp.HttpHelpPageEnabled = false;
 			hostREST.Open();
@@ -2453,6 +2498,12 @@ namespace JMMServer
 
 			if (hostStreaming != null)
 				hostStreaming.Close();
+
+            if (hostPlex!=null)
+                hostPlex.Close();
+
+            if (hostFile!=null)
+                hostFile.Stop();
 		}
 
 		private static void SetupAniDBProcessor()

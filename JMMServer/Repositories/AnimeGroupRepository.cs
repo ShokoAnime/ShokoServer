@@ -84,17 +84,20 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var grps = session
-					.CreateCriteria(typeof(AnimeGroup))
-					//.Add(Restrictions.Eq("AnimeGroupParentID", "null"))
-					//.Add(Restrictions.IsEmpty("OrgUnits"))
-					.Add(Restrictions.IsNull("AnimeGroupParentID"))
-					.List<AnimeGroup>();
-
-				return new List<AnimeGroup>(grps);
+			    return GetAllTopLevelGroups(session);
 			}
 		}
+        public List<AnimeGroup> GetAllTopLevelGroups(ISession session)
+        {
+            var grps = session
+                .CreateCriteria(typeof(AnimeGroup))
+                //.Add(Restrictions.Eq("AnimeGroupParentID", "null"))
+                //.Add(Restrictions.IsEmpty("OrgUnits"))
+                .Add(Restrictions.IsNull("AnimeGroupParentID"))
+                .List<AnimeGroup>();
 
+                return new List<AnimeGroup>(grps);
+        }
 		public void Delete(int id)
 		{
 			AnimeGroup cr = GetByID(id);

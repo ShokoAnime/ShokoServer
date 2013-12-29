@@ -924,20 +924,17 @@ namespace JMMServer
 			return null;
 		}
 
-		private void SetTvDBInfo(AniDB_Anime anime, AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
+		public static void SetTvDBInfo(AniDB_Anime anime, AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-                TvDBSummary tvSummary = new TvDBSummary();
-                tvSummary.Populate(anime.AnimeID);
+            TvDBSummary tvSummary = new TvDBSummary();
+            tvSummary.Populate(anime.AnimeID);
 
-                SetTvDBInfo(tvSummary, ep, ref contract);
-			}
+            SetTvDBInfo(tvSummary, ep, ref contract);
 
 			
 		}
 
-        public void SetTvDBInfo(TvDBSummary tvSummary,	AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
+        public static void SetTvDBInfo(TvDBSummary tvSummary,	AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
 		{
             #region episode override
             // check if this episode has a direct tvdb over-ride

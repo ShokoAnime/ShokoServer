@@ -16,7 +16,7 @@ namespace JMMFileHelper
 		public delegate int OnHashProgress([MarshalAs(UnmanagedType.LPWStr)]string strFileName, int nProgressPct);
 
 		#region DLL functions
-		[DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO")]
+        [DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO", CallingConvention = CallingConvention.Cdecl)]
 		private static extern int CalculateHashes_callback_dll(
 			[MarshalAs(UnmanagedType.LPWStr)] string szFileName,
 			[MarshalAs(UnmanagedType.LPArray)] byte[] hash,

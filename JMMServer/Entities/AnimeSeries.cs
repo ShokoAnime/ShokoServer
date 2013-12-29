@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Documents;
+using JMMServer.ImageDownload;
 using NLog;
 using JMMServer.Repositories;
 using JMMContracts;
@@ -328,7 +330,7 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public Contract_AnimeSeries ToContract(AnimeSeries_User userRecord)
+		public Contract_AnimeSeries ToContract(AnimeSeries_User userRecord, bool forceimages=false)
 		{
 			AniDB_Anime anime = this.GetAnime();
 			List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs = this.GetCrossRefTvDBV2();
@@ -339,12 +341,12 @@ namespace JMMServer.Entities
 			foreach (CrossRef_AniDB_TvDBV2 xref in tvDBCrossRefs)
 				sers.Add(xref.GetTvDBSeries());
 
-			return this.ToContract(anime, tvDBCrossRefs, movieDBCrossRef, userRecord, sers, malDBCrossRef, false, null, null, null, null);
+			return this.ToContract(anime, tvDBCrossRefs, movieDBCrossRef, userRecord, sers, malDBCrossRef, false, null, null, null, null,forceimages);
 		}
 
 		public Contract_AnimeSeries ToContract(AniDB_Anime animeRec, List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs, CrossRef_AniDB_Other movieDBCrossRef,
 			AnimeSeries_User userRecord, List<TvDB_Series> tvseries, List<CrossRef_AniDB_MAL> malDBCrossRef, bool passedDefaultImages, AniDB_Anime_DefaultImage defPoster,
-			AniDB_Anime_DefaultImage defFanart, AniDB_Anime_DefaultImage defWideBanner, List<AniDB_Anime_Title> titles)
+			AniDB_Anime_DefaultImage defFanart, AniDB_Anime_DefaultImage defWideBanner, List<AniDB_Anime_Title> titles,bool forceimages=false)
 		{
 			Contract_AnimeSeries contract = new Contract_AnimeSeries();
 
@@ -399,8 +401,17 @@ namespace JMMServer.Entities
 				else
 					animecontract.DefaultImagePoster = defaultPoster.ToContract();
 
-
-				AniDB_Anime_DefaultImage defaultFanart = null;
+			    if ((animecontract.DefaultImagePoster == null) && (forceimages))
+			    {
+			        ImageDetails im = animeRec.GetDefaultPosterDetailsNoBlanks();
+			        if (im != null)
+			        {
+			            animecontract.DefaultImagePoster = new Contract_AniDB_Anime_DefaultImage();
+			            animecontract.DefaultImagePoster.AnimeID = im.ImageID;
+			            animecontract.DefaultImagePoster.ImageType = (int) im.ImageType;
+			        }
+			    }
+			    AniDB_Anime_DefaultImage defaultFanart = null;
 				if (passedDefaultImages)
 					defaultFanart = defFanart;
 				else
@@ -410,6 +421,17 @@ namespace JMMServer.Entities
 					animecontract.DefaultImageFanart = null;
 				else
 					animecontract.DefaultImageFanart = defaultFanart.ToContract();
+
+                if ((animecontract.DefaultImagePoster == null) && (forceimages))
+                {
+                    ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
+                    if (im != null)
+                    {
+                        animecontract.DefaultImageFanart = new Contract_AniDB_Anime_DefaultImage();
+                        animecontract.DefaultImageFanart.AnimeID = im.ImageID;
+                        animecontract.DefaultImageFanart.ImageType = (int)im.ImageType;
+                    }
+                }
 
 				AniDB_Anime_DefaultImage defaultWideBanner = null;
 				if (passedDefaultImages)
