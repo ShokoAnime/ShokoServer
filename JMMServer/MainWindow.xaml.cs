@@ -1345,10 +1345,11 @@ namespace JMMServer
 
 			//AzureWebAPI.Delete_CrossRefAniDBTvDB();
 
+            /*
 			CrossRef_AniDB_TvDBV2Repository rep = new CrossRef_AniDB_TvDBV2Repository();
 			List<CrossRef_AniDB_TvDBV2> xrefs = rep.GetAll();
 			AzureWebAPI.Send_CrossRefAniDBTvDB(xrefs[0], "Test");
-
+            */
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();

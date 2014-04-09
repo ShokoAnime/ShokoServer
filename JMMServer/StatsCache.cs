@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMContracts.PlexContracts;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using NLog;
@@ -62,6 +63,9 @@ namespace JMMServer
 
 	    public Dictionary<int, Dictionary<int, HashSet<int>>> StatUserGroupFilter = null;
 
+        public Dictionary<int, Dictionary<int, Video>> StatPlexGroupsCache = null;
+
+
 		public StatsCache()
 		{
 			ClearAllData();
@@ -99,7 +103,28 @@ namespace JMMServer
 			StatAnimeContracts = new Dictionary<int, Contract_AniDB_AnimeDetailed>();
 
             StatUserGroupFilter = new Dictionary<int, Dictionary<int, HashSet<int>>>();
+
+            StatPlexGroupsCache=new Dictionary<int, Dictionary<int, Video>>();
 		}
+        public void UpdatePlexAnimeGroup(ISession session, AnimeGroup grp, List<AnimeSeries> allSeries)
+	    {
+            JMMUserRepository repUser = new JMMUserRepository();
+            AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
+	        foreach (JMMUser user in repUser.GetAll(session))
+	        {
+                AnimeGroup_User userRec = repUserGroups.GetByUserAndGroupID(session, user.JMMUserID, grp.AnimeGroupID);
+	            Dictionary<int, Video> cdic;
+	            if (StatPlexGroupsCache.ContainsKey(user.JMMUserID))
+	                cdic = StatPlexGroupsCache[user.JMMUserID];
+	            else
+	            {
+	                cdic = new Dictionary<int, Video>();
+	                StatPlexGroupsCache[user.JMMUserID] = cdic;
+	            }
+	            cdic[grp.AnimeGroupID]=JMMServiceImplementationPlex.VideoFromAnimeGroup(session,grp,user.JMMUserID,allSeries);
+	        }
+	    }
+
 
         public void UpdateGroupFilterUsingGroupFilter(int groupfilter)
         {
@@ -182,6 +207,9 @@ namespace JMMServer
                 }
             }
         }
+
+
+
         public void UpdateGroupFilterUsingGroup(int groupid)
         {
             AnimeGroupRepository repGroups = new AnimeGroupRepository();
@@ -689,6 +717,7 @@ namespace JMMServer
                     logger.Trace("Updating cached stats for GROUP - STEP 9 ({0}) in {1} ms", grp.GroupName, ts.TotalMilliseconds);
                     start = DateTime.Now;
                     UpdateGroupFilterUsingGroup(grp.AnimeGroupID);
+                    UpdatePlexAnimeGroup(session, grp,grp.GetAllSeries());
                     ts = DateTime.Now - start;
                     logger.Trace("Updating cached stats for GROUP - END ({0}) in {1} ms", grp.GroupName, ts.TotalMilliseconds);
                 }
@@ -846,19 +875,19 @@ namespace JMMServer
 				#endregion
 
 				start = DateTime.Now;
-
+			    var session = JMMService.SessionFactory.OpenSession();
 				foreach (AnimeGroup ag in allGrps)
 				{
 					// get all the series for this group
 					List<AnimeSeries> seriesForGroup = new List<AnimeSeries>();
 					GetAnimeSeriesRecursive(ag, ref seriesForGroup, allSeries, allGroupsDict);
-
+                    /*
 					if (ag.AnimeGroupID == 915)
 					{
 						Console.Write("");
 					}
 
-
+                    */
 					DateTime? Stat_AirDate_Min = null;
 					DateTime? Stat_AirDate_Max = null;
 					DateTime? Stat_EndDate = new DateTime(1980, 1, 1);
@@ -956,10 +985,10 @@ namespace JMMServer
 								else
 									Stat_SeriesCreatedDate = thisDate;
 							}
-
+                            /*
 							if (series.AniDB_ID == 2369)
 								Debug.Write("Test");
-
+                            */
 							// Note - only one series has to be finished airing to qualify
 							if (thisAnime.EndDate.HasValue && thisAnime.EndDate.Value < DateTime.Now)
 								hasFinishedAiring = true;
@@ -1121,6 +1150,7 @@ namespace JMMServer
 					this.StatGroupSubtitleLanguages[ag.AnimeGroupID] = Stat_SubtitleLanguages;
 
                     UpdateGroupFilterUsingGroup(ag.AnimeGroupID);
+                    UpdatePlexAnimeGroup(session, ag, allSeries);
 				}
 
 

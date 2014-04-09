@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -68,6 +69,9 @@ namespace JMMContracts.PlexContracts
     {
         [XmlIgnore]
         public DateTime AirDate { get; set; }
+
+        [XmlIgnore]
+        public Contract_AnimeGroup Group { get; set; }
 
         [XmlElement("Media")]
         public List<Media> Medias { get; set; }

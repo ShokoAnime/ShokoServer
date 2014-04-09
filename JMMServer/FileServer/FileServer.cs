@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using JMMFileHelper.Subtitles;
 using JMMServer.Entities;
 using JMMServer.Repositories;
@@ -19,6 +20,15 @@ namespace JMMServer.FileServer
 
         private void Run()
         {
+            Task.Factory.StartNew(() => {
+                while (_listener.IsListening)
+                {
+                    HttpListenerContext ctx = _listener.GetContext(); 
+                    new Thread(() =>Process(ctx)).Start(); 
+                } 
+                }); 
+
+            /*
             ThreadPool.QueueUserWorkItem((o) =>
             {
                 Console.WriteLine("FileServer running...");
@@ -44,6 +54,8 @@ namespace JMMServer.FileServer
                 }
                 catch { } // suppress any exceptions
             });
+             */
+
         }
 
         private static void RunNetSh(string parameter)

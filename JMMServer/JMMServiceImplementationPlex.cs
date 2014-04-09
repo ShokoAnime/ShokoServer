@@ -94,6 +94,7 @@ namespace JMMServer
             }
         }
 
+
         public System.IO.Stream GetFilters(string UserId)
         {
 
@@ -207,11 +208,7 @@ namespace JMMServer
                     }
                     dirs = dirs.OrderBy(a => a.Title).ToList();
                 }
-                m.Directories = dirs;
-                m.TotalSize = m.Directories.Count.ToString();
-                Limits lm = new Limits(m.Directories.Count);
-                m.Offset = lm.Start.ToString();
-                m.Size = lm.Size.ToString();
+                m.Directories =  StoreLimits(m, dirs);
                 /*
                 m.ViewMode="65586";
                 m.ViewGroup="video";
@@ -272,7 +269,7 @@ namespace JMMServer
         {
             MediaContainer con = new MediaContainer();
 
-            con.Videos = new List<Video>();
+            List<Video> dirs= new List<Video>();
             VideoLocalRepository repVids = new VideoLocalRepository();
             List<VideoLocal> vids = repVids.GetVideosWithoutEpisode();
             foreach (VideoLocal v in vids.OrderByDescending(a => a.DateTimeCreated))
@@ -280,9 +277,9 @@ namespace JMMServer
                 Video m = new Video();
                 FromVideoLocalEp(m, v, JMMType.File);
                 if (!string.IsNullOrEmpty(m.Duration))
-                    con.Videos.Add(m);
+                    dirs.Add(m);
             }
-            con.Size = con.Videos.Count.ToString();
+            con.Videos = StoreLimits(con, dirs);
             con.Identifier = "com.plexapp.plugins.myanime";
             con.MediaTagPrefix = "/system/bundle/media/flags/";
             con.MediaTagVersion = "1375292524";
@@ -370,8 +367,8 @@ namespace JMMServer
             l.UpdatedAt =
                 ((Int32) (v.DateTimeUpdated.Subtract(new DateTime(1970, 1, 1))).TotalSeconds).ToString(
                     CultureInfo.InvariantCulture);
-            l.OriginallyAvailableAt = v.DateTimeCreated.Year.ToString("N4") + "-" + v.DateTimeCreated.Month.ToString("N2") + "-" +
-                                      v.DateTimeCreated.Day.ToString("N2");
+            l.OriginallyAvailableAt = v.DateTimeCreated.Year.ToString("0000") + "-" + v.DateTimeCreated.Month.ToString("00") + "-" +
+                                      v.DateTimeCreated.Day.ToString("00");
             l.Year = v.DateTimeCreated.Year.ToString();
             VideoInfo info = v.VideoInfo;
             Media m = null;
@@ -588,7 +585,7 @@ namespace JMMServer
                             break;
                     }
                 }
-                m.Directories = ls.OrderBy(a => a.Title).ToList();
+                m.Directories = StoreLimits(m, ls.OrderBy(a => a.Title).ToList());
                 return GetStreamFromXmlObject(m);
             }
         }
@@ -696,8 +693,8 @@ namespace JMMServer
                 if (anime.AirDate.HasValue)
                 {
                     p.AirDate = anime.AirDate.Value;
-                    p.OriginallyAvailableAt = anime.AirDate.Value.Year.ToString("N4") + "-" + anime.AirDate.Value.Month.ToString("N2") + "-" +
-                                              anime.AirDate.Value.Day.ToString("N2");
+                    p.OriginallyAvailableAt = anime.AirDate.Value.Year.ToString("0000") + "-" + anime.AirDate.Value.Month.ToString("00") + "-" +
+                                              anime.AirDate.Value.Day.ToString("00");
                     p.Year = anime.AirDate.Value.Year.ToString();
                 }
                 p.LeafCount = anime.EpisodeCount.ToString();
@@ -747,45 +744,6 @@ namespace JMMServer
             return p;
         }
      
-        private class Joint
-        {
-            public Contract_AnimeGroup Group;
-            public Contract_AnimeSeries Serie;
-            
-            public int UserID;
-            public DateTime AirDate { get; set; }
-            public bool IsSerie;
-
-            public static Joint CreateFromGroup(Contract_AnimeGroup grp, Contract_AnimeSeries default_ser, int userid)
-            {
-                Joint j=new Joint();
-                j.Group = grp;
-                j.Serie = default_ser;
-                j.UserID = userid;
-                j.IsSerie = false;
-                j.AirDate = grp.Stat_AirDate_Min.HasValue ? grp.Stat_AirDate_Min.Value : DateTime.MinValue;
-                return j;
-            }
-
-            public static Joint CreateFromSerie(Contract_AnimeSeries ser, Contract_AnimeGroup default_grp,  DateTime? airdate, int userid)
-            {
-                Joint j=new Joint();
-                j.Group = default_grp;
-                j.Serie = ser;
-                j.UserID = userid;
-                j.IsSerie = true;
-                j.AirDate = airdate.HasValue ? airdate.Value : DateTime.MinValue;
-                return j;
-            }
-
-
-            public Video ToVideo()
-            {
-                if (IsSerie)
-                    return FromSerie(Serie, UserID);
-                return FromGroup(Group, Serie, UserID);
-            }
-        }
 
         public System.IO.Stream GetSupportImage(string name)
         {
@@ -804,11 +762,57 @@ namespace JMMServer
 
         public static string ServerUrl(int port, string path)
         {
+            if ((WebOperationContext.Current == null) ||
+                (WebOperationContext.Current.IncomingRequest.UriTemplateMatch == null))
+            {
+                return "{SCHEME}://{HOST}:" + port + "/" +path;
+            }
             return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme + "://" +
                    WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host + ":" + port + "/" +
                    path;
         }
 
+        public static string ReplaceSchemeHost(string str)
+        {
+            if (str == null)
+                return null;
+            return str.Replace("{SCHEME}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme).Replace("{HOST}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host);
+        }
+        public static Video CloneVideo(Video o)
+	    {
+	        Video v=new Video();
+	        v.AddedAt = o.AddedAt;
+	        v.AirDate = o.AirDate;
+	        v.Art = ReplaceSchemeHost(o.Art);
+	        v.Duration = o.Duration;
+	        v.EpNumber = o.EpNumber;
+	        v.EpisodeCount = o.EpisodeCount;
+	        v.Genres = o.Genres;
+	        v.Group = o.Group;
+	        v.Guid = o.Guid;
+            v.Key = ReplaceSchemeHost(o.Key);
+            v.LeafCount = o.LeafCount;
+            v.Medias = o.Medias;
+            v.OriginalTitle = o.OriginalTitle;
+            v.OriginallyAvailableAt = o.OriginallyAvailableAt;
+            v.Rating = o.Rating;
+            v.RatingKey = o.RatingKey;
+            v.Roles = o.Roles;
+            v.Season = o.Season;
+            v.SourceTitle = o.SourceTitle;
+            v.Summary = o.Summary;
+            v.Tags = o.Tags;
+            v.Thumb = ReplaceSchemeHost(o.Thumb);
+            v.Title = o.Title;
+            v.Type = o.Type;
+            v.UpdatedAt = o.UpdatedAt;
+            v.Url = ReplaceSchemeHost(o.Url);
+            v.ViewCount = o.ViewCount;
+            v.ViewOffset = o.ViewOffset;
+            v.ViewedLeafCount = o.ViewedLeafCount;
+            v.Year = o.Year;
+            return v;
+	    }
         public System.IO.Stream GetItemsFromGroup(string UserId, string GroupId)
         {
             MediaContainer m = new MediaContainer();
@@ -824,7 +828,7 @@ namespace JMMServer
 
             int groupID = -1;
             int.TryParse(GroupId, out groupID);
-            List<Joint> retGroups = new List<Joint>();
+            List<Video> retGroups = new List<Video>();
 
             using (var session = JMMService.SessionFactory.OpenSession())
             {
@@ -856,30 +860,51 @@ namespace JMMServer
 
                     foreach (AnimeGroup grpChild in grp.GetChildGroups())
                     {
+                        Video v = StatsCache.Instance.StatPlexGroupsCache[user.JMMUserID][grpChild.AnimeGroupID];
+                        if (v != null)
+                            retGroups.Add(CloneVideo(v));
+                        /*
+
+                        
                         Contract_AnimeGroup cgrp = grpChild.ToContract(grpChild.GetUserRecord(session, user.JMMUserID));
                         List<AnimeSeries> sers = grpChild.GetSeries();
                         if (StatsCache.Instance.StatGroupSeriesCount[grpChild.AnimeGroupID] == 1)
                         {
+
+
                             if ((sers != null) && (sers.Count > 0))
-                                retGroups.Add(Joint.CreateFromSerie(sers[0].ToContract(sers[0].GetUserRecord(session, user.JMMUserID),true), cgrp, sers[0].AirDate, user.JMMUserID));
+                            {
+                                Video v = FromSerie(sers[0].ToContract(sers[0].GetUserRecord(session, user.JMMUserID), true), user.JMMUserID);
+                                v.AirDate = sers[0].AirDate.HasValue ? sers[0].AirDate.Value : DateTime.MinValue;
+                                v.Group = cgrp;
+                                retGroups.Add(v);
+                            }
                         }
                         else
                         {
                             if ((sers != null) && (sers.Count > 0))
-                                retGroups.Add(Joint.CreateFromGroup(grpChild.ToContract(grpChild.GetUserRecord(session, user.JMMUserID)), sers[0].ToContract(sers[0].GetUserRecord(session, user.JMMUserID),true), user.JMMUserID));
-                        }
+                            {
+                                Video v = FromGroup(cgrp, sers[0].ToContract(sers[0].GetUserRecord(session, user.JMMUserID), true), user.JMMUserID);
+                                v.Group = cgrp;
+                                v.AirDate = cgrp.Stat_AirDate_Min.HasValue ? cgrp.Stat_AirDate_Min.Value : DateTime.MinValue;
+                                retGroups.Add(v);
+                            }
+                        }*/
                     }
                     foreach (AnimeSeries ser in grp.GetSeries())
                     {
-                        retGroups.Add(Joint.CreateFromSerie(ser.ToContract(ser.GetUserRecord(session, user.JMMUserID),true), basegrp,ser.AirDate, user.JMMUserID));
+                        Video v = FromSerie(ser.ToContract(ser.GetUserRecord(session, user.JMMUserID), true), user.JMMUserID);
+                        v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
+                        v.Group = basegrp;
+                        retGroups.Add(v);
                     }
                 }
 
-                m.Directories = retGroups.OrderBy(a=>a.AirDate).Select(a=>a.ToVideo()).ToList();
-                m.Size = m.Directories.Count.ToString();
+                m.Directories = StoreLimits(m,retGroups.OrderBy(a=>a.AirDate).ToList()).ToList();
                 return GetStreamFromXmlObject(m);
             }
         }
+
 
         public static void EpisodeTypeTranslated(EpisodeType tp, enEpisodeType epType, AnimeTypes an, int cnt)
         {
@@ -980,8 +1005,7 @@ namespace JMMServer
                     return new MemoryStream();
             }
 
-            List<Joint> retGroups = new List<Joint>();
-
+            
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 if (serieID == -1)
@@ -1022,7 +1046,7 @@ namespace JMMServer
                         List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
                         sortCriteria.Add(new SortPropOrFieldAndDirection("Name", SortType.eString));
                         eps = Sorting.MultiSort(eps, sortCriteria);
-                        m.Directories = new List<Video>();
+                        List<Video> dirs= new List<Video>();
 
                         foreach (EpisodeType ee in  eps)
                         {
@@ -1037,8 +1061,9 @@ namespace JMMServer
                                         (int) JMMType.Serie + "/" + ee.Type + "_" + ser.AnimeSeriesID);
                             v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort),
                                 MainWindow.PathAddressPlex + "/GetSupportImage/" + ee.Image);
-                            m.Directories.Add(v);
+                            dirs.Add(v);
                         }
+                        m.Directories = StoreLimits(m, dirs);
                         return GetStreamFromXmlObject(m);
                     }
                 }
@@ -1058,8 +1083,7 @@ namespace JMMServer
                             .Select(a => new Tag() {Value = a})
                             .ToList();
                 }
-
-                m.Videos = new List<Video>();
+                List<Video> vids=new List<Video>();
                 foreach (AnimeEpisode ep in episodes)
                 {
                     Video v = new Video();
@@ -1081,8 +1105,8 @@ namespace JMMServer
                     if (aep.AirDateAsDate.HasValue)
                     {
                         v.Year = aep.AirDateAsDate.Value.Year.ToString();
-                        v.OriginallyAvailableAt = aep.AirDateAsDate.Value.Year.ToString("N4") + "-" + aep.AirDateAsDate.Value.Month.ToString("N2") +
-                                                  "-" + aep.AirDateAsDate.Value.Day.ToString("N2");
+                        v.OriginallyAvailableAt = aep.AirDateAsDate.Value.Year.ToString("0000") + "-" + aep.AirDateAsDate.Value.Month.ToString("00") +
+                                                  "-" + aep.AirDateAsDate.Value.Day.ToString("00");
                     }
                     AnimeEpisode_User epuser = ep.GetUserRecord(session, user.JMMUserID);
                     if (epuser != null)
@@ -1100,13 +1124,13 @@ namespace JMMServer
                         v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort),
                             MainWindow.PathAddressPlex + "/GetSupportImage/plex_404.png");
                     v.Summary = contract.EpisodeOverview;
-                    m.Videos.Add(v);
+                    vids.Add(v);
                 }
+
                 List<SortPropOrFieldAndDirection> sortCriteria2 = new List<SortPropOrFieldAndDirection>();
                 sortCriteria2.Add(new SortPropOrFieldAndDirection("EpNumber", SortType.eInteger));
-                m.Videos = Sorting.MultiSort(m.Videos, sortCriteria2);
-                m.Size = m.Videos.Count.ToString();
-
+                vids= Sorting.MultiSort(vids, sortCriteria2);
+                m.Videos = StoreLimits(m, vids);
                 return GetStreamFromXmlObject(m);
             }
         }
@@ -1121,7 +1145,9 @@ namespace JMMServer
             m.Identifier = "com.plexapp.plugins.myanime";
             m.MediaTagPrefix = "/system/bundle/media/flags/";
             m.MediaTagVersion = "1375292524";
-            List<Joint> retGroups = new List<Joint>();
+
+            //List<Joint> retGroups = new List<Joint>();
+            List<Video> retGroups=new List<Video>();
             try
             {
                 int groupFilterID = -1;
@@ -1178,6 +1204,10 @@ namespace JMMServer
                         {
                             if (groups.Contains(grp.AnimeGroupID))
                             {
+                                Video v = StatsCache.Instance.StatPlexGroupsCache[user.JMMUserID][grp.AnimeGroupID];
+                                if (v!=null)
+                                retGroups.Add(CloneVideo(v));
+/*
                                 Contract_AnimeGroup cgrp = grp.ToContract(grp.GetUserRecord(session, user.JMMUserID));
 
                                 if (StatsCache.Instance.StatGroupSeriesCount[grp.AnimeGroupID] == 1)
@@ -1195,6 +1225,7 @@ namespace JMMServer
                                     if (ser!=null)
                                         retGroups.Add(Joint.CreateFromGroup(cgrp,ser.ToContract(ser.GetUserRecord(session, user.JMMUserID),true),user.JMMUserID));
                                 }
+ */
                             }
                         }
                     }
@@ -1204,7 +1235,9 @@ namespace JMMServer
                     logger.Info(msg);
                     if ((groupFilterID == -999) || (gf.SortCriteriaList.Count == 0))
                     {
-                        m.Directories = retGroups.OrderBy(a => a.Group.SortName).Select(a => a.ToVideo()).ToList();
+                        //                        m.Directories = StoreLimits(m,retGroups.OrderBy(a => a.Group.SortName).Select(a => a.ToVideo()).ToList());
+
+                        m.Directories = StoreLimits(m,retGroups.OrderBy(a => a.Group.SortName).ToList()).ToList();
                         return GetStreamFromXmlObject(m);
                     }
                     List<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group).ToList();
@@ -1214,6 +1247,8 @@ namespace JMMServer
                         sortCriteria.Add(GroupFilterHelper.GetSortDescription(g.SortType, g.SortDirection));
                     }
                     grps = Sorting.MultiSort(grps, sortCriteria);
+                    /*
+                    
                     List<Joint> joints2 = new List<Joint>();
                     foreach (Contract_AnimeGroup gr in grps)
                     {
@@ -1227,7 +1262,21 @@ namespace JMMServer
                             }
                         }
                     }
-                    m.Directories = joints2.Select(a => a.ToVideo()).ToList();
+                    */
+                    List<Video> joints2 = new List<Video>();
+                    foreach (Contract_AnimeGroup gr in grps)
+                    {
+                        foreach (Video j in retGroups)
+                        {
+                            if (j.Group == gr)
+                            {
+                                joints2.Add(j);
+                                retGroups.Remove(j);
+                                break;
+                            }
+                        }
+                    }
+                    m.Directories = StoreLimits(m, joints2).ToList();
                     ts = DateTime.Now - start;
                     msg = string.Format("Got groups final: {0} - {1} in {2} ms", gf.GroupFilterName,
                         retGroups.Count, ts.TotalMilliseconds);
@@ -1243,6 +1292,42 @@ namespace JMMServer
             return new MemoryStream();
         }
 
+        public static Video VideoFromAnimeGroup(ISession session, AnimeGroup grp, int userid, List<AnimeSeries> allSeries)
+        {
+            Contract_AnimeGroup cgrp = grp.ToContract(grp.GetUserRecord(session, userid));
+            if (StatsCache.Instance.StatGroupSeriesCount[grp.AnimeGroupID] == 1)
+            {
+                AnimeSeries ser = JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
+                if (ser != null)
+                {
+                    Video v = FromSerie(ser.ToContract(ser.GetUserRecord(session, userid), true), userid);
+                    v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
+                    v.Group = cgrp;
+                    return v; 
+                }
+            }
+            else
+            {
+                AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value) : JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
+                if (ser != null)
+                {
+                    Video v = FromGroup(cgrp, ser.ToContract(ser.GetUserRecord(session, userid), true), userid);
+                    v.Group = cgrp;
+                    v.AirDate=cgrp.Stat_AirDate_Min.HasValue ? cgrp.Stat_AirDate_Min.Value : DateTime.MinValue;
+                    return v;
+                }
+            }
+            return null;
+        }
+
+        public List<Video> StoreLimits(MediaContainer m,List<Video> list)
+        {
+            m.TotalSize =list.Count.ToString();
+            Limits lm = new Limits(list.Count);
+            m.Offset = lm.Start.ToString();
+            m.Size = lm.Size.ToString();
+            return list.Skip(lm.Start).Take(lm.Size).ToList();
+        }
 
     }
 }
