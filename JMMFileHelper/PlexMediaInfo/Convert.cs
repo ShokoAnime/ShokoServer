@@ -464,7 +464,7 @@ namespace PlexMediaInfo
                 if (brate != 0)
                     m.Bitrate = Math.Round(brate / 1000F).ToString(CultureInfo.InvariantCulture);
                 p.Size = mi.Get(StreamKind.General, 0, "FileSize");
-                m.Id = p.Id = mi.Get(StreamKind.General, 0, "UniqueID");
+                //m.Id = p.Id = mi.Get(StreamKind.General, 0, "UniqueID");
 
                 ex = 2;
                 List<Stream> streams = new List<Stream>();

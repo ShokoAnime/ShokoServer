@@ -113,6 +113,7 @@ namespace JMMServer
                     if (user == null)
                         return new MemoryStream();
                     m.Title2 = "My Anime";
+                    m.Title1 = "Anime";
                     m.NoCache = "1";
                     m.AllowSync = "0";
                     m.ViewMode = "65592";
@@ -268,7 +269,7 @@ namespace JMMServer
         private System.IO.Stream GetUnsort()
         {
             MediaContainer con = new MediaContainer();
-
+            
             List<Video> dirs= new List<Video>();
             VideoLocalRepository repVids = new VideoLocalRepository();
             List<VideoLocal> vids = repVids.GetVideosWithoutEpisode();
@@ -283,6 +284,13 @@ namespace JMMServer
             con.Identifier = "com.plexapp.plugins.myanime";
             con.MediaTagPrefix = "/system/bundle/media/flags/";
             con.MediaTagVersion = "1375292524";
+            con.Title1 = "Unsort";
+            con.Title2 = "Unsort";
+            con.AllowSync = "1";
+            con.NoCache = "1";
+            con.ViewMode = "65586";
+            //con.ViewGroup = "show";
+
 
             return GetStreamFromXmlObject(con);
         }
@@ -311,12 +319,16 @@ namespace JMMServer
             AniDB_Anime ani=FromVideoLocalEp(v, vi, JMMType.File);
             if (!string.IsNullOrEmpty(v.Duration))
             {
-                v.RatingKey = "VL_" + id.ToString();
+                //RatingKey = "VL_" + id.ToString();
                 con.Videos.Add(v);
                 if (ani != null)
                 {
-                    con.Title1 = ani.MainTitle;
-                    con.Title2 = ani.MainTitle;
+                    //con.Title1 = ani.MainTitle;
+                    con.Title2 = con.Title1 = ani.MainTitle;
+                }
+                else
+                {
+                    con.Title2 = con.Title1 = v.Title;
                 }
             }
 
@@ -361,6 +373,7 @@ namespace JMMServer
                     }
                 }
             }
+
             l.AddedAt =
                 ((Int32) (v.DateTimeCreated.Subtract(new DateTime(1970, 1, 1))).TotalSeconds).ToString(
                     CultureInfo.InvariantCulture);
@@ -400,7 +413,8 @@ namespace JMMServer
             if (m != null)
             {
                 int pp = 1;
-                m.Id= "VL_" + v.VideoLocalID.ToString();
+                m.Id = null;
+                //m.Id= "VL_" + v.VideoLocalID.ToString();
                 List<Stream> subs = SubtitleHelper.GetSubtitleStreams(v.FullServerPath);
                 if (subs.Count > 0)
                 {
@@ -414,7 +428,8 @@ namespace JMMServer
                 }
                 foreach (Part p in m.Parts)
                 {
-                    p.Id = "VL_" + v.VideoLocalID.ToString();
+                    p.Id = null;
+                    //p.Id = "VL_" + v.VideoLocalID.ToString();
                     pp++;
                     p.File = v.FullServerPath;
                     string ff = Path.GetExtension(v.FullServerPath);
@@ -429,7 +444,7 @@ namespace JMMServer
                     int xx = 1;
                     foreach (JMMContracts.PlexContracts.Stream ss in p.Streams.ToArray())
                     {
-                        ss.Id = "VL_" + v.VideoLocalID + "_" + xx.ToString();
+                       // ss.Id = "VL_" + v.VideoLocalID + "_" + xx.ToString();
                         xx++;
 
                         if ((ss.StreamType == "1") && (!vid))
@@ -531,6 +546,7 @@ namespace JMMServer
                 m.Identifier = "com.plexapp.plugins.myanime";
                 m.MediaTagPrefix = "/system/bundle/media/flags/";
                 m.MediaTagVersion = "1375292524";
+                m.Title1 = "Search";
                 m.Title2 = "Search Results for '"+query+"'...";
                 AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
                 AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
@@ -842,7 +858,8 @@ namespace JMMServer
                 if (grp != null)
                 {
                     Contract_AnimeGroup basegrp = grp.ToContract(grp.GetUserRecord(session, user.JMMUserID));
-                        
+                    m.Title2 = basegrp.GroupName;
+                    m.Title1 = basegrp.GroupName;
                     List<AnimeSeries> sers2 = grp.GetSeries(session);
                     if (sers2.Count > 0)
                     {
@@ -1023,7 +1040,7 @@ namespace JMMServer
                 ImageDetails fanart = anime.GetDefaultFanartDetailsNoBlanks(session);
                 if (fanart != null)
                     m.Art = GenArt(fanart);
-                m.Title2 = anime.MainTitle;
+                m.Title2 = m.Title1= anime.MainTitle;
                 List<AnimeEpisode> episodes =
                     ser.GetAnimeEpisodes(session).Where(a => a.GetVideoLocals(session).Count > 0).ToList();
                 if (eptype.HasValue)
@@ -1175,7 +1192,7 @@ namespace JMMServer
                         gf = repGF.GetByID(session, groupFilterID);
                         if (gf == null) return new MemoryStream();
                     }
-                    m.Title2 = gf.GroupFilterName;
+                    m.Title2 = m.Title1=gf.GroupFilterName;
                     //Contract_GroupFilterExtended contract = gf.ToContractExtended(user);
 
                     AnimeGroupRepository repGroups = new AnimeGroupRepository();
