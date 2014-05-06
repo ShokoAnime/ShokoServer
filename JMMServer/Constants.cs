@@ -8,7 +8,7 @@ namespace JMMServer
 	public static class Constants
 	{
 		public static readonly string WebCacheError = @"<error>No Results</error>";
-		public static readonly string AniDBTitlesURL = @"http://anidb.net/api/animetitles.dat.gz";
+        public static readonly string AniDBTitlesURL = @"http://anidb.net/api/anime-titles.dat.gz";
 		public static readonly string AnonWebCacheUsername = @"AnonymousWebCacheUser";
 
 		public const string DatabaseTypeKey = "Database";
