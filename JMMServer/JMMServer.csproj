@@ -52,7 +52,7 @@
       <HintPath>..\Dependencies\Antlr3.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="AutomaticUpdaterWPF">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\wyBuild\AutomaticUpdater\AutomaticUpdaterWPF.dll</HintPath>
+      <HintPath>bin\Debug\AutomaticUpdaterWPF.dll</HintPath>
     </Reference>
     <Reference Include="FluentNHibernate">
       <HintPath>..\Dependencies\FluentNHibernate.dll</HintPath>
@@ -109,7 +109,7 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Data.SQLite, Version=1.0.90.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Release\System.Data.SQLite.dll</HintPath>
+      <HintPath>..\..\..\..\Users\Maximo\Documents\NET\jmm\JMMServer\JMMServer\bin\Release\System.Data.SQLite.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Net" />
