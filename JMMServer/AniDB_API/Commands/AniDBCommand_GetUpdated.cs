@@ -106,9 +106,8 @@ namespace AniDBAPI.Commands
 			RecordCount = 0;
 			this.StartTime = startTime;
 
-			//commandText = string.Format("UPDATED entity=1&time={0}", this.StartTime);
-			commandText = "UPDATED entity=1&age=1";
-
+			commandText = string.Format("UPDATED entity=1&time={0}", this.StartTime);
+			//commandText = "UPDATED entity=1&age=1";
 
 			commandID = "UPDATED ";
 		}

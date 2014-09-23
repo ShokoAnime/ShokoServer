@@ -52,11 +52,6 @@ namespace JMMServer.Commands
 				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-				//DateTime localTime = DateTime.Now.AddDays(-30);
-				
-				long startTime = 0;
-				
-
 				// check the automated update table to see when the last time we ran this command
 				ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
 				if (sched != null)
@@ -71,17 +66,17 @@ namespace JMMServer.Commands
 					}
 				}
 
-				// get a list of updates in the last day from AniDB
-				// startTime will contain the date/time from which the updates apply to
-				if (!JMMService.AnidbProcessor.GetUpdated(ref animeIDsToUpdate, ref startTime)) return;
+				
 
 				long webUpdateTime = 0;
+                long webUpdateTimeNew = 0;
 				if (sched == null)
 				{
-					// if this is the first time, lets ask web cache for everyting in the last 3 days
+					// if this is the first time, lets ask for last 3 days
 					DateTime localTime = DateTime.Now.AddDays(-3);
 					DateTime utcTime = localTime.ToUniversalTime();
 					webUpdateTime = long.Parse(Utils.AniDBDate(utcTime));
+                    webUpdateTimeNew = long.Parse(Utils.AniDBDate(DateTime.Now.ToUniversalTime()));
 
 					sched = new ScheduledUpdate();
 					sched.UpdateType = (int)ScheduledUpdateType.AniDBUpdates;
@@ -90,30 +85,29 @@ namespace JMMServer.Commands
 				{
 					logger.Trace("Last anidb info update was : {0}", sched.UpdateDetails);
 					webUpdateTime = long.Parse(sched.UpdateDetails);
+                    webUpdateTimeNew = long.Parse(Utils.AniDBDate(DateTime.Now.ToUniversalTime()));
+
+                    DateTime timeNow = DateTime.Now.ToUniversalTime();
+                    logger.Info(string.Format("{0} since last UPDATED command",
+                        Utils.FormatSecondsToDisplayTime(int.Parse((webUpdateTimeNew -  webUpdateTime).ToString()))));
 				}
+
+                // get a list of updates from AniDB
+                // startTime will contain the date/time from which the updates apply to
+                JMMService.AnidbProcessor.GetUpdated(ref animeIDsToUpdate, ref webUpdateTime);
 
 				// now save the update time from AniDB
 				// we will use this next time as a starting point when querying the web cache
 				sched.LastUpdate = DateTime.Now;
-				sched.UpdateDetails = startTime.ToString();
+                sched.UpdateDetails = webUpdateTimeNew.ToString();
 				repSched.Save(sched);
 
-				// we now have a listof updates in the last 24 hours
-				// get more from the web cache
-				UpdatesCollection colUpdates = XMLService.Get_AniDBUpdates(webUpdateTime);
-				// get a unqiue list of anime id's
-				if (colUpdates != null)
-				{
-					logger.Info("Web cache updates : Time={0} - Count={1} - List={2}", webUpdateTime, colUpdates.UpdateCount, colUpdates.RawAnimeIDs);
-					foreach (int id in colUpdates.AnimeIDs)
-					{
-						if (!animeIDsToUpdate.Contains(id)) animeIDsToUpdate.Add(id);
-					}
-				}
-				else
-				{
-					logger.Info("No web Web cache updates");
-				}
+                if (animeIDsToUpdate.Count == 0)
+                {
+                    logger.Info("No anime to be updated");
+                    return;
+                }
+                    
 
 				int countAnime = 0;
 				int countSeries = 0;

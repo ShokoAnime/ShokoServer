@@ -469,7 +469,7 @@ namespace JMMServer
 
 		public bool GetUpdated(ref List<int> updatedAnimeIDs, ref long startTime)
 		{
-			startTime = 0;
+			//startTime = 0;
 			updatedAnimeIDs = new List<int>();
 
 			if (!Login()) return false;
@@ -479,7 +479,7 @@ namespace JMMServer
 				Pause();
 
 				AniDBCommand_GetUpdated cmdUpdated = new AniDBCommand_GetUpdated();
-				cmdUpdated.Init("1");
+                cmdUpdated.Init(startTime.ToString());
 				SetWaitingOnResponse(true);
 				enHelperActivityType ev = cmdUpdated.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
 				SetWaitingOnResponse(false);
@@ -489,14 +489,9 @@ namespace JMMServer
 					startTime = long.Parse(cmdUpdated.StartTime);
 					updatedAnimeIDs = cmdUpdated.AnimeIDList;
 
-					// send the results to the web cache
-					XMLService.Send_AniDBUpdates(cmdUpdated.StartTime, cmdUpdated.AnimeIDListRaw);
-
 					return true;
 				}
 			}
-
-			
 
 			return false;
 

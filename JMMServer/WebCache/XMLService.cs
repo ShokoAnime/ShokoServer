@@ -219,10 +219,6 @@ namespace JMMServer.WebCache
 
 		#endregion
 
-		#region CrossRef AniDB to TvDB
-
-		#endregion
-
 		#region CrossRef AniDB to Other
 
 		public static void Send_CrossRef_AniDB_Other(CrossRef_AniDB_Other data)
@@ -450,45 +446,6 @@ namespace JMMServer.WebCache
 				logger.ErrorException("Error in XMLService.GetAppVersions:: {0}", ex);
 				return null;
 			}
-		}
-
-		public static UpdatesCollection Get_AniDBUpdates(long utcUpdateTime)
-		{
-			try
-			{
-
-				string uri = string.Format("http://{0}/GetUpdates.aspx?updatetime={1}", ServerSettings.WebCache_Address, utcUpdateTime);
-				string xml = GetData(uri);
-
-				if (xml.Trim().Length == 0) return null;
-
-				UpdatesCollection updateCol = new UpdatesCollection();
-
-				XmlDocument docUpdates = new XmlDocument();
-				docUpdates.LoadXml(xml);
-
-				// populate the fields
-				updateCol.RawAnimeIDs = TryGetProperty(docUpdates, "UpdatesCollection", "AnimeIDs");
-				updateCol.UpdateCount = long.Parse(TryGetProperty(docUpdates, "UpdatesCollection", "UpdateCount"));
-
-				logger.Info("Get_AniDBUpdates:: {0} - {1}", updateCol.UpdateCount, updateCol.RawAnimeIDs);
-
-				return updateCol;
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in XMLService.Get_AniDBUpdates:: {0}" + ex.ToString(), ex);
-				return null;
-			}
-		}
-
-		public static void Send_AniDBUpdates(string updatedTime, string animeIDList)
-		{
-			string uri = string.Format("http://{0}/AddUpdatedList.aspx", ServerSettings.WebCache_Address);
-			AniDB_UpdatedRequest data = new AniDB_UpdatedRequest(updatedTime, animeIDList);
-			string xml = data.ToXML();
-
-			SendData(uri, xml);
 		}
 
 		private static string TryGetProperty(XmlDocument doc, string keyName, string propertyName)
