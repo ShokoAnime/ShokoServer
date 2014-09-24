@@ -227,8 +227,8 @@ namespace JMMServer
 				TimeSpan tsPing = DateTime.Now - JMMService.LastAniDBPing;
 				TimeSpan tsAniDBUDP = DateTime.Now - JMMService.LastAniDBUDPMessage;
 
-				// if we haven't sent a command for 20 seconds, send a ping just to keep the connection alive
-				if (tsAniDBUDP.TotalSeconds >= 20 && tsPing.TotalSeconds >= 20 && !IsBanned && !ExtendPauseSecs.HasValue)
+				// if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
+                if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency && tsPing.TotalSeconds >= Constants.PingFrequency && !IsBanned && !ExtendPauseSecs.HasValue)
 				{
 					AniDBCommand_Ping ping = new AniDBCommand_Ping();
 					ping.Init();
@@ -237,7 +237,7 @@ namespace JMMServer
 
 				string msg = string.Format("Last message sent {0} seconds ago", tsAniDBUDP.TotalSeconds);
 
-				if (tsAniDBNonPing.TotalSeconds > 600) // after 10 minutes
+				if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
 				{
 					ForceLogout();
 				}

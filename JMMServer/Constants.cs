@@ -13,6 +13,9 @@ namespace JMMServer
 
 		public const string DatabaseTypeKey = "Database";
 
+        public static readonly int ForceLogoutPeriod = 300;
+        public static readonly int PingFrequency = 45;
+
 		public static readonly int FlagLinkTvDB = 1;
 		public static readonly int FlagLinkTrakt = 2;
 		public static readonly int FlagLinkMAL = 4;
