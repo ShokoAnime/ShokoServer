@@ -49,7 +49,7 @@
                         <Image Height="16" Width="16" Source="/Images/32_info.png" Margin="5,2,5,0" Grid.Column="0" VerticalAlignment="Top"/>
                         
                         <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,3,5,5" DisplayText="Detailed explanation of options"
-                                                                        URL="http://code.google.com/p/jmm/wiki/User_Manual#Import_Folders"/>
+                                                                        URL="http://japanesemediamanager.github.io/wiki_usermanual.html"/>
                     </Grid>
                 </Border>
 

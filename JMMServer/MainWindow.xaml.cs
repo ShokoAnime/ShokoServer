@@ -1234,6 +1234,8 @@ namespace JMMServer
 			//CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(8107);
 			//cmdMAL.ProcessCommand();
 
+
+
 			//CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
 			//cmd.Save();
 
@@ -1350,6 +1352,11 @@ namespace JMMServer
 			List<CrossRef_AniDB_TvDBV2> xrefs = rep.GetAll();
 			AzureWebAPI.Send_CrossRefAniDBTvDB(xrefs[0], "Test");
             */
+
+            CommandRequest_GetUpdated cmd = new CommandRequest_GetUpdated(true);
+            cmd.ProcessCommand();
+            return;
+
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();
