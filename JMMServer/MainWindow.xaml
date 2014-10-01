@@ -248,7 +248,7 @@
                         </Button>
                     </StackPanel>
                 </TabItem>
-                <TabItem Header="MyAnime2 Migration" Visibility="Hidden">
+                <TabItem Header="MyAnime2 Migration" Visibility="Collapsed">
                     <StackPanel Orientation="Vertical" VerticalAlignment="Top" Margin="0">
                         <Border Style="{DynamicResource ToolbarBorderControlStyle}" Background="#F1F1F1" Margin="0,0,0,5" Padding="5">
                             <Grid>

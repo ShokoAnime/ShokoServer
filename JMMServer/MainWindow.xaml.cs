@@ -1353,10 +1353,6 @@ namespace JMMServer
 			AzureWebAPI.Send_CrossRefAniDBTvDB(xrefs[0], "Test");
             */
 
-            CommandRequest_GetUpdated cmd = new CommandRequest_GetUpdated(true);
-            cmd.ProcessCommand();
-            return;
-
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();
