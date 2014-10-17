@@ -17,26 +17,9 @@ namespace JMMServer.Providers.Azure
 
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public static void Send_AnimeFull(JMMServer.Entities.AniDB_Anime data)
-		{
-			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+        #region TvDB
 
-			string uri = string.Format(@"http://{0}/api/animefull", azureHostBaseAddress);
-			AnimeFull obj = data.ToContractAzure();
-			string json = JSONHelper.Serialize<AnimeFull>(obj);
-			SendData(uri, json, "POST");
-		}
-
-		public static void Send_AnimeXML(AnimeXML data)
-		{
-			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
-
-			string uri = string.Format(@"http://{0}/api/animexml", azureHostBaseAddress);
-			string json = JSONHelper.Serialize<AnimeXML>(data);
-			SendData(uri, json, "POST");
-		}
-
-		public static void Delete_CrossRefAniDBTvDB(int animeID, int aniDBStartEpisodeType, int aniDBStartEpisodeNumber, int tvDBID,
+        public static void Delete_CrossRefAniDBTvDB(int animeID, int aniDBStartEpisodeType, int aniDBStartEpisodeNumber, int tvDBID,
 			int tvDBSeasonNumber, int tvDBStartEpisodeNumber)
 		{
 			// id = animeid
@@ -91,69 +74,68 @@ namespace JMMServer.Providers.Azure
 			return xrefs;
 		}
 
-		public static void Send_AnimeTitle(AnimeIDTitle data)
-		{
-			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+        #endregion
 
-			string uri = string.Format(@"http://{0}/api/animeidtitle", azureHostBaseAddress);
-			string json = JSONHelper.Serialize<AnimeIDTitle>(data);
-			SendData(uri, json, "POST");
-		}
+        #region Trakt
 
-		public static List<AnimeIDTitle> Get_AnimeTitle(string query)
-		{
-			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
-			string uri = string.Format(@"http://{0}/api/animeidtitle/{1}", azureHostBaseAddress, query);
-			string msg = string.Format("Getting Anime Title Data From Cache: {0}", query);
+        public static List<CrossRef_AniDB_Trakt> Get_CrossRefAniDBTrakt(int animeID)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
 
-			DateTime start = DateTime.Now;
-			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Trakt/{1}?p={2}", azureHostBaseAddress, animeID, username);
+            string msg = string.Format("Getting AniDB/Trakt Cross Ref From Cache: {0}", animeID);
 
-			string json = GetDataJson(uri);
+            DateTime start = DateTime.Now;
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
 
-			TimeSpan ts = DateTime.Now - start;
-			msg = string.Format("Got Anime Title Data From Cache: {0} - {1}", query, ts.TotalMilliseconds);
-			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            string json = GetDataJson(uri);
 
-			List<AnimeIDTitle> titles = JSONHelper.Deserialize<List<AnimeIDTitle>>(json);
+            TimeSpan ts = DateTime.Now - start;
+            msg = string.Format("Got AniDB/Trakt Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
 
-			return titles;
-		}
+            List<CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_Trakt>>(json);
 
-		public static string Get_AnimeXML(int animeID)
-		{
-			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            return xrefs;
+        }
 
-			string uri = string.Format(@"http://{0}/api/animexml/{1}", azureHostBaseAddress, animeID);
+        public static void Send_CrossRefAniDBTrakt(CrossRef_AniDB_TraktV2 data, string animeName)
+        {
+            string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Trakt", azureHostBaseAddress);
 
-			DateTime start = DateTime.Now;
-			string msg = string.Format("Getting Anime XML Data From Cache: {0}", animeID);
-			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            CrossRef_AniDB_TraktInput input = new CrossRef_AniDB_TraktInput(data, animeName);
+            string json = JSONHelper.Serialize<CrossRef_AniDB_TraktInput>(input);
+            SendData(uri, json, "POST");
+        }
 
-			string xml = GetDataXML(uri);
+        public static void Delete_CrossRefAniDBTrakt(int animeID, int aniDBStartEpisodeType, int aniDBStartEpisodeNumber, string traktID,
+            int traktSeasonNumber, int traktStartEpisodeNumber)
+        {
+            // id = animeid
+            // p = username
+            // p2 = AniDBStartEpisodeType
+            // p3 = AniDBStartEpisodeNumber
+            // p4 = traktID
+            // p5 = traktSeasonNumber
+            // p6 = traktStartEpisodeNumber
+            // p7 = auth key
 
-			// remove the string container
-			int iStart = xml.IndexOf("<?xml");
-			if (iStart > 0)
-			{
-				string end = "</string>";
-				int iEnd = xml.IndexOf(end);
-				if (iEnd > 0)
-				{
-					xml = xml.Substring(iStart, iEnd - iStart -1);
-				}
-			}
+            //localhost:50994
+            //jmm.azurewebsites.net
+            string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}&p3={4}&p4={5}&p5={6}&p6={7}&p7={8}", azureHostBaseAddress,
+                animeID, ServerSettings.AniDB_Username, aniDBStartEpisodeType, aniDBStartEpisodeNumber, traktID, traktSeasonNumber, traktStartEpisodeNumber, ServerSettings.WebCacheAuthKey);
 
-			TimeSpan ts = DateTime.Now - start;
-			string content = xml;
-			if (content.Length > 100) content = content.Substring(0, 100);
-			msg = string.Format("Got Anime XML Data From Cache: {0} - {1} - {2}", animeID, ts.TotalMilliseconds, content);
-			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
 
-			return xml;
-		}
+            string json = DeleteDataJson(uri);
+        }
 
-		public static void Send_CrossRef_AniDB_MAL(JMMServer.Entities.CrossRef_AniDB_MAL data)
+        #endregion
+
+        #region MAL
+
+        public static void Send_CrossRef_AniDB_MAL(JMMServer.Entities.CrossRef_AniDB_MAL data)
 		{
 			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
@@ -164,7 +146,101 @@ namespace JMMServer.Providers.Azure
 			SendData(uri, json, "POST");
 		}
 
-		private static void SendData(string uri, string json, string verb)
+        #endregion
+
+        #region Anime
+
+        public static string Get_AnimeXML(int animeID)
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            string uri = string.Format(@"http://{0}/api/animexml/{1}", azureHostBaseAddress, animeID);
+
+            DateTime start = DateTime.Now;
+            string msg = string.Format("Getting Anime XML Data From Cache: {0}", animeID);
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+            string xml = GetDataXML(uri);
+
+            // remove the string container
+            int iStart = xml.IndexOf("<?xml");
+            if (iStart > 0)
+            {
+                string end = "</string>";
+                int iEnd = xml.IndexOf(end);
+                if (iEnd > 0)
+                {
+                    xml = xml.Substring(iStart, iEnd - iStart - 1);
+                }
+            }
+
+            TimeSpan ts = DateTime.Now - start;
+            string content = xml;
+            if (content.Length > 100) content = content.Substring(0, 100);
+            msg = string.Format("Got Anime XML Data From Cache: {0} - {1} - {2}", animeID, ts.TotalMilliseconds, content);
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+            return xml;
+        }
+
+        public static void Send_AnimeFull(JMMServer.Entities.AniDB_Anime data)
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            string uri = string.Format(@"http://{0}/api/animefull", azureHostBaseAddress);
+            AnimeFull obj = data.ToContractAzure();
+            string json = JSONHelper.Serialize<AnimeFull>(obj);
+            SendData(uri, json, "POST");
+        }
+
+        public static void Send_AnimeXML(AnimeXML data)
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            string uri = string.Format(@"http://{0}/api/animexml", azureHostBaseAddress);
+            string json = JSONHelper.Serialize<AnimeXML>(data);
+            SendData(uri, json, "POST");
+        }
+
+
+        #endregion
+
+        #region Anime Titles
+
+        public static void Send_AnimeTitle(AnimeIDTitle data)
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            string uri = string.Format(@"http://{0}/api/animeidtitle", azureHostBaseAddress);
+            string json = JSONHelper.Serialize<AnimeIDTitle>(data);
+            SendData(uri, json, "POST");
+        }
+
+        public static List<AnimeIDTitle> Get_AnimeTitle(string query)
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            string uri = string.Format(@"http://{0}/api/animeidtitle/{1}", azureHostBaseAddress, query);
+            string msg = string.Format("Getting Anime Title Data From Cache: {0}", query);
+
+            DateTime start = DateTime.Now;
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+            string json = GetDataJson(uri);
+
+            TimeSpan ts = DateTime.Now - start;
+            msg = string.Format("Got Anime Title Data From Cache: {0} - {1}", query, ts.TotalMilliseconds);
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+            List<AnimeIDTitle> titles = JSONHelper.Deserialize<List<AnimeIDTitle>>(json);
+
+            return titles;
+        }
+
+        #endregion
+
+        #region Helpers
+
+        private static void SendData(string uri, string json, string verb)
 		{
 
 			WebRequest req = null;
@@ -335,6 +411,8 @@ namespace JMMServer.Providers.Azure
 			}
 
 			return "";
-		}
-	}
+        }
+
+        #endregion
+    }
 }

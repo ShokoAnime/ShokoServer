@@ -171,6 +171,8 @@ namespace JMMServer.Databases
 				UpdateSchema_027(versionNumber);
 				UpdateSchema_028(versionNumber);
                 UpdateSchema_029(versionNumber);
+                UpdateSchema_030(versionNumber);
+                UpdateSchema_031(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1152,6 +1154,95 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
         }
+
+        private static void UpdateSchema_030(int currentVersionNumber)
+        {
+            int thisVersion = 30;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE CrossRef_AniDB_TraktV2( " +
+                " CrossRef_AniDB_TraktV2ID int IDENTITY(1,1) NOT NULL, " +
+                " AnimeID int NOT NULL, " +
+                " AniDBStartEpisodeType int NOT NULL, " +
+                " AniDBStartEpisodeNumber int NOT NULL, " +
+                " TraktID nvarchar(500), " +
+                " TraktSeasonNumber int NOT NULL, " +
+                " TraktStartEpisodeNumber int NOT NULL, " +
+                " TraktTitle nvarchar(MAX), " +
+                " CrossRefSource int NOT NULL, " +
+                " CONSTRAINT [PK_CrossRef_AniDB_TraktV2] PRIMARY KEY CLUSTERED " +
+                " ( " +
+                " CrossRef_AniDB_TraktV2ID ASC " +
+                " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+                " ) ON [PRIMARY] ");
+
+            cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TraktV2 ON CrossRef_AniDB_TraktV2(AnimeID, TraktSeasonNumber, TraktStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber)");
+
+            using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+                ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+            // Now do the migratiuon
+            DatabaseHelper.MigrateTraktLinks_V1_to_V2();
+        }
+
+        private static void UpdateSchema_031(int currentVersionNumber)
+        {
+            int thisVersion = 31;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE CrossRef_AniDB_Trakt_Episode( " +
+                " CrossRef_AniDB_Trakt_EpisodeID int IDENTITY(1,1) NOT NULL, " +
+                " AnimeID int NOT NULL, " +
+                " AniDBEpisodeID int NOT NULL, " +
+                " TraktID nvarchar(500), " +
+                " Season int NOT NULL, " +
+                " EpisodeNumber int NOT NULL, " +
+                " CONSTRAINT [PK_CrossRef_AniDB_Trakt_Episode] PRIMARY KEY CLUSTERED " +
+                " ( " +
+                " CrossRef_AniDB_Trakt_EpisodeID ASC " +
+                " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+                " ) ON [PRIMARY] ");
+
+            cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID ON CrossRef_AniDB_Trakt_Episode(AniDBEpisodeID)");
+
+            using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+                ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+
+
 		private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,

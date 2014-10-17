@@ -62,28 +62,9 @@ namespace JMMServer
 			return contract;
 		}
 
-		public bool PostShoutShow(int animeID, string shoutText, bool isSpoiler, ref string returnMessage)
+        public bool PostShoutShow(string traktID, string shoutText, bool isSpoiler, ref string returnMessage)
 		{
-			return TraktTVHelper.PostShoutShow(animeID, shoutText, isSpoiler, ref returnMessage);
-		}
-
-		public bool HasTraktLink(int animeID)
-		{
-			try
-			{
-				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-
-				AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
-				if (anime == null) return false;
-
-				return anime.GetCrossRefTrakt() != null;
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-			}
-
-			return false;
+            return TraktTVHelper.PostShoutShow(traktID, shoutText, isSpoiler, ref returnMessage);
 		}
 
 		public MetroContract_CommunityLinks GetCommunityLinks(int animeID)
@@ -103,14 +84,6 @@ namespace JMMServer
 					contract.AniDB_URL = string.Format(Constants.URLS.AniDB_Series, animeID);
 					contract.AniDB_DiscussURL = string.Format(Constants.URLS.AniDB_SeriesDiscussion, animeID);
 
-					// Trakt
-					CrossRef_AniDB_Trakt traktRef = anime.GetCrossRefTrakt(session);
-					if (traktRef != null)
-					{
-						contract.Trakt_ID = traktRef.TraktID;
-						contract.Trakt_URL = string.Format(Constants.URLS.Trakt_Series, traktRef.TraktID);
-					}
-
 					// MAL
 					List<CrossRef_AniDB_MAL> malRef = anime.GetCrossRefMAL(session);
 					if (malRef != null && malRef.Count > 0)
@@ -128,6 +101,14 @@ namespace JMMServer
 						contract.TvDB_ID = tvdbRef[0].TvDBID.ToString();
 						contract.TvDB_URL = string.Format(Constants.URLS.TvDB_Series, tvdbRef[0].TvDBID);
 					}
+
+                    // Trakt
+                    List<CrossRef_AniDB_TraktV2> traktRef = anime.GetCrossRefTraktV2(session);
+                    if (traktRef != null && traktRef.Count > 0)
+                    {
+                        contract.Trakt_ID = traktRef[0].TraktID;
+                        contract.Trakt_URL = string.Format(Constants.URLS.Trakt_Series, traktRef[0].TraktID);
+                    }
 				}
 			}
 			catch (Exception ex)

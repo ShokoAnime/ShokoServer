@@ -366,17 +366,17 @@ namespace JMMServer.Entities
 			return repCrossRef.GetByAnimeID(session, this.AnimeID);
 		}
 
-		public CrossRef_AniDB_Trakt GetCrossRefTrakt()
+        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return GetCrossRefTrakt(session);
+				return GetCrossRefTraktV2(session);
 			}
 		}
 
-		public CrossRef_AniDB_Trakt GetCrossRefTrakt(ISession session)
+		public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session)
 		{
-			CrossRef_AniDB_TraktRepository repCrossRef = new CrossRef_AniDB_TraktRepository();
+            CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
 			return repCrossRef.GetByAnimeID(session, this.AnimeID);
 		}
 
@@ -392,45 +392,6 @@ namespace JMMServer.Entities
 		{
 			CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
 			return repCrossRef.GetByAnimeID(session, this.AnimeID);
-		}
-
-		public Trakt_Show TraktShow
-		{
-			get
-			{
-				CrossRef_AniDB_Trakt xref = GetCrossRefTrakt();
-				if (xref == null) return null;
-
-				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-				return repShows.GetByTraktID(xref.TraktID);
-			}
-		}
-
-		public Trakt_ImagePoster TraktImagePoster
-		{
-			get
-			{
-				Trakt_Show show = TraktShow;
-				if (show == null) return null;
-
-				CrossRef_AniDB_Trakt xref = GetCrossRefTrakt();
-				if (xref == null) return null;
-
-				Trakt_ImagePosterRepository repPosters = new Trakt_ImagePosterRepository();
-				return repPosters.GetByShowIDAndSeason(show.Trakt_ShowID, xref.TraktSeasonNumber);
-			}
-		}
-
-		public Trakt_ImageFanart TraktImageFanart
-		{
-			get
-			{
-				Trakt_Show show = TraktShow;
-				if (show == null) return null;
-
-				Trakt_ImageFanartRepository repFanart = new Trakt_ImageFanartRepository();
-				return repFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
-			}
 		}
 
 		public List<TvDB_Series> GetTvDBSeries()

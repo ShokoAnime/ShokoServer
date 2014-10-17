@@ -6,12 +6,18 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.WebCache;
 using System.Xml;
+using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands
 {
 	public class CommandRequest_WebCacheDeleteXRefAniDBTrakt : CommandRequestImplementation, ICommandRequest
 	{
-		public int AnimeID { get; set; }
+        public int AnimeID { get; set; }
+        public int AniDBStartEpisodeType { get; set; }
+        public int AniDBStartEpisodeNumber { get; set; }
+        public string TraktID { get; set; }
+        public int TraktSeasonNumber { get; set; }
+        public int TraktStartEpisodeNumber { get; set; }
 
 		public CommandRequestPriority DefaultPriority
 		{
@@ -30,9 +36,15 @@ namespace JMMServer.Commands
 		{
 		}
 
-		public CommandRequest_WebCacheDeleteXRefAniDBTrakt(int animeID)
+        public CommandRequest_WebCacheDeleteXRefAniDBTrakt(int animeID, int aniDBStartEpisodeType, int aniDBStartEpisodeNumber, string traktID,
+            int traktSeasonNumber, int traktStartEpisodeNumber)
 		{
 			this.AnimeID = animeID;
+			this.AniDBStartEpisodeType = aniDBStartEpisodeType;
+			this.AniDBStartEpisodeNumber = aniDBStartEpisodeNumber;
+            this.TraktID = traktID;
+            this.TraktSeasonNumber = traktSeasonNumber;
+            this.TraktStartEpisodeNumber = traktStartEpisodeNumber;
 			this.CommandType = (int)CommandRequestType.WebCache_DeleteXRefAniDBTrakt;
 			this.Priority = (int)DefaultPriority;
 
@@ -44,7 +56,7 @@ namespace JMMServer.Commands
 			
 			try
 			{
-				XMLService.Delete_CrossRef_AniDB_Trakt(AnimeID);
+                AzureWebAPI.Delete_CrossRefAniDBTrakt(AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TraktID, TraktSeasonNumber, TraktStartEpisodeNumber);
 			}
 			catch (Exception ex)
 			{
@@ -75,6 +87,11 @@ namespace JMMServer.Commands
 
 				// populate the fields
 				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTrakt", "AnimeID"));
+                this.AniDBStartEpisodeType = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTrakt", "AniDBStartEpisodeType"));
+                this.AniDBStartEpisodeNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTrakt", "AniDBStartEpisodeNumber"));
+                this.TraktID = TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTrakt", "TraktID");
+                this.TraktSeasonNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTrakt", "TraktSeasonNumber"));
+                this.TraktStartEpisodeNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTrakt", "TraktStartEpisodeNumber"));
 			}
 
 			return true;

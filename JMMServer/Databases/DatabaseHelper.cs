@@ -539,6 +539,85 @@ namespace JMMServer.Databases
 			}
 		}
 
+        public static void MigrateTraktLinks_V1_to_V2()
+        {
+            try
+            {
+                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                Trakt_EpisodeRepository repEps = new Trakt_EpisodeRepository();
+                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+
+                CrossRef_AniDB_TraktRepository repCrossRefTrakt = new CrossRef_AniDB_TraktRepository();
+                CrossRef_AniDB_TraktV2Repository repCrossRefTraktNew = new CrossRef_AniDB_TraktV2Repository();
+
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    List<CrossRef_AniDB_Trakt> xrefsTrakt = repCrossRefTrakt.GetAll();
+                    foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
+                    {
+                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2();
+                        xrefNew.AnimeID = xrefTrakt.AnimeID;
+                        xrefNew.CrossRefSource = xrefTrakt.CrossRefSource;
+                        xrefNew.TraktID = xrefTrakt.TraktID;
+                        xrefNew.TraktSeasonNumber = xrefTrakt.TraktSeasonNumber;
+
+                        Trakt_Show show = xrefTrakt.GetByTraktShow(session);
+                        if (show != null)
+                            xrefNew.TraktTitle = show.Title;
+
+                        // determine start ep type
+                        if (xrefTrakt.TraktSeasonNumber == 0)
+                            xrefNew.AniDBStartEpisodeType = (int)AniDBAPI.enEpisodeType.Special;
+                        else
+                            xrefNew.AniDBStartEpisodeType = (int)AniDBAPI.enEpisodeType.Episode;
+
+                        xrefNew.AniDBStartEpisodeNumber = 1;
+                        xrefNew.TraktStartEpisodeNumber = 1;
+
+                        repCrossRefTraktNew.Save(xrefNew);
+                    }
+
+                    // create cross ref's for specials
+                    foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
+                    {
+                        AniDB_Anime anime = repAnime.GetByAnimeID(xrefTrakt.AnimeID);
+                        if (anime == null) continue;
+
+                        Trakt_Show show = xrefTrakt.GetByTraktShow(session);
+                        if (show == null) continue;
+
+                        // this anime has specials
+                        if (anime.EpisodeCountSpecial <= 0) continue;
+
+                        // this Trakt series has a season 0 (specials)
+                        List<int> seasons = repEps.GetSeasonNumbersForSeries(show.Trakt_ShowID);
+                        if (!seasons.Contains(0)) continue;
+
+                        //make sure we are not doubling up
+                        CrossRef_AniDB_TraktV2 temp = repCrossRefTraktNew.GetByTraktID(xrefTrakt.TraktID, 0, 1, xrefTrakt.AnimeID, (int)AniDBAPI.enEpisodeType.Special, 1);
+                        if (temp != null) continue;
+
+                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2();
+                        xrefNew.AnimeID = xrefTrakt.AnimeID;
+                        xrefNew.CrossRefSource = xrefTrakt.CrossRefSource;
+                        xrefNew.TraktID = xrefTrakt.TraktID;
+                        xrefNew.TraktSeasonNumber = 0;
+                        xrefNew.TraktStartEpisodeNumber = 1;
+                        xrefNew.AniDBStartEpisodeType = (int)AniDBAPI.enEpisodeType.Special;
+                        xrefNew.AniDBStartEpisodeNumber = 1;
+                        xrefNew.TraktTitle = show.Title;
+
+                        repCrossRefTraktNew.Save(xrefNew);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Could not MigrateTraktLinks_V1_to_V2: " + ex.ToString(), ex);
+            }
+        }
+
 		private static void CreateContinueWatchingGroupFilter()
 		{
 			// group filters

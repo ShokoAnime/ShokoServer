@@ -81,43 +81,45 @@ namespace JMMServer.Providers.TraktTV
 				AnimeSeries ser = aniepisode.GetAnimeSeries();
 				if (ser == null) return false;
 
-				CrossRef_AniDB_TraktRepository repCrossRef = new CrossRef_AniDB_TraktRepository();
-				CrossRef_AniDB_Trakt xref = repCrossRef.GetByAnimeID(ser.AniDB_ID);
-				if (xref == null) return false;
+                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+                List<CrossRef_AniDB_TraktV2> xrefs = repCrossRef.GetByAnimeID(ser.AniDB_ID);
+				if (xrefs == null || xrefs.Count == 0) return false;
 
-				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-				Trakt_Show show = repShows.GetByTraktID(xref.TraktID);
-				if (show == null) return false;
-				if (!show.TvDB_ID.HasValue) return false;
+                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+                foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
+                {
+                    Trakt_Show show = repShows.GetByTraktID(xref.TraktID);
+                    if (show == null) return false;
+                    if (!show.TvDB_ID.HasValue) return false;
 
-				tvdb_id = show.TvDB_ID.Value.ToString();
-				title = show.Title;
-				year = show.Year;
+                    tvdb_id = show.TvDB_ID.Value.ToString();
+                    title = show.Title;
+                    year = show.Year;
 
-				int retEpNum = 0, retSeason = 0;
-				GetTraktEpisodeNumber(aniepisode, show, xref.TraktSeasonNumber, ref retEpNum, ref retSeason);
-				if (retEpNum < 0) return false;
+                    int retEpNum = 0, retSeason = 0;
+                    GetTraktEpisodeNumber(aniepisode, show, xref.TraktSeasonNumber, ref retEpNum, ref retSeason);
+                    if (retEpNum < 0) return false;
 
-				episode = retEpNum.ToString();
-				season = retSeason.ToString();
+                    episode = retEpNum.ToString();
+                    season = retSeason.ToString();
 
-				AniDB_Episode aniep = aniepisode.AniDB_Episode;
-				if (aniep != null)
-				{
-					TimeSpan t = TimeSpan.FromSeconds(aniep.LengthSeconds + 14);
-					int toMinutes = int.Parse(Math.Round(t.TotalMinutes).ToString());
-					duration = toMinutes.ToString();
-				}
-				else
-					duration = "25";
+                    AniDB_Episode aniep = aniepisode.AniDB_Episode;
+                    if (aniep != null)
+                    {
+                        TimeSpan t = TimeSpan.FromSeconds(aniep.LengthSeconds + 14);
+                        int toMinutes = int.Parse(Math.Round(t.TotalMinutes).ToString());
+                        duration = toMinutes.ToString();
+                    }
+                    else
+                        duration = "25";
 
-				progress = "100";
+                    progress = "100";
 
-				plugin_version = "0.4";
-				media_center_version = "1.2.0.1";
-				media_center_date = "Dec 17 2010";
+                    plugin_version = "0.4";
+                    media_center_version = "1.2.0.1";
+                    media_center_date = "Dec 17 2010";
+                }
 
-				
 			}
 			catch (Exception ex)
 			{

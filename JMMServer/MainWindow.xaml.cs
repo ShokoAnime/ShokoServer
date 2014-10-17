@@ -512,6 +512,21 @@ namespace JMMServer
 		{
 			try
 			{
+                AnimeEpisodeRepository repeps = new AnimeEpisodeRepository();
+                //AnimeEpisode ep = repeps.GetByID(15);
+                List<AnimeEpisode> eps = repeps.GetBySeriesID(1);
+                foreach (AnimeEpisode ep in eps)
+                {
+                    if (ep.AniDB_Episode.EpisodeNumber == 11 && ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode)
+                    {
+                        TraktTVHelper.MarkEpisodeUnwatched(ep);
+                        return;
+                    }
+                }
+
+                
+
+
 				string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 				string logPath = Path.Combine(appPath, "logs");
 

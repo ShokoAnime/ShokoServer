@@ -157,6 +157,8 @@ namespace JMMServer.Databases
 				UpdateSchema_029(versionNumber);
 				UpdateSchema_030(versionNumber);
                 UpdateSchema_031(versionNumber);
+                UpdateSchema_032(versionNumber);
+                UpdateSchema_033(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1380,6 +1382,100 @@ namespace JMMServer.Databases
 			UpdateDatabaseVersion(thisVersion);
 
 		}
+
+        private static void UpdateSchema_032(int currentVersionNumber)
+        {
+            int thisVersion = 32;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE CrossRef_AniDB_TraktV2( " +
+                " CrossRef_AniDB_TraktV2ID INT NOT NULL AUTO_INCREMENT, " +
+                " AnimeID int NOT NULL, " +
+                " AniDBStartEpisodeType int NOT NULL, " +
+                " AniDBStartEpisodeNumber int NOT NULL, " +
+                " TraktID varchar(100) character set utf8, " +
+                " TraktSeasonNumber int NOT NULL, " +
+                " TraktStartEpisodeNumber int NOT NULL, " +
+                " TraktTitle text character set utf8, " +
+                " CrossRefSource int NOT NULL, " +
+                " PRIMARY KEY (`CrossRef_AniDB_TraktV2ID`) ) ; ");
+
+            cmds.Add("ALTER TABLE `CrossRef_AniDB_TraktV2` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TraktV2` (`AnimeID` ASC, `TraktSeasonNumber` ASC, `TraktStartEpisodeNumber` ASC, `AniDBStartEpisodeType` ASC, `AniDBStartEpisodeNumber` ASC) ;");
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+            // Now do the migratiuon
+            DatabaseHelper.MigrateTraktLinks_V1_to_V2();
+        }
+
+        private static void UpdateSchema_033(int currentVersionNumber)
+        {
+            int thisVersion = 33;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+
+            cmds.Add("CREATE TABLE `CrossRef_AniDB_Trakt_Episode` ( " +
+                " `CrossRef_AniDB_Trakt_EpisodeID` INT NOT NULL AUTO_INCREMENT, " +
+                " `AnimeID` int NOT NULL, " +
+                " `AniDBEpisodeID` int NOT NULL, " +
+                " `TraktID` varchar(100) character set utf8, " +
+                " `Season` int NOT NULL, " +
+                " `EpisodeNumber` int NOT NULL, " +
+                " PRIMARY KEY (`CrossRef_AniDB_Trakt_EpisodeID`) ) ; ");
+
+            cmds.Add("ALTER TABLE `CrossRef_AniDB_Trakt_Episode` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID` (`AniDBEpisodeID` ASC) ;");
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
 
 
 		private static void ExecuteSQLCommands(List<string> cmds)

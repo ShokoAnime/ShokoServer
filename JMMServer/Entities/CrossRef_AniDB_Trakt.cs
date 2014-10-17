@@ -7,6 +7,8 @@ using NLog;
 using System.IO;
 using JMMServer.ImageDownload;
 using JMMContracts;
+using NHibernate;
+using JMMServer.Repositories;
 
 namespace JMMServer.Entities
 {
@@ -17,6 +19,19 @@ namespace JMMServer.Entities
 		public string TraktID { get; set; }
 		public int TraktSeasonNumber { get; set; }
 		public int CrossRefSource { get; set; }
+
+        public Trakt_Show GetByTraktShow()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return GetByTraktShow(session);
+            }
+        }
+        public Trakt_Show GetByTraktShow(ISession session)
+        {
+            Trakt_ShowRepository repTraktShows = new Trakt_ShowRepository();
+            return repTraktShows.GetByTraktID(session, TraktID);
+        }
 
 		public Contract_CrossRef_AniDB_Trakt ToContract()
 		{

@@ -31,18 +31,6 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public Trakt_Show GetByShowID(int id)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				Trakt_Show cr = session
-					.CreateCriteria(typeof(Trakt_Show))
-					.Add(Restrictions.Eq("Trakt_ShowID", id))
-					.UniqueResult<Trakt_Show>();
-				return cr;
-			}
-		}
-
 		public Trakt_Show GetByTraktID(string id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

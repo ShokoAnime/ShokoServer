@@ -106,7 +106,6 @@ namespace JMMServer.Entities
 
 		public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(ISession session, int animeid)
 		{
-			// TODO we need to recusrive list at all relations and not just the first one
 			AniDB_AnimeRepository repAniAnime = new AniDB_AnimeRepository();
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			AnimeGroupRepository repGroups = new AnimeGroupRepository();

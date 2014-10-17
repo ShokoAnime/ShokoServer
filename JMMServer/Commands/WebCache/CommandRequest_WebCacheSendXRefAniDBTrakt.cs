@@ -6,6 +6,7 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.WebCache;
 using System.Xml;
+using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands
 {
@@ -44,18 +45,22 @@ namespace JMMServer.Commands
 			
 			try
 			{
-				CrossRef_AniDB_TraktRepository repCrossRef = new CrossRef_AniDB_TraktRepository();
-				CrossRef_AniDB_Trakt xref = repCrossRef.GetByID(CrossRef_AniDB_TraktID);
+                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+				CrossRef_AniDB_TraktV2 xref = repCrossRef.GetByID(CrossRef_AniDB_TraktID);
 				if (xref == null) return;
 
 				Trakt_ShowRepository repShow = new Trakt_ShowRepository();
 				Trakt_Show tvShow = repShow.GetByTraktID(xref.TraktID);
 				if (tvShow == null) return;
 
+                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+                if (anime == null) return;
+
 				string showName = "";
 				if (tvShow != null) showName = tvShow.Title;
 
-				XMLService.Send_CrossRef_AniDB_Trakt(xref, showName);
+                AzureWebAPI.Send_CrossRefAniDBTrakt(xref, anime.MainTitle);
 			}
 			catch (Exception ex)
 			{

@@ -137,6 +137,8 @@ namespace JMMServer.Databases
 				UpdateSchema_029(versionNumber);
 				UpdateSchema_030(versionNumber);
                 UpdateSchema_031(versionNumber);
+                UpdateSchema_032(versionNumber);
+                UpdateSchema_033(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1045,6 +1047,82 @@ namespace JMMServer.Databases
 			UpdateDatabaseVersion(thisVersion);
 		}
 
+        private static void UpdateSchema_032(int currentVersionNumber)
+        {
+            int thisVersion = 32;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE CrossRef_AniDB_TraktV2( " +
+                " CrossRef_AniDB_TraktV2ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                " AnimeID int NOT NULL, " +
+                " AniDBStartEpisodeType int NOT NULL, " +
+                " AniDBStartEpisodeNumber int NOT NULL, " +
+                " TraktID text, " +
+                " TraktSeasonNumber int NOT NULL, " +
+                " TraktStartEpisodeNumber int NOT NULL, " +
+                " TraktTitle text, " +
+                " CrossRefSource int NOT NULL " +
+                " ); ");
+
+            cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TraktV2 ON CrossRef_AniDB_TraktV2(AnimeID, TraktSeasonNumber, TraktStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber);");
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+
+            // Now do the migratiuon
+            DatabaseHelper.MigrateTraktLinks_V1_to_V2();
+        }
+
+
+        private static void UpdateSchema_033(int currentVersionNumber)
+        {
+            int thisVersion = 33;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE CrossRef_AniDB_Trakt_Episode( " +
+                " CrossRef_AniDB_Trakt_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                " AnimeID int NOT NULL, " +
+                " AniDBEpisodeID int NOT NULL, " +
+                 "TraktID text, " +
+                " Season int NOT NULL, " +
+                " EpisodeNumber int NOT NULL " +
+                " ); ");
+
+            cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID ON CrossRef_AniDB_Trakt_Episode(AniDBEpisodeID);");
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+        }
         			
 
 		private static void ExecuteSQLCommands(List<string> cmds)

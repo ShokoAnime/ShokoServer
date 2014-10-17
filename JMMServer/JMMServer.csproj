@@ -267,6 +267,8 @@
     <Compile Include="Entities\AniDB_Recommendation.cs" />
     <Compile Include="Entities\BookmarkedAnime.cs" />
     <Compile Include="Entities\CrossRef_AniDB_MAL.cs" />
+    <Compile Include="Entities\CrossRef_AniDB_TraktV2.cs" />
+    <Compile Include="Entities\CrossRef_AniDB_Trakt_Episode.cs" />
     <Compile Include="Entities\CrossRef_AniDB_TvDBV2.cs" />
     <Compile Include="Entities\CrossRef_AniDB_TvDB_Episode.cs" />
     <Compile Include="Entities\FileFfdshowPreset.cs" />
@@ -284,6 +286,8 @@
     <Compile Include="Mappings\AniDB_RecommendationMap.cs" />
     <Compile Include="Mappings\BookmarkedAnimeMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_TraktV2Map.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_Trakt_EpisodeMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TvDBV2Map.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TvDB_EpisodeMap.cs" />
     <Compile Include="Mappings\FileFfdshowPresetMap.cs" />
@@ -298,13 +302,17 @@
     <Compile Include="Providers\Azure\Azure_AnimeFull.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeShout.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_MAL.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TraktInput.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDBInput.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_Trakt.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
     <Compile Include="Providers\MyAnimeList\MALHelper.cs" />
     <Compile Include="Providers\TraktTV\TraktActivityContainer.cs" />
+    <Compile Include="Providers\TraktTV\TraktDetailsContainer.cs" />
+    <Compile Include="Providers\TraktTV\TraktSummaryContainer.cs" />
     <Compile Include="Providers\TraktTV\TraktTVPost_ShoutShow.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_Activity.cs" />
     <Compile Include="Providers\TraktTV\TraktTV_ActivitySummary.cs" />
@@ -323,6 +331,8 @@
     <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
+    <Compile Include="Repositories\CrossRef_AniDB_TraktV2Repository.cs" />
+    <Compile Include="Repositories\CrossRef_AniDB_Trakt_EpisodeRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TvDBV2Repository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\FileFfdshowPresetRepository.cs" />
@@ -589,8 +599,6 @@
     <Compile Include="WebCache\AniDB_FileRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_MALRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_OtherRequest.cs" />
-    <Compile Include="WebCache\AddCrossRef_AniDB_TraktRequest.cs" />
-    <Compile Include="WebCache\AddCrossRef_AniDB_TvDBRequest.cs" />
     <Compile Include="WebCache\AniDB_UpdatedRequest.cs" />
     <Compile Include="WebCache\AppVersionsResult.cs" />
     <Compile Include="WebCache\CrossRef_AniDB_MALResult.cs" />
@@ -602,7 +610,6 @@
     <Compile Include="WebCache\DeleteCrossRef_AniDB_MALRequest.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDB_OtherRequest.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDB_TraktRequest.cs" />
-    <Compile Include="WebCache\DeleteCrossRef_AniDB_TvDBRequest.cs" />
     <Compile Include="WebCache\DeleteCrossRef_File_EpisodeRequest.cs" />
     <Compile Include="WebCache\FileHashRequest.cs" />
     <Compile Include="WebCache\XMLService.cs" />

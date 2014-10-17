@@ -2622,13 +2622,13 @@ namespace JMMServer
 				AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
 				List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(animeID);
 
-				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
-				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-				eps = Sorting.MultiSort<Contract_AniDB_Episode>(eps, sortCriteria);
-
 				foreach (AniDB_Episode ep in aniEpList)
 					eps.Add(ep.ToContract());
+
+                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+                sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
+                sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
+                eps = Sorting.MultiSort<Contract_AniDB_Episode>(eps, sortCriteria);
 
 			}
 			catch (Exception ex)
@@ -4823,29 +4823,25 @@ namespace JMMServer
 					}
 
 					// Trakt
-					CrossRef_AniDB_Trakt xrefTrakt = anime.GetCrossRefTrakt();
-					if (xrefTrakt == null)
-						result.CrossRef_AniDB_Trakt = null;
-					else
-						result.CrossRef_AniDB_Trakt = xrefTrakt.ToContract();
 
-					Trakt_Show show = anime.TraktShow;
-					if (show == null)
-						result.TraktShow = null;
-					else
-						result.TraktShow = show.ToContract();
+                    Trakt_ImageFanartRepository repTraktFanart = new Trakt_ImageFanartRepository();
+                    Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
+                    Trakt_ShowRepository repTrakt = new Trakt_ShowRepository();
 
-					Trakt_ImageFanart traktFanart = anime.TraktImageFanart;
-					if (traktFanart == null)
-						result.TraktImageFanart = null;
-					else
-						result.TraktImageFanart = traktFanart.ToContract();
+                    foreach (CrossRef_AniDB_TraktV2 xref in anime.GetCrossRefTraktV2())
+                    {
+                        result.CrossRef_AniDB_Trakt.Add(xref.ToContract());
 
-					Trakt_ImagePoster traktPoster = anime.TraktImagePoster;
-					if (traktPoster == null)
-						result.TraktImagePoster = null;
-					else
-						result.TraktImagePoster = traktPoster.ToContract();
+                        Trakt_Show show = repTrakt.GetByTraktID(session, xref.TraktID);
+                        if (show != null)
+                            result.TraktShows.Add(show.ToContract());
+
+                        foreach (Trakt_ImageFanart fanart in repTraktFanart.GetByShowID(session, show.Trakt_ShowID))
+                            result.TraktImageFanarts.Add(fanart.ToContract());
+
+                        foreach (Trakt_ImagePoster poster in repTraktPosters.GetByShowID(session, show.Trakt_ShowID))
+                            result.TraktImagePosters.Add(poster.ToContract());
+                    }
 
 
 					// MovieDB
@@ -5491,37 +5487,61 @@ namespace JMMServer
 
 		public List<Contract_Trakt_Episode> GetAllTraktEpisodes(int? traktShowID)
 		{
-			List<Contract_Trakt_Episode> allImages = new List<Contract_Trakt_Episode>();
+			List<Contract_Trakt_Episode> allEps = new List<Contract_Trakt_Episode>();
 			try
 			{
-				Trakt_EpisodeRepository repImages = new Trakt_EpisodeRepository();
+				Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
 				List<Trakt_Episode> allEpisodes = null;
 				if (traktShowID.HasValue)
-					allEpisodes = repImages.GetByShowID(traktShowID.Value);
+					allEpisodes = repEpisodes.GetByShowID(traktShowID.Value);
 				else
-					allEpisodes = repImages.GetAll();
+					allEpisodes = repEpisodes.GetAll();
 
-				foreach (Trakt_Episode img in allEpisodes)
-					allImages.Add(img.ToContract());
+				foreach (Trakt_Episode ep in allEpisodes)
+					allEps.Add(ep.ToContract());
 
-				return allImages;
+				return allEps;
 
 			}
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
-				return allImages;
+				return allEps;
 			}
 		}
 
-		public Contract_CrossRef_AniDB_TraktResult GetTraktCrossRefWebCache(int animeID)
+        public List<Contract_Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID)
+        {
+            List<Contract_Trakt_Episode> allEps = new List<Contract_Trakt_Episode>();
+            try
+            {
+                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+                Trakt_Show show = repShows.GetByTraktID(traktID);
+                if (show != null)
+                    allEps = GetAllTraktEpisodes(show.Trakt_ShowID);
+
+                return allEps;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return allEps;
+            }
+        }
+
+		public List<Contract_Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID)
 		{
 			try
 			{
-				CrossRef_AniDB_TraktResult result = XMLService.Get_CrossRef_AniDB_Trakt(animeID);
-				if (result == null) return null;
+                List<Contract_Azure_CrossRef_AniDB_Trakt> contracts = new List<Contract_Azure_CrossRef_AniDB_Trakt>();
 
-				return result.ToContract();
+                List<JMMServer.Providers.Azure.CrossRef_AniDB_Trakt> results = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTrakt(animeID);
+                if (results == null || results.Count == 0) return contracts;
+
+                foreach (JMMServer.Providers.Azure.CrossRef_AniDB_Trakt xref in results)
+                    contracts.Add(xref.ToContract());
+
+                return contracts;
 			}
 			catch (Exception ex)
 			{
@@ -5550,15 +5570,20 @@ namespace JMMServer
 			}
 		}
 
-		public Contract_CrossRef_AniDB_Trakt GetTraktCrossRef(int animeID)
+		public List<Contract_CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID)
 		{
 			try
 			{
-				CrossRef_AniDB_TraktRepository repCrossRef = new CrossRef_AniDB_TraktRepository();
-				CrossRef_AniDB_Trakt xref = repCrossRef.GetByAnimeID(animeID);
-				if (xref == null) return null;
+                List<Contract_CrossRef_AniDB_TraktV2> contracts = new List<Contract_CrossRef_AniDB_TraktV2>();
 
-				return xref.ToContract();
+                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+				List<CrossRef_AniDB_TraktV2> xrefs = repCrossRef.GetByAnimeID(animeID);
+                if (xrefs == null) return contracts;
+
+                foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
+                    contracts.Add(xref.ToContract());
+
+                return contracts;
 			}
 			catch (Exception ex)
 			{
@@ -5566,6 +5591,27 @@ namespace JMMServer
 				return null;
 			}
 		}
+
+        public List<Contract_CrossRef_AniDB_Trakt_Episode> GetTraktCrossRefEpisode(int animeID)
+        {
+            try
+            {
+                List<Contract_CrossRef_AniDB_Trakt_Episode> contracts = new List<Contract_CrossRef_AniDB_Trakt_Episode>();
+
+                CrossRef_AniDB_Trakt_EpisodeRepository repCrossRef = new CrossRef_AniDB_Trakt_EpisodeRepository();
+                List<CrossRef_AniDB_Trakt_Episode> xrefs = repCrossRef.GetByAnimeID(animeID);
+
+                foreach (CrossRef_AniDB_Trakt_Episode xref in xrefs)
+                    contracts.Add(xref.ToContract());
+
+                return contracts;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
 
 		public List<Contract_TraktTVShowResponse> SearchTrakt(string criteria)
 		{
@@ -5605,18 +5651,34 @@ namespace JMMServer
 			}
 		}
 
-		public string LinkAniDBTrakt(int animeID, string traktID, int seasonNumber)
+        public string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber, int traktEpNumber, int? crossRef_AniDB_TraktV2ID)
 		{
 			try
 			{
-				CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
-				CrossRef_AniDB_Trakt xref = repXrefTrakt.GetByTraktID(traktID, seasonNumber);
-				if (xref != null)
-					return string.Format("You have already linked Anime ID {0} to this Trakt show/season", xref.AnimeID);
+                CrossRef_AniDB_TraktV2Repository repXref = new CrossRef_AniDB_TraktV2Repository();
 
-				TraktTVHelper.LinkAniDBTrakt(animeID, traktID, seasonNumber, false);
+                if (crossRef_AniDB_TraktV2ID.HasValue)
+                {
+                    CrossRef_AniDB_TraktV2 xrefTemp = repXref.GetByID(crossRef_AniDB_TraktV2ID.Value);
+                    // delete the existing one if we are updating
+                    TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (enEpisodeType)xrefTemp.AniDBStartEpisodeType, xrefTemp.AniDBStartEpisodeNumber,
+                        xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
+                }
 
-				return "";
+                CrossRef_AniDB_TraktV2 xref = repXref.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID, aniEpType, aniEpNumber);
+                if (xref != null)
+                {
+                    string msg = string.Format("You have already linked Anime ID {0} to this Trakt show/season/ep", xref.AnimeID);
+                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                    AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+                    if (anime != null)
+                    {
+                        msg = string.Format("You have already linked Anime {0} ({1}) to this Trakt show/season/ep", anime.MainTitle, xref.AnimeID);
+                    }
+                    return msg;
+                }
+
+                return TraktTVHelper.LinkAniDBTrakt(animeID, (enEpisodeType)aniEpType, aniEpNumber, traktID, seasonNumber, traktEpNumber, false);
 			}
 			catch (Exception ex)
 			{
@@ -5669,7 +5731,7 @@ namespace JMMServer
 			}
 		}
 
-		public string RemoveLinkAniDBTrakt(int animeID)
+        public string RemoveLinkAniDBTraktForAnime(int animeID)
 		{
 			try
 			{
@@ -5690,7 +5752,12 @@ namespace JMMServer
 					}
 				}
 
-				TraktTVHelper.RemoveLinkAniDBTrakt(ser);
+                CrossRef_AniDB_TraktV2Repository repXrefTrakt = new CrossRef_AniDB_TraktV2Repository();
+                foreach (CrossRef_AniDB_TraktV2 xref in repXrefTrakt.GetByAnimeID(animeID))
+                {
+                    TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType)xref.AniDBStartEpisodeType, xref.AniDBStartEpisodeNumber,
+                        xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber);
+                }
 
 				return "";
 			}
@@ -5700,6 +5767,39 @@ namespace JMMServer
 				return ex.Message;
 			}
 		}
+
+        public string RemoveLinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int traktSeasonNumber, int traktEpNumber)
+        {
+            try
+            {
+                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+
+                if (ser == null) return "Could not find Series for Anime!";
+
+                // check if there are default images used associated
+                AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
+                List<AniDB_Anime_DefaultImage> images = repDefaults.GetByAnimeID(animeID);
+                foreach (AniDB_Anime_DefaultImage image in images)
+                {
+                    if (image.ImageParentType == (int)JMMImageType.Trakt_Fanart ||
+                        image.ImageParentType == (int)JMMImageType.Trakt_Poster)
+                    {
+                        repDefaults.Delete(image.AniDB_Anime_DefaultImageID);
+                    }
+                }
+
+                TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType)aniEpType, aniEpNumber,
+                       traktID, traktSeasonNumber, traktEpNumber);
+
+                return "";
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
 
 		public string RemoveLinkAniDBMAL(int animeID ,int epType, int epNumber)
 		{
@@ -7764,9 +7864,9 @@ namespace JMMServer
 			}
 		}
 
-		public bool PostShoutShow(int animeID, string shoutText, bool isSpoiler, ref string returnMessage)
+		public bool PostShoutShow(string traktID, string shoutText, bool isSpoiler, ref string returnMessage)
 		{
-			return TraktTVHelper.PostShoutShow(animeID, shoutText, isSpoiler, ref returnMessage);
+            return TraktTVHelper.PostShoutShow(traktID, shoutText, isSpoiler, ref returnMessage);
 		}
 
 		public List<Contract_Trakt_ShoutUser> GetTraktShoutsForAnime(int animeID)
@@ -7827,7 +7927,7 @@ namespace JMMServer
 
 		public Contract_Trakt_Activity GetTraktFriendInfo(int maxResults, bool animeOnly, bool getShouts, bool getScrobbles)
 		{
-			CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
+            CrossRef_AniDB_TraktV2Repository repXrefTrakt = new CrossRef_AniDB_TraktV2Repository();
 			CrossRef_AniDB_TvDBV2Repository repXrefTvDB = new CrossRef_AniDB_TvDBV2Repository();
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
@@ -7862,9 +7962,12 @@ namespace JMMServer
 
 					// find the anime and series based on the trakt id
 					int? animeID = null;
-					CrossRef_AniDB_Trakt xref = null;
-					if (act.episode != null)
-						xref = repXrefTrakt.GetByTraktID(act.show.TraktID, int.Parse(act.episode.season));
+					CrossRef_AniDB_TraktV2 xref = null;
+                    if (act.episode != null)
+                    {
+                        List <CrossRef_AniDB_TraktV2> xrefs = repXrefTrakt.GetByTraktIDAndSeason(act.show.TraktID, int.Parse(act.episode.season));
+                        if (xrefs.Count > 0) xref = xrefs[0];
+                    }
 
 					if (xref != null)
 						animeID = xref.AnimeID;
@@ -7872,22 +7975,9 @@ namespace JMMServer
 					{
 						// try a rough match
 						// since we won't always do an exact match by season
-						List<CrossRef_AniDB_Trakt> traktXrefs = repXrefTrakt.GetByTraktID(act.show.TraktID);
+						List<CrossRef_AniDB_TraktV2> traktXrefs = repXrefTrakt.GetByTraktID(act.show.TraktID);
 						if (traktXrefs.Count > 0)
 							animeID = traktXrefs[0].AnimeID;
-						else
-						{
-							// try the tvdb id instead
-							//TODO
-							/*
-							CrossRef_AniDB_TvDBV2 xrefTvDB = null;
-
-							if (act.episode != null)
-								xrefTvDB = repXrefTvDB.GetByTvDBID(int.Parse(act.show.tvdb_id), int.Parse(act.episode.season));
-
-							if (xrefTvDB != null)
-								animeID = xrefTvDB.AnimeID;*/
-						}
 					}
 
 					// skip this activity if we can't find the anime and the user only wants to see anime related stuff

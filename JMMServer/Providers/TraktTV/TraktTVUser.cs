@@ -56,7 +56,7 @@ namespace JMMServer.Providers.TraktTV
 
 		public Contract_Trakt_Friend ToContract()
 		{
-			CrossRef_AniDB_TraktRepository repXrefTrakt = new CrossRef_AniDB_TraktRepository();
+            CrossRef_AniDB_TraktV2Repository repXrefTrakt = new CrossRef_AniDB_TraktV2Repository();
 			CrossRef_AniDB_TvDBRepository repXrefTvDB = new CrossRef_AniDB_TvDBRepository();
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
@@ -119,18 +119,9 @@ namespace JMMServer.Providers.TraktTV
 
 						// find the anime and series based on the trakt id
 						int? animeID = null;
-						CrossRef_AniDB_Trakt xref = repXrefTrakt.GetByTraktID(wtch.show.TraktID, int.Parse(wtch.episode.season));
-						if (xref != null)
-							animeID = xref.AnimeID;
-						else
-						{
-							// try the tvdb id instead
-							//TODO
-							/*
-							CrossRef_AniDB_TvDB xrefTvDB = repXrefTvDB.GetByTvDBID(int.Parse(wtch.show.tvdb_id), int.Parse(wtch.episode.season));
-							if (xrefTvDB != null)
-								animeID = xrefTvDB.AnimeID;*/
-						}
+						List<CrossRef_AniDB_TraktV2> xrefs = repXrefTrakt.GetByTraktIDAndSeason(wtch.show.TraktID, int.Parse(wtch.episode.season));
+						if (xrefs != null && xrefs.Count > 0)
+							animeID = xrefs[0].AnimeID;
 
 						if (animeID.HasValue)
 						{
@@ -145,8 +136,6 @@ namespace JMMServer.Providers.TraktTV
 
 						}
 					}
-
-					
 
 					contract.WatchedEpisodes.Add(watchedEp);
 					break; // only show the latest show

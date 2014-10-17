@@ -18,10 +18,10 @@ namespace JMMContracts
 		public List<Contract_TvDB_ImageWideBanner> TvDBImageWideBanners { get; set; }
 
 		// Trakt
-		public Contract_CrossRef_AniDB_Trakt CrossRef_AniDB_Trakt { get; set; }
-		public Contract_Trakt_Show TraktShow { get; set; }
-		public Contract_Trakt_ImageFanart TraktImageFanart { get; set; }
-		public Contract_Trakt_ImagePoster TraktImagePoster { get; set; }
+		public List<Contract_CrossRef_AniDB_TraktV2> CrossRef_AniDB_Trakt { get; set; }
+		public List<Contract_Trakt_Show> TraktShows { get; set; }
+		public List<Contract_Trakt_ImageFanart> TraktImageFanarts { get; set; }
+		public List<Contract_Trakt_ImagePoster> TraktImagePosters { get; set; }
 
 		// MovieDB
 		public Contract_CrossRef_AniDB_Other CrossRef_AniDB_MovieDB { get; set; }
@@ -47,6 +47,11 @@ namespace JMMContracts
 			MovieDBPosters = new List<Contract_MovieDB_Poster>();
 
 			CrossRef_AniDB_MAL = null;
+
+            CrossRef_AniDB_Trakt = new List<Contract_CrossRef_AniDB_TraktV2>();
+            TraktShows = new List<Contract_Trakt_Show>();
+            TraktImageFanarts = new List<Contract_Trakt_ImageFanart>();
+            TraktImagePosters = new List<Contract_Trakt_ImagePoster>();
 		}
 	}
 }

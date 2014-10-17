@@ -336,20 +336,29 @@ namespace JMMContracts
 		[OperationContract]
 		List<Contract_Trakt_Episode> GetAllTraktEpisodes(int? traktShowID);
 
-		[OperationContract]
-		Contract_CrossRef_AniDB_TraktResult GetTraktCrossRefWebCache(int animeID);
+        [OperationContract]
+        List<Contract_Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID);
+
+        [OperationContract]
+        List<Contract_Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID);
 
 		[OperationContract]
-		Contract_CrossRef_AniDB_Trakt GetTraktCrossRef(int animeID);
+		List<Contract_CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID);
+
+        [OperationContract]
+        List<Contract_CrossRef_AniDB_Trakt_Episode> GetTraktCrossRefEpisode(int animeID);
 
 		[OperationContract]
 		List<Contract_TraktTVShowResponse> SearchTrakt(string criteria);
 
 		[OperationContract]
-		string LinkAniDBTrakt(int animeID, string traktID, int seasonNumber);
+        string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber, int traktEpNumber, int? crossRef_AniDB_TraktV2ID);
 
 		[OperationContract]
-		string RemoveLinkAniDBTrakt(int animeID);
+		string RemoveLinkAniDBTraktForAnime(int animeID);
+
+        [OperationContract]
+        string RemoveLinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int traktSeasonNumber, int traktEpNumber);
 
 		[OperationContract]
 		List<int> GetSeasonNumbersForTrakt(string traktID);
@@ -463,7 +472,7 @@ namespace JMMContracts
 		List<Contract_Trakt_ShoutUser> GetTraktShoutsForAnime(int animeID);
 
 		[OperationContract]
-		bool PostShoutShow(int animeID, string shoutText, bool isSpoiler, ref string returnMessage);
+        bool PostShoutShow(string traktID, string shoutText, bool isSpoiler, ref string returnMessage);
 
 		[OperationContract]
 		void RefreshTraktFriendInfo();

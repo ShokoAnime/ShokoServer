@@ -98,7 +98,9 @@ namespace JMMServer.Entities
 			return repEpisodes.GetBySeriesID(session, AnimeSeriesID);
 		}
 
-		public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
+        #region TvDB
+
+        public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -133,16 +135,48 @@ namespace JMMServer.Entities
 			return sers;
 		}
 
-		public CrossRef_AniDB_Trakt CrossRefTrakt
-		{
-			get
-			{
-				CrossRef_AniDB_TraktRepository repCrossRef = new CrossRef_AniDB_TraktRepository();
-				return repCrossRef.GetByAnimeID(this.AniDB_ID);
-			}
-		}
+        #endregion
 
-		public CrossRef_AniDB_Other CrossRefMovieDB
+        #region Trakt
+
+        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return GetCrossRefTraktV2(session);
+            }
+        }
+
+        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session)
+        {
+            CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+            return repCrossRef.GetByAnimeID(session, this.AniDB_ID);
+        }
+
+        public List<Trakt_Show> GetTraktShow()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return GetTraktShow(session);
+            }
+        }
+
+        public List<Trakt_Show> GetTraktShow(ISession session)
+        {
+            List<Trakt_Show> sers = new List<Trakt_Show>();
+
+            List<CrossRef_AniDB_TraktV2> xrefs = GetCrossRefTraktV2(session);
+            if (xrefs == null || xrefs.Count == 0) return sers;
+
+            foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
+                sers.Add(xref.GetByTraktShow(session));
+
+            return sers;
+        }
+
+        #endregion
+
+        public CrossRef_AniDB_Other CrossRefMovieDB
 		{
 			get
 			{

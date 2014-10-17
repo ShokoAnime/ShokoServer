@@ -40,14 +40,19 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var objs = session
-					.CreateCriteria(typeof(Trakt_ImagePoster))
-					.Add(Restrictions.Eq("Trakt_ShowID", id))
-					.List<Trakt_ImagePoster>();
-
-				return new List<Trakt_ImagePoster>(objs);
+                return GetByShowID(session, id);
 			}
 		}
+
+        public List<Trakt_ImagePoster> GetByShowID(ISession session, int id)
+        {
+            var objs = session
+                .CreateCriteria(typeof(Trakt_ImagePoster))
+                .Add(Restrictions.Eq("Trakt_ShowID", id))
+                .List<Trakt_ImagePoster>();
+
+            return new List<Trakt_ImagePoster>(objs);
+        }
 
 		public Trakt_ImagePoster GetByShowIDAndSeason(int showID, int seasonNumber)
 		{
