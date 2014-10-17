@@ -186,18 +186,6 @@ namespace JMMServer.Commands
 					}
 				}
 
-				// try getting the hash from the WEB cache
-				if (!ForceHash && string.IsNullOrEmpty(vlocal.Hash))
-				{
-					string hash = XMLService.Get_FileHash(vlocal.FilePath, vlocal.FileSize);
-					if (!string.IsNullOrEmpty(hash))
-					{
-						logger.Trace("Got hash from web cache: {0} ({1})", FileName, hash);
-						vlocal.Hash = hash;
-						vlocal.HashSource = (int)HashSource.WebCacheFileName;
-					}
-				}
-
 				// hash the file
 				if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
 				{
@@ -278,14 +266,6 @@ namespace JMMServer.Commands
 				fnhash.Hash = vlocal.Hash;
 				fnhash.DateTimeUpdated = DateTime.Now;
 				repFNHash.Save(fnhash);
-
-				// if this was hashed by the user, lets upload to cache
-				if (vlocal.HashSource == (int)HashSource.DirectHash)
-				{
-					CommandRequest_WebCacheSendFileHash cr = new CommandRequest_WebCacheSendFileHash(vlocal.VideoLocalID);
-					cr.Save();
-				}
-				
 			}
 
 

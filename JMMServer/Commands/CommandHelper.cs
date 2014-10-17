@@ -130,11 +130,6 @@ namespace JMMServer.Commands
 					cr_AniDB_UpdateMylistStats.LoadFromDBCommand(crdb);
 					return (ICommandRequest)cr_AniDB_UpdateMylistStats;
 
-				case CommandRequestType.WebCache_SendAniDB_File:
-					CommandRequest_WebCacheSendAniDB_File cr_WebCache_SendAniDB_File = new CommandRequest_WebCacheSendAniDB_File();
-					cr_WebCache_SendAniDB_File.LoadFromDBCommand(crdb);
-					return (ICommandRequest)cr_WebCache_SendAniDB_File;
-
 				case CommandRequestType.MAL_DownloadWatchedStates:
 					CommandRequest_MALDownloadStatusFromMAL cr_MAL_DownloadWatchedStates = new CommandRequest_MALDownloadStatusFromMAL();
 					cr_MAL_DownloadWatchedStates.LoadFromDBCommand(crdb);
@@ -320,11 +315,6 @@ namespace JMMServer.Commands
 					CommandRequest_UpdateMyListFileStatus cr_umlf = new CommandRequest_UpdateMyListFileStatus();
 					cr_umlf.LoadFromDBCommand(crdb);
 					return (ICommandRequest)cr_umlf;
-
-				case CommandRequestType.WebCache_SendFileHash:
-					CommandRequest_WebCacheSendFileHash cr_SendFileHash = new CommandRequest_WebCacheSendFileHash();
-					cr_SendFileHash.LoadFromDBCommand(crdb);
-					return (ICommandRequest)cr_SendFileHash;
 
 				case CommandRequestType.WebCache_DeleteXRefFileEpisode:
 					CommandRequest_WebCacheDeleteXRefFileEpisode cr_DeleteXRefFileEpisode = new CommandRequest_WebCacheDeleteXRefFileEpisode();

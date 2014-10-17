@@ -626,7 +626,7 @@ namespace JMMServer.Providers.TraktTV
 
             logger.Trace("Changed trakt association: {0}", animeID);
 
-            if (!excludeFromWebCache)
+            if (!excludeFromWebCache && ServerSettings.WebCache_Trakt_Send)
             {
                 CommandRequest_WebCacheSendXRefAniDBTrakt req = new CommandRequest_WebCacheSendXRefAniDBTrakt(xref.CrossRef_AniDB_TraktV2ID);
                 req.Save();
@@ -645,9 +645,12 @@ namespace JMMServer.Providers.TraktTV
 
             StatsCache.Instance.UpdateUsingAnime(animeID);
 
-            CommandRequest_WebCacheDeleteXRefAniDBTrakt req = new CommandRequest_WebCacheDeleteXRefAniDBTrakt(animeID, (int)aniEpType, aniEpNumber,
-                traktID, seasonNumber, traktEpNumber);
-            req.Save();
+            if (ServerSettings.WebCache_Trakt_Send)
+            {
+                CommandRequest_WebCacheDeleteXRefAniDBTrakt req = new CommandRequest_WebCacheDeleteXRefAniDBTrakt(animeID, (int)aniEpType, aniEpNumber,
+                    traktID, seasonNumber, traktEpNumber);
+                req.Save();
+            }
         }
 
 

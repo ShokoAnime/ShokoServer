@@ -42,16 +42,14 @@ namespace JMMContracts
 		// Web Cache
 		public string WebCache_Address { get; set; }
 		public bool WebCache_Anonymous { get; set; }
-		public bool WebCache_FileHashes_Get { get; set; }
-		public bool WebCache_FileHashes_Send { get; set; }
 		public bool WebCache_XRefFileEpisode_Get { get; set; }
 		public bool WebCache_XRefFileEpisode_Send { get; set; }
 		public bool WebCache_TvDB_Get { get; set; }
 		public bool WebCache_TvDB_Send { get; set; }
+        public bool WebCache_Trakt_Get { get; set; }
+        public bool WebCache_Trakt_Send { get; set; }
 		public bool WebCache_MAL_Get { get; set; }
 		public bool WebCache_MAL_Send { get; set; }
-		public bool WebCache_AniDB_File_Get { get; set; }
-		public bool WebCache_AniDB_File_Send { get; set; }
 
 		// TvDB
 		public bool TvDB_AutoFanart { get; set; }

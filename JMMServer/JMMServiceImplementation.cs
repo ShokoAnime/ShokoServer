@@ -3077,16 +3077,14 @@ namespace JMMServer
 				// Web Cache
 				ServerSettings.WebCache_Address = contractIn.WebCache_Address;
 				ServerSettings.WebCache_Anonymous = contractIn.WebCache_Anonymous;
-				ServerSettings.WebCache_FileHashes_Get = contractIn.WebCache_FileHashes_Get;
-				ServerSettings.WebCache_FileHashes_Send = contractIn.WebCache_FileHashes_Send;
 				ServerSettings.WebCache_XRefFileEpisode_Get = contractIn.WebCache_XRefFileEpisode_Get;
 				ServerSettings.WebCache_XRefFileEpisode_Send = contractIn.WebCache_XRefFileEpisode_Send;
 				ServerSettings.WebCache_TvDB_Get = contractIn.WebCache_TvDB_Get;
 				ServerSettings.WebCache_TvDB_Send = contractIn.WebCache_TvDB_Send;
+                ServerSettings.WebCache_Trakt_Get = contractIn.WebCache_Trakt_Get;
+                ServerSettings.WebCache_Trakt_Send = contractIn.WebCache_Trakt_Send;
 				ServerSettings.WebCache_MAL_Get = contractIn.WebCache_MAL_Get;
 				ServerSettings.WebCache_MAL_Send = contractIn.WebCache_MAL_Send;
-				ServerSettings.WebCache_AniDB_File_Get = contractIn.WebCache_AniDB_File_Get;
-				ServerSettings.WebCache_AniDB_File_Send = contractIn.WebCache_AniDB_File_Send;
 
 				// TvDB
 				ServerSettings.TvDB_AutoFanart = contractIn.TvDB_AutoFanart;

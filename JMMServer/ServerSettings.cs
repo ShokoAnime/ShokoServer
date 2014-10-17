@@ -617,36 +617,6 @@ namespace JMMServer
 			}
 		}
 
-		public static bool WebCache_FileHashes_Get
-		{
-			get
-			{
-				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				bool usecache = false;
-				bool.TryParse(appSettings["WebCache_FileHashes_Get"], out usecache);
-				return usecache;
-			}
-			set
-			{
-				UpdateSetting("WebCache_FileHashes_Get", value.ToString());
-			}
-		}
-
-		public static bool WebCache_FileHashes_Send
-		{
-			get
-			{
-				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				bool usecache = false;
-				bool.TryParse(appSettings["WebCache_FileHashes_Send"], out usecache);
-				return usecache;
-			}
-			set
-			{
-				UpdateSetting("WebCache_FileHashes_Send", value.ToString());
-			}
-		}
-
 		public static bool WebCache_XRefFileEpisode_Get
 		{
 			get
@@ -707,6 +677,36 @@ namespace JMMServer
 			}
 		}
 
+        public static bool WebCache_Trakt_Get
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                bool usecache = false;
+                bool.TryParse(appSettings["WebCache_Trakt_Get"], out usecache);
+                return usecache;
+            }
+            set
+            {
+                UpdateSetting("WebCache_Trakt_Get", value.ToString());
+            }
+        }
+
+        public static bool WebCache_Trakt_Send
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                bool usecache = false;
+                bool.TryParse(appSettings["WebCache_Trakt_Send"], out usecache);
+                return usecache;
+            }
+            set
+            {
+                UpdateSetting("WebCache_Trakt_Send", value.ToString());
+            }
+        }
+
 		public static bool WebCache_MAL_Get
 		{
 			get
@@ -738,40 +738,6 @@ namespace JMMServer
 			set
 			{
 				UpdateSetting("WebCache_MAL_Send", value.ToString());
-			}
-		}
-
-		public static bool WebCache_AniDB_File_Get
-		{
-			get
-			{
-				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				bool usecache = false;
-				if (bool.TryParse(appSettings["WebCache_AniDB_File_Get"], out usecache))
-					return usecache;
-				else
-					return true; // default
-			}
-			set
-			{
-				UpdateSetting("WebCache_AniDB_File_Get", value.ToString());
-			}
-		}
-
-		public static bool WebCache_AniDB_File_Send
-		{
-			get
-			{
-				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				bool usecache = false;
-				if (bool.TryParse(appSettings["WebCache_AniDB_File_Send"], out usecache))
-					return usecache;
-				else
-					return true; // default
-			}
-			set
-			{
-				UpdateSetting("WebCache_AniDB_File_Send", value.ToString());
 			}
 		}
 
@@ -1543,16 +1509,14 @@ namespace JMMServer
 			// Web Cache
 			contract.WebCache_Address = ServerSettings.WebCache_Address;
 			contract.WebCache_Anonymous = ServerSettings.WebCache_Anonymous;
-			contract.WebCache_FileHashes_Get = ServerSettings.WebCache_FileHashes_Get;
-			contract.WebCache_FileHashes_Send = ServerSettings.WebCache_FileHashes_Send;
 			contract.WebCache_XRefFileEpisode_Get = ServerSettings.WebCache_XRefFileEpisode_Get;
 			contract.WebCache_XRefFileEpisode_Send = ServerSettings.WebCache_XRefFileEpisode_Send;
 			contract.WebCache_TvDB_Get = ServerSettings.WebCache_TvDB_Get;
 			contract.WebCache_TvDB_Send = ServerSettings.WebCache_TvDB_Send;
+            contract.WebCache_Trakt_Get = ServerSettings.WebCache_Trakt_Get;
+            contract.WebCache_Trakt_Send = ServerSettings.WebCache_Trakt_Send;
 			contract.WebCache_MAL_Get = ServerSettings.WebCache_MAL_Get;
 			contract.WebCache_MAL_Send = ServerSettings.WebCache_MAL_Send;
-			contract.WebCache_AniDB_File_Get = ServerSettings.WebCache_AniDB_File_Get;
-			contract.WebCache_AniDB_File_Send = ServerSettings.WebCache_AniDB_File_Send;
 
 			// TvDB
 			contract.TvDB_AutoFanart = ServerSettings.TvDB_AutoFanart;
@@ -1710,8 +1674,6 @@ namespace JMMServer
 
 			logger.Info("WebCache_Address: {0}", WebCache_Address);
 			logger.Info("WebCache_Anonymous: {0}", WebCache_Anonymous);
-			logger.Info("WebCache_FileHashes_Get: {0}", WebCache_FileHashes_Get);
-			logger.Info("WebCache_FileHashes_Send: {0}", WebCache_FileHashes_Send);
 			logger.Info("WebCache_XRefFileEpisode_Get: {0}", WebCache_XRefFileEpisode_Get);
 			logger.Info("WebCache_XRefFileEpisode_Send: {0}", WebCache_XRefFileEpisode_Send);
 			logger.Info("WebCache_TvDB_Get: {0}", WebCache_TvDB_Get);

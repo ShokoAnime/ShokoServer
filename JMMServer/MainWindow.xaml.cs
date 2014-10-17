@@ -252,7 +252,6 @@ namespace JMMServer
 			btnSyncTrakt.Click += new RoutedEventHandler(btnSyncTrakt_Click);
 			btnImportManualLinks.Click += new RoutedEventHandler(btnImportManualLinks_Click);
 			btnUpdateAniDBInfo.Click += new RoutedEventHandler(btnUpdateAniDBInfo_Click);
-			btnUploadAniFileCache.Click += new RoutedEventHandler(btnUploadAniFileCache_Click);
 			btnUploadAzureCache.Click += new RoutedEventHandler(btnUploadAzureCache_Click);
 
 			this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
@@ -1617,19 +1616,6 @@ namespace JMMServer
 			MessageBox.Show("Sync is Queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
-		void btnUploadAniFileCache_Click(object sender, RoutedEventArgs e)
-		{
-			this.Cursor = Cursors.Wait;
-			AniDB_FileRepository rep = new AniDB_FileRepository();
-			foreach (AniDB_File aniFile in rep.GetAll())
-			{
-				CommandRequest_WebCacheSendAniDB_File cmd = new CommandRequest_WebCacheSendAniDB_File(aniFile.AniDB_FileID);
-				cmd.Save();
-			}
-			this.Cursor = Cursors.Arrow;
-			MessageBox.Show("Commands are queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-		}
-
 		void btnRunImport_Click(object sender, RoutedEventArgs e)
 		{
 			RunImport();
@@ -2562,14 +2548,6 @@ namespace JMMServer
 
 			//CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(7727, false);
 			//cmd.Save();
-		}
-
-		private static void WebCacheTest()
-		{
-			string hash = "";
-			hash = XMLService.Get_FileHash("Full Metal Panic! The Second Raid - S2 [AonE-AnY] (XviD) (704x396).avi", 181274624);
-			hash = XMLService.Get_FileHash("Code_Geass_R2_Ep14_Geass_Hunt_[720p,BluRay,x264]_-_THORA.mkv", 601722047);
-			hash = XMLService.Get_FileHash("[Ayako]_Infinite_Stratos_-_IS_-_02_[H264][720p][05C376A9].mkv", 368502091);
 		}
 
 		private static void HashTest()

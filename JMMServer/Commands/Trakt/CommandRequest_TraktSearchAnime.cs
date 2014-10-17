@@ -58,7 +58,7 @@ namespace JMMServer.Commands
 				using (var session = JMMService.SessionFactory.OpenSession())
 				{
 					// first check if the user wants to use the web cache
-					if (ServerSettings.WebCache_TvDB_Get)
+					if (ServerSettings.WebCache_Trakt_Get)
 					{
 						try
 						{

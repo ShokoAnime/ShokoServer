@@ -103,6 +103,8 @@ namespace JMMServer.Providers.Azure
 
         public static void Send_CrossRefAniDBTrakt(CrossRef_AniDB_TraktV2 data, string animeName)
         {
+            if (!ServerSettings.WebCache_Trakt_Send) return;
+
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Trakt", azureHostBaseAddress);
 
             CrossRef_AniDB_TraktInput input = new CrossRef_AniDB_TraktInput(data, animeName);
@@ -121,6 +123,8 @@ namespace JMMServer.Providers.Azure
             // p5 = traktSeasonNumber
             // p6 = traktStartEpisodeNumber
             // p7 = auth key
+
+            if (!ServerSettings.WebCache_Trakt_Send) return;
 
             //localhost:50994
             //jmm.azurewebsites.net
