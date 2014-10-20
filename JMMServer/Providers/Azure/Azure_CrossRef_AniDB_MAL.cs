@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Globalization;
 using AniDBAPI;
+using JMMContracts;
 
 namespace JMMServer.Providers.Azure
 {
@@ -17,6 +18,8 @@ namespace JMMServer.Providers.Azure
 		public string MALTitle { get; set; }
 		public int StartEpisodeType { get; set; }
 		public int StartEpisodeNumber { get; set; }
+        public int IsAdminApproved { get; set; }
+        public long DateSubmitted { get; set; }
 
 		public string Self
 		{
@@ -28,5 +31,19 @@ namespace JMMServer.Providers.Azure
 			{
 			}
 		}
+
+        public Contract_CrossRef_AniDB_MALResult ToContract()
+        {
+            Contract_CrossRef_AniDB_MALResult contract = new Contract_CrossRef_AniDB_MALResult();
+            contract.AnimeID = this.AnimeID;
+            contract.MALID = this.MALID;
+            contract.CrossRefSource = this.CrossRefSource;
+            contract.MALTitle = this.MALTitle;
+            contract.StartEpisodeType = this.StartEpisodeType;
+            contract.StartEpisodeNumber = this.StartEpisodeNumber;
+            contract.IsAdminApproved = this.IsAdminApproved;
+
+            return contract;
+        }
 	}
 }

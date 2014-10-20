@@ -6,6 +6,7 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.WebCache;
 using System.Xml;
+using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands.WebCache
 {
@@ -45,11 +46,11 @@ namespace JMMServer.Commands.WebCache
 			try
 			{
 				CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-				CrossRef_AniDB_MAL xref = repCrossRef.GetByID(CrossRef_AniDB_MALID);
+				JMMServer.Entities.CrossRef_AniDB_MAL xref = repCrossRef.GetByID(CrossRef_AniDB_MALID);
 				if (xref == null) return;
 
 
-				XMLService.Send_CrossRef_AniDB_MAL(xref);
+                AzureWebAPI.Send_CrossRefAniDBMAL(xref);
 			}
 			catch (Exception ex)
 			{

@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.WebCache;
 using JMMServer.Entities;
 using System.Xml;
+using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands.WebCache
 {
@@ -47,7 +48,7 @@ namespace JMMServer.Commands.WebCache
 			
 			try
 			{
-				XMLService.Delete_CrossRef_AniDB_MAL(AnimeID, StartEpisodeType, StartEpisodeNumber);
+                AzureWebAPI.Delete_CrossRefAniDBMAL(AnimeID, StartEpisodeType, StartEpisodeNumber);
 			}
 			catch (Exception ex)
 			{

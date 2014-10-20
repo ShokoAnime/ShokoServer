@@ -5548,18 +5548,14 @@ namespace JMMServer
 			}
 		}
 
-		public List<Contract_CrossRef_AniDB_MALResult> GetMALCrossRefWebCache(int animeID)
+		public Contract_CrossRef_AniDB_MALResult GetMALCrossRefWebCache(int animeID)
 		{
 			try
 			{
-				List<CrossRef_AniDB_MALResult> results = XMLService.Get_CrossRef_AniDB_MAL(animeID);
-				if (results == null) return null;
+                JMMServer.Providers.Azure.CrossRef_AniDB_MAL result = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBMAL(animeID);
+                if (result == null) return null;
 
-				List<Contract_CrossRef_AniDB_MALResult> contracts = new List<Contract_CrossRef_AniDB_MALResult>();
-				foreach (CrossRef_AniDB_MALResult res in results)
-					contracts.Add(res.ToContract());
-
-				return contracts;
+                return result.ToContract();
 			}
 			catch (Exception ex)
 			{

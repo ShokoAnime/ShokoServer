@@ -139,16 +139,60 @@ namespace JMMServer.Providers.Azure
 
         #region MAL
 
-        public static void Send_CrossRef_AniDB_MAL(JMMServer.Entities.CrossRef_AniDB_MAL data)
+        public static void Send_CrossRefAniDBMAL(JMMServer.Entities.CrossRef_AniDB_MAL data)
 		{
-			//if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+			if (!ServerSettings.WebCache_MAL_Send) return;
 
 			string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_MAL", azureHostBaseAddress);
-			CrossRef_AniDB_MAL fhr = data.ToContractAzure();
-			string json = JSONHelper.Serialize<CrossRef_AniDB_MAL>(fhr);
+
+            CrossRef_AniDB_MALInput input = new CrossRef_AniDB_MALInput(data);
+            string json = JSONHelper.Serialize<CrossRef_AniDB_MALInput>(input);
 
 			SendData(uri, json, "POST");
 		}
+
+        public static CrossRef_AniDB_MAL Get_CrossRefAniDBMAL(int animeID)
+        {
+            if (!ServerSettings.WebCache_MAL_Get) return null;
+
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_MAL/{1}?p={2}", azureHostBaseAddress, animeID, username);
+            string msg = string.Format("Getting AniDB/MAL Cross Ref From Cache: {0}", animeID);
+
+            DateTime start = DateTime.Now;
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+            string json = GetDataJson(uri);
+
+            TimeSpan ts = DateTime.Now - start;
+            msg = string.Format("Got AniDB/MAL Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+            CrossRef_AniDB_MAL xref = JSONHelper.Deserialize<CrossRef_AniDB_MAL>(json);
+
+            return xref;
+        }
+
+        public static void Delete_CrossRefAniDBMAL(int animeID, int epType, int epNumber)
+        {
+            // id = animeid
+            // p = username
+            // p2 = AniDBStartEpisodeType
+            // p3 = AniDBStartEpisodeNumber
+
+            if (!ServerSettings.WebCache_MAL_Send) return;
+
+            //localhost:50994
+            //jmm.azurewebsites.net
+            string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_MAL/{1}?p={2}&p2={3}&p3={4}", azureHostBaseAddress,
+                animeID, ServerSettings.AniDB_Username, epType, epNumber);
+
+
+            string json = DeleteDataJson(uri);
+        }
 
         #endregion
 

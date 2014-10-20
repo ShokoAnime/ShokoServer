@@ -13,5 +13,6 @@ namespace JMMContracts
 		public string MALTitle { get; set; }
 		public int StartEpisodeType { get; set; }
 		public int StartEpisodeNumber { get; set; }
+        public int IsAdminApproved { get; set; }
 	}
 }

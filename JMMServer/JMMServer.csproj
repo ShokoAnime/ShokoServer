@@ -304,6 +304,7 @@
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDBInput.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_Trakt.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_MALInput.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />

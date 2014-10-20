@@ -181,69 +181,6 @@ namespace JMMServer.WebCache
 
 		#endregion
 
-		#region CrossRef AniDB to MAL
-
-		public static void Send_CrossRef_AniDB_MAL(CrossRef_AniDB_MAL data)
-		{
-			if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
-
-
-			string uri = string.Format("http://{0}/AddCrossRef_AniDB_MAL.aspx", ServerSettings.WebCache_Address);
-			AddCrossRef_AniDB_MALRequest fhr = new AddCrossRef_AniDB_MALRequest(data);
-			string xml = fhr.ToXML();
-
-			SendData(uri, xml);
-		}
-
-		public static void Delete_CrossRef_AniDB_MAL(int animeID, int epType, int epNumber)
-		{
-			if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
-			if (ServerSettings.WebCache_Anonymous) return;
-
-			string uri = string.Format("http://{0}/DeleteCrossRef_AniDB_MAL.aspx", ServerSettings.WebCache_Address);
-			DeleteCrossRef_AniDB_MALRequest req = new DeleteCrossRef_AniDB_MALRequest(animeID, epType, epNumber);
-			string xml = req.ToXML();
-
-			SendData(uri, xml);
-		}
-
-		public static List<CrossRef_AniDB_MALResult> Get_CrossRef_AniDB_MAL(int animeID)
-		{
-			if (!ServerSettings.WebCache_MAL_Get) return null;
-
-			try
-			{
-				List<CrossRef_AniDB_MALResult> results = null;
-
-				string username = ServerSettings.AniDB_Username;
-				if (ServerSettings.WebCache_Anonymous)
-					username = Constants.AnonWebCacheUsername;
-
-				string uri = string.Format("http://{0}/GetCrossRef_AniDB_MAL.aspx?uname={1}&AnimeID={2}",
-					ServerSettings.WebCache_Address, username, animeID);
-				string xml = GetData(uri);
-
-				if (xml.Trim().Length == 0) return null;
-
-				XmlSerializer serializer = new XmlSerializer(typeof(List<CrossRef_AniDB_MALResult>));
-				XmlDocument docSearchResult = new XmlDocument();
-				docSearchResult.LoadXml(xml);
-
-				XmlNodeReader reader = new XmlNodeReader(docSearchResult.DocumentElement);
-				object obj = serializer.Deserialize(reader);
-				results = (List<CrossRef_AniDB_MALResult>)obj;
-
-				return results;
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in XMLService.Get_CrossRef_AniDB_MAL:: {0}", ex);
-				return null;
-			}
-		}
-
-		#endregion
-
 		public static AppVersionsResult GetAppVersions()
 		{
 			try

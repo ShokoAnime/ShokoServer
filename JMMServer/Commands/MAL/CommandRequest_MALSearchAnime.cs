@@ -56,14 +56,12 @@ namespace JMMServer.Commands.MAL
 				{
 					try
 					{
-						List<CrossRef_AniDB_MALResult> crossRefs = XMLService.Get_CrossRef_AniDB_MAL(AnimeID);
-						if (crossRefs != null)
+                        JMMServer.Providers.Azure.CrossRef_AniDB_MAL crossRef = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBMAL(AnimeID);
+                        if (crossRef != null)
 						{
-							foreach (CrossRef_AniDB_MALResult crossRef in crossRefs)
-							{
-								logger.Trace("Found MAL match on web cache for {0} - id = {1} ({2}/{3})", AnimeID, crossRef.MALID, crossRef.StartEpisodeType, crossRef.StartEpisodeNumber);
-								MALHelper.LinkAniDBMAL(AnimeID, crossRef.MALID, crossRef.MALTitle, crossRef.StartEpisodeType, crossRef.StartEpisodeNumber, true);
-							}
+							logger.Trace("Found MAL match on web cache for {0} - id = {1} ({2}/{3})", AnimeID, crossRef.MALID, crossRef.StartEpisodeType, crossRef.StartEpisodeNumber);
+							MALHelper.LinkAniDBMAL(AnimeID, crossRef.MALID, crossRef.MALTitle, crossRef.StartEpisodeType, crossRef.StartEpisodeNumber, true);
+
 							return;
 						}
 					}

@@ -490,7 +490,7 @@ namespace JMMContracts
 		string TestMALLogin();
 
 		[OperationContract]
-		List<Contract_CrossRef_AniDB_MALResult> GetMALCrossRefWebCache(int animeID);
+		Contract_CrossRef_AniDB_MALResult GetMALCrossRefWebCache(int animeID);
 
 		[OperationContract]
 		string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber);
