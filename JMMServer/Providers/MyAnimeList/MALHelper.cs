@@ -129,6 +129,7 @@ namespace JMMServer.Providers.MyAnimeList
 			webReq.Timeout = 30 * 1000;
 			webReq.Credentials = new NetworkCredential(ServerSettings.MAL_Username, ServerSettings.MAL_Password);
 			webReq.PreAuthenticate = true;
+            webReq.UserAgent = "api-jmm-7EC61C5283B99DC1CFE9A3730BF507CE";
 
 			HttpWebResponse WebResponse = (HttpWebResponse)webReq.GetResponse();
 
@@ -163,6 +164,7 @@ namespace JMMServer.Providers.MyAnimeList
 				webReq.Timeout = 30 * 1000;
 				webReq.Credentials = new NetworkCredential(username, password);
 				webReq.PreAuthenticate = true;
+                webReq.UserAgent = "api-jmm-7EC61C5283B99DC1CFE9A3730BF507CE";
 
 				HttpWebResponse WebResponse = (HttpWebResponse)webReq.GetResponse();
 
