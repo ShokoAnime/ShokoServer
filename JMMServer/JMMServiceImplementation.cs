@@ -1628,6 +1628,20 @@ namespace JMMServer
 			return "";
 		}
 
+        public string UpdateMovieDBData(int movieD)
+        {
+
+            try
+            {
+                MovieDBHelper.UpdateMovieInfo(movieD, true);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return "";
+        }
+
 		public Contract_AniDBAnime GetAnime(int animeID)
 		{
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
@@ -5844,7 +5858,7 @@ namespace JMMServer
 		{
 			try
 			{
-				CrossRef_AniDB_OtherResult result = XMLService.Get_CrossRef_AniDB_Other(animeID, (CrossRefType)crossRefType);
+                JMMServer.Providers.Azure.CrossRef_AniDB_Other result = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBOther(animeID, (CrossRefType)crossRefType);
 				if (result == null) return null;
 
 				return result.ToContract();

@@ -331,12 +331,12 @@ namespace JMMServer.Commands
 
 				case JMMImageType.MovieDB_Poster:
 					MovieDB_Poster moviePoster = req.ImageData as MovieDB_Poster;
-					return moviePoster.URL;
+                    return string.Format(Constants.URLS.MovieDB_Images, moviePoster.URL);
 
 				case JMMImageType.MovieDB_FanArt:
 
 					MovieDB_Fanart movieFanart = req.ImageData as MovieDB_Fanart;
-					return movieFanart.URL;
+                    return string.Format(Constants.URLS.MovieDB_Images, movieFanart.URL);
 
 				case JMMImageType.Trakt_Poster:
 					Trakt_ImagePoster traktPoster = req.ImageData as Trakt_ImagePoster;

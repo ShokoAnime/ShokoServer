@@ -40,7 +40,8 @@ namespace JMMServer.Providers.Azure
 			if (ServerSettings.WebCache_Anonymous)
 				this.Username = Constants.AnonWebCacheUsername;
 
-			this.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? "" : ServerSettings.WebCacheAuthKey;
+            this.AuthGUID = string.Empty;
 		}
+
 	}
 }

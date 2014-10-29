@@ -173,6 +173,7 @@ namespace JMMServer.Databases
                 UpdateSchema_029(versionNumber);
                 UpdateSchema_030(versionNumber);
                 UpdateSchema_031(versionNumber);
+                UpdateSchema_032(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1240,6 +1241,19 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
+        }
+
+        private static void UpdateSchema_032(int currentVersionNumber)
+        {
+            int thisVersion = 32;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            UpdateDatabaseVersion(thisVersion);
+
+            // Now do the migratiuon
+            DatabaseHelper.RemoveOldMovieDBImageRecords();
         }
 
 

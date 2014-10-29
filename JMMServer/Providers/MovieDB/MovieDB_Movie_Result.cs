@@ -5,6 +5,9 @@ using System.Text;
 using System.Xml;
 using NLog;
 using JMMContracts;
+using TMDbLib.Objects.Search;
+using TMDbLib.Objects.Movies;
+using TMDbLib.Objects.General;
 
 namespace JMMServer.Providers.MovieDB
 {
@@ -29,31 +32,36 @@ namespace JMMServer.Providers.MovieDB
 		{
 		}
 
-		public bool Populate(XmlNode result)
+        public bool Populate(Movie movie, ImagesWithId imgs)
 		{
-			if (result["id"] == null) return false;
 			try
 			{
-				MovieName = string.Empty;
-				OriginalName = string.Empty;
-				Overview = string.Empty;
-				Images = new List<MovieDB_Image_Result>();
+                Images = new List<MovieDB_Image_Result>();
 
-				if (result["id"] != null) MovieID = int.Parse(result["id"].InnerText);
-				if (result["name"] != null) MovieName = result["name"].InnerText;
-				if (result["original_name"] != null) OriginalName = result["original_name"].InnerText;
-				if (result["overview"] != null) Overview = result["overview"].InnerText;
+                MovieID = movie.Id;
+                MovieName = movie.Title;
+                OriginalName = movie.Title;
+                Overview = movie.Overview;
 
-				//XmlNodeList imgs = result.SelectNodes("image");
-				XmlNodeList imgs = result["images"].GetElementsByTagName("image");
+                if (imgs != null && imgs.Backdrops != null)
+                {
+                    foreach (ImageData img in imgs.Backdrops)
+                    {
+                        MovieDB_Image_Result imageResult = new MovieDB_Image_Result();
+                        if (imageResult.Populate(img, "backdrop"))
+                            Images.Add(imageResult);
+                    }
+                }
 
-				foreach (XmlNode img in imgs)
-				{
-					MovieDB_Image_Result imageResult = new MovieDB_Image_Result();
-					if (imageResult.Populate(img))
-						Images.Add(imageResult);
-
-				}
+                if (imgs != null && imgs.Posters != null)
+                {
+                    foreach (ImageData img in imgs.Posters)
+                    {
+                        MovieDB_Image_Result imageResult = new MovieDB_Image_Result();
+                        if (imageResult.Populate(img, "poster"))
+                            Images.Add(imageResult);
+                    }
+                }
 			}
 			catch (Exception ex)
 			{

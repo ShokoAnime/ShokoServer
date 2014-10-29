@@ -47,6 +47,7 @@ using System.Collections;
 using System.ServiceModel.Web;
 using JMMServer.Providers.Azure;
 using JMMServer.Commands.Azure;
+using TMDbLib.Objects.General;
 
 namespace JMMServer
 {
@@ -1051,7 +1052,7 @@ namespace JMMServer
 								continue;
 
 							CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
-							CrossRef_File_Episode xref = new CrossRef_File_Episode();
+                            JMMServer.Entities.CrossRef_File_Episode xref = new JMMServer.Entities.CrossRef_File_Episode();
 
 							try
 							{

@@ -104,6 +104,9 @@
     <Reference Include="Remotion.Data.Linq">
       <HintPath>..\Dependencies\Remotion.Data.Linq.dll</HintPath>
     </Reference>
+    <Reference Include="RestSharp">
+      <HintPath>..\packages\RestSharp.104.5.0\lib\net4\RestSharp.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
@@ -123,6 +126,9 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="TMDbLib">
+      <HintPath>..\packages\TMDbLib.0.7.7\lib\net40\TMDbLib.dll</HintPath>
+    </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -300,11 +306,15 @@
     <Compile Include="Providers\Azure\Azure_AnimeFull.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeShout.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_MAL.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_Other.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_OtherInput.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TraktInput.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDBInput.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_Trakt.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_MALInput.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_File_Episode.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_File_EpisodeInput.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
@@ -601,16 +611,11 @@
     <Compile Include="WebCache\AniDB_UpdatedRequest.cs" />
     <Compile Include="WebCache\AppVersionsResult.cs" />
     <Compile Include="WebCache\CrossRef_AniDB_MALResult.cs" />
-    <Compile Include="WebCache\CrossRef_AniDB_OtherResult.cs" />
     <Compile Include="WebCache\CrossRef_AniDB_TraktResult.cs" />
     <Compile Include="WebCache\CrossRef_AniDB_TvDBResult.cs" />
-    <Compile Include="WebCache\CrossRef_File_EpisodeRequest.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDBTvDBAll_Request.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDB_MALRequest.cs" />
-    <Compile Include="WebCache\DeleteCrossRef_AniDB_OtherRequest.cs" />
     <Compile Include="WebCache\DeleteCrossRef_AniDB_TraktRequest.cs" />
-    <Compile Include="WebCache\DeleteCrossRef_File_EpisodeRequest.cs" />
-    <Compile Include="WebCache\FileHashRequest.cs" />
     <Compile Include="WebCache\XMLService.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -674,6 +679,7 @@
       <SubType>Designer</SubType>
     </None>
     <None Include="default.config" />
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

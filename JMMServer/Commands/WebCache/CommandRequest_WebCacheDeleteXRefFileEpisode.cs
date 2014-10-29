@@ -46,7 +46,7 @@ namespace JMMServer.Commands
 			
 			try
 			{
-				XMLService.Delete_CrossRef_File_Episode(Hash, EpisodeID);
+                JMMServer.Providers.Azure.AzureWebAPI.Delete_CrossRefFileEpisode(Hash);
 			}
 			catch (Exception ex)
 			{

@@ -60,7 +60,7 @@ namespace JMMServer.Commands
 						{
 							MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
 
-							CrossRef_AniDB_OtherResult crossRef = XMLService.Get_CrossRef_AniDB_Other(AnimeID, CrossRefType.MovieDB);
+                            JMMServer.Providers.Azure.CrossRef_AniDB_Other crossRef = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBOther(AnimeID, CrossRefType.MovieDB);
 							if (crossRef != null)
 							{
 								int movieID = int.Parse(crossRef.CrossRefID);

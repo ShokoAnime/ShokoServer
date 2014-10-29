@@ -169,6 +169,8 @@ namespace JMMServer
 
 			public static readonly string MovieDB_Series = @"http://www.themoviedb.org/movie/{0}";
 			public static readonly string Trakt_Series = @"http://trakt.tv/show/{0}";
+
+            public static readonly string MovieDB_Images = @"http://image.tmdb.org/t/p/original{0}";
 		}
 
 		public struct GroupLabelStyle

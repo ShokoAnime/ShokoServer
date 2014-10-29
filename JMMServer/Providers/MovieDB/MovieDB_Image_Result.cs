@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using TMDbLib.Objects.General;
 
 namespace JMMServer.Providers.MovieDB
 {
@@ -24,24 +25,16 @@ namespace JMMServer.Providers.MovieDB
 			return string.Format("{0} - {1} - {2}x{3} - {4}", ImageType, ImageSize, ImageWidth, ImageHeight, URL);
 		}
 
-		public bool Populate(XmlNode result)
-		{
-			if (result.Attributes["id"] == null) return false;
+        public bool Populate(ImageData result, string imgType)
+        {
+            ImageID = string.Empty;
+            ImageType = imgType;
+            ImageSize = Constants.MovieDBImageSize.Original;
+            URL = result.FilePath;
+            ImageWidth = result.Width;
+            ImageHeight = result.Height;
 
-			ImageType = string.Empty;
-			ImageSize = string.Empty;
-			URL = string.Empty;
-			ImageWidth = 0;
-			ImageHeight = 0;
-
-			if (result.Attributes["id"] != null) ImageID = result.Attributes["id"].InnerText;
-			if (result.Attributes["type"] != null) ImageType = result.Attributes["type"].InnerText;
-			if (result.Attributes["size"] != null) ImageSize = result.Attributes["size"].InnerText;
-			if (result.Attributes["url"] != null) URL = result.Attributes["url"].InnerText;
-			if (result.Attributes["width"] != null) ImageWidth = int.Parse(result.Attributes["width"].InnerText);
-			if (result.Attributes["height"] != null) ImageHeight = int.Parse(result.Attributes["height"].InnerText);
-
-			return true;
-		}
+            return true;
+        }
 	}
 }

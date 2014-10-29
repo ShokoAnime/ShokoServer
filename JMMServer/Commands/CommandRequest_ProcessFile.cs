@@ -157,18 +157,31 @@ namespace JMMServer.Commands
 					// lets see if we can find the episode/anime info from the web cache
 					if (ServerSettings.WebCache_XRefFileEpisode_Get)
 					{
-						crossRefs = XMLService.Get_CrossRef_File_Episode(vidLocal);
-						if (crossRefs == null || crossRefs.Count == 0)
+                        List<JMMServer.Providers.Azure.CrossRef_File_Episode> xrefs = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);
+
+                        crossRefs = new List<CrossRef_File_Episode>();
+                        if (xrefs == null || xrefs.Count == 0)
 						{
 							logger.Debug("Cannot find AniDB_File record or get cross ref from web cache record so exiting: {0}", vidLocal.ED2KHash);
 							return;
 						}
 						else
 						{
-							foreach (CrossRef_File_Episode xref in crossRefs)
+                            foreach (JMMServer.Providers.Azure.CrossRef_File_Episode xref in xrefs)
 							{
+                                CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode();
+                                xrefEnt.Hash = vidLocal.ED2KHash;
+                                xrefEnt.FileName = Path.GetFileName(vidLocal.FullServerPath);
+                                xrefEnt.FileSize = vidLocal.FileSize;
+                                xrefEnt.CrossRefSource = (int)JMMServer.CrossRefSource.WebCache;
+                                xrefEnt.AnimeID = animeID;
+                                xrefEnt.EpisodeID = xref.EpisodeID;
+                                xrefEnt.Percentage = xref.Percentage;
+                                xrefEnt.EpisodeOrder = xref.EpisodeOrder;
+
+                                crossRefs.Add(xrefEnt);
 								// in this case we need to save the cross refs manually as AniDB did not provide them
-								repXrefFE.Save(xref);
+                                repXrefFE.Save(xrefEnt);
 							}
 						}
 					}

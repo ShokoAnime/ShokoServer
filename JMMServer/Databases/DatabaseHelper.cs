@@ -660,5 +660,29 @@ namespace JMMServer.Databases
 				repGFC.Save(gfc);
 			}
 		}
+
+        public static void RemoveOldMovieDBImageRecords()
+        {
+            try
+            {
+                MovieDB_FanartRepository repFanart = new MovieDB_FanartRepository();
+                foreach (MovieDB_Fanart fanart in repFanart.GetAll())
+                {
+                    repFanart.Delete(fanart.MovieDB_FanartID);
+                }
+
+                MovieDB_PosterRepository repPoster = new MovieDB_PosterRepository();
+                foreach (MovieDB_Poster poster in repPoster.GetAll())
+                {
+                    repPoster.Delete(poster.MovieDB_PosterID);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Could not RemoveOldMovieDBImageRecords: " + ex.ToString(), ex);
+            }
+
+ 
+        }
 	}
 }

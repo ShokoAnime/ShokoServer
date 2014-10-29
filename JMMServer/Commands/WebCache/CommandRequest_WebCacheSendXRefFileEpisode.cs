@@ -48,7 +48,7 @@ namespace JMMServer.Commands
 				CrossRef_File_Episode xref = repVids.GetByID(CrossRef_File_EpisodeID);
 				if (xref == null) return;
 
-				XMLService.Send_CrossRef_File_Episode(xref);
+                JMMServer.Providers.Azure.AzureWebAPI.Send_CrossRefFileEpisode(xref);
 			}
 			catch (Exception ex)
 			{

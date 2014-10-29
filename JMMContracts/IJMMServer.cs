@@ -366,6 +366,9 @@ namespace JMMContracts
 		[OperationContract]
 		string UpdateTraktData(string traktD);
 
+        [OperationContract]
+        string UpdateMovieDBData(int movieD);
+
 		[OperationContract]
 		Contract_GroupFilterExtended GetGroupFilterExtended(int groupFilterID, int userID);
 

@@ -167,7 +167,7 @@ namespace JMMServer
 					if (mPoster == null) return null;
 
 					// now find only the original size
-					mPoster = repMoviePosters.GetByOnlineID(mPoster.ImageID, Constants.MovieDBImageSize.Original);
+                    mPoster = repMoviePosters.GetByOnlineID(mPoster.URL);
 					if (mPoster == null) return null;
 
 					if (File.Exists(mPoster.FullImagePath))
@@ -187,7 +187,7 @@ namespace JMMServer
 					MovieDB_Fanart mFanart = repMovieFanart.GetByID(int.Parse(ImageID));
 					if (mFanart == null) return null;
 
-					mFanart = repMovieFanart.GetByOnlineID(mFanart.ImageID, Constants.MovieDBImageSize.Original);
+					mFanart = repMovieFanart.GetByOnlineID(mFanart.URL);
 					if (mFanart == null) return null;
 
 					if (File.Exists(mFanart.FullImagePath))

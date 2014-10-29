@@ -6,6 +6,7 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.WebCache;
 using System.Xml;
+using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands
 {
@@ -46,7 +47,7 @@ namespace JMMServer.Commands
 			
 			try
 			{
-				XMLService.Delete_CrossRef_AniDB_Other(AnimeID, (JMMServer.CrossRefType)CrossRefType);
+                AzureWebAPI.Delete_CrossRefAniDBOther(AnimeID, (JMMServer.CrossRefType)CrossRefType);
 			}
 			catch (Exception ex)
 			{

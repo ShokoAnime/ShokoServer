@@ -57,7 +57,8 @@ namespace JMMServer.Providers.Azure
 			if (ServerSettings.WebCache_Anonymous)
 				username = Constants.AnonWebCacheUsername;
 
-			string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_TvDB/{1}?p={2}", azureHostBaseAddress, animeID, username);
+
+            string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_TvDB/{1}?p={2}", azureHostBaseAddress, animeID, username);
 			string msg = string.Format("Getting AniDB/TvDB Cross Ref From Cache: {0}", animeID);
 
 			DateTime start = DateTime.Now;
@@ -189,6 +190,121 @@ namespace JMMServer.Providers.Azure
             //jmm.azurewebsites.net
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_MAL/{1}?p={2}&p2={3}&p3={4}", azureHostBaseAddress,
                 animeID, ServerSettings.AniDB_Username, epType, epNumber);
+
+
+            string json = DeleteDataJson(uri);
+        }
+
+        #endregion
+
+        #region Cross Ref Other
+
+        public static CrossRef_AniDB_Other Get_CrossRefAniDBOther(int animeID, CrossRefType xrefType)
+        {
+            if (!ServerSettings.WebCache_TvDB_Get) return null;
+
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Other/{1}?p={2}&p2={3}", azureHostBaseAddress, animeID, username, (int)xrefType);
+            string msg = string.Format("Getting AniDB/Other Cross Ref From Cache: {0}", animeID);
+
+            DateTime start = DateTime.Now;
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+            string json = GetDataJson(uri);
+
+            TimeSpan ts = DateTime.Now - start;
+            msg = string.Format("Got AniDB/MAL Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+            CrossRef_AniDB_Other xref = JSONHelper.Deserialize<CrossRef_AniDB_Other>(json);
+
+            return xref;
+        }
+
+        public static void Send_CrossRefAniDBOther(JMMServer.Entities.CrossRef_AniDB_Other data)
+        {
+            if (!ServerSettings.WebCache_TvDB_Send) return;
+
+            string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Other", azureHostBaseAddress);
+
+            CrossRef_AniDB_OtherInput input = new CrossRef_AniDB_OtherInput(data);
+            string json = JSONHelper.Serialize<CrossRef_AniDB_OtherInput>(input);
+
+            SendData(uri, json, "POST");
+        }
+
+        public static void Delete_CrossRefAniDBOther(int animeID, CrossRefType xrefType)
+        {
+            // id = animeid
+            // p = username
+            // p2 = AniDBStartEpisodeType
+            // p3 = AniDBStartEpisodeNumber
+
+            if (!ServerSettings.WebCache_TvDB_Send) return;
+
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Other/{1}?p={2}&p2={3}", azureHostBaseAddress, animeID, username, (int)xrefType);
+
+
+            string json = DeleteDataJson(uri);
+        }
+
+        #endregion
+
+        #region Cross Ref File Episode
+
+        public static List<CrossRef_File_Episode> Get_CrossRefFileEpisode(VideoLocal vid)
+        {
+            if (!ServerSettings.WebCache_XRefFileEpisode_Get) return null;
+
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/CrossRef_File_Episode/{1}?p={2}", azureHostBaseAddress, vid.Hash, username);
+            string msg = string.Format("Getting File/Episode Cross Ref From Cache: {0}", vid.Hash);
+
+            DateTime start = DateTime.Now;
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+            string json = GetDataJson(uri);
+
+            TimeSpan ts = DateTime.Now - start;
+            msg = string.Format("Got File/Episode Cross Ref From Cache: {0} - {1}", vid.Hash, ts.TotalMilliseconds);
+            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+
+            List<CrossRef_File_Episode> xrefs = JSONHelper.Deserialize<List<CrossRef_File_Episode>>(json);
+
+            return xrefs;
+        }
+
+        public static void Send_CrossRefFileEpisode(JMMServer.Entities.CrossRef_File_Episode data)
+        {
+            if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            string uri = string.Format(@"http://{0}/api/CrossRef_File_Episode", azureHostBaseAddress);
+
+            CrossRef_File_EpisodeInput input = new CrossRef_File_EpisodeInput(data);
+            string json = JSONHelper.Serialize<CrossRef_File_EpisodeInput>(input);
+
+            SendData(uri, json, "POST");
+        }
+
+        public static void Delete_CrossRefFileEpisode(string hash)
+        {
+            if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/CrossRef_File_Episode/{1}?p={2}", azureHostBaseAddress, hash, username);
 
 
             string json = DeleteDataJson(uri);

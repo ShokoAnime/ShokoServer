@@ -41,20 +41,19 @@ namespace JMMServer.Repositories
 			return session.Get<MovieDB_Poster>(id);
 		}
 
-		public MovieDB_Poster GetByOnlineID(string id, string imageSize)
+        public MovieDB_Poster GetByOnlineID(string url)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return GetByOnlineID(session, id, imageSize);
+                return GetByOnlineID(session, url);
 			}
 		}
 
-		public MovieDB_Poster GetByOnlineID(ISession session, string id, string imageSize)
+		public MovieDB_Poster GetByOnlineID(ISession session, string url)
 		{
 			MovieDB_Poster cr = session
 				.CreateCriteria(typeof(MovieDB_Poster))
-				.Add(Restrictions.Eq("ImageID", id))
-				.Add(Restrictions.Eq("ImageSize", imageSize))
+                .Add(Restrictions.Eq("URL", url))
 				.UniqueResult<MovieDB_Poster>();
 			return cr;
 		}
@@ -83,7 +82,7 @@ namespace JMMServer.Repositories
 			{
 				var objs = session
 					.CreateCriteria(typeof(MovieDB_Poster))
-					.Add(Restrictions.Eq("ImageSize", "original"))
+                    .Add(Restrictions.Eq("ImageSize", Constants.MovieDBImageSize.Original))
 					.List<MovieDB_Poster>();
 
 				return new List<MovieDB_Poster>(objs);

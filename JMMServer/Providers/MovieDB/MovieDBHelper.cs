@@ -9,6 +9,10 @@ using JMMServer.Entities;
 using JMMServer.Commands;
 using System.IO;
 using NHibernate;
+using TMDbLib.Client;
+using TMDbLib.Objects.Movies;
+using TMDbLib.Objects.General;
+using TMDbLib.Objects.Search;
 
 namespace JMMServer.Providers.MovieDB
 {
@@ -29,7 +33,7 @@ namespace JMMServer.Providers.MovieDB
 			get { return @"http://api.themoviedb.org/2.1/Movie.getInfo/en/xml/{0}/{1}"; }
 		}
 
-		private static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages)
+        public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -37,7 +41,7 @@ namespace JMMServer.Providers.MovieDB
 			}
 		}
 
-		private static void SaveMovieToDatabase(ISession session, MovieDB_Movie_Result searchResult, bool saveImages)
+        public static void SaveMovieToDatabase(ISession session, MovieDB_Movie_Result searchResult, bool saveImages)
 		{
 			MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
 			MovieDB_FanartRepository repFanart = new MovieDB_FanartRepository();
@@ -58,7 +62,7 @@ namespace JMMServer.Providers.MovieDB
 			{
 				if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
 				{
-					MovieDB_Poster poster = repPosters.GetByOnlineID(session, img.ImageID, img.ImageSize);
+					MovieDB_Poster poster = repPosters.GetByOnlineID(session, img.URL);
 					if (poster == null) poster = new MovieDB_Poster();
 					poster.Populate(img, movie.MovieId);
 					repPosters.Save(session, poster);
@@ -77,7 +81,7 @@ namespace JMMServer.Providers.MovieDB
 				else
 				{
 					// fanart (backdrop)
-					MovieDB_Fanart fanart = repFanart.GetByOnlineID(session, img.ImageID, img.ImageSize);
+					MovieDB_Fanart fanart = repFanart.GetByOnlineID(session, img.URL);
 					if (fanart == null) fanart = new MovieDB_Fanart();
 					fanart.Populate(img, movie.MovieId);
 					repFanart.Save(session, fanart);
@@ -102,30 +106,19 @@ namespace JMMServer.Providers.MovieDB
 			
 			try
 			{
-				string url = string.Format(SearchURL, apiKey, criteria.Trim());
-				// Search for a movie
-				string xmlSearch = Utils.DownloadWebPage(url);
+                TMDbClient client = new TMDbClient(apiKey);
+                SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(criteria);
 
-				XmlDocument docSearchResult = new XmlDocument();
-				docSearchResult.LoadXml(xmlSearch);
-
-				bool hasData = docSearchResult["OpenSearchDescription"]["movies"].HasChildNodes;
-				if (hasData)
-				{
-					XmlNodeList movies = docSearchResult["OpenSearchDescription"]["movies"].GetElementsByTagName("movie");
-
-					foreach (XmlNode movieNode in movies)
-					{
-						MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
-						if (searchResult.Populate(movieNode))
-						{
-							results.Add(searchResult);
-							SaveMovieToDatabase(searchResult, false);
-						}
-					}
-
-					
-				}
+                Console.WriteLine("Got {0} of {1} results", resultsTemp.Results.Count, resultsTemp.TotalResults);
+                foreach (SearchMovie result in resultsTemp.Results)
+                {
+                    MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
+                    Movie movie = client.GetMovie(result.Id);
+                    ImagesWithId imgs = client.GetMovieImages(result.Id);
+                    searchResult.Populate(movie, imgs);
+                    results.Add(searchResult);
+                    SaveMovieToDatabase(searchResult, false);
+                }	
 
 			}
 			catch (Exception ex)
@@ -149,28 +142,15 @@ namespace JMMServer.Providers.MovieDB
 
 			try
 			{
-				string url = string.Format(InfoURL, apiKey, movieID);
-				// Search for a movie
-				string xmlSearch = Utils.DownloadWebPage(url);
+                TMDbClient client = new TMDbClient(apiKey);
+                Movie movie = client.GetMovie(movieID);
+                ImagesWithId imgs = client.GetMovieImages(movieID);
 
-				XmlDocument docSearchResult = new XmlDocument();
-				docSearchResult.LoadXml(xmlSearch);
+                MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
+                searchResult.Populate(movie, imgs);
 
-				bool hasData = docSearchResult["OpenSearchDescription"]["movies"].HasChildNodes;
-				if (hasData)
-				{
-					XmlNodeList movies = docSearchResult["OpenSearchDescription"]["movies"].GetElementsByTagName("movie");
-
-					XmlNode movie = movies[0];
-					MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
-					if (searchResult.Populate(movie))
-					{
-						// save to the DB
-						SaveMovieToDatabase(session, searchResult, saveImages);
-					}
-
-				}
-
+                // save to the DB
+                SaveMovieToDatabase(session, searchResult, saveImages);
 			}
 			catch (Exception ex)
 			{

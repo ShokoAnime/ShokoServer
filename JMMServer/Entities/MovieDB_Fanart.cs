@@ -31,7 +31,7 @@ namespace JMMServer.Entities
 				if (string.IsNullOrEmpty(URL)) return "";
 
 				//strip out the base URL
-				int pos = URL.IndexOf('/', 10);
+				int pos = URL.IndexOf('/', 0);
 				string fname = URL.Substring(pos + 1, URL.Length - pos - 1);
 				fname = fname.Replace("/", @"\");
 				return Path.Combine(ImageUtils.GetMovieDBImagePath(), fname);
