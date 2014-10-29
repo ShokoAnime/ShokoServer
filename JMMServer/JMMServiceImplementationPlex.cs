@@ -141,10 +141,9 @@ namespace JMMServer
 
                         Random rnd = new Random(123456789);
                         Video pp = new Video();
-                        pp.Key = "/video/jmm/proxy?url=" +
-                                    ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                        pp.Key = PlexProxy(ServerUrl(int.Parse(ServerSettings.JMMServerPort),
                                         MainWindow.PathAddressPlex + "/GetMetadata/" + user.JMMUserID + "/" +
-                                        (int) JMMType.GroupFilter + "/" + gg.GroupFilterID);
+                                        (int) JMMType.GroupFilter + "/" + gg.GroupFilterID));
                         pp.Title = gg.GroupFilterName;
                         HashSet<int> groups;
                         if (gg.GroupFilterID == -999)
@@ -197,9 +196,9 @@ namespace JMMServer
                     if (vids.Count > 0)
                     {
                         Video pp = new Video();
-                        pp.Key = "/video/jmm/proxy?url=" +
+                        pp.Key = PlexProxy(
                                  ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                                     MainWindow.PathAddressPlex + "/GetMetadata/0/" + (int) JMMType.GroupUnsort + "/0");
+                                     MainWindow.PathAddressPlex + "/GetMetadata/0/" + (int) JMMType.GroupUnsort + "/0"));
                         pp.Title = "Unsort";
                         pp.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort),
                             MainWindow.PathAddressPlex + "/GetSupportImage/plex_unsort.png");
@@ -344,13 +343,32 @@ namespace JMMServer
             var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
             return System.Convert.ToBase64String(plainTextBytes).Replace("+", "-").Replace("/", "_").Replace("=", ",");
         }
+        public static string ToHex(string ka)
+        {
+            byte[] ba = Encoding.UTF8.GetBytes(ka);
+            StringBuilder hex = new StringBuilder(ba.Length * 2);
+            foreach (byte b in ba)
+                hex.AppendFormat("{0:x2}", b);
+            return hex.ToString();
+        }
+        public static string FromHex(string hex)
+        {
+            byte[] raw = new byte[hex.Length / 2];
+            for (int i = 0; i < raw.Length; i++)
+            {
+                raw[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+            }
+            return Encoding.UTF8.GetString(raw);
+        }
+        public static string PlexProxy(string url)
+        {
+            return "/video/jmm/proxy/" + ToHex(url) ;
+        }
         private AniDB_Anime FromVideoLocalEp(Video l, VideoLocal v, JMMType type)
         {
             AniDB_Anime ani=null;
             l.Type = "episode";
-            l.Key = "/video/jmm/proxy?url=" +
-                    ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                        MainWindow.PathAddressPlex + "/GetMetadata/0/" + (int) type + "/" + v.VideoLocalID);
+            l.Key = PlexProxy(ServerUrl(int.Parse(ServerSettings.JMMServerPort),MainWindow.PathAddressPlex + "/GetMetadata/0/" + (int) type + "/" + v.VideoLocalID));
             VideoInfoRepository repo=new VideoInfoRepository();
             AnimeSeriesRepository repSeries=new AnimeSeriesRepository();
             l.Title = Path.GetFileNameWithoutExtension(v.FilePath);
@@ -620,10 +638,9 @@ namespace JMMServer
         internal static Video FromGroup(Contract_AnimeGroup grp, Contract_AnimeSeries ser, int userid)
         {
             Video p = new Video();
-            p.Key = "/video/jmm/proxy?url=" +
-                    ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+            p.Key = PlexProxy(ServerUrl(int.Parse(ServerSettings.JMMServerPort),
                         MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int) JMMType.Group + "/" +
-                        grp.AnimeGroupID.ToString());
+                        grp.AnimeGroupID.ToString()));
             p.Title = grp.GroupName;
             p.Summary = grp.Description;
             p.Type = "show";
@@ -684,10 +701,9 @@ namespace JMMServer
 
             Contract_AniDBAnime anime = ser.AniDBAnime;
 
-            p.Key = "/video/jmm/proxy?url=" +
-                    ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+            p.Key = PlexProxy(ServerUrl(int.Parse(ServerSettings.JMMServerPort),
                         MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int) JMMType.Serie + "/" +
-                        ser.AnimeSeriesID);
+                        ser.AnimeSeriesID));
 
 
             p.Title = anime.MainTitle;
@@ -792,6 +808,13 @@ namespace JMMServer
         {
             if (str == null)
                 return null;
+            if (str.StartsWith("/video/jmm/proxy/"))
+            {
+                string k = str.Substring(17);
+                k = FromHex(k);
+                k = k.Replace("{SCHEME}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme).Replace("{HOST}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host);
+                return "/video/jmm/proxy/" + ToHex(k);
+            }
             return str.Replace("{SCHEME}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme).Replace("{HOST}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host);
         }
         public static Video CloneVideo(Video o)
@@ -1072,10 +1095,9 @@ namespace JMMServer
                             v.Type = "season";
                             v.LeafCount = ee.Count.ToString();
                             v.ViewedLeafCount = "0";
-                            v.Key = "/video/jmm/proxy?url=" +
-                                    ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                            v.Key = PlexProxy(ServerUrl(int.Parse(ServerSettings.JMMServerPort),
                                         MainWindow.PathAddressPlex + "/GetMetadata/" + user.JMMUserID + "/" +
-                                        (int) JMMType.Serie + "/" + ee.Type + "_" + ser.AnimeSeriesID);
+                                        (int) JMMType.Serie + "/" + ee.Type + "_" + ser.AnimeSeriesID));
                             v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort),
                                 MainWindow.PathAddressPlex + "/GetSupportImage/" + ee.Image);
                             dirs.Add(v);
