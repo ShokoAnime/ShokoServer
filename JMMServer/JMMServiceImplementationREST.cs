@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
@@ -500,7 +501,7 @@ namespace JMMServer
             if (m != null)
             {
                 float newratio = 0F;
-                if (float.TryParse(Ratio, out newratio))
+                if (float.TryParse(Ratio, NumberStyles.Any, CultureInfo.InvariantCulture, out newratio))
                 {
                     Image im = Image.FromStream(m);
                     float calcwidth = im.Width;
