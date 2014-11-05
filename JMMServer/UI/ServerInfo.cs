@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Collections.ObjectModel;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Providers.Azure;
 
 namespace JMMServer
 {
@@ -37,7 +38,8 @@ namespace JMMServer
 
 		private ServerInfo()
 		{
-			ImportFolders = new ObservableCollection<ImportFolder>();	
+			ImportFolders = new ObservableCollection<ImportFolder>();
+            AdminMessages = new ObservableCollection<AdminMessage>();
 		}
 
 		private void Init()
@@ -85,6 +87,45 @@ namespace JMMServer
 		}
 
 		#region Observable Properties
+
+        public ObservableCollection<AdminMessage> AdminMessages { get; set; }
+
+        public void RefreshAdminMessages()
+        {
+            AdminMessages.Clear();
+
+            try
+            {
+                List<AdminMessage> msgs = AzureWebAPI.Get_AdminMessages();
+                if (msgs == null || msgs.Count == 0)
+                {
+                    AdminMessagesAvailable = false;
+                    return;
+                }
+
+                foreach (AdminMessage msg in msgs)
+                    AdminMessages.Add(msg);
+
+                AdminMessagesAvailable = true;
+
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+            }
+
+        }
+
+        private bool adminMessagesAvailable = false;
+        public bool AdminMessagesAvailable
+        {
+            get { return adminMessagesAvailable; }
+            set
+            {
+                adminMessagesAvailable = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("AdminMessagesAvailable"));
+            }
+        }
 
 		private int hasherQueueCount = 0;
 		public int HasherQueueCount

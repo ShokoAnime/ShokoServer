@@ -402,6 +402,30 @@ namespace JMMServer.Providers.Azure
 
         #endregion
 
+        #region Admin Messages
+
+        public static List<AdminMessage> Get_AdminMessages()
+        {
+            try
+            {
+                string uri = string.Format(@"http://{0}/api/AdminMessage/{1}", azureHostBaseAddress, "all");
+                string json = GetDataJson(uri);
+
+                List<AdminMessage> msgs = JSONHelper.Deserialize<List<AdminMessage>>(json);
+
+                return msgs;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error(2) in XMLServiceQueue.SendData: {0}", ex);
+            }
+
+            return null;
+        }
+
+
+        #endregion
+
         #region Helpers
 
         private static void SendData(string uri, string json, string verb)

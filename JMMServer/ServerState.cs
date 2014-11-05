@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using NLog;
 using System.ComponentModel;
+using JMMServer.Providers.Azure;
 
 namespace JMMServer
 {
@@ -60,6 +61,8 @@ namespace JMMServer
 				OnPropertyChanged(new PropertyChangedEventArgs("ServerOnline"));
 			}
 		}
+
+        
 
 		private string currentSetupStatus = "";
 		public string CurrentSetupStatus

@@ -13,6 +13,9 @@ namespace JMMContracts
         [OperationContract]
         string UpdateEpisodeData(int episodeID);
 
+        [OperationContract]
+        List<Contract_AdminMessage> GetAdminMessages();
+
 		[OperationContract]
 		List<Contract_AnimeEpisode> GetContinueWatchingFilter(int userID, int maxRecords);
 

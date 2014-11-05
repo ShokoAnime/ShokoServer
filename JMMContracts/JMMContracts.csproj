@@ -65,6 +65,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Contract_AdminMessage.cs" />
     <Compile Include="Contract_AniDBAnime.cs" />
     <Compile Include="Contract_AniDBReleaseGroup.cs" />
     <Compile Include="Contract_AniDBVote.cs" />

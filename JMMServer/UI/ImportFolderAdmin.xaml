@@ -84,7 +84,7 @@
             <StackPanel Orientation="Vertical">
                 <TextBlock Text="Server Path" Margin="10,10,0,10" FontWeight="DemiBold"></TextBlock>
                 <ListBox Margin="10,0,0,10" Name="lbImportFolders" BorderThickness="0" Background="AntiqueWhite"
-                                 HorizontalAlignment="Left" VerticalAlignment="Top" ItemTemplate="{DynamicResource ImportFolderTemplate}" 
+                                 HorizontalAlignment="Left" VerticalAlignment="Top" ItemTemplate="{StaticResource ImportFolderTemplate}" 
                                  ItemContainerStyle="{DynamicResource ListBoxItemStyleFolders}"
                                  ItemsSource="{Binding Source={x:Static local:ServerInfo.Instance},Path=ImportFolders}">
 

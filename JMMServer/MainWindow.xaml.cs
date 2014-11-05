@@ -106,6 +106,7 @@ namespace JMMServer
 
 		private static System.Timers.Timer autoUpdateTimer = null;
 		private static System.Timers.Timer autoUpdateTimerShort = null;
+        DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12,0,0));
 		private static List<FileSystemWatcher> watcherVids = null;
 
 		BackgroundWorker downloadImagesWorker = new BackgroundWorker();
@@ -243,6 +244,7 @@ namespace JMMServer
 			btnGeneralResume.Click += new RoutedEventHandler(btnGeneralResume_Click);
 			btnImagesPause.Click += new RoutedEventHandler(btnImagesPause_Click);
 			btnImagesResume.Click += new RoutedEventHandler(btnImagesResume_Click);
+            btnAdminMessages.Click += btnAdminMessages_Click;
 
 			btnRemoveMissingFiles.Click += new RoutedEventHandler(btnRemoveMissingFiles_Click);
 			btnRunImport.Click += new RoutedEventHandler(btnRunImport_Click);
@@ -338,6 +340,8 @@ namespace JMMServer
 			ServerState.Instance.LoadSettings();
             workerFileEvents.RunWorkerAsync();
 		}
+
+        
 
 		void workerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
@@ -505,7 +509,12 @@ namespace JMMServer
 		}
 
 
-
+        void btnAdminMessages_Click(object sender, RoutedEventArgs e)
+        {
+            AdminMessagesForm frm = new AdminMessagesForm();
+            frm.Owner = this;
+            frm.ShowDialog();
+        }
 
 
 		void btnLogs_Click(object sender, RoutedEventArgs e)
@@ -704,6 +713,7 @@ namespace JMMServer
 			if (setupComplete)
 			{
 				ServerInfo.Instance.RefreshImportFolders();
+                
 				ServerState.Instance.CurrentSetupStatus = "Complete!";
 				ServerState.Instance.ServerOnline = true;
 
@@ -864,7 +874,7 @@ namespace JMMServer
 				// timer for automatic updates
 				autoUpdateTimerShort = new System.Timers.Timer();
 				autoUpdateTimerShort.AutoReset = true;
-				autoUpdateTimerShort.Interval = 15 * 1000; // 15 seconds
+				autoUpdateTimerShort.Interval = 5 * 1000; // 5 seconds, later we set it to 30 seconds
 				autoUpdateTimerShort.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimerShort_Elapsed);
 				autoUpdateTimerShort.Start();
 
@@ -1759,115 +1769,35 @@ namespace JMMServer
 			autoUpdateTimerShort.Enabled = false;
 			JMMService.CmdProcessorImages.NotifyOfNewCommand();
 
+            CheckForAdminMesages();
 			UpdateTraktFriendInfo(false);
+            
 
-			//CheckVersion();
-
+            autoUpdateTimerShort.Interval = 30 * 1000; // 30 seconds
 			autoUpdateTimerShort.Enabled = true;
+
+
 		}
 
-		/*private void UpdateVersion2()
-		{
-			ShutDown();
+        private void CheckForAdminMesages()
+        {
+            try
+            {
+                TimeSpan lastUpdate = DateTime.Now - lastAdminMessage;
 
-			UpdateManager updManager = UpdateManager.Instance;
+                if (lastUpdate.TotalHours > 5)
+                {
+                    lastAdminMessage = DateTime.Now;
+                    ServerInfo.Instance.RefreshAdminMessages();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            
 
-			//update configuration
-			updManager.UpdateFeedReader = new NAppUpdate.Framework.FeedReaders.AppcastReader();
-			updManager.UpdateSource = new NAppUpdate.Framework.Sources.SimpleWebSource();
-
-			string xml = "";
-			try
-			{
-				xml = Utils.DownloadWebPage("http://omm.hobbydb.net.leaf.arvixe.com/jmmserver_updatefeed.xml");
-
-				updManager.CheckForUpdateAsync(new NAppUpdate.Framework.Sources.MemorySource(xml), updatesCount =>
-				{
-					//Action showUpdateAction = () => new UpdateWindow(UpdateManager.Instance).Show();
-
-					if (updatesCount > 0)
-					{
-						
-
-						updManager.PrepareUpdatesAsync(finished =>
-						{
-							if (finished)
-								updManager.ApplyUpdates();
-							else
-								updManager.CleanUp();
-						});
-					}
-				});
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-			}
-
-			//
-
-			
-		}
-
-		private void UpdateVersion()
-		{
-			string xml = Utils.DownloadWebPage("http://omm.hobbydb.net.leaf.arvixe.com/jmmserver_updatefeed.xml");
-			IUpdateSource feedSource = new MemorySource(xml);
-
-
-			// Get a local pointer to the UpdateManager instance
-			UpdateManager updManager = UpdateManager.Instance;
-			updManager.UpdateFeedReader = new NAppUpdate.Framework.FeedReaders.AppcastReader();
-
-			// Only check for updates if we haven't done so already
-			if (updManager.State != UpdateManager.UpdateProcessState.NotChecked)
-			{
-				//MessageBox.Show("Update process has already initialized; current state: " + updManager.State.ToString());
-				return;
-			}
-
-			try
-			{
-				// Check for updates - returns true if relevant updates are found (after processing all the tasks and
-				// conditions)
-				// Throws exceptions in case of bad arguments or unexpected results
-				if (updManager.CheckForUpdates(feedSource))
-				{
-					updManager.PrepareUpdatesAsync(OnPrepareUpdatesCompleted);
-				}
-				else
-				{
-					MessageBox.Show("Your software is up to date");
-				}
-			}
-			catch (Exception ex)
-			{
-				if (ex is NAppUpdateException)
-				{
-					// This indicates a feed or network error; ex will contain all the info necessary
-					// to deal with that
-				}
-				else MessageBox.Show(ex.ToString());
-			}
-		}
-
-		private void OnPrepareUpdatesCompleted(bool succeeded)
-		{
-			if (!succeeded)
-			{
-				MessageBox.Show("Updates preperation failed. Check the feed and try again.");
-			}
-			else
-			{
-				// Get a local pointer to the UpdateManager instance
-				UpdateManager updManager = UpdateManager.Instance;
-
-				// This is a synchronous method by design, make sure to save all user work before calling
-				// it as it might restart your application
-				if (!updManager.ApplyUpdates())
-					MessageBox.Show("Error while trying to install software updates");
-			}
-		}*/
+        }
 
 		private void CheckVersion()
 		{

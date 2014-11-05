@@ -5078,6 +5078,28 @@ namespace JMMServer
 			}
 		}
 
+        public List<Contract_AdminMessage> GetAdminMessages()
+        {
+            try
+            {
+                List<Contract_AdminMessage> msgs = new List<Contract_AdminMessage>();
+
+                if (ServerInfo.Instance.AdminMessages != null)
+                {
+                    foreach (JMMServer.Providers.Azure.AdminMessage msg in ServerInfo.Instance.AdminMessages)
+                        msgs.Add(msg.ToContract());
+                }
+
+                return msgs;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
+
+
 		#region TvDB
 
 		public List<Contract_Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID)
