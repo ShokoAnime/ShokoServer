@@ -6489,9 +6489,32 @@ namespace JMMServer
 						AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 						foreach (Contract_AnimeGroup grp in comboGroups)
 						{
-							foreach (AnimeSeries ser in repSeries.GetByGroupID(session, grp.AnimeGroupID))
+                            List<AnimeSeries> sers = repSeries.GetByGroupID(session, grp.AnimeGroupID);
+
+                            // sort the series by air date
+                            List<SortPropOrFieldAndDirection> sortCriteria2 = new List<SortPropOrFieldAndDirection>();
+                            sortCriteria2.Add(new SortPropOrFieldAndDirection("AirDate", false, SortType.eDateTime));
+                            sers = Sorting.MultiSort<AnimeSeries>(sers, sortCriteria2);
+
+                            List<int> seriesWatching = new List<int>();
+
+                            foreach (AnimeSeries ser in sers)
 							{
 								if (!user.AllowedSeries(ser)) continue;
+                                bool useSeries = true;
+
+                                if (seriesWatching.Count > 0)
+                                {
+                                    // make sure this series is not a sequel to an existing series we have already added
+                                    foreach (AniDB_Anime_Relation rel in ser.GetAnime().GetRelatedAnime())
+                                    {
+                                        if (rel.RelationType.ToLower().Trim().Equals("sequel") || rel.RelationType.ToLower().Trim().Equals("prequel"))
+                                            useSeries = false;
+                                    }
+                                }
+
+                                if (!useSeries) continue;
+                                
 
 								Contract_AnimeEpisode ep = GetNextUnwatchedEpisode(session, ser.AnimeSeriesID, userID);
 								if (ep != null)
@@ -6501,6 +6524,9 @@ namespace JMMServer
 									// Lets only return the specified amount
 									if (retEps.Count == maxRecords)
 										return retEps;
+
+                                    if (ser.GetAnime().AnimeType == (int)enAnimeType.TVSeries)
+                                        seriesWatching.Add(ser.AniDB_ID);
 								}
 							}
 						}
