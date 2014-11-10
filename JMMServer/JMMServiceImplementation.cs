@@ -4560,6 +4560,8 @@ namespace JMMServer
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
 
+                                        contract.TotalFileSize += vid.FileSize;
+
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
 										{
 											if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
@@ -4572,8 +4574,10 @@ namespace JMMServer
 									Contract_GroupVideoQuality contract = new Contract_GroupVideoQuality();
 									contract.FileCountNormal = 0;
 									contract.FileCountSpecials = 0;
+                                    contract.TotalFileSize = 0;
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+                                    contract.TotalFileSize += vid.FileSize;
 									contract.GroupName = aniFile.Anime_GroupName;
 									contract.GroupNameShort = aniFile.Anime_GroupNameShort;
 									contract.VideoBitDepth = bitDepth;
@@ -4620,6 +4624,8 @@ namespace JMMServer
 											if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 											if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
 
+                                            contract.TotalFileSize += vinfo.FileSize;
+
 											if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
 											{
 												if (!contract.NormalEpisodeNumbers.Contains(anidbEp.EpisodeNumber))
@@ -4632,8 +4638,10 @@ namespace JMMServer
 										Contract_GroupVideoQuality contract = new Contract_GroupVideoQuality();
 										contract.FileCountNormal = 0;
 										contract.FileCountSpecials = 0;
+                                        contract.TotalFileSize = 0;
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+                                        contract.TotalFileSize += vinfo.FileSize;
 										contract.GroupName = Constants.NO_GROUP_INFO;
 										contract.GroupNameShort = Constants.NO_GROUP_INFO;
 										contract.Resolution = vidResInfo;
@@ -6505,12 +6513,16 @@ namespace JMMServer
 
                                 if (seriesWatching.Count > 0)
                                 {
-                                    // make sure this series is not a sequel to an existing series we have already added
-                                    foreach (AniDB_Anime_Relation rel in ser.GetAnime().GetRelatedAnime())
+                                    if (ser.GetAnime().AnimeType == (int)enAnimeType.TVSeries)
                                     {
-                                        if (rel.RelationType.ToLower().Trim().Equals("sequel") || rel.RelationType.ToLower().Trim().Equals("prequel"))
-                                            useSeries = false;
+                                        // make sure this series is not a sequel to an existing series we have already added
+                                        foreach (AniDB_Anime_Relation rel in ser.GetAnime().GetRelatedAnime())
+                                        {
+                                            if (rel.RelationType.ToLower().Trim().Equals("sequel") || rel.RelationType.ToLower().Trim().Equals("prequel"))
+                                                useSeries = false;
+                                        }
                                     }
+                                    
                                 }
 
                                 if (!useSeries) continue;
