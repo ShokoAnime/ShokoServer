@@ -684,5 +684,51 @@ namespace JMMServer.Databases
 
  
         }
+
+        public static void CreateInitialCustomTags()
+        {
+            try
+            {
+                // group filters
+                CustomTagRepository repTags = new CustomTagRepository();
+
+                if (repTags.GetAll().Count() > 0) return;
+
+                // Dropped
+                CustomTag tag = new CustomTag();
+                tag.TagName = "Dropped";
+                tag.TagDescription = "Started watching this series, but have since dropped it";
+                repTags.Save(tag);
+
+                // Pinned
+                tag = new CustomTag();
+                tag.TagName = "Pinned";
+                tag.TagDescription = "Pinned this series for whatever reason you like";
+                repTags.Save(tag);
+
+                // Ongoing
+                tag = new CustomTag();
+                tag.TagName = "Ongoing";
+                tag.TagDescription = "This series does not have an end date";
+                repTags.Save(tag);
+
+                // Waiting for Series Completion
+                tag = new CustomTag();
+                tag.TagName = "Waiting for Series Completion";
+                tag.TagDescription = "Will start watching this once this series is finished";
+                repTags.Save(tag);
+
+                // Waiting for Bluray Completion
+                tag = new CustomTag();
+                tag.TagName = "Waiting for Bluray Completion";
+                tag.TagDescription = "Will start watching this once I have all episodes in bluray";
+                repTags.Save(tag);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Could not Create Initial Custom Tags: " + ex.ToString(), ex);
+            }
+
+        }
 	}
 }

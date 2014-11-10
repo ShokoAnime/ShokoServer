@@ -110,6 +110,10 @@
     <Compile Include="Contract_CrossRef_AniDB_TvDBResult.cs" />
     <Compile Include="Contract_CrossRef_AniDB_TvDBV2.cs" />
     <Compile Include="Contract_CrossRef_AniDB_TvDB_Episode.cs" />
+    <Compile Include="Contract_CrossRef_CustomTag.cs" />
+    <Compile Include="Contract_CrossRef_CustomTag_SaveResponse.cs" />
+    <Compile Include="Contract_CustomTag.cs" />
+    <Compile Include="Contract_CustomTag_SaveResponse.cs" />
     <Compile Include="Contract_DuplicateFile.cs" />
     <Compile Include="Contract_FileFfdshowPreset.cs" />
     <Compile Include="Contract_GroupFileSummary.cs" />

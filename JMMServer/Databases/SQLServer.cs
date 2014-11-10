@@ -174,6 +174,7 @@ namespace JMMServer.Databases
                 UpdateSchema_030(versionNumber);
                 UpdateSchema_031(versionNumber);
                 UpdateSchema_032(versionNumber);
+                UpdateSchema_033(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1254,6 +1255,55 @@ namespace JMMServer.Databases
 
             // Now do the migratiuon
             DatabaseHelper.RemoveOldMovieDBImageRecords();
+        }
+
+        private static void UpdateSchema_033(int currentVersionNumber)
+        {
+            int thisVersion = 33;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE CustomTag( " +
+                " CustomTagID int IDENTITY(1,1) NOT NULL, " +
+                " TagName nvarchar(500), " +
+                " TagDescription nvarchar(MAX), " +
+                " CONSTRAINT [PK_CustomTag] PRIMARY KEY CLUSTERED " +
+                " ( " +
+                " CustomTagID ASC " +
+                " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+                " ) ON [PRIMARY] ");
+
+            cmds.Add("CREATE TABLE CrossRef_CustomTag( " +
+                " CrossRef_CustomTagID int IDENTITY(1,1) NOT NULL, " +
+                " CustomTagID int NOT NULL, " +
+                " CrossRefID int NOT NULL, " +
+                " CrossRefType int NOT NULL, " +
+                " CONSTRAINT [PK_CrossRef_CustomTag] PRIMARY KEY CLUSTERED " +
+                " ( " +
+                " CrossRef_CustomTagID ASC " +
+                " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
+                " ) ON [PRIMARY] ");
+            
+
+            using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+                ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+            DatabaseHelper.CreateInitialCustomTags();
         }
 
 

@@ -1010,24 +1010,16 @@ namespace JMMServer.Entities
 			return repCats.GetByAnimeID(session, AnimeID);
 		}
 
+        public List<CustomTag> GetCustomTagsForAnime(ISession session)
+        {
+            CustomTagRepository repTags = new CustomTagRepository();
+            return repTags.GetByAnimeID(session, AnimeID);
+        }
+
 		public List<AniDB_Tag> GetAniDBTags(ISession session)
 		{
 			AniDB_TagRepository repTags = new AniDB_TagRepository();
 			return repTags.GetByAnimeID(session, AnimeID);
-		}
-
-		public List<AniDB_Tag> GetTags(ISession session)
-		{
-			AniDB_TagRepository repCat = new AniDB_TagRepository();
-
-			List<AniDB_Tag> tags = new List<AniDB_Tag>();
-			foreach (AniDB_Anime_Tag tag in GetAnimeTags(session))
-			{
-				AniDB_Tag newtag = repCat.GetByID(tag.TagID);
-				if (newtag != null) tags.Add(newtag);
-			}
-			//tags.Sort();
-			return tags;
 		}
 
 		public List<AniDB_Anime_Tag> GetAnimeTags(ISession session)
@@ -2109,7 +2101,7 @@ namespace JMMServer.Entities
 			contract.AnimeTitles = new List<Contract_AnimeTitle>();
 			contract.Categories = new List<Contract_AnimeCategory>();
 			contract.Tags = new List<Contract_AnimeTag>();
-
+            contract.CustomTags = new List<Contract_CustomTag>();
 			contract.AniDBAnime = this.ToContract(session);
 
 			//logger.Trace(" XXXX 02");
@@ -2175,6 +2167,11 @@ namespace JMMServer.Entities
 					ctag.Approval = 0;
 				contract.Tags.Add(ctag);
 			}
+
+
+            // Get all the custom tags
+            foreach (CustomTag custag in GetCustomTagsForAnime(session))
+                contract.CustomTags.Add(custag.ToContract());
 
 			if (this.UserVote != null)
 				contract.UserVote = this.UserVote.ToContract();

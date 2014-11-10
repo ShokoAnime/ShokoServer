@@ -345,6 +345,10 @@ namespace JMMServer.Entities
 				contract.Stat_AllCategories = StatsCache.Instance.StatGroupCategories[this.AnimeGroupID];
 			else contract.Stat_AllCategories = "";
 
+            if (StatsCache.Instance.StatGroupCustomTags.ContainsKey(this.AnimeGroupID))
+                contract.Stat_AllCustomTags = StatsCache.Instance.StatGroupCustomTags[this.AnimeGroupID];
+            else contract.Stat_AllCustomTags = "";
+
 			if (StatsCache.Instance.StatGroupEndDate.ContainsKey(this.AnimeGroupID))
 				contract.Stat_EndDate = StatsCache.Instance.StatGroupEndDate[this.AnimeGroupID];
 			else contract.Stat_EndDate = null;
@@ -573,6 +577,53 @@ namespace JMMServer.Entities
 				return cats;
 			}
 		}
+
+        public string CustomTagsString
+        {
+            get
+            {
+                string temp = "";
+                foreach (CustomTag tag in CustomTags)
+                {
+                    if (!string.IsNullOrEmpty(temp))
+                        temp += "|"; 
+                    temp += tag.TagName; 
+                }
+                    
+                return temp;
+            }
+        }
+
+        public List<CustomTag> CustomTags
+        {
+            get
+            {
+                List<CustomTag> tags = new List<CustomTag>();
+                List<int> tagIDs = new List<int>();
+
+                CustomTagRepository repTags = new CustomTagRepository();
+
+                // get a list of all the unique custom tags for all the series in this group
+                foreach (AnimeSeries ser in GetAllSeries())
+                {
+                    foreach (CustomTag tag in repTags.GetByAnimeID(ser.AniDB_ID))
+                    {
+                        if (!tagIDs.Contains(tag.CustomTagID))
+                        {
+                            tagIDs.Add(tag.CustomTagID);
+                            tags.Add(tag);
+                        }
+                    }
+                }
+
+                // now sort it by the tag name
+                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+                sortCriteria.Add(new SortPropOrFieldAndDirection("TagName", false, SortType.eString));
+                tags = Sorting.MultiSort<CustomTag>(tags, sortCriteria);
+
+                return tags;
+            }
+        }
 
 		public List<AniDB_Anime_Title> Titles
 		{

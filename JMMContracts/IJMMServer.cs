@@ -14,6 +14,27 @@ namespace JMMContracts
         string UpdateEpisodeData(int episodeID);
 
         [OperationContract]
+        string DeleteCustomTagCrossRef(int customTagID, int crossRefType, int crossRefID);
+
+        [OperationContract]
+        Contract_CrossRef_CustomTag_SaveResponse SaveCustomTagCrossRef(Contract_CrossRef_CustomTag contract);
+
+        [OperationContract]
+        string DeleteCustomTagCrossRefByID(int xrefID);
+
+        [OperationContract]
+        List<Contract_CustomTag> GetAllCustomTags();
+
+        [OperationContract]
+        Contract_CustomTag_SaveResponse SaveCustomTag(Contract_CustomTag contract);
+
+        [OperationContract]
+        string DeleteCustomTag(int customTagID);
+
+        [OperationContract]
+        Contract_CustomTag GetCustomTag(int customTagID);
+
+        [OperationContract]
         List<Contract_AdminMessage> GetAdminMessages();
 
 		[OperationContract]

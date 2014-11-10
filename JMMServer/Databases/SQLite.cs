@@ -140,6 +140,7 @@ namespace JMMServer.Databases
                 UpdateSchema_032(versionNumber);
                 UpdateSchema_033(versionNumber);
                 UpdateSchema_034(versionNumber);
+                UpdateSchema_035(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1137,6 +1138,46 @@ namespace JMMServer.Databases
 
             // Now do the migration
             DatabaseHelper.RemoveOldMovieDBImageRecords();
+        }
+
+        private static void UpdateSchema_035(int currentVersionNumber)
+        {
+            int thisVersion = 35;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE CustomTag( " +
+                " CustomTagID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                " TagName text, " +
+                " TagDescription text " +
+                " ); ");
+
+            cmds.Add("CREATE TABLE CrossRef_CustomTag( " +
+                " CrossRef_CustomTagID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                " CustomTagID int NOT NULL, " +
+                " CrossRefID int NOT NULL, " +
+                " CrossRefType int NOT NULL " +
+                " ); ");
+
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+
+            DatabaseHelper.CreateInitialCustomTags();
         }
 
 		private static void ExecuteSQLCommands(List<string> cmds)

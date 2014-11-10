@@ -36,6 +36,7 @@ namespace JMMServer
 		public List<TraktTV_Activity> TraktFriendActivityInfo = null;
 
 		public Dictionary<int, string> StatGroupCategories = null; // AnimeGroupID / Categories List
+        public Dictionary<int, string> StatGroupCustomTags = null; // AnimeGroupID / Custom Tags
 		public Dictionary<int, string> StatGroupTitles = null; // AnimeGroupID / Titles List
 		public Dictionary<int, DateTime?> StatGroupAirDate_Min = null; // AnimeGroupID / AirDate_Min
 		public Dictionary<int, DateTime?> StatGroupAirDate_Max = null; // AnimeGroupID / AirDate_Max 
@@ -78,6 +79,7 @@ namespace JMMServer
 			TraktFriendActivityInfo = new List<TraktTV_Activity>();
 
 			StatGroupCategories = new Dictionary<int, string>();
+            StatGroupCustomTags = new Dictionary<int, string>();
 			StatGroupTitles = new Dictionary<int, string>();
 			StatGroupAirDate_Min = new Dictionary<int, DateTime?>();
 			StatGroupAirDate_Max = new Dictionary<int, DateTime?>();
@@ -447,6 +449,7 @@ namespace JMMServer
 				foreach (AnimeGroup grp in allgroups)
 				{
 					StatGroupCategories[grp.AnimeGroupID] = grp.CategoriesString;
+                    StatGroupCustomTags[grp.AnimeGroupID] = grp.CustomTagsString;
 					StatGroupTitles[grp.AnimeGroupID] = grp.TitlesString;
 					StatGroupVideoQuality[grp.AnimeGroupID] = grp.VideoQualityString;
 
@@ -786,6 +789,28 @@ namespace JMMServer
 				ts = DateTime.Now - start;
 				logger.Info("Get All CATEGORIES (Database) in {0} ms", ts.TotalMilliseconds);
 
+
+                // custom tags
+                CustomTagRepository repCustomTags = new CustomTagRepository();
+                CrossRef_CustomTagRepository repXRefCustomTags = new CrossRef_CustomTagRepository();
+
+                List<CustomTag> allCustomTags = repCustomTags.GetAll();
+                Dictionary<int, CustomTag> allCustomTagsDict = new Dictionary<int, CustomTag>();
+                foreach (CustomTag tag in allCustomTags)
+                    allCustomTagsDict[tag.CustomTagID] = tag;
+
+                List<CrossRef_CustomTag> allCustomTagsXRefs = repXRefCustomTags.GetAll();
+                Dictionary<int, List<CrossRef_CustomTag>> allCustomTagsXRefDict = new Dictionary<int, List<CrossRef_CustomTag>>(); // 
+                foreach (CrossRef_CustomTag aniTag in allCustomTagsXRefs)
+                {
+                    if (!allCustomTagsXRefDict.ContainsKey(aniTag.CrossRefID))
+                        allCustomTagsXRefDict[aniTag.CrossRefID] = new List<CrossRef_CustomTag>();
+
+                    allCustomTagsXRefDict[aniTag.CrossRefID].Add(aniTag);
+                }
+
+
+
 				// titles
 				start = DateTime.Now;
 				List<AniDB_Anime_Title> allTitles = repTitles.GetAll();
@@ -897,10 +922,12 @@ namespace JMMServer
 					bool isCurrentlyAiring = false;
 
 					List<int> categoryIDList = new List<int>();
+                    List<int> customTagIDList = new List<int>();
 					List<string> audioLanguageList = new List<string>();
 					List<string> subtitleLanguageList = new List<string>();
 					string Stat_AllTitles = "";
 					string Stat_AllCategories = "";
+                    string Stat_AllCustomTags = "";
 					string Stat_AllVideoQualityEpisodes = "";
 					
 
@@ -1018,6 +1045,15 @@ namespace JMMServer
 								}
 							}
 
+                            // get custom tags
+                            if (allCustomTagsXRefDict.ContainsKey(series.AniDB_ID))
+                            {
+                                foreach (CrossRef_CustomTag xtag in allCustomTagsXRefDict[series.AniDB_ID])
+                                {
+                                    if (!customTagIDList.Contains(xtag.CustomTagID)) customTagIDList.Add(xtag.CustomTagID);
+                                }
+                            }
+
 							// get audio languages
 							if (dictAudioStats.ContainsKey(series.AniDB_ID))
 							{
@@ -1119,6 +1155,7 @@ namespace JMMServer
 
 					StatGroupAniDBRating[ag.AnimeGroupID] = ag.AniDBRating;
 
+                    // categories
 					Stat_AllCategories = "";
 
 					foreach (int catID in categoryIDList)
@@ -1132,6 +1169,22 @@ namespace JMMServer
 						Stat_AllCategories += catName;
 					}
 					this.StatGroupCategories[ag.AnimeGroupID] = Stat_AllCategories;
+
+                    // custom tags
+                    Stat_AllCustomTags = "";
+
+                    foreach (int tagID in customTagIDList)
+                    {
+
+                        if (!allCustomTagsDict.ContainsKey(tagID)) continue;
+
+                        string tagName = allCustomTagsDict[tagID].TagName;
+                        if (Stat_AllCustomTags.Length > 0)
+                            Stat_AllCustomTags += "|";
+
+                        Stat_AllCustomTags += tagName;
+                    }
+                    this.StatGroupCustomTags[ag.AnimeGroupID] = Stat_AllCustomTags;
 
 					string Stat_AudioLanguages = "";
 					foreach (string audioLan in audioLanguageList)
@@ -1449,6 +1502,33 @@ namespace JMMServer
 						if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn)
 							if (foundCat) return false;
 						break;
+
+                    case GroupFilterConditionType.CustomTags:
+
+                        filterParm = gfc.ConditionParameter.Trim();
+
+                        string[] tags = filterParm.Split(',');
+                        bool foundTag = false;
+                        index = 0;
+                        foreach (string tag in tags)
+                        {
+                            if (tag.Trim().Length == 0) continue;
+                            if (tag.Trim() == ",") continue;
+
+                            index = contractGroup.Stat_AllCustomTags.IndexOf(tag, 0, StringComparison.InvariantCultureIgnoreCase);
+                            if (index > -1)
+                            {
+                                foundTag = true;
+                                break;
+                            }
+                        }
+
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In)
+                            if (!foundTag) return false;
+
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn)
+                            if (foundTag) return false;
+                        break;
 
 					case GroupFilterConditionType.AnimeType:
 

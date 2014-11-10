@@ -12,6 +12,12 @@ namespace JMMServer
 		FinishedAiring = 2,
 	}
 
+    public enum CustomTagCrossRefType
+    {
+        Anime = 1,
+        Group = 2
+    }
+
 	public enum WhatPeopleAreSayingType
 	{
 		TraktShout = 1,
@@ -328,7 +334,8 @@ namespace JMMServer
 		UserVotedAny = 27,
 		HasWatchedEpisodes = 28,
 		AssignedMALInfo = 29,
-		EpisodeCount = 30
+		EpisodeCount = 30,
+        CustomTags = 31
 	}
 
 	public enum GroupFilterOperator

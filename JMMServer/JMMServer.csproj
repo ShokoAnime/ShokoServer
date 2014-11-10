@@ -275,6 +275,8 @@
     <Compile Include="Entities\CrossRef_AniDB_Trakt_Episode.cs" />
     <Compile Include="Entities\CrossRef_AniDB_TvDBV2.cs" />
     <Compile Include="Entities\CrossRef_AniDB_TvDB_Episode.cs" />
+    <Compile Include="Entities\CrossRef_CustomTag.cs" />
+    <Compile Include="Entities\CustomTag.cs" />
     <Compile Include="Entities\FileFfdshowPreset.cs" />
     <Compile Include="Entities\LogMessage.cs" />
     <Compile Include="Entities\Playlist.cs" />
@@ -294,6 +296,8 @@
     <Compile Include="Mappings\CrossRef_AniDB_Trakt_EpisodeMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TvDBV2Map.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TvDB_EpisodeMap.cs" />
+    <Compile Include="Mappings\CrossRef_CustomTagMap.cs" />
+    <Compile Include="Mappings\CustomTagMap.cs" />
     <Compile Include="Mappings\FileFfdshowPresetMap.cs" />
     <Compile Include="Mappings\LogMessageMap.cs" />
     <Compile Include="Mappings\PlaylistMap.cs" />
@@ -345,6 +349,8 @@
     <Compile Include="Repositories\CrossRef_AniDB_Trakt_EpisodeRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TvDBV2Repository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
+    <Compile Include="Repositories\CrossRef_CustomTagRepository.cs" />
+    <Compile Include="Repositories\CustomTagRepository.cs" />
     <Compile Include="Repositories\FileFfdshowPresetRepository.cs" />
     <Compile Include="Repositories\LogMessageRepository.cs" />
     <Compile Include="Repositories\PlaylistRepository.cs" />
@@ -822,10 +828,10 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)*.dll" "C:\Projects\GitHub\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	
-xcopy "$(TargetDir)*.exe" "C:\Projects\GitHub\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)*.pdb" "C:\Projects\GitHub\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)*.manifest" "C:\Projects\GitHub\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
+    <PostBuildEvent>xcopy "$(TargetDir)*.dll" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	
+xcopy "$(TargetDir)*.exe" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
+xcopy "$(TargetDir)*.pdb" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
+xcopy "$(TargetDir)*.manifest" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

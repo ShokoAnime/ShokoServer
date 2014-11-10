@@ -479,81 +479,289 @@ namespace JMMServer
 			return pls;
 		}
 
-		
+        
 
-		
+        #region Custom Tags
 
-		public Contract_Playlist_SaveResponse SavePlaylist(Contract_Playlist contract)
-		{
-			Contract_Playlist_SaveResponse contractRet = new Contract_Playlist_SaveResponse();
-			contractRet.ErrorMessage = "";
+        public List<Contract_CustomTag> GetAllCustomTags()
+        {
+            try
+            {
+                CustomTagRepository repCustomTags = new CustomTagRepository();
 
-			try
-			{
-				PlaylistRepository repPlaylist = new PlaylistRepository();
+                List<Contract_CustomTag> ret = new List<Contract_CustomTag>();
+                foreach (CustomTag ctag in repCustomTags.GetAll())
+                    ret.Add(ctag.ToContract());
 
-				// Process the playlist
-				Playlist pl = null;
-				if (contract.PlaylistID.HasValue)
-				{
-					pl = repPlaylist.GetByID(contract.PlaylistID.Value);
-					if (pl == null)
-					{
-						contractRet.ErrorMessage = "Could not find existing Playlist with ID: " + contract.PlaylistID.Value.ToString();
-						return contractRet;
-					}
-				}
-				else
-					pl = new Playlist();
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
 
-				if (string.IsNullOrEmpty(contract.PlaylistName))
-				{
-					contractRet.ErrorMessage = "Playlist must have a name";
-					return contractRet;
-				}
+        public Contract_CrossRef_CustomTag_SaveResponse SaveCustomTagCrossRef(Contract_CrossRef_CustomTag contract)
+        {
+            Contract_CrossRef_CustomTag_SaveResponse contractRet = new Contract_CrossRef_CustomTag_SaveResponse();
+            contractRet.ErrorMessage = "";
 
-				pl.DefaultPlayOrder = contract.DefaultPlayOrder;
-				pl.PlaylistItems = contract.PlaylistItems;
-				pl.PlaylistName = contract.PlaylistName;
-				pl.PlayUnwatched = contract.PlayUnwatched;
-				pl.PlayWatched = contract.PlayWatched;
+            try
+            {
+                CrossRef_CustomTagRepository repCustomTagsXRefs = new CrossRef_CustomTagRepository();
 
-				repPlaylist.Save(pl);
+                // this is an update
+                CrossRef_CustomTag xref = null;
+                if (contract.CrossRef_CustomTagID.HasValue)
+                {
+                    contractRet.ErrorMessage = "Updates are not allowed";
+                    return contractRet;
+                }
+                else
+                    xref = new CrossRef_CustomTag();
 
-				contractRet.Playlist = pl.ToContract();
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-				contractRet.ErrorMessage = ex.Message;
-				return contractRet;
-			}
+                //TODO: Custom Tags - check if the CustomTagID is valid
+                //TODO: Custom Tags - check if the CrossRefID is valid
 
-			return contractRet;
-		}
+                xref.CrossRefID = contract.CrossRefID;
+                xref.CrossRefType = contract.CrossRefType;
+                xref.CustomTagID = contract.CustomTagID;
 
-		public string DeletePlaylist(int playlistID)
-		{
-			try
-			{
-				PlaylistRepository repPlaylist = new PlaylistRepository();
+                repCustomTagsXRefs.Save(xref);
 
-				Playlist pl = repPlaylist.GetByID(playlistID);
-				if (pl == null)
-					return "Playlist not found";
+                contractRet.CrossRef_CustomTag = xref.ToContract();
 
-				repPlaylist.Delete(playlistID);
+                StatsCache.Instance.UpdateAnimeContract(contract.CrossRefID);
+                StatsCache.Instance.UpdateUsingAnime(contract.CrossRefID);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                contractRet.ErrorMessage = ex.Message;
+                return contractRet;
+            }
 
-				return "";
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-				return ex.Message;
-			}
-		}
+            return contractRet;
+        }
 
-		public Contract_Playlist GetPlaylist(int playlistID)
+        public string DeleteCustomTagCrossRefByID(int xrefID)
+        {
+            try
+            {
+                CrossRef_CustomTagRepository repCustomTagsXrefs = new CrossRef_CustomTagRepository();
+
+                CrossRef_CustomTag pl = repCustomTagsXrefs.GetByID(xrefID);
+                if (pl == null)
+                    return "Custom Tag not found";
+
+                repCustomTagsXrefs.Delete(xrefID);
+
+                return "";
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
+
+        public string DeleteCustomTagCrossRef(int customTagID, int crossRefType, int crossRefID)
+        {
+            try
+            {
+                CrossRef_CustomTagRepository repCustomTagsXrefs = new CrossRef_CustomTagRepository();
+
+                List<CrossRef_CustomTag> xrefs = repCustomTagsXrefs.GetByUniqueID(customTagID, crossRefType, crossRefID);
+
+                if (xrefs == null || xrefs.Count == 0)
+                    return "Custom Tag not found";
+
+                repCustomTagsXrefs.Delete(xrefs[0].CrossRef_CustomTagID);
+                StatsCache.Instance.UpdateAnimeContract(crossRefID);
+                StatsCache.Instance.UpdateUsingAnime(crossRefID);
+
+                return "";
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
+
+        public Contract_CustomTag_SaveResponse SaveCustomTag(Contract_CustomTag contract)
+        {
+            Contract_CustomTag_SaveResponse contractRet = new Contract_CustomTag_SaveResponse();
+            contractRet.ErrorMessage = "";
+
+            try
+            {
+                CustomTagRepository repCustomTags = new CustomTagRepository();
+
+                // this is an update
+                CustomTag ctag = null;
+                if (contract.CustomTagID.HasValue)
+                {
+                    ctag = repCustomTags.GetByID(contract.CustomTagID.Value);
+                    if (ctag == null)
+                    {
+                        contractRet.ErrorMessage = "Could not find existing custom tag with ID: " + contract.CustomTagID.Value.ToString();
+                        return contractRet;
+                    }
+                }
+                else
+                    ctag = new CustomTag();
+
+                if (string.IsNullOrEmpty(contract.TagName))
+                {
+                    contractRet.ErrorMessage = "Custom Tag must have a name";
+                    return contractRet;
+                }
+
+                ctag.TagName = contract.TagName;
+                ctag.TagDescription = contract.TagDescription;
+
+                repCustomTags.Save(ctag);
+
+                contractRet.CustomTag = ctag.ToContract();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                contractRet.ErrorMessage = ex.Message;
+                return contractRet;
+            }
+
+            return contractRet;
+        }
+
+        public string DeleteCustomTag(int customTagID)
+        {
+            try
+            {
+                CustomTagRepository repCustomTags = new CustomTagRepository();
+
+                CustomTag pl = repCustomTags.GetByID(customTagID);
+                if (pl == null)
+                    return "Custom Tag not found";
+
+                // first get a list of all the anime that referenced this tag
+                CrossRef_CustomTagRepository repCustomTagsXRefs = new CrossRef_CustomTagRepository();
+                List<CrossRef_CustomTag> xrefs = repCustomTagsXRefs.GetByCustomTagID(customTagID);
+
+                repCustomTags.Delete(customTagID);
+
+                // update cached data for any anime that were affected
+                foreach (CrossRef_CustomTag xref in xrefs)
+                {
+                    StatsCache.Instance.UpdateAnimeContract(xref.CrossRefID);
+                    StatsCache.Instance.UpdateUsingAnime(xref.CrossRefID);
+                }
+                    
+
+                return "";
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
+
+        public Contract_CustomTag GetCustomTag(int customTagID)
+        {
+            try
+            {
+                CustomTagRepository repCustomTags = new CustomTagRepository();
+
+                CustomTag ctag = repCustomTags.GetByID(customTagID);
+                if (ctag == null)
+                    return null;
+
+                return ctag.ToContract();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
+
+
+        #endregion
+
+        public Contract_Playlist_SaveResponse SavePlaylist(Contract_Playlist contract)
+        {
+            Contract_Playlist_SaveResponse contractRet = new Contract_Playlist_SaveResponse();
+            contractRet.ErrorMessage = "";
+
+            try
+            {
+                PlaylistRepository repPlaylist = new PlaylistRepository();
+
+                // Process the playlist
+                Playlist pl = null;
+                if (contract.PlaylistID.HasValue)
+                {
+                    pl = repPlaylist.GetByID(contract.PlaylistID.Value);
+                    if (pl == null)
+                    {
+                        contractRet.ErrorMessage = "Could not find existing Playlist with ID: " + contract.PlaylistID.Value.ToString();
+                        return contractRet;
+                    }
+                }
+                else
+                    pl = new Playlist();
+
+                if (string.IsNullOrEmpty(contract.PlaylistName))
+                {
+                    contractRet.ErrorMessage = "Playlist must have a name";
+                    return contractRet;
+                }
+
+                pl.DefaultPlayOrder = contract.DefaultPlayOrder;
+                pl.PlaylistItems = contract.PlaylistItems;
+                pl.PlaylistName = contract.PlaylistName;
+                pl.PlayUnwatched = contract.PlayUnwatched;
+                pl.PlayWatched = contract.PlayWatched;
+
+                repPlaylist.Save(pl);
+
+                contractRet.Playlist = pl.ToContract();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                contractRet.ErrorMessage = ex.Message;
+                return contractRet;
+            }
+
+            return contractRet;
+        }
+
+        public string DeletePlaylist(int playlistID)
+        {
+            try
+            {
+                PlaylistRepository repPlaylist = new PlaylistRepository();
+
+                Playlist pl = repPlaylist.GetByID(playlistID);
+                if (pl == null)
+                    return "Playlist not found";
+
+                repPlaylist.Delete(playlistID);
+
+                return "";
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
+
+        public Contract_Playlist GetPlaylist(int playlistID)
 		{
 			try
 			{
@@ -1929,127 +2137,12 @@ namespace JMMServer
 					contractAnimeDetailed.AnimeTitles = new List<Contract_AnimeTitle>();
 					contractAnimeDetailed.Categories = new List<Contract_AnimeCategory>();
 					contractAnimeDetailed.Tags = new List<Contract_AnimeTag>();
+                    contractAnimeDetailed.CustomTags = new List<Contract_CustomTag>();
 					contractAnimeDetailed.UserVote = null;
 
 					contractAnimeDetailed.AniDBAnime = anime.ToContract();
 
-					/*
-					if (dictAnimeVideoQualStats.ContainsKey(anime.AnimeID))
-						contractAnimeDetailed.Stat_AllVideoQuality = dictAnimeVideoQualStats[anime.AnimeID];
-					else contractAnimeDetailed.Stat_AllVideoQuality = "";
-
-					contractAnimeDetailed.Stat_AllVideoQuality_Episodes = "";
-
-					// All Video Quality Episodes
-					// Try to determine if this anime has all the episodes available at a certain video quality
-					// e.g.  the series has all episodes in blu-ray
-					if (dictAnimeEpisodeVideoQualStats.ContainsKey(anime.AnimeID))
-					{
-						AnimeVideoQualityStat stat = dictAnimeEpisodeVideoQualStats[anime.AnimeID];
-						foreach (KeyValuePair<string, int> kvp in stat.VideoQualityEpisodeCount)
-						{
-							if (kvp.Value >= anime.EpisodeCountNormal)
-							{
-								if (contractAnimeDetailed.Stat_AllVideoQuality_Episodes.Length > 0) contractAnimeDetailed.Stat_AllVideoQuality_Episodes += ",";
-								contractAnimeDetailed.Stat_AllVideoQuality_Episodes += kvp.Key;
-							}
-						}
-					}
-
-					List<string> audioLanguageList = new List<string>();
-					List<string> subtitleLanguageList = new List<string>();
-
-					// get audio languages
-					if (dictAudioStats.ContainsKey(anime.AnimeID))
-					{
-						foreach (string lanName in dictAudioStats[anime.AnimeID].LanguageNames)
-						{
-							if (!audioLanguageList.Contains(lanName)) audioLanguageList.Add(lanName);
-						}
-					}
-
-					// get subtitle languages
-					if (dictSubtitleStats.ContainsKey(anime.AnimeID))
-					{
-						foreach (string lanName in dictSubtitleStats[anime.AnimeID].LanguageNames)
-						{
-							if (!subtitleLanguageList.Contains(lanName)) subtitleLanguageList.Add(lanName);
-						}
-					}
-
-					contractAnimeDetailed.Stat_AudioLanguages = "";
-					foreach (string audioLan in audioLanguageList)
-					{
-						if (contractAnimeDetailed.Stat_AudioLanguages.Length > 0) contractAnimeDetailed.Stat_AudioLanguages += ",";
-						contractAnimeDetailed.Stat_AudioLanguages += audioLan;
-					}
-
-					contractAnimeDetailed.Stat_SubtitleLanguages = "";
-					foreach (string subLan in subtitleLanguageList)
-					{
-						if (contractAnimeDetailed.Stat_SubtitleLanguages.Length > 0) contractAnimeDetailed.Stat_SubtitleLanguages += ",";
-						contractAnimeDetailed.Stat_SubtitleLanguages += subLan;
-					}
-
-
-					if (allTitlesDict.ContainsKey(anime.AnimeID))
-					{
-						foreach (AniDB_Anime_Title title in allTitlesDict[anime.AnimeID])
-						{
-							Contract_AnimeTitle ctitle = new Contract_AnimeTitle();
-							ctitle.AnimeID = title.AnimeID;
-							ctitle.Language = title.Language;
-							ctitle.Title = title.Title;
-							ctitle.TitleType = title.TitleType;
-							contractAnimeDetailed.AnimeTitles.Add(ctitle);
-						}
-					}
-
-
-					if (allAnimeCatgeoriesDict.ContainsKey(anime.AnimeID))
-					{
-						List<AniDB_Anime_Category> aniCats = allAnimeCatgeoriesDict[anime.AnimeID];
-						foreach (AniDB_Anime_Category aniCat in aniCats)
-						{
-							if (allCatgeoriesDict.ContainsKey(aniCat.CategoryID))
-							{
-								AniDB_Category cat = allCatgeoriesDict[aniCat.CategoryID];
-
-								Contract_AnimeCategory ccat = new Contract_AnimeCategory();
-								ccat.CategoryDescription = cat.CategoryDescription;
-								ccat.CategoryID = cat.CategoryID;
-								ccat.CategoryName = cat.CategoryName;
-								ccat.IsHentai = cat.IsHentai;
-								ccat.ParentID = cat.ParentID;
-								ccat.Weighting = aniCat.Weighting;
-								contractAnimeDetailed.Categories.Add(ccat);
-
-							}
-						}
-					}
-
-					if (allAnimeTagsDict.ContainsKey(anime.AnimeID))
-					{
-						List<AniDB_Anime_Tag> aniTags = allAnimeTagsDict[anime.AnimeID];
-						foreach (AniDB_Anime_Tag aniTag in aniTags)
-						{
-							if (allTagsDict.ContainsKey(aniTag.TagID))
-							{
-								AniDB_Tag tag = allTagsDict[aniTag.TagID];
-
-								Contract_AnimeTag ctag = new Contract_AnimeTag();
-								ctag.Approval = aniTag.Approval;
-								ctag.GlobalSpoiler = tag.GlobalSpoiler;
-								ctag.LocalSpoiler = tag.LocalSpoiler;
-								ctag.Spoiler = tag.Spoiler;
-								ctag.TagCount = tag.TagCount;
-								ctag.TagDescription = tag.TagDescription;
-								ctag.TagID = tag.TagID;
-								ctag.TagName = tag.TagName;
-								contractAnimeDetailed.Tags.Add(ctag);
-							}
-						}
-					}*/
+					
 
 					// get user vote
 					foreach (AniDB_Vote vote in allVotes)
@@ -2145,6 +2238,25 @@ namespace JMMServer
 					allAnimeTagsDict[aniTag.AnimeID].Add(aniTag);
 				}
 
+                // build a dictionary of custom tags
+                CustomTagRepository repCustomTags = new CustomTagRepository();
+                CrossRef_CustomTagRepository repXRefCustomTags = new CrossRef_CustomTagRepository();
+
+                List<CustomTag> allCustomTags = repCustomTags.GetAll();
+                Dictionary<int, CustomTag> allCustomTagsDict = new Dictionary<int, CustomTag>();
+                foreach (CustomTag tag in allCustomTags)
+                    allCustomTagsDict[tag.CustomTagID] = tag;
+
+                List<CrossRef_CustomTag> allCustomTagsXRefs = repXRefCustomTags.GetAll();
+                Dictionary<int, List<CrossRef_CustomTag>> allCustomTagsXRefDict = new Dictionary<int, List<CrossRef_CustomTag>>(); // 
+                foreach (CrossRef_CustomTag aniTag in allCustomTagsXRefs)
+                {
+                    if (!allCustomTagsXRefDict.ContainsKey(aniTag.CrossRefID))
+                        allCustomTagsXRefDict[aniTag.CrossRefID] = new List<CrossRef_CustomTag>();
+
+                    allCustomTagsXRefDict[aniTag.CrossRefID].Add(aniTag);
+                }
+
 				// build a dictionary of languages
 				AdhocRepository rep = new AdhocRepository();
 				Dictionary<int, LanguageStat> dictAudioStats = rep.GetAudioLanguageStatsForAnime();
@@ -2175,6 +2287,7 @@ namespace JMMServer
 					contract.AnimeTitles = new List<Contract_AnimeTitle>();
 					contract.Categories = new List<Contract_AnimeCategory>();
 					contract.Tags = new List<Contract_AnimeTag>();
+                    contract.CustomTags = new List<Contract_CustomTag>();
 					contract.UserVote = null;
 
 					contract.AniDBAnime = anime.ToContract();
@@ -2298,6 +2411,21 @@ namespace JMMServer
 						}
 					}
 
+                    //TODO - Custom Tags: add custom tags
+
+                    if (allCustomTagsXRefDict.ContainsKey(anime.AnimeID))
+                    {
+                        List<CrossRef_CustomTag> aniTags = allCustomTagsXRefDict[anime.AnimeID];
+                        foreach (CrossRef_CustomTag aniTag in aniTags)
+                        {
+                            if (allCustomTagsDict.ContainsKey(aniTag.CustomTagID))
+                            {
+                                contract.CustomTags.Add(allCustomTagsDict[aniTag.CustomTagID].ToContract());
+                                countElements++;
+                            }
+                        }
+                    }
+
 					// get user vote
 					foreach (AniDB_Vote vote in allVotes)
 					{
@@ -2331,8 +2459,8 @@ namespace JMMServer
 			AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
 			AniDB_Anime_CategoryRepository repAnimeCats = new AniDB_Anime_CategoryRepository();
 			AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
-			AniDB_TagRepository repTags = new AniDB_TagRepository();
-			AniDB_Anime_TagRepository repAnimeTags = new AniDB_Anime_TagRepository();
+			
+            //TODO: Custom Tags: Do I need to add custom tags for searches
 
 			// get all the series
 			List<Contract_AnimeSeries> seriesContractList = new List<Contract_AnimeSeries>();

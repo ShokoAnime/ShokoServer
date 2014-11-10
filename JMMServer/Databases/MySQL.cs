@@ -160,6 +160,7 @@ namespace JMMServer.Databases
                 UpdateSchema_032(versionNumber);
                 UpdateSchema_033(versionNumber);
                 UpdateSchema_034(versionNumber);
+                UpdateSchema_035(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1489,6 +1490,54 @@ namespace JMMServer.Databases
 
             // Now do the migratiuon
             DatabaseHelper.RemoveOldMovieDBImageRecords();
+        }
+
+        private static void UpdateSchema_035(int currentVersionNumber)
+        {
+            int thisVersion = 35;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE `CustomTag` ( " +
+                " `CustomTagID` INT NOT NULL AUTO_INCREMENT, " +
+                " `TagName` text character set utf8, " +
+                " `TagDescription` text character set utf8, " +
+                " PRIMARY KEY (`CustomTagID`) ) ; ");
+
+            cmds.Add("CREATE TABLE `CrossRef_CustomTag` ( " +
+                " `CrossRef_CustomTagID` INT NOT NULL AUTO_INCREMENT, " +
+                " `CustomTagID` int NOT NULL, " +
+                " `CrossRefID` int NOT NULL, " +
+                " `CrossRefType` int NOT NULL, " +
+                " PRIMARY KEY (`CrossRef_CustomTagID`) ) ; ");
+
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+            DatabaseHelper.CreateInitialCustomTags();
         }
 
 
