@@ -14,6 +14,9 @@ namespace JMMContracts
 		public int FileCountSpecials { get; set; }
 		public bool SpecialsComplete { get; set; }
 
+        public double TotalFileSize { get; set; }
+        public long TotalRunningTime { get; set; }
+
 		public List<int> NormalEpisodeNumbers { get; set; }
 		public string NormalEpisodeNumberSummary { get; set; }
 

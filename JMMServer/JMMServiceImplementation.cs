@@ -4559,8 +4559,8 @@ namespace JMMServer
 
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
-
                                         contract.TotalFileSize += vid.FileSize;
+                                        contract.TotalRunningTime += aniFile.File_LengthSeconds;
 
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
 										{
@@ -4575,9 +4575,13 @@ namespace JMMServer
 									contract.FileCountNormal = 0;
 									contract.FileCountSpecials = 0;
                                     contract.TotalFileSize = 0;
+                                    contract.TotalRunningTime = 0;
+
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
                                     contract.TotalFileSize += vid.FileSize;
+                                    contract.TotalRunningTime += aniFile.File_LengthSeconds;
+
 									contract.GroupName = aniFile.Anime_GroupName;
 									contract.GroupNameShort = aniFile.Anime_GroupNameShort;
 									contract.VideoBitDepth = bitDepth;
@@ -4623,8 +4627,8 @@ namespace JMMServer
 											foundSummaryRecord = true;
 											if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 											if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
-
                                             contract.TotalFileSize += vinfo.FileSize;
+                                            contract.TotalRunningTime += vinfo.Duration;
 
 											if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
 											{
@@ -4639,9 +4643,13 @@ namespace JMMServer
 										contract.FileCountNormal = 0;
 										contract.FileCountSpecials = 0;
                                         contract.TotalFileSize = 0;
+                                        contract.TotalRunningTime = 0;
+
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
                                         contract.TotalFileSize += vinfo.FileSize;
+                                        contract.TotalRunningTime += vinfo.Duration;
+
 										contract.GroupName = Constants.NO_GROUP_INFO;
 										contract.GroupNameShort = Constants.NO_GROUP_INFO;
 										contract.Resolution = vidResInfo;
@@ -4788,6 +4796,8 @@ namespace JMMServer
 
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+                                        contract.TotalFileSize += aniFile.FileSize;
+                                        contract.TotalRunningTime += aniFile.File_LengthSeconds;
 
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
 										{
@@ -4801,8 +4811,14 @@ namespace JMMServer
 									Contract_GroupFileSummary contract = new Contract_GroupFileSummary();
 									contract.FileCountNormal = 0;
 									contract.FileCountSpecials = 0;
+                                    contract.TotalFileSize = 0;
+                                    contract.TotalRunningTime = 0;
+
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 									if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+                                    contract.TotalFileSize += aniFile.FileSize;
+                                    contract.TotalRunningTime += aniFile.File_LengthSeconds;
+
 									contract.GroupName = aniFile.Anime_GroupName;
 									contract.GroupNameShort = aniFile.Anime_GroupNameShort;
 									contract.NormalEpisodeNumbers = new List<int>();
@@ -4829,6 +4845,8 @@ namespace JMMServer
 											foundSummaryRecord = true;
 											if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 											if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+                                            contract.TotalFileSize += vinfo.FileSize;
+                                            contract.TotalRunningTime += vinfo.Duration;
 
 											if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode)
 											{
@@ -4842,8 +4860,14 @@ namespace JMMServer
 										Contract_GroupFileSummary contract = new Contract_GroupFileSummary();
 										contract.FileCountNormal = 0;
 										contract.FileCountSpecials = 0;
+                                        contract.TotalFileSize = 0;
+                                        contract.TotalRunningTime = 0;
+
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Episode) contract.FileCountNormal++;
 										if (animeEp.EpisodeTypeEnum == enEpisodeType.Special) contract.FileCountSpecials++;
+                                        contract.TotalFileSize += vinfo.FileSize;
+                                        contract.TotalRunningTime += vinfo.Duration;
+
 										contract.GroupName = "NO GROUP INFO";
 										contract.GroupNameShort = "NO GROUP INFO";
 										contract.NormalEpisodeNumbers = new List<int>();
