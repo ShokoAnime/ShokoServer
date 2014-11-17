@@ -15,6 +15,7 @@
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 #pragma warning disable 1591 // Disable XML documentation warnings
@@ -65,7 +66,27 @@ namespace PlexMediaInfo
 	public class MediaInfo
 	{
 		//Import of DLL functions. DO NOT USE until you know what you do (MediaInfo DLL do NOT use CoTaskMemAlloc to allocate memory)
-		[DllImport("MediaInfo.dll")]
+
+
+        [System.Flags]
+        internal enum LoadLibraryFlags : uint
+        {
+            DONT_RESOLVE_DLL_REFERENCES = 0x00000001,
+            LOAD_IGNORE_CODE_AUTHZ_LEVEL = 0x00000010,
+            LOAD_LIBRARY_AS_DATAFILE = 0x00000002,
+            LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE = 0x00000040,
+            LOAD_LIBRARY_AS_IMAGE_RESOURCE = 0x00000020,
+            LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008
+        }
+        [DllImport("kernel32.dll")]
+        internal static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hReservedNull, LoadLibraryFlags dwFlags);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool FreeLibrary(IntPtr hModule);
+
+        
+        
+        [DllImport("MediaInfo.dll")]
 		private static extern IntPtr MediaInfo_New();
 		[DllImport("MediaInfo.dll")]
 		private static extern void MediaInfo_Delete(IntPtr Handle);
@@ -112,15 +133,36 @@ namespace PlexMediaInfo
 		[DllImport("MediaInfo.dll")]
 		private static extern IntPtr MediaInfo_Count_Get(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber);
 
+        private static System.IntPtr moduleHandle = IntPtr.Zero;
+
+
 		//MediaInfo class
 		public MediaInfo() {
 			Handle = MediaInfo_New();
-			if(Environment.OSVersion.ToString().IndexOf("Windows") == -1)
-				MustUseAnsi = true;
-			else
-				MustUseAnsi = false;
+		    if (Environment.OSVersion.ToString().IndexOf("Windows") == -1)
+		    {
+                if (moduleHandle == IntPtr.Zero)
+                {
+                    string fullexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                    FileInfo fi = new FileInfo(fullexepath);
+                    fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "MediaInfo.dll");
+                    moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
+                }
+		        MustUseAnsi = true;
+		    }
+		    else
+		        MustUseAnsi = false;
 		}
-		~MediaInfo() { MediaInfo_Delete(Handle); }
+
+	    ~MediaInfo()
+	    {
+    	    MediaInfo_Delete(Handle);
+            if (moduleHandle == IntPtr.Zero)
+            {
+                FreeLibrary(moduleHandle);
+                moduleHandle = IntPtr.Zero;
+            }
+	    }
 		public int Open(String FileName) {
 			if(MustUseAnsi) {
 				IntPtr FileName_Ptr = Marshal.StringToHGlobalAnsi(FileName);

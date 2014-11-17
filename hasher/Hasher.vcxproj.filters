@@ -33,17 +33,14 @@
     <ClCompile Include="SHA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SHAHashSet.cpp">
+    <ClCompile Include="StdAfx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="StdAfx.cpp">
+    <ClCompile Include="MD5.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="hash_wrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -56,17 +53,21 @@
     <ClInclude Include="SHA.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SHAHashSet.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="StdAfx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="stdinc.h">
+    <ClInclude Include="MD5.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Types.h">
+    <ClInclude Include="Utility.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MD4_asm.asm" />
+    <None Include="MD5_asm.asm" />
+    <None Include="SHA_asm.asm" />
+    <None Include="crc32x86.asm" />
+    <None Include="crc32x64.asm" />
   </ItemGroup>
 </Project>

@@ -8,6 +8,7 @@ namespace JMMFileHelper
 {
 	public class Crc32 : HashAlgorithm
 	{
+
 		public const uint DefaultSeed = 0xffffffff;
 
 		readonly static uint[] CrcTable = new uint[] {

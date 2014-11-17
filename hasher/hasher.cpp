@@ -9,6 +9,8 @@
 #include <sys/stat.h>
 #include <tchar.h>
 #include <stdio.h>
+#include <windows.h>
+
 
 /////////////////////////////////////////////////////////////////////////////////
 #define ED2K_CHUNK_SIZE  9728000
@@ -79,7 +81,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_SyncIO(const TCHAR 
 		}
 
 		MD4Engine.Finish();
-		MD4Engine.GetHash(&md4);
+		MD4Engine.GetHash((uchar *)&md4);
 		BYTE * pData = (BYTE*)&md4;
 		for (int n=0; n<16; n++)
 			pTemp[nChunk*16+n] = pData[n];
@@ -113,7 +115,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_SyncIO(const TCHAR 
 			MD4Engine.Reset();
 			MD4Engine.Add(pTemp, nChunks*16);
 			MD4Engine.Finish();
-			MD4Engine.GetHash(&md4);
+			MD4Engine.GetHash((uchar *)&md4);
 			BYTE * pData = (BYTE*)&md4;
 			for (int n=0; n<16; n++)
 				pResult[n] = pData[n];
@@ -269,7 +271,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(const TCHAR
 			if (getMD5) md5.update(blocks[iMaskedReaderPos], dwBytesChunkLeft);
 			//calculate MD4 of chunk
 			MD4Engine.Finish();
-			MD4Engine.GetHash(&md4);
+			MD4Engine.GetHash((uchar *)&md4);
 			BYTE * pData = (BYTE*)&md4;
 			for (int n=0; n<16; n++)
 				pTemp[nChunk*16+n] = pData[n];
@@ -326,7 +328,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(const TCHAR
 			MD4Engine.Reset();
 			MD4Engine.Add(pTemp, nChunks*16);
 			MD4Engine.Finish();
-			MD4Engine.GetHash(&md4);
+			MD4Engine.GetHash((uchar *)&md4);
 			BYTE * pData = (BYTE*)&md4;
 			for (int n=0; n<16; n++)
 				pResult[n] = pData[n];

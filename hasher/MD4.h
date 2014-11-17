@@ -1,8 +1,8 @@
 //
 // MD4.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2004.
-// This file is part of SHAREAZA (www.shareaza.com)
+// Copyright (c) Shareaza Development Team, 2002-2014.
+// This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
@@ -18,7 +18,9 @@
 // along with Shareaza; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+
 #pragma once
+#include "Utility.hpp"
 
 typedef union
 {
@@ -29,35 +31,35 @@ typedef union
 
 class CMD4
 {
-// Construction
 public:
 	CMD4();
-	virtual ~CMD4();
+	~CMD4() {}
 
-	static bool VerifyImplementation();
+	void Reset();
+	void Add(const void* pData, size_t nLength);
+	void Finish();
 
-// Attributes
-protected:
-	// NOTE: if you change this, modify the offsets in MD4_ASM.ASM accordingly
-	DWORD	m_nState[4];
-	DWORD	m_nCount[2];
-	BYTE	m_nBuffer[64];
+	struct Digest // 128 bit
+	{
+		uint32& operator[](size_t i) { return data[i]; }
+		const uint32& operator[](size_t i) const { return data[i]; }
+		uint32 data[4];
+	};
 
-// Operations
-public:
-	void	Reset();
-	void	Add(LPCVOID pData, DWORD nLength);
-	void	Finish();
-	void	GetHash(MD4* pHash);
-	const BYTE* GetHash() const { return (const BYTE*)m_nState; }
+	void GetHash(__in_bcount(16) uchar* pHash) const;
+
+	struct MD4State
+	{
+		static const size_t blockSize = 64;
+		uint64	m_nCount;
+		uint32	m_nState[4];
+		uchar	m_oBuffer[blockSize];
+	};
+
+private:
+	MD4State m_State;
+
+#ifndef HASHLIB_USE_ASM
+	__forceinline void Transform(const uint32* data);
+#endif
 };
-
-inline bool operator==(const MD4& md4a, const MD4& md4b)
-{
-    return memcmp( &md4a, &md4b, 16 ) == 0;
-}
-
-inline bool operator!=(const MD4& md4a, const MD4& md4b)
-{
-    return memcmp( &md4a, &md4b, 16 ) != 0;
-}
