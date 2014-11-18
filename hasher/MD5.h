@@ -1,5 +1,5 @@
 //
-// SHA.h
+// MD5.h
 //
 // Copyright (c) Shareaza Development Team, 2002-2014.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
@@ -21,49 +21,38 @@
 
 #pragma once
 #include "Utility.hpp"
-class CSHA
+
+class CMD5
 {
 public:
-	CSHA();
-	~CSHA() {}
+	CMD5();
+	~CMD5() {}
 
 	void Reset();
 	void Add(const void* pData, size_t nLength);
 	void Finish();
 
-	struct Digest // 160 bit
+	struct Digest // 128 bit
 	{
 		uint32& operator[](size_t i) { return data[i]; }
 		const uint32& operator[](size_t i) const { return data[i]; }
-		uint32 data[5];
+		uint32 data[4];
 	};
 
-	void GetHash(__in_bcount(20) uchar* pHash) const;
+	void GetHash(__in_bcount(16) uchar* pHash) const;
 
-#ifndef HASHLIB_USE_ASM
-	struct TransformArray
+	struct MD5State
 	{
-		__forceinline TransformArray(const uint32* const buffer);
-		__forceinline uint32 operator[](uint32 index) const
-		{
-			return m_buffer[index];
-		}
-		uint32 m_buffer[80];
-	};
-#endif
-
-	struct SHA1State
-	{
-		static const size_t	blockSize = 64;
+		static const size_t blockSize = 64;
 		uint64	m_nCount;
-		uint32	m_nState[5];
+		uint32	m_nState[4];
 		uchar	m_oBuffer[blockSize];
 	};
 
 private:
-	SHA1State m_State;
+	MD5State m_State;
 
 #ifndef HASHLIB_USE_ASM
-	__forceinline void Transform(const TransformArray w);
+	__forceinline void Transform(const uint32* data);
 #endif
 };

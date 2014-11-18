@@ -27,7 +27,7 @@ virtual void clean()=0;
 
 class DigestCRC : public Digest{
 private:
-unsigned long crc_value;
+DWORD crc_value;
 public:
 DigestCRC();
 void update(char* buf, int len);

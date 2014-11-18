@@ -13,12 +13,58 @@ namespace JMMFileHelper
 	public class Hasher
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
-		public delegate int OnHashProgress([MarshalAs(UnmanagedType.LPWStr)]string strFileName, int nProgressPct);
+		public delegate int OnHashProgress([MarshalAs(UnmanagedType.LPStr)]string strFileName, int nProgressPct);
+
+        [System.Flags]
+        internal enum LoadLibraryFlags : uint
+        {
+            DONT_RESOLVE_DLL_REFERENCES = 0x00000001,
+            LOAD_IGNORE_CODE_AUTHZ_LEVEL = 0x00000010,
+            LOAD_LIBRARY_AS_DATAFILE = 0x00000002,
+            LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE = 0x00000040,
+            LOAD_LIBRARY_AS_IMAGE_RESOURCE = 0x00000020,
+            LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008
+        }
+        [DllImport("kernel32.dll")]
+        internal static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hReservedNull, LoadLibraryFlags dwFlags);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool FreeLibrary(IntPtr hModule);
+        private static readonly Destructor Finalise = new Destructor(); //static Destructor hack
+
+        internal sealed class Destructor
+        {
+            public IntPtr ModuleHandle;
+
+            ~Destructor()
+            {
+                if (ModuleHandle != IntPtr.Zero)
+                {
+                    FreeLibrary(ModuleHandle);
+                    ModuleHandle = IntPtr.Zero;
+                }
+            }
+        }
+
+	    static Hasher()
+	    {
+            string fullexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            FileInfo fi = new FileInfo(fullexepath);
+            fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "hasher.dll");
+            try
+            {
+                Finalise.ModuleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
+            }
+            catch (Exception)
+            {
+                Finalise.ModuleHandle = IntPtr.Zero;
+            }
+	    }
 
 		#region DLL functions
-        [DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
 		private static extern int CalculateHashes_callback_dll(
-			[MarshalAs(UnmanagedType.LPWStr)] string szFileName,
+			[MarshalAs(UnmanagedType.LPStr)] string szFileName,
 			[MarshalAs(UnmanagedType.LPArray)] byte[] hash,
 			[MarshalAs(UnmanagedType.FunctionPtr)] OnHashProgress lpHashProgressFunc,
 			[MarshalAs(UnmanagedType.Bool)] bool getCRC32,
@@ -37,10 +83,10 @@ namespace JMMFileHelper
 			return (nResult == 0);
 		}
 
-		public static bool UseDll()
-		{
-			return File.Exists("hasher.dll");
-		}
+
+
+
+
 
 		public static string HashToString(byte[] hash, int start, int length)
 		{
@@ -64,14 +110,8 @@ namespace JMMFileHelper
 
 		public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getED2k, bool getCRC32, bool getMD5, bool getSHA1)
 		{
-			// the DLL is returning the wrong results for CRC's so don't use it
-			bool gotED2k = false;
-			bool gotMD5 = false;
-			bool gotSHA1 = false;
-
-			bool stillNeedInfo = false;
 			Hashes rhash = new Hashes();
-			if (UseDll())
+            if (Finalise.ModuleHandle != IntPtr.Zero)
 			{
 				byte[] hash = new byte[56];
 
@@ -79,13 +119,9 @@ namespace JMMFileHelper
 				if (CalculateHashes_dll(strPath, ref hash, onHashProgress, getCRC32, getMD5, getSHA1))
 				{
 					rhash.ed2k = HashToString(hash, 0, 16);
-					//if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
+					if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
 					if (getMD5) rhash.md5 = HashToString(hash, 20, 16);
 					if (getSHA1) rhash.sha1 = HashToString(hash, 36, 20);
-
-					gotED2k = getED2k;
-					gotMD5 = getMD5;
-					gotSHA1 = getSHA1;
 				}
 				else
 				{
@@ -94,30 +130,9 @@ namespace JMMFileHelper
 					rhash.md5 = string.Empty;
 					rhash.sha1 = string.Empty;
 				}
-
+			    return rhash;
 			}
-			else
-				stillNeedInfo = true;
-			
-			if (gotED2k)
-			{
-				if (getCRC32) stillNeedInfo = true;
-			}
-
-			bool getED2kTemp = getED2k && !gotED2k;
-			bool getMD5Temp = getMD5 && !gotMD5;
-			bool getSHA1Temp = getSHA1 && !gotSHA1;
-
-			if (stillNeedInfo)
-			{
-				Hashes rhashTemp = CalculateHashes_here(strPath, onHashProgress, getED2kTemp, getCRC32, getMD5Temp, getSHA1Temp);
-				rhash.crc32 = rhashTemp.crc32;
-				if (string.IsNullOrEmpty(rhash.ed2k)) rhash.ed2k = rhashTemp.ed2k;
-				if (string.IsNullOrEmpty(rhash.md5)) rhash.md5 = rhashTemp.md5;
-				if (string.IsNullOrEmpty(rhash.sha1)) rhash.sha1 = rhashTemp.sha1;
-			}
-
-			return rhash;
+			return CalculateHashes_here(strPath, onHashProgress, getED2k, getCRC32, getMD5, getSHA1);
 		}
 
 		protected static Hashes CalculateHashes_here(string strPath, OnHashProgress onHashProgress, bool getED2k, bool getCRC32, bool getMD5, bool getSHA1)
