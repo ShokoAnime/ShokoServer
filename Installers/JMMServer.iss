@@ -7,8 +7,8 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}
 AppName=JMM Server
-AppVersion=3.4.2.6
-;AppVerName=JMM Server 3.4.2.6
+AppVersion=3.4.2.7
+;AppVerName=JMM Server 3.4.2.7
 AppPublisher=JMM
 AppPublisherURL=https://github.com/japanesemediamanager
 AppSupportURL=https://github.com/japanesemediamanager
@@ -39,7 +39,6 @@ Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Castle.Core.dll"; Com
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\client.wyc"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\FluentNHibernate.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\FluentNHibernate.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\hasher.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\HibernatingRhinos.Profiler.Appender.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\ICSharpCode.SharpZipLib.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Iesi.Collections.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
@@ -51,7 +50,6 @@ Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMFileHelper.pdb"; C
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.vshost.exe"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.vshost.exe.manifest"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\MediaInfo.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.ConnectionInfo.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.Management.Sdk.Sfc.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.Smo.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
@@ -70,6 +68,10 @@ Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\TMDbLib.pdb"; Compone
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\RestSharp.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\SQLite.Interop.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\Config\JMMServer.exe.Config"; Components: main; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\hasher.dll"; Components: main; DestDir: "{app}\x64"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\MediaInfo.dll"; Components: main; DestDir: "{app}\x64"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\hasher.dll"; Components: main; DestDir: "{app}\x86"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\MediaInfo.dll"; Components: main; DestDir: "{app}\x86"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
