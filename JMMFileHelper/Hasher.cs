@@ -75,6 +75,7 @@ namespace JMMFileHelper
 		// Calculates hash immediately (with progress)
 		protected static bool CalculateHashes_dll(string strFileName, ref byte[] hash, OnHashProgress HashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 		{
+            logger.Trace("Using DLL to hash file: {0}", strFileName);
 			OnHashProgress pHashProgress = new OnHashProgress(HashProgress);
 			GCHandle gcHashProgress = GCHandle.Alloc(pHashProgress); //to make sure the GC doesn't dispose the delegate
 
@@ -137,6 +138,8 @@ namespace JMMFileHelper
 
 		protected static Hashes CalculateHashes_here(string strPath, OnHashProgress onHashProgress, bool getED2k, bool getCRC32, bool getMD5, bool getSHA1)
 		{
+            logger.Trace("Using C# code to has file: {0}", strPath);
+
 			FileStream fs;
 			Hashes rhash = new Hashes();
 			FileInfo fi = new FileInfo(strPath);

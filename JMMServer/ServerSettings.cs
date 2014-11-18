@@ -1615,18 +1615,26 @@ namespace JMMServer
 			try
 			{
 				string mediaInfoVersion = "**** MediaInfo - DLL Not found *****";
-				string mediaInfoPath = Path.Combine(System.IO.Path.GetDirectoryName(a.Location), "MediaInfo.dll");
+
+                string mediaInfoPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                FileInfo fi = new FileInfo(mediaInfoPath);
+                mediaInfoPath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "MediaInfo.dll");
+
 				if (File.Exists(mediaInfoPath))
 				{
 					FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(mediaInfoPath);
-					mediaInfoVersion = string.Format("MediaInfo DLL {0}.{1}.{2}.{3}", fvi.FileMajorPart, fvi.FileMinorPart, fvi.FileBuildPart, fvi.FilePrivatePart);
+                    mediaInfoVersion = string.Format("MediaInfo DLL {0}.{1}.{2}.{3} ({4})", fvi.FileMajorPart, fvi.FileMinorPart, fvi.FileBuildPart, fvi.FilePrivatePart, mediaInfoPath);
 				}
 				logger.Info(mediaInfoVersion);
 
 				string hasherInfoVersion = "**** Hasher - DLL NOT found *****";
-				string hasherInfoPath = Path.Combine(System.IO.Path.GetDirectoryName(a.Location), "hasher.dll");
-				if (File.Exists(hasherInfoPath))
-					hasherInfoVersion = "Hasher - DLL found";
+
+                string fullHasherexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                fi = new FileInfo(fullHasherexepath);
+                fullHasherexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "hasher.dll");
+
+                if (File.Exists(fullHasherexepath))
+					hasherInfoVersion = string.Format("Hasher DLL found at {0}", fullHasherexepath);
 				logger.Info(hasherInfoVersion);
 			}
 			catch { }

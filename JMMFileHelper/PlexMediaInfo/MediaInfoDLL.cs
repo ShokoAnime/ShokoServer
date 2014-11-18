@@ -141,9 +141,13 @@ namespace PlexMediaInfo
         {
             if (moduleHandle == IntPtr.Zero)
             {
+                
                 string fullexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
                 FileInfo fi = new FileInfo(fullexepath);
                 fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "MediaInfo.dll");
+
+                NLog.LogManager.GetCurrentClassLogger().Trace(string.Format("Using MediaInfo at: {0}", fullexepath));
+
                 moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
             }
 		    if (Environment.OSVersion.ToString().IndexOf("Windows") == -1)

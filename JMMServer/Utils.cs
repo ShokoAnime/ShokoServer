@@ -531,11 +531,15 @@ namespace JMMServer
 							operatingSystem = "XP";
 						break;
 					case 6:
-						if (vs.Minor == 0)
-							operatingSystem = "Vista";
-						else
-							operatingSystem = "7";
-						break;
+                        switch (vs.Minor)
+                        {
+                            case 0: operatingSystem = "Vista / 2008 Server"; break;
+                            case 1: operatingSystem = "7 / 2008 Server R2"; break;
+                            case 2: operatingSystem = "8 / 2012 Server"; break;
+                            case 3: operatingSystem = "8.1 / 2012 Server R2"; break;
+                            default: operatingSystem = "Unknown"; break;
+                        }
+                        break;
 					default:
 						break;
 				}

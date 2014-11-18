@@ -194,7 +194,7 @@ namespace JMMServer.Commands
 					// update the VideoLocal record with the Hash
 					hashes = FileHashHelper.GetHashInfo(FileName, true, MainWindow.OnHashProgress, ServerSettings.Hash_CRC32, ServerSettings.Hash_MD5, ServerSettings.Hash_SHA1);
 					TimeSpan ts = DateTime.Now - start;
-					logger.Trace("Hashed file in {0} seconds --- {1}", ts.TotalSeconds.ToString("#0.0"), FileName);
+                    logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName, Utils.FormatByteSize(vlocal.FileSize));
 
 					vlocal.Hash = hashes.ed2k;
 					vlocal.CRC32 = hashes.crc32;
