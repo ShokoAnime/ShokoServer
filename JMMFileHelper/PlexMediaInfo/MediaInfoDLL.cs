@@ -137,21 +137,20 @@ namespace PlexMediaInfo
 
 
 		//MediaInfo class
-		public MediaInfo() {
-			Handle = MediaInfo_New();
+		public MediaInfo()
+        {
+            if (moduleHandle == IntPtr.Zero)
+            {
+                string fullexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                FileInfo fi = new FileInfo(fullexepath);
+                fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "MediaInfo.dll");
+                moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
+            }
 		    if (Environment.OSVersion.ToString().IndexOf("Windows") == -1)
-		    {
-                if (moduleHandle == IntPtr.Zero)
-                {
-                    string fullexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-                    FileInfo fi = new FileInfo(fullexepath);
-                    fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "MediaInfo.dll");
-                    moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
-                }
 		        MustUseAnsi = true;
-		    }
 		    else
 		        MustUseAnsi = false;
+			Handle = MediaInfo_New();
 		}
 
 	    ~MediaInfo()
