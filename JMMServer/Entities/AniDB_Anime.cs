@@ -2299,8 +2299,11 @@ namespace JMMServer.Entities
 			cmd.Save();
 
 			// check for Trakt associations
-			CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(this.AnimeID, false);
-			cmd2.Save();
+            if (ServerSettings.WebCache_Trakt_Get)
+            {
+                CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(this.AnimeID, false);
+                cmd2.Save();
+            }
 
 			return ser;
 		}

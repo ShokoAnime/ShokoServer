@@ -314,7 +314,7 @@ namespace JMMServer.Entities
 							}
 						}
 
-						if (scrobbleTrakt && !string.IsNullOrEmpty(ServerSettings.Trakt_Username) && !string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+                        if (scrobbleTrakt && ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username) && !string.IsNullOrEmpty(ServerSettings.Trakt_Password))
 						{
 							CommandRequest_TraktShowScrobble cmdScrobble = new CommandRequest_TraktShowScrobble(ep.AnimeEpisodeID);
 							cmdScrobble.Save();

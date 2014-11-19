@@ -314,8 +314,11 @@ namespace JMMServer.Commands
 			// lets also try adding to the users trakt collecion by sync'ing the series
 			if (ser != null)
 			{
-				CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
-				cmdTrakt.Save();
+                if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username))
+                {
+                    CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
+                    cmdTrakt.Save();
+                }
 			}
 
 			// sync the series on MAL

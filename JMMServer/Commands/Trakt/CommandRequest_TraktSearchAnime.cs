@@ -65,7 +65,7 @@ namespace JMMServer.Commands
                             List<Contract_Azure_CrossRef_AniDB_Trakt> contracts = new List<Contract_Azure_CrossRef_AniDB_Trakt>();
 
                             List<JMMServer.Providers.Azure.CrossRef_AniDB_Trakt> resultsCache = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTrakt(AnimeID);
-                            if (resultsCache != null || resultsCache.Count > 0)
+                            if (resultsCache != null && resultsCache.Count > 0)
                             {
                                 foreach (JMMServer.Providers.Azure.CrossRef_AniDB_Trakt xref in resultsCache)
                                 {

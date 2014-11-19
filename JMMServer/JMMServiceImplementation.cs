@@ -1417,8 +1417,11 @@ namespace JMMServer
 				// lets also try adding to the users trakt collecion by sync'ing the series
 				if (ser != null)
 				{
-					CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
-					cmdTrakt.Save();
+                    if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username))
+                    {
+                        CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
+                        cmdTrakt.Save();
+                    }
 				}
 
 				return "";
@@ -1492,8 +1495,11 @@ namespace JMMServer
 				// lets also try adding to the users trakt collecion by sync'ing the series
 				if (ser != null)
 				{
-					CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
-					cmdTrakt.Save();
+                    if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username))
+                    {
+                        CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
+                        cmdTrakt.Save();
+                    }
 				}
 
 				return "";
@@ -1584,8 +1590,11 @@ namespace JMMServer
 				// lets also try adding to the users trakt collecion by sync'ing the series
 				if (ser != null)
 				{
-					CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
-					cmdTrakt.Save();
+                    if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username))
+                    {
+                        CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
+                        cmdTrakt.Save();
+                    }
 				}
 
 			}
@@ -1679,9 +1688,12 @@ namespace JMMServer
 					CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(anime.AnimeID, false);
 					cmd.Save(session);
 
-					// check for Trakt associations
-					CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(anime.AnimeID, false);
-					cmd2.Save(session);
+                    if (ServerSettings.WebCache_Trakt_Get)
+                    {
+                        // check for Trakt associations
+                        CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(anime.AnimeID, false);
+                        cmd2.Save(session);
+                    }
 
 					List<CrossRef_AniDB_TvDBV2> xrefs = ser.GetCrossRefTvDBV2();
 					List<CrossRef_AniDB_MAL> xrefMAL = ser.CrossRefMAL;

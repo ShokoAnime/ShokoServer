@@ -628,7 +628,8 @@ namespace JMMServer
 
 		public static void RunImport_ScanTrakt()
 		{
-			TraktTVHelper.ScanForMatches();
+            if (ServerSettings.WebCache_Trakt_Get)
+			    TraktTVHelper.ScanForMatches();
 		}
 
 		public static void RunImport_ScanMovieDB()
@@ -990,8 +991,11 @@ namespace JMMServer
 				}
 			}
 
-			CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(false);
-			cmd.Save();
+            if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username))
+            {
+                CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(false);
+                cmd.Save();
+            }
 		}
 
 		public static void CheckForTraktAllSeriesUpdate(bool forceRefresh)

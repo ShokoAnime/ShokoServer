@@ -46,6 +46,8 @@ namespace JMMServer.Commands
 
 			try
 			{
+                if (!ServerSettings.WebCache_Trakt_Send || string.IsNullOrEmpty(ServerSettings.Trakt_Username)) return;
+
 				ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
 				ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.TraktSync);
 				if (sched == null)
