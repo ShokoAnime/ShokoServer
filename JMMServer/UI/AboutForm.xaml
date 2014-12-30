@@ -5,7 +5,7 @@
         xmlns:my="clr-namespace:wyDay.Controls;assembly=AutomaticUpdaterWPF"
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
-        Title="JMM Desktop" MinHeight="300" MinWidth="500" Name="aboutWindow" Icon="/JMMServer;component/db.ico">
+        Title="JMM Server" MinHeight="300" MinWidth="500" Name="aboutWindow" Icon="/JMMServer;component/db.ico">
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>
