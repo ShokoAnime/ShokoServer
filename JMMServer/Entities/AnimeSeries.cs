@@ -8,6 +8,7 @@ using NLog;
 using JMMServer.Repositories;
 using JMMContracts;
 using NHibernate;
+using JMMServer.Commands;
 
 namespace JMMServer.Entities
 {
@@ -373,7 +374,13 @@ namespace JMMServer.Entities
 
 			List<TvDB_Series> sers = new List<TvDB_Series>();
 			foreach (CrossRef_AniDB_TvDBV2 xref in tvDBCrossRefs)
-				sers.Add(xref.GetTvDBSeries());
+            {
+                TvDB_Series tvser = xref.GetTvDBSeries();
+                if (tvser != null)
+                    sers.Add(xref.GetTvDBSeries());
+                else
+                    logger.Warn("You are missing database information for TvDB series: {0} - {1}", xref.TvDBID, xref.TvDBTitle);
+            }
 
 			return this.ToContract(anime, tvDBCrossRefs, movieDBCrossRef, userRecord, sers, malDBCrossRef, false, null, null, null, null,forceimages);
 		}
