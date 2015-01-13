@@ -82,6 +82,7 @@ namespace JMMServer.Databases
 					SQLServer.UpdateSchema();
 
 					PopulateInitialData();
+                    DatabaseHelper.CreateInitialCustomTags();
 
 					return true;
 				}
@@ -101,6 +102,7 @@ namespace JMMServer.Databases
 					SQLite.UpdateSchema();
 
 					PopulateInitialData();
+                    DatabaseHelper.CreateInitialCustomTags();
 
 					return true;
 				}
@@ -125,6 +127,7 @@ namespace JMMServer.Databases
 					//MySQL.UpdateSchema_Fix();
 
 					PopulateInitialData();
+                    DatabaseHelper.CreateInitialCustomTags();
 
 					return true;
 				}
