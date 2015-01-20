@@ -46,7 +46,7 @@ namespace JMMServer.Databases
 			else if (ServerSettings.DatabaseType.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
 			{
 				return Fluently.Configure()
-				.Database(MySQLConfiguration.Standard.ConnectionString(x => x.Database(ServerSettings.MySQL_SchemaName)
+                .Database(MySQLConfiguration.Standard.ConnectionString(x => x.Database(ServerSettings.MySQL_SchemaName + ";CharSet=utf8mb4")
 					.Server(ServerSettings.MySQL_Hostname)
 					.Username(ServerSettings.MySQL_Username)
 					.Password(ServerSettings.MySQL_Password)))

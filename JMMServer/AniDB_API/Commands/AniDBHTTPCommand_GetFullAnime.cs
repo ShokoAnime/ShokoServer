@@ -184,7 +184,8 @@ namespace AniDBAPI.Commands
 			{
 				if (!ForceFromAniDB)
 				{
-					xmlResult = AzureWebAPI.Get_AnimeXML(animeID);
+                    //Disable usage of Azure API for this type of data
+					/*xmlResult = AzureWebAPI.Get_AnimeXML(animeID);
 					if (string.IsNullOrEmpty(xmlResult))
 					{
 						docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
@@ -193,7 +194,9 @@ namespace AniDBAPI.Commands
 					{
 						docAnime = new XmlDocument();
 						docAnime.LoadXml(xmlResult);
-					}
+					}*/
+
+                    docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
 				}
 				else
 				{

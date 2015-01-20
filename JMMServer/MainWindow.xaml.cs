@@ -1968,7 +1968,7 @@ namespace JMMServer
 					}
 					else
 					{
-						logger.Error("ImportFolder not found for watching: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
+                        logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 					}
 				}
 				catch (Exception ex)

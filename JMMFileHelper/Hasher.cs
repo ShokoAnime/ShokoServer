@@ -118,15 +118,26 @@ namespace JMMFileHelper
 
                 // Disable other hashing as it is currently broken when using the DLL
 
-                if (CalculateHashes_dll(strPath, ref hash, onHashProgress, false, false, false))
-				{
-                    rhash.ed2k = HashToString(hash, 0, 16);
-					//if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
-					//if (getMD5) rhash.md5 = HashToString(hash, 20, 16);
-					//if (getSHA1) rhash.sha1 = HashToString(hash, 36, 20);
-				}
-				else
-				{
+                bool gotHash = false;
+                try
+                {
+                    if (CalculateHashes_dll(strPath, ref hash, onHashProgress, false, false, false))
+                    {
+                        rhash.ed2k = HashToString(hash, 0, 16);
+                        if (!string.IsNullOrEmpty(rhash.ed2k)) gotHash = true;
+
+                        //if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
+                        //if (getMD5) rhash.md5 = HashToString(hash, 20, 16);
+                        //if (getSHA1) rhash.sha1 = HashToString(hash, 36, 20);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.ErrorException(ex.ToString(), ex);
+                }
+				
+                if (!gotHash)
+                {
                     logger.Error("Error using DLL to get hash (Functon returned FALSE), trying C# code instead: {0}", strPath);
                     return CalculateHashes_here(strPath, onHashProgress, getED2k, getCRC32, getMD5, getSHA1);
 				}
