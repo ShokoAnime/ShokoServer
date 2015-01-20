@@ -5018,13 +5018,15 @@ namespace JMMServer
 
                         Trakt_Show show = repTrakt.GetByTraktID(session, xref.TraktID);
                         if (show != null)
+                        {
                             result.TraktShows.Add(show.ToContract());
 
-                        foreach (Trakt_ImageFanart fanart in repTraktFanart.GetByShowID(session, show.Trakt_ShowID))
-                            result.TraktImageFanarts.Add(fanart.ToContract());
+                            foreach (Trakt_ImageFanart fanart in repTraktFanart.GetByShowID(session, show.Trakt_ShowID))
+                                result.TraktImageFanarts.Add(fanart.ToContract());
 
-                        foreach (Trakt_ImagePoster poster in repTraktPosters.GetByShowID(session, show.Trakt_ShowID))
-                            result.TraktImagePosters.Add(poster.ToContract());
+                            foreach (Trakt_ImagePoster poster in repTraktPosters.GetByShowID(session, show.Trakt_ShowID))
+                                result.TraktImagePosters.Add(poster.ToContract());
+                        }
                     }
 
 
