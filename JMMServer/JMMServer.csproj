@@ -214,6 +214,7 @@
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeFull.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeTitle.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeXML.cs" />
+    <Compile Include="Commands\Azure\CommandRequest_Azure_SendUserInfo.cs" />
     <Compile Include="Commands\CommandHelper.cs" />
     <Compile Include="Commands\CommandProcessorGeneral.cs" />
     <Compile Include="Commands\CommandProcessorHasher.cs" />
@@ -322,6 +323,7 @@
     <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_MALInput.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_File_Episode.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_File_EpisodeInput.cs" />
+    <Compile Include="Providers\Azure\Azure_UserInfo.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />

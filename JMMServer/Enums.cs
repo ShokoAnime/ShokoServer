@@ -148,6 +148,7 @@ namespace JMMServer
 		Azure_SendAnimeFull = 70,
 		Azure_SendAnimeXML = 71,
 		Azure_SendAnimeTitle = 72,
+        Azure_SendUserInfo = 73,
         AniDB_GetEpisodeUDP = 80,
 	}
 
@@ -234,7 +235,8 @@ namespace JMMServer
 		MALUpdate = 8,
 		AniDBMylistStats = 9,
 		AniDBFileUpdates = 10,
-		LogClean = 11
+		LogClean = 11,
+        AzureUserInfo = 12
 	}
 
 	public enum JMMImageType

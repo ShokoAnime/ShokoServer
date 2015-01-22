@@ -14,6 +14,7 @@ using JMMServer.Providers.TraktTV;
 using System.Threading;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Commands.AniDB;
+using JMMServer.Commands.Azure;
 
 namespace JMMServer
 {
@@ -867,6 +868,36 @@ namespace JMMServer
 			CommandRequest_GetCalendar cmd = new CommandRequest_GetCalendar(forceRefresh);
 			cmd.Save();
 		}
+
+        public static void SendUserInfoUpdate(bool forceRefresh)
+        {
+            // update the anonymous user info every 12 hours
+            // we will always assume that an anime was downloaded via http first
+            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+
+            ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AzureUserInfo);
+            if (sched != null)
+            {
+                // if we have run this in the last 12 hours and are not forcing it, then exit
+                TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+                if (tsLastRun.TotalHours < 12)
+                {
+                    if (!forceRefresh) return;
+                }
+            }
+
+            if (sched == null)
+            {
+                sched = new ScheduledUpdate();
+                sched.UpdateType = (int)ScheduledUpdateType.AzureUserInfo;
+                sched.UpdateDetails = "";
+            }
+            sched.LastUpdate = DateTime.Now;
+            repSched.Save(sched);
+
+            CommandRequest_Azure_SendUserInfo cmd = new CommandRequest_Azure_SendUserInfo(ServerSettings.AniDB_Username);
+            cmd.Save();
+        }
 
 		public static void CheckForAnimeUpdate(bool forceRefresh)
 		{

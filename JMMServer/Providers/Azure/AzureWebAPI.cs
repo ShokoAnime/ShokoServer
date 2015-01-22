@@ -7,6 +7,7 @@ using System.IO;
 using NLog;
 using System.Web;
 using JMMServer.Entities;
+using JMMServer.Repositories;
 
 namespace JMMServer.Providers.Azure
 {
@@ -426,6 +427,22 @@ namespace JMMServer.Providers.Azure
 
         #endregion
 
+        #region User Info
+
+        public static void Send_UserInfo()
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            UserInfo uinfo = GetUserInfoData();
+            if (uinfo == null) return;
+
+            string uri = string.Format(@"http://{0}/api/userinfo", azureHostBaseAddress);
+            string json = JSONHelper.Serialize<UserInfo>(uinfo);
+            SendData(uri, json, "POST");
+        }
+
+        #endregion
+
         #region Helpers
 
         private static void SendData(string uri, string json, string verb)
@@ -599,6 +616,54 @@ namespace JMMServer.Providers.Azure
 			}
 
 			return "";
+        }
+
+        public static UserInfo GetUserInfoData(string dashType = "", string vidPlayer = "")
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(ServerSettings.AniDB_Username)) return null;
+
+                UserInfo uinfo = new UserInfo();
+
+                uinfo.DateTimeUpdated = DateTime.Now;
+                uinfo.DateTimeUpdatedUTC = 0;
+
+                // Optional JMM Desktop data
+                uinfo.DashboardType = null;
+                uinfo.VideoPlayer = vidPlayer;
+
+                System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+                try
+                {
+                    if (a != null) uinfo.JMMServerVersion = Utils.GetApplicationVersion(a);
+                }
+                catch {}
+
+                uinfo.UsernameHash = Utils.GetMd5Hash(ServerSettings.AniDB_Username);
+                uinfo.DatabaseType = ServerSettings.DatabaseType;
+                uinfo.WindowsVersion = Utils.GetOSInfo();
+                uinfo.MALEnabled = string.IsNullOrEmpty(ServerSettings.Trakt_Username) ? 0 : 1;
+                uinfo.TraktEnabled = string.IsNullOrEmpty(ServerSettings.MAL_Username) ? 0 : 1;
+
+                uinfo.CountryLocation = "";
+                
+                uinfo.LastEpisodeWatched = Utils.GetCurrentUTCTime();
+                uinfo.LastEpisodeWatchedAsDate = DateTime.Now.AddDays(-5);
+
+                JMMUserRepository repUsers = new JMMUserRepository();
+                uinfo.LocalUserCount = (int)(repUsers.GetTotalRecordCount());
+
+                VideoLocalRepository repVids = new VideoLocalRepository();
+                uinfo.FileCount = repVids.GetTotalRecordCount();
+
+                return uinfo;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
         }
 
         #endregion

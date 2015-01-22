@@ -45,6 +45,20 @@ namespace JMMServer.Repositories
 			}
 		}
 
+        public long GetTotalRecordCount()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                var count = session
+                    .CreateCriteria(typeof(VideoLocal))
+                    .SetProjection(Projections.Count(Projections.Id())
+                )
+                .UniqueResult<int>();
+
+                return count;
+            }
+        }
+
 		public VideoLocal GetByHashAndSize(string hash, long fsize)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

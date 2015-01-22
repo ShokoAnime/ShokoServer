@@ -867,7 +867,7 @@ namespace JMMServer
 				// timer for automatic updates
 				autoUpdateTimer = new System.Timers.Timer();
 				autoUpdateTimer.AutoReset = true;
-				autoUpdateTimer.Interval = 5 * 60 * 1000; // 5 minutes * 60 seconds
+				autoUpdateTimer.Interval = 5 * 60 * 1000; // 5 * 60 seconds (5 minutes)
 				autoUpdateTimer.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimer_Elapsed);
 				autoUpdateTimer.Start();
 
@@ -1944,6 +1944,7 @@ namespace JMMServer
 			Importer.CheckForAniDBFileUpdate(false);
 			Importer.CheckForLogClean();
 			Importer.UpdateAniDBTitles();
+            Importer.SendUserInfoUpdate(false);
 		}
 
 		public static void StartWatchingFiles()
