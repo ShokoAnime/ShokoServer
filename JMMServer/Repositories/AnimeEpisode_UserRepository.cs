@@ -99,6 +99,21 @@ namespace JMMServer.Repositories
 			return new List<AnimeEpisode_User>(eps);
 		}
 
+        public List<AnimeEpisode_User> GetLastWatchedEpisode()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                var eps = session
+                    .CreateCriteria(typeof(AnimeEpisode_User))
+                    .Add(Restrictions.Gt("WatchedCount", 0))
+                    .AddOrder(Order.Desc("WatchedDate"))
+                    .SetMaxResults(1)
+                    .List<AnimeEpisode_User>();
+
+                return new List<AnimeEpisode_User>(eps);
+            }
+        }
+
 		public List<AnimeEpisode_User> GetByEpisodeID(int epid)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())

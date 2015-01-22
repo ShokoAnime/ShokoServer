@@ -648,7 +648,7 @@ namespace JMMServer.Providers.Azure
 
                 uinfo.CountryLocation = "";
                 
-                uinfo.LastEpisodeWatched = Utils.GetCurrentUTCTime();
+                // this field is not actually used
                 uinfo.LastEpisodeWatchedAsDate = DateTime.Now.AddDays(-5);
 
                 JMMUserRepository repUsers = new JMMUserRepository();
@@ -656,6 +656,12 @@ namespace JMMServer.Providers.Azure
 
                 VideoLocalRepository repVids = new VideoLocalRepository();
                 uinfo.FileCount = repVids.GetTotalRecordCount();
+
+                AnimeEpisode_UserRepository repEps = new AnimeEpisode_UserRepository();
+                List<AnimeEpisode_User> recs = repEps.GetLastWatchedEpisode();
+                uinfo.LastEpisodeWatched = 0;
+                if (recs.Count > 0)
+                    uinfo.LastEpisodeWatched = Utils.GetAniDBDateAsSeconds(recs[0].WatchedDate);
 
                 return uinfo;
             }
