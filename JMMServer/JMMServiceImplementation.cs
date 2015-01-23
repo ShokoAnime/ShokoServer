@@ -3239,6 +3239,7 @@ namespace JMMServer
                 ServerSettings.WebCache_Trakt_Send = contractIn.WebCache_Trakt_Send;
 				ServerSettings.WebCache_MAL_Get = contractIn.WebCache_MAL_Get;
 				ServerSettings.WebCache_MAL_Send = contractIn.WebCache_MAL_Send;
+                ServerSettings.WebCache_UserInfo = contractIn.WebCache_UserInfo;
 
 				// TvDB
 				ServerSettings.TvDB_AutoFanart = contractIn.TvDB_AutoFanart;

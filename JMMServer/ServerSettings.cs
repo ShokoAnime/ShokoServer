@@ -741,6 +741,23 @@ namespace JMMServer
 			}
 		}
 
+        public static bool WebCache_UserInfo
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                bool usecache = false;
+                if (bool.TryParse(appSettings["WebCache_UserInfo"], out usecache))
+                    return usecache;
+                else
+                    return true; // default
+            }
+            set
+            {
+                UpdateSetting("WebCache_UserInfo", value.ToString());
+            }
+        }
+
 		#endregion
 
 		#region TvDB
@@ -1517,6 +1534,7 @@ namespace JMMServer
             contract.WebCache_Trakt_Send = ServerSettings.WebCache_Trakt_Send;
 			contract.WebCache_MAL_Get = ServerSettings.WebCache_MAL_Get;
 			contract.WebCache_MAL_Send = ServerSettings.WebCache_MAL_Send;
+            contract.WebCache_UserInfo = ServerSettings.WebCache_UserInfo;
 
 			// TvDB
 			contract.TvDB_AutoFanart = ServerSettings.TvDB_AutoFanart;
