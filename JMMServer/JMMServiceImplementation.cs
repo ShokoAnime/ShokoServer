@@ -1755,6 +1755,20 @@ namespace JMMServer
 			return "";
 		}
 
+        public string UpdateCalendarData()
+        {
+
+            try
+            {
+                Importer.CheckForCalendarUpdate(true);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return "";
+        }
+
 		public int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
 		{
 			return Importer.UpdateAniDBFileData(missingInfo, outOfDate, countOnly);

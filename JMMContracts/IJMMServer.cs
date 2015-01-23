@@ -11,6 +11,9 @@ namespace JMMContracts
 	public interface IJMMServer
 	{
         [OperationContract]
+        string UpdateCalendarData();
+
+        [OperationContract]
         string UpdateEpisodeData(int episodeID);
 
         [OperationContract]

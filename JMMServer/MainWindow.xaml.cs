@@ -913,7 +913,7 @@ namespace JMMServer
         void autoUpdateTimerLocal_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             TimeSpan ts = DateTime.Now - lastVersionCheck;
-            if (ts.TotalHours > 1)
+            if (ts.TotalHours > 6)
             {
                 logger.Trace("Checking for JMM Server updates...");
                 lastVersionCheck = DateTime.Now;

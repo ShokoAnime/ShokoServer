@@ -90,7 +90,7 @@ namespace JMMServer.Repositories
 				.CreateCriteria(typeof(AniDB_Anime))
 				.Add(Restrictions.Ge("AirDate", startDate))
 				.Add(Restrictions.Le("AirDate", endDate))
-				.AddOrder(Order.Asc("AirDate"))
+				.AddOrder(Order.Desc("AirDate"))
 				.List<AniDB_Anime>();
 
 			return new List<AniDB_Anime>(objs);
