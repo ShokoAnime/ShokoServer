@@ -367,6 +367,11 @@ namespace JMMServer
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvPoster.TvDB_ImagePosterID, JMMImageType.TvDB_Cover, false);
 						cmd.Save();
+
+                        if (postersCount.ContainsKey(tvPoster.SeriesID))
+                            postersCount[tvPoster.SeriesID] = postersCount[tvPoster.SeriesID] + 1;
+                        else
+                            postersCount[tvPoster.SeriesID] = 1;
 					}
 				}
 			}
@@ -406,7 +411,11 @@ namespace JMMServer
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvFanart.TvDB_ImageFanartID, JMMImageType.TvDB_FanArt, false);
 						cmd.Save();
-						fanartCount[tvFanart.SeriesID] = fanartAvailable + 1;
+
+                        if (fanartCount.ContainsKey(tvFanart.SeriesID))
+                            fanartCount[tvFanart.SeriesID] = fanartCount[tvFanart.SeriesID] + 1;
+                        else
+                            fanartCount[tvFanart.SeriesID] = 1;
 					}
 				}
 			}
@@ -446,6 +455,11 @@ namespace JMMServer
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvBanner.TvDB_ImageWideBannerID, JMMImageType.TvDB_Banner, false);
 						cmd.Save();
+
+                        if (fanartCount.ContainsKey(tvBanner.SeriesID))
+                            fanartCount[tvBanner.SeriesID] = fanartCount[tvBanner.SeriesID] + 1;
+                        else
+                            fanartCount[tvBanner.SeriesID] = 1;
 					}
 				}
 			}
@@ -498,6 +512,11 @@ namespace JMMServer
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(moviePoster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
 						cmd.Save();
+
+                        if (postersCount.ContainsKey(moviePoster.MovieId))
+                            postersCount[moviePoster.MovieId] = postersCount[moviePoster.MovieId] + 1;
+                        else
+                            postersCount[moviePoster.MovieId] = 1;
 					}
 				}
 			}
@@ -537,6 +556,11 @@ namespace JMMServer
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(movieFanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
 						cmd.Save();
+
+                        if (fanartCount.ContainsKey(movieFanart.MovieId))
+                            fanartCount[movieFanart.MovieId] = fanartCount[movieFanart.MovieId] + 1;
+                        else
+                            fanartCount[movieFanart.MovieId] = 1;
 					}
 				}
 			}
