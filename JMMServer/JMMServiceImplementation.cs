@@ -5912,13 +5912,27 @@ namespace JMMServer
 			{
 				CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
 				CrossRef_AniDB_MAL xrefTemp = repCrossRef.GetByMALID(malID);
-				if (xrefTemp != null)
-					return string.Format("Not using MAL link as this MAL ID ({0}) is already in use by {1}", malID, xrefTemp.AnimeID);
+                if (xrefTemp != null)
+                {
+                    string animeName = "";
+                    try
+                    {
+                        AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                        AniDB_Anime anime = repAnime.GetByAnimeID(xrefTemp.AnimeID);
+                        if (anime != null) animeName = anime.MainTitle;
+                    }
+                    catch { }
+                    return string.Format("Not using MAL link as this MAL ID ({0}) is already in use by {1} ({2})", malID, xrefTemp.AnimeID, animeName);
+                }
 
 				xrefTemp = repCrossRef.GetByAnimeConstraint(animeID, epType, epNumber);
-				if (xrefTemp != null)
-					return string.Format("Not using MAL link as this Anime ID ({0}) is already in use by {1}/{2}/{3} ({4})", animeID, xrefTemp.MALID, epType, epNumber, xrefTemp.MALTitle);
-
+                if (xrefTemp != null)
+                {
+                    // delete the link first because we are over-writing it
+                    repCrossRef.Delete(xrefTemp.CrossRef_AniDB_MALID);
+                    //return string.Format("Not using MAL link as this Anime ID ({0}) is already in use by {1}/{2}/{3} ({4})", animeID, xrefTemp.MALID, epType, epNumber, xrefTemp.MALTitle);
+                }
+					
 				MALHelper.LinkAniDBMAL(animeID, malID, malTitle, epType, epNumber, false);
 
 				return "";
