@@ -9172,38 +9172,76 @@ namespace JMMServer
 		public List<Contract_AnimeSearch> OnlineAnimeTitleSearch(string titleQuery)
 		{
 			List<Contract_AnimeSearch> retTitles = new List<Contract_AnimeSearch>();
+
+            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
 			try
 			{
-				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                // check if it is a title search or an ID search
+                int aid = 0;
+                if (int.TryParse(titleQuery, out aid))
+                {
+                    // user is direct entering the anime id
 
-				List<JMMServer.Providers.Azure.AnimeIDTitle> titles = JMMServer.Providers.Azure.AzureWebAPI.Get_AnimeTitle(titleQuery);
+                    // try the local database first
+                    // if not download the data from AniDB now
+                    AniDB_Anime anime = anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(aid, false, ServerSettings.AniDB_DownloadRelatedAnime);
+                    if (anime != null)
+                    {
+                        Contract_AnimeSearch res = new Contract_AnimeSearch();
+                        res.AnimeID = anime.AnimeID;
+                        res.MainTitle = anime.MainTitle;
+                        res.Titles = anime.AllTitles;
+
+                        // check for existing series and group details
+                        AnimeSeries ser = repSeries.GetByAnimeID(anime.AnimeID);
+                        if (ser != null)
+                        {
+                            res.SeriesExists = true;
+                            res.AnimeSeriesID = ser.AnimeSeriesID;
+                            res.AnimeSeriesName = anime.GetFormattedTitle();
+                        }
+                        else
+                        {
+                            res.SeriesExists = false;
+                        }
+                        retTitles.Add(res);
+                    } 
+                }
+                else
+                {
+                    // title search so look at the web cache
+                    List<JMMServer.Providers.Azure.AnimeIDTitle> titles = JMMServer.Providers.Azure.AzureWebAPI.Get_AnimeTitle(titleQuery);
+
+                    using (var session = JMMService.SessionFactory.OpenSession())
+                    {
+                        foreach (JMMServer.Providers.Azure.AnimeIDTitle tit in titles)
+                        {
+                            Contract_AnimeSearch res = new Contract_AnimeSearch();
+                            res.AnimeID = tit.AnimeID;
+                            res.MainTitle = tit.MainTitle;
+                            res.Titles = tit.Titles;
+
+                            // check for existing series and group details
+                            AnimeSeries ser = repSeries.GetByAnimeID(tit.AnimeID);
+                            if (ser != null)
+                            {
+                                res.SeriesExists = true;
+                                res.AnimeSeriesID = ser.AnimeSeriesID;
+                                res.AnimeSeriesName = ser.GetAnime(session).GetFormattedTitle(session);
+                            }
+                            else
+                            {
+                                res.SeriesExists = false;
+                            }
+
+
+                            retTitles.Add(res);
+                        }
+                    }
+                }
+
 				
-				using (var session = JMMService.SessionFactory.OpenSession())
-				{
-					foreach (JMMServer.Providers.Azure.AnimeIDTitle tit in titles)
-					{
-						Contract_AnimeSearch res = new Contract_AnimeSearch();
-						res.AnimeID = tit.AnimeID;
-						res.MainTitle = tit.MainTitle;
-						res.Titles = tit.Titles;
-
-						// check for existing series and group details
-						AnimeSeries ser = repSeries.GetByAnimeID(tit.AnimeID);
-						if (ser != null)
-						{
-							res.SeriesExists = true;
-							res.AnimeSeriesID = ser.AnimeSeriesID;
-							res.AnimeSeriesName = ser.GetAnime(session).GetFormattedTitle(session);
-						}
-						else
-						{
-							res.SeriesExists = false;
-						}
-
-
-						retTitles.Add(res);
-					}
-				}
 
 			}
 			catch (Exception ex)

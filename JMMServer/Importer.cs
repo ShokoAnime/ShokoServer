@@ -902,9 +902,9 @@ namespace JMMServer
             ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AzureUserInfo);
             if (sched != null)
             {
-                // if we have run this in the last 12 hours and are not forcing it, then exit
+                // if we have run this in the last 6 hours and are not forcing it, then exit
                 TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < 12)
+                if (tsLastRun.TotalHours < 6)
                 {
                     if (!forceRefresh) return;
                 }
