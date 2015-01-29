@@ -162,6 +162,7 @@ namespace JMMServer.Databases
                 UpdateSchema_034(versionNumber);
                 UpdateSchema_035(versionNumber);
                 UpdateSchema_036(versionNumber);
+                UpdateSchema_037(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1551,6 +1552,47 @@ namespace JMMServer.Databases
             List<string> cmds = new List<string>();
 
             cmds.Add(string.Format("ALTER DATABASE {0} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;", ServerSettings.MySQL_SchemaName));
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+            DatabaseHelper.CreateInitialCustomTags();
+        }
+
+        private static void UpdateSchema_037(int currentVersionNumber)
+        {
+            int thisVersion = 37;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_AnimeID` ;");
+            cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_Anime` ;");
+
+            cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_MALID` (`MALID` ASC) ;");
+            cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_Anime` (`AnimeID` ASC, `StartEpisodeType` ASC, `StartEpisodeNumber` ASC) ;");
+
 
             using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
             {
