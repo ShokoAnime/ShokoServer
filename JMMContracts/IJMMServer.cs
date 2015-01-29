@@ -11,6 +11,15 @@ namespace JMMContracts
 	public interface IJMMServer
 	{
         [OperationContract]
+        bool IsWebCacheAdmin();
+
+        [OperationContract]
+        string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
+
+        [OperationContract]
+        string RevokeTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
+
+        [OperationContract]
         string UpdateCalendarData();
 
         [OperationContract]
@@ -256,7 +265,7 @@ namespace JMMContracts
 		Contract_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID);
 
 		[OperationContract]
-		List<Contract_Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID);
+        List<Contract_Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin);
 
 		[OperationContract]
 		List<Contract_CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID);

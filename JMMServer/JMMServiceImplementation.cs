@@ -5291,13 +5291,17 @@ namespace JMMServer
 
 		#region TvDB
 
-		public List<Contract_Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID)
+		public List<Contract_Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin)
 		{
 			try
 			{
 				List<Contract_Azure_CrossRef_AniDB_TvDB> contracts = new List<Contract_Azure_CrossRef_AniDB_TvDB>();
+                List<JMMServer.Providers.Azure.CrossRef_AniDB_TvDB> results = null;
 
-				List<JMMServer.Providers.Azure.CrossRef_AniDB_TvDB> results = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTvDB(animeID);
+                if (isAdmin)
+                    results = JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
+                else
+				    results = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTvDB(animeID);
 				if (results == null || results.Count == 0) return contracts;
 
 				foreach (JMMServer.Providers.Azure.CrossRef_AniDB_TvDB xref in results)
@@ -5311,6 +5315,46 @@ namespace JMMServer
 				return null;
 			}
 		}
+
+        public string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId)
+        {
+            try
+            {
+                return JMMServer.Providers.Azure.AzureWebAPI.Admin_Approve_CrossRefAniDBTvDB(crossRef_AniDB_TvDBId);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
+
+        public string RevokeTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId)
+        {
+            try
+            {
+                return JMMServer.Providers.Azure.AzureWebAPI.Admin_Revoke_CrossRefAniDBTvDB(crossRef_AniDB_TvDBId);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
+
+        public bool IsWebCacheAdmin()
+        {
+            try
+            {
+                string res = JMMServer.Providers.Azure.AzureWebAPI.Admin_AuthUser();
+                return string.IsNullOrEmpty(res);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return false;
+            }
+        }
 
 		public List<Contract_CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID)
 		{

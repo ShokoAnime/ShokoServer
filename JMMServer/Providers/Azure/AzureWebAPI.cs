@@ -445,9 +445,9 @@ namespace JMMServer.Providers.Azure
 
         #region Helpers
 
-        private static void SendData(string uri, string json, string verb)
+        private static string SendData(string uri, string json, string verb)
 		{
-
+            string ret = string.Empty;
 			WebRequest req = null;
 			WebResponse rsp = null;
 			try
@@ -477,6 +477,20 @@ namespace JMMServer.Providers.Azure
 			}
 			catch (WebException webEx)
 			{
+                if (webEx.Status == WebExceptionStatus.ProtocolError)
+                {
+                    var response = webEx.Response as HttpWebResponse;
+                    if (response != null)
+                    {
+                        Console.WriteLine("HTTP Status Code: " + (int)response.StatusCode);
+                        ret = response.StatusCode.ToString();
+                    }
+                    else
+                    {
+                        // no http status code available
+                    }
+                }
+
 				logger.Error("Error(1) in XMLServiceQueue.SendData: {0}", webEx);
 			}
 			catch (Exception ex)
@@ -488,6 +502,8 @@ namespace JMMServer.Providers.Azure
 				if (req != null) req.GetRequestStream().Close();
 				if (rsp != null) rsp.GetResponseStream().Close();
 			}
+
+            return ret;
 		}
 
 		private static string GetDataJson(string uri)
@@ -670,6 +686,65 @@ namespace JMMServer.Providers.Azure
                 logger.ErrorException(ex.ToString(), ex);
                 return null;
             }
+        }
+
+        #endregion
+
+        #region Admin
+
+
+        public static List<CrossRef_AniDB_TvDB> Admin_Get_CrossRefAniDBTvDB(int animeID)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}", azureHostBaseAddress, animeID, username, ServerSettings.WebCacheAuthKey);
+            string msg = string.Format("Getting AniDB/TvDB Cross Ref From Cache: {0}", animeID);
+          
+            string json = GetDataJson(uri);
+
+            List<CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_TvDB>>(json);
+
+            return xrefs;
+        }
+
+        public static string Admin_Approve_CrossRefAniDBTvDB(int crossRef_AniDB_TvDBId)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}", azureHostBaseAddress, crossRef_AniDB_TvDBId, username, ServerSettings.WebCacheAuthKey);
+            string json = string.Empty;
+
+            return SendData(uri, json, "POST");
+        }
+
+        public static string Admin_Revoke_CrossRefAniDBTvDB(int crossRef_AniDB_TvDBId)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}", azureHostBaseAddress, crossRef_AniDB_TvDBId, username, ServerSettings.WebCacheAuthKey);
+            string json = string.Empty;
+
+            return SendData(uri, json, "PUT");
+        }
+
+        public static string Admin_AuthUser()
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, ServerSettings.WebCacheAuthKey);
+            //string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, "");
+            string json = string.Empty;
+
+            return SendData(uri, json, "POST");
         }
 
         #endregion
