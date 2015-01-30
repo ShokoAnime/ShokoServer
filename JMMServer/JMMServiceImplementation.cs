@@ -5356,6 +5356,23 @@ namespace JMMServer
             }
         }
 
+        public Contract_Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType)
+        {
+            try
+            {
+                JMMServer.Providers.Azure.Azure_AnimeLink link = JMMServer.Providers.Azure.AzureWebAPI.Admin_GetRandomLinkForApproval((AzureLinkType)linkType);
+                if (link != null)
+                    return link.ToContract();
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
+
 		public List<Contract_CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID)
 		{
 			try

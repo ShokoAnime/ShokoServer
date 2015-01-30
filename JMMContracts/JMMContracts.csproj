@@ -95,6 +95,7 @@
     <Compile Include="Contract_AnimeTag.cs" />
     <Compile Include="Contract_AnimeTitle.cs" />
     <Compile Include="Contract_AppVersions.cs" />
+    <Compile Include="Contract_Azure_AnimeLink.cs" />
     <Compile Include="Contract_Azure_CrossRef_AniDB_Trakt.cs" />
     <Compile Include="Contract_Azure_CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Contract_BookmarkedAnime.cs" />

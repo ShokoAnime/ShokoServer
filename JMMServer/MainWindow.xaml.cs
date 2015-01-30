@@ -1383,6 +1383,8 @@ namespace JMMServer
 			AzureWebAPI.Send_CrossRefAniDBTvDB(xrefs[0], "Test");
             */
 
+            //Azure_AnimeLink aid = AzureWebAPI.Admin_GetRandomLinkForApproval(AzureLinkType.TvDB);
+
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();

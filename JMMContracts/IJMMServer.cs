@@ -11,6 +11,9 @@ namespace JMMContracts
 	public interface IJMMServer
 	{
         [OperationContract]
+        Contract_Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType);
+
+        [OperationContract]
         bool IsWebCacheAdmin();
 
         [OperationContract]

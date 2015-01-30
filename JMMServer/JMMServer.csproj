@@ -307,6 +307,7 @@
     <Compile Include="Mappings\RenameScriptMap.cs" />
     <Compile Include="Providers\Azure\Azure_AdminMessage.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeIDTitle.cs" />
+    <Compile Include="Providers\Azure\Azure_AnimeLink.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeXML.cs" />
     <Compile Include="Providers\Azure\AzureWebAPI.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeCharacter.cs" />

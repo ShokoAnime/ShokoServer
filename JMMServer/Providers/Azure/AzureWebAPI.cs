@@ -747,6 +747,18 @@ namespace JMMServer.Providers.Azure
             return SendData(uri, json, "POST");
         }
 
+        public static Azure_AnimeLink Admin_GetRandomLinkForApproval(AzureLinkType linkType)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}&p3=dummy", azureHostBaseAddress, (int)linkType, username, ServerSettings.WebCacheAuthKey);
+            string json = GetDataJson(uri);
+
+            return JSONHelper.Deserialize<Azure_AnimeLink>(json);
+        }
+
         #endregion
     }
 }
