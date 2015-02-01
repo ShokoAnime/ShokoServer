@@ -74,7 +74,7 @@ namespace AniDBAPI.Commands
 			commandText += "&protover=3";
 			commandText += "&client=ommserver";
 			//commandText += "&client=vmcanidb";
-			commandText += "&clientver=1&comp=1";
+			commandText += "&clientver=2&comp=1";
 			//BaseConfig.MyAnimeLog.Write("commandText: {0}", commandText);
 		}
 	}
