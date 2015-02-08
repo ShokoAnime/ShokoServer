@@ -32,6 +32,8 @@ namespace JMMContracts
 		public Contract_CrossRef_AniDB_Other CrossRefAniDBMovieDB { get; set; }
 		public List<Contract_CrossRef_AniDB_MAL> CrossRefAniDBMAL { get; set; }
 		public List<Contract_TvDB_Series> TvDB_Series { get; set; }
-		public Contract_AnimeGroup TopLevelGroup { get; set; }
-	}
+        public Contract_MovieDB_Movie MovieDB_Movie { get; set; }
+        public Contract_AnimeGroup TopLevelGroup { get; set; }
+
+    }
 }

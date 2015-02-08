@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Documents;
+using AniDBAPI;
 using JMMServer.ImageDownload;
 using NLog;
 using JMMServer.Repositories;
 using JMMContracts;
 using NHibernate;
 using JMMServer.Commands;
+using NHibernate.Criterion;
 
 namespace JMMServer.Entities
 {
@@ -99,6 +101,30 @@ namespace JMMServer.Entities
 			return repEpisodes.GetBySeriesID(session, AnimeSeriesID);
 		}
 
+	    public int GetAnimeEpisodesNormalCountWithVideoLocal()
+	    {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return Convert.ToInt32(session.CreateQuery("Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AnimeSeriesID).UniqueResult());
+
+            }
+        }
+
+	    public int GetAnimeNumberOfEpisodeTypes()
+	    {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return Convert.ToInt32(session.CreateQuery("Select count(distinct epi.EpisodeType) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AnimeSeriesID).UniqueResult());
+            }
+        }
+        public int GetAnimeEpisodesCountWithVideoLocal()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return Convert.ToInt32(session.CreateQuery("Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AnimeSeriesID).UniqueResult());
+
+            }
+        }
         #region TvDB
 
         public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
@@ -371,23 +397,25 @@ namespace JMMServer.Entities
 			List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs = this.GetCrossRefTvDBV2();
 			CrossRef_AniDB_Other movieDBCrossRef = this.CrossRefMovieDB;
 			List<CrossRef_AniDB_MAL> malDBCrossRef = this.CrossRefMAL;
-
+            MovieDB_Movie movie = null;
+            if (movieDBCrossRef != null)
+		         movie = movieDBCrossRef.GetMovieDB_Movie();
 			List<TvDB_Series> sers = new List<TvDB_Series>();
 			foreach (CrossRef_AniDB_TvDBV2 xref in tvDBCrossRefs)
             {
                 TvDB_Series tvser = xref.GetTvDBSeries();
                 if (tvser != null)
-                    sers.Add(xref.GetTvDBSeries());
+                    sers.Add(tvser);
                 else
                     logger.Warn("You are missing database information for TvDB series: {0} - {1}", xref.TvDBID, xref.TvDBTitle);
             }
 
-			return this.ToContract(anime, tvDBCrossRefs, movieDBCrossRef, userRecord, sers, malDBCrossRef, false, null, null, null, null,forceimages);
+			return this.ToContract(anime, tvDBCrossRefs, movieDBCrossRef, userRecord, sers, malDBCrossRef, false, null, null, null, null,movie, forceimages);
 		}
 
 		public Contract_AnimeSeries ToContract(AniDB_Anime animeRec, List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs, CrossRef_AniDB_Other movieDBCrossRef,
 			AnimeSeries_User userRecord, List<TvDB_Series> tvseries, List<CrossRef_AniDB_MAL> malDBCrossRef, bool passedDefaultImages, AniDB_Anime_DefaultImage defPoster,
-			AniDB_Anime_DefaultImage defFanart, AniDB_Anime_DefaultImage defWideBanner, List<AniDB_Anime_Title> titles,bool forceimages=false)
+			AniDB_Anime_DefaultImage defFanart, AniDB_Anime_DefaultImage defWideBanner, List<AniDB_Anime_Title> titles, MovieDB_Movie movie, bool forceimages=false)
 		{
 			Contract_AnimeSeries contract = new Contract_AnimeSeries();
 
@@ -498,10 +526,12 @@ namespace JMMServer.Entities
 				contract.TvDB_Series.Add(ser.ToContract());
 
 			contract.CrossRefAniDBMovieDB = null;
-			if (movieDBCrossRef != null)
-				contract.CrossRefAniDBMovieDB = movieDBCrossRef.ToContract();
-
-			contract.CrossRefAniDBMAL = new List<Contract_CrossRef_AniDB_MAL>();
+		    if (movieDBCrossRef != null)
+		    {
+		        contract.CrossRefAniDBMovieDB = movieDBCrossRef.ToContract();
+		        contract.MovieDB_Movie = movie.ToContract();
+		    }
+		    contract.CrossRefAniDBMAL = new List<Contract_CrossRef_AniDB_MAL>();
 			if (malDBCrossRef != null)
 			{
 				foreach (CrossRef_AniDB_MAL xref in malDBCrossRef)

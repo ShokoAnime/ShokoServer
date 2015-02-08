@@ -12,8 +12,8 @@ namespace JMMFileHelper
 {
 	public class Hasher
 	{
-		private static Logger logger = LogManager.GetCurrentClassLogger();
-		public delegate int OnHashProgress([MarshalAs(UnmanagedType.LPStr)]string strFileName, int nProgressPct);
+		public static Logger logger = LogManager.GetCurrentClassLogger();
+		public delegate int OnHashProgress([MarshalAs(UnmanagedType.LPTStr)]string strFileName, int nProgressPct);
 
         [System.Flags]
         internal enum LoadLibraryFlags : uint
@@ -62,9 +62,9 @@ namespace JMMFileHelper
 	    }
 
 		#region DLL functions
-        [DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        [DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Auto)]
 		private static extern int CalculateHashes_callback_dll(
-			[MarshalAs(UnmanagedType.LPStr)] string szFileName,
+			[MarshalAs(UnmanagedType.LPTStr)] string szFileName,
 			[MarshalAs(UnmanagedType.LPArray)] byte[] hash,
 			[MarshalAs(UnmanagedType.FunctionPtr)] OnHashProgress lpHashProgressFunc,
 			[MarshalAs(UnmanagedType.Bool)] bool getCRC32,

@@ -1069,8 +1069,21 @@ namespace JMMServer
 				UpdateSetting("Hash_MD5", value.ToString());
 			}
 		}
-
-		public static bool Hash_SHA1
+        public static bool ExperimentalUPnP
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                bool bval = false;
+                bool.TryParse(appSettings["ExperimentalUPnP"], out bval);
+                return bval;
+            }
+            set
+            {
+                UpdateSetting("ExperimentalUPnP", value.ToString());
+            }
+        }
+        public static bool Hash_SHA1
 		{
 			get
 			{
