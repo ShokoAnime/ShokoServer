@@ -2312,8 +2312,10 @@ namespace JMMServer
 	    {
             hostFile = new FileServer.FileServer(int.Parse(ServerSettings.JMMServerFilePort));
             hostFile.Start();
+	        if (ServerSettings.ExperimentalUPnP)
+	            FileServer.FileServer.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerFilePort));
 //                new MessagingServer(new ServiceFactory(), new MessagingServerConfiguration(new HttpMessageFactory()));
- //           hostFile.Start(new IPEndPoint(IPAddress.Any, int.Parse(ServerSettings.JMMServerFilePort)));
+	        //           hostFile.Start(new IPEndPoint(IPAddress.Any, int.Parse(ServerSettings.JMMServerFilePort)));
 	    }
 	    private static void StartRESTHost()
 		{

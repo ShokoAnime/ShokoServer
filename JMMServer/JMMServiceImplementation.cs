@@ -1126,12 +1126,15 @@ namespace JMMServer
 				List<CrossRef_AniDB_TvDBV2> xrefs = ser.GetCrossRefTvDBV2();
 				List<CrossRef_AniDB_MAL> xrefMAL = ser.CrossRefMAL;
 
-				List<TvDB_Series> sers = new List<TvDB_Series>();
+                List<TvDB_Series> sers = new List<TvDB_Series>();
 				foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
 					sers.Add(xref.GetTvDBSeries());
-
-				contractout.AnimeSeries = ser.ToContract(anime, xrefs, ser.CrossRefMovieDB,
-					ser.GetUserRecord(userID), sers, xrefMAL, false, null, null, null, null);
+                CrossRef_AniDB_Other xrefMovie = ser.CrossRefMovieDB;
+                MovieDB_Movie movie=null;
+			    if (xrefMovie != null)
+			        movie = xrefMovie.GetMovieDB_Movie();
+                contractout.AnimeSeries = ser.ToContract(anime, xrefs, xrefMovie,
+				ser.GetUserRecord(userID), sers, xrefMAL, false, null, null, null, null,movie);
 
 				return contractout;
 			}
@@ -1216,9 +1219,12 @@ namespace JMMServer
 				List<TvDB_Series> sers = new List<TvDB_Series>();
 				foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
 					sers.Add(xref.GetTvDBSeries());
-
-				contractout.AnimeSeries = ser.ToContract(anime, xrefs, ser.CrossRefMovieDB, ser.GetUserRecord(userID),
-					sers, xrefMAL, false, null, null, null, null);
+                CrossRef_AniDB_Other xrefMovie = ser.CrossRefMovieDB;
+                MovieDB_Movie movie = null;
+                if (xrefMovie != null)
+                    movie = xrefMovie.GetMovieDB_Movie();
+                contractout.AnimeSeries = ser.ToContract(anime, xrefs, ser.CrossRefMovieDB, ser.GetUserRecord(userID),
+					sers, xrefMAL, false, null, null, null, null,movie);
 
 				return contractout;
 			}
@@ -1701,9 +1707,12 @@ namespace JMMServer
 					List<TvDB_Series> sers = new List<TvDB_Series>();
 					foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
 						sers.Add(xref.GetTvDBSeries());
-
-					response.AnimeSeries = ser.ToContract(anime, xrefs, ser.CrossRefMovieDB, ser.GetUserRecord(userID),
-						sers, xrefMAL, false, null, null, null, null);
+                    CrossRef_AniDB_Other xrefMovie = ser.CrossRefMovieDB;
+                    MovieDB_Movie movie = null;
+                    if (xrefMovie != null)
+                        movie = xrefMovie.GetMovieDB_Movie();
+                    response.AnimeSeries = ser.ToContract(anime, xrefs, xrefMovie, ser.GetUserRecord(userID),
+						sers, xrefMAL, false, null, null, null, null,movie);
 					return response;
 				}
 			}
@@ -2626,7 +2635,11 @@ namespace JMMServer
 					if (dictMALCrossRefs.ContainsKey(aser.AniDB_ID))
 						xrefMAL = dictMALCrossRefs[aser.AniDB_ID];
 
-					AnimeSeries_User userRec = null;
+                    MovieDB_Movie movie = null;
+                    if (xrefMovie != null)
+                        movie = xrefMovie.GetMovieDB_Movie();
+
+                    AnimeSeries_User userRec = null;
 					if (dictUserRecords.ContainsKey(aser.AnimeSeriesID))
 						userRec = dictUserRecords[aser.AnimeSeriesID];
 
@@ -2642,7 +2655,7 @@ namespace JMMServer
 					if (dictDefaultsFanart.ContainsKey(aser.AniDB_ID)) defFanart = dictDefaultsFanart[aser.AniDB_ID];
 					if (dictDefaultsWideBanner.ContainsKey(aser.AniDB_ID)) defWideBanner = dictDefaultsWideBanner[aser.AniDB_ID];
 
-					seriesContractList.Add(aser.ToContract(dictAnimes[aser.AniDB_ID], xrefs, xrefMovie, userRec, tvseriesV2, xrefMAL, true, defPoster, defFanart, defWideBanner, titles));
+					seriesContractList.Add(aser.ToContract(dictAnimes[aser.AniDB_ID], xrefs, xrefMovie, userRec, tvseriesV2, xrefMAL, true, defPoster, defFanart, defWideBanner, titles, movie));
 				}
 
 				ts = DateTime.Now - start;
@@ -2971,9 +2984,12 @@ namespace JMMServer
 				List<TvDB_Series> sers = new List<TvDB_Series>();
 				foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
 					sers.Add(xref.GetTvDBSeries());
-
-				return series.ToContract(anime, xrefs, series.CrossRefMovieDB, series.GetUserRecord(userID),
-					sers, xrefMAL, false, null, null, null, null);
+                CrossRef_AniDB_Other xrefMovie = series.CrossRefMovieDB;
+                MovieDB_Movie movie = null;
+                if (xrefMovie != null)
+                    movie = xrefMovie.GetMovieDB_Movie();
+                return series.ToContract(anime, xrefs, xrefMovie, series.GetUserRecord(userID),
+					sers, xrefMAL, false, null, null, null, null,movie);
 			}
 			catch (Exception ex)
 			{
@@ -3001,9 +3017,12 @@ namespace JMMServer
 				List<TvDB_Series> sers = new List<TvDB_Series>();
 				foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
 					sers.Add(xref.GetTvDBSeries());
-
-				return series.ToContract(anime, xrefs, series.CrossRefMovieDB, series.GetUserRecord(userID),
-					sers, xrefMAL, false, null, null, null, null);
+                CrossRef_AniDB_Other xrefMovie = series.CrossRefMovieDB;
+                MovieDB_Movie movie = null;
+                if (xrefMovie != null)
+                    movie = xrefMovie.GetMovieDB_Movie();
+                return series.ToContract(anime, xrefs, xrefMovie, series.GetUserRecord(userID),
+					sers, xrefMAL, false, null, null, null, null, movie);
 			}
 			catch (Exception ex)
 			{
@@ -7098,9 +7117,11 @@ namespace JMMServer
 					List<TvDB_Series> sers = new List<TvDB_Series>();
 					foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
 						sers.Add(xref.GetTvDBSeries());
-
-					seriesContractList.Add(aser.ToContract(dictAnimes[aser.AniDB_ID], xrefs, xrefMovie, userRec,
-						sers, xrefMAL, false, null, null, null, null));
+                    MovieDB_Movie movie = null;
+                    if (xrefMovie != null)
+                        movie = xrefMovie.GetMovieDB_Movie();
+                    seriesContractList.Add(aser.ToContract(dictAnimes[aser.AniDB_ID], xrefs, xrefMovie, userRec,
+						sers, xrefMAL, false, null, null, null, null,movie));
 
 					if (i == maxRecords) break;
 

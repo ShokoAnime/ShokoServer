@@ -914,7 +914,16 @@ namespace JMMServer
 
 			
 		}
+        		
+        public static void SetTvDBInfo(int anidbid, AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
+		{
+            TvDBSummary tvSummary = new TvDBSummary();
+            tvSummary.Populate(anidbid);
 
+            SetTvDBInfo(tvSummary, ep, ref contract);
+
+			
+		}
         public static void SetTvDBInfo(TvDBSummary tvSummary,	AniDB_Episode ep, ref MetroContract_Anime_Episode contract)
 		{
             #region episode override

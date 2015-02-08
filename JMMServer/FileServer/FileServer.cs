@@ -4,12 +4,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using JMMFileHelper.Subtitles;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using NLog;
+using UPnP;
 
 namespace JMMServer.FileServer
 {
@@ -20,6 +22,8 @@ namespace JMMServer.FileServer
 
         private void Run()
         {
+
+
             Task.Factory.StartNew(() => {
                 while (_listener.IsListening)
                 {
@@ -80,6 +84,62 @@ namespace JMMServer.FileServer
             RunNetSh("advfirewall firewall delete rule name=\"JMM Server - File Port\"");
             RunNetSh("advfirewall firewall add rule name=\"JMM Server - Client Port\" dir=in action=allow protocol=TCP localport=" + jmmport);
             RunNetSh("advfirewall firewall add rule name=\"JMM Server - File Port\" dir=in action=allow protocol=TCP localport=" + jmmfileport);
+        }
+
+        public static bool UPnPJMMFilePort(int jmmfileport)
+        {
+
+            try
+            {
+                if (NAT.Discover())
+                {
+                    NAT.ForwardPort(jmmfileport, ProtocolType.Tcp, "JMM File Port");
+                    UPnPPortAvailable = true;
+                }
+                else
+                    UPnPPortAvailable = false;
+            }
+            catch (Exception)
+            {
+                UPnPPortAvailable = false;
+            }
+
+            return UPnPPortAvailable;
+        }
+
+        public static bool UPnPPortAvailable { get; private set; }
+        private static IPAddress CachedAddress;
+        private static DateTime LastChange = DateTime.MinValue;
+        private static bool IPThreadLock;
+        private static bool IPFirstTime;
+        public static IPAddress GetExternalAddress()
+        {
+            try
+            {
+                if (LastChange < DateTime.Now)
+                {
+                    if (IPFirstTime)
+                    {
+                        IPFirstTime = false;
+                        CachedAddress = NAT.GetExternalIP();
+                    }
+                    else if (!IPThreadLock)
+                    {
+                        IPThreadLock = true;
+                        LastChange = DateTime.Now.AddMinutes(2);
+                        ThreadPool.QueueUserWorkItem((a) =>
+                        {
+                            CachedAddress = NAT.GetExternalIP();
+                            IPThreadLock = false;
+                        });
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            return CachedAddress;
         }
 
         public static string Base64DecodeUrl(string base64EncodedData)
