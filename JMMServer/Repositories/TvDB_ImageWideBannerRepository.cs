@@ -48,17 +48,23 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public List<TvDB_ImageWideBanner> GetBySeriesID(int seriesID)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				var objs = session
-					.CreateCriteria(typeof(TvDB_ImageWideBanner))
-					.Add(Restrictions.Eq("SeriesID", seriesID))
-					.List<TvDB_ImageWideBanner>();
+        public List<TvDB_ImageWideBanner> GetBySeriesID(int seriesID)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return GetBySeriesID(session, seriesID);
+            }
+        }
 
-				return new List<TvDB_ImageWideBanner>(objs);
-			}
+        public List<TvDB_ImageWideBanner> GetBySeriesID(ISession session, int seriesID)
+		{
+
+			var objs = session
+				.CreateCriteria(typeof(TvDB_ImageWideBanner))
+				.Add(Restrictions.Eq("SeriesID", seriesID))
+				.List<TvDB_ImageWideBanner>();
+
+			return new List<TvDB_ImageWideBanner>(objs);
 		}
 
 		public List<TvDB_ImageWideBanner> GetAll()

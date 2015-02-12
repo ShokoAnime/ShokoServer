@@ -21,6 +21,8 @@ namespace JMMServer.Providers.Azure
 		public int IsAdminApproved { get; set; }
 		public long DateSubmitted { get; set; }
 
+        public int? CrossRef_AniDB_TvDBId { get; set; }
+
 		public CrossRef_AniDB_TvDB()
 		{
 		}
@@ -41,6 +43,8 @@ namespace JMMServer.Providers.Azure
 			ret.Username = Username;
 			ret.IsAdminApproved = IsAdminApproved;
 			ret.DateSubmitted = DateSubmitted;
+
+            ret.CrossRef_AniDB_TvDBId = CrossRef_AniDB_TvDBId;
 
 			return ret;
 		}

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace JMMContracts
 {
-	public class Contract_GroupFileSummary
+    public class Contract_GroupFileSummary : IComparable<Contract_GroupFileSummary>
 	{
 		public string GroupName { get; set; }
 		public string GroupNameShort { get; set; }
@@ -19,6 +19,11 @@ namespace JMMContracts
 
 		public List<int> NormalEpisodeNumbers { get; set; }
 		public string NormalEpisodeNumberSummary { get; set; }
+
+        public int CompareTo(Contract_GroupFileSummary obj)
+        {
+            return GroupNameShort.CompareTo(obj.GroupNameShort);
+        }
 
 		public override string ToString()
 		{

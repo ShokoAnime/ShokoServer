@@ -12,8 +12,8 @@ namespace JMMFileHelper
 {
 	public class Hasher
 	{
-		private static Logger logger = LogManager.GetCurrentClassLogger();
-		public delegate int OnHashProgress([MarshalAs(UnmanagedType.LPStr)]string strFileName, int nProgressPct);
+		public static Logger logger = LogManager.GetCurrentClassLogger();
+		public delegate int OnHashProgress([MarshalAs(UnmanagedType.LPTStr)]string strFileName, int nProgressPct);
 
         [System.Flags]
         internal enum LoadLibraryFlags : uint
@@ -62,9 +62,9 @@ namespace JMMFileHelper
 	    }
 
 		#region DLL functions
-        [DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        [DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Auto)]
 		private static extern int CalculateHashes_callback_dll(
-			[MarshalAs(UnmanagedType.LPStr)] string szFileName,
+			[MarshalAs(UnmanagedType.LPTStr)] string szFileName,
 			[MarshalAs(UnmanagedType.LPArray)] byte[] hash,
 			[MarshalAs(UnmanagedType.FunctionPtr)] OnHashProgress lpHashProgressFunc,
 			[MarshalAs(UnmanagedType.Bool)] bool getCRC32,
@@ -118,15 +118,26 @@ namespace JMMFileHelper
 
                 // Disable other hashing as it is currently broken when using the DLL
 
-                if (CalculateHashes_dll(strPath, ref hash, onHashProgress, false, false, false))
-				{
-                    rhash.ed2k = HashToString(hash, 0, 16);
-					//if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
-					//if (getMD5) rhash.md5 = HashToString(hash, 20, 16);
-					//if (getSHA1) rhash.sha1 = HashToString(hash, 36, 20);
-				}
-				else
-				{
+                bool gotHash = false;
+                try
+                {
+                    if (CalculateHashes_dll(strPath, ref hash, onHashProgress, false, false, false))
+                    {
+                        rhash.ed2k = HashToString(hash, 0, 16);
+                        if (!string.IsNullOrEmpty(rhash.ed2k)) gotHash = true;
+
+                        //if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
+                        //if (getMD5) rhash.md5 = HashToString(hash, 20, 16);
+                        //if (getSHA1) rhash.sha1 = HashToString(hash, 36, 20);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.ErrorException(ex.ToString(), ex);
+                }
+				
+                if (!gotHash)
+                {
                     logger.Error("Error using DLL to get hash (Functon returned FALSE), trying C# code instead: {0}", strPath);
                     return CalculateHashes_here(strPath, onHashProgress, getED2k, getCRC32, getMD5, getSHA1);
 				}

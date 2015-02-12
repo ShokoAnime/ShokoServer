@@ -57,8 +57,6 @@ namespace JMMServer.Commands
 			
 			try
 			{
-				if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
-
 				AzureWebAPI.Delete_CrossRefAniDBTvDB(AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber);
 			}
 			catch (Exception ex)

@@ -7,6 +7,7 @@ using System.IO;
 using NLog;
 using System.Web;
 using JMMServer.Entities;
+using JMMServer.Repositories;
 
 namespace JMMServer.Providers.Azure
 {
@@ -426,11 +427,27 @@ namespace JMMServer.Providers.Azure
 
         #endregion
 
+        #region User Info
+
+        public static void Send_UserInfo()
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            UserInfo uinfo = GetUserInfoData();
+            if (uinfo == null) return;
+
+            string uri = string.Format(@"http://{0}/api/userinfo", azureHostBaseAddress);
+            string json = JSONHelper.Serialize<UserInfo>(uinfo);
+            SendData(uri, json, "POST");
+        }
+
+        #endregion
+
         #region Helpers
 
-        private static void SendData(string uri, string json, string verb)
+        private static string SendData(string uri, string json, string verb)
 		{
-
+            string ret = string.Empty;
 			WebRequest req = null;
 			WebResponse rsp = null;
 			try
@@ -460,6 +477,20 @@ namespace JMMServer.Providers.Azure
 			}
 			catch (WebException webEx)
 			{
+                if (webEx.Status == WebExceptionStatus.ProtocolError)
+                {
+                    var response = webEx.Response as HttpWebResponse;
+                    if (response != null)
+                    {
+                        Console.WriteLine("HTTP Status Code: " + (int)response.StatusCode);
+                        ret = response.StatusCode.ToString();
+                    }
+                    else
+                    {
+                        // no http status code available
+                    }
+                }
+
 				logger.Error("Error(1) in XMLServiceQueue.SendData: {0}", webEx);
 			}
 			catch (Exception ex)
@@ -471,6 +502,8 @@ namespace JMMServer.Providers.Azure
 				if (req != null) req.GetRequestStream().Close();
 				if (rsp != null) rsp.GetResponseStream().Close();
 			}
+
+            return ret;
 		}
 
 		private static string GetDataJson(string uri)
@@ -599,6 +632,131 @@ namespace JMMServer.Providers.Azure
 			}
 
 			return "";
+        }
+
+        public static UserInfo GetUserInfoData(string dashType = "", string vidPlayer = "")
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(ServerSettings.AniDB_Username)) return null;
+
+                UserInfo uinfo = new UserInfo();
+
+                uinfo.DateTimeUpdated = DateTime.Now;
+                uinfo.DateTimeUpdatedUTC = 0;
+
+                // Optional JMM Desktop data
+                uinfo.DashboardType = null;
+                uinfo.VideoPlayer = vidPlayer;
+
+                System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+                try
+                {
+                    if (a != null) uinfo.JMMServerVersion = Utils.GetApplicationVersion(a);
+                }
+                catch {}
+
+                uinfo.UsernameHash = Utils.GetMd5Hash(ServerSettings.AniDB_Username);
+                uinfo.DatabaseType = ServerSettings.DatabaseType;
+                uinfo.WindowsVersion = Utils.GetOSInfo();
+                uinfo.MALEnabled = string.IsNullOrEmpty(ServerSettings.Trakt_Username) ? 0 : 1;
+                uinfo.TraktEnabled = string.IsNullOrEmpty(ServerSettings.MAL_Username) ? 0 : 1;
+
+                uinfo.CountryLocation = "";
+                
+                // this field is not actually used
+                uinfo.LastEpisodeWatchedAsDate = DateTime.Now.AddDays(-5);
+
+                JMMUserRepository repUsers = new JMMUserRepository();
+                uinfo.LocalUserCount = (int)(repUsers.GetTotalRecordCount());
+
+                VideoLocalRepository repVids = new VideoLocalRepository();
+                uinfo.FileCount = repVids.GetTotalRecordCount();
+
+                AnimeEpisode_UserRepository repEps = new AnimeEpisode_UserRepository();
+                List<AnimeEpisode_User> recs = repEps.GetLastWatchedEpisode();
+                uinfo.LastEpisodeWatched = 0;
+                if (recs.Count > 0)
+                    uinfo.LastEpisodeWatched = Utils.GetAniDBDateAsSeconds(recs[0].WatchedDate);
+
+                return uinfo;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
+
+        #endregion
+
+        #region Admin
+
+
+        public static List<CrossRef_AniDB_TvDB> Admin_Get_CrossRefAniDBTvDB(int animeID)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}", azureHostBaseAddress, animeID, username, ServerSettings.WebCacheAuthKey);
+            string msg = string.Format("Getting AniDB/TvDB Cross Ref From Cache: {0}", animeID);
+          
+            string json = GetDataJson(uri);
+
+            List<CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_TvDB>>(json);
+
+            return xrefs;
+        }
+
+        public static string Admin_Approve_CrossRefAniDBTvDB(int crossRef_AniDB_TvDBId)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}", azureHostBaseAddress, crossRef_AniDB_TvDBId, username, ServerSettings.WebCacheAuthKey);
+            string json = string.Empty;
+
+            return SendData(uri, json, "POST");
+        }
+
+        public static string Admin_Revoke_CrossRefAniDBTvDB(int crossRef_AniDB_TvDBId)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}", azureHostBaseAddress, crossRef_AniDB_TvDBId, username, ServerSettings.WebCacheAuthKey);
+            string json = string.Empty;
+
+            return SendData(uri, json, "PUT");
+        }
+
+        public static string Admin_AuthUser()
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, ServerSettings.WebCacheAuthKey);
+            //string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, "");
+            string json = string.Empty;
+
+            return SendData(uri, json, "POST");
+        }
+
+        public static Azure_AnimeLink Admin_GetRandomLinkForApproval(AzureLinkType linkType)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}&p3=dummy", azureHostBaseAddress, (int)linkType, username, ServerSettings.WebCacheAuthKey);
+            string json = GetDataJson(uri);
+
+            return JSONHelper.Deserialize<Azure_AnimeLink>(json);
         }
 
         #endregion

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
+using JMMContracts.PlexContracts;
 
 namespace JMMContracts.PlexContracts
 {
@@ -12,11 +13,10 @@ namespace JMMContracts.PlexContracts
     [Serializable]
     public class MediaContainer
     {
-        [XmlElement("Video")]
-        public List<Video> Videos { get; set; }
 
-        [XmlElement("Directory")]
-        public List<Video> Directories { get; set; }
+        [XmlElement(typeof(Video), ElementName = "Video")]
+        [XmlElement(typeof(Directory), ElementName = "Directory")]
+        public List<Video> Childrens { get; set; }
 
         [XmlAttribute("viewGroup")]
         public string ViewGroup { get; set; }
@@ -60,9 +60,20 @@ namespace JMMContracts.PlexContracts
         [XmlAttribute("offset")]
         public string Offset { get; set; }
 
+        [XmlAttribute("librarySectionUUID")]
+        public string LibrarySectionUUID { get; set; }
+
+        [XmlAttribute("librarySectionTitle")]
+        public string LibrarySectionTitle { get; set; }
+
+        [XmlAttribute("librarySectionID")]
+        public string LibrarySectionID { get; set; }
 
     }
-  
+
+    [XmlRoot(ElementName = "Directory")]
+    public class Directory : Video { }
+
     [XmlType("Video")]
     [Serializable]
     public class Video
@@ -79,6 +90,12 @@ namespace JMMContracts.PlexContracts
         [XmlElement("Role")]
         public List<Tag> Roles { get; set; }
 
+        [XmlElement("Extras")]
+        public Extras Extras { get; set; }
+        
+        [XmlElement("Related")]
+        public List<Hub> Related { get; set; }
+
         [XmlElement("Tag")]
         public List<Tag> Tags { get; set; }
 
@@ -93,12 +110,35 @@ namespace JMMContracts.PlexContracts
         [XmlAttribute("thumb")]
         public string Thumb { get; set; }
 
+        [XmlAttribute("parentThumb")]
+        public string ParentThumb { get; set; }
+
+
+        [XmlAttribute("grandparentThumb")]
+        public string GrandparentThumb { get; set; }
 
         [XmlAttribute("ratingKey")]
         public string RatingKey { get; set; }
 
+        [XmlAttribute("parentRatingkey")]
+        public string ParentRatingKey { get; set; }
+
+        [XmlAttribute("grandparentRatingKey")]
+        public string GrandparentRatingKey { get; set; }
+
         [XmlAttribute("key")]
         public string Key { get; set; }
+
+        [XmlAttribute("parentKey")]
+        public string ParentKey { get; set; }
+        [XmlAttribute("grandparentKey")]
+        public string GrandparentKey { get; set; }
+
+        [XmlAttribute("index")]
+        public string Index { get; set; }
+
+        [XmlAttribute("parentIndex")]
+        public string ParentIndex { get; set; }
 
         [XmlAttribute("guid")]
         public string Guid { get; set; }
@@ -108,6 +148,13 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("title")]
         public string Title { get; set; }
+
+        [XmlAttribute("parentTitle")]
+        public string ParentTitle { get; set; }
+
+        [XmlAttribute("grandparentTitle")]
+        public string GrandparentTitle { get; set; }
+
 
         [XmlAttribute("summary")]
         public string Summary { get; set; }
@@ -155,6 +202,24 @@ namespace JMMContracts.PlexContracts
         public string ViewCount { get; set; }
         [XmlAttribute("viewOffset")]
         public string ViewOffset { get; set; }
+
+        [XmlAttribute("primaryExtraKey")]
+        public string PrimaryExtraKey { get; set; }
+
+        [XmlAttribute("chapterSource")]
+        public string ChapterSource { get; set; }
+
+        [XmlAttribute("tagline")]
+        public string Tagline { get; set; }
+
+        [XmlAttribute("contentRating")]
+        public string ContentRating { get; set; }
+
+        [XmlAttribute("studio")]
+        public string Studio { get; set; }
+
+        [XmlAttribute("extraType")]
+        public string ExtraType { get; set; }
     }
 
     [Serializable]
@@ -168,8 +233,6 @@ namespace JMMContracts.PlexContracts
     [Serializable]
     public class Media
     {
-
-
 
         [XmlElement("Part")]
         public List<Part> Parts { get; set; }
@@ -399,6 +462,41 @@ namespace JMMContracts.PlexContracts
     {
         [XmlElement("User")]
         public List<PlexContract_User> Users { get; set; }
+    }
+
+    [XmlType("Extras")]
+    public class Extras
+    {
+        [XmlAttribute("size")]
+        public string Size { get; set; }
+
+        [XmlElement("Video")]
+        public List<Video> Videos { get; set; }
+    }
+
+    [XmlType("Hub")]
+    public class Hub
+    {
+        [XmlAttribute("key")]
+        public string Key { get; set; }
+
+        [XmlAttribute("type")]
+        public string Type { get; set; }
+
+        [XmlAttribute("hubIdentifier")]
+        public string HubIdentifier { get; set; }
+
+        [XmlAttribute("size")]
+        public string Size { get; set; }
+
+        [XmlAttribute("title")]
+        public string Title { get; set; }
+
+
+        [XmlAttribute("more")]
+        public string More { get; set; }
+
+
     }
     public enum JMMType
     {

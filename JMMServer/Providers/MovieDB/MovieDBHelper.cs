@@ -58,46 +58,67 @@ namespace JMMServer.Providers.MovieDB
 			int numFanartDownloaded = 0;
 			int numPostersDownloaded = 0;
 
-			foreach (MovieDB_Image_Result img in searchResult.Images)
-			{
-				if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
-				{
-					MovieDB_Poster poster = repPosters.GetByOnlineID(session, img.URL);
-					if (poster == null) poster = new MovieDB_Poster();
-					poster.Populate(img, movie.MovieId);
-					repPosters.Save(session, poster);
+            // save data to the DB and determine the number of images we already have
+            foreach (MovieDB_Image_Result img in searchResult.Images)
+            {
+                if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    MovieDB_Poster poster = repPosters.GetByOnlineID(session, img.URL);
+                    if (poster == null) poster = new MovieDB_Poster();
+                    poster.Populate(img, movie.MovieId);
+                    repPosters.Save(session, poster);
 
-					if (ServerSettings.MovieDB_AutoPosters && numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
-					{
-						// download the image
-						if (!string.IsNullOrEmpty(poster.FullImagePath) && !File.Exists(poster.FullImagePath))
-						{
-							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
-							cmd.Save(session);
-							numPostersDownloaded++;
-						}
-					}
-				}
-				else
-				{
-					// fanart (backdrop)
-					MovieDB_Fanart fanart = repFanart.GetByOnlineID(session, img.URL);
-					if (fanart == null) fanart = new MovieDB_Fanart();
-					fanart.Populate(img, movie.MovieId);
-					repFanart.Save(session, fanart);
+                    if (!string.IsNullOrEmpty(poster.FullImagePath) && File.Exists(poster.FullImagePath))
+                        numPostersDownloaded++;
+                }
+                else
+                {
+                    // fanart (backdrop)
+                    MovieDB_Fanart fanart = repFanart.GetByOnlineID(session, img.URL);
+                    if (fanart == null) fanart = new MovieDB_Fanart();
+                    fanart.Populate(img, movie.MovieId);
+                    repFanart.Save(session, fanart);
 
-					if (ServerSettings.MovieDB_AutoFanart && numFanartDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
-					{
-						// download the image
-						if (!string.IsNullOrEmpty(fanart.FullImagePath) && !File.Exists(fanart.FullImagePath))
-						{
-							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
-							cmd.Save(session);
-							numFanartDownloaded++;
-						}
-					}
-				}
-			}
+                    if (!string.IsNullOrEmpty(fanart.FullImagePath) && File.Exists(fanart.FullImagePath))
+                        numFanartDownloaded++;
+                        
+                }
+            }
+
+            // download the posters
+            if (ServerSettings.MovieDB_AutoPosters)
+            {
+                foreach (MovieDB_Poster poster in repPosters.GetByMovieID(session, movie.MovieId))
+                {
+                    if (numPostersDownloaded >= ServerSettings.MovieDB_AutoPostersAmount) break;
+
+                    // download the image
+                    if (!string.IsNullOrEmpty(poster.FullImagePath) && !File.Exists(poster.FullImagePath))
+                    {
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
+                        cmd.Save(session);
+                        numPostersDownloaded++;
+                    }
+                }
+            }
+
+            // download the fanart
+            if (ServerSettings.MovieDB_AutoFanart)
+            {
+                foreach (MovieDB_Fanart fanart in repFanart.GetByMovieID(session, movie.MovieId))
+                {
+                    if (numFanartDownloaded >= ServerSettings.MovieDB_AutoFanartAmount) break;
+
+                    // download the image
+                    if (!string.IsNullOrEmpty(fanart.FullImagePath) && !File.Exists(fanart.FullImagePath))
+                    {
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
+						cmd.Save(session);
+						numFanartDownloaded++;
+                    }
+                }
+            }
+
 		}
 
 		public static List<MovieDB_Movie_Result> Search(string criteria)

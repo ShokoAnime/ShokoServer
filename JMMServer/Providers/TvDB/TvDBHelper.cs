@@ -393,6 +393,34 @@ namespace JMMServer.Providers.TvDB
 			int numPostersDownloaded = 0;
 			int numBannersDownloaded = 0;
 
+            // find out how many images we already have locally
+            TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
+            TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
+            TvDB_ImageWideBannerRepository repBanners = new TvDB_ImageWideBannerRepository();
+
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                foreach (TvDB_ImageFanart fanart in repFanart.GetBySeriesID(session, seriesID))
+                {
+                    if (!string.IsNullOrEmpty(fanart.FullImagePath) && File.Exists(fanart.FullImagePath))
+                        numFanartDownloaded++;
+                }
+
+                foreach (TvDB_ImagePoster poster in repPosters.GetBySeriesID(session, seriesID))
+                {
+                    if (!string.IsNullOrEmpty(poster.FullImagePath) && File.Exists(poster.FullImagePath))
+                        numPostersDownloaded++;
+                }
+
+                foreach (TvDB_ImageWideBanner banner in repBanners.GetBySeriesID(session, seriesID))
+                {
+                    if (!string.IsNullOrEmpty(banner.FullImagePath) && File.Exists(banner.FullImagePath))
+                        numBannersDownloaded++;
+                }
+            }
+            
+
+
 			foreach (object obj in banners)
 			{
 				if (obj.GetType() == typeof(TvDB_ImageFanart))
@@ -1021,90 +1049,6 @@ namespace JMMServer.Providers.TvDB
 			}
 		}
 
-		/*public static void RemoveEpisodeAssociation(int aniDB_EpisodeID)
-		{
-			CrossRef_Episode_AniDB_TvDB xref = new CrossRef_Episode_AniDB_TvDB();
-			if (xref.Load(aniDB_EpisodeID))
-			{
-				xref.Delete();
-			}
-		}
-
-		public static TvDB_Episode PromptForEpisode(int tvDBID, AniDB_Episode aniep)
-		{
-			// get all the seasons for this episode
-			try
-			{
-				Dictionary<int, int> seasons = new Dictionary<int, int>();
-				List<int> seasonNumbers = new List<int>();
-				List<string[]> info = TvDB_Episode.GetFromTvDBID(tvDBID);
-				if (info.Count == 0)
-				{
-					GUIDialogOK dlgOK = (GUIDialogOK)GUIWindowManager.GetWindow((int)GUIWindow.Window.WINDOW_DIALOG_OK);
-					if (null == dlgOK)
-						return null;
-					dlgOK.SetHeading("Error");
-					dlgOK.SetLine(1, string.Empty);
-					dlgOK.SetLine(2, "No series found");
-					dlgOK.DoModal(GUIWindowManager.ActiveWindow);
-					return null;
-				}
-
-				IDialogbox dlg2 = (IDialogbox)GUIWindowManager.GetWindow((int)GUIWindow.Window.WINDOW_DIALOG_MENU);
-				dlg2.Reset();
-				dlg2.SetHeading("Select Season");
-				GUIListItem pItem2 = null;
-
-				for (int i = 0; i < info.Count; i++)
-				{
-					int id = int.Parse(info[i][0]);
-					int season = int.Parse(info[i][1]);
-					seasons[id] = season;
-					seasonNumbers.Add(season);
-
-					pItem2 = new GUIListItem(string.Format("Season {0}", season.ToString()));
-					dlg2.Add(pItem2);
-				}
-
-				dlg2.DoModal(GUIWindowManager.ActiveWindow);
-
-				if (dlg2.SelectedId > 0)
-				{
-					int season = seasonNumbers[dlg2.SelectedId - 1];
-					List<TvDB_Episode> eps = TvDB_Episode.GetEpisodesForSeason(tvDBID, season);
-
-					IDialogbox dlg3 = (IDialogbox)GUIWindowManager.GetWindow((int)GUIWindow.Window.WINDOW_DIALOG_MENU);
-					dlg3.Reset();
-					dlg3.SetHeading(string.Format("{0} - {1}", aniep.EpisodeNumber, aniep.DefaultEpisodeName));
-					GUIListItem pItem3 = null;
-
-					foreach (TvDB_Episode ep in eps)
-					{
-						pItem3 = new GUIListItem(string.Format("Ep: {0} - {1}", ep.EpisodeNumber, ep.EpisodeName));
-						dlg3.Add(pItem3);
-					}
-					dlg3.DoModal(GUIWindowManager.ActiveWindow);
-					if (dlg3.SelectedId > 0)
-					{
-						TvDB_Episode selEp = eps[dlg3.SelectedId - 1];
-						CrossRef_Episode_AniDB_TvDB xref = new CrossRef_Episode_AniDB_TvDB();
-						if (!xref.Load(aniep.EpisodeID))
-						{
-							xref.AniDB_ID = aniep.EpisodeID;
-						}
-						xref.TvDB_ID = selEp.Id;
-						xref.Save();
-						XMLService.Send_CrossRef_Episode_AniDB_TvDB(xref);
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				BaseConfig.MyAnimeLog.Write("Error in PromptForEpisode: {0}", ex.ToString());
-				return null;
-			}
-
-			return null;
-		}*/
+		
 	}
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Xml;
 using System.Xml.Serialization;
 using JMMContracts.PlexContracts;
 using NLog;
@@ -10,9 +11,9 @@ using JMMContracts;
 
 namespace JMMFileHelper
 {
-	public class MediaInfoReader
-	{
-		private static Logger logger = LogManager.GetCurrentClassLogger();
+    public class MediaInfoReader
+    {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private static string XmlSerializeToString<T>(T objectInstance)
         {
@@ -28,9 +29,10 @@ namespace JMMFileHelper
             return sb.ToString();
         }
 
-		public static bool ReadMediaInfo(string fileNameFull, bool forceRefresh, ref MediaInfoResult info)
-		{
-			try
+        public static bool ReadMediaInfo(string fileNameFull, bool forceRefresh, ref MediaInfoResult info)
+
+        {
+            try
 			{
 
 				if (!forceRefresh)
@@ -41,6 +43,7 @@ namespace JMMFileHelper
 			    Media m = PlexMediaInfo.MediaConvert.Convert(fileNameFull);
 			    if (m != null)
 			    {
+
 			        string xml = XmlSerializeToString(m);
                     if (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
 			            info.VideoResolution = m.Width + "x" + m.Height;

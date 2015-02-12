@@ -10,6 +10,7 @@ using JMMContracts;
 using System.Diagnostics;
 using JMMServer.Providers.TraktTV;
 using System.Globalization;
+using JMMServer.Plex;
 using NHibernate;
 
 namespace JMMServer
@@ -123,7 +124,7 @@ namespace JMMServer
 	                cdic = new Dictionary<int, Video>();
 	                StatPlexGroupsCache[user.JMMUserID] = cdic;
 	            }
-	            cdic[grp.AnimeGroupID]=JMMServiceImplementationPlex.VideoFromAnimeGroup(session,grp,user.JMMUserID,allSeries);
+	            cdic[grp.AnimeGroupID]=PlexHelper.VideoFromAnimeGroup(session,grp,user.JMMUserID,allSeries);
 	        }
 	    }
 

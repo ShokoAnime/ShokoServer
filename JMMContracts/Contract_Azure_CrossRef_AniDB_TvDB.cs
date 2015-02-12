@@ -20,6 +20,8 @@ namespace JMMContracts
 		public int IsAdminApproved { get; set; }
 		public long DateSubmitted { get; set; }
 
+        public int? CrossRef_AniDB_TvDBId { get; set; }
+
 		public Contract_Azure_CrossRef_AniDB_TvDB()
 		{
 		}

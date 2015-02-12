@@ -125,6 +125,11 @@ namespace JMMServer.Commands
 					cr_CommandRequest_Azure_SendAnimeFull.LoadFromDBCommand(crdb);
 					return (ICommandRequest)cr_CommandRequest_Azure_SendAnimeFull;
 
+                case CommandRequestType.Azure_SendUserInfo:
+                    CommandRequest_Azure_SendUserInfo cr_CommandRequest_Azure_SendUserInfo = new CommandRequest_Azure_SendUserInfo();
+                    cr_CommandRequest_Azure_SendUserInfo.LoadFromDBCommand(crdb);
+                    return (ICommandRequest)cr_CommandRequest_Azure_SendUserInfo;
+
 				case CommandRequestType.AniDB_UpdateMylistStats:
 					CommandRequest_UpdateMylistStats cr_AniDB_UpdateMylistStats = new CommandRequest_UpdateMylistStats();
 					cr_AniDB_UpdateMylistStats.LoadFromDBCommand(crdb);

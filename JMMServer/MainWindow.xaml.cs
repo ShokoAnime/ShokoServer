@@ -62,7 +62,7 @@ namespace JMMServer
 		private static bool doneFirstTrakTinfo = false;
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 		private static DateTime lastTraktInfoUpdate = DateTime.Now;
-		private static DateTime lastVersionCheck = DateTime.Now.AddDays(-5);
+        private static DateTime lastVersionCheck = DateTime.Now;
 
 		private static BlockingList<FileSystemEventArgs> queueFileEvents = new BlockingList<FileSystemEventArgs>();
 		private static BackgroundWorker workerFileEvents = new BackgroundWorker();
@@ -106,6 +106,7 @@ namespace JMMServer
 
 		private static System.Timers.Timer autoUpdateTimer = null;
 		private static System.Timers.Timer autoUpdateTimerShort = null;
+        private System.Timers.Timer autoUpdateTimerLocal = null;
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12,0,0));
 		private static List<FileSystemWatcher> watcherVids = null;
 
@@ -814,6 +815,7 @@ namespace JMMServer
 
 				if (autoUpdateTimer != null) autoUpdateTimer.Enabled = false;
 				if (autoUpdateTimerShort != null) autoUpdateTimerShort.Enabled = false;
+                if (autoUpdateTimerLocal != null) autoUpdateTimerLocal.Enabled = false;
 
 				JMMService.CloseSessionFactory();
 
@@ -867,7 +869,7 @@ namespace JMMServer
 				// timer for automatic updates
 				autoUpdateTimer = new System.Timers.Timer();
 				autoUpdateTimer.AutoReset = true;
-				autoUpdateTimer.Interval = 5 * 60 * 1000; // 5 minutes * 60 seconds
+				autoUpdateTimer.Interval = 5 * 60 * 1000; // 5 * 60 seconds (5 minutes)
 				autoUpdateTimer.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimer_Elapsed);
 				autoUpdateTimer.Start();
 
@@ -877,6 +879,13 @@ namespace JMMServer
 				autoUpdateTimerShort.Interval = 5 * 1000; // 5 seconds, later we set it to 30 seconds
 				autoUpdateTimerShort.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimerShort_Elapsed);
 				autoUpdateTimerShort.Start();
+
+                // timer for automatic updates
+                autoUpdateTimerLocal = new System.Timers.Timer();
+                autoUpdateTimerLocal.AutoReset = true;
+                autoUpdateTimerLocal.Interval = 15 * 60 * 1000; // 15 * 60 seconds (15 minutes)
+                autoUpdateTimerLocal.Elapsed += autoUpdateTimerLocal_Elapsed;
+                autoUpdateTimerLocal.Start();
 
 				ServerState.Instance.CurrentSetupStatus = "Initializing File Watchers...";
 				StartWatchingFiles();
@@ -900,6 +909,17 @@ namespace JMMServer
 				e.Result = false;
 			}
 		}
+
+        void autoUpdateTimerLocal_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            TimeSpan ts = DateTime.Now - lastVersionCheck;
+            if (ts.TotalHours > 6)
+            {
+                logger.Trace("Checking for JMM Server updates...");
+                lastVersionCheck = DateTime.Now;
+                automaticUpdater.ForceCheckForUpdate(true);
+            }
+        }
 
 		#endregion
 
@@ -1363,6 +1383,8 @@ namespace JMMServer
 			AzureWebAPI.Send_CrossRefAniDBTvDB(xrefs[0], "Test");
             */
 
+            //Azure_AnimeLink aid = AzureWebAPI.Admin_GetRandomLinkForApproval(AzureLinkType.TvDB);
+
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();
@@ -1799,57 +1821,6 @@ namespace JMMServer
 
         }
 
-		private void CheckVersion()
-		{
-			try
-			{
-				TimeSpan ts = DateTime.Now - lastVersionCheck;
-				if (ts.TotalMinutes < 180) return;
-
-				lastVersionCheck = DateTime.Now;
-
-				ServerState.Instance.NewVersionAvailable = false;
-				ServerState.Instance.NewVersionDownloadLink = "";
-				ServerState.Instance.NewVersionNumber = "";
-
-				// check for new version
-				AppVersionsResult appv = XMLService.GetAppVersions();
-				if (appv != null)
-				{
-					string curVersion = Utils.GetApplicationVersion(System.Reflection.Assembly.GetExecutingAssembly());
-
-					string[] latestNumbers = appv.JMMServerVersion.Split('.');
-					string[] curNumbers = curVersion.Split('.');
-
-					string latestMajor = string.Format("{0}.{1}", latestNumbers[0], latestNumbers[1]);
-					string curMajor = string.Format("{0}.{1}", curNumbers[0], curNumbers[1]);
-
-					decimal lmajor = decimal.Parse(latestMajor);
-					decimal cmajor = decimal.Parse(curMajor);
-
-					if (lmajor > cmajor)
-					{
-						ServerState.Instance.NewVersionAvailable = true;
-						ServerState.Instance.NewVersionDownloadLink = appv.JMMServerDownload;
-						ServerState.Instance.NewVersionNumber = appv.JMMServerVersion;
-					}
-					else if (lmajor == cmajor)
-					{
-						if (int.Parse(latestNumbers[2]) > int.Parse(curNumbers[2]))
-						{
-							ServerState.Instance.NewVersionAvailable = true;
-							ServerState.Instance.NewVersionDownloadLink = appv.JMMServerDownload;
-							ServerState.Instance.NewVersionNumber = appv.JMMServerVersion;
-						}
-					}
-
-
-				}
-
-			}
-			catch { }
-		}
-
 		#region Tray Minimize
 
 		void MainWindow_StateChanged(object sender, EventArgs e)
@@ -1944,6 +1915,7 @@ namespace JMMServer
 			Importer.CheckForAniDBFileUpdate(false);
 			Importer.CheckForLogClean();
 			Importer.UpdateAniDBTitles();
+            Importer.SendUserInfoUpdate(false);
 		}
 
 		public static void StartWatchingFiles()
@@ -1968,7 +1940,7 @@ namespace JMMServer
 					}
 					else
 					{
-						logger.Error("ImportFolder not found for watching: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
+                        logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 					}
 				}
 				catch (Exception ex)
@@ -2340,8 +2312,10 @@ namespace JMMServer
 	    {
             hostFile = new FileServer.FileServer(int.Parse(ServerSettings.JMMServerFilePort));
             hostFile.Start();
+	        if (ServerSettings.ExperimentalUPnP)
+	            FileServer.FileServer.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerFilePort));
 //                new MessagingServer(new ServiceFactory(), new MessagingServerConfiguration(new HttpMessageFactory()));
- //           hostFile.Start(new IPEndPoint(IPAddress.Any, int.Parse(ServerSettings.JMMServerFilePort)));
+	        //           hostFile.Start(new IPEndPoint(IPAddress.Any, int.Parse(ServerSettings.JMMServerFilePort)));
 	    }
 	    private static void StartRESTHost()
 		{

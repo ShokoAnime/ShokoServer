@@ -14,6 +14,7 @@ using JMMServer.Providers.TraktTV;
 using System.Threading;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Commands.AniDB;
+using JMMServer.Commands.Azure;
 
 namespace JMMServer
 {
@@ -366,6 +367,11 @@ namespace JMMServer
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvPoster.TvDB_ImagePosterID, JMMImageType.TvDB_Cover, false);
 						cmd.Save();
+
+                        if (postersCount.ContainsKey(tvPoster.SeriesID))
+                            postersCount[tvPoster.SeriesID] = postersCount[tvPoster.SeriesID] + 1;
+                        else
+                            postersCount[tvPoster.SeriesID] = 1;
 					}
 				}
 			}
@@ -405,7 +411,11 @@ namespace JMMServer
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvFanart.TvDB_ImageFanartID, JMMImageType.TvDB_FanArt, false);
 						cmd.Save();
-						fanartCount[tvFanart.SeriesID] = fanartAvailable + 1;
+
+                        if (fanartCount.ContainsKey(tvFanart.SeriesID))
+                            fanartCount[tvFanart.SeriesID] = fanartCount[tvFanart.SeriesID] + 1;
+                        else
+                            fanartCount[tvFanart.SeriesID] = 1;
 					}
 				}
 			}
@@ -445,6 +455,11 @@ namespace JMMServer
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvBanner.TvDB_ImageWideBannerID, JMMImageType.TvDB_Banner, false);
 						cmd.Save();
+
+                        if (fanartCount.ContainsKey(tvBanner.SeriesID))
+                            fanartCount[tvBanner.SeriesID] = fanartCount[tvBanner.SeriesID] + 1;
+                        else
+                            fanartCount[tvBanner.SeriesID] = 1;
 					}
 				}
 			}
@@ -497,6 +512,11 @@ namespace JMMServer
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(moviePoster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
 						cmd.Save();
+
+                        if (postersCount.ContainsKey(moviePoster.MovieId))
+                            postersCount[moviePoster.MovieId] = postersCount[moviePoster.MovieId] + 1;
+                        else
+                            postersCount[moviePoster.MovieId] = 1;
 					}
 				}
 			}
@@ -536,6 +556,11 @@ namespace JMMServer
 					{
 						CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(movieFanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
 						cmd.Save();
+
+                        if (fanartCount.ContainsKey(movieFanart.MovieId))
+                            fanartCount[movieFanart.MovieId] = fanartCount[movieFanart.MovieId] + 1;
+                        else
+                            fanartCount[movieFanart.MovieId] = 1;
 					}
 				}
 			}
@@ -867,6 +892,36 @@ namespace JMMServer
 			CommandRequest_GetCalendar cmd = new CommandRequest_GetCalendar(forceRefresh);
 			cmd.Save();
 		}
+
+        public static void SendUserInfoUpdate(bool forceRefresh)
+        {
+            // update the anonymous user info every 12 hours
+            // we will always assume that an anime was downloaded via http first
+            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+
+            ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AzureUserInfo);
+            if (sched != null)
+            {
+                // if we have run this in the last 6 hours and are not forcing it, then exit
+                TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+                if (tsLastRun.TotalHours < 6)
+                {
+                    if (!forceRefresh) return;
+                }
+            }
+
+            if (sched == null)
+            {
+                sched = new ScheduledUpdate();
+                sched.UpdateType = (int)ScheduledUpdateType.AzureUserInfo;
+                sched.UpdateDetails = "";
+            }
+            sched.LastUpdate = DateTime.Now;
+            repSched.Save(sched);
+
+            CommandRequest_Azure_SendUserInfo cmd = new CommandRequest_Azure_SendUserInfo(ServerSettings.AniDB_Username);
+            cmd.Save();
+        }
 
 		public static void CheckForAnimeUpdate(bool forceRefresh)
 		{

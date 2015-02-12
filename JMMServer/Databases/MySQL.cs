@@ -64,7 +64,7 @@ namespace JMMServer.Databases
 						ServerSettings.MySQL_Hostname, ServerSettings.MySQL_Username, ServerSettings.MySQL_Password);
 
 				logger.Trace(connStr);
-				string sql = string.Format("CREATE DATABASE {0} DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;", ServerSettings.MySQL_SchemaName);
+                string sql = string.Format("CREATE DATABASE {0} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;", ServerSettings.MySQL_SchemaName);
 				logger.Trace(sql);
 				using (MySqlConnection conn = new MySqlConnection(connStr))
 				{
@@ -161,6 +161,8 @@ namespace JMMServer.Databases
                 UpdateSchema_033(versionNumber);
                 UpdateSchema_034(versionNumber);
                 UpdateSchema_035(versionNumber);
+                UpdateSchema_036(versionNumber);
+                UpdateSchema_037(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -418,7 +420,7 @@ namespace JMMServer.Databases
 
 			List<string> cmds = new List<string>();
 
-			cmds.Add("ALTER TABLE `jmmuser` CHANGE COLUMN `Password` `Password` VARCHAR(150) NULL DEFAULT NULL ;");
+			cmds.Add("ALTER TABLE JMMUser CHANGE COLUMN Password Password VARCHAR(150) NULL DEFAULT NULL ;");
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{
@@ -640,7 +642,7 @@ namespace JMMServer.Databases
 
 			List<string> cmds = new List<string>();
 
-			cmds.Add("drop table `crossref_anidb_mal`;");
+            cmds.Add("drop table `CrossRef_AniDB_MAL`;");
 
 			cmds.Add("CREATE TABLE CrossRef_AniDB_MAL( " +
 				" CrossRef_AniDB_MALID INT NOT NULL AUTO_INCREMENT, " +
@@ -1236,7 +1238,7 @@ namespace JMMServer.Databases
 
 			List<string> cmds = new List<string>();
 
-			cmds.Add("update CrossRef_File_Episode SET CrossRefSource=1 WHERE Hash IN (Select Hash from ANIDB_File) AND CrossRefSource=2 ;");
+            cmds.Add("update CrossRef_File_Episode SET CrossRefSource=1 WHERE Hash IN (Select Hash from AniDB_File) AND CrossRefSource=2 ;");
 
 
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
@@ -1540,6 +1542,83 @@ namespace JMMServer.Databases
             DatabaseHelper.CreateInitialCustomTags();
         }
 
+        private static void UpdateSchema_036(int currentVersionNumber)
+        {
+            int thisVersion = 36;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add(string.Format("ALTER DATABASE {0} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;", ServerSettings.MySQL_SchemaName));
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+            DatabaseHelper.CreateInitialCustomTags();
+        }
+
+        private static void UpdateSchema_037(int currentVersionNumber)
+        {
+            int thisVersion = 37;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_AnimeID` ;");
+            cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_Anime` ;");
+
+            cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_MALID` (`MALID` ASC) ;");
+            cmds.Add("ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_Anime` (`AnimeID` ASC, `StartEpisodeType` ASC, `StartEpisodeNumber` ASC) ;");
+
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+            DatabaseHelper.CreateInitialCustomTags();
+        }
+
 
 		private static void ExecuteSQLCommands(List<string> cmds)
 		{
@@ -1627,7 +1706,7 @@ namespace JMMServer.Databases
 
 			//string sql = string.Format("select count(VERSIONS) from INFORMATION_SCHEMA where TABLE_SCHEMA = '{0}' and TABLE_NAME = 'VERSIONS' group by TABLE_NAME",
 			//	ServerSettings.MySQL_SchemaName);
-			string sql = string.Format("select count(*) from information_schema.tables where table_schema='{0}' and table_name = 'VERSIONS'", ServerSettings.MySQL_SchemaName);
+			string sql = string.Format("select count(*) from information_schema.tables where table_schema='{0}' and table_name = 'Versions'", ServerSettings.MySQL_SchemaName);
 			logger.Trace(sql);
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
 			{
@@ -1643,6 +1722,23 @@ namespace JMMServer.Databases
 				logger.Trace("Initial schema already exists");
 				return;
 			}
+
+            // let's check for Linux MySQL users who have renamed all thier table to lower case
+            sql = string.Format("select count(*) from information_schema.tables where table_schema='{0}' and table_name = 'versions'", ServerSettings.MySQL_SchemaName);
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                object result = cmd.ExecuteScalar();
+                count = int.Parse(result.ToString());
+            }
+
+            // if the 'versions' already exists, it means we need to fix up the table names
+            if (count > 0)
+            {
+                FixLinuxTables();
+                return;
+            }
 
 			logger.Trace("Initial schema doesn't exists, creating now...");
 
@@ -1737,6 +1833,116 @@ namespace JMMServer.Databases
 			VersionsRepository repVer = new VersionsRepository();
 			repVer.Save(ver1);
 		}
+
+        private static void FixLinuxTables()
+        {
+            logger.Info("Fixing MySQL/Linux table names");
+
+            List<string> fixCmds = new List<string>();
+            fixCmds.Add("RENAME TABLE anidb_anime TO AniDB_Anime;");
+            fixCmds.Add("RENAME TABLE anidb_anime_category TO AniDB_Anime_Category;");
+            fixCmds.Add("RENAME TABLE anidb_anime_character TO AniDB_Anime_Character;");
+            fixCmds.Add("RENAME TABLE anidb_anime_defaultimage TO AniDB_Anime_DefaultImage;");
+            fixCmds.Add("RENAME TABLE anidb_anime_relation TO AniDB_Anime_Relation;");
+            fixCmds.Add("RENAME TABLE anidb_anime_review TO AniDB_Anime_Review;");
+            fixCmds.Add("RENAME TABLE anidb_anime_similar TO AniDB_Anime_Similar;");
+            fixCmds.Add("RENAME TABLE anidb_anime_tag TO AniDB_Anime_Tag;");
+            fixCmds.Add("RENAME TABLE anidb_anime_title TO AniDB_Anime_Title;");
+            fixCmds.Add("RENAME TABLE anidb_category TO AniDB_Category;");
+            fixCmds.Add("RENAME TABLE anidb_character TO AniDB_Character;");
+            fixCmds.Add("RENAME TABLE anidb_character_seiyuu TO AniDB_Character_Seiyuu;");
+            fixCmds.Add("RENAME TABLE anidb_episode TO AniDB_Episode;");
+            fixCmds.Add("RENAME TABLE anidb_file TO AniDB_File;");
+            fixCmds.Add("RENAME TABLE anidb_groupstatus TO AniDB_GroupStatus;");
+            fixCmds.Add("RENAME TABLE anidb_myliststats TO AniDB_MylistStats;");
+            fixCmds.Add("RENAME TABLE anidb_recommendation TO AniDB_Recommendation;");
+            fixCmds.Add("RENAME TABLE anidb_releasegroup TO AniDB_ReleaseGroup;");
+            fixCmds.Add("RENAME TABLE anidb_review TO AniDB_Review;");
+            fixCmds.Add("RENAME TABLE anidb_seiyuu TO AniDB_Seiyuu;");
+            fixCmds.Add("RENAME TABLE anidb_tag TO AniDB_Tag;");
+            fixCmds.Add("RENAME TABLE anidb_vote TO AniDB_Vote;");
+            fixCmds.Add("RENAME TABLE animeepisode TO AnimeEpisode;");
+            fixCmds.Add("RENAME TABLE animeepisode_user TO AnimeEpisode_User;");
+            fixCmds.Add("RENAME TABLE animegroup TO AnimeGroup;");
+            fixCmds.Add("RENAME TABLE animegroup_user TO AnimeGroup_User;");
+            fixCmds.Add("RENAME TABLE animeseries TO AnimeSeries;");
+            fixCmds.Add("RENAME TABLE animeseries_user TO AnimeSeries_User;");
+            fixCmds.Add("RENAME TABLE bookmarkedanime TO BookmarkedAnime;");
+            fixCmds.Add("RENAME TABLE commandrequest TO CommandRequest;");
+            fixCmds.Add("RENAME TABLE crossref_anidb_mal TO CrossRef_AniDB_MAL;");
+            fixCmds.Add("RENAME TABLE crossref_anidb_other TO CrossRef_AniDB_Other;");
+            fixCmds.Add("RENAME TABLE crossref_anidb_trakt TO CrossRef_AniDB_Trakt;");
+            fixCmds.Add("RENAME TABLE crossref_anidb_trakt_episode TO CrossRef_AniDB_Trakt_Episode;");
+            fixCmds.Add("RENAME TABLE crossref_anidb_traktv2 TO CrossRef_AniDB_TraktV2;");
+            fixCmds.Add("RENAME TABLE crossref_anidb_tvdb TO CrossRef_AniDB_TvDB;");
+            fixCmds.Add("RENAME TABLE crossref_anidb_tvdb_episode TO CrossRef_AniDB_TvDB_Episode;");
+            fixCmds.Add("RENAME TABLE crossref_anidb_tvdbv2 TO CrossRef_AniDB_TvDBV2;");
+            fixCmds.Add("RENAME TABLE crossref_customtag TO CrossRef_CustomTag;");
+            fixCmds.Add("RENAME TABLE crossref_file_episode TO CrossRef_File_Episode;");
+            fixCmds.Add("RENAME TABLE crossref_languages_anidb_file TO CrossRef_Languages_AniDB_File;");
+            fixCmds.Add("RENAME TABLE crossref_subtitles_anidb_file TO CrossRef_Subtitles_AniDB_File;");
+            fixCmds.Add("RENAME TABLE customtag TO CustomTag;");
+            fixCmds.Add("RENAME TABLE duplicatefile TO DuplicateFile;");
+            fixCmds.Add("RENAME TABLE fileffdshowpreset TO FileFfdshowPreset;");
+            fixCmds.Add("RENAME TABLE filenamehash TO FileNameHash;");
+            fixCmds.Add("RENAME TABLE groupfilter TO GroupFilter;");
+            fixCmds.Add("RENAME TABLE groupfiltercondition TO GroupFilterCondition;");
+            fixCmds.Add("RENAME TABLE ignoreanime TO IgnoreAnime;");
+            fixCmds.Add("RENAME TABLE importfolder TO ImportFolder;");
+            fixCmds.Add("RENAME TABLE jmmuser TO JMMUser;");
+            fixCmds.Add("RENAME TABLE language TO Language;");
+            fixCmds.Add("RENAME TABLE logmessage TO LogMessage;");
+            fixCmds.Add("RENAME TABLE moviedb_fanart TO MovieDB_Fanart;");
+            fixCmds.Add("RENAME TABLE moviedb_movie TO MovieDB_Movie;");
+            fixCmds.Add("RENAME TABLE moviedb_poster TO MovieDB_Poster;");
+            fixCmds.Add("RENAME TABLE playlist TO Playlist;");
+            fixCmds.Add("RENAME TABLE renamescript TO RenameScript;");
+            fixCmds.Add("RENAME TABLE scheduledupdate TO ScheduledUpdate;");
+            fixCmds.Add("RENAME TABLE trakt_episode TO Trakt_Episode;");
+            fixCmds.Add("RENAME TABLE trakt_friend TO Trakt_Friend;");
+            fixCmds.Add("RENAME TABLE trakt_imagefanart TO Trakt_ImageFanart;");
+            fixCmds.Add("RENAME TABLE trakt_imageposter TO Trakt_ImagePoster;");
+            fixCmds.Add("RENAME TABLE trakt_season TO Trakt_Season;");
+            fixCmds.Add("RENAME TABLE trakt_show TO Trakt_Show;");
+            fixCmds.Add("RENAME TABLE tvdb_episode TO TvDB_Episode;");
+            fixCmds.Add("RENAME TABLE tvdb_imagefanart TO TvDB_ImageFanart;");
+            fixCmds.Add("RENAME TABLE tvdb_imageposter TO TvDB_ImagePoster;");
+            fixCmds.Add("RENAME TABLE tvdb_imagewidebanner TO TvDB_ImageWideBanner;");
+            fixCmds.Add("RENAME TABLE tvdb_series TO TvDB_Series;");
+            fixCmds.Add("RENAME TABLE versions TO Versions;");
+            fixCmds.Add("RENAME TABLE videoinfo TO VideoInfo;");
+            fixCmds.Add("RENAME TABLE videolocal TO VideoLocal;");
+            fixCmds.Add("RENAME TABLE videolocal_user TO VideoLocal_User;");
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string cmdFix in fixCmds)
+                {
+                    try
+                    {
+                        logger.Info(cmdFix);
+                        using (MySqlCommand command = new MySqlCommand(cmdFix, conn))
+                        {
+                            try
+                            {
+                                command.ExecuteNonQuery();
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.Error(cmdFix + " - " + ex.Message);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.ErrorException(ex.ToString(), ex);
+                    }
+                }
+            }
+
+        }
 
 		public static List<string> CreateTableString_Versions()
 		{
