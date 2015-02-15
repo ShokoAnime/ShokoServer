@@ -618,6 +618,27 @@ namespace JMMServer
 			return false;
 		}
 
+        internal bool MarkFileAsExternalStorage(string Hash, long FileSize)
+        {
+            if (!Login()) return false;
+
+            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+            AniDBCommand_MarkFileAsExternal cmdMarkFileExternal = null;
+
+            lock (lockAniDBConnections)
+            {
+                Pause();
+
+                cmdMarkFileExternal = new AniDBCommand_MarkFileAsExternal();
+                cmdMarkFileExternal.Init(Hash, FileSize);
+                SetWaitingOnResponse(true);
+                ev = cmdMarkFileExternal.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                SetWaitingOnResponse(false);
+            }
+
+            return true;
+        }
+
 		public bool MarkFileAsDeleted(string hash, long fileSize)
 		{
 			if (!Login()) return false;
