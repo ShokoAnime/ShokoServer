@@ -191,9 +191,17 @@ namespace JMMServer
             foreach (VideoLocal v in vids.OrderByDescending(a => a.DateTimeCreated))
             {
                 Video m = new Video();
-                PlexHelper.PopulateVideo(m,v,JMMType.File,userid);
-                if (!string.IsNullOrEmpty(m.Duration))
-                    dirs.Add(m);
+                try
+                {
+                    PlexHelper.PopulateVideo(m, v, JMMType.File, userid);
+                    if (!string.IsNullOrEmpty(m.Duration))
+                        dirs.Add(m);
+                }
+                catch (Exception e)
+                {
+                    //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
+                }
+
             }
             ret.Childrens = dirs;
             return ret.GetStream();
@@ -451,12 +459,19 @@ namespace JMMServer
                     if (aep == null)
                         continue;
                     VideoLocal current = locals[0];
-                    PlexHelper.PopulateVideo(v, current, ep, ser, anime,nv, JMMType.File, userid);
-                    if (eptype.HasValue)
+                    try
                     {
-                        v.ParentTitle = k.Name;
+                        PlexHelper.PopulateVideo(v, current, ep, ser, anime, nv, JMMType.File, userid);
+                        if (eptype.HasValue)
+                        {
+                            v.ParentTitle = k.Name;
+                        }
+                        vids.Add(v);
                     }
-                    vids.Add(v);
+                    catch (Exception e)
+                    {
+                        //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
+                    }
                 }
 
                 List<SortPropOrFieldAndDirection> sortCriteria2 = new List<SortPropOrFieldAndDirection>();
