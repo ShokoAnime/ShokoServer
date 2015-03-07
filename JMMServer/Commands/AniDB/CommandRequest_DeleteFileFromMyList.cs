@@ -69,14 +69,22 @@ namespace JMMServer.Commands
 
 					logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
 				}
-				else
-				{
-					if (FileID < 0)
-					{
-						JMMService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
-						logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
-					}
-				}
+                else if (ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.MarkDeleted)
+                {
+                    if (FileID < 0)
+                    {
+                        JMMService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
+                        logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
+                    }
+                }
+                else
+                {
+                    if (FileID < 0)
+                    {
+                        JMMService.AnidbProcessor.MarkFileAsExternalStorage(Hash, FileSize);
+                        logger.Info("Moving File to external storage: {0}_{1}", Hash, FileID);
+                    }
+                }
 			}
 			catch (Exception ex)
 			{

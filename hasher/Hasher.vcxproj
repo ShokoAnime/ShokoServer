@@ -123,6 +123,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -151,6 +152,7 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Debug/hasher.bsc</OutputFile>
+      <PreserveSbr>true</PreserveSbr>
     </Bscmake>
     <PostBuildEvent>
       <Command>xcopy "$(TargetDir)*.dll" "$(SolutionDir)\JMMFileHelper\bin\Debug\x86\" /S /R /I /Y</Command>
