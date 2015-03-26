@@ -29,7 +29,7 @@ namespace JMMFileHelper
 
 		public static Hashes GetHashInfo(string fileName, bool forceRefresh, JMMFileHelper.Hasher.OnHashProgress hashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 		{
-			return Hasher.CalculateHashes(fileName, hashProgress, true, getCRC32, getMD5, getSHA1);
+			return Hasher.CalculateHashes(fileName, hashProgress, getCRC32, getMD5, getSHA1);
 		}
 
 		public static MediaInfoResult GetMediaInfo(string fileName, bool forceRefresh)

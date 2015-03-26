@@ -2446,31 +2446,31 @@ namespace JMMServer
 			//string fileName = @"M:\[ Anime Test ]\Code_Geass_R2_Ep14_Geass_Hunt_[720p,BluRay,x264]_-_THORA.mkv";
 
 			DateTime start = DateTime.Now;
-			Hashes hashes = Hasher.CalculateHashes(fileName, OnHashProgress, true, false, false, false);
+			Hashes hashes = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
 			TimeSpan ts = DateTime.Now - start;
 
 			double doubleED2k = ts.TotalMilliseconds;
 
 			start = DateTime.Now;
-			Hashes hashes2 = Hasher.CalculateHashes(fileName, OnHashProgress, true, true, false, false);
+			Hashes hashes2 = Hasher.CalculateHashes(fileName, OnHashProgress, true, false, false);
 			ts = DateTime.Now - start;
 
 			double doubleCRC32 = ts.TotalMilliseconds;
 
 			start = DateTime.Now;
-			Hashes hashes3 = Hasher.CalculateHashes(fileName, OnHashProgress, true, false, true, false);
+			Hashes hashes3 = Hasher.CalculateHashes(fileName, OnHashProgress, false, true, false);
 			ts = DateTime.Now - start;
 
 			double doubleMD5 = ts.TotalMilliseconds;
 
 			start = DateTime.Now;
-			Hashes hashes4 = Hasher.CalculateHashes(fileName, OnHashProgress, true, false, false, true);
+			Hashes hashes4 = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, true);
 			ts = DateTime.Now - start;
 
 			double doubleSHA1 = ts.TotalMilliseconds;
 
 			start = DateTime.Now;
-			Hashes hashes5 = Hasher.CalculateHashes(fileName, OnHashProgress, true, true, true, true);
+			Hashes hashes5 = Hasher.CalculateHashes(fileName, OnHashProgress, true, true, true);
 			ts = DateTime.Now - start;
 
 			double doubleAll = ts.TotalMilliseconds;
@@ -2488,7 +2488,7 @@ namespace JMMServer
 			FileInfo fi = new FileInfo(fileName);
 			string fileSize1 = Utils.FormatByteSize(fi.Length);
 			DateTime start = DateTime.Now;
-			Hashes hashes = Hasher.CalculateHashes(fileName, OnHashProgress, true, false, false, false);
+			Hashes hashes = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
 			TimeSpan ts = DateTime.Now - start;
 
 			double doubleFile1 = ts.TotalMilliseconds;
@@ -2497,7 +2497,7 @@ namespace JMMServer
 			fi = new FileInfo(fileName);
 			string fileSize2 = Utils.FormatByteSize(fi.Length);
 			start = DateTime.Now;
-			Hashes hashes2 = Hasher.CalculateHashes(fileName, OnHashProgress, true, false, false, false);
+			Hashes hashes2 = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
 			ts = DateTime.Now - start;
 
 			double doubleFile2 = ts.TotalMilliseconds;
@@ -2507,7 +2507,7 @@ namespace JMMServer
 			fi = new FileInfo(fileName);
 			string fileSize3 = Utils.FormatByteSize(fi.Length);
 			start = DateTime.Now;
-			Hashes hashes3 = Hasher.CalculateHashes(fileName, OnHashProgress, true, false, false, false);
+			Hashes hashes3 = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
 			ts = DateTime.Now - start;
 
 			double doubleFile3 = ts.TotalMilliseconds;
