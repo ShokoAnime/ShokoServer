@@ -13,7 +13,7 @@ namespace JMMFileHelper
 	public class Hasher
 	{
 		public static Logger logger = LogManager.GetCurrentClassLogger();
-		public delegate int OnHashProgress([MarshalAs(UnmanagedType.LPTStr)]string strFileName, int nProgressPct);
+		public delegate int OnHashProgress([MarshalAs(UnmanagedType.LPWStr)]string strFileName, int nProgressPct);
 
         [System.Flags]
         internal enum LoadLibraryFlags : uint
@@ -62,14 +62,14 @@ namespace JMMFileHelper
 	    }
 
 		#region DLL functions
-        [DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Auto)]
+        [DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
 		private static extern int CalculateHashes_callback_dll(
-			[MarshalAs(UnmanagedType.LPTStr)] string szFileName,
-			[MarshalAs(UnmanagedType.LPArray)] byte[] hash,
+            [MarshalAs(UnmanagedType.LPWStr)]string szFileName,
+            [MarshalAs(UnmanagedType.LPArray)]byte[] hash,
 			[MarshalAs(UnmanagedType.FunctionPtr)] OnHashProgress lpHashProgressFunc,
-			[MarshalAs(UnmanagedType.Bool)] bool getCRC32,
-			[MarshalAs(UnmanagedType.Bool)] bool getMD5,
-			[MarshalAs(UnmanagedType.Bool)] bool getSHA1
+            [MarshalAs(UnmanagedType.Bool)]bool getCRC32,
+            [MarshalAs(UnmanagedType.Bool)]bool getMD5,
+            [MarshalAs(UnmanagedType.Bool)]bool getSHA1
 		 );
 
 		// Calculates hash immediately (with progress)
@@ -106,29 +106,25 @@ namespace JMMFileHelper
 
 		public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress)
 		{
-			return CalculateHashes(strPath, onHashProgress, true, true, true, true);
+			return CalculateHashes(strPath, onHashProgress, true, true, true);
 		}
 
-		public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getED2k, bool getCRC32, bool getMD5, bool getSHA1)
+		public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 		{
 			Hashes rhash = new Hashes();
             if (Finalise.ModuleHandle != IntPtr.Zero)
 			{
 				byte[] hash = new byte[56];
-
-                // Disable other hashing as it is currently broken when using the DLL
-
                 bool gotHash = false;
                 try
                 {
-                    if (CalculateHashes_dll(strPath, ref hash, onHashProgress, false, false, false))
+                    if (CalculateHashes_dll(strPath, ref hash, onHashProgress, getCRC32, getMD5, getSHA1))
                     {
                         rhash.ed2k = HashToString(hash, 0, 16);
                         if (!string.IsNullOrEmpty(rhash.ed2k)) gotHash = true;
-
-                        //if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
-                        //if (getMD5) rhash.md5 = HashToString(hash, 20, 16);
-                        //if (getSHA1) rhash.sha1 = HashToString(hash, 36, 20);
+                        rhash.crc32 = HashToString(hash, 16, 4);
+                        rhash.md5 = HashToString(hash, 20, 16);
+                        rhash.sha1 = HashToString(hash, 36, 20);
                     }
                 }
                 catch (Exception ex)
@@ -139,15 +135,16 @@ namespace JMMFileHelper
                 if (!gotHash)
                 {
                     logger.Error("Error using DLL to get hash (Functon returned FALSE), trying C# code instead: {0}", strPath);
-                    return CalculateHashes_here(strPath, onHashProgress, getED2k, getCRC32, getMD5, getSHA1);
+                    return CalculateHashes_here(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
 				}
 			    return rhash;
 			}
-			return CalculateHashes_here(strPath, onHashProgress, getED2k, getCRC32, getMD5, getSHA1);
+			return CalculateHashes_here(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
 		}
 
-		protected static Hashes CalculateHashes_here(string strPath, OnHashProgress onHashProgress, bool getED2k, bool getCRC32, bool getMD5, bool getSHA1)
+		public static Hashes CalculateHashes_here(string strPath, OnHashProgress onHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 		{
+		    bool getED2k = true;
             logger.Trace("Using C# code to has file: {0}", strPath);
 
 			FileStream fs;

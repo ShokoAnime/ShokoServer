@@ -475,7 +475,8 @@ namespace JMMServer
 			ret = ret.Replace(@">", "");
 			ret = ret.Replace(@"<", "");
 			ret = ret.Replace(@"?", "");
-
+		    while (ret.EndsWith("."))
+		        ret = ret.Substring(0, ret.Length - 1);
 			return ret;
 		}
 
