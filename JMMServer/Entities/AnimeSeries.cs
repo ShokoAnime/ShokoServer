@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Documents;
 using AniDBAPI;
 using JMMServer.ImageDownload;
@@ -680,262 +682,316 @@ namespace JMMServer.Entities
 	        }
 	    }
 
+	    public class ParInfo
+	    {
+	        public bool WatchedStats;
+	        public bool MissingEpsStats;
+	        public bool AllGroupsAbove;
+	    }
+
+	    public const int UpdatetimeInSeconds = 90;
+
+	    private static TimeUpdater<int, ParInfo> updates =
+	        new TimeUpdater<int, ParInfo>(UpdatetimeInSeconds, "AnimeSeries", InternalUpdaterAction,
+	            InternalUpdaterUpdate);
+
+
+	    private static void InternalUpdaterAction(int ser, ParInfo parameters)
+	    {
+	        AnimeSeriesRepository repo = new AnimeSeriesRepository();
+            repo.GetByID(ser).InternalUpdateStats(parameters.WatchedStats, parameters.MissingEpsStats, parameters.AllGroupsAbove);
+	    }
+
+	    private static ParInfo InternalUpdaterUpdate(ParInfo original, ParInfo update)
+	    {
+	        if (update.WatchedStats)
+	            original.WatchedStats = true;
+	        if (update.MissingEpsStats)
+	            original.MissingEpsStats = true;
+	        if (update.AllGroupsAbove)
+	            original.AllGroupsAbove = true;
+	        return original;
+	    }
+
 	    public void UpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)
-		{
-			
-			DateTime start = DateTime.Now;
-			DateTime startOverall = DateTime.Now;
-			logger.Info("Starting Updating STATS for SERIES {0} ({1} - {2} - {3})", this.ToString(), watchedStats, missingEpsStats, updateAllGroupsAbove);
+	    {
+	        ParInfo p = new ParInfo
+	        {
+	            WatchedStats = watchedStats,
+	            MissingEpsStats = missingEpsStats,
+	            AllGroupsAbove = updateAllGroupsAbove
+	        };
+            updates.Update(this.AnimeSeriesID,p);
+	    }
+	    public object UpdateStatsLock = new object();
 
-			AnimeSeries_UserRepository repSeriesUser = new AnimeSeries_UserRepository();
-			AnimeEpisode_UserRepository repEpisodeUser = new AnimeEpisode_UserRepository();
-			VideoLocalRepository repVids = new VideoLocalRepository();
-			CrossRef_File_EpisodeRepository repXrefs = new CrossRef_File_EpisodeRepository();
+	    private void InternalUpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)
+	    {
+	        lock (UpdateStatsLock)
+	        {
 
-			JMMUserRepository repUsers = new JMMUserRepository();
-			List<JMMUser> allUsers = repUsers.GetAll();
+	            DateTime start = DateTime.Now;
+	            DateTime startOverall = DateTime.Now;
+	            logger.Info("Starting Updating STATS for SERIES {0} ({1} - {2} - {3})", this.ToString(), watchedStats,
+	                missingEpsStats, updateAllGroupsAbove);
 
-			DateTime startEps = DateTime.Now;
-			List<AnimeEpisode> eps = GetAnimeEpisodes();
-			TimeSpan tsEps = DateTime.Now - startEps;
-			logger.Trace("Got episodes for SERIES {0} in {1}ms", this.ToString(), tsEps.TotalMilliseconds);
+	            AnimeSeries_UserRepository repSeriesUser = new AnimeSeries_UserRepository();
+	            AnimeEpisode_UserRepository repEpisodeUser = new AnimeEpisode_UserRepository();
+	            VideoLocalRepository repVids = new VideoLocalRepository();
+	            CrossRef_File_EpisodeRepository repXrefs = new CrossRef_File_EpisodeRepository();
 
-			DateTime startVids = DateTime.Now;
-			List<VideoLocal> vidsTemp = repVids.GetByAniDBAnimeID(this.AniDB_ID);
-			List<CrossRef_File_Episode> crossRefs = repXrefs.GetByAnimeID(this.AniDB_ID);
+	            JMMUserRepository repUsers = new JMMUserRepository();
+	            List<JMMUser> allUsers = repUsers.GetAll();
 
-			Dictionary<int, List<CrossRef_File_Episode>> dictCrossRefs = new Dictionary<int, List<CrossRef_File_Episode>>();
-			foreach (CrossRef_File_Episode xref in crossRefs)
-			{
-				if (!dictCrossRefs.ContainsKey(xref.EpisodeID))
-					dictCrossRefs[xref.EpisodeID] = new List<CrossRef_File_Episode>();
-				dictCrossRefs[xref.EpisodeID].Add(xref);
-			}
+	            DateTime startEps = DateTime.Now;
+	            List<AnimeEpisode> eps = GetAnimeEpisodes();
+	            TimeSpan tsEps = DateTime.Now - startEps;
+	            logger.Trace("Got episodes for SERIES {0} in {1}ms", this.ToString(), tsEps.TotalMilliseconds);
 
-			Dictionary<string, VideoLocal> dictVids = new Dictionary<string, VideoLocal>();
-			foreach (VideoLocal vid in vidsTemp)
-				dictVids[vid.Hash] = vid;
+	            DateTime startVids = DateTime.Now;
+	            List<VideoLocal> vidsTemp = repVids.GetByAniDBAnimeID(this.AniDB_ID);
+	            List<CrossRef_File_Episode> crossRefs = repXrefs.GetByAnimeID(this.AniDB_ID);
 
-			TimeSpan tsVids = DateTime.Now - startVids;
-			logger.Trace("Got video locals for SERIES {0} in {1}ms", this.ToString(), tsVids.TotalMilliseconds);
+	            Dictionary<int, List<CrossRef_File_Episode>> dictCrossRefs =
+	                new Dictionary<int, List<CrossRef_File_Episode>>();
+	            foreach (CrossRef_File_Episode xref in crossRefs)
+	            {
+	                if (!dictCrossRefs.ContainsKey(xref.EpisodeID))
+	                    dictCrossRefs[xref.EpisodeID] = new List<CrossRef_File_Episode>();
+	                dictCrossRefs[xref.EpisodeID].Add(xref);
+	            }
 
+	            Dictionary<string, VideoLocal> dictVids = new Dictionary<string, VideoLocal>();
+	            foreach (VideoLocal vid in vidsTemp)
+	                dictVids[vid.Hash] = vid;
 
-			if (watchedStats)
-			{
-				
-
-				foreach (JMMUser juser in allUsers)
-				{
-					//this.WatchedCount = 0;
-					AnimeSeries_User userRecord = GetUserRecord(juser.JMMUserID);
-					if (userRecord == null) userRecord = new AnimeSeries_User(juser.JMMUserID, this.AnimeSeriesID);
-
-					// reset stats
-					userRecord.UnwatchedEpisodeCount = 0;
-					userRecord.WatchedEpisodeCount = 0;
-					userRecord.WatchedCount = 0;
-					userRecord.WatchedDate = null;
-
-					DateTime startUser = DateTime.Now;
-					List<AnimeEpisode_User> epUserRecords = repEpisodeUser.GetByUserID(juser.JMMUserID);
-					Dictionary<int, AnimeEpisode_User> dictUserRecords = new Dictionary<int, AnimeEpisode_User>();
-					foreach (AnimeEpisode_User usrec in epUserRecords)
-						dictUserRecords[usrec.AnimeEpisodeID] = usrec;
-					TimeSpan tsUser = DateTime.Now - startUser;
-					logger.Trace("Got user records for SERIES {0}/{1} in {2}ms", this.ToString(), juser.Username, tsUser.TotalMilliseconds);
-
-					foreach (AnimeEpisode ep in eps)
-					{
-						// if the episode doesn't have any files then it won't count towards watched/unwatched counts
-						List<VideoLocal> epVids = new List<VideoLocal>();
-
-						if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
-						{
-							foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
-							{
-								if (xref.EpisodeID == ep.AniDB_EpisodeID)
-								{
-									if (dictVids.ContainsKey(xref.Hash))
-										epVids.Add(dictVids[xref.Hash]);
-								}
-							}
-						}
-						if (epVids.Count == 0) continue;
-
-						if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode || ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special)
-						{
-							AnimeEpisode_User epUserRecord = null;
-							if (dictUserRecords.ContainsKey(ep.AnimeEpisodeID))
-								epUserRecord = dictUserRecords[ep.AnimeEpisodeID];
-
-							if (epUserRecord != null && epUserRecord.WatchedDate.HasValue) 
-								userRecord.WatchedEpisodeCount++;
-							else userRecord.UnwatchedEpisodeCount++;
-
-							if (epUserRecord != null)
-							{
-								if (userRecord.WatchedDate.HasValue)
-								{
-									if (epUserRecord.WatchedDate > userRecord.WatchedDate)
-										userRecord.WatchedDate = epUserRecord.WatchedDate;
-								}
-								else
-									userRecord.WatchedDate = epUserRecord.WatchedDate;
-
-								userRecord.WatchedCount += epUserRecord.WatchedCount;
-							}
-						}
-					}
-					repSeriesUser.Save(userRecord);
-
-				}
-			}
-
-			TimeSpan ts = DateTime.Now - start;
-			logger.Trace("Updated WATCHED stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
-			start = DateTime.Now;
-            
+	            TimeSpan tsVids = DateTime.Now - startVids;
+	            logger.Trace("Got video locals for SERIES {0} in {1}ms", this.ToString(), tsVids.TotalMilliseconds);
 
 
-
-			if (missingEpsStats)
-			{
-                enAnimeType animeType=enAnimeType.TVSeries;
-				AniDB_Anime aniDB_Anime = this.GetAnime();
-				if (aniDB_Anime != null)
-                {
-					animeType = aniDB_Anime.AnimeTypeEnum;
-                }
-
-				MissingEpisodeCount = 0;
-				MissingEpisodeCountGroups = 0;
-
-				// get all the group status records
-				AniDB_GroupStatusRepository repGrpStat = new AniDB_GroupStatusRepository();
-				List<AniDB_GroupStatus> grpStatuses = repGrpStat.GetByAnimeID(this.AniDB_ID);
-
-				// find all the episodes for which the user has a file
-				// from this we can determine what their latest episode number is
-				// find out which groups the user is collecting
-
-				List<int> userReleaseGroups = new List<int>();
-				foreach (AnimeEpisode ep in eps)
-				{
-
-					List<VideoLocal> vids = new List<VideoLocal>();
-					if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
-					{
-						foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
-						{
-							if (xref.EpisodeID == ep.AniDB_EpisodeID)
-							{
-								if (dictVids.ContainsKey(xref.Hash))
-									vids.Add(dictVids[xref.Hash]);
-							}
-						}
-					}
-
-					//List<VideoLocal> vids = ep.VideoLocals;
-					foreach (VideoLocal vid in vids)
-					{
-						AniDB_File anifile = vid.GetAniDBFile();
-						if (anifile != null)
-						{
-							if (!userReleaseGroups.Contains(anifile.GroupID)) userReleaseGroups.Add(anifile.GroupID);
-						}
-					}
-				}
-
-				int latestLocalEpNumber = 0;
-			    EpisodeList epReleasedList = new EpisodeList(animeType);
-                EpisodeList epGroupReleasedList =new EpisodeList(animeType);
-
-				foreach (AnimeEpisode ep in eps)
-				{
-					//List<VideoLocal> vids = ep.VideoLocals;
-					if (ep.EpisodeTypeEnum != AniDBAPI.enEpisodeType.Episode) continue;
-
-					List<VideoLocal> vids = new List<VideoLocal>();
-					if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
-					{
-						foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
-						{
-							if (xref.EpisodeID == ep.AniDB_EpisodeID)
-							{
-								if (dictVids.ContainsKey(xref.Hash))
-									vids.Add(dictVids[xref.Hash]);
-							}
-						}
-					}
-
-					
-
-					AniDB_Episode aniEp = ep.AniDB_Episode;
-					int thisEpNum = aniEp.EpisodeNumber;
-
-					if (thisEpNum > latestLocalEpNumber && vids.Count > 0)
-						latestLocalEpNumber = thisEpNum;
-
-					// does this episode have a file released 
-					// does this episode have a file released by the group the user is collecting
-					bool epReleased = false;
-					bool epReleasedGroup = false;
-					foreach (AniDB_GroupStatus gs in grpStatuses)
-					{
-						if (gs.LastEpisodeNumber >= thisEpNum) epReleased = true;
-						if (userReleaseGroups.Contains(gs.GroupID) && gs.HasGroupReleasedEpisode(thisEpNum)) epReleasedGroup = true;
-					}
+	            if (watchedStats)
+	            {
 
 
-				    try
-				    {
-                        epReleasedList.Add(ep, (!epReleased || vids.Count != 0));
-                        epGroupReleasedList.Add(ep, (!epReleasedGroup || vids.Count != 0));
+	                foreach (JMMUser juser in allUsers)
+	                {
+	                    //this.WatchedCount = 0;
+	                    AnimeSeries_User userRecord = GetUserRecord(juser.JMMUserID);
+	                    if (userRecord == null) userRecord = new AnimeSeries_User(juser.JMMUserID, this.AnimeSeriesID);
 
-				    }
-				    catch (Exception e)
-				    {
-				        logger.Trace("Error {0}", e.ToString());
-                        throw;
-				    }
-				}
-                foreach(EpisodeList.StatEpisodes eplst in epReleasedList)
-                {
-                    if (!eplst.Available)
-				        MissingEpisodeCount++;
-                }
-                foreach(EpisodeList.StatEpisodes eplst in epGroupReleasedList)
-                {
-                    if (!eplst.Available)
-				        MissingEpisodeCountGroups++;
-                }
+	                    // reset stats
+	                    userRecord.UnwatchedEpisodeCount = 0;
+	                    userRecord.WatchedEpisodeCount = 0;
+	                    userRecord.WatchedCount = 0;
+	                    userRecord.WatchedDate = null;
 
-				this.LatestLocalEpisodeNumber = latestLocalEpNumber;
-			}
+	                    DateTime startUser = DateTime.Now;
+	                    List<AnimeEpisode_User> epUserRecords = repEpisodeUser.GetByUserID(juser.JMMUserID);
+	                    Dictionary<int, AnimeEpisode_User> dictUserRecords = new Dictionary<int, AnimeEpisode_User>();
+	                    foreach (AnimeEpisode_User usrec in epUserRecords)
+	                        dictUserRecords[usrec.AnimeEpisodeID] = usrec;
+	                    TimeSpan tsUser = DateTime.Now - startUser;
+	                    logger.Trace("Got user records for SERIES {0}/{1} in {2}ms", this.ToString(), juser.Username,
+	                        tsUser.TotalMilliseconds);
 
-			ts = DateTime.Now - start;
-			logger.Trace("Updated MISSING EPS stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
-			start = DateTime.Now;
+	                    foreach (AnimeEpisode ep in eps)
+	                    {
+	                        // if the episode doesn't have any files then it won't count towards watched/unwatched counts
+	                        List<VideoLocal> epVids = new List<VideoLocal>();
 
-			AnimeSeriesRepository rep = new AnimeSeriesRepository();
-			rep.Save(this);
+	                        if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
+	                        {
+	                            foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
+	                            {
+	                                if (xref.EpisodeID == ep.AniDB_EpisodeID)
+	                                {
+	                                    if (dictVids.ContainsKey(xref.Hash))
+	                                        epVids.Add(dictVids[xref.Hash]);
+	                                }
+	                            }
+	                        }
+	                        if (epVids.Count == 0) continue;
 
-			if (updateAllGroupsAbove)
-			{
-				foreach (AnimeGroup grp in AllGroupsAbove)
-				{
-					grp.UpdateStats(watchedStats, missingEpsStats);
-				}
-			}
+	                        if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode ||
+	                            ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special)
+	                        {
+	                            AnimeEpisode_User epUserRecord = null;
+	                            if (dictUserRecords.ContainsKey(ep.AnimeEpisodeID))
+	                                epUserRecord = dictUserRecords[ep.AnimeEpisodeID];
 
-			ts = DateTime.Now - start;
-			logger.Trace("Updated GROUPS ABOVE stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
-			start = DateTime.Now;
+	                            if (epUserRecord != null && epUserRecord.WatchedDate.HasValue)
+	                                userRecord.WatchedEpisodeCount++;
+	                            else userRecord.UnwatchedEpisodeCount++;
 
-			TimeSpan tsOverall = DateTime.Now - startOverall;
-			logger.Info("Finished Updating STATS for SERIES {0} in {1}ms ({2} - {3} - {4})", this.ToString(), tsOverall.TotalMilliseconds, 
-				watchedStats, missingEpsStats, updateAllGroupsAbove);
-		}
+	                            if (epUserRecord != null)
+	                            {
+	                                if (userRecord.WatchedDate.HasValue)
+	                                {
+	                                    if (epUserRecord.WatchedDate > userRecord.WatchedDate)
+	                                        userRecord.WatchedDate = epUserRecord.WatchedDate;
+	                                }
+	                                else
+	                                    userRecord.WatchedDate = epUserRecord.WatchedDate;
+
+	                                userRecord.WatchedCount += epUserRecord.WatchedCount;
+	                            }
+	                        }
+	                    }
+	                    repSeriesUser.Save(userRecord);
+
+	                }
+	            }
+
+	            TimeSpan ts = DateTime.Now - start;
+	            logger.Trace("Updated WATCHED stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
+	            start = DateTime.Now;
+
+
+
+
+	            if (missingEpsStats)
+	            {
+	                enAnimeType animeType = enAnimeType.TVSeries;
+	                AniDB_Anime aniDB_Anime = this.GetAnime();
+	                if (aniDB_Anime != null)
+	                {
+	                    animeType = aniDB_Anime.AnimeTypeEnum;
+	                }
+
+	                MissingEpisodeCount = 0;
+	                MissingEpisodeCountGroups = 0;
+
+	                // get all the group status records
+	                AniDB_GroupStatusRepository repGrpStat = new AniDB_GroupStatusRepository();
+	                List<AniDB_GroupStatus> grpStatuses = repGrpStat.GetByAnimeID(this.AniDB_ID);
+
+	                // find all the episodes for which the user has a file
+	                // from this we can determine what their latest episode number is
+	                // find out which groups the user is collecting
+
+	                List<int> userReleaseGroups = new List<int>();
+	                foreach (AnimeEpisode ep in eps)
+	                {
+
+	                    List<VideoLocal> vids = new List<VideoLocal>();
+	                    if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
+	                    {
+	                        foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
+	                        {
+	                            if (xref.EpisodeID == ep.AniDB_EpisodeID)
+	                            {
+	                                if (dictVids.ContainsKey(xref.Hash))
+	                                    vids.Add(dictVids[xref.Hash]);
+	                            }
+	                        }
+	                    }
+
+	                    //List<VideoLocal> vids = ep.VideoLocals;
+	                    foreach (VideoLocal vid in vids)
+	                    {
+	                        AniDB_File anifile = vid.GetAniDBFile();
+	                        if (anifile != null)
+	                        {
+	                            if (!userReleaseGroups.Contains(anifile.GroupID)) userReleaseGroups.Add(anifile.GroupID);
+	                        }
+	                    }
+	                }
+
+	                int latestLocalEpNumber = 0;
+	                EpisodeList epReleasedList = new EpisodeList(animeType);
+	                EpisodeList epGroupReleasedList = new EpisodeList(animeType);
+
+	                foreach (AnimeEpisode ep in eps)
+	                {
+	                    //List<VideoLocal> vids = ep.VideoLocals;
+	                    if (ep.EpisodeTypeEnum != AniDBAPI.enEpisodeType.Episode) continue;
+
+	                    List<VideoLocal> vids = new List<VideoLocal>();
+	                    if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
+	                    {
+	                        foreach (CrossRef_File_Episode xref in dictCrossRefs[ep.AniDB_EpisodeID])
+	                        {
+	                            if (xref.EpisodeID == ep.AniDB_EpisodeID)
+	                            {
+	                                if (dictVids.ContainsKey(xref.Hash))
+	                                    vids.Add(dictVids[xref.Hash]);
+	                            }
+	                        }
+	                    }
+
+
+
+	                    AniDB_Episode aniEp = ep.AniDB_Episode;
+	                    int thisEpNum = aniEp.EpisodeNumber;
+
+	                    if (thisEpNum > latestLocalEpNumber && vids.Count > 0)
+	                        latestLocalEpNumber = thisEpNum;
+
+	                    // does this episode have a file released 
+	                    // does this episode have a file released by the group the user is collecting
+	                    bool epReleased = false;
+	                    bool epReleasedGroup = false;
+	                    foreach (AniDB_GroupStatus gs in grpStatuses)
+	                    {
+	                        if (gs.LastEpisodeNumber >= thisEpNum) epReleased = true;
+	                        if (userReleaseGroups.Contains(gs.GroupID) && gs.HasGroupReleasedEpisode(thisEpNum))
+	                            epReleasedGroup = true;
+	                    }
+
+
+	                    try
+	                    {
+	                        epReleasedList.Add(ep, (!epReleased || vids.Count != 0));
+	                        epGroupReleasedList.Add(ep, (!epReleasedGroup || vids.Count != 0));
+
+	                    }
+	                    catch (Exception e)
+	                    {
+	                        logger.Trace("Error {0}", e.ToString());
+	                        throw;
+	                    }
+	                }
+	                foreach (EpisodeList.StatEpisodes eplst in epReleasedList)
+	                {
+	                    if (!eplst.Available)
+	                        MissingEpisodeCount++;
+	                }
+	                foreach (EpisodeList.StatEpisodes eplst in epGroupReleasedList)
+	                {
+	                    if (!eplst.Available)
+	                        MissingEpisodeCountGroups++;
+	                }
+
+	                this.LatestLocalEpisodeNumber = latestLocalEpNumber;
+	            }
+
+	            ts = DateTime.Now - start;
+	            logger.Trace("Updated MISSING EPS stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
+	            start = DateTime.Now;
+
+	            AnimeSeriesRepository rep = new AnimeSeriesRepository();
+	            rep.Save(this);
+
+	            if (updateAllGroupsAbove)
+	            {
+	                foreach (AnimeGroup grp in AllGroupsAbove)
+	                {
+	                    grp.UpdateStats(watchedStats, missingEpsStats);
+	                }
+	            }
+
+	            ts = DateTime.Now - start;
+	            logger.Trace("Updated GROUPS ABOVE stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
+	            start = DateTime.Now;
+
+	            TimeSpan tsOverall = DateTime.Now - startOverall;
+	            logger.Info("Finished Updating STATS for SERIES {0} in {1}ms ({2} - {3} - {4})", this.ToString(),
+	                tsOverall.TotalMilliseconds,
+	                watchedStats, missingEpsStats, updateAllGroupsAbove);
+
+                StatsCache.Instance.UpdateUsingSeries(AnimeSeriesID);
+	        }
+	    }
 
 	}
 }

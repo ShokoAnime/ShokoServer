@@ -291,7 +291,7 @@ namespace JMMServer.Commands
 			{
 				// update all the groups above this series in the heirarchy
 				ser.UpdateStats(true, true, true);
-				StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
+				//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 			}
 			
 

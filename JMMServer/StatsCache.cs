@@ -390,7 +390,7 @@ namespace JMMServer
 
 				foreach (AnimeGroup grp in ser.AllGroupsAbove)
 				{
-					UpdateUsingGroup(session, grp.AnimeGroupID);
+					UpdateUsingGroup(grp.AnimeGroupID);
 				}
 
 				TimeSpan ts = DateTime.Now - start;
@@ -402,15 +402,32 @@ namespace JMMServer
 			}
 		}
 
-		public void UpdateUsingGroup(int animeGroupID)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				UpdateUsingGroup(session, animeGroupID);
-			}
-		}
+        public const int UpdatetimeInSeconds = 90;
 
-		public void UpdateUsingGroup(ISession session, int animeGroupID)
+        private static TimeUpdater<int, object> updates = new TimeUpdater<int, object>(UpdatetimeInSeconds, "UpdateGroupsStats", InternalUpdaterAction);
+
+
+
+        private static void InternalUpdaterAction(int groupid, object obj)
+        {
+            StatsCache.Instance.InternalUpdateUsingGroup(groupid);
+        }
+
+	    public void UpdateUsingGroup(int animeGroupID)
+	    {
+            updates.Update(animeGroupID,null);
+	    }
+
+	    private void InternalUpdateUsingGroup(int animeGroupID)
+	    {
+	        using (var session = JMMService.SessionFactory.OpenSession())
+	        {
+	            InternalUpdateUsingGroup(session, animeGroupID);
+	        }
+	    }
+
+
+	    private void InternalUpdateUsingGroup(ISession session, int animeGroupID)
 		{
 			try
 			{

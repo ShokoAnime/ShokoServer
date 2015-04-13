@@ -115,7 +115,7 @@ namespace JMMServer.Commands
 					AnimeSeries ser = animeEpisodes[0].GetAnimeSeries();
 					// all the eps should belong to the same anime
 					ser.UpdateStats(true, true, true);
-					StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
+					//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 				}
 				
 

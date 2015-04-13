@@ -56,6 +56,11 @@ namespace JMMServer
 	/// </summary>
 	public partial class MainWindow : Window
 	{
+
+
+
+
+
 		private System.Windows.Forms.NotifyIcon TippuTrayNotify;
 		private System.Windows.Forms.ContextMenuStrip ctxTrayMenu;
 		private bool isAppExiting = false;
@@ -1104,7 +1109,7 @@ namespace JMMServer
 							{
 								// update all the groups above this series in the heirarchy
 								ser.UpdateStats(true, true, true);
-								StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
+								//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 							}
 
 

@@ -750,7 +750,7 @@ namespace JMMServer
 				foreach (AnimeSeries ser in affectedSeries.Values)
 				{
 					ser.UpdateStats(true, true, true);
-					StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
+					//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 				}
 
 				
