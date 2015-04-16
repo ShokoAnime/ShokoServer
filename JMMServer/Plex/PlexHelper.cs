@@ -442,9 +442,16 @@ namespace JMMServer.Plex
                 if (l.Count > 0)
                 {
                     Video v2 = new Video();
-                    if (PopulateVideo(v2, l[0], episodes[0],ser,anime, v1, JMMType.File, userid))
+                    try
                     {
-                        return v2;
+                        if (PopulateVideo(v2, l[0], episodes[0], ser, anime, v1, JMMType.File, userid))
+                        {
+                            return v2;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
                     }
                 }
             }

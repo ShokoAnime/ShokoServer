@@ -475,8 +475,9 @@ namespace JMMServer
 			ret = ret.Replace(@">", "");
 			ret = ret.Replace(@"<", "");
 			ret = ret.Replace(@"?", "");
-
-			return ret;
+		    while (ret.EndsWith("."))
+		        ret = ret.Substring(0, ret.Length - 1);
+			return ret.Trim();
 		}
 
 		public static string GetSortName(string name)

@@ -386,8 +386,8 @@ namespace JMMServer.Entities
 				//ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
 			}
 
-			if (ser != null && updateStatsCache)
-				StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
+			//if (ser != null && updateStatsCache)
+				//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 		}
 
 		public override string ToString()

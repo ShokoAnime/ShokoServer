@@ -86,12 +86,10 @@ namespace PlexMediaInfo
         }
         private static string GetLanguageFromCode3(string code3, string full)
         {
-            Hasher.logger.Info("CODE3: "+code3+ " Full: "+full);
             for(int x=0;x<languages.GetUpperBound(0);x++)
             {
                 if (languages[x, 2] == code3)
                 {
-                    Hasher.logger.Info("New: " + languages[x, 0]);
                     return languages[x, 0];
                 }
             }
