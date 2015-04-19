@@ -761,7 +761,7 @@ namespace JMMServer.Entities
 		/// Update stats for all child groups and series
 		/// This should only be called from the very top level group.
 		/// </summary>
-		public void UpdateStatsFromTopLevel(bool updateGroupStatsOnly, bool watchedStats, bool missingEpsStats)
+		public void UpdateStatsFromTopLevel(bool updateGroupStatsOnly, bool watchedStats, bool missingEpsStats, bool inmediate=false)
 		{
 			if (this.AnimeGroupParentID.HasValue) return;
 
@@ -770,7 +770,10 @@ namespace JMMServer.Entities
 			{
 				foreach (AnimeSeries ser in GetAllSeries())
 				{
-					ser.UpdateStats(watchedStats, missingEpsStats, false);
+                    if (inmediate)
+                        ser.InmediateUpdateStats(watchedStats, missingEpsStats, false);
+                    else
+    					ser.UpdateStats(watchedStats, missingEpsStats, false);
 				}
 			}
 

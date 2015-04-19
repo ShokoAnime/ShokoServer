@@ -699,7 +699,7 @@ namespace JMMServer.Entities
 	    private static void InternalUpdaterAction(int ser, ParInfo parameters)
 	    {
 	        AnimeSeriesRepository repo = new AnimeSeriesRepository();
-            repo.GetByID(ser).InternalUpdateStats(parameters.WatchedStats, parameters.MissingEpsStats, parameters.AllGroupsAbove);
+            repo.GetByID(ser).InmediateUpdateStats(parameters.WatchedStats, parameters.MissingEpsStats, parameters.AllGroupsAbove);
 	    }
 
 	    private static ParInfo InternalUpdaterUpdate(ParInfo original, ParInfo update)
@@ -723,11 +723,25 @@ namespace JMMServer.Entities
 	        };
             updates.Update(this.AnimeSeriesID,p);
 	    }
-	    public object UpdateStatsLock = new object();
+        public static Dictionary<int,ReaderWriterLockSlim> _updateStatsLock=new Dictionary<int, ReaderWriterLockSlim>(); 
 
-	    private void InternalUpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)
+	    public static object _dictlock = new object();
+
+	    public void InmediateUpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)
 	    {
-	        lock (UpdateStatsLock)
+	        ReaderWriterLockSlim _lock;
+	        lock (_dictlock)
+	        {
+	            if (_updateStatsLock.ContainsKey(this.AnimeSeriesID))
+	                _lock = _updateStatsLock[this.AnimeSeriesID];
+	            else
+	            {
+	                _lock = new ReaderWriterLockSlim();
+	                _updateStatsLock.Add(this.AnimeSeriesID,_lock);
+	            }
+	        }
+            _lock.EnterWriteLock();
+	        try
 	        {
 
 	            DateTime start = DateTime.Now;
@@ -989,7 +1003,11 @@ namespace JMMServer.Entities
 	                tsOverall.TotalMilliseconds,
 	                watchedStats, missingEpsStats, updateAllGroupsAbove);
 
-                StatsCache.Instance.UpdateUsingSeries(AnimeSeriesID);
+	            StatsCache.Instance.UpdateUsingSeries(AnimeSeriesID);
+	        }
+	        finally
+	        {
+	            _lock.ExitWriteLock();
 	        }
 	    }
 
