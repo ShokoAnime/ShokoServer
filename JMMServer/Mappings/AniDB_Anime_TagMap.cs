@@ -16,6 +16,7 @@ namespace JMMServer.Mappings
 
 			Map(x => x.AnimeID).Not.Nullable();
 			Map(x => x.Approval).Not.Nullable();
+            Map(x => x.Weight).Not.Nullable();
 			Map(x => x.TagID).Not.Nullable();
         }
 	}

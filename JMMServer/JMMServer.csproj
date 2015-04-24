@@ -373,7 +373,6 @@
     <Compile Include="Databases\SQLite.cs" />
     <Compile Include="Databases\SQLServer.cs" />
     <Compile Include="Entities\AniDB_Anime.cs" />
-    <Compile Include="Entities\AniDB_Anime_Category.cs" />
     <Compile Include="Entities\AniDB_Anime_Character.cs" />
     <Compile Include="Entities\AniDB_Anime_DefaultImage.cs" />
     <Compile Include="Entities\AniDB_Anime_Relation.cs" />
@@ -381,7 +380,6 @@
     <Compile Include="Entities\AniDB_Anime_Similar.cs" />
     <Compile Include="Entities\AniDB_Anime_Tag.cs" />
     <Compile Include="Entities\AniDB_Anime_Title.cs" />
-    <Compile Include="Entities\AniDB_Category.cs" />
     <Compile Include="Entities\AniDB_Character.cs" />
     <Compile Include="Entities\AniDB_Character_Seiyuu.cs" />
     <Compile Include="Entities\AniDB_Seiyuu.cs" />
@@ -441,7 +439,6 @@
     <Compile Include="JMMServiceImplementationImage.cs" />
     <Compile Include="Languages.cs" />
     <Compile Include="Mappings\AniDB_AnimeMap.cs" />
-    <Compile Include="Mappings\AniDB_Anime_CategoryMap.cs" />
     <Compile Include="Mappings\AniDB_Anime_CharacterMap.cs" />
     <Compile Include="Mappings\AniDB_Anime_DefaultImageMap.cs" />
     <Compile Include="Mappings\AniDB_Anime_RelationMap.cs" />
@@ -449,7 +446,6 @@
     <Compile Include="Mappings\AniDB_Anime_SimilarMap.cs" />
     <Compile Include="Mappings\AniDB_Anime_TagMap.cs" />
     <Compile Include="Mappings\AniDB_Anime_TitleMap.cs" />
-    <Compile Include="Mappings\AniDB_CategoryMap.cs" />
     <Compile Include="Mappings\AniDB_CharacterMap.cs" />
     <Compile Include="Mappings\AniDB_Character_SeiyuuMap.cs" />
     <Compile Include="Mappings\AniDB_SeiyuuMap.cs" />
@@ -537,7 +533,6 @@
     <Compile Include="Providers\TvDB\TvDBLanguage.cs" />
     <Compile Include="Repositories\AdhocRepository.cs" />
     <Compile Include="Repositories\AniDB_AnimeRepository.cs" />
-    <Compile Include="Repositories\AniDB_Anime_CategoryRepository.cs" />
     <Compile Include="Repositories\AniDB_Anime_CharacterRepository.cs" />
     <Compile Include="Repositories\AniDB_Anime_DefaultImageRepository.cs" />
     <Compile Include="Repositories\AniDB_Anime_RelationRepository.cs" />
@@ -545,7 +540,6 @@
     <Compile Include="Repositories\AniDB_Anime_SimilarRepository.cs" />
     <Compile Include="Repositories\AniDB_Anime_TagRepository.cs" />
     <Compile Include="Repositories\AniDB_Anime_TitleRepository.cs" />
-    <Compile Include="Repositories\AniDB_CategoryRepository.cs" />
     <Compile Include="Repositories\AniDB_CharacterRepository.cs" />
     <Compile Include="Repositories\AniDB_Character_SeiyuuRepository.cs" />
     <Compile Include="Repositories\AniDB_SeiyuuRepository.cs" />

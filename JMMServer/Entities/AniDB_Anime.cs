@@ -925,14 +925,14 @@ namespace JMMServer.Entities
 		}
 
 		[XmlIgnore]
-		public string CategoriesString
+		public string TagsString
 		{
 			get
 			{
-				List<AniDB_Category> cats = GetCategories();
+                List<AniDB_Tag> tags = GetTags();
 				string temp = "";
-				foreach (AniDB_Category cr in cats)
-					temp += cr.CategoryName + "|";
+                foreach (AniDB_Tag tag in tags)
+                    temp += tag.TagName + "|";
 				if (temp.Length > 2)
 					temp = temp.Substring(0, temp.Length - 2);
 				return temp;
@@ -958,57 +958,48 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public List<AniDB_Category> GetCategories()
+        public List<AniDB_Tag> GetTags()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return GetCategories(session);
+                return GetTags(session);
 			}
 		}
 
-		public List<AniDB_Category> GetCategories(ISession session)
+        public List<AniDB_Tag> GetTags(ISession session)
 		{
 
-			AniDB_CategoryRepository repCat = new AniDB_CategoryRepository();
+            AniDB_TagRepository repTag = new AniDB_TagRepository();
 
-			List<AniDB_Category> categories = new List<AniDB_Category>();
-			foreach (AniDB_Anime_Category cat in GetAnimeCategories(session))
+            List<AniDB_Tag> tags = new List<AniDB_Tag>();
+            foreach (AniDB_Anime_Tag tag in GetAnimeTags(session))
 			{
-				AniDB_Category newcat = repCat.GetByCategoryID(session, cat.CategoryID);
-				if (newcat != null) categories.Add(newcat);
+                AniDB_Tag newTag = repTag.GetByTagID(tag.TagID, session);
+				if (newTag != null) tags.Add(newTag);
 			}
-			return categories;
+			return tags;
 		}
 
-		/*[XmlIgnore]
-		public List<AniDB_Anime_Category> AnimeCategories
-		{
-			get
-			{
-				AniDB_Anime_CategoryRepository repCatXRef = new AniDB_Anime_CategoryRepository();
-				return repCatXRef.GetByAnimeID(AnimeID);
-			}
-		}*/
-
-		public List<AniDB_Anime_Category> GetAnimeCategories()
+        /*public List<AniDB_Anime_Tag> GetAnimeTags()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return GetAnimeCategories(session);
+                return GetAnimeTags(session);
 			}
 		}
 
-		public List<AniDB_Anime_Category> GetAnimeCategories(ISession session)
+        public List<AniDB_Anime_Tag> GetAnimeTags(ISession session)
 		{
-			AniDB_Anime_CategoryRepository repCatXRef = new AniDB_Anime_CategoryRepository();
-			return repCatXRef.GetByAnimeID(session, AnimeID);
+            AniDB_Anime_TagRepository repTagXRef = new AniDB_Anime_TagRepository();
+			return repTagXRef.GetByAnimeID(session, AnimeID);
 		}
 
-		public List<AniDB_Category> GetAniDBCategories(ISession session)
+        public List<AniDB_Tag> GetAniDBTags(ISession session)
 		{
-			AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
+            AniDB_TagRepository repCats = new AniDB_TagRepository();
 			return repCats.GetByAnimeID(session, AnimeID);
 		}
+        */
 
         public List<CustomTag> GetCustomTagsForAnime(ISession session)
         {
@@ -1403,9 +1394,6 @@ namespace JMMServer.Entities
 			CreateTitles(session, titles);
 			ts = DateTime.Now - start; logger.Trace(string.Format("CreateTitles in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
 
-			CreateCategories(session, cats);
-			ts = DateTime.Now - start; logger.Trace(string.Format("CreateCategories in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
-
 			CreateTags(session, tags);
 			ts = DateTime.Now - start; logger.Trace(string.Format("CreateTags in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
 
@@ -1573,61 +1561,6 @@ namespace JMMServer.Entities
 
 				foreach (AniDB_Anime_Title tit in titlesToSave)
 					session.SaveOrUpdate(tit);
-
-				transaction.Commit();
-			}
-		}
-
-		private void CreateCategories(ISession session, List<Raw_AniDB_Category> cats)
-		{
-			if (cats == null) return;
-
-			this.AllCategories = "";
-
-			AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
-			AniDB_Anime_CategoryRepository repXRefs = new AniDB_Anime_CategoryRepository();
-
-			int count = 0;
-
-			List<AniDB_Category> catsToSave = new List<AniDB_Category>();
-			List<AniDB_Anime_Category> xrefsToSave = new List<AniDB_Anime_Category>();
-
-			foreach (Raw_AniDB_Category rawcat in cats)
-			{
-				count++;
-
-				AniDB_Category cat = session
-				.CreateCriteria(typeof(AniDB_Category))
-				.Add(Restrictions.Eq("CategoryID", rawcat.CategoryID))
-				.UniqueResult<AniDB_Category>();
-
-				if (cat == null) cat = new AniDB_Category();
-
-				cat.Populate(rawcat);
-				catsToSave.Add(cat);
-
-				AniDB_Anime_Category anime_cat = session
-					.CreateCriteria(typeof(AniDB_Anime_Category))
-					.Add(Restrictions.Eq("AnimeID", rawcat.AnimeID))
-					.Add(Restrictions.Eq("CategoryID", rawcat.CategoryID))
-					.UniqueResult<AniDB_Anime_Category>();
-
-				if (anime_cat == null) anime_cat = new AniDB_Anime_Category();
-
-				anime_cat.Populate(rawcat);
-				xrefsToSave.Add(anime_cat);
-
-				if (this.AllCategories.Length > 0) this.AllCategories += "|";
-				this.AllCategories += cat.CategoryName;
-			}
-
-			using (var transaction = session.BeginTransaction())
-			{
-				foreach (AniDB_Category cat in catsToSave)
-					session.SaveOrUpdate(cat);
-
-				foreach (AniDB_Anime_Category xref in xrefsToSave)
-					session.SaveOrUpdate(xref);
 
 				transaction.Commit();
 			}
@@ -2006,7 +1939,7 @@ namespace JMMServer.Entities
 			contract.Characters = new List<Providers.Azure.AnimeCharacter>();
 			contract.Shouts = new List<Providers.Azure.AnimeShout>();
 
-			contract.Detail.AllCategories = this.CategoriesString;
+			contract.Detail.AllTags = this.TagsString;
 			contract.Detail.AnimeID = this.AnimeID;
 			contract.Detail.AnimeName = this.MainTitle;
 			contract.Detail.AnimeType = this.AnimeTypeDescription;
@@ -2091,20 +2024,15 @@ namespace JMMServer.Entities
 
 		public Contract_AniDB_AnimeDetailed ToContractDetailed(ISession session)
 		{
-			//logger.Trace(" XXXX 01");
 			AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
-			AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
 			AniDB_TagRepository repTags = new AniDB_TagRepository();
 
 			Contract_AniDB_AnimeDetailed contract = new Contract_AniDB_AnimeDetailed();
 
 			contract.AnimeTitles = new List<Contract_AnimeTitle>();
-			contract.Categories = new List<Contract_AnimeCategory>();
 			contract.Tags = new List<Contract_AnimeTag>();
             contract.CustomTags = new List<Contract_CustomTag>();
 			contract.AniDBAnime = this.ToContract(session);
-
-			//logger.Trace(" XXXX 02");
 
 			// get all the anime titles
 			List<AniDB_Anime_Title> animeTitles = repTitles.GetByAnimeID(session, AnimeID);
@@ -2121,29 +2049,6 @@ namespace JMMServer.Entities
 				}
 			}
 
-			//logger.Trace(" XXXX 03");
-
-			Dictionary<int, AniDB_Anime_Category> dictAnimeCats = new Dictionary<int, AniDB_Anime_Category>();
-			foreach (AniDB_Anime_Category animeCat in GetAnimeCategories(session))
-				dictAnimeCats[animeCat.CategoryID] = animeCat;
-
-			foreach (AniDB_Category cat in GetAniDBCategories(session))
-			{
-				Contract_AnimeCategory ccat = new Contract_AnimeCategory();
-				ccat.CategoryDescription = cat.CategoryDescription;
-				ccat.CategoryID = cat.CategoryID;
-				ccat.CategoryName = cat.CategoryName;
-				ccat.IsHentai = cat.IsHentai;
-				ccat.ParentID = cat.ParentID;
-
-				if (dictAnimeCats.ContainsKey(cat.CategoryID))
-					ccat.Weighting = dictAnimeCats[cat.CategoryID].Weighting;
-				else
-					ccat.Weighting = 0;
-				contract.Categories.Add(ccat);
-			}
-
-			//logger.Trace(" XXXX 04");
 
 			Dictionary<int, AniDB_Anime_Tag> dictAnimeTags = new Dictionary<int, AniDB_Anime_Tag>();
 			foreach (AniDB_Anime_Tag animeTag in GetAnimeTags(session))
@@ -2155,16 +2060,17 @@ namespace JMMServer.Entities
 				
 				ctag.GlobalSpoiler = tag.GlobalSpoiler;
 				ctag.LocalSpoiler = tag.LocalSpoiler;
-				ctag.Spoiler = tag.Spoiler;
-				ctag.TagCount = tag.TagCount;
+				//ctag.Spoiler = tag.Spoiler;
+				//ctag.TagCount = tag.TagCount;
 				ctag.TagDescription = tag.TagDescription;
 				ctag.TagID = tag.TagID;
 				ctag.TagName = tag.TagName;
 
-				if (dictAnimeTags.ContainsKey(tag.TagID))
-					ctag.Approval = dictAnimeTags[tag.TagID].Approval;
-				else
-					ctag.Approval = 0;
+                if (dictAnimeTags.ContainsKey(tag.TagID))
+                    ctag.Weight = dictAnimeTags[tag.TagID].Weight;
+                else
+                    ctag.Weight = 0;
+
 				contract.Tags.Add(ctag);
 			}
 

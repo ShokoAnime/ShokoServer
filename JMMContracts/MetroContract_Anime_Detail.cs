@@ -24,7 +24,7 @@ namespace JMMContracts
 		public int UnwatchedEpisodeCount { get; set; }
 		public DateTime? AirDate { get; set; }
 		public DateTime? EndDate { get; set; }
-		public string AllCategories { get; set; }
+		public string AllTags { get; set; }
 		public decimal OverallRating { get; set; }
 		public int TotalVotes { get; set; }
 

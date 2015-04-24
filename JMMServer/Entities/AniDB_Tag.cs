@@ -22,8 +22,8 @@ namespace JMMServer.Entities
 			this.TagID = rawTag.TagID;
 			this.GlobalSpoiler = rawTag.GlobalSpoiler;
 			this.LocalSpoiler = rawTag.LocalSpoiler;
-			this.Spoiler = rawTag.Spoiler;
-			this.TagCount = rawTag.TagCount;
+			this.Spoiler = 0;
+			this.TagCount = 0;
 			this.TagDescription = rawTag.TagDescription;
 			this.TagName = rawTag.TagName;
 		}

@@ -20,6 +20,7 @@ namespace AniDBAPI
 		public string TagDescription { get; set; }
 		public int TagCount { get; set; }
 		public int Approval { get; set; }
+        public int Weight { get; set; }
 
 		#endregion
 
@@ -38,23 +39,16 @@ namespace AniDBAPI
 			this.TagDescription = "";
 			this.TagCount = 0;
 			this.Approval = 0;
+            this.Weight = 0;
 
 			this.TagID = int.Parse(AniDBHTTPHelper.TryGetAttribute(node, "id"));
 
 			int tapp = 0;
-			int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "approval"), out tapp);
-			this.Approval = tapp;
+			int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "weight"), out tapp);
+            this.Weight = tapp;
 
 			this.TagName = AniDBHTTPHelper.TryGetProperty(node, "name");
 			this.TagDescription = AniDBHTTPHelper.TryGetProperty(node, "description");
-
-			int tcount = 0;
-			int.TryParse(AniDBHTTPHelper.TryGetProperty(node, "count"), out tcount);
-			this.TagCount = tcount;
-
-			bool sp = false;
-			bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "spoiler"), out sp);
-			this.Spoiler = sp ? 1 : 0;
 
 			bool lsp = false;
 			bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "localspoiler"), out lsp);

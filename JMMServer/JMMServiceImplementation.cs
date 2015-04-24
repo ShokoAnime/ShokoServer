@@ -2170,7 +2170,6 @@ namespace JMMServer
 					Contract_AniDB_AnimeDetailed contractAnimeDetailed = new Contract_AniDB_AnimeDetailed();
 
 					contractAnimeDetailed.AnimeTitles = new List<Contract_AnimeTitle>();
-					contractAnimeDetailed.Categories = new List<Contract_AnimeCategory>();
 					contractAnimeDetailed.Tags = new List<Contract_AnimeTag>();
                     contractAnimeDetailed.CustomTags = new List<Contract_CustomTag>();
 					contractAnimeDetailed.UserVote = null;
@@ -2216,27 +2215,6 @@ namespace JMMServer
 				DateTime start = DateTime.Now;
 
 				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				
-
-				// build a dictionary of categories
-				AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
-				AniDB_Anime_CategoryRepository repAnimeCat = new AniDB_Anime_CategoryRepository();
-
-				List<AniDB_Category> allCatgeories = repCats.GetAll();
-				Dictionary<int, AniDB_Category> allCatgeoriesDict = new Dictionary<int, AniDB_Category>();
-				foreach (AniDB_Category cat in allCatgeories)
-					allCatgeoriesDict[cat.CategoryID] = cat;
-
-
-				List<AniDB_Anime_Category> allAnimeCatgeories = repAnimeCat.GetAll();
-				Dictionary<int, List<AniDB_Anime_Category>> allAnimeCatgeoriesDict = new Dictionary<int, List<AniDB_Anime_Category>>(); // 
-				foreach (AniDB_Anime_Category aniCat in allAnimeCatgeories)
-				{
-					if (!allAnimeCatgeoriesDict.ContainsKey(aniCat.AnimeID))
-						allAnimeCatgeoriesDict[aniCat.AnimeID] = new List<AniDB_Anime_Category>();
-
-					allAnimeCatgeoriesDict[aniCat.AnimeID].Add(aniCat);
-				}
 
 				// build a dictionary of titles
 				AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
@@ -2319,8 +2297,7 @@ namespace JMMServer
 
 					Contract_AniDB_AnimeDetailed contract = new Contract_AniDB_AnimeDetailed();
 
-					contract.AnimeTitles = new List<Contract_AnimeTitle>();
-					contract.Categories = new List<Contract_AnimeCategory>();
+                    contract.AnimeTitles = new List<Contract_AnimeTitle>();
 					contract.Tags = new List<Contract_AnimeTag>();
                     contract.CustomTags = new List<Contract_CustomTag>();
 					contract.UserVote = null;
@@ -2400,28 +2377,6 @@ namespace JMMServer
 					}
 					
 					
-					if (allAnimeCatgeoriesDict.ContainsKey(anime.AnimeID))
-					{
-						List<AniDB_Anime_Category> aniCats = allAnimeCatgeoriesDict[anime.AnimeID];
-						foreach (AniDB_Anime_Category aniCat in aniCats)
-						{
-							if (allCatgeoriesDict.ContainsKey(aniCat.CategoryID))
-							{
-								AniDB_Category cat = allCatgeoriesDict[aniCat.CategoryID];
-
-								Contract_AnimeCategory ccat = new Contract_AnimeCategory();
-								ccat.CategoryDescription = cat.CategoryDescription;
-								ccat.CategoryID = cat.CategoryID;
-								ccat.CategoryName = cat.CategoryName;
-								ccat.IsHentai = cat.IsHentai;
-								ccat.ParentID = cat.ParentID;
-								ccat.Weighting = aniCat.Weighting;
-								contract.Categories.Add(ccat);
-								countElements++;
-							}
-						}
-					}
-					
 					if (allAnimeTagsDict.ContainsKey(anime.AnimeID))
 					{
 						List<AniDB_Anime_Tag> aniTags = allAnimeTagsDict[anime.AnimeID];
@@ -2432,11 +2387,11 @@ namespace JMMServer
 								AniDB_Tag tag = allTagsDict[aniTag.TagID];
 
 								Contract_AnimeTag ctag = new Contract_AnimeTag();
-								ctag.Approval = aniTag.Approval;
+                                ctag.Weight = aniTag.Weight;
 								ctag.GlobalSpoiler = tag.GlobalSpoiler;
 								ctag.LocalSpoiler = tag.LocalSpoiler;
-								ctag.Spoiler = tag.Spoiler;
-								ctag.TagCount = tag.TagCount;
+								//ctag.Spoiler = tag.Spoiler;
+								//ctag.TagCount = tag.TagCount;
 								ctag.TagDescription = tag.TagDescription;
 								ctag.TagID = tag.TagID;
 								ctag.TagName = tag.TagName;
@@ -2492,8 +2447,6 @@ namespace JMMServer
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
-			AniDB_Anime_CategoryRepository repAnimeCats = new AniDB_Anime_CategoryRepository();
-			AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
 			
             //TODO: Custom Tags: Do I need to add custom tags for searches
 
@@ -2705,31 +2658,31 @@ namespace JMMServer
 			}
 		}
 
-		public List<string> GetAllCategoryNames()
+        public List<string> GetAllTagNames()
 		{
-			AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
-			List<string> allCatNames = new List<string>();
+            AniDB_TagRepository repTags = new AniDB_TagRepository();
+			List<string> allTagNames = new List<string>();
 
 			try
 			{
 				DateTime start = DateTime.Now;
 
-				foreach (AniDB_Category cat in repCats.GetAll())
+                foreach (AniDB_Tag tag in repTags.GetAll())
 				{
-					allCatNames.Add(cat.CategoryName);
+                    allTagNames.Add(tag.TagName);
 				}
-				allCatNames.Sort();
+				allTagNames.Sort();
 
 
 				TimeSpan ts = DateTime.Now - start;
-				logger.Info("GetAllCategoryNames  in {0} ms", ts.TotalMilliseconds);
+                logger.Info("GetAllTagNames  in {0} ms", ts.TotalMilliseconds);
 			}
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
 
-			return allCatNames;
+			return allTagNames;
 		}
 
 		public List<Contract_AnimeGroup> GetSubGroupsForGroup(int animeGroupID, int userID)

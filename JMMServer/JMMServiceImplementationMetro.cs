@@ -728,7 +728,7 @@ namespace JMMServer
 
 					ret.OverallRating = anime.AniDBRating;
 					ret.TotalVotes = anime.AniDBTotalVotes;
-					ret.AllCategories = anime.CategoriesString;
+					ret.AllTags = anime.TagsString;
 
 					ret.NextEpisodesToWatch = new List<MetroContract_Anime_Episode>();
 					if (ser != null)

@@ -211,7 +211,7 @@ namespace JMMContracts
 		string DeleteGroupFilter(int groupFilterID);
 
 		[OperationContract]
-		List<string> GetAllCategoryNames();
+        List<string> GetAllTagNames();
 
 		[OperationContract]
 		void ScanFolder(int importFolderID);

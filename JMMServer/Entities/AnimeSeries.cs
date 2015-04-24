@@ -84,7 +84,7 @@ namespace JMMServer.Entities
 				if (GetAnime() == null)
 					return "";
 				else
-					return GetAnime().CategoriesString;
+					return GetAnime().TagsString;
 			}
 		}
 

@@ -36,7 +36,7 @@ namespace JMMServer
 		public List<TraktTVFriendRequest> TraktFriendRequests = null;
 		public List<TraktTV_Activity> TraktFriendActivityInfo = null;
 
-		public Dictionary<int, string> StatGroupCategories = null; // AnimeGroupID / Categories List
+		public Dictionary<int, string> StatGroupTags = null; // AnimeGroupID / Categories List
         public Dictionary<int, string> StatGroupCustomTags = null; // AnimeGroupID / Custom Tags
 		public Dictionary<int, string> StatGroupTitles = null; // AnimeGroupID / Titles List
 		public Dictionary<int, DateTime?> StatGroupAirDate_Min = null; // AnimeGroupID / AirDate_Min
@@ -79,7 +79,7 @@ namespace JMMServer
 			TraktFriendRequests = new List<TraktTVFriendRequest>();
 			TraktFriendActivityInfo = new List<TraktTV_Activity>();
 
-			StatGroupCategories = new Dictionary<int, string>();
+			StatGroupTags = new Dictionary<int, string>();
             StatGroupCustomTags = new Dictionary<int, string>();
 			StatGroupTitles = new Dictionary<int, string>();
 			StatGroupAirDate_Min = new Dictionary<int, DateTime?>();
@@ -466,7 +466,7 @@ namespace JMMServer
 
 				foreach (AnimeGroup grp in allgroups)
 				{
-					StatGroupCategories[grp.AnimeGroupID] = grp.CategoriesString;
+					StatGroupTags[grp.AnimeGroupID] = grp.TagsString;
                     StatGroupCustomTags[grp.AnimeGroupID] = grp.CustomTagsString;
 					StatGroupTitles[grp.AnimeGroupID] = grp.TitlesString;
 					StatGroupVideoQuality[grp.AnimeGroupID] = grp.VideoQualityString;
@@ -764,8 +764,8 @@ namespace JMMServer
 				AnimeGroupRepository repGroups = new AnimeGroupRepository();
 				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-				AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
-				AniDB_Anime_CategoryRepository repAnimeCat = new AniDB_Anime_CategoryRepository();
+                AniDB_TagRepository repTags = new AniDB_TagRepository();
+                AniDB_Anime_TagRepository repAnimeTag = new AniDB_Anime_TagRepository();
 				AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
 
 				List<AnimeGroup> allGrps = repGroups.GetAll();
@@ -787,25 +787,25 @@ namespace JMMServer
 				ts = DateTime.Now - start;
 				logger.Info("Get All ANIME (Database) in {0} ms", ts.TotalMilliseconds);
 
-				// categories
+				// tags
 				start = DateTime.Now;
-				List<AniDB_Category> allCatgeories = repCats.GetAll();
-				Dictionary<int, AniDB_Category> allCatgeoriesDict = new Dictionary<int, AniDB_Category>();
-				foreach (AniDB_Category cat in allCatgeories)
-					allCatgeoriesDict[cat.CategoryID] = cat;
+                List<AniDB_Tag> allTags = repTags.GetAll();
+                Dictionary<int, AniDB_Tag> allTagsDict = new Dictionary<int, AniDB_Tag>();
+                foreach (AniDB_Tag tag in allTags)
+                    allTagsDict[tag.TagID] = tag;
 
 
-				List<AniDB_Anime_Category> allAnimeCatgeories = repAnimeCat.GetAll();
-				Dictionary<int, List<int>> allAnimeCatgeoriesDict = new Dictionary<int, List<int>>(); // animeid / list of category id's
-				foreach (AniDB_Anime_Category aniCat in allAnimeCatgeories)
+                List<AniDB_Anime_Tag> allAnimeTags = repAnimeTag.GetAll();
+				Dictionary<int, List<int>> allAnimeTagsDict = new Dictionary<int, List<int>>(); // animeid / list of tag id's
+                foreach (AniDB_Anime_Tag aniTag in allAnimeTags)
 				{
-					if (!allAnimeCatgeoriesDict.ContainsKey(aniCat.AnimeID))
-						allAnimeCatgeoriesDict[aniCat.AnimeID] = new List<int>();
+					if (!allAnimeTagsDict.ContainsKey(aniTag.AnimeID))
+						allAnimeTagsDict[aniTag.AnimeID] = new List<int>();
 
-					allAnimeCatgeoriesDict[aniCat.AnimeID].Add(aniCat.CategoryID);
+                    allAnimeTagsDict[aniTag.AnimeID].Add(aniTag.TagID);
 				}
 				ts = DateTime.Now - start;
-				logger.Info("Get All CATEGORIES (Database) in {0} ms", ts.TotalMilliseconds);
+				logger.Info("Get All TAGS (Database) in {0} ms", ts.TotalMilliseconds);
 
 
                 // custom tags
@@ -939,12 +939,12 @@ namespace JMMServer
 					bool hasFinishedAiring = false;
 					bool isCurrentlyAiring = false;
 
-					List<int> categoryIDList = new List<int>();
+					List<int> tagIDList = new List<int>();
                     List<int> customTagIDList = new List<int>();
 					List<string> audioLanguageList = new List<string>();
 					List<string> subtitleLanguageList = new List<string>();
 					string Stat_AllTitles = "";
-					string Stat_AllCategories = "";
+					string Stat_AllTags = "";
                     string Stat_AllCustomTags = "";
 					string Stat_AllVideoQualityEpisodes = "";
 					
@@ -1055,11 +1055,11 @@ namespace JMMServer
 							}
 
 							// get categories
-							if (allAnimeCatgeoriesDict.ContainsKey(series.AniDB_ID))
+							if (allAnimeTagsDict.ContainsKey(series.AniDB_ID))
 							{
-								foreach (int catID in allAnimeCatgeoriesDict[series.AniDB_ID])
+								foreach (int catID in allAnimeTagsDict[series.AniDB_ID])
 								{
-									if (!categoryIDList.Contains(catID)) categoryIDList.Add(catID);
+									if (!tagIDList.Contains(catID)) tagIDList.Add(catID);
 								}
 							}
 
@@ -1173,20 +1173,20 @@ namespace JMMServer
 
 					StatGroupAniDBRating[ag.AnimeGroupID] = ag.AniDBRating;
 
-                    // categories
-					Stat_AllCategories = "";
+                    // tags
+					Stat_AllTags = "";
 
-					foreach (int catID in categoryIDList)
+					foreach (int tagID in tagIDList)
 					{
-						if (!allCatgeoriesDict.ContainsKey(catID)) continue;
+						if (!allTagsDict.ContainsKey(tagID)) continue;
 
-						string catName = allCatgeoriesDict[catID].CategoryName;
-						if (Stat_AllCategories.Length > 0)
-							Stat_AllCategories += "|";
+                        string catName = allTagsDict[tagID].TagName;
+						if (Stat_AllTags.Length > 0)
+							Stat_AllTags += "|";
 
-						Stat_AllCategories += catName;
+						Stat_AllTags += catName;
 					}
-					this.StatGroupCategories[ag.AnimeGroupID] = Stat_AllCategories;
+					this.StatGroupTags[ag.AnimeGroupID] = Stat_AllTags;
 
                     // custom tags
                     Stat_AllCustomTags = "";
@@ -1506,7 +1506,7 @@ namespace JMMServer
 							if (cat.Trim().Length == 0) continue;
 							if (cat.Trim() == ",") continue;
 
-							index = contractGroup.Stat_AllCategories.IndexOf(cat, 0, StringComparison.InvariantCultureIgnoreCase);
+							index = contractGroup.Stat_AllTags.IndexOf(cat, 0, StringComparison.InvariantCultureIgnoreCase);
 							if (index > -1)
 							{
 								foundCat = true;

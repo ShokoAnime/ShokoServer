@@ -94,7 +94,7 @@ namespace JMMServer.Entities
 			if (string.IsNullOrEmpty(HideCategories)) return true;
 
 			string[] cats = HideCategories.ToLower().Split(',');
-			string[] animeCats = grp.ToContract(userRec).Stat_AllCategories.ToLower().Split('|');
+			string[] animeCats = grp.ToContract(userRec).Stat_AllTags.ToLower().Split('|');
 			foreach (string cat in cats)
 			{
 				if (!string.IsNullOrEmpty(cat) && animeCats.Contains(cat))

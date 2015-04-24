@@ -688,6 +688,25 @@ namespace JMMServer.Databases
  
         }
 
+        public static void PopulateTagWeight()
+        {
+            try
+            {
+                AniDB_Anime_TagRepository repTags = new AniDB_Anime_TagRepository();
+                foreach (AniDB_Anime_Tag atag in repTags.GetAll())
+                {
+                    atag.Weight = 0;
+                    repTags.Save(atag);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Could not PopulateTagWeight: " + ex.ToString(), ex);
+            }
+
+
+        }
+
         public static void CreateInitialCustomTags()
         {
             try

@@ -12,12 +12,14 @@ namespace JMMServer.Entities
 		public int AnimeID { get; set; }
 		public int TagID { get; set; }
 		public int Approval { get; set; }
+        public int Weight { get; set; }
 
 		public void Populate(Raw_AniDB_Tag rawTag)
 		{
 			this.AnimeID = rawTag.AnimeID;
 			this.TagID = rawTag.TagID;
-			this.Approval = rawTag.Approval;
+			this.Approval = 100;
+            this.Weight = rawTag.Weight;
 		}
 	}
 }

@@ -215,7 +215,6 @@ namespace AniDBAPI.Commands
 				anime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);
 				episodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
 				titles = AniDBHTTPHelper.ProcessTitles(docAnime, animeID);
-				categories = AniDBHTTPHelper.ProcessCategories(docAnime, animeID);
 				tags = AniDBHTTPHelper.ProcessTags(docAnime, animeID);
 				characters = AniDBHTTPHelper.ProcessCharacters(docAnime, animeID);
 				relations = AniDBHTTPHelper.ProcessRelations(docAnime, animeID);

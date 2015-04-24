@@ -9,7 +9,6 @@ namespace JMMContracts
 	{
 		public Contract_AniDBAnime AniDBAnime { get; set; }
 		public List<Contract_AnimeTitle> AnimeTitles { get; set; }
-		public List<Contract_AnimeCategory> Categories { get; set; }
 		public List<Contract_AnimeTag> Tags { get; set; }
         public List<Contract_CustomTag> CustomTags { get; set; }
 		public Contract_AniDBVote UserVote { get; set; }

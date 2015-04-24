@@ -36,7 +36,7 @@ namespace JMMContracts
 		public decimal? Stat_UserVotePermanent { get; set; }
 		public decimal? Stat_UserVoteTemporary { get; set; }
 		public decimal? Stat_UserVoteOverall { get; set; }
-		public string Stat_AllCategories { get; set; }
+		public string Stat_AllTags { get; set; }
         public string Stat_AllCustomTags { get; set; }
 		public string Stat_AllTitles { get; set; }
 		public bool Stat_IsComplete { get; set; }

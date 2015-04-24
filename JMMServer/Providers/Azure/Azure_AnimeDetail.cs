@@ -20,7 +20,7 @@ namespace JMMServer.Providers.Azure
 		public int EpisodeCountSpecial { get; set; }
 		public decimal OverallRating { get; set; }
 		public int TotalVotes { get; set; }
-		public string AllCategories { get; set; }
+		public string AllTags { get; set; }
 		public string AnimeType { get; set; }
 		public string Description { get; set; }
 	}

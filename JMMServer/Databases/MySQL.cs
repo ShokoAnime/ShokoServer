@@ -163,6 +163,8 @@ namespace JMMServer.Databases
                 UpdateSchema_035(versionNumber);
                 UpdateSchema_036(versionNumber);
                 UpdateSchema_037(versionNumber);
+                UpdateSchema_038(versionNumber);
+                UpdateSchema_039(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1619,6 +1621,34 @@ namespace JMMServer.Databases
             DatabaseHelper.CreateInitialCustomTags();
         }
 
+        private static void UpdateSchema_038(int currentVersionNumber)
+        {
+            int thisVersion = 38;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+
+        private static void UpdateSchema_039(int currentVersionNumber)
+        {
+            int thisVersion = 39;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            UpdateDatabaseVersion(thisVersion);
+
+            DatabaseHelper.PopulateTagWeight();
+        }
 
 		private static void ExecuteSQLCommands(List<string> cmds)
 		{

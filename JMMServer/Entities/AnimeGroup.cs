@@ -341,9 +341,9 @@ namespace JMMServer.Entities
 				contract.Stat_AirDate_Min = StatsCache.Instance.StatGroupAirDate_Min[this.AnimeGroupID];
 			else contract.Stat_AirDate_Min = null;
 
-			if (StatsCache.Instance.StatGroupCategories.ContainsKey(this.AnimeGroupID))
-				contract.Stat_AllCategories = StatsCache.Instance.StatGroupCategories[this.AnimeGroupID];
-			else contract.Stat_AllCategories = "";
+			if (StatsCache.Instance.StatGroupTags.ContainsKey(this.AnimeGroupID))
+				contract.Stat_AllTags = StatsCache.Instance.StatGroupTags[this.AnimeGroupID];
+			else contract.Stat_AllTags = "";
 
             if (StatsCache.Instance.StatGroupCustomTags.ContainsKey(this.AnimeGroupID))
                 contract.Stat_AllCustomTags = StatsCache.Instance.StatGroupCustomTags[this.AnimeGroupID];
@@ -527,13 +527,13 @@ namespace JMMServer.Entities
 			return seriesList;
 		}
 
-		public string CategoriesString
+		public string TagsString
 		{
 			get
 			{
 				string temp = "";
-				foreach (AniDB_Category cat in Categories)
-					temp += cat.CategoryName + "|";
+                foreach (AniDB_Tag tag in Tags)
+                    temp += tag.TagName + "|";
 				if (temp.Length > 2)
 					temp = temp.Substring(0, temp.Length - 2);
 
@@ -541,40 +541,43 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public List<AniDB_Category> Categories
+		public List<AniDB_Tag> Tags
 		{
 			get
 			{
-				List<AniDB_Category> cats = new List<AniDB_Category>();
-				List<int> animeCatIDs = new List<int>();
-				List<AniDB_Anime_Category> animeCats = new List<AniDB_Anime_Category>();
+                List<AniDB_Tag> tags = new List<AniDB_Tag>();
+				List<int> animeTagIDs = new List<int>();
+                List<AniDB_Anime_Tag> animeTags = new List<AniDB_Anime_Tag>();
 
-				// get a list of all the unique categories for this all the series in this group
-				foreach (AnimeSeries ser in GetAllSeries())
-				{
-					foreach (AniDB_Anime_Category aac in ser.GetAnime().GetAnimeCategories())
-					{
-						if (!animeCatIDs.Contains(aac.AniDB_Anime_CategoryID))
-						{
-							animeCatIDs.Add(aac.AniDB_Anime_CategoryID);
-							animeCats.Add(aac);
-						}
-					}
-				}
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    // get a list of all the unique tags for this all the series in this group
+                    foreach (AnimeSeries ser in GetAllSeries())
+                    {
+                        foreach (AniDB_Anime_Tag aac in ser.GetAnime().GetAnimeTags(session))
+                        {
+                            if (!animeTagIDs.Contains(aac.AniDB_Anime_TagID))
+                            {
+                                animeTagIDs.Add(aac.AniDB_Anime_TagID);
+                                animeTags.Add(aac);
+                            }
+                        }
+                    }
 
-				// now sort it by the weighting
-				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-				sortCriteria.Add(new SortPropOrFieldAndDirection("Weighting", true, SortType.eInteger));
-				animeCats = Sorting.MultiSort<AniDB_Anime_Category>(animeCats, sortCriteria);
+                    // now sort it by the weighting
+                    List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+                    sortCriteria.Add(new SortPropOrFieldAndDirection("Weight", true, SortType.eInteger));
+                    animeTags = Sorting.MultiSort<AniDB_Anime_Tag>(animeTags, sortCriteria);
 
-				AniDB_CategoryRepository repCat = new AniDB_CategoryRepository();
-				foreach (AniDB_Anime_Category animeCat in animeCats)
-				{
-					AniDB_Category cat = repCat.GetByCategoryID(animeCat.CategoryID);
-					if (cat != null) cats.Add(cat);
-				}
+                    AniDB_TagRepository repTag = new AniDB_TagRepository();
+                    foreach (AniDB_Anime_Tag animeTag in animeTags)
+                    {
+                        AniDB_Tag tag = repTag.GetByTagID(animeTag.TagID, session);
+                        if (tag != null) tags.Add(tag);
+                    }
+                }
 				
-				return cats;
+				return tags;
 			}
 		}
 

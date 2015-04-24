@@ -343,42 +343,6 @@ namespace AniDBAPI
 			return ProcessEpisodes(docAnime, animeID);
 		}
 
-		public static List<Raw_AniDB_Category> ProcessCategories(XmlDocument docAnime, int animeID)
-		{
-			List<Raw_AniDB_Category> categories = new List<Raw_AniDB_Category>();
-
-			try
-			{
-				if (docAnime["anime"]["categories"] != null)
-				{
-					XmlNodeList categoryItems = docAnime["anime"]["categories"].GetElementsByTagName("category");
-					if (categoryItems != null)
-					{
-						foreach (XmlNode node in categoryItems)
-						{
-							try
-							{
-								Raw_AniDB_Category category = new Raw_AniDB_Category();
-								category.ProcessFromHTTPResult(node, animeID);
-								categories.Add(category);
-							}
-							catch (Exception ex)
-							{
-								//BaseConfig.MyAnimeLog.Write("Error in GetEpisodes: {0}", ex);
-							}
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in AniDBHTTPHelper.ProcessCategories: {0}", ex);
-				return null;
-			}
-
-			return categories;
-		}
-
 		public static List<Raw_AniDB_Tag> ProcessTags(XmlDocument docAnime, int animeID)
 		{
 			List<Raw_AniDB_Tag> tags = new List<Raw_AniDB_Tag>();
