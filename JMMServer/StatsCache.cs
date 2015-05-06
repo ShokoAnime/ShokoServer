@@ -401,7 +401,7 @@ namespace JMMServer
 				logger.ErrorException(ex.ToString(), ex);
 			}
 		}
-
+        /*
         public const int UpdatetimeInSeconds = 90;
 
         private static TimeUpdater<int, object> updates = new TimeUpdater<int, object>(UpdatetimeInSeconds, "UpdateGroupsStats", InternalUpdaterAction);
@@ -417,17 +417,17 @@ namespace JMMServer
 	    {
             updates.Update(animeGroupID,null);
 	    }
-
-	    private void InternalUpdateUsingGroup(int animeGroupID)
+        */
+	    public void UpdateUsingGroup(int animeGroupID)
 	    {
 	        using (var session = JMMService.SessionFactory.OpenSession())
 	        {
-	            InternalUpdateUsingGroup(session, animeGroupID);
+	            UpdateUsingGroup(session, animeGroupID);
 	        }
 	    }
 
 
-	    private void InternalUpdateUsingGroup(ISession session, int animeGroupID)
+	    public void UpdateUsingGroup(ISession session, int animeGroupID)
 		{
 			try
 			{

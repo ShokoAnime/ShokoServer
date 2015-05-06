@@ -3346,7 +3346,7 @@ namespace JMMServer
 				}
 
 				ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID, true);
-				ep.GetAnimeSeries().UpdateStats(true, false, true);
+				ep.GetAnimeSeries().InmediateUpdateStats(true, false, true);
 				//StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
 
 				// refresh from db
@@ -3403,7 +3403,7 @@ namespace JMMServer
 				// now update the stats
 				if (ser != null)
 				{
-					ser.UpdateStats(true, true, true);
+					ser.InmediateUpdateStats(true, true, true);
 					//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 				}
 				return "";

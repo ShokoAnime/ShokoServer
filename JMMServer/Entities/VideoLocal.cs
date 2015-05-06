@@ -382,7 +382,7 @@ namespace JMMServer.Entities
 			if (ser != null && updateStats)
 			{
 				// update all the groups above this series in the heirarchy
-				ser.UpdateStats(true, true, true);
+				ser.InmediateUpdateStats(true, true, true);
 				//ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
 			}
 
