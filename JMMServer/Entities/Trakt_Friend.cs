@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using JMMServer.ImageDownload;
 using JMMServer.Providers.TraktTV;
+using JMMServer.Providers.TraktTV.Contracts;
 
 namespace JMMServer.Entities
 {
@@ -36,6 +37,13 @@ namespace JMMServer.Entities
 				return Path.Combine(path, string.Format("{0}.jpg", Username));
 			}
 		}
+
+        public void Populate(TraktV2User user)
+        {
+            Username = user.username;
+            FullName = user.name;
+            LastAvatarUpdate = DateTime.Now;
+        }
 
 		public void Populate(TraktTVUser user)
 		{

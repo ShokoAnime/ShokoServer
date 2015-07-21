@@ -1297,31 +1297,44 @@ namespace JMMServer
 
 		#region Trakt
 
-		public static string Trakt_Username
-		{
-			get
-			{
-				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				return appSettings["Trakt_Username"];
-			}
-			set
-			{
-				UpdateSetting("Trakt_Username", value);
-			}
-		}
+        public static string Trakt_AuthToken
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                return appSettings["Trakt_AuthToken"];
+            }
+            set
+            {
+                UpdateSetting("Trakt_AuthToken", value);
+            }
+        }
 
-		public static string Trakt_Password
-		{
-			get
-			{
-				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				return appSettings["Trakt_Password"];
-			}
-			set
-			{
-				UpdateSetting("Trakt_Password", value);
-			}
-		}
+        public static string Trakt_RefreshToken
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                return appSettings["Trakt_RefreshToken"];
+            }
+            set
+            {
+                UpdateSetting("Trakt_RefreshToken", value);
+            }
+        }
+
+        public static string Trakt_TokenExpirationDate
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                return appSettings["Trakt_TokenExpirationDate"];
+            }
+            set
+            {
+                UpdateSetting("Trakt_TokenExpirationDate", value);
+            }
+        }
 
 		public static ScheduledUpdateFrequency Trakt_UpdateFrequency
 		{
@@ -1583,8 +1596,9 @@ namespace JMMServer
 			contract.SeriesNameSource = (int)ServerSettings.SeriesNameSource;
 
 			// trakt
-			contract.Trakt_Username = ServerSettings.Trakt_Username;
-			contract.Trakt_Password = ServerSettings.Trakt_Password;
+            contract.Trakt_AuthToken = ServerSettings.Trakt_AuthToken;
+            contract.Trakt_RefreshToken = ServerSettings.Trakt_RefreshToken;
+            contract.Trakt_TokenExpirationDate = ServerSettings.Trakt_TokenExpirationDate;
 			contract.Trakt_UpdateFrequency = (int)ServerSettings.Trakt_UpdateFrequency;
 			contract.Trakt_SyncFrequency = (int)ServerSettings.Trakt_SyncFrequency;
 			contract.Trakt_DownloadEpisodes = ServerSettings.Trakt_DownloadEpisodes;
@@ -1740,8 +1754,8 @@ namespace JMMServer
 			logger.Info("Hash_SHA1: {0}", Hash_SHA1);
 			logger.Info("Import_UseExistingFileWatchedStatus: {0}", Import_UseExistingFileWatchedStatus);
 
-			logger.Info("Trakt_Username: {0}", string.IsNullOrEmpty(Trakt_Username) ? "NOT SET" : "***HIDDEN***");
-			logger.Info("Trakt_Password: {0}", string.IsNullOrEmpty(Trakt_Password) ? "NOT SET" : "***HIDDEN***");
+            logger.Info("Trakt_AuthToken: {0}", string.IsNullOrEmpty(Trakt_AuthToken) ? "NOT SET" : "***HIDDEN***");
+            logger.Info("Trakt_RefreshToken: {0}", string.IsNullOrEmpty(Trakt_RefreshToken) ? "NOT SET" : "***HIDDEN***");
 			logger.Info("Trakt_UpdateFrequency: {0}", Trakt_UpdateFrequency);
 			logger.Info("Trakt_SyncFrequency: {0}", Trakt_SyncFrequency);
 

@@ -13,563 +13,317 @@ using BinaryNorthwest;
 using JMMContracts;
 using NHibernate;
 using AniDBAPI;
+using JMMServer.Providers.TraktTV.Contracts;
 
 namespace JMMServer.Providers.TraktTV
 {
+    using global::JMMServer.Utilities;
+
 	public class TraktTVHelper
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public static TraktTVShow GetShowInfo(string traktID)
-		{
-			TraktTVShow tvshow = new TraktTVShow();
+        #region Helpers
 
-			try
-			{
-				string url = string.Format(Constants.TraktTvURLs.URLGetShowExtended, Constants.TraktTvURLs.APIKey, traktID);
-				logger.Trace("GetShowInfo: {0}", url);
+        public static DateTime? GetDateFromUTCString(string sdate)
+        {
+            DateTime dt = DateTime.UtcNow;
+            if (DateTime.TryParse(sdate, out dt))
+            {
+                return dt;
+                //DateTime convertedDate = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+                //return convertedDate.ToLocalTime();
+            }
 
-				// Search for a series
-				string json = Utils.DownloadWebPage(url);
+            return null;
+        }
 
-				if (json.Trim().Length == 0) return null;
+        private static int SendData(string uri, string json, string verb, Dictionary<string, string> headers, ref string webResponse)
+        {
+            int ret = 400;
 
-				tvshow = JSONHelper.Deserialize<TraktTVShow>(json);
+            try
+            {
+                byte[] data = new UTF8Encoding().GetBytes(json);
 
-				// save this data to the DB for use later
-				SaveExtendedShowInfo(tvshow);
+                string msg = "Trakt SEND Data" + Environment.NewLine +
+                            "Verb: " + verb + Environment.NewLine +
+                            "uri: " + uri + Environment.NewLine +
+                            "json: " + json + Environment.NewLine;
+                logger.Trace(msg);
 
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.GetShowInfo: " + ex.ToString(), ex);
-				return null;
-			}
+                var request = WebRequest.Create(uri) as HttpWebRequest;
+                request.KeepAlive = true;
 
-			return tvshow;
-		}
-
-		public static List<TraktTVFriendRequest> GetFriendsRequests()
-		{
-			List<TraktTVFriendRequest> friends = new List<TraktTVFriendRequest>();
-
-			try
-			{
-				string url = string.Format(Constants.TraktTvURLs.URLPostFriendsRequests, Constants.TraktTvURLs.APIKey);
-				logger.Trace("GetFriendsRequests: {0}", url);
-
-				TraktTVPost_FriendsRequests cmd = new TraktTVPost_FriendsRequests();
-				cmd.Init();
-
-				string json = JSONHelper.Serialize<TraktTVPost_FriendsRequests>(cmd);
-				string jsonResponse = SendData(url, json);
-				if (string.IsNullOrEmpty(jsonResponse)) return friends;
-
-				friends = JSONHelper.Deserialize<List<TraktTVFriendRequest>>(jsonResponse);
-
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.GetFriends: " + ex.ToString(), ex);
-				return null;
-			}
-
-			return friends;
-		}
-
-		public static bool PostShoutShow(string traktID, string shoutText, bool isSpoiler, ref string returnMessage)
-		{
-			returnMessage = "";
-			try
-			{
-				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
-				{
-					returnMessage = "Trakt credentials have not been entered";
-					return false;
-				}
-
-				if (string.IsNullOrEmpty(shoutText))
-				{
-					returnMessage = "Please enter text for your shout";
-					return false;
-				}
-
-				Trakt_ShowRepository repTraktShow = new Trakt_ShowRepository();
-
-                Trakt_Show show = repTraktShow.GetByTraktID(traktID);
-				if (show == null || !show.TvDB_ID.HasValue)
-				{
-                    returnMessage = string.Format("Could not find trakt show for : {0}", traktID);
-					return false;
-				}
-
-				TraktTVPost_ShoutShow cmd = new TraktTVPost_ShoutShow();
-				cmd.Init(shoutText, isSpoiler, show.TvDB_ID.Value);
-
-				string url = string.Format(Constants.TraktTvURLs.URLPostShoutShow, Constants.TraktTvURLs.APIKey);
-				logger.Trace("PostShoutShow: {0}", url);
-
-				string json = JSONHelper.Serialize<TraktTVPost_ShoutShow>(cmd);
-				string jsonResponse = SendData(url, json);
-
-				TraktTVGenericResponse genResponse = JSONHelper.Deserialize<TraktTVGenericResponse>(jsonResponse);
-				if (genResponse.IsSuccess)
-				{
-					returnMessage = genResponse.message;
-					return true;
-				}
-				else
-				{
-					returnMessage = genResponse.error;
-					return false;
-				}
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.PostShoutShow: " + ex.ToString(), ex);
-				returnMessage = ex.Message;
-				return false;
-			}
-
-            return true;
-		}
-
-		public static List<TraktTV_ShoutGet> GetShowShouts(int animeID)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetShowShouts(session, animeID);
-			}
-		}
-
-		public static List<TraktTV_ShoutGet> GetShowShouts(ISession session, int animeID)
-		{
-			List<TraktTV_ShoutGet> ret = new List<TraktTV_ShoutGet>();
-			try
-			{
-				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
-					return null;
-
-                CrossRef_AniDB_TraktV2Repository repXrefTrakt = new CrossRef_AniDB_TraktV2Repository();
-				List<CrossRef_AniDB_TraktV2> traktXRefs = repXrefTrakt.GetByAnimeID(session, animeID);
-				if (traktXRefs == null || traktXRefs.Count == 0) return null;
-
-                // get a unique list of trakt id's
-                List<string> ids = new List<string>();
-                foreach (CrossRef_AniDB_TraktV2 xref in traktXRefs)
+                request.Method = verb;
+                request.ContentLength = data.Length;
+                request.Timeout = 120000;
+                request.ContentType = "application/json";
+                request.UserAgent = "JMM";
+                foreach (var header in headers)
                 {
-                    if (!ids.Contains(xref.TraktID))
-                        ids.Add(xref.TraktID);
+                    request.Headers.Add(header.Key, header.Value);
                 }
 
-                foreach (string id in ids)
+                // post to trakt
+                Stream postStream = request.GetRequestStream();
+                postStream.Write(data, 0, data.Length);
+
+                // get the response
+                var response = (HttpWebResponse)request.GetResponse();
+                if (response == null) return 400;
+
+                Stream responseStream = response.GetResponseStream();
+                StreamReader reader = new StreamReader(responseStream);
+                string strResponse = reader.ReadToEnd();
+
+                int statusCode = (int)response.StatusCode;
+
+                // cleanup
+                postStream.Close();
+                responseStream.Close();
+                reader.Close();
+                response.Close();
+
+                webResponse = strResponse;
+
+                msg = "Trakt SEND Data - Response" + Environment.NewLine +
+                            "Status Code: " + statusCode.ToString() + Environment.NewLine +
+                            "Response: " + strResponse + Environment.NewLine;
+                logger.Trace(msg);
+
+                return statusCode;
+
+            }
+            catch (WebException webEx)
+            {
+                if (webEx.Status == WebExceptionStatus.ProtocolError)
                 {
-                    string url = string.Format(Constants.TraktTvURLs.URLGetShowShouts, Constants.TraktTvURLs.APIKey, id);
-                    logger.Trace("GetShowShouts: {0}", url);
-
-                    // Search for a series
-                    string json = Utils.DownloadWebPage(url);
-
-                    if (json.Trim().Length == 0) return new List<TraktTV_ShoutGet>();
-
-                    List<TraktTV_ShoutGet>  shouts = JSONHelper.Deserialize<List<TraktTV_ShoutGet>>(json);
-
-                    Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
-                    foreach (TraktTV_ShoutGet shout in shouts)
+                    var response = webEx.Response as HttpWebResponse;
+                    if (response != null)
                     {
-                        ret.Add(shout);
-                        Trakt_Friend traktFriend = repFriends.GetByUsername(session, shout.user.username);
-                        if (traktFriend == null)
+                        logger.Error("Error in SendData: {0} - {1}", (int)response.StatusCode, webEx.ToString());
+                        ret = (int)response.StatusCode;
+
+                        try
                         {
-                            traktFriend = new Trakt_Friend();
-                            traktFriend.LastAvatarUpdate = DateTime.Now;
+                            Stream responseStream2 = response.GetResponseStream();
+                            StreamReader reader2 = new StreamReader(responseStream2);
+                            webResponse = reader2.ReadToEnd();
+                            logger.Error("Error in SendData: {0}", webResponse);
                         }
-
-                        traktFriend.Populate(shout.user);
-                        repFriends.Save(traktFriend);
-
-                        if (!string.IsNullOrEmpty(traktFriend.FullImagePath))
-                        {
-                            bool fileExists = File.Exists(traktFriend.FullImagePath);
-                            TimeSpan ts = DateTime.Now - traktFriend.LastAvatarUpdate;
-
-                            if (!fileExists || ts.TotalHours > 8)
-                            {
-                                traktFriend.LastAvatarUpdate = DateTime.Now;
-                                CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktFriend.Trakt_FriendID, JMMImageType.Trakt_Friend, true);
-                                cmd.Save(session);
-                            }
-                        }
+                        catch { }
+                    }
+                    else
+                    {
+                        // no http status code available
                     }
                 }
+                Console.Write(webEx.ToString());
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error in SendData: {0}", ex.ToString());
+            }
+            finally
+            {
+            }
 
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.GetShowShouts: " + ex.ToString(), ex);
-			}
+            return ret;
+        }
 
-			return ret;
-		}
+        public static string GetFromTrakt(string uri)
+        {
+            var request = WebRequest.Create(uri) as HttpWebRequest;
 
-		public static TraktTV_ActivitySummary GetActivityFriends(bool shoutsOnly)
-		{
-			TraktTV_ActivitySummary summ = null;
-			try
-			{
-				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
-					return null;
+            string msg = "Trakt GET Data" + Environment.NewLine +
+                            "uri: " + uri + Environment.NewLine;
+            logger.Trace(msg);
 
-				string url = string.Format(Constants.TraktTvURLs.URLGetActivityFriends, Constants.TraktTvURLs.APIKey);
-				if (shoutsOnly)
-					url = string.Format(Constants.TraktTvURLs.URLGetActivityFriendsShoutsOnly, Constants.TraktTvURLs.APIKey);
-				logger.Trace("GetActivityFriends: {0}", url);
+            request.KeepAlive = true;
+            request.Method = "GET";
+            request.ContentLength = 0;
+            request.Timeout = 120000;
+            request.ContentType = "application/json";
+            request.UserAgent = "JMM";
+            foreach (var header in BuildRequestHeaders())
+            {
+                request.Headers.Add(header.Key, header.Value);
+            }
 
-				TraktTVPost_GetFriends cmdFriends = new TraktTVPost_GetFriends();
-				cmdFriends.Init();
+            try
+            {
+                WebResponse response = (HttpWebResponse)request.GetResponse();
+                if (response == null) return null;
 
-				string json = JSONHelper.Serialize<TraktTVPost_GetFriends>(cmdFriends); // TraktTVPost_GetFriends is really just an auth method
-				string jsonResponse = SendData(url, json);
-				if (jsonResponse.Trim().Length == 0) return null;
+                Stream stream = response.GetResponseStream();
+                StreamReader reader = new StreamReader(stream);
+                string strResponse = reader.ReadToEnd();
 
-				summ = JSONHelper.Deserialize<TraktTV_ActivitySummary>(jsonResponse);
-				if (summ == null) return null;
+                stream.Close();
+                reader.Close();
+                response.Close();
 
+                msg = "Trakt GET Data - Response" + Environment.NewLine +
+                            "Response: " + strResponse + Environment.NewLine;
+                logger.Trace(msg);
 
-				// save any trakt data that we don't have already
-				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-				Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
-				Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
+                return strResponse;
+            }
+            catch (WebException e)
+            {
+                logger.Error("Error in GetFromTrakt: {0}", e.ToString());
+                return null;
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error in GetFromTrakt: {0}", ex.ToString());
+                return null;
+            }
+        }
 
-				foreach (TraktTV_Activity act in summ.activity)
-				{
-					if (act.user == null) continue;
-					TraktTV_UserActivity friend = act.user;
+        private static Dictionary<string, string> BuildRequestHeaders()
+        {
+            Dictionary<string, string> headers = new Dictionary<string, string>();
 
-					Trakt_Friend traktFriend = repFriends.GetByUsername(friend.username);
-					if (traktFriend == null)
-					{
-						traktFriend = new Trakt_Friend();
-						traktFriend.LastAvatarUpdate = DateTime.Now;
-					}
+            headers.Add("Authorization", string.Format("Bearer {0}", ServerSettings.Trakt_AuthToken));
+            headers.Add("trakt-api-key", TraktConstants.ClientID);
+            headers.Add("trakt-api-version", "2");
 
-					traktFriend.Populate(friend);
-					repFriends.Save(traktFriend);
+            return headers;
+        }
 
-					if (!string.IsNullOrEmpty(traktFriend.FullImagePath))
-					{
-						bool fileExists = File.Exists(traktFriend.FullImagePath);
-						TimeSpan ts = DateTime.Now - traktFriend.LastAvatarUpdate;
+        #endregion
 
-						if (!fileExists || ts.TotalHours > 8)
-						{
-							traktFriend.LastAvatarUpdate = DateTime.Now;
-							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktFriend.Trakt_FriendID, JMMImageType.Trakt_Friend, true);
-							cmd.Save();
-						}
-					}
+        #region Authorization
 
-					if (act.episode != null && act.show != null)
-					{
-						Trakt_Show show = repShows.GetByTraktID(act.show.TraktID);
-						if (show == null)
-						{
-							show = new Trakt_Show();
-							show.Populate(act.show);
-							repShows.Save(show);
-						}
+        public static bool RefreshAuthToken()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken) ||
+                    string.IsNullOrEmpty(ServerSettings.Trakt_RefreshToken))
+                {
+                    ServerSettings.Trakt_AuthToken = "";
+                    ServerSettings.Trakt_RefreshToken = "";
+                    ServerSettings.Trakt_TokenExpirationDate = "";
 
-						Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, int.Parse(act.episode.season), int.Parse(act.episode.number));
-						if (episode == null)
-							episode = new Trakt_Episode();
+                    return false;
+                }
 
-						episode.Populate(act.episode, show.Trakt_ShowID);
-						repEpisodes.Save(episode);
+                TraktV2RefreshToken token = new TraktV2RefreshToken();
+                token.refresh_token = ServerSettings.Trakt_RefreshToken;
 
-						if (!string.IsNullOrEmpty(episode.FullImagePath))
-						{
-							bool fileExists = File.Exists(episode.FullImagePath);
-							if (!fileExists)
-							{
-								CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(episode.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
-								cmd.Save();
-							}
-						}
-					}
+                string json = JSONHelper.Serialize<TraktV2RefreshToken>(token);
+                Dictionary<string, string> headers = new Dictionary<string, string>();
 
-					// a shout on just the show
-					if (act.episode == null && act.show != null)
-					{
-						Trakt_Show show = repShows.GetByTraktID(act.show.TraktID);
-						if (show == null)
-						{
-							show = new Trakt_Show();
-							show.Populate(act.show);
-							repShows.Save(show);
-						}
-					}
-				}
+                string retData = string.Empty;
+                int response = SendData(TraktURIs.Oauth, json, "POST", headers, ref retData);
+                if (response == TraktStatusCodes.Success || response == TraktStatusCodes.Success_Post)
+                {
+                    var loginResponse = retData.FromJSON<TraktAuthToken>();
 
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.GetActivityFriends: " + ex.ToString(), ex);
-			}
+                    // save the token to the config file to use for subsequent API calls
+                    ServerSettings.Trakt_AuthToken = loginResponse.AccessToken;
+                    ServerSettings.Trakt_RefreshToken = loginResponse.RefreshToken;
 
-			return summ;
-		}
+                    long createdAt = 0;
+                    long validity = 0;
 
-		public static List<TraktTVUser> GetFriends()
-		{
-			List<TraktTVUser> friends = new List<TraktTVUser>();
+                    long.TryParse(loginResponse.CreatedAt, out createdAt);
+                    long.TryParse(loginResponse.ExpiresIn, out validity);
+                    long expireDate = createdAt + validity;
 
-			try
-			{
-				string url = string.Format(Constants.TraktTvURLs.URLGetFriends, Constants.TraktTvURLs.APIKey, ServerSettings.Trakt_Username);
-				//string url = string.Format(Constants.TraktTvURLs.URLGetFriends, Constants.TraktTvURLs.APIKey, "lwerndly");
-				logger.Trace("GetFriends: {0}", url);
+                    ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
 
-				TraktTVPost_GetFriends cmdFriends = new TraktTVPost_GetFriends();
-				cmdFriends.Init();
+                    return true;
+                }
+                else
+                {
+                    ServerSettings.Trakt_AuthToken = "";
+                    ServerSettings.Trakt_RefreshToken = "";
+                    ServerSettings.Trakt_TokenExpirationDate = "";
 
-				string json = JSONHelper.Serialize<TraktTVPost_GetFriends>(cmdFriends);
-				string jsonResponse = SendData(url, json);
-				if (jsonResponse.Trim().Length == 0) return friends;
-				friends = JSONHelper.Deserialize<List<TraktTVUser>>(jsonResponse);
+                    return false;
+                }
 
-				/*string json = Utils.DownloadWebPage(url);
+            }
+            catch (Exception ex)
+            {
+                ServerSettings.Trakt_AuthToken = "";
+                ServerSettings.Trakt_RefreshToken = "";
+                ServerSettings.Trakt_TokenExpirationDate = "";
 
-				if (json.Trim().Length == 0) return null;
+                logger.ErrorException("Error in TraktTVHelper.RefreshAuthToken: " + ex.ToString(), ex);
+                return false;
+            }
+        }
 
-				friends = JSONHelper.Deserialize<List<TraktTVUser>>(json);*/
+        public static string EnterTraktPIN(string pin)
+        {
+            try
+            {
+                TraktAuthPIN obj = new TraktAuthPIN();
+                obj.PINCode = pin;
 
-				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-				Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
-				Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
+                string json = JSONHelper.Serialize<TraktAuthPIN>(obj);
+                Dictionary<string, string> headers = new Dictionary<string, string>();
 
-				foreach (TraktTVUser friend in friends)
-				{
-					Trakt_Friend traktFriend = repFriends.GetByUsername(friend.username);
-					if (traktFriend == null)
-					{
-						traktFriend = new Trakt_Friend();
-						traktFriend.LastAvatarUpdate = DateTime.Now;
-					}
+                string retData = string.Empty;
+                int response = SendData(TraktURIs.Oauth, json, "POST", headers, ref retData);
+                if (response == TraktStatusCodes.Success || response == TraktStatusCodes.Success_Post)
+                {
+                    var loginResponse = retData.FromJSON<TraktAuthToken>();
 
-					traktFriend.Populate(friend);
-					repFriends.Save(traktFriend);
+                    // save the token to the config file to use for subsequent API calls
+                    ServerSettings.Trakt_AuthToken = loginResponse.AccessToken;
+                    ServerSettings.Trakt_RefreshToken = loginResponse.RefreshToken;
 
-					if (!string.IsNullOrEmpty(traktFriend.FullImagePath))
-					{
-						bool fileExists = File.Exists(traktFriend.FullImagePath);
-						TimeSpan ts = DateTime.Now - traktFriend.LastAvatarUpdate;
+                    long createdAt = 0;
+                    long validity = 0;
 
-						if (!fileExists || ts.TotalHours > 8)
-						{
-							traktFriend.LastAvatarUpdate = DateTime.Now;
-							CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(traktFriend.Trakt_FriendID, JMMImageType.Trakt_Friend, true);
-							cmd.Save();
-						}
-					}
+                    long.TryParse(loginResponse.CreatedAt, out createdAt);
+                    long.TryParse(loginResponse.ExpiresIn, out validity);
+                    long expireDate = createdAt + validity;
 
-					foreach (TraktTVWatched wtch in friend.watched)
-					{
-						if (wtch.episode != null && wtch.show != null)
-						{
+                    ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
 
-							Trakt_Show show = repShows.GetByTraktID(wtch.show.TraktID);
-							if (show == null)
-							{
-								show = new Trakt_Show();
-								show.Populate(wtch.show);
-								repShows.Save(show);
-							}
+                    //MainWindow.UpdateTraktFriendInfo(true);
 
-							Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, int.Parse(wtch.episode.season), int.Parse(wtch.episode.number));
-							if (episode == null)
-								episode = new Trakt_Episode();
+                    return "Success";
+                }
+                else
+                {
+                    ServerSettings.Trakt_AuthToken = "";
+                    ServerSettings.Trakt_RefreshToken = "";
+                    ServerSettings.Trakt_TokenExpirationDate = "";
 
-							episode.Populate(wtch.episode, show.Trakt_ShowID);
-							repEpisodes.Save(episode);
+                    return string.Format("Error returned from Trakt: {0}", response);
+                }
 
-							if (!string.IsNullOrEmpty(episode.FullImagePath))
-							{
-								bool fileExists = File.Exists(episode.FullImagePath);
-								if (!fileExists)
-								{
-									CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(episode.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
-									cmd.Save();
-								}
-							}
-						}
-					}
-				}
+            }
+            catch (Exception ex)
+            {
+                ServerSettings.Trakt_AuthToken = "";
+                ServerSettings.Trakt_RefreshToken = "";
+                ServerSettings.Trakt_TokenExpirationDate = "";
 
-				
+                logger.ErrorException("Error in TraktTVHelper.TestUserLogin: " + ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
 
-				//Contract_Trakt_Friend fr = friends[0].ToContract();
+        #endregion
 
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.GetFriends: " + ex.ToString(), ex);
-				return friends;
-			}
-
-			return friends;
-		}
-
-		public static void SaveExtendedShowInfo(TraktTVShow tvshow)
-		{ 
-			try
-			{
-				// save this data to the DB for use later
-				Trakt_ImageFanartRepository repFanart = new Trakt_ImageFanartRepository();
-				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-				Trakt_Show show = repShows.GetByTraktID(tvshow.TraktID);
-				if (show == null)
-					show = new Trakt_Show();
-
-				show.Populate(tvshow);
-				repShows.Save(show);
-
-
-				if (tvshow.images != null)
-				{
-					if (!string.IsNullOrEmpty(tvshow.images.fanart))
-					{
-						Trakt_ImageFanart fanart = repFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
-						if (fanart == null)
-						{
-							fanart = new Trakt_ImageFanart();
-							fanart.Enabled = 0;
-						}
-
-						fanart.ImageURL = tvshow.images.fanart;
-						fanart.Season = 1;
-						fanart.Trakt_ShowID = show.Trakt_ShowID;
-						repFanart.Save(fanart);
-					}
-				}
-
-
-				// save the seasons
-				Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
-				Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
-				Trakt_ImagePosterRepository repPosters = new Trakt_ImagePosterRepository();
-
-				foreach (TraktTVSeason sea in tvshow.seasons)
-				{
-					Trakt_Season season = repSeasons.GetByShowIDAndSeason(show.Trakt_ShowID, int.Parse(sea.season));
-					if (season == null)
-						season = new Trakt_Season();
-
-					season.Season = int.Parse(sea.season);
-					season.URL = sea.url;
-					season.Trakt_ShowID = show.Trakt_ShowID;
-					repSeasons.Save(season);
-
-					if (sea.images != null)
-					{
-						if (!string.IsNullOrEmpty(sea.images.poster))
-						{
-							Trakt_ImagePoster poster = repPosters.GetByShowIDAndSeason(show.Trakt_ShowID, season.Season);
-							if (poster == null)
-							{
-								poster = new Trakt_ImagePoster();
-								poster.Enabled = 0;
-							}
-
-							poster.ImageURL = sea.images.poster;
-							poster.Season = season.Season;
-							poster.Trakt_ShowID = show.Trakt_ShowID;
-							repPosters.Save(poster);
-						}
-					}
-
-					foreach (TraktTVEpisode ep in sea.episodes)
-					{
-						Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, int.Parse(ep.season), int.Parse(ep.episode));
-						if (episode == null)
-							episode = new Trakt_Episode();
-
-						episode.EpisodeImage = ep.screen;
-						episode.EpisodeNumber = int.Parse(ep.episode);
-						episode.Overview = ep.overview;
-						episode.Season = int.Parse(ep.season);
-						episode.Title = ep.title;
-						episode.URL = ep.url;
-						episode.Trakt_ShowID = show.Trakt_ShowID;
-						repEpisodes.Save(episode);
-					}
-				}
-
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.SaveExtendedShowInfo: " + ex.ToString(), ex);
-			}
-		}
-
-		public static void SaveShowInfo(TraktTVShow tvshow)
-		{
-			try
-			{
-				// save this data to the DB for use later
-				Trakt_ImageFanartRepository repFanart = new Trakt_ImageFanartRepository();
-				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-				Trakt_Show show = repShows.GetByTraktID(tvshow.TraktID);
-				if (show == null)
-					show = new Trakt_Show();
-
-				show.Overview = tvshow.overview;
-				show.Title = tvshow.title;
-				show.TraktID = tvshow.TraktID;
-				if (!string.IsNullOrEmpty(tvshow.tvdb_id)) show.TvDB_ID = int.Parse(tvshow.tvdb_id);
-				show.URL = tvshow.url;
-				show.Year = tvshow.year;
-				repShows.Save(show);
-
-				if (tvshow.images != null)
-				{
-					if (!string.IsNullOrEmpty(tvshow.images.fanart))
-					{
-						Trakt_ImageFanart fanart = repFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
-						if (fanart == null)
-						{
-							fanart = new Trakt_ImageFanart();
-							fanart.Enabled = 1;
-						}
-
-						fanart.ImageURL = tvshow.images.fanart;
-						fanart.Season = 1;
-						fanart.Trakt_ShowID = show.Trakt_ShowID;
-						repFanart.Save(fanart);
-					}
-				}
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.SaveExtendedShowInfo: " + ex.ToString(), ex);
-			}
-		}
-
-		public static TraktTVShow GetShowInfo(int tvDBID)
-		{
-			return GetShowInfo(tvDBID.ToString());
-		}
+        #region Linking
 
         public static string LinkAniDBTrakt(int animeID, enEpisodeType aniEpType, int aniEpNumber, string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-               return LinkAniDBTrakt(session, animeID, aniEpType, aniEpNumber, traktID, seasonNumber, traktEpNumber, excludeFromWebCache);
-			}
-		}
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return LinkAniDBTrakt(session, animeID, aniEpType, aniEpNumber, traktID, seasonNumber, traktEpNumber, excludeFromWebCache);
+            }
+        }
 
         public static string LinkAniDBTrakt(ISession session, int animeID, enEpisodeType aniEpType, int aniEpNumber, string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
         {
@@ -588,12 +342,12 @@ namespace JMMServer.Providers.TraktTV
             // check if we have this information locally
             // if not download it now
             Trakt_ShowRepository repSeries = new Trakt_ShowRepository();
-            Trakt_Show traktShow = repSeries.GetByTraktID(traktID);
+            Trakt_Show traktShow = repSeries.GetByTraktSlug(traktID);
             if (traktShow == null)
             {
                 // we download the series info here just so that we have the basic info in the
                 // database before the queued task runs later
-                TraktTVShow tvshow = GetShowInfo(traktID);
+                TraktV2ShowExtended tvshow = GetShowInfoV2(traktID);
             }
 
             // download and update series info, episode info and episode images
@@ -653,757 +407,120 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
-
-		public static List<TraktTVShow> SearchShow(string criteria)
-		{
-			List<TraktTVShow> results = new List<TraktTVShow>();
-
-			try
-			{
-				// replace spaces with a + symbo
-				criteria = criteria.Replace(' ', '+');
-
-				// Search for a series
-				string url = string.Format(Constants.TraktTvURLs.URLSearchShow, Constants.TraktTvURLs.APIKey, criteria);
-				logger.Trace("Search Trakt Show: {0}", url);
-
-				// Search for a series
-				string json = Utils.DownloadWebPage(url);
-
-				if (json.Trim().Length == 0) return new List<TraktTVShow>();
-
-				results = JSONHelper.Deserialize<List<TraktTVShow>>(json);
-
-				// save this data for later use
-				//foreach (TraktTVShow tvshow in results)
-				//	SaveExtendedShowInfo(tvshow);
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
-			}
-
-			return results;
-		}
-
-		public static List<TraktTVShowUserCollectionWatched> GetUserCollection()
-		{
-			List<TraktTVShowUserCollectionWatched> results = new List<TraktTVShowUserCollectionWatched>();
-
-			try
-			{
-				string url = string.Format(Constants.TraktTvURLs.URLUserLibraryShowsCollection, Constants.TraktTvURLs.APIKey, ServerSettings.Trakt_Username);
-				logger.Trace("Trakt User Collection: {0}", url);
-
-				// Search for a series
-				string json = Utils.DownloadWebPage(url);
-
-				if (json.Trim().Length == 0) return new List<TraktTVShowUserCollectionWatched>();
-
-				results = JSONHelper.Deserialize<List<TraktTVShowUserCollectionWatched>>(json);
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
-			}
-
-			return results;
-		}
-
-		public static List<TraktTVShowUserCollectionWatched> GetUserWatched()
-		{
-			List<TraktTVShowUserCollectionWatched> results = new List<TraktTVShowUserCollectionWatched>();
-
-			try
-			{
-				string url = string.Format(Constants.TraktTvURLs.URLUserLibraryShowsWatched, Constants.TraktTvURLs.APIKey, ServerSettings.Trakt_Username);
-				logger.Trace("Trakt User Collection Watched: {0}", url);
-
-				// Search for a series
-				string json = Utils.DownloadWebPage(url);
-
-				if (json.Trim().Length == 0) return new List<TraktTVShowUserCollectionWatched>();
-
-				results = JSONHelper.Deserialize<List<TraktTVShowUserCollectionWatched>>(json);
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
-			}
-
-			return results;
-		}
-
-		/// <summary>
-		/// Updates the followung
-		/// 1. Series Info
-		/// 2. Episode Info
-		/// 3. Episode Images
-		/// 4. Fanart, Poster Images
-		/// </summary>
-		/// <param name="seriesID"></param>
-		/// <param name="forceRefresh"></param>
-		public static void UpdateAllInfoAndImages(string traktID, bool forceRefresh)
-		{
-			// this will do the first 3 steps
-			TraktTVShow tvShow = GetShowInfo(traktID);
-			if (tvShow == null) return;
-
-			try
-			{
-				//now download the images
-				DownloadAllImages(traktID);
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.UpdateAllInfoAndImages: " + ex.ToString(), ex);
-			}
-		}
-
-		public static void DownloadAllImages(string traktID)
-		{
-			try
-			{
-				//now download the images
-				Trakt_ShowRepository repShow = new Trakt_ShowRepository();
-				Trakt_Show show = repShow.GetByTraktID(traktID);
-				if (show == null) return;
-
-
-				if (ServerSettings.Trakt_DownloadFanart)
-				{
-					//download the fanart image for the show
-					Trakt_ImageFanartRepository repFanart = new Trakt_ImageFanartRepository();
-					Trakt_ImageFanart fanart = repFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
-					if (fanart != null)
-					{
-						if (!string.IsNullOrEmpty(fanart.FullImagePath))
-						{
-							if (!File.Exists(fanart.FullImagePath))
-							{
-								CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.Trakt_ImageFanartID, JMMImageType.Trakt_Fanart, false);
-								cmd.Save();
-							}
-						}
-					}
-				}
-
-				
-				// download the posters for seasons
-				Trakt_ImagePosterRepository repPosters = new Trakt_ImagePosterRepository();
-				foreach (Trakt_Season season in show.Seasons)
-				{
-					if (ServerSettings.Trakt_DownloadPosters)
-					{
-						Trakt_ImagePoster poster = repPosters.GetByShowIDAndSeason(season.Trakt_ShowID, season.Season);
-						if (poster != null)
-						{
-							if (!string.IsNullOrEmpty(poster.FullImagePath))
-							{
-								if (!File.Exists(poster.FullImagePath))
-								{
-									CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.Trakt_ImagePosterID, JMMImageType.Trakt_Poster, false);
-									cmd.Save();
-								}
-							}
-						}
-					}
-
-					if (ServerSettings.Trakt_DownloadEpisodes)
-					{
-						// download the screenshots for episodes
-						foreach (Trakt_Episode ep in season.Episodes)
-						{
-							if (!string.IsNullOrEmpty(ep.FullImagePath))
-							{
-								if (!File.Exists(ep.FullImagePath))
-								{
-									CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(ep.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
-									cmd.Save();
-								}
-							}
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.UpdateAllInfoAndImages: " + ex.ToString(), ex);
-			}
-		}
-
-		public static void ScanForMatches()
-		{
-			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-			List<AnimeSeries> allSeries = repSeries.GetAll();
-
-            CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-			List<CrossRef_AniDB_TraktV2> allCrossRefs = repCrossRef.GetAll();
-			List<int> alreadyLinked = new List<int>();
-            foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
-			{
-				alreadyLinked.Add(xref.AnimeID);
-			}
-
-			foreach (AnimeSeries ser in allSeries)
-			{
-				if (alreadyLinked.Contains(ser.AniDB_ID)) continue;
-
-				AniDB_Anime anime = ser.GetAnime();
-
-				if (anime != null)
-					logger.Trace("Found anime without Trakt association: " + anime.MainTitle);
-
-				if (anime.IsTraktLinkDisabled) continue;
-
-				CommandRequest_TraktSearchAnime cmd = new CommandRequest_TraktSearchAnime(ser.AniDB_ID, false);
-				cmd.Save();
-			}
-
-		}
-
-		public static void UpdateAllInfo()
-		{
-            CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-            List<CrossRef_AniDB_TraktV2> allCrossRefs = repCrossRef.GetAll();
-            foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
-			{
-				CommandRequest_TraktUpdateInfoAndImages cmd = new CommandRequest_TraktUpdateInfoAndImages(xref.TraktID);
-				cmd.Save();
-			}
-
-		}
-
-
-        public static void ScrobbleEpisode(bool watched, Trakt_Show show, int season, int episodeNumber, AniDB_Episode aniep)
+        private static void GetDictTraktEpisodesAndSeasons(Trakt_Show show, ref Dictionary<int, Trakt_Episode> dictTraktEpisodes,
+            ref Dictionary<int, Trakt_Episode> dictTraktSpecials, ref Dictionary<int, int> dictTraktSeasons)
         {
+            dictTraktEpisodes = new Dictionary<int, Trakt_Episode>();
+            dictTraktSpecials = new Dictionary<int, Trakt_Episode>();
+            dictTraktSeasons = new Dictionary<int, int>();
             try
             {
-                string url = string.Empty;
-                string json = string.Empty;
-                if (watched)
+                Trakt_EpisodeRepository repEps = new Trakt_EpisodeRepository();
+
+                // create a dictionary of absolute episode numbers for trakt episodes
+                // sort by season and episode number
+                // ignore season 0, which is used for specials
+                List<Trakt_Episode> eps = repEps.GetByShowID(show.Trakt_ShowID);
+
+                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+                sortCriteria.Add(new SortPropOrFieldAndDirection("Season", false, SortType.eInteger));
+                sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
+                eps = Sorting.MultiSort<Trakt_Episode>(eps, sortCriteria);
+
+                int i = 1;
+                int iSpec = 1;
+                int lastSeason = -999;
+                foreach (Trakt_Episode ep in eps)
                 {
-                    TraktTVPost_ShowScrobble postScrobble = new TraktTVPost_ShowScrobble();
-                    postScrobble.SetCredentials();
-                    postScrobble.imdb_id = "";
-                    postScrobble.title = show.Title;
-                    postScrobble.year = show.Year;
-                    postScrobble.tvdb_id = show.TvDB_ID.Value.ToString();
-                    postScrobble.episode = episodeNumber.ToString();
-                    postScrobble.season = season.ToString();
+                    //if (ep.Season == 0) continue;
+                    if (ep.Season > 0)
+                    {
+                        dictTraktEpisodes[i] = ep;
+                        if (ep.Season != lastSeason)
+                            dictTraktSeasons[ep.Season] = i;
 
-                    TimeSpan t = TimeSpan.FromSeconds(aniep.LengthSeconds + 14);
-                    int toMinutes = int.Parse(Math.Round(t.TotalMinutes).ToString());
-                    postScrobble.duration = toMinutes.ToString();
+                        i++;
+                    }
+                    else
+                    {
+                        dictTraktSpecials[iSpec] = ep;
+                        if (ep.Season != lastSeason)
+                            dictTraktSeasons[ep.Season] = iSpec;
 
-                    postScrobble.progress = "100";
+                        iSpec++;
+                    }
 
-                    postScrobble.plugin_version = "0.4";
-                    postScrobble.media_center_version = "1.2.0.1";
-                    postScrobble.media_center_date = "Dec 17 2010";
-
-                    logger.Trace("Marking episode as watched (scrobble) on Trakt: {0} - S{1} - EP{2}", show.Title, season, episodeNumber);
-
-                    url = string.Format(Constants.TraktTvURLs.URLPostShowScrobble, Constants.TraktTvURLs.APIKey);
-                    json = JSONHelper.Serialize<TraktTVPost_ShowScrobble>(postScrobble);
+                    lastSeason = ep.Season;
                 }
-                else
-                {
-
-                    TraktTVPost_ShowEpisodeUnseen postUnseen = new TraktTVPost_ShowEpisodeUnseen();
-                    postUnseen.episodes = new List<TraktTVSeasonEpisode>();
-                    postUnseen.SetCredentials();
-                    postUnseen.imdb_id = "";
-                    postUnseen.title = show.Title;
-                    postUnseen.year = show.Year;
-                    postUnseen.tvdb_id = show.TvDB_ID.Value.ToString();
-
-                    TraktTVSeasonEpisode traktEp = new TraktTVSeasonEpisode();
-                    traktEp.episode = episodeNumber.ToString();
-                    traktEp.season = season.ToString();
-                    postUnseen.episodes.Add(traktEp);
-
-                    logger.Trace("Marking episode as unwatched on Trakt: {0} - S{1} - EP{2}", show.Title, season, episodeNumber);
-
-                    url = string.Format(Constants.TraktTvURLs.URLPostShowEpisodeUnseen, Constants.TraktTvURLs.APIKey);
-                    json = JSONHelper.Serialize<TraktTVPost_ShowEpisodeUnseen>(postUnseen);
-
-                }
-
-                SendData(url, json);
-
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TraktTVHelper.MarkEpisodeWatched: " + ex.ToString(), ex);
+                logger.ErrorException(ex.ToString(), ex);
             }
         }
 
-		public static void MarkEpisodeWatched(AnimeEpisode ep)
-		{
-            try
-			{
-				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
-					return;
+        public static void ScanForMatches()
+        {
+            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+            List<AnimeSeries> allSeries = repSeries.GetAll();
 
-				AniDB_Episode aniep = ep.AniDB_Episode;
-                if (aniep == null) return;
+            CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+            List<CrossRef_AniDB_TraktV2> allCrossRefs = repCrossRef.GetAll();
+            List<int> alreadyLinked = new List<int>();
+            foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
+            {
+                alreadyLinked.Add(xref.AnimeID);
+            }
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(aniep.AnimeID);
-                if (anime == null) return;
+            foreach (AnimeSeries ser in allSeries)
+            {
+                if (alreadyLinked.Contains(ser.AniDB_ID)) continue;
 
-                string traktID = string.Empty;
-                int retEpNum = -1;
-				int retSeason = -1;
+                AniDB_Anime anime = ser.GetAnime();
 
-                GetTraktEpisodeNumber(anime, aniep, ref traktID, ref retEpNum, ref retSeason);
-				if (retEpNum < 0) return;
+                if (anime != null)
+                    logger.Trace("Found anime without Trakt association: " + anime.MainTitle);
 
-				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-				Trakt_Show show = repShows.GetByTraktID(traktID);
-				if (show == null) return;
-				if (!show.TvDB_ID.HasValue) return;
+                if (anime.IsTraktLinkDisabled) continue;
 
-                ScrobbleEpisode(true, show, retSeason, retEpNum, aniep);
+                CommandRequest_TraktSearchAnime cmd = new CommandRequest_TraktSearchAnime(ser.AniDB_ID, false);
+                cmd.Save();
+            }
 
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.MarkEpisodeWatched: " + ex.ToString(), ex);
-			}
+        }
 
-		}
+        private static int? GetTraktEpisodeIdV2(AnimeEpisode ep, ref string traktID)
+        {
+            AniDB_Episode aniep = ep.AniDB_Episode;
+            if (aniep == null) return null;
 
-		public static void MarkEpisodeUnwatched(AnimeEpisode ep)
-		{
-			try
-			{
-                if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
-                    return;
+            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+            AniDB_Anime anime = repAnime.GetByAnimeID(aniep.AnimeID);
+            if (anime == null) return null;
 
-                AniDB_Episode aniep = ep.AniDB_Episode;
-                if (aniep == null) return;
+            string traktShowID = string.Empty;
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(aniep.AnimeID);
-                if (anime == null) return;
+            int? traktEpisodeId = GetTraktEpisodeIdV2(anime, aniep, ref traktShowID);
+            if (!traktEpisodeId.HasValue) return null;
 
-                string traktID = string.Empty;
-                int retEpNum = -1;
-                int retSeason = -1;
+            return GetTraktEpisodeIdV2(anime, aniep, ref traktShowID);
 
-                GetTraktEpisodeNumber(anime, aniep, ref traktID, ref retEpNum, ref retSeason);
-                if (retEpNum < 0) return;
+        }
 
-				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-                Trakt_Show show = repShows.GetByTraktID(traktID);
-				if (show == null) return;
-				if (!show.TvDB_ID.HasValue) return;
-
-                ScrobbleEpisode(false, show, retSeason, retEpNum, aniep);
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.MarkEpisodeWatched: " + ex.ToString(), ex);
-			}
-
-		}
-
-
-		private static string SendData(string uri, string json)
-		{
-			WebRequest req = null;
-			WebResponse rsp = null;
-			string output = "";
-			try
-			{
-				DateTime start = DateTime.Now;
-
-
-				req = WebRequest.Create(uri);
-				req.Method = "POST";        // Post method
-				req.ContentType = "text/json";     // content type
-				req.Proxy = null;
-
-				// Wrap the request stream with a text-based writer
-				StreamWriter writer = new StreamWriter(req.GetRequestStream());
-				// Write the XML text into the stream
-				writer.WriteLine(json);
-				writer.Close();
-				// Send the data to the webserver
-				//rsp = req.GetResponse();
-
-				HttpWebResponse WebResponse = (HttpWebResponse)req.GetResponse();
-
-				Stream responseStream = WebResponse.GetResponseStream();
-				String enco = WebResponse.CharacterSet;
-				Encoding encoding = null;
-				if (!String.IsNullOrEmpty(enco))
-					encoding = Encoding.GetEncoding(WebResponse.CharacterSet);
-				if (encoding == null)
-					encoding = Encoding.Default;
-				StreamReader Reader = new StreamReader(responseStream, encoding);
-
-				output = Reader.ReadToEnd();
-
-
-				TimeSpan ts = DateTime.Now - start;
-				logger.Trace("Sent TraktPost in {0} ms: {1} --- {2}", ts.TotalMilliseconds, uri, output);
-
-			}
-			catch (WebException webEx)
-			{
-				logger.Error("Error(1) in XMLServiceQueue.SendData: {0}", webEx);
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error(2) in XMLServiceQueue.SendData: {0}", ex);
-			}
-			finally
-			{
-				if (req != null) req.GetRequestStream().Close();
-				if (rsp != null) rsp.GetResponseStream().Close();
-			}
-
-			return output;
-		}
-
-		public static string TestUserLogin()
-		{
-			try
-			{
-				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
-					return "Please enter a username and password";
-
-				TraktTVPost_AccountTest cmd = new TraktTVPost_AccountTest();
-				cmd.Init();
-
-				string url = string.Format(Constants.TraktTvURLs.URLPostAccountTest, Constants.TraktTvURLs.APIKey);
-				logger.Trace("TestUserLogin: {0}", url);
-
-				string json = JSONHelper.Serialize<TraktTVPost_AccountTest>(cmd);
-				string jsonResponse = SendData(url, json);
-				if (string.IsNullOrEmpty(jsonResponse)) return "Invalid login";
-
-				TraktTVGenericResponse genResponse = JSONHelper.Deserialize<TraktTVGenericResponse>(jsonResponse);
-				if (genResponse.IsSuccess)
-				{
-					MainWindow.UpdateTraktFriendInfo(true);
-					return "";
-				}
-				else
-					return genResponse.error;
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.TestUserLogin: " + ex.ToString(), ex);
-				return ex.Message;
-			}
-		}
-
-		public static bool CreateAccount(string uname, string pass, string emailAddress, ref string returnMessage)
-		{
-			returnMessage = "";
-			try
-			{
-				if (string.IsNullOrEmpty(uname) || string.IsNullOrEmpty(pass) || string.IsNullOrEmpty(emailAddress))
-				{
-					returnMessage = "Please enter a username and password";
-					return false;
-				}
-
-				TraktTVPost_AccountCreate cmd = new TraktTVPost_AccountCreate();
-				cmd.Init(uname, pass, emailAddress);
-
-				string url = string.Format(Constants.TraktTvURLs.URLPostAccountCreate, Constants.TraktTvURLs.APIKey);
-				logger.Trace("CreateAccount: {0}", url);
-
-				string json = JSONHelper.Serialize<TraktTVPost_AccountCreate>(cmd);
-				string jsonResponse = SendData(url, json);
-
-				TraktTVGenericResponse genResponse = JSONHelper.Deserialize<TraktTVGenericResponse>(jsonResponse);
-				if (genResponse.IsSuccess)
-				{
-					returnMessage = genResponse.message;
-					ServerSettings.Trakt_Username = uname;
-					ServerSettings.Trakt_Password = pass;
-					MainWindow.UpdateTraktFriendInfo(true);
-					return true;
-				}
-				else
-				{
-					returnMessage = genResponse.error;
-					return false;
-				}
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.TestUserLogin: " + ex.ToString(), ex);
-				returnMessage = ex.Message;
-				return false;
-			}
-		}
-
-		public static bool FriendRequestDeny(string uname, ref string returnMessage)
-		{
-			returnMessage = "";
-			try
-			{
-				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
-				{
-					returnMessage = "Please enter a username and password";
-					return false;
-				}
-
-				TraktTVPost_FriendDenyApprove cmd = new TraktTVPost_FriendDenyApprove();
-				cmd.Init(uname);
-
-				string url = string.Format(Constants.TraktTvURLs.URLPostFriendsDeny, Constants.TraktTvURLs.APIKey);
-				logger.Trace("URLPostFriendsDeny: {0}", url);
-
-				string json = JSONHelper.Serialize<TraktTVPost_FriendDenyApprove>(cmd);
-				string jsonResponse = SendData(url, json);
-				if (string.IsNullOrEmpty(jsonResponse))
-				{
-					returnMessage = "Error occurred";
-					return false;
-				}
-
-				TraktTVGenericResponse genResponse = JSONHelper.Deserialize<TraktTVGenericResponse>(jsonResponse);
-				if (genResponse.IsSuccess)
-				{
-					returnMessage = genResponse.message;
-					MainWindow.UpdateTraktFriendInfo(true);
-					return true;
-				}
-				else
-				{
-					returnMessage = genResponse.error;
-					return false;
-				}
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.FriendRequestDeny: " + ex.ToString(), ex);
-				returnMessage = ex.Message;
-				return false;
-			}
-		}
-
-		public static bool FriendRequestApprove(string uname, ref string returnMessage)
-		{
-			returnMessage = "";
-			try
-			{
-				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
-				{
-					returnMessage = "Please enter a username and password";
-					return false;
-				}
-
-				TraktTVPost_FriendDenyApprove cmd = new TraktTVPost_FriendDenyApprove();
-				cmd.Init(uname);
-
-				string url = string.Format(Constants.TraktTvURLs.URLPostFriendsApprove, Constants.TraktTvURLs.APIKey);
-				logger.Trace("URLPostFriendsDeny: {0}", url);
-
-				string json = JSONHelper.Serialize<TraktTVPost_FriendDenyApprove>(cmd);
-				string jsonResponse = SendData(url, json);
-				if (string.IsNullOrEmpty(jsonResponse))
-				{
-					returnMessage = "Error occurred";
-					return false;
-				}
-
-				TraktTVGenericResponse genResponse = JSONHelper.Deserialize<TraktTVGenericResponse>(jsonResponse);
-				if (genResponse.IsSuccess)
-				{
-					returnMessage = genResponse.message;
-					MainWindow.UpdateTraktFriendInfo(true);
-					return true;
-				}
-				else
-				{
-					returnMessage = genResponse.error;
-					return false;
-				}
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.FriendRequestDeny: " + ex.ToString(), ex);
-				returnMessage = ex.Message;
-				return false;
-			}
-		}
-
-		public static void SyncCollectionToTrakt_Series(AnimeSeries series)
-		{
-			try
-			{
-				// check that we have at least one user nominated for Trakt
-				JMMUserRepository repUsers = new JMMUserRepository();
-				List<JMMUser> traktUsers = repUsers.GetTraktUsers();
-				if (traktUsers.Count == 0) return;
-
-				string url = string.Format(Constants.TraktTvURLs.URLPostShowEpisodeLibrary, Constants.TraktTvURLs.APIKey);
-				string urlSeen = string.Format(Constants.TraktTvURLs.URLPostShowEpisodeSeen, Constants.TraktTvURLs.APIKey);
-
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(series.AniDB_ID);
-                if (anime == null) return;
-
-                TraktSummaryContainer traktSummary = new TraktSummaryContainer();
-                traktSummary.Populate(series.AniDB_ID);
-
-				
-
-                Dictionary<string, TraktTVPost_ShowEpisodeLibrary> postLibraries = new Dictionary<string, TraktTVPost_ShowEpisodeLibrary>();
-                Dictionary<string, TraktTVPost_ShowEpisodeSeen> postSeens = new Dictionary<string, TraktTVPost_ShowEpisodeSeen>();
-
-                
-                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-
-				foreach (AnimeEpisode ep in series.GetAnimeEpisodes())
-				{
-					if (ep.GetVideoLocals().Count > 0)
-					{
-                        AniDB_Episode aniep = ep.AniDB_Episode;
-                        if (aniep == null) return;
-
-                        string traktID = string.Empty;
-                        int retEpNum = -1;
-                        int retSeason = -1;
-
-                        GetTraktEpisodeNumber(anime, aniep, ref traktID, ref retEpNum, ref retSeason);
-                        if (retEpNum < 0) continue;
-
-                        if (!traktSummary.TraktDetails.ContainsKey(traktID)) continue;
-
-                        Trakt_Show show = traktSummary.TraktDetails[traktID].Show;
-                        if (show == null) continue;
-                        if (!show.TvDB_ID.HasValue) continue;
-
-						TraktTVSeasonEpisode traktEp = new TraktTVSeasonEpisode();
-						traktEp.episode = retEpNum.ToString();
-						traktEp.season = retSeason.ToString();
-
-                        if (!postLibraries.ContainsKey(traktID))
-                        {
-                            postLibraries[traktID] = new TraktTVPost_ShowEpisodeLibrary();
-                            postLibraries[traktID].episodes = new List<TraktTVSeasonEpisode>();
-                            postLibraries[traktID].SetCredentials();
-                            postLibraries[traktID].imdb_id = "";
-                            postLibraries[traktID].title = show.Title;
-                            postLibraries[traktID].year = show.Year;
-                            postLibraries[traktID].tvdb_id = show.TvDB_ID.Value.ToString();
-                        }
-
-                        postLibraries[traktID].episodes.Add(traktEp);
-
-						AnimeEpisode_User userRecord = null;
-						foreach (JMMUser juser in traktUsers)
-						{
-							userRecord = ep.GetUserRecord(juser.JMMUserID);
-							if (userRecord != null) break;
-						}
-
-						if (userRecord != null)
-                        {
-                            if (!postSeens.ContainsKey(traktID))
-                            {
-                                postSeens[traktID] = new TraktTVPost_ShowEpisodeSeen();
-                                postSeens[traktID].episodes = new List<TraktTVSeasonEpisode>();
-                                postSeens[traktID].SetCredentials();
-                                postSeens[traktID].imdb_id = "";
-                                postSeens[traktID].title = show.Title;
-                                postSeens[traktID].year = show.Year;
-                                postSeens[traktID].tvdb_id = show.TvDB_ID.Value.ToString();
-                            }
-
-                            postSeens[traktID].episodes.Add(traktEp);
-                        }
-							
-					}
-				}
-
-                foreach (TraktTVPost_ShowEpisodeLibrary postLibrary in postLibraries.Values)
-                {
-                    if (postLibrary.episodes.Count > 0)
-                    {
-                        logger.Info("PostShowEpisodeLibrary: {0}/{1}/{2} eps", postLibrary.title, postLibrary.tvdb_id, postLibrary.episodes.Count);
-
-                        string json = JSONHelper.Serialize<TraktTVPost_ShowEpisodeLibrary>(postLibrary);
-                        string jsonResponse = SendData(url, json);
-                        logger.Info("PostShowEpisodeLibrary RESPONSE: {0}", jsonResponse);
-                    }
-                }
-
-                foreach (TraktTVPost_ShowEpisodeSeen postSeen in postSeens.Values)
-                {
-                    if (postSeen.episodes.Count > 0)
-                    {
-                        logger.Info("PostShowEpisodeSeen: {0}/{1}/{2} eps", postSeen.title, postSeen.tvdb_id, postSeen.episodes.Count);
-
-                        string json = JSONHelper.Serialize<TraktTVPost_ShowEpisodeSeen>(postSeen);
-                        string jsonResponse = SendData(urlSeen, json);
-                        logger.Info("PostShowEpisodeSeen RESPONSE: {0}", jsonResponse);
-                    }
-                }
-				
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.SyncCollectionToTrakt_Series: " + ex.ToString(), ex);
-			}
-		}
-
-		public static void SyncCollectionToTrakt()
-		{
-			try
-			{
-				if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password)) return;
-
-				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-				List<AnimeSeries> allSeries = repSeries.GetAll();
-
-				foreach (AnimeSeries series in allSeries)
-				{
-					//SyncCollectionToTrakt_Series(series);
-					CommandRequest_TraktSyncCollectionSeries cmd = new CommandRequest_TraktSyncCollectionSeries(series.AnimeSeriesID, series.GetAnime().MainTitle);
-					cmd.Save();
-				}
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TraktTVHelper.SyncCollectionToTrakt: " + ex.ToString(), ex);
-			}
-		}
-
-		private static void GetTraktEpisodeNumber(AniDB_Anime anime, AniDB_Episode ep, ref string traktID, ref int traktEpNum, ref int traktSeason)
-		{
+        private static int? GetTraktEpisodeIdV2(AniDB_Anime anime, AniDB_Episode ep, ref string traktID)
+        {
             TraktSummaryContainer traktSummary = new TraktSummaryContainer();
             traktSummary.Populate(anime.AnimeID);
 
-            GetTraktEpisodeNumber(traktSummary, anime, ep, ref traktID, ref  traktEpNum, ref  traktSeason);
+            return GetTraktEpisodeIdV2(traktSummary, anime, ep, ref traktID);
 
-		}
+        }
 
-        private static void GetTraktEpisodeNumber(TraktSummaryContainer traktSummary, AniDB_Anime anime, AniDB_Episode ep, ref string traktID, ref int traktEpNum, ref int traktSeason)
-		{
-			try
-			{
-                traktEpNum = -1;
-                traktSeason = -1;
-                traktID = string.Empty;
+        private static int? GetTraktEpisodeIdV2(TraktSummaryContainer traktSummary, AniDB_Anime anime, AniDB_Episode ep, ref string traktID)
+        {
+            try
+            {
+                int? traktEpId = null;
 
                 #region normal episodes
                 // now do stuff to improve performance
@@ -1449,22 +566,19 @@ namespace JMMServer.Providers.TraktTV
 
                             if (dictTraktSeasons.ContainsKey(xrefBase.TraktSeasonNumber))
                             {
-                                int episodeNumber = dictTraktSeasons[xrefBase.TraktSeasonNumber] + (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) - 
+                                int episodeNumber = dictTraktSeasons[xrefBase.TraktSeasonNumber] + (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
                                     (xrefBase.AniDBStartEpisodeNumber - 1);
                                 if (dictTraktEpisodes.ContainsKey(episodeNumber))
                                 {
                                     Trakt_Episode traktep = dictTraktEpisodes[episodeNumber];
-
-                                    traktEpNum = traktep.EpisodeNumber;
-                                    traktSeason = xrefBase.TraktSeasonNumber;
                                     traktID = xrefBase.TraktID;
+                                    traktEpId = traktep.TraktID;
                                 }
                             }
                         }
                     }
                 }
                 #endregion
-
 
                 #region special episodes
                 if (ep.EpisodeTypeEnum == enEpisodeType.Special)
@@ -1509,15 +623,13 @@ namespace JMMServer.Providers.TraktTV
 
                             if (dictTraktSeasons.ContainsKey(xrefBase.TraktSeasonNumber))
                             {
-                                int episodeNumber = dictTraktSeasons[xrefBase.TraktSeasonNumber] + (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) - 
+                                int episodeNumber = dictTraktSeasons[xrefBase.TraktSeasonNumber] + (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
                                     (xrefBase.AniDBStartEpisodeNumber - 1);
                                 if (dictTraktEpisodes.ContainsKey(episodeNumber))
                                 {
                                     Trakt_Episode traktep = dictTraktEpisodes[episodeNumber];
-
-                                    traktEpNum = traktep.EpisodeNumber;
-                                    traktSeason = xrefBase.TraktSeasonNumber;
                                     traktID = xrefBase.TraktID;
+                                    traktEpId = traktep.TraktID;
                                 }
                             }
                         }
@@ -1525,65 +637,711 @@ namespace JMMServer.Providers.TraktTV
                 }
                 #endregion
 
-				return;
+                return traktEpId;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
+
+
+        #endregion
+
+        #region Image Downloads
+
+        /// <summary>
+        /// Updates the followung
+        /// 1. Series Info
+        /// 2. Episode Info
+        /// 3. Episode Images
+        /// 4. Fanart, Poster Images
+        /// </summary>
+        /// <param name="seriesID"></param>
+        /// <param name="forceRefresh"></param>
+        public static void UpdateAllInfoAndImages(string traktID, bool forceRefresh)
+        {
+            // this will do the first 3 steps
+            TraktV2ShowExtended tvShow = GetShowInfoV2(traktID);
+            if (tvShow == null) return;
+
+            try
+            {
+                //now download the images
+                DownloadAllImages(traktID);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.UpdateAllInfoAndImages: " + ex.ToString(), ex);
+            }
+        }
+
+        public static void DownloadAllImages(string traktID)
+        {
+            try
+            {
+                //now download the images
+                Trakt_ShowRepository repShow = new Trakt_ShowRepository();
+                Trakt_Show show = repShow.GetByTraktSlug(traktID);
+                if (show == null) return;
+
+
+                if (ServerSettings.Trakt_DownloadFanart)
+                {
+                    //download the fanart image for the show
+                    Trakt_ImageFanartRepository repFanart = new Trakt_ImageFanartRepository();
+                    Trakt_ImageFanart fanart = repFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
+                    if (fanart != null)
+                    {
+                        if (!string.IsNullOrEmpty(fanart.FullImagePath))
+                        {
+                            if (!File.Exists(fanart.FullImagePath))
+                            {
+                                CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.Trakt_ImageFanartID, JMMImageType.Trakt_Fanart, false);
+                                cmd.Save();
+                            }
+                        }
+                    }
+                }
+
+
+                // download the posters for seasons
+                Trakt_ImagePosterRepository repPosters = new Trakt_ImagePosterRepository();
+                foreach (Trakt_Season season in show.Seasons)
+                {
+                    if (ServerSettings.Trakt_DownloadPosters)
+                    {
+                        Trakt_ImagePoster poster = repPosters.GetByShowIDAndSeason(season.Trakt_ShowID, season.Season);
+                        if (poster != null)
+                        {
+                            if (!string.IsNullOrEmpty(poster.FullImagePath))
+                            {
+                                if (!File.Exists(poster.FullImagePath))
+                                {
+                                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.Trakt_ImagePosterID, JMMImageType.Trakt_Poster, false);
+                                    cmd.Save();
+                                }
+                            }
+                        }
+                    }
+
+                    if (ServerSettings.Trakt_DownloadEpisodes)
+                    {
+                        // download the screenshots for episodes
+                        foreach (Trakt_Episode ep in season.Episodes)
+                        {
+                            if (!string.IsNullOrEmpty(ep.FullImagePath))
+                            {
+                                if (!File.Exists(ep.FullImagePath))
+                                {
+                                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(ep.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
+                                    cmd.Save();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.UpdateAllInfoAndImages: " + ex.ToString(), ex);
+            }
+        }
+
+        #endregion
+
+        #region Send Data to Trakt
+
+        public static bool PostShoutShow(string traktSlug, string shoutText, bool isSpoiler, ref string returnMessage)
+		{
+			returnMessage = "";
+			try
+			{
+                if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+				{
+					returnMessage = "Trakt has not been authorized";
+					return false;
+				}
+
+				if (string.IsNullOrEmpty(shoutText))
+				{
+					returnMessage = "Please enter text for your shout";
+					return false;
+				}
+
+                TraktV2CommentShowPost comment = new TraktV2CommentShowPost();
+                comment.Init(shoutText, isSpoiler, traktSlug);
+
+                string json = JSONHelper.Serialize<TraktV2CommentShowPost>(comment);
+
+
+                string retData = string.Empty;
+                int response = SendData(TraktURIs.PostComment, json, "POST", BuildRequestHeaders(), ref retData);
+                if (response == TraktStatusCodes.Success || response == TraktStatusCodes.Success_Post || response == TraktStatusCodes.Success_Delete)
+                {
+                    returnMessage = "Success";
+                    return true;
+                }
+                else
+                {
+                    returnMessage = string.Format("{0} Error - {1}", response, retData);
+                    return false;
+                }
 			}
 			catch (Exception ex)
 			{
-				logger.ErrorException(ex.ToString(), ex);
-				return;
+				logger.ErrorException("Error in TraktTVHelper.PostShoutShow: " + ex.ToString(), ex);
+				returnMessage = ex.Message;
+				return false;
 			}
+
+            return true;
 		}
 
-		private static void GetDictTraktEpisodesAndSeasons(Trakt_Show show, ref Dictionary<int, Trakt_Episode> dictTraktEpisodes, 
-			ref Dictionary<int, Trakt_Episode> dictTraktSpecials, ref Dictionary<int, int> dictTraktSeasons)
+        public static void SyncEpisodeToTrakt(AnimeEpisode ep, TraktSyncType syncType)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                    return;
+
+                string traktShowID = string.Empty;
+
+                int? traktEpisodeId = GetTraktEpisodeIdV2(ep, ref traktShowID);
+                if (!traktEpisodeId.HasValue) return;
+
+                TraktV2SyncCollectionEpisodes sync = new TraktV2SyncCollectionEpisodes();
+                sync.episodes = new List<TraktV2EpisodePost>();
+                TraktV2EpisodePost epPost = new TraktV2EpisodePost();
+                epPost.ids = new TraktV2EpisodeIds();
+                epPost.ids.trakt = traktEpisodeId.Value;
+                sync.episodes.Add(epPost);
+
+                string json = JSONHelper.Serialize<TraktV2SyncCollectionEpisodes>(sync);
+
+                Dictionary<string, string> headers = new Dictionary<string, string>();
+
+                string url = TraktURIs.SyncCollectionAdd;
+                switch (syncType)
+                {
+                    case TraktSyncType.CollectionAdd: url = TraktURIs.SyncCollectionAdd; break;
+                    case TraktSyncType.CollectionRemove: url = TraktURIs.SyncCollectionRemove; break;
+                    case TraktSyncType.HistoryAdd: url = TraktURIs.SyncHistoryAdd; break;
+                    case TraktSyncType.HistoryRemove: url = TraktURIs.SyncHistoryRemove; break;
+                }
+
+                string retData = string.Empty;
+                int response = SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
+                if (response == TraktStatusCodes.Success || response == TraktStatusCodes.Success_Post || response == TraktStatusCodes.Success_Delete)
+                {
+                    // if this was marking an episode as watched, and is successful, let's also add this to the user's collection
+                    // this is because you can watch something without adding it to your collection, but in JMM it is always part of your collection
+                    if (syncType == TraktSyncType.HistoryAdd)
+                        response = SendData(TraktURIs.SyncCollectionAdd, json, "POST", BuildRequestHeaders(), ref retData);
+
+                    // also if we have removed from our collection, set to un-watched
+                    if (syncType == TraktSyncType.CollectionRemove)
+                        response = SendData(TraktURIs.SyncHistoryRemove, json, "POST", BuildRequestHeaders(), ref retData);
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.MarkEpisodeWatched: " + ex.ToString(), ex);
+            }
+
+
+        }
+
+        #endregion
+
+        #region Get Data From Trakt
+
+        public static List<TraktV2SearchShowResult> SearchShowV2(string criteria)
+        {
+            List<TraktV2SearchShowResult> results = new List<TraktV2SearchShowResult>();
+
+            try
+            {
+                // replace spaces with a + symbo
+                criteria = criteria.Replace(' ', '+');
+
+                // Search for a series
+                string url = string.Format(TraktURIs.Search, criteria, TraktSearchType.show);
+                logger.Trace("Search Trakt Show: {0}", url);
+
+                // Search for a series
+                string json = GetFromTrakt(url);
+
+                if (json.Trim().Length == 0) return new List<TraktV2SearchShowResult>();
+
+                var result = json.FromJSONArray<TraktV2SearchShowResult>();
+                if (result == null) return null;
+
+                return new List<TraktV2SearchShowResult>(result);
+
+                // save this data for later use
+                //foreach (TraktTVShow tvshow in results)
+                //	SaveExtendedShowInfo(tvshow);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
+            }
+
+            return null;
+        }
+
+        public static TraktV2ShowExtended GetShowInfoV2(int tvDBID)
+        {
+            return GetShowInfoV2(tvDBID.ToString());
+        }
+
+        public static TraktV2ShowExtended GetShowInfoV2(string traktID)
+        {
+            TraktV2ShowExtended resultShow = null;
+
+            try
+            {
+                string url = string.Format(TraktURIs.ShowSummary, traktID);
+                logger.Trace("GetShowInfo: {0}", url);
+
+                // Search for a series
+                string json = GetFromTrakt(url);
+
+                if (json.Trim().Length == 0) return null;
+
+                resultShow = json.FromJSON<TraktV2ShowExtended>();
+                if (resultShow == null) return null;
+
+                // if we got the show info, also download the seaon info
+                url = string.Format(TraktURIs.ShowSeasons, traktID);
+                logger.Trace("GetSeasonInfo: {0}", url);
+                json = GetFromTrakt(url);
+
+                List<TraktV2Season> seasons = new List<TraktV2Season>();
+                if (json.Trim().Length > 0)
+                {
+                    var resultSeasons = json.FromJSONArray<TraktV2Season>();
+                    if (resultShow != null)
+                    {
+                        foreach (TraktV2Season season in resultSeasons)
+                            seasons.Add(season);
+                    }
+                }
+
+                // save this data to the DB for use later
+                SaveExtendedShowInfoV2(resultShow, seasons);
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.GetShowInfo: " + ex.ToString(), ex);
+                return null;
+            }
+
+            return resultShow;
+        }
+
+        public static void SaveExtendedShowInfoV2(TraktV2ShowExtended tvshow, List<TraktV2Season> seasons)
+        {
+            try
+            {
+                // save this data to the DB for use later
+                Trakt_ImageFanartRepository repFanart = new Trakt_ImageFanartRepository();
+                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+                Trakt_Show show = repShows.GetByTraktSlug(tvshow.ids.slug);
+                if (show == null)
+                    show = new Trakt_Show();
+
+                show.Populate(tvshow);
+                repShows.Save(show);
+
+
+                if (tvshow.images != null && tvshow.images.fanart != null)
+                {
+                    if (!string.IsNullOrEmpty(tvshow.images.fanart.full))
+                    {
+                        Trakt_ImageFanart fanart = repFanart.GetByShowIDAndSeason(show.Trakt_ShowID, 1);
+                        if (fanart == null)
+                        {
+                            fanart = new Trakt_ImageFanart();
+                            fanart.Enabled = 0;
+                        }
+
+                        fanart.ImageURL = tvshow.images.fanart.full;
+                        fanart.Season = 1;
+                        fanart.Trakt_ShowID = show.Trakt_ShowID;
+                        repFanart.Save(fanart);
+                    }
+                }
+
+
+                // save the seasons
+                Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
+                Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
+                Trakt_ImagePosterRepository repPosters = new Trakt_ImagePosterRepository();
+
+
+                foreach (TraktV2Season sea in seasons)
+                {
+                    Trakt_Season season = repSeasons.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number);
+                    if (season == null)
+                        season = new Trakt_Season();
+
+                    season.Season = sea.number;
+                    season.URL = string.Format(TraktURIs.WebsiteSeason, show.TraktID, sea.number);
+                    season.Trakt_ShowID = show.Trakt_ShowID;
+                    repSeasons.Save(season);
+
+                    if (sea.images != null && sea.images.poster != null)
+                    {
+                        if (!string.IsNullOrEmpty(sea.images.poster.full))
+                        {
+                            Trakt_ImagePoster poster = repPosters.GetByShowIDAndSeason(show.Trakt_ShowID, season.Season);
+                            if (poster == null)
+                            {
+                                poster = new Trakt_ImagePoster();
+                                poster.Enabled = 0;
+                            }
+
+                            poster.ImageURL = sea.images.poster.full;
+                            poster.Season = season.Season;
+                            poster.Trakt_ShowID = show.Trakt_ShowID;
+                            repPosters.Save(poster);
+                        }
+                    }
+
+                    foreach (TraktV2Episode ep in sea.episodes)
+                    {
+                        Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, ep.season, ep.number);
+                        if (episode == null)
+                            episode = new Trakt_Episode();
+
+                        Console.Write(ep.ids.trakt);
+
+                        if (ep.images.screenshot != null)
+                            episode.EpisodeImage = ep.images.screenshot.full;
+                        else
+                            episode.EpisodeImage = string.Empty;
+
+                        episode.TraktID = ep.ids.trakt;
+                        episode.EpisodeNumber = ep.number;
+                        episode.Overview = string.Empty; // this is now part of a separate API call for V2, we get this info from TvDB anyway
+                        episode.Season = ep.season;
+                        episode.Title = ep.title;
+                        episode.URL = string.Format(TraktURIs.WebsiteEpisode, show.TraktID, ep.season, ep.number);
+                        episode.Trakt_ShowID = show.Trakt_ShowID;
+                        repEpisodes.Save(episode);
+                    }
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.SaveExtendedShowInfo: " + ex.ToString(), ex);
+            }
+        }
+
+        public static List<TraktV2Comment> GetShowShoutsV2(int animeID)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return GetShowShoutsV2(session, animeID);
+            }
+        }
+
+        public static List<TraktV2Comment> GetShowShoutsV2(ISession session, int animeID)
+        {
+            List<TraktV2Comment> ret = new List<TraktV2Comment>();
+            try
+            {
+                if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                    return ret;
+
+                CrossRef_AniDB_TraktV2Repository repXrefTrakt = new CrossRef_AniDB_TraktV2Repository();
+                List<CrossRef_AniDB_TraktV2> traktXRefs = repXrefTrakt.GetByAnimeID(session, animeID);
+                if (traktXRefs == null || traktXRefs.Count == 0) return null;
+
+                // get a unique list of trakt id's
+                List<string> ids = new List<string>();
+                foreach (CrossRef_AniDB_TraktV2 xref in traktXRefs)
+                {
+                    if (!ids.Contains(xref.TraktID))
+                        ids.Add(xref.TraktID);
+                }
+
+                foreach (string id in ids)
+                {
+                    bool morePages = true;
+                    int curPage = 0;
+
+                    while (morePages)
+                    {
+                        curPage++;
+                        string url = string.Format(TraktURIs.ShowComments, id, curPage, TraktConstants.PaginationLimit);
+                        logger.Trace("GetShowShouts: {0}", url);
+
+                        string json = GetFromTrakt(url);
+
+                        if (json.Trim().Length == 0) 
+                            return null;
+
+                        var resultComments = json.FromJSONArray<TraktV2Comment>();
+                        if (resultComments != null)
+                        {
+                            List<TraktV2Comment> thisComments = new List<TraktV2Comment>(resultComments);
+                            ret.AddRange(thisComments);
+
+                            if (thisComments.Count == TraktConstants.PaginationLimit)
+                                morePages = true;
+                            else
+                                morePages = false;
+                        }
+                        else
+                            morePages = false;
+                        
+                    }
+                    
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.GetShowShouts: " + ex.ToString(), ex);
+            }
+
+            return ret;
+        }
+
+        public static List<TraktV2Follower> GetFriendsV2()
+        {
+            List<TraktV2Follower> friends = new List<TraktV2Follower>();
+
+            try
+            {
+                if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                    return friends;
+
+                string url = TraktURIs.GetUserFriends;
+                logger.Trace("GetFollowers: {0}", url);
+
+                string json = GetFromTrakt(url);
+                if (json.Trim().Length == 0) return null;
+
+                var resultFollowers = json.FromJSONArray<TraktV2Follower>();
+
+                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+                Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
+                Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
+
+                foreach (TraktV2Follower friend in resultFollowers)
+                {
+                    Trakt_Friend traktFriend = repFriends.GetByUsername(friend.user.username);
+                    if (traktFriend == null)
+                        traktFriend = new Trakt_Friend();
+
+                    traktFriend.Populate(friend.user);
+                    repFriends.Save(traktFriend);
+
+                    // get a watched history for each friend
+                    url = string.Format(TraktURIs.GetUserHistory, friend.user.username);
+                    logger.Trace("GetUserHistory: {0}", url);
+
+                    json = GetFromTrakt(url);
+                    if (json.Trim().Length == 0) continue;
+
+                    var resultHistory = json.FromJSONArray<TraktV2UserEpisodeHistory>();
+
+                    /*
+                    foreach (TraktV2UserEpisodeHistory wtch in resultHistory)
+                    {
+                        if (wtch.episode != null && wtch.show != null)
+                        {
+
+                            Trakt_Show show = repShows.GetByTraktID(wtch.show.ids.slug);
+                            if (show == null)
+                            {
+                                show = new Trakt_Show();
+                                show.Populate(wtch.show);
+                                repShows.Save(show);
+                            }
+
+                            Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, wtch.episode.season, wtch.episode.number);
+                            if (episode == null)
+                                episode = new Trakt_Episode();
+
+                            episode.Populate(wtch.episode, show.Trakt_ShowID);
+                            repEpisodes.Save(episode);
+
+                            if (!string.IsNullOrEmpty(episode.FullImagePath))
+                            {
+                                bool fileExists = File.Exists(episode.FullImagePath);
+                                if (!fileExists)
+                                {
+                                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(episode.Trakt_EpisodeID, JMMImageType.Trakt_Episode, false);
+                                    cmd.Save();
+                                }
+                            }
+                        }
+                    }*/
+                }
+
+
+
+                //Contract_Trakt_Friend fr = friends[0].ToContract();
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.GetFriends: " + ex.ToString(), ex);
+                return friends;
+            }
+
+            return friends;
+        }
+
+        #endregion
+
+
+        public static List<TraktTVShowUserCollectionWatched> GetUserCollection()
 		{
-			dictTraktEpisodes = new Dictionary<int, Trakt_Episode>();
-			dictTraktSpecials = new Dictionary<int, Trakt_Episode>();
-			dictTraktSeasons = new Dictionary<int, int>();
+			List<TraktTVShowUserCollectionWatched> results = new List<TraktTVShowUserCollectionWatched>();
+
 			try
 			{
-				Trakt_EpisodeRepository repEps = new Trakt_EpisodeRepository();
+                string url = string.Format(Constants.TraktTvURLs.URLUserLibraryShowsCollection, Constants.TraktTvURLs.APIKey, ServerSettings.Trakt_AuthToken);
+				logger.Trace("Trakt User Collection: {0}", url);
 
-				// create a dictionary of absolute episode numbers for trakt episodes
-				// sort by season and episode number
-				// ignore season 0, which is used for specials
-				List<Trakt_Episode> eps = repEps.GetByShowID(show.Trakt_ShowID);
+				// Search for a series
+				string json = Utils.DownloadWebPage(url);
 
-				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-				sortCriteria.Add(new SortPropOrFieldAndDirection("Season", false, SortType.eInteger));
-				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-				eps = Sorting.MultiSort<Trakt_Episode>(eps, sortCriteria);
+				if (json.Trim().Length == 0) return new List<TraktTVShowUserCollectionWatched>();
 
-				int i = 1;
-				int iSpec = 1;
-				int lastSeason = -999;
-				foreach (Trakt_Episode ep in eps)
+				results = JSONHelper.Deserialize<List<TraktTVShowUserCollectionWatched>>(json);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
+			}
+
+			return results;
+		}
+
+		public static List<TraktTVShowUserCollectionWatched> GetUserWatched()
+		{
+			List<TraktTVShowUserCollectionWatched> results = new List<TraktTVShowUserCollectionWatched>();
+
+			try
+			{
+                string url = string.Format(Constants.TraktTvURLs.URLUserLibraryShowsWatched, Constants.TraktTvURLs.APIKey, ServerSettings.Trakt_AuthToken);
+				logger.Trace("Trakt User Collection Watched: {0}", url);
+
+				// Search for a series
+				string json = Utils.DownloadWebPage(url);
+
+				if (json.Trim().Length == 0) return new List<TraktTVShowUserCollectionWatched>();
+
+				results = JSONHelper.Deserialize<List<TraktTVShowUserCollectionWatched>>(json);
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
+			}
+
+			return results;
+		}
+
+		public static void UpdateAllInfo()
+		{
+            CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+            List<CrossRef_AniDB_TraktV2> allCrossRefs = repCrossRef.GetAll();
+            foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
+			{
+				CommandRequest_TraktUpdateInfoAndImages cmd = new CommandRequest_TraktUpdateInfoAndImages(xref.TraktID);
+				cmd.Save();
+			}
+
+		}
+
+		public static void SyncCollectionToTrakt_Series(AnimeSeries series)
+		{
+			try
+			{
+				// check that we have at least one user nominated for Trakt
+				JMMUserRepository repUsers = new JMMUserRepository();
+				List<JMMUser> traktUsers = repUsers.GetTraktUsers();
+				if (traktUsers.Count == 0) return;
+
+                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                AniDB_Anime anime = repAnime.GetByAnimeID(series.AniDB_ID);
+                if (anime == null) return;
+
+                TraktSummaryContainer traktSummary = new TraktSummaryContainer();
+                traktSummary.Populate(series.AniDB_ID);
+                if (traktSummary.CrossRefTraktV2 == null || traktSummary.CrossRefTraktV2.Count == 0) return;
+
+				foreach (AnimeEpisode ep in series.GetAnimeEpisodes())
 				{
-					//if (ep.Season == 0) continue;
-					if (ep.Season > 0)
+					if (ep.GetVideoLocals().Count > 0)
 					{
-						dictTraktEpisodes[i] = ep;
-						if (ep.Season != lastSeason)
-							dictTraktSeasons[ep.Season] = i;
+                        // let's check if this episode has a user record against it
+                        // if it does, it means a user has watched it
 
-						i++;
+                        AnimeEpisode_User userRecord = null;
+                        foreach (JMMUser juser in traktUsers)
+                        {
+                            userRecord = ep.GetUserRecord(juser.JMMUserID);
+                            if (userRecord != null) break;
+                        }
+
+                        if (userRecord != null)
+                        {
+                            // adding to history will also add it to the collection
+                            SyncEpisodeToTrakt(ep, TraktSyncType.HistoryAdd);
+                        }
+                        else
+                        {
+                            // lets' add it to the collection
+                            SyncEpisodeToTrakt(ep, TraktSyncType.CollectionAdd);
+                        }
+							
 					}
-					else
-					{
-						dictTraktSpecials[iSpec] = ep;
-						if (ep.Season != lastSeason)
-							dictTraktSeasons[ep.Season] = iSpec;
-
-						iSpec++;
-					}
-
-					lastSeason = ep.Season;
 				}
 			}
 			catch (Exception ex)
 			{
-				logger.ErrorException(ex.ToString(), ex);
+				logger.ErrorException("Error in TraktTVHelper.SyncCollectionToTrakt_Series: " + ex.ToString(), ex);
 			}
 		}
-	}
+
+		public static void SyncCollectionToTrakt()
+		{
+			try
+			{
+                if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
+
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				List<AnimeSeries> allSeries = repSeries.GetAll();
+
+				foreach (AnimeSeries series in allSeries)
+				{
+					//SyncCollectionToTrakt_Series(series);
+					CommandRequest_TraktSyncCollectionSeries cmd = new CommandRequest_TraktSyncCollectionSeries(series.AnimeSeriesID, series.GetAnime().MainTitle);
+					cmd.Save();
+				}
+
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in TraktTVHelper.SyncCollectionToTrakt: " + ex.ToString(), ex);
+			}
+		}
+ 
+    }
 }

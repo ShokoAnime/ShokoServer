@@ -87,8 +87,9 @@ namespace JMMContracts
 		public int SeriesNameSource { get; set; }
 
 		// Trakt
-		public string Trakt_Username { get; set; }
-		public string Trakt_Password { get; set; }
+        public string Trakt_AuthToken { get; set; }
+        public string Trakt_RefreshToken { get; set; }
+        public string Trakt_TokenExpirationDate { get; set; }
 		public int Trakt_UpdateFrequency { get; set; }
 		public int Trakt_SyncFrequency { get; set; }
 		public bool Trakt_DownloadFanart { get; set; }

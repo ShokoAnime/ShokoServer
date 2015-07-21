@@ -659,8 +659,8 @@ namespace JMMServer.Providers.Azure
                 uinfo.UsernameHash = Utils.GetMd5Hash(ServerSettings.AniDB_Username);
                 uinfo.DatabaseType = ServerSettings.DatabaseType;
                 uinfo.WindowsVersion = Utils.GetOSInfo();
-                uinfo.MALEnabled = string.IsNullOrEmpty(ServerSettings.Trakt_Username) ? 0 : 1;
-                uinfo.TraktEnabled = string.IsNullOrEmpty(ServerSettings.MAL_Username) ? 0 : 1;
+                uinfo.TraktEnabled = string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken) ? 0 : 1;
+                uinfo.MALEnabled = string.IsNullOrEmpty(ServerSettings.MAL_Username) ? 0 : 1;
 
                 uinfo.CountryLocation = "";
                 

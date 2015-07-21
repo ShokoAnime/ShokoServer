@@ -11,6 +11,7 @@ using JMMServer.Providers.TraktTV;
 using NHibernate;
 using JMMContracts;
 using AniDBAPI;
+using JMMServer.Providers.TraktTV.Contracts;
 
 namespace JMMServer.Commands
 {
@@ -69,7 +70,8 @@ namespace JMMServer.Commands
                             {
                                 foreach (JMMServer.Providers.Azure.CrossRef_AniDB_Trakt xref in resultsCache)
                                 {
-                                    TraktTVShow showInfo = TraktTVHelper.GetShowInfo(xref.TraktID);
+
+                                    TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
                                     if (showInfo != null)
                                     {
                                         logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID, showInfo.title);
@@ -96,12 +98,12 @@ namespace JMMServer.Commands
 					{
                         foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
                         {
-                            TraktTVShow showInfo = TraktTVHelper.GetShowInfo(tvXRef.TvDBID);
-                            if (showInfo != null)
+                            TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(tvXRef.TvDBID);
+                            if (showInfo != null && showInfo.ids != null)
                             {
                                 // make sure the season specified by TvDB also exists on Trakt
                                 Trakt_ShowRepository repShow = new Trakt_ShowRepository();
-                                Trakt_Show traktShow = repShow.GetByTraktID(session, showInfo.TraktID);
+                                Trakt_Show traktShow = repShow.GetByTraktSlug(session, showInfo.ids.slug);
                                 if (traktShow != null)
                                 {
                                     Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
@@ -110,7 +112,7 @@ namespace JMMServer.Commands
                                     {
                                         logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}", AnimeID, showInfo.title);
                                         TraktTVHelper.LinkAniDBTrakt(AnimeID, (AniDBAPI.enEpisodeType)tvXRef.AniDBStartEpisodeType,
-                                            tvXRef.AniDBStartEpisodeNumber, showInfo.TraktID, tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber, true);
+                                            tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug, tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber, true);
                                         return;
                                     }
                                 }
@@ -127,7 +129,7 @@ namespace JMMServer.Commands
 					searchCriteria = anime.MainTitle;
 
 					// if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-					List<TraktTVShow> results = TraktTVHelper.SearchShow(searchCriteria);
+                    List<TraktV2SearchShowResult> results = TraktTVHelper.SearchShowV2(searchCriteria);
 					logger.Trace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
 					if (ProcessSearchResults(session, results, searchCriteria)) return;
 
@@ -140,7 +142,7 @@ namespace JMMServer.Commands
 
 							if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
-							results = TraktTVHelper.SearchShow(searchCriteria);
+                            results = TraktTVHelper.SearchShowV2(searchCriteria);
 							logger.Trace("Found {0} trakt results for search on {1}", results.Count, title.Title);
 							if (ProcessSearchResults(session, results, title.Title)) return;
 						}
@@ -155,18 +157,21 @@ namespace JMMServer.Commands
 			}
 		}
 
-		private bool ProcessSearchResults(ISession session, List<TraktTVShow> results, string searchCriteria)
+        private bool ProcessSearchResults(ISession session, List<TraktV2SearchShowResult> results, string searchCriteria)
 		{
 			if (results.Count == 1)
 			{
-				// since we are using this result, lets download the info
-				logger.Trace("Found 1 trakt results for search on {0} --- Linked to {1} ({2})", searchCriteria, results[0].title, results[0].TraktID);
-				TraktTVShow showInfo = TraktTVHelper.GetShowInfo(results[0].TraktID);
-				if (showInfo != null)
-				{
-                    TraktTVHelper.LinkAniDBTrakt(session, AnimeID, AniDBAPI.enEpisodeType.Episode, 1, results[0].TraktID, 1, 1, true);
-					return true;
-				}
+                if (results[0].show != null)
+                {
+				    // since we are using this result, lets download the info
+				    logger.Trace("Found 1 trakt results for search on {0} --- Linked to {1} ({2})", searchCriteria, results[0].show.Title, results[0].show.ids.slug);
+                    TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(results[0].show.ids.slug);
+				    if (showInfo != null)
+				    {
+                        TraktTVHelper.LinkAniDBTrakt(session, AnimeID, AniDBAPI.enEpisodeType.Episode, 1, results[0].show.ids.slug, 1, 1, true);
+					    return true;
+				    }
+                }
 			}
 
 			return false;

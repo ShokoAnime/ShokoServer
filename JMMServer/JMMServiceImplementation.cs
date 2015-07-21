@@ -25,6 +25,7 @@ using System.Collections;
 using JMMServer.Databases;
 using NHibernate;
 using JMMServer.Commands.AniDB;
+using JMMServer.Providers.TraktTV.Contracts;
 
 namespace JMMServer
 {
@@ -1423,7 +1424,7 @@ namespace JMMServer
 				// lets also try adding to the users trakt collecion by sync'ing the series
 				if (ser != null)
 				{
-                    if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username))
+                    if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                     {
                         CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
                         cmdTrakt.Save();
@@ -1501,7 +1502,7 @@ namespace JMMServer
 				// lets also try adding to the users trakt collecion by sync'ing the series
 				if (ser != null)
 				{
-                    if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username))
+                    if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                     {
                         CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
                         cmdTrakt.Save();
@@ -1596,7 +1597,7 @@ namespace JMMServer
 				// lets also try adding to the users trakt collecion by sync'ing the series
 				if (ser != null)
 				{
-                    if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username))
+                    if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                     {
                         CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
                         cmdTrakt.Save();
@@ -3261,8 +3262,9 @@ namespace JMMServer
 				ServerSettings.SeriesNameSource = (DataSourceType)contractIn.SeriesNameSource;
 
 				// Trakt
-				ServerSettings.Trakt_Username = contractIn.Trakt_Username;
-				ServerSettings.Trakt_Password = contractIn.Trakt_Password;
+                ServerSettings.Trakt_AuthToken = contractIn.Trakt_AuthToken;
+                ServerSettings.Trakt_RefreshToken = contractIn.Trakt_RefreshToken;
+                ServerSettings.Trakt_TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
 				ServerSettings.Trakt_UpdateFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_UpdateFrequency;
 				ServerSettings.Trakt_SyncFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_SyncFrequency;
 				ServerSettings.Trakt_DownloadEpisodes = contractIn.Trakt_DownloadEpisodes;
@@ -3892,15 +3894,15 @@ namespace JMMServer
 			return log;
 		}
 
-		public string TestTraktLogin()
+        public string EnterTraktPIN(string pin)
 		{
 			try
 			{
-				return TraktTVHelper.TestUserLogin();
+				return TraktTVHelper.EnterTraktPIN(pin);
 			}
 			catch (Exception ex)
 			{
-				logger.ErrorException("Error in TestTraktLogin: " + ex.ToString(), ex);
+                logger.ErrorException("Error in EnterTraktPIN: " + ex.ToString(), ex);
 				return ex.Message;
 			}
 		}
@@ -3921,22 +3923,10 @@ namespace JMMServer
 			}
 		}
 
-		public bool CreateTraktAccount(string username, string password, string email, ref string returnMessage)
-		{
-			try
-			{
-				return TraktTVHelper.CreateAccount(username, password, email, ref returnMessage);
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error in TestTraktLogin: " + ex.ToString(), ex);
-				returnMessage = ex.Message;
-				return false;
-			}
-		}
-
 		public bool TraktFriendRequestDeny(string friendUsername, ref string returnMessage)
 		{
+            return false;
+            /*
 			try
 			{
 				return TraktTVHelper.FriendRequestDeny(friendUsername, ref returnMessage);
@@ -3946,11 +3936,13 @@ namespace JMMServer
 				logger.ErrorException("Error in TraktFriendRequestDeny: " + ex.ToString(), ex);
 				returnMessage = ex.Message;
 				return false;
-			}
+			}*/
 		}
 
 		public bool TraktFriendRequestApprove(string friendUsername, ref string returnMessage)
 		{
+            return false;
+            /*
 			try
 			{
 				return TraktTVHelper.FriendRequestApprove(friendUsername, ref returnMessage);
@@ -3960,7 +3952,7 @@ namespace JMMServer
 				logger.ErrorException("Error in TraktFriendRequestDeny: " + ex.ToString(), ex);
 				returnMessage = ex.Message;
 				return false;
-			}
+			}*/
 		}
 
 		/// <summary>
@@ -5003,7 +4995,7 @@ namespace JMMServer
                     {
                         result.CrossRef_AniDB_Trakt.Add(xref.ToContract());
 
-                        Trakt_Show show = repTrakt.GetByTraktID(session, xref.TraktID);
+                        Trakt_Show show = repTrakt.GetByTraktSlug(session, xref.TraktID);
                         if (show != null)
                         {
                             result.TraktShows.Add(show.ToContract());
@@ -5772,7 +5764,7 @@ namespace JMMServer
             try
             {
                 Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-                Trakt_Show show = repShows.GetByTraktID(traktID);
+                Trakt_Show show = repShows.GetByTraktSlug(traktID);
                 if (show != null)
                     allEps = GetAllTraktEpisodes(show.Trakt_ShowID);
 
@@ -5870,9 +5862,9 @@ namespace JMMServer
 			List<Contract_TraktTVShowResponse> results = new List<Contract_TraktTVShowResponse>();
 			try
 			{
-				List<TraktTVShow> traktResults = TraktTVHelper.SearchShow(criteria);
+                List<TraktV2SearchShowResult> traktResults = TraktTVHelper.SearchShowV2(criteria);
 
-				foreach (TraktTVShow res in traktResults)
+                foreach (TraktV2SearchShowResult res in traktResults)
 					results.Add(res.ToContract());
 
 				return results;
@@ -6088,10 +6080,10 @@ namespace JMMServer
 			try
 			{
 				// refresh show info including season numbers from trakt
-				TraktTVShow tvshow = TraktTVHelper.GetShowInfo(traktID);
+				TraktV2ShowExtended tvshow = TraktTVHelper.GetShowInfoV2(traktID);
 
 				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-				Trakt_Show show = repShows.GetByTraktID(traktID);
+				Trakt_Show show = repShows.GetByTraktSlug(traktID);
 				if (show == null) return seasonNumbers;
 
 				foreach (Trakt_Season season in show.Seasons)
@@ -8175,10 +8167,10 @@ namespace JMMServer
 			{
 				Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
 
-				List<TraktTV_ShoutGet> shoutsTemp = TraktTVHelper.GetShowShouts(animeID);
+                List<TraktV2Comment> shoutsTemp = TraktTVHelper.GetShowShoutsV2(animeID);
 				if (shoutsTemp == null || shoutsTemp.Count == 0) return shouts;
 
-				foreach (TraktTV_ShoutGet sht in shoutsTemp)
+                foreach (TraktV2Comment sht in shoutsTemp)
 				{
 					Contract_Trakt_ShoutUser shout = new Contract_Trakt_ShoutUser();
 
@@ -8190,23 +8182,16 @@ namespace JMMServer
 						shout.User.Trakt_FriendID = 0;
 					else
 						shout.User.Trakt_FriendID = traktFriend.Trakt_FriendID;
-					shout.User.Username = sht.user.username;
-					shout.User.Full_name = sht.user.full_name;
-					shout.User.Gender = sht.user.gender;
-					shout.User.Age = sht.user.age;
-					shout.User.Location = sht.user.location;
-					shout.User.About = sht.user.about;
-					shout.User.Joined = sht.user.joined;
-					shout.User.Avatar = sht.user.avatar;
-					shout.User.Url = sht.user.url;
-					shout.User.JoinedDate = Utils.GetAniDBDateAsDate(sht.user.joined);
+
+                    shout.User.Username = sht.user.username;
+                    shout.User.Full_name = sht.user.name;
 
 					// shout details
 					shout.Shout = new Contract_Trakt_Shout();
 					shout.Shout.ShoutType = (int)TraktActivityType.Show; // episode or show
-					shout.Shout.Text = sht.shout;
+                    shout.Shout.Text = sht.comment;
 					shout.Shout.Spoiler = sht.spoiler;
-					shout.Shout.Inserted = Utils.GetAniDBDateAsDate(sht.inserted);
+                    shout.Shout.Inserted = sht.CreatedAtDate;
 
 					shouts.Add(shout);
 				}
@@ -8235,7 +8220,7 @@ namespace JMMServer
 
 			Contract_Trakt_Activity contract = new Contract_Trakt_Activity();
 			contract.HasTraktAccount = true;
-			if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+            if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
 				contract.HasTraktAccount = false;
 
 			contract.TraktFriends = new List<Contract_Trakt_Friend>();
@@ -8337,7 +8322,7 @@ namespace JMMServer
 						{
 							contractAct.Episode.TraktShow = act.show.ToContract();
 
-							Trakt_Show show = repShows.GetByTraktID(act.show.TraktID);
+							Trakt_Show show = repShows.GetByTraktSlug(act.show.TraktID);
 							if (show != null)
 							{
 								Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, int.Parse(act.episode.season), int.Parse(act.episode.number));

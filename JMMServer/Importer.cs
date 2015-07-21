@@ -1046,7 +1046,7 @@ namespace JMMServer
 				}
 			}
 
-            if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username))
+            if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
             {
                 CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(false);
                 cmd.Save();

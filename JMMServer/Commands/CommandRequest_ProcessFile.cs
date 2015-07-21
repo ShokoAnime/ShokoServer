@@ -305,7 +305,7 @@ namespace JMMServer.Commands
 			// lets also try adding to the users trakt collecion by sync'ing the series
 			if (ser != null)
 			{
-                if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_Username))
+                if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                 {
                     CommandRequest_TraktSyncCollectionSeries cmdTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetAnime().MainTitle);
                     cmdTrakt.Save();

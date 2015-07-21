@@ -46,7 +46,7 @@ namespace JMMServer.Commands
 
 			try
 			{
-                if (!ServerSettings.WebCache_Trakt_Send || string.IsNullOrEmpty(ServerSettings.Trakt_Username)) return;
+                if (!ServerSettings.WebCache_Trakt_Send || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
 				AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
 				AnimeEpisode ep = repEpisodes.GetByID(AnimeEpisodeID);
@@ -55,7 +55,7 @@ namespace JMMServer.Commands
 					// before scrobbling try to ensure the episode is in the users collection by sync'ing the series
 					//TraktTVHelper.SyncCollectionToTrakt_Series(ep.AnimeSeries);
 
-					TraktTVHelper.MarkEpisodeWatched(ep);
+                    TraktTVHelper.SyncEpisodeToTrakt(ep, TraktSyncType.HistoryAdd);
 				}
 			}
 			catch (Exception ex)

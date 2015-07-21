@@ -50,7 +50,7 @@ namespace JMMServer.Commands
 				if (xref == null) return;
 
 				Trakt_ShowRepository repShow = new Trakt_ShowRepository();
-				Trakt_Show tvShow = repShow.GetByTraktID(xref.TraktID);
+				Trakt_Show tvShow = repShow.GetByTraktSlug(xref.TraktID);
 				if (tvShow == null) return;
 
                 AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();

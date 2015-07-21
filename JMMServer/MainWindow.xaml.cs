@@ -48,6 +48,7 @@ using System.ServiceModel.Web;
 using JMMServer.Providers.Azure;
 using JMMServer.Commands.Azure;
 using TMDbLib.Objects.General;
+using JMMServer.Providers.TraktTV.Contracts;
 
 namespace JMMServer
 {
@@ -1390,6 +1391,31 @@ namespace JMMServer
 
             //Azure_AnimeLink aid = AzureWebAPI.Admin_GetRandomLinkForApproval(AzureLinkType.TvDB);
 
+            /*
+            IEnumerable<TraktV2SearchShowResult> results = TraktTVHelper.SearchShowNew("Trinity");
+            if (results != null)
+            {
+                foreach (TraktV2SearchShowResult res in results)
+                    Console.WriteLine(res.show.Title);
+            }
+            */
+
+            // trinity-seven - 10441
+            //TraktV2ShowExtended show = TraktTVHelper.GetShowInfoV2("high-school-dxd");
+            //TraktTVHelper.GetShowShoutsV2(8660);
+            //TraktTVHelper.GetFriendsV2();
+            //TraktTVHelper.RefreshAuthToken();
+
+            //D003BB3D
+            //string ret = TraktTVHelper.EnterTraktPIN("D003BB3D");
+
+            //string x = "";
+            //TraktTVHelper.PostShoutShow("mayday", "this is a test comment", false, ref x);
+
+            //AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
+            //AnimeEpisode ep = repEp.GetByID(32);
+            //TraktTVHelper.SyncEpisodeToTrakt(ep, TraktSyncType.HistoryAdd);
+
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();
@@ -1724,9 +1750,11 @@ namespace JMMServer
 		void workerTraktFriends_DoWork(object sender, DoWorkEventArgs e)
 		{
 			List<object> allInfo = new List<object>();
+
+            /*
 			List<TraktActivityContainer> allInfoTemp = new List<TraktActivityContainer>();
 
-			if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password))
+            if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
 			{
 				e.Result = allInfo;
 				return;
@@ -1760,15 +1788,16 @@ namespace JMMServer
 				foreach (TraktTVFriendRequest req in requests)
 					allInfo.Insert(0, req);
 			}
-
+            */
 			e.Result = allInfo;
 		}
 
 		public static void UpdateTraktFriendInfo(bool forced)
 		{
+            /*
 			if (workerTraktFriends.IsBusy) return;
 
-			if (string.IsNullOrEmpty(ServerSettings.Trakt_Username) || string.IsNullOrEmpty(ServerSettings.Trakt_Password)) return;
+            if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
 			bool performUpdate = false;
 			if (!doneFirstTrakTinfo || forced)
@@ -1787,7 +1816,7 @@ namespace JMMServer
 				lastTraktInfoUpdate = DateTime.Now;
 				doneFirstTrakTinfo = true;
 				workerTraktFriends.RunWorkerAsync();
-			}
+			}*/
 		}
 
 

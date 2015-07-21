@@ -21,6 +21,7 @@ namespace JMMServer.Mappings
 			Map(x => x.Season).Not.Nullable();
 			Map(x => x.Title);
 			Map(x => x.URL);
+            Map(x => x.TraktID);
         }
 	}
 }

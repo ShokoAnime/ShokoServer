@@ -30,7 +30,7 @@ namespace JMMServer.Entities
         public Trakt_Show GetByTraktShow(ISession session)
         {
             Trakt_ShowRepository repTraktShows = new Trakt_ShowRepository();
-            return repTraktShows.GetByTraktID(session, TraktID);
+            return repTraktShows.GetByTraktSlug(session, TraktID);
         }
 
 		public Contract_CrossRef_AniDB_Trakt ToContract()

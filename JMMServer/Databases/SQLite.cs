@@ -143,6 +143,7 @@ namespace JMMServer.Databases
                 UpdateSchema_035(versionNumber);
                 UpdateSchema_036(versionNumber);
                 UpdateSchema_037(versionNumber);
+                UpdateSchema_038(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1207,6 +1208,21 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
             DatabaseHelper.CreateInitialCustomTags();
+        }
+
+        private static void UpdateSchema_038(int currentVersionNumber)
+        {
+            int thisVersion = 38;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE Trakt_Episode ADD TraktID int NULL");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
         }
 
 		private static void ExecuteSQLCommands(List<string> cmds)

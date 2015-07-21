@@ -48,7 +48,7 @@ namespace JMMServer.Commands
 
 			try
 			{
-                if (!ServerSettings.WebCache_Trakt_Send || string.IsNullOrEmpty(ServerSettings.Trakt_Username)) return;
+                if (!ServerSettings.WebCache_Trakt_Send || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
 				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 				AnimeSeries series = repSeries.GetByID(AnimeSeriesID);

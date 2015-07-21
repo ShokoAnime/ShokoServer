@@ -15,6 +15,7 @@ using BinaryNorthwest;
 using AniDBAPI;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TvDB;
+using JMMServer.Providers.TraktTV.Contracts;
 
 namespace JMMServer
 {
@@ -1169,11 +1170,12 @@ namespace JMMServer
 				{
 					Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
 
-					List<TraktTV_ShoutGet> shoutsTemp = TraktTVHelper.GetShowShouts(session, animeID);
+                    List<TraktV2Comment> shoutsTemp = TraktTVHelper.GetShowShoutsV2(session, animeID);
+
 					if (shoutsTemp == null || shoutsTemp.Count == 0) return shouts;
 
 					int cnt = 0;
-					foreach (TraktTV_ShoutGet sht in shoutsTemp)
+                    foreach (TraktV2Comment sht in shoutsTemp)
 					{
 						MetroContract_Shout shout = new MetroContract_Shout();
 
@@ -1189,11 +1191,11 @@ namespace JMMServer
 						shout.UserName = sht.user.username;
 
 						// shout details
-						shout.ShoutText = sht.shout;
+						shout.ShoutText = sht.comment;
 						shout.IsSpoiler = sht.spoiler;
-						shout.ShoutDate = Utils.GetAniDBDateAsDate(sht.inserted);
+                        shout.ShoutDate = sht.CreatedAtDate;
 
-						shout.ImageURL = sht.user.avatar;
+						//shout.ImageURL = sht.user.avatar;
 						shout.ShoutType = (int)WhatPeopleAreSayingType.TraktShout;
 						shout.Source = "Trakt";
 

@@ -23,6 +23,7 @@ namespace JMMServer.Entities
 		public string URL { get; set; }
 		public string Overview { get; set; }
 		public string EpisodeImage { get; set; }
+        public int? TraktID { get; set; }
 
 		public string FullImagePath
 		{

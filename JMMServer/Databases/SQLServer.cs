@@ -177,6 +177,7 @@ namespace JMMServer.Databases
                 UpdateSchema_033(versionNumber);
                 UpdateSchema_034(versionNumber);
                 UpdateSchema_035(versionNumber);
+                UpdateSchema_036(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1336,6 +1337,22 @@ namespace JMMServer.Databases
 
             // Now do the migration
             DatabaseHelper.PopulateTagWeight();
+        }
+
+        private static void UpdateSchema_036(int currentVersionNumber)
+        {
+            int thisVersion = 36;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE Trakt_Episode ADD TraktID int NULL");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
         }
 
 		private static void ExecuteSQLCommands(List<string> cmds)

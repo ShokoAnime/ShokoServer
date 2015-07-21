@@ -364,7 +364,7 @@ namespace JMMContracts
 		string DeleteUser(int userID);
 
 		[OperationContract]
-		string TestTraktLogin();
+		string EnterTraktPIN(string pin);
 
 		[OperationContract]
 		List<Contract_Trakt_ImageFanart> GetAllTraktFanart(int? traktShowID);
@@ -497,9 +497,6 @@ namespace JMMContracts
 
 		[OperationContract]
 		void RefreshAllMediaInfo();
-
-		[OperationContract]
-		bool CreateTraktAccount(string username, string password, string email, ref string returnMessage);
 
 		[OperationContract]
 		bool TraktFriendRequestDeny(string friendUsername, ref string returnMessage);
