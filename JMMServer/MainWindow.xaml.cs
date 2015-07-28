@@ -1664,7 +1664,11 @@ namespace JMMServer
 		void btnSyncTrakt_Click(object sender, RoutedEventArgs e)
 		{
 			this.Cursor = Cursors.Wait;
-			TraktTVHelper.SyncCollectionToTrakt();
+            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            {
+                CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
+                cmd.Save();
+            }
 			this.Cursor = Cursors.Arrow;
 			MessageBox.Show("Sync is Queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 		}

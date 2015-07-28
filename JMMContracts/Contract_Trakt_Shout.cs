@@ -12,6 +12,8 @@ namespace JMMContracts
 		public bool Spoiler { get; set; }
 		public DateTime? Inserted { get; set; }
 
+        public string Comment_Url { get; set; }
+
 		// if episode
 		public string Episode_Season { get; set; }
 		public string Episode_Number { get; set; }

@@ -8172,6 +8172,9 @@ namespace JMMServer
 					shout.Shout.Spoiler = sht.spoiler;
                     shout.Shout.Inserted = sht.CreatedAtDate;
 
+                    // urls
+                    shout.Shout.Comment_Url = string.Format(TraktURIs.WebsiteComment, sht.id);
+
 					shouts.Add(shout);
 				}
 			}

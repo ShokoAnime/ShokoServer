@@ -1622,6 +1622,8 @@ namespace JMMServer.Providers.TraktTV
                     }
                     else
                     {
+                        // Actually we can't do this, because the user may have other non Anime series and Movies
+                        /*
                         // series doesn't exist locally at all, so let's completely remove it from Trakt
                         foreach (TraktV2CollectedSeason colSeason in col.seasons)
                         {
@@ -1632,7 +1634,7 @@ namespace JMMServer.Providers.TraktTV
 
                                 SyncEpisodeToTrakt(TraktSyncType.CollectionRemove, col.show.ids.slug, colSeason.number, colEp.number, DateTime.Now, false);
                             }
-                        }
+                        }*/
                     }
 
                 }
@@ -1677,6 +1679,8 @@ namespace JMMServer.Providers.TraktTV
                     }
                     else
                     {
+                        // Actually we can't do this, because the user may have other non Anime series and Movies
+                        /*
                         // series doesn't exist locally at all, so let's completely remove it from Trakt
                         foreach (TraktV2WatchedSeason wtchSeason in wtch.seasons)
                         {
@@ -1687,7 +1691,7 @@ namespace JMMServer.Providers.TraktTV
 
                                 SyncEpisodeToTrakt(TraktSyncType.HistoryRemove, wtch.show.ids.slug, wtchSeason.number, wtchEp.number, DateTime.Now, false);
                             }
-                        }
+                        }*/
                     }
 
                 }
