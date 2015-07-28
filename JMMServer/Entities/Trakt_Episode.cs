@@ -62,30 +62,6 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public void Populate(TraktTVEpisodeUser ep, int traktShowID)
-		{
-			if (ep.images != null)
-				EpisodeImage = ep.images.screen;
-			EpisodeNumber = int.Parse(ep.number);
-			Overview = ep.overview;
-			Season = int.Parse(ep.season);
-			Title = ep.title;
-			URL = ep.url;
-			Trakt_ShowID = traktShowID;
-		}
-
-		public void Populate(TraktTV_Episode ep, int traktShowID)
-		{
-			if (ep.images != null)
-				EpisodeImage = ep.images.screen;
-			EpisodeNumber = int.Parse(ep.number);
-			Overview = ep.overview;
-			Season = int.Parse(ep.season);
-			Title = ep.title;
-			URL = ep.url;
-			Trakt_ShowID = traktShowID;
-		}
-
 		public Contract_Trakt_Episode ToContract()
 		{
 			Contract_Trakt_Episode contract = new Contract_Trakt_Episode();

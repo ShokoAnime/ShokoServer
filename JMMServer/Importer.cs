@@ -653,7 +653,7 @@ namespace JMMServer
 
 		public static void RunImport_ScanTrakt()
 		{
-            if (ServerSettings.WebCache_Trakt_Get)
+            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
 			    TraktTVHelper.ScanForMatches();
 		}
 
@@ -693,17 +693,40 @@ namespace JMMServer
 			{
 				if (!File.Exists(vl.FullServerPath))
 				{
+                    
+
 					// delete video local record
 					logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
 					repVidLocals.Delete(vl.VideoLocalID);
 
 					CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
 					cmdDel.Save();
+
+                    // For deletion of files from Trakt, we will rely on the Daily sync
+                    /*
+                    // lets also try removing from the users trakt collection
+                    if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                    {
+                        AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
+                        List<AnimeEpisode> animeEpisodes = vl.GetAnimeEpisodes();
+
+                        if (animeEpisodes.Count > 0)
+                        {
+                            AnimeSeries ser = animeEpisodes[0].GetAnimeSeries();
+                            if (ser != null)
+                            {
+                                CommandRequest_TraktSyncCollectionSeries cmdSyncTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetSeriesName());
+                                cmdSyncTrakt.Save();
+                            }
+                        }
+
+                    }*/
 				}
 			}
 
 			UpdateAllStats();
 		}
+
 
 		public static string DeleteImportFolder(int importFolderID)
 		{
@@ -1046,7 +1069,7 @@ namespace JMMServer
 				}
 			}
 
-            if (ServerSettings.WebCache_Trakt_Send && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
             {
                 CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(false);
                 cmd.Save();

@@ -32,10 +32,6 @@ namespace JMMServer
 			}
 		}
 
-		public List<TraktTVUser> TraktFriendInfo = null;
-		public List<TraktTVFriendRequest> TraktFriendRequests = null;
-		public List<TraktTV_Activity> TraktFriendActivityInfo = null;
-
 		public Dictionary<int, string> StatGroupTags = null; // AnimeGroupID / Categories List
         public Dictionary<int, string> StatGroupCustomTags = null; // AnimeGroupID / Custom Tags
 		public Dictionary<int, string> StatGroupTitles = null; // AnimeGroupID / Titles List
@@ -75,10 +71,6 @@ namespace JMMServer
 
 		private void ClearAllData()
 		{
-			TraktFriendInfo = new List<TraktTVUser>();
-			TraktFriendRequests = new List<TraktTVFriendRequest>();
-			TraktFriendActivityInfo = new List<TraktTV_Activity>();
-
 			StatGroupTags = new Dictionary<int, string>();
             StatGroupCustomTags = new Dictionary<int, string>();
 			StatGroupTitles = new Dictionary<int, string>();

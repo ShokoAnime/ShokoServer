@@ -75,7 +75,6 @@ namespace JMMServer.Commands
 		// CommandRequest_WebCacheDeleteXRefAniDBTrakt
 		// CommandRequest_WebCacheSendXRefAniDBTrakt
 		// CommandRequest_TraktUpdateInfoAndImages
-		// CommandRequest_TraktShowScrobble
 		// CommandRequest_TraktSyncCollectionSeries
 		// CommandRequest_TraktShowEpisodeUnseen
 		// CommandRequest_DownloadImage
@@ -180,25 +179,20 @@ namespace JMMServer.Commands
 					cr_Trakt_UpdateAllSeries.LoadFromDBCommand(crdb);
 					return (ICommandRequest)cr_Trakt_UpdateAllSeries;
 
-				case CommandRequestType.Trakt_ShowEpisodeUnseen:
-					CommandRequest_TraktShowEpisodeUnseen cr_Trakt_ShowEpisodeUnseen = new CommandRequest_TraktShowEpisodeUnseen();
-					cr_Trakt_ShowEpisodeUnseen.LoadFromDBCommand(crdb);
-					return (ICommandRequest)cr_Trakt_ShowEpisodeUnseen;
-
-				case CommandRequestType.Trakt_SyncCollectionSeries:
-					CommandRequest_TraktSyncCollectionSeries cr_Trakt_SyncCollectionSeries = new CommandRequest_TraktSyncCollectionSeries();
-					cr_Trakt_SyncCollectionSeries.LoadFromDBCommand(crdb);
-					return (ICommandRequest)cr_Trakt_SyncCollectionSeries;
+				case CommandRequestType.Trakt_EpisodeCollection:
+                    CommandRequest_TraktCollectionEpisode cr_TraktCollectionEpisode = new CommandRequest_TraktCollectionEpisode();
+                    cr_TraktCollectionEpisode.LoadFromDBCommand(crdb);
+                    return (ICommandRequest)cr_TraktCollectionEpisode;
 
 				case CommandRequestType.Trakt_SyncCollection:
 					CommandRequest_TraktSyncCollection cr_Trakt_SyncCollection = new CommandRequest_TraktSyncCollection();
 					cr_Trakt_SyncCollection.LoadFromDBCommand(crdb);
 					return (ICommandRequest)cr_Trakt_SyncCollection;
 
-				case CommandRequestType.Trakt_ShowScrobble:
-					CommandRequest_TraktShowScrobble cr_Trakt_ShowScrobble = new CommandRequest_TraktShowScrobble();
-					cr_Trakt_ShowScrobble.LoadFromDBCommand(crdb);
-					return (ICommandRequest)cr_Trakt_ShowScrobble;
+				case CommandRequestType.Trakt_EpisodeHistory:
+					CommandRequest_TraktHistoryEpisode cr_Trakt_EpisodeHistory = new CommandRequest_TraktHistoryEpisode();
+					cr_Trakt_EpisodeHistory.LoadFromDBCommand(crdb);
+					return (ICommandRequest)cr_Trakt_EpisodeHistory;
 
 				case CommandRequestType.Trakt_UpdateInfoImages:
 					CommandRequest_TraktUpdateInfoAndImages cr_Trakt_UpdateInfoImages = new CommandRequest_TraktUpdateInfoAndImages();

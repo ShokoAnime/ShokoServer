@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
+using JMMServer.Commands.MAL;
 
 namespace JMMServer.Commands
 {
@@ -74,7 +75,7 @@ namespace JMMServer.Commands
                     if (FileID < 0)
                     {
                         JMMService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
-                        logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
+                        logger.Info("Marking file as deleted from list: {0}_{1}", Hash, FileID);
                     }
                 }
                 else
@@ -85,6 +86,33 @@ namespace JMMServer.Commands
                         logger.Info("Moving File to external storage: {0}_{1}", Hash, FileID);
                     }
                 }
+
+                if (ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.Delete ||
+                    ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.MarkDeleted)
+                {
+                    /*VideoLocalRepository repVids = new VideoLocalRepository();
+                    VideoLocal vid = repVids.GetByHash(this.Hash);
+
+                    // lets also try adding to the users trakt collecion
+                    if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                    {
+                        AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
+                        List<AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
+
+                        foreach (AnimeEpisode aep in animeEpisodes)
+                        {
+                            CommandRequest_TraktCollectionEpisode cmdSyncTrakt = new CommandRequest_TraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Remove);
+                            cmdSyncTrakt.Save();
+                        }
+
+                    }*/
+
+                    // By the time we get to this point, the VideoLocal records would have been deleted
+                    // So we can't get the episode records to do this on an ep by ep basis
+                    // lets also try adding to the users trakt collecion by sync'ing the series
+
+                }
+                
 			}
 			catch (Exception ex)
 			{

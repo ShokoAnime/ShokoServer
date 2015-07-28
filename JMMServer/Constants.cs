@@ -224,31 +224,6 @@ namespace JMMServer
 			public static readonly string urlUpdatesList = @"{0}/api/Updates.php?type=all&time={1}"; // mirrirURL, server time
 		}
 
-		public struct TraktTvURLs
-		{
-			public static readonly string APIKey = "f9db01de75fcc4c26f26245262c7715803e376d1";
-			public static readonly string URLGetShowExtended = @"http://api.trakt.tv/show/summary.json/{0}/{1}/extended"; // apiKey/ tvdb id or trakt id
-			public static readonly string URLGetFriends = @"http://api.trakt.tv/user/friends.json/{0}/{1}"; // apiKey/ username
-			public static readonly string URLGetActivityFriends = @"http://api.trakt.tv/activity/friends.json/{0}/episode,show/scrobble"; // apiKey
-			public static readonly string URLGetActivityFriendsShoutsOnly = @"http://api.trakt.tv/activity/friends.json/{0}/episode,show/shout"; // apiKey
-			public static readonly string URLGetShowShouts = @"http://api.trakt.tv/show/shouts.json/{0}/{1}"; // apiKey / show
-			public static readonly string URLGetEpisodeShouts = @"http://api.trakt.tv/show/episode/shouts.json/{0}/{1}/{2}/{3}"; // apikey/title/season/episode
-			public static readonly string URLSearchShow = @"http://api.trakt.tv/search/shows.json/{0}/{1}"; // apiKey/ search criteria
-			public static readonly string URLUserLibraryShowsCollection = @"http://api.trakt.tv/user/library/shows/collection.json/{0}/{1}"; // apiKey/ username
-			public static readonly string URLUserLibraryShowsWatched = @"http://api.trakt.tv/user/library/shows/watched.json/{0}/{1}"; // apiKey/ username
-
-			public static readonly string URLPostShoutShow = @"http://api.trakt.tv/shout/show/{0}"; // apiKey
-			public static readonly string URLPostFriendsRequests = @"http://api.trakt.tv/friends/requests/{0}"; // apiKey
-			public static readonly string URLPostFriendsDeny = @"http://api.trakt.tv/friends/deny/{0}"; // apiKey
-			public static readonly string URLPostFriendsApprove = @"http://api.trakt.tv/friends/approve/{0}"; // apiKey
-			public static readonly string URLPostShowScrobble = @"http://api.trakt.tv/show/scrobble/{0}"; // apiKey
-			public static readonly string URLPostAccountTest = @"http://api.trakt.tv/account/test/{0}"; // apiKey
-			public static readonly string URLPostAccountCreate = @"http://api.trakt.tv/account/create/{0}"; // apiKey
-			public static readonly string URLPostShowEpisodeLibrary = @"http://api.trakt.tv/show/episode/library/{0}"; // apiKey
-			public static readonly string URLPostShowEpisodeSeen = @"http://api.trakt.tv/show/episode/seen/{0}"; // apiKey
-			public static readonly string URLPostShowEpisodeUnseen = @"http://api.trakt.tv/show/episode/unseen/{0}"; // apiKey
-		}
-
 		public struct Folders
 		{
 			public static readonly string thumbsSubFolder = "AnimeThumbs";

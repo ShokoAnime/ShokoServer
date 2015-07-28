@@ -35,12 +35,31 @@ namespace JMMServer.Providers.TraktTV
         public const string list = "list";
     }
 
+    // trakt-movie , trakt-show , trakt-episode , imdb , tmdb , tvdb , tvrage
+    public static class TraktSearchIDType
+    {
+        // movie , show , episode , person , list 
+        public const string traktmovie = "trakt-movie";
+        public const string traktshow = "trakt-show";
+        public const string traktepisode = "trakt-episode";
+        public const string imdb = "imdb";
+        public const string tmdb = "tmdb";
+        public const string tvdb = "tvdb";
+        public const string tvrage = "tvrage";
+    }
+
     public enum TraktSyncType
     {
         CollectionAdd = 1,
         CollectionRemove = 2,
         HistoryAdd = 3,
         HistoryRemove = 4
+    }
+
+    public enum SearchIDType
+    {
+        Show = 1,
+        Episode = 2
     }
 
     public static class TraktStatusCodes

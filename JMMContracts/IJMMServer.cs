@@ -469,9 +469,6 @@ namespace JMMContracts
 		void IgnoreAnime(int animeID, int ignoreType, int userID);
 
 		[OperationContract]
-		Contract_Trakt_Activity GetTraktFriendInfo(int maxResults, bool animeOnly, bool getShouts, bool getScrobbles);
-
-		[OperationContract]
 		Contract_AniDBVote GetUserVote(int animeID);
 
 		[OperationContract]
@@ -512,9 +509,6 @@ namespace JMMContracts
 
 		[OperationContract]
         bool PostShoutShow(string traktID, string shoutText, bool isSpoiler, ref string returnMessage);
-
-		[OperationContract]
-		void RefreshTraktFriendInfo();
 
 		[OperationContract]
 		Contract_AnimeGroup GetTopLevelGroupForSeries(int animeSeriesID, int userID);

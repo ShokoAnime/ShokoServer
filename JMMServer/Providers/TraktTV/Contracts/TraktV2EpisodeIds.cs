@@ -11,18 +11,31 @@ namespace JMMServer.Providers.TraktTV.Contracts
     public class TraktV2EpisodeIds
     {
         [DataMember(Name = "trakt")]
-        public int trakt { get; set; }
+        public string trakt { get; set; }
 
         [DataMember(Name = "tvdb")]
-        public int? tvdb { get; set; }
+        public string tvdb { get; set; }
 
         [DataMember(Name = "imdb")]
-        public int? imdb { get; set; }
+        public string imdb { get; set; }
 
         [DataMember(Name = "tmdb")]
-        public int? tmdb { get; set; }
+        public string tmdb { get; set; }
 
         [DataMember(Name = "tvrage")]
-        public int? tvrage { get; set; }
+        public string tvrage { get; set; }
+
+        public int? TraktID
+        {
+            get
+            {
+                int traktID = 0;
+                if (int.TryParse(trakt, out traktID))
+                    return traktID;
+                else
+                    return null;
+
+            }
+        }
     }
 }

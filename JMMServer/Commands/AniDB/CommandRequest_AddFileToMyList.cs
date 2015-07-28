@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
+using JMMServer.Commands.MAL;
 
 namespace JMMServer.Commands
 {
@@ -55,6 +56,9 @@ namespace JMMServer.Commands
 				AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
 
 				vid = repVids.GetByHash(this.Hash);
+                List<AnimeEpisode> animeEpisodes = new List<AnimeEpisode>();
+                if (vid != null) animeEpisodes = vid.GetAnimeEpisodes();
+
 				if (vid != null)
 				{
 					// when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
@@ -78,7 +82,7 @@ namespace JMMServer.Commands
 					JMMUserRepository repUsers = new JMMUserRepository();
 					List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
 
-					List<AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
+					
 					if (aniDBUsers.Count > 0)
 					{
 						JMMUser juser = aniDBUsers[0];
@@ -116,6 +120,24 @@ namespace JMMServer.Commands
 					// all the eps should belong to the same anime
 					ser.UpdateStats(true, true, true);
 					//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
+
+                    // lets also try adding to the users trakt collecion
+                    if (ser != null && ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                    {
+                        foreach (AnimeEpisode aep in animeEpisodes)
+                        {
+                            CommandRequest_TraktCollectionEpisode cmdSyncTrakt = new CommandRequest_TraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Add);
+                            cmdSyncTrakt.Save();
+                        }
+
+                    }
+
+                    // sync the series on MAL
+                    if (ser != null && !string.IsNullOrEmpty(ServerSettings.MAL_Username) && !string.IsNullOrEmpty(ServerSettings.MAL_Password))
+                    {
+                        CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
+                        cmdMAL.Save();
+                    }
 				}
 				
 

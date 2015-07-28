@@ -138,10 +138,10 @@ namespace JMMServer
 		WebCache_SendXRefAniDBTrakt = 39,
 		WebCache_DeleteXRefAniDBTrakt = 40,
 		Trakt_UpdateInfoImages = 41,
-		Trakt_ShowScrobble = 42,
+		Trakt_EpisodeHistory = 42,
 		Trakt_SyncCollection = 43,
 		Trakt_SyncCollectionSeries = 44,
-		Trakt_ShowEpisodeUnseen = 45,
+        Trakt_EpisodeCollection = 45,
 		Trakt_UpdateAllSeries = 46,
 		ReadMediaInfo = 50,
 		WebCache_SendXRefAniDBMAL = 51,
@@ -426,6 +426,12 @@ namespace JMMServer
 		Episode = 1,
 		Show = 2
 	}
+
+    public enum TraktSyncAction
+    {
+        Add = 1,
+        Remove = 2
+    }
 
 	public enum AniDBPause
 	{

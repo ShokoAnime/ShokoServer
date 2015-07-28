@@ -32,5 +32,10 @@ namespace JMMServer.Providers.TraktTV.Contracts
                 return string.Format(TraktURIs.WebsiteShow, ids.slug);
             }
         }
+
+        public override string ToString()
+        {
+            return string.Format("TraktV2Show: {0}", Title);
+        }
     }
 }

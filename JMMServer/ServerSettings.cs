@@ -1297,6 +1297,22 @@ namespace JMMServer
 
 		#region Trakt
 
+        public static bool Trakt_IsEnabled
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                bool val = true;
+                if (!bool.TryParse(appSettings["Trakt_IsEnabled"], out val))
+                    val = true;
+                return val;
+            }
+            set
+            {
+                UpdateSetting("Trakt_IsEnabled", value.ToString());
+            }
+        }
+
         public static string Trakt_AuthToken
         {
             get
@@ -1596,6 +1612,7 @@ namespace JMMServer
 			contract.SeriesNameSource = (int)ServerSettings.SeriesNameSource;
 
 			// trakt
+            contract.Trakt_IsEnabled = ServerSettings.Trakt_IsEnabled;
             contract.Trakt_AuthToken = ServerSettings.Trakt_AuthToken;
             contract.Trakt_RefreshToken = ServerSettings.Trakt_RefreshToken;
             contract.Trakt_TokenExpirationDate = ServerSettings.Trakt_TokenExpirationDate;
@@ -1754,6 +1771,7 @@ namespace JMMServer
 			logger.Info("Hash_SHA1: {0}", Hash_SHA1);
 			logger.Info("Import_UseExistingFileWatchedStatus: {0}", Import_UseExistingFileWatchedStatus);
 
+            logger.Info("Trakt_IsEnabled: {0}", Trakt_IsEnabled);
             logger.Info("Trakt_AuthToken: {0}", string.IsNullOrEmpty(Trakt_AuthToken) ? "NOT SET" : "***HIDDEN***");
             logger.Info("Trakt_RefreshToken: {0}", string.IsNullOrEmpty(Trakt_RefreshToken) ? "NOT SET" : "***HIDDEN***");
 			logger.Info("Trakt_UpdateFrequency: {0}", Trakt_UpdateFrequency);

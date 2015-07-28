@@ -87,6 +87,7 @@ namespace JMMContracts
 		public int SeriesNameSource { get; set; }
 
 		// Trakt
+        public bool Trakt_IsEnabled { get; set; }
         public string Trakt_AuthToken { get; set; }
         public string Trakt_RefreshToken { get; set; }
         public string Trakt_TokenExpirationDate { get; set; }

@@ -1,0 +1,73 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace JMMServer.Providers.TraktTV.Contracts
+{
+    [DataContract]
+    public class TraktV2SyncWatchedEpisodesByNumber
+    {
+        [DataMember(Name = "shows")]
+        public List<TraktV2ShowWatchedPostByNumber> shows { get; set; }
+
+        public TraktV2SyncWatchedEpisodesByNumber()
+        {
+
+        }
+
+        public TraktV2SyncWatchedEpisodesByNumber(string slug, int season, int episodeNumber, DateTime watchedDate)
+        {
+            shows = new List<TraktV2ShowWatchedPostByNumber>();
+            shows.Add(new TraktV2ShowWatchedPostByNumber());
+            shows[0].ids = new TraktV2IdsWatchedByNumber();
+            shows[0].ids.slug = slug;
+            shows[0].seasons = new List<TaktV2SeasonWatchedPostByNumber>();
+            shows[0].seasons.Add(new TaktV2SeasonWatchedPostByNumber());
+            shows[0].seasons[0].number = season;
+            shows[0].seasons[0].episodes = new List<TraktV2EpisodeWatchedPostByNumber>();
+            shows[0].seasons[0].episodes.Add(new TraktV2EpisodeWatchedPostByNumber());
+            shows[0].seasons[0].episodes[0].number = episodeNumber;
+            shows[0].seasons[0].episodes[0].watched_at = watchedDate.ToUniversalTime().ToString("s") + "Z";
+        }
+    }
+
+    [DataContract]
+    public class TraktV2ShowWatchedPostByNumber
+    {
+        [DataMember(Name = "ids")]
+        public TraktV2IdsWatchedByNumber ids { get; set; }
+
+        [DataMember(Name = "seasons")]
+        public List<TaktV2SeasonWatchedPostByNumber> seasons { get; set; }
+    }
+
+    [DataContract]
+    public class TraktV2IdsWatchedByNumber
+    {
+        [DataMember(Name = "slug")]
+        public string slug { get; set; }
+    }
+
+    [DataContract]
+    public class TraktV2EpisodeWatchedPostByNumber
+    {
+        [DataMember(Name = "watched_at")]
+        public string watched_at { get; set; }
+
+        [DataMember(Name = "number")]
+        public int number { get; set; }
+    }
+
+    [DataContract]
+    public class TaktV2SeasonWatchedPostByNumber
+    {
+        [DataMember(Name = "number")]
+        public int number { get; set; }
+
+        [DataMember(Name = "episodes")]
+        public List<TraktV2EpisodeWatchedPostByNumber> episodes { get; set; }
+    }
+}

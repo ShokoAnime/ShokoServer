@@ -104,7 +104,6 @@ namespace JMMServer
 		private static BackgroundWorker workerScanDropFolders = new BackgroundWorker();
 		private static BackgroundWorker workerRemoveMissing = new BackgroundWorker();
 		private static BackgroundWorker workerDeleteImportFolder = new BackgroundWorker();
-		private static BackgroundWorker workerTraktFriends = new BackgroundWorker();
 		private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
 		private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
@@ -301,9 +300,6 @@ namespace JMMServer
 			workerDeleteImportFolder.WorkerReportsProgress = false;
 			workerDeleteImportFolder.WorkerSupportsCancellation = true;
 			workerDeleteImportFolder.DoWork += new DoWorkEventHandler(workerDeleteImportFolder_DoWork);
-
-			workerTraktFriends.DoWork += new DoWorkEventHandler(workerTraktFriends_DoWork);
-			workerTraktFriends.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerTraktFriends_RunWorkerCompleted);
 
 			workerSetupDB.DoWork += new DoWorkEventHandler(workerSetupDB_DoWork);
 			workerSetupDB.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerSetupDB_RunWorkerCompleted);
@@ -1416,6 +1412,14 @@ namespace JMMServer
             //AnimeEpisode ep = repEp.GetByID(32);
             //TraktTVHelper.SyncEpisodeToTrakt(ep, TraktSyncType.HistoryAdd);
 
+            //TraktTVHelper.SearchShowByIDV2("tvdb", "279827");
+            //TraktTVHelper.SearchShowV2("Jump");
+            //TraktTVHelper.SyncCollectionToTrakt();
+            //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.HistoryAdd, "mad-men", 1, 1, false);
+            //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.HistoryRemove, "mad-men", 1, 1, false);
+            //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.CollectionAdd, "mad-men", 1, 3, false);
+            //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.CollectionRemove, "mad-men", 1, 3, false);
+
 			AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();
@@ -1722,103 +1726,6 @@ namespace JMMServer
 
 		}
 
-		void workerTraktFriends_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-		{
-			//StatsCache.Instance.TraktFriendRequests.Clear();
-			//StatsCache.Instance.TraktFriendActivityInfo.Clear();
-
-			List<object> allInfo = e.Result as List<object>;
-			if (allInfo != null && allInfo.Count > 0)
-			{
-				foreach (object obj in allInfo)
-				{
-					if (obj.GetType() == typeof(TraktTVFriendRequest))
-					{
-						TraktTVFriendRequest req = obj as TraktTVFriendRequest;
-						StatsCache.Instance.TraktFriendRequests.Add(req);
-					}
-
-					if (obj.GetType() == typeof(TraktTV_Activity))
-					{
-						TraktTV_Activity act = obj as TraktTV_Activity;
-						StatsCache.Instance.TraktFriendActivityInfo.Add(act);
-					}
-				}
-			}
-		}
-
-		void workerTraktFriends_DoWork(object sender, DoWorkEventArgs e)
-		{
-			List<object> allInfo = new List<object>();
-
-            /*
-			List<TraktActivityContainer> allInfoTemp = new List<TraktActivityContainer>();
-
-            if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-			{
-				e.Result = allInfo;
-				return;
-			}
-
-			TraktTV_ActivitySummary summAll = TraktTVHelper.GetActivityFriends(false);
-			if (summAll != null)
-			{
-				foreach (TraktTV_Activity act in summAll.activity)
-					allInfoTemp.Add(new TraktActivityContainer { ActivityDate = Utils.GetAniDBDateAsDate(act.timestamp).Value, Activity = act });
-			}
-
-			TraktTV_ActivitySummary summShouts = TraktTVHelper.GetActivityFriends(true);
-			if (summShouts != null)
-			{
-				foreach (TraktTV_Activity act in summShouts.activity)
-					allInfoTemp.Add(new TraktActivityContainer { ActivityDate = Utils.GetAniDBDateAsDate(act.timestamp).Value, Activity = act });
-			}
-
-			// sort by episode type and number to find the next episode
-			List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-			sortCriteria.Add(new SortPropOrFieldAndDirection("ActivityDate", true, SortType.eDateTime));
-			allInfoTemp = Sorting.MultiSort<TraktActivityContainer>(allInfoTemp, sortCriteria);
-
-			foreach (TraktActivityContainer act in allInfoTemp)
-				allInfo.Add(act.Activity);
-
-			List<TraktTVFriendRequest> requests = TraktTVHelper.GetFriendsRequests();
-			if (requests != null)
-			{
-				foreach (TraktTVFriendRequest req in requests)
-					allInfo.Insert(0, req);
-			}
-            */
-			e.Result = allInfo;
-		}
-
-		public static void UpdateTraktFriendInfo(bool forced)
-		{
-            /*
-			if (workerTraktFriends.IsBusy) return;
-
-            if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
-
-			bool performUpdate = false;
-			if (!doneFirstTrakTinfo || forced)
-				performUpdate = true;
-			else
-			{
-				TimeSpan ts = DateTime.Now - lastTraktInfoUpdate;
-				if (ts.TotalMinutes > 20) performUpdate = true;
-			}
-
-			if (performUpdate)
-			{
-				StatsCache.Instance.TraktFriendRequests.Clear();
-				StatsCache.Instance.TraktFriendActivityInfo.Clear();
-
-				lastTraktInfoUpdate = DateTime.Now;
-				doneFirstTrakTinfo = true;
-				workerTraktFriends.RunWorkerAsync();
-			}*/
-		}
-
 
 		void autoUpdateTimerShort_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
 		{
@@ -1826,7 +1733,6 @@ namespace JMMServer
 			JMMService.CmdProcessorImages.NotifyOfNewCommand();
 
             CheckForAdminMesages();
-			UpdateTraktFriendInfo(false);
             
 
             autoUpdateTimerShort.Interval = 30 * 1000; // 30 seconds

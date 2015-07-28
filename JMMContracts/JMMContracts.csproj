@@ -150,8 +150,6 @@
     <Compile Include="Contract_Trakt_Activity.cs" />
     <Compile Include="Contract_Trakt_Episode.cs" />
     <Compile Include="Contract_Trakt_Friend.cs" />
-    <Compile Include="Contract_Trakt_FriendActivity.cs" />
-    <Compile Include="Contract_Trakt_FriendFrequest.cs" />
     <Compile Include="Contract_Trakt_ImageFanart.cs" />
     <Compile Include="Contract_Trakt_ImagePoster.cs" />
     <Compile Include="Contract_Trakt_Season.cs" />

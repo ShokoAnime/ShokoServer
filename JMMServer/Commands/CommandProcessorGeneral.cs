@@ -225,22 +225,23 @@ namespace JMMServer.Commands
 				ICommandRequest icr = CommandHelper.GetCommand(crdb);
 				if (icr == null)
 				{
-					logger.Trace("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
-					return;
+					logger.Error("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
 				}
+                else
+                { 
+				    QueueState = icr.PrettyDescription;
 
-				QueueState = icr.PrettyDescription;
+				    if (workerCommands.CancellationPending)
+				    {
+					    e.Cancel = true;
+					    return;
+				    }
 
-				if (workerCommands.CancellationPending)
-				{
-					e.Cancel = true;
-					return;
-				}
+				    logger.Trace("Processing command request: {0}", crdb.CommandID);
+				    icr.ProcessCommand();
+                }
 
-				//logger.Trace("Processing command request: {0}", crdb.CommandID);
-				icr.ProcessCommand();
-
-				//logger.Trace("Deleting command request: {0}", crdb.CommandID);
+				logger.Trace("Deleting command request: {0}", crdb.CommandID);
 				repCR.Delete(crdb.CommandRequestID);
 
 				QueueCount = repCR.GetQueuedCommandCountGeneral();

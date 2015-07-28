@@ -44,31 +44,5 @@ namespace JMMServer.Entities
             FullName = user.name;
             LastAvatarUpdate = DateTime.Now;
         }
-
-		public void Populate(TraktTVUser user)
-		{
-			Username = user.username;
-			FullName = user.full_name;
-			Gender = user.gender;
-			Age = user.age;
-			Location = user.location;
-			About = user.about;
-			Joined = user.joined;
-			Avatar = user.avatar;
-			Url = user.url;
-		}
-
-		public void Populate(TraktTV_UserActivity user)
-		{
-			Username = user.username;
-			FullName = user.full_name;
-			Gender = user.gender;
-			Age = user.age;
-			Location = user.location;
-			About = user.about;
-			Joined = user.joined;
-			Avatar = user.avatar;
-			Url = user.url;
-		}
 	}
 }

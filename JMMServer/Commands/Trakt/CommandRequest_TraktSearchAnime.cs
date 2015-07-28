@@ -98,22 +98,41 @@ namespace JMMServer.Commands
 					{
                         foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
                         {
-                            TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(tvXRef.TvDBID);
-                            if (showInfo != null && showInfo.ids != null)
+                            // first search for this show by the TvDB ID
+                            List<TraktV2SearchTvDBIDShowResult> searchResults = TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb, tvXRef.TvDBID.ToString());
+                            if (searchResults != null && searchResults.Count > 0)
                             {
-                                // make sure the season specified by TvDB also exists on Trakt
-                                Trakt_ShowRepository repShow = new Trakt_ShowRepository();
-                                Trakt_Show traktShow = repShow.GetByTraktSlug(session, showInfo.ids.slug);
-                                if (traktShow != null)
+                                // since we are searching by ID, there will only be one 'show' result
+                                TraktV2Show resShow = null;
+                                foreach (TraktV2SearchTvDBIDShowResult res in searchResults)
                                 {
-                                    Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
-                                    Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(session, traktShow.Trakt_ShowID, xrefTvDBs[0].TvDBSeasonNumber);
-                                    if (traktSeason != null)
+                                    if (res.ResultType == SearchIDType.Show)
                                     {
-                                        logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}", AnimeID, showInfo.title);
-                                        TraktTVHelper.LinkAniDBTrakt(AnimeID, (AniDBAPI.enEpisodeType)tvXRef.AniDBStartEpisodeType,
-                                            tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug, tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber, true);
-                                        return;
+                                        resShow = res.show;
+                                        break;
+                                    }
+                                }
+
+                                if (resShow != null)
+                                {
+                                    TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(resShow.ids.slug);
+                                    if (showInfo != null && showInfo.ids != null)
+                                    {
+                                        // make sure the season specified by TvDB also exists on Trakt
+                                        Trakt_ShowRepository repShow = new Trakt_ShowRepository();
+                                        Trakt_Show traktShow = repShow.GetByTraktSlug(session, showInfo.ids.slug);
+                                        if (traktShow != null)
+                                        {
+                                            Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
+                                            Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(session, traktShow.Trakt_ShowID, xrefTvDBs[0].TvDBSeasonNumber);
+                                            if (traktSeason != null)
+                                            {
+                                                logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}", AnimeID, showInfo.title);
+                                                TraktTVHelper.LinkAniDBTrakt(AnimeID, (AniDBAPI.enEpisodeType)tvXRef.AniDBStartEpisodeType,
+                                                    tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug, tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber, true);
+                                                return;
+                                            }
+                                        }
                                     }
                                 }
                             }

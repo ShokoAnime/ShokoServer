@@ -46,7 +46,7 @@ namespace JMMServer.Commands
 
 			try
 			{
-                if (!ServerSettings.WebCache_Trakt_Send || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
+                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
 				ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
 				ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.TraktSync);

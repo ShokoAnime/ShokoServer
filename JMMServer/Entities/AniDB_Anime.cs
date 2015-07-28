@@ -2205,7 +2205,7 @@ namespace JMMServer.Entities
 			cmd.Save();
 
 			// check for Trakt associations
-            if (ServerSettings.WebCache_Trakt_Get)
+            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
             {
                 CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(this.AnimeID, false);
                 cmd2.Save();
