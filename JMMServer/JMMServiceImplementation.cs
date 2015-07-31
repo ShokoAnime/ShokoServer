@@ -1842,6 +1842,26 @@ namespace JMMServer
 			return "";
 		}
 
+        public string SyncTraktSeries(int animeID)
+        {
+            try
+            {
+                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+                if (ser == null) return "Could not find Anime Series";
+
+                CommandRequest_TraktSyncCollectionSeries cmd = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetSeriesName());
+                cmd.Save();
+
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
+
         public string UpdateMovieDBData(int movieD)
         {
 
@@ -5851,7 +5871,9 @@ namespace JMMServer
 			}
 		}
 
-		public List<Contract_MALAnimeResponse> SearchMAL(string criteria)
+        
+
+        public List<Contract_MALAnimeResponse> SearchMAL(string criteria)
 		{
 			List<Contract_MALAnimeResponse> results = new List<Contract_MALAnimeResponse>();
 			try

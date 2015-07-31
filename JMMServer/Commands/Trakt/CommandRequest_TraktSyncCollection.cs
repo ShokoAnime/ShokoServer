@@ -36,6 +36,7 @@ namespace JMMServer.Commands
 		{
 			this.CommandType = (int)CommandRequestType.Trakt_SyncCollection;
 			this.Priority = (int)DefaultPriority;
+            this.ForceRefresh = forced;
 
 			GenerateCommandID();
 		}

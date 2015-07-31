@@ -48,8 +48,11 @@ namespace JMMServer.Providers.TraktTV
                             int i = 1;
                             foreach (Trakt_Episode ep in eps)
                             {
-                                dictTraktEpisodes[i] = ep;
-                                i++;
+                                if (ep.EpisodeNumber > 0)
+                                {
+                                    dictTraktEpisodes[i] = ep;
+                                    i++;
+                                }
 
                             }
                             TimeSpan ts = DateTime.Now - start;

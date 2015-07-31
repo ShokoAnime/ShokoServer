@@ -262,6 +262,7 @@ namespace JMMServer
 			btnImportManualLinks.Click += new RoutedEventHandler(btnImportManualLinks_Click);
 			btnUpdateAniDBInfo.Click += new RoutedEventHandler(btnUpdateAniDBInfo_Click);
 			btnUploadAzureCache.Click += new RoutedEventHandler(btnUploadAzureCache_Click);
+            btnUpdateTraktInfo.Click += BtnUpdateTraktInfo_Click;
 
 			this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
 			downloadImagesWorker.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
@@ -344,9 +345,12 @@ namespace JMMServer
             workerFileEvents.RunWorkerAsync();
 		}
 
-        
+        private void BtnUpdateTraktInfo_Click(object sender, RoutedEventArgs e)
+        {
+            TraktTVHelper.UpdateAllInfo();
+        }
 
-		void workerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        void workerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
 			logger.Info("Stopped thread for processing file creation events");
 		}
@@ -1223,21 +1227,21 @@ namespace JMMServer
 
 		void btnToolbarHelp_Click(object sender, RoutedEventArgs e)
 		{
-			//AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-			//AnimeSeries ser = repSeries.GetByID(222);
-			//ser.UpdateStats(true, true, true);
+            //AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+            //AnimeSeries ser = repSeries.GetByID(222);
+            //ser.UpdateStats(true, true, true);
 
-			//TraktTVHelper.GetFriendsRequests();
+            //TraktTVHelper.GetFriendsRequests();
 
-			//FileHashHelper.GetMediaInfo(@"C:\[Hiryuu] Maken-Ki! 09 [Hi10P 1280x720 H264] [EE47C947].mkv", true);
+            //FileHashHelper.GetMediaInfo(@"C:\[Hiryuu] Maken-Ki! 09 [Hi10P 1280x720 H264] [EE47C947].mkv", true);
 
-			//CommandRequest_ReadMediaInfo cr1 = new CommandRequest_ReadMediaInfo(2038);
-			//cr1.Save();
+            //CommandRequest_ReadMediaInfo cr1 = new CommandRequest_ReadMediaInfo(2038);
+            //cr1.Save();
 
-			//CommandRequest_ReadMediaInfo cr2 = new CommandRequest_ReadMediaInfo(2037);
-			//cr2.Save();
+            //CommandRequest_ReadMediaInfo cr2 = new CommandRequest_ReadMediaInfo(2037);
+            //cr2.Save();
 
-			/*AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+            /*AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			foreach (AniDB_Anime anime in repAnime.GetAll())
 			{
 				List<TraktTV_ShoutGet> shouts = TraktTVHelper.GetShowShouts(anime.AnimeID);
@@ -1254,30 +1258,30 @@ namespace JMMServer
 				}
 			}*/
 
-			//anime temp = MALHelper.SearchAnimesByTitle("Naruto");
-			//MALHelper.VerifyCredentials();
+            //anime temp = MALHelper.SearchAnimesByTitle("Naruto");
+            //MALHelper.VerifyCredentials();
 
-			//JMMService.DebugFlag = !JMMService.DebugFlag;
+            //JMMService.DebugFlag = !JMMService.DebugFlag;
 
-			//AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
-			//AnimeEpisode ep = repEp.GetByID(2430);
-			//MALHelper.UpdateMAL(ep);
+            //AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
+            //AnimeEpisode ep = repEp.GetByID(2430);
+            //MALHelper.UpdateMAL(ep);
 
-			//CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(8107);
-			//cmdMAL.ProcessCommand();
+            //CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(8107);
+            //cmdMAL.ProcessCommand();
 
 
 
-			//CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
-			//cmd.Save();
+            //CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
+            //cmd.Save();
 
-			//AppVersionsResult appv = XMLService.GetAppVersions();
+            //AppVersionsResult appv = XMLService.GetAppVersions();
 
-			//JMMServiceImplementation imp = new JMMServiceImplementation();
-			//imp.GetMissingEpisodes(1, true, true);
+            //JMMServiceImplementation imp = new JMMServiceImplementation();
+            //imp.GetMissingEpisodes(1, true, true);
 
-			//VideoLocalRepository repVidLocal = new VideoLocalRepository();
-			/*VideoLocal vlocal = new VideoLocal();
+            //VideoLocalRepository repVidLocal = new VideoLocalRepository();
+            /*VideoLocal vlocal = new VideoLocal();
 			vlocal.DateTimeUpdated = DateTime.Now;
 			vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
 			vlocal.FilePath = "";
@@ -1291,11 +1295,11 @@ namespace JMMServer
 			vlocal.HashSource = (int)HashSource.DirectHash;
 			repVidLocal.Save(vlocal);*/
 
-			//JMMService.AnidbProcessor.UpdateMyListStats();
+            //JMMService.AnidbProcessor.UpdateMyListStats();
 
-			//UpdateVersion();
+            //UpdateVersion();
 
-			/*VideoLocalRepository repVidLocal = new VideoLocalRepository();
+            /*VideoLocalRepository repVidLocal = new VideoLocalRepository();
 			VideoLocal vid = repVidLocal.GetByID(194); RenameFileHelper.Test(vid);
 
 			vid = repVidLocal.GetByID(295); RenameFileHelper.Test(vid);
@@ -1311,12 +1315,12 @@ namespace JMMServer
 
 			return;*/
 
-			//Importer.UpdateAniDBFileData(true, true);
+            //Importer.UpdateAniDBFileData(true, true);
 
-			//JMMServiceImplementationMetro imp = new JMMServiceImplementationMetro();
-			//imp.GetAnimeDetail(4880);
+            //JMMServiceImplementationMetro imp = new JMMServiceImplementationMetro();
+            //imp.GetAnimeDetail(4880);
 
-			/*CrossRef_AniDB_MALRepository rep = new CrossRef_AniDB_MALRepository();
+            /*CrossRef_AniDB_MALRepository rep = new CrossRef_AniDB_MALRepository();
 			foreach (JMMServer.Entities.CrossRef_AniDB_MAL xref in rep.GetAll())
 			{
 				//AzureWebAPI.Send_CrossRef_AniDB_MAL(xref);
@@ -1342,12 +1346,12 @@ namespace JMMServer
 			}
 			*/
 
-			
-			
 
-			
 
-			/*try
+
+
+
+            /*try
 			{
 				using (var session = JMMService.SessionFactory.OpenSession())
 				{
@@ -1359,25 +1363,25 @@ namespace JMMServer
 				Utils.ShowErrorMessage(ex);
 			}*/
 
-			//CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(3482, false, false);
-			//cmd.Save();
+            //CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(3482, false, false);
+            //cmd.Save();
 
-			//string xml = AzureWebAPI.Get_AnimeXML(3483);
-			//XmlDocument docAnime = new XmlDocument();
-			//docAnime.LoadXml(xml);
+            //string xml = AzureWebAPI.Get_AnimeXML(3483);
+            //XmlDocument docAnime = new XmlDocument();
+            //docAnime.LoadXml(xml);
 
-			//JMMService.AnidbProcessor.IsBanned = true;
-			//JMMService.AnidbProcessor.BanOrigin = "HTTP";
-			//JMMService.AnidbProcessor.BanTime = DateTime.Now;
+            //JMMService.AnidbProcessor.IsBanned = true;
+            //JMMService.AnidbProcessor.BanOrigin = "HTTP";
+            //JMMService.AnidbProcessor.BanTime = DateTime.Now;
 
-			//GenerateAzureList();
-			//SendToAzure();
-			//SendToAzureXML();
+            //GenerateAzureList();
+            //SendToAzure();
+            //SendToAzureXML();
 
-			//CommandRequest_GetAniDBTitles cmd = new CommandRequest_GetAniDBTitles();
-			//cmd.Save();
+            //CommandRequest_GetAniDBTitles cmd = new CommandRequest_GetAniDBTitles();
+            //cmd.Save();
 
-			//AzureWebAPI.Delete_CrossRefAniDBTvDB();
+            //AzureWebAPI.Delete_CrossRefAniDBTvDB();
 
             /*
 			CrossRef_AniDB_TvDBV2Repository rep = new CrossRef_AniDB_TvDBV2Repository();
@@ -1413,14 +1417,23 @@ namespace JMMServer
             //TraktTVHelper.SyncEpisodeToTrakt(ep, TraktSyncType.HistoryAdd);
 
             //TraktTVHelper.SearchShowByIDV2("tvdb", "279827");
-            //TraktTVHelper.SearchShowV2("Jump");
+            //TraktTVHelper.SearchShowV2("Monster Musume");
             //TraktTVHelper.SyncCollectionToTrakt();
             //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.HistoryAdd, "mad-men", 1, 1, false);
             //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.HistoryRemove, "mad-men", 1, 1, false);
             //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.CollectionAdd, "mad-men", 1, 3, false);
             //TraktTVHelper.SyncEpisodeToTrakt(TraktSyncType.CollectionRemove, "mad-men", 1, 3, false);
 
-			AboutForm frm = new AboutForm();
+            //AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
+            //AnimeSeries ser1 = repSeries.GetByAnimeID(10445);
+            //TraktTVHelper.SyncCollectionToTrakt_Series(ser1);
+
+            //AnimeSeries ser2 = repSeries.GetByAnimeID(10846);
+            //TraktTVHelper.SyncCollectionToTrakt_Series(ser2);
+            //TraktTVHelper.UpdateAllInfoAndImages("my-teen-romantic-comedy-snafu", true);
+
+            AboutForm frm = new AboutForm();
 			frm.Owner = this;
 			frm.ShowDialog();
 		}

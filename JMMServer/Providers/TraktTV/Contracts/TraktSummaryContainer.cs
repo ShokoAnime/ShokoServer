@@ -77,9 +77,12 @@ namespace JMMServer.Providers.TraktTV
                         int i = 1;
                         foreach (Trakt_Episode ep in eps)
                         {
-                            dictTraktEpisodes[i] = ep;
-                            i++;
-
+                            // ignore episode 0, this can't be mapped to Trakt
+                            if (ep.EpisodeNumber > 0)
+                            {
+                                dictTraktEpisodes[i] = ep;
+                                i++;
+                            }
                         }
                     }
                 }

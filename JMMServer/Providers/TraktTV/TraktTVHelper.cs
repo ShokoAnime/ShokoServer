@@ -891,8 +891,8 @@ namespace JMMServer.Providers.TraktTV
                 int season = -1;
                 int epNumber = -1;
 
-                int? traktEpisodeId = GetTraktEpisodeIdV2(ep, ref traktShowID, ref season, ref epNumber);
-                if (!traktEpisodeId.HasValue) return;
+                GetTraktEpisodeIdV2(ep, ref traktShowID, ref season, ref epNumber);
+                if (string.IsNullOrEmpty(traktShowID) || season < 0 || epNumber < 0) return;
 
                 DateTime epDate = GetEpisodeDateForSync(ep, syncType);
 
@@ -989,18 +989,19 @@ namespace JMMServer.Providers.TraktTV
 
                 string retData = string.Empty;
                 int response = SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
-                if (response == TraktStatusCodes.Success || response == TraktStatusCodes.Success_Post || response == TraktStatusCodes.Success_Delete)
+                /*if (response == TraktStatusCodes.Success || response == TraktStatusCodes.Success_Post || response == TraktStatusCodes.Success_Delete)
                 {
                     // if this was marking an episode as watched, and is successful, let's also add this to the user's collection
                     // this is because you can watch something without adding it to your collection, but in JMM it is always part of your collection
                     if (syncType == TraktSyncType.HistoryAdd && secondaryAction)
-                        response = SendData(TraktURIs.SyncCollectionAdd, json, "POST", BuildRequestHeaders(), ref retData);
+                        SyncEpisodeToTrakt(ep, syncType, false);
+                        
 
                     // also if we have removed from our collection, set to un-watched
                     if (syncType == TraktSyncType.CollectionRemove && secondaryAction)
                         response = SendData(TraktURIs.SyncHistoryRemove, json, "POST", BuildRequestHeaders(), ref retData);
 
-                }
+                }*/
 
             }
             catch (Exception ex)
@@ -1026,7 +1027,7 @@ namespace JMMServer.Providers.TraktTV
             try
             {
                 // replace spaces with a + symbo
-                criteria = criteria.Replace(' ', '+');
+                //criteria = criteria.Replace(' ', '+');
 
                 // Search for a series
                 string url = string.Format(TraktURIs.Search, criteria, TraktSearchType.show);
@@ -1179,6 +1180,21 @@ namespace JMMServer.Providers.TraktTV
                 Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
                 Trakt_ImagePosterRepository repPosters = new Trakt_ImagePosterRepository();
 
+                // delete episodes if they no longer exist on Trakt
+                if (seasons.Count > 0)
+                {
+                    foreach (Trakt_Episode epTemp in repEpisodes.GetByShowID(show.Trakt_ShowID))
+                    {
+                        TraktV2Episode ep = null;
+                        TraktV2Season sea = seasons.FirstOrDefault(x => x.number == epTemp.Season);
+                        if (sea != null)
+                            ep = sea.episodes.FirstOrDefault(x => x.number == epTemp.EpisodeNumber);
+
+                        // if the episode is null, it means it doesn't exist on Trakt, so we should delete it
+                        if (ep == null)
+                            repEpisodes.Delete(epTemp.Trakt_EpisodeID);
+                    } 
+                }
 
                 foreach (TraktV2Season sea in seasons)
                 {
@@ -1492,36 +1508,17 @@ namespace JMMServer.Providers.TraktTV
                 traktSummary.Populate(series.AniDB_ID);
                 if (traktSummary.CrossRefTraktV2 == null || traktSummary.CrossRefTraktV2.Count == 0) return;
 
+                // now get the full users collection from Trakt
+                List<TraktV2ShowCollectedResult> collected = new List<TraktV2ShowCollectedResult>();
+                List<TraktV2ShowWatchedResult> watched = new List<TraktV2ShowWatchedResult>();
+
+                if (!GetTraktCollectionInfo(ref collected, ref watched)) return;
+
                 foreach (AnimeEpisode ep in series.GetAnimeEpisodes())
                 {
                     if (ep.EpisodeTypeEnum == enEpisodeType.Episode || ep.EpisodeTypeEnum == enEpisodeType.Special)
                     {
-                        if (ep.GetVideoLocals().Count > 0)
-                        {
-                            // let's check if this episode has a user record against it
-                            // if it does, it means a user has watched it
-
-                            AnimeEpisode_User userRecord = null;
-                            foreach (JMMUser juser in traktUsers)
-                            {
-                                userRecord = ep.GetUserRecord(juser.JMMUserID);
-                                if (userRecord != null) break;
-                            }
-
-                            if (userRecord != null)
-                            {
-                                // adding to history will also add it to the collection
-                                SyncEpisodeToTrakt(ep, TraktSyncType.HistoryAdd);
-                            }
-                            else
-                            {
-                                // lets' add it to the collection
-                                SyncEpisodeToTrakt(ep, TraktSyncType.CollectionAdd);
-                            }
-
-                        }
-                        else
-                            SyncEpisodeToTrakt(ep, TraktSyncType.CollectionRemove);
+                        ReconSyncTraktEpisode(series, ep, traktSummary, traktUsers, collected, watched);
                     }
                 }
             }
@@ -1560,8 +1557,12 @@ namespace JMMServer.Providers.TraktTV
                 ///////////////////////////////////////////////////////////////////////////////////////
 
                 AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                int counter = 0;
                 foreach (AnimeSeries series in allSeries)
                 {
+                    counter++;
+                    logger.Trace("Syncing local collection: {0} / {1} - {2}", counter, allSeries.Count, series.GetSeriesName());
+
                     AniDB_Anime anime = repAnime.GetByAnimeID(series.AniDB_ID);
                     if (anime == null) return;
 
@@ -1592,8 +1593,12 @@ namespace JMMServer.Providers.TraktTV
 
                 CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
 
+                counter = 0;
                 foreach (TraktV2ShowCollectedResult col in collected)
                 {
+                    counter++;
+                    logger.Trace("Syncing Online collection: {0} / {1} - {2}", counter, collected.Count, col.show.Title);
+
                     // check if we have this series locally
                     List<CrossRef_AniDB_TraktV2> xrefs = repCrossRef.GetByTraktID(col.show.ids.slug);
 
@@ -1649,8 +1654,13 @@ namespace JMMServer.Providers.TraktTV
                 // Now look at the history according to Trakt, and remove it if we don't have it locally
                 ///////////////////////////////////////////////////////////////////////////////////////
 
+                counter = 0;
+
                 foreach (TraktV2ShowWatchedResult wtch in watched)
                 {
+                    counter++;
+                    logger.Trace("Syncing Online History: {0} / {1} - {2}", counter, watched.Count, wtch.show.Title);
+
                     // check if we have this series locally
                     List<CrossRef_AniDB_TraktV2> xrefs = repCrossRef.GetByTraktID(wtch.show.ids.slug);
 
@@ -1715,8 +1725,8 @@ namespace JMMServer.Providers.TraktTV
                 int season = -1;
                 int epNumber = -1;
 
-                int? traktEpisodeId = GetTraktEpisodeIdV2(ep, ref traktShowID, ref season, ref epNumber);
-                if (!traktEpisodeId.HasValue || string.IsNullOrEmpty(traktShowID) || season < 0 || epNumber < 0) return;
+                GetTraktEpisodeIdV2(ep, ref traktShowID, ref season, ref epNumber);
+                if (string.IsNullOrEmpty(traktShowID) || season < 0 || epNumber < 0) return;
 
                 // get the current collected records for this series on Trakt
                 TraktV2CollectedEpisode epTraktCol = null;

@@ -604,6 +604,8 @@ namespace JMMServer
 				foreach (Trakt_Episode traktEp in repTraktEpisodes.GetAll())
 				{
 					if (string.IsNullOrEmpty(traktEp.FullImagePath)) continue;
+                    if (!traktEp.TraktID.HasValue) continue; // if it doesn't have a TraktID it means it is old data
+
 					bool fileExists = File.Exists(traktEp.FullImagePath);
 					if (!fileExists)
 					{
@@ -1149,9 +1151,8 @@ namespace JMMServer
 		{
 			int freqHours = 24;
 
-			// check for any updated anime info every 12 hours
+			// check for truncating the logs
 			ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
 			ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.LogClean);
 			if (sched != null)
@@ -1165,20 +1166,26 @@ namespace JMMServer
 			LogMessageRepository repVidLocals = new LogMessageRepository();
 
 			DateTime logCutoff = DateTime.Now.AddDays(-30);
-			//DateTime logCutoff = DateTime.Now.AddMinutes(-45);
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				foreach (LogMessage log in repVidLocals.GetAll(session))
-				{
-					if (log.LogDate < logCutoff)
-						repVidLocals.Delete(session, log.LogMessageID);
-				}
-			}
+            //DateTime logCutoff = DateTime.Now.AddMinutes(-45);
+            try
+            {
+                using (var session = JMMService.SessionFactory.OpenSession())
+			    {
+				    foreach (LogMessage log in repVidLocals.GetAll(session))
+				    {
+                    
+                            if (log.LogDate < logCutoff)
+                                repVidLocals.Delete(session, log.LogMessageID);
+                    
+				    }
+			    }
+            }
+            catch { }
 
-			// now check for any files which have been manually linked and are less than 30 days old
+            // now check for any files which have been manually linked and are less than 30 days old
 
 
-			if (sched == null)
+            if (sched == null)
 			{
 				sched = new ScheduledUpdate();
 				sched.UpdateType = (int)ScheduledUpdateType.LogClean;

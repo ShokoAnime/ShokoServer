@@ -245,6 +245,7 @@
     <Compile Include="Commands\Trakt\CommandRequest_TraktSearchAnime.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktHistoryEpisode.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktSyncCollection.cs" />
+    <Compile Include="Commands\Trakt\CommandRequest_TraktSyncCollectionSeries.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateInfoAndImages.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateAllSeries.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_TvDBDownloadImages.cs" />

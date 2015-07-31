@@ -57,12 +57,16 @@ namespace JMMServer.Commands
 
 			try
 			{
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
-				AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
+                logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG01");
+                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
+                logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG02");
+
+                AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
 				AnimeEpisode ep = repEpisodes.GetByID(AnimeEpisodeID);
 				if (ep != null)
 				{
+                    logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG03");
                     TraktSyncType syncType = TraktSyncType.CollectionAdd;
                     if (ActionEnum == TraktSyncAction.Remove) syncType = TraktSyncType.CollectionRemove;
                     TraktTVHelper.SyncEpisodeToTrakt(ep, syncType);

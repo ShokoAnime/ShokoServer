@@ -99,6 +99,11 @@ namespace JMMServer.Commands
 			CommandRequestType crt = (CommandRequestType)crdb.CommandType;
 			switch (crt)
 			{
+                case CommandRequestType.Trakt_SyncCollectionSeries:
+                    CommandRequest_TraktSyncCollectionSeries cr_CommandRequest_TraktSyncCollectionSeries = new CommandRequest_TraktSyncCollectionSeries();
+                    cr_CommandRequest_TraktSyncCollectionSeries.LoadFromDBCommand(crdb);
+                    return (ICommandRequest)cr_CommandRequest_TraktSyncCollectionSeries;
+
                 case CommandRequestType.AniDB_GetEpisodeUDP:
                     CommandRequest_GetEpisode cr_CommandRequest_GetEpisode = new CommandRequest_GetEpisode();
                     cr_CommandRequest_GetEpisode.LoadFromDBCommand(crdb);

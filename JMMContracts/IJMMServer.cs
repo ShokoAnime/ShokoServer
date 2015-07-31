@@ -406,6 +406,9 @@ namespace JMMContracts
 		string UpdateTraktData(string traktD);
 
         [OperationContract]
+        string SyncTraktSeries(int animeID);
+
+        [OperationContract]
         string UpdateMovieDBData(int movieD);
 
 		[OperationContract]
