@@ -923,7 +923,10 @@ namespace JMMServer
             {
                 logger.Trace("Checking for JMM Server updates...");
                 lastVersionCheck = DateTime.Now;
-                automaticUpdater.ForceCheckForUpdate(true);
+                System.Windows.Application.Current.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate ()
+                {
+                    automaticUpdater.ForceCheckForUpdate(true);
+                });  
             }
         }
 
@@ -1401,10 +1404,11 @@ namespace JMMServer
             */
 
             // trinity-seven - 10441
-            //TraktV2ShowExtended show = TraktTVHelper.GetShowInfoV2("high-school-dxd");
+            //TraktV2ShowExtended show = TraktTVHelper.GetShowInfoV2("madan-no-ou-to-vanadis");
             //TraktTVHelper.GetShowShoutsV2(8660);
             //TraktTVHelper.GetFriendsV2();
             //TraktTVHelper.RefreshAuthToken();
+
 
             //D003BB3D
             //string ret = TraktTVHelper.EnterTraktPIN("D003BB3D");
@@ -1432,6 +1436,14 @@ namespace JMMServer
             //AnimeSeries ser2 = repSeries.GetByAnimeID(10846);
             //TraktTVHelper.SyncCollectionToTrakt_Series(ser2);
             //TraktTVHelper.UpdateAllInfoAndImages("my-teen-romantic-comedy-snafu", true);
+
+            //TraktTVHelper.CleanupDatabase();
+            //TraktTVHelper.SyncCollectionToTrakt();
+
+            //JMMServer.Providers.Azure.Azure_AnimeLink link2 = JMMServer.Providers.Azure.AzureWebAPI.Admin_GetRandomTraktLinkForApproval();
+            //List<Providers.Azure.CrossRef_AniDB_Trakt> xrefs= JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(link2.RandomAnimeID);
+
+
 
             AboutForm frm = new AboutForm();
 			frm.Owner = this;
@@ -1866,7 +1878,7 @@ namespace JMMServer
 			Importer.CheckForTvDBUpdates(false);
 			Importer.CheckForMyListSyncUpdate(false);
 			Importer.CheckForTraktAllSeriesUpdate(false);
-			Importer.CheckForTraktSyncUpdate(false);
+			//Importer.CheckForTraktSyncUpdate(false);
 			Importer.CheckForMALUpdate(false);
 			Importer.CheckForMyListStatsUpdate(false);
 			Importer.CheckForAniDBFileUpdate(false);

@@ -1053,6 +1053,7 @@ namespace JMMServer
 
 		public static void CheckForTraktSyncUpdate(bool forceRefresh)
 		{
+
 			if (ServerSettings.Trakt_SyncFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
 			int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
 

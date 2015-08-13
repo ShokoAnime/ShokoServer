@@ -32,6 +32,70 @@ namespace JMMServer.Providers.TraktTV.Contracts
             shows[0].seasons[0].episodes[0].number = episodeNumber;
             shows[0].seasons[0].episodes[0].collected_at = collectedDate.ToUniversalTime().ToString("s") + "Z";
         }
+
+        public void AddEpisode(string slug, int season, int episodeNumber, DateTime collectedDate)
+        {
+            if (shows == null)
+                shows = new List<TraktV2ShowCollectedPostByNumber>();
+
+            TraktV2ShowCollectedPostByNumber thisShow = null;
+            foreach (TraktV2ShowCollectedPostByNumber shw in shows)
+            {
+                if (shw.ids.slug.Equals(slug, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    thisShow = shw;
+                    break;
+                }
+            }
+            if (thisShow == null)
+            {
+                thisShow = new TraktV2ShowCollectedPostByNumber();
+                thisShow.ids = new TraktV2IdsCollectedByNumber();
+                thisShow.ids.slug = slug;
+
+                thisShow.seasons = new List<TaktV2SeasonCollectedPostByNumber>();
+                //thisShow.seasons.Add(new TaktV2SeasonCollectedPostByNumber());
+                //thisShow.seasons[0].number = season;
+
+                //thisShow.seasons[0].episodes = new List<TraktV2EpisodeCollectedPostByNumber>();
+
+                shows.Add(thisShow);
+            }
+
+            TaktV2SeasonCollectedPostByNumber thisSeason = null;
+            foreach (TaktV2SeasonCollectedPostByNumber sea in thisShow.seasons)
+            {
+                if (sea.number == season)
+                {
+                    thisSeason = sea;
+                    break;
+                }
+            }
+            if (thisSeason == null)
+            {
+                thisSeason = new TaktV2SeasonCollectedPostByNumber();
+                thisSeason.number = season;
+                thisSeason.episodes = new List<TraktV2EpisodeCollectedPostByNumber>();
+                thisShow.seasons.Add(thisSeason);
+            }
+
+            TraktV2EpisodeCollectedPostByNumber thisEp = null;
+            foreach (TraktV2EpisodeCollectedPostByNumber ep in thisSeason.episodes)
+            {
+                if (ep.number == episodeNumber)
+                {
+                    thisEp = ep;
+                    break;
+                }
+            }
+            if (thisEp == null)
+            {
+                thisEp = new TraktV2EpisodeCollectedPostByNumber();
+                thisEp.number = episodeNumber;
+                thisEp.collected_at = collectedDate.ToUniversalTime().ToString("s") + "Z";
+                thisSeason.episodes.Add(thisEp);
+            }
+        }
     }
 
     [DataContract]
@@ -42,6 +106,14 @@ namespace JMMServer.Providers.TraktTV.Contracts
 
         [DataMember(Name = "seasons")]
         public List<TaktV2SeasonCollectedPostByNumber> seasons { get; set; }
+
+        public override string ToString()
+        {
+            if (ids != null)
+                return string.Format("{0}", ids.slug);
+            else
+                return "";
+        }
     }
 
     [DataContract]
@@ -49,6 +121,11 @@ namespace JMMServer.Providers.TraktTV.Contracts
     {
         [DataMember(Name = "slug")]
         public string slug { get; set; }
+
+        public override string ToString()
+        {
+            return slug;
+        }
     }
 
     [DataContract]
@@ -59,6 +136,11 @@ namespace JMMServer.Providers.TraktTV.Contracts
 
         [DataMember(Name = "episodes")]
         public List<TraktV2EpisodeCollectedPostByNumber> episodes { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("S{0}", number);
+        }
     }
 
     [DataContract]
@@ -69,5 +151,10 @@ namespace JMMServer.Providers.TraktTV.Contracts
 
         [DataMember(Name = "number")]
         public int number { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("EP-{0} : {1}", number, collected_at);
+        }
     }
 }

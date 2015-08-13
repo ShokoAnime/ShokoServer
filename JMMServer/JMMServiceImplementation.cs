@@ -5226,6 +5226,50 @@ namespace JMMServer
 			}
 		}
 
+        
+
+        #region Web Cache Admin
+
+        public bool IsWebCacheAdmin()
+        {
+            try
+            {
+                string res = JMMServer.Providers.Azure.AzureWebAPI.Admin_AuthUser();
+                return string.IsNullOrEmpty(res);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return false;
+            }
+        }
+
+        public Contract_Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType)
+        {
+            try
+            {
+                AzureLinkType lType = (AzureLinkType)linkType;
+                JMMServer.Providers.Azure.Azure_AnimeLink link = null;
+
+                switch (lType)
+                {
+                    case AzureLinkType.TvDB: link = JMMServer.Providers.Azure.AzureWebAPI.Admin_GetRandomTvDBLinkForApproval(); break;
+                    case AzureLinkType.Trakt: link = JMMServer.Providers.Azure.AzureWebAPI.Admin_GetRandomTraktLinkForApproval(); break;
+                }
+
+                
+                if (link != null)
+                    return link.ToContract();
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
+
         public List<Contract_AdminMessage> GetAdminMessages()
         {
             try
@@ -5247,33 +5291,7 @@ namespace JMMServer
             }
         }
 
-
-		#region TvDB
-
-		public List<Contract_Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin)
-		{
-			try
-			{
-				List<Contract_Azure_CrossRef_AniDB_TvDB> contracts = new List<Contract_Azure_CrossRef_AniDB_TvDB>();
-                List<JMMServer.Providers.Azure.CrossRef_AniDB_TvDB> results = null;
-
-                if (isAdmin)
-                    results = JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
-                else
-				    results = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTvDB(animeID);
-				if (results == null || results.Count == 0) return contracts;
-
-				foreach (JMMServer.Providers.Azure.CrossRef_AniDB_TvDB xref in results)
-					contracts.Add(xref.ToContract());
-
-				return contracts;
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-				return null;
-			}
-		}
+        #region Admin - TvDB
 
         public string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId)
         {
@@ -5301,29 +5319,82 @@ namespace JMMServer
             }
         }
 
-        public bool IsWebCacheAdmin()
+        /// <summary>
+        /// Sends the current user's TvDB links to the web cache, and then admin approves them
+        /// </summary>
+        /// <returns></returns>
+        public string UseMyTvDBLinksWebCache(int animeID)
         {
             try
             {
-                string res = JMMServer.Providers.Azure.AzureWebAPI.Admin_AuthUser();
-                return string.IsNullOrEmpty(res);
+                // Get all the links for this user and anime
+                CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+                List<CrossRef_AniDB_TvDBV2> xrefs = repCrossRef.GetByAnimeID(animeID);
+                if (xrefs == null) return "No Links found to use";
+
+                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                if (anime == null) return "Anime not found";
+
+                // make sure the user doesn't alreday have links
+                List<JMMServer.Providers.Azure.CrossRef_AniDB_TvDB> results = JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
+                bool foundLinks = false;
+                if (results != null)
+                {
+                    foreach (JMMServer.Providers.Azure.CrossRef_AniDB_TvDB xref in results)
+                    {
+                        if (xref.Username.Equals(ServerSettings.AniDB_Username, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            foundLinks = true;
+                            break;
+                        }
+                    }
+                }
+                if (foundLinks) return "Links already exist, please approve them instead";
+
+                // send the links to the web cache
+                foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+                {
+                    Providers.Azure.AzureWebAPI.Send_CrossRefAniDBTvDB(xref, anime.MainTitle);
+                }
+
+                // now get the links back from the cache and approve them
+                results = JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
+                if (results != null)
+                {
+                    List<JMMServer.Providers.Azure.CrossRef_AniDB_TvDB> linksToApprove = new List<Providers.Azure.CrossRef_AniDB_TvDB>();
+                    foreach (JMMServer.Providers.Azure.CrossRef_AniDB_TvDB xref in results)
+                    {
+                        if (xref.Username.Equals(ServerSettings.AniDB_Username, StringComparison.InvariantCultureIgnoreCase))
+                            linksToApprove.Add(xref);
+                    }
+
+                    foreach (JMMServer.Providers.Azure.CrossRef_AniDB_TvDB xref in linksToApprove)
+                    {
+                        JMMServer.Providers.Azure.AzureWebAPI.Admin_Approve_CrossRefAniDBTvDB(xref.CrossRef_AniDB_TvDBId.Value);
+                    }
+                    return "Success";
+                }
+                else
+                    return "Failure to send links to web cache";
+
             }
             catch (Exception ex)
             {
                 logger.ErrorException(ex.ToString(), ex);
-                return false;
+                return ex.Message;
             }
         }
 
-        public Contract_Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType)
+        #endregion
+
+        #region Admin - Trakt
+
+        public string ApproveTraktCrossRefWebCache(int crossRef_AniDB_TraktId)
         {
             try
             {
-                JMMServer.Providers.Azure.Azure_AnimeLink link = JMMServer.Providers.Azure.AzureWebAPI.Admin_GetRandomLinkForApproval((AzureLinkType)linkType);
-                if (link != null)
-                    return link.ToContract();
-
-                return null;
+                return JMMServer.Providers.Azure.AzureWebAPI.Admin_Approve_CrossRefAniDBTrakt(crossRef_AniDB_TraktId);
             }
             catch (Exception ex)
             {
@@ -5331,6 +5402,120 @@ namespace JMMServer
                 return null;
             }
         }
+
+        public string RevokeTraktCrossRefWebCache(int crossRef_AniDB_TraktId)
+        {
+            try
+            {
+                return JMMServer.Providers.Azure.AzureWebAPI.Admin_Revoke_CrossRefAniDBTrakt(crossRef_AniDB_TraktId);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Sends the current user's Trakt links to the web cache, and then admin approves them
+        /// </summary>
+        /// <returns></returns>
+        public string UseMyTraktLinksWebCache(int animeID)
+        {
+            try
+            {
+                // Get all the links for this user and anime
+                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+                List<CrossRef_AniDB_TraktV2> xrefs = repCrossRef.GetByAnimeID(animeID);
+                if (xrefs == null) return "No Links found to use";
+
+                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                if (anime == null) return  "Anime not found";
+
+                // make sure the user doesn't alreday have links
+                List<JMMServer.Providers.Azure.CrossRef_AniDB_Trakt> results = JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
+                bool foundLinks = false;
+                if (results != null)
+                {
+                    foreach (JMMServer.Providers.Azure.CrossRef_AniDB_Trakt xref in results)
+                    {
+                        if (xref.Username.Equals(ServerSettings.AniDB_Username, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            foundLinks = true;
+                            break;
+                        }
+                    }
+                }
+                if (foundLinks) return "Links already exist, please approve them instead";
+
+                // send the links to the web cache
+                    foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
+                {
+                    Providers.Azure.AzureWebAPI.Send_CrossRefAniDBTrakt(xref, anime.MainTitle);
+                }
+
+                // now get the links back from the cache and approve them
+                results = JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
+                if (results != null)
+                {
+                    List<JMMServer.Providers.Azure.CrossRef_AniDB_Trakt> linksToApprove = new List<Providers.Azure.CrossRef_AniDB_Trakt>();
+                    foreach (JMMServer.Providers.Azure.CrossRef_AniDB_Trakt xref in results)
+                    {
+                        if (xref.Username.Equals(ServerSettings.AniDB_Username, StringComparison.InvariantCultureIgnoreCase))
+                            linksToApprove.Add(xref);
+                    }
+
+                    foreach (JMMServer.Providers.Azure.CrossRef_AniDB_Trakt xref in linksToApprove)
+                    {
+                        JMMServer.Providers.Azure.AzureWebAPI.Admin_Approve_CrossRefAniDBTrakt(xref.CrossRef_AniDB_TraktId.Value);
+                    }
+                    return "Success";
+                }
+                else
+                    return "Failure to send links to web cache";
+
+                //return JMMServer.Providers.Azure.AzureWebAPI.Admin_Approve_CrossRefAniDBTrakt(crossRef_AniDB_TraktId);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+
+        #region TvDB
+
+        public List<Contract_Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin)
+		{
+			try
+			{
+				List<Contract_Azure_CrossRef_AniDB_TvDB> contracts = new List<Contract_Azure_CrossRef_AniDB_TvDB>();
+                List<JMMServer.Providers.Azure.CrossRef_AniDB_TvDB> results = null;
+
+                if (isAdmin)
+                    results = JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
+                else
+				    results = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTvDB(animeID);
+				if (results == null || results.Count == 0) return contracts;
+
+				foreach (JMMServer.Providers.Azure.CrossRef_AniDB_TvDB xref in results)
+					contracts.Add(xref.ToContract());
+
+				return contracts;
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException(ex.ToString(), ex);
+				return null;
+			}
+		}
+
 
 		public List<Contract_CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID)
 		{
@@ -5374,6 +5559,8 @@ namespace JMMServer
 				return null;
 			}
 		}
+
+
 
 		public List<Contract_TVDBSeriesSearchResult> SearchTheTvDB(string criteria)
 		{
@@ -5772,13 +5959,18 @@ namespace JMMServer
             }
         }
 
-		public List<Contract_Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID)
+		public List<Contract_Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin)
 		{
 			try
 			{
                 List<Contract_Azure_CrossRef_AniDB_Trakt> contracts = new List<Contract_Azure_CrossRef_AniDB_Trakt>();
+                List<JMMServer.Providers.Azure.CrossRef_AniDB_Trakt> results = null;
 
-                List<JMMServer.Providers.Azure.CrossRef_AniDB_Trakt> results = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTrakt(animeID);
+                if (isAdmin)
+                    results = JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
+                else
+                    results = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTrakt(animeID);
+
                 if (results == null || results.Count == 0) return contracts;
 
                 foreach (JMMServer.Providers.Azure.CrossRef_AniDB_Trakt xref in results)
@@ -5793,23 +5985,45 @@ namespace JMMServer
 			}
 		}
 
-		public Contract_CrossRef_AniDB_MALResult GetMALCrossRefWebCache(int animeID)
-		{
-			try
-			{
-                JMMServer.Providers.Azure.CrossRef_AniDB_MAL result = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBMAL(animeID);
-                if (result == null) return null;
+        public string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber, int traktEpNumber, int? crossRef_AniDB_TraktV2ID)
+        {
+            try
+            {
+                CrossRef_AniDB_TraktV2Repository repXref = new CrossRef_AniDB_TraktV2Repository();
 
-                return result.ToContract();
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-				return null;
-			}
-		}
+                if (crossRef_AniDB_TraktV2ID.HasValue)
+                {
+                    CrossRef_AniDB_TraktV2 xrefTemp = repXref.GetByID(crossRef_AniDB_TraktV2ID.Value);
+                    // delete the existing one if we are updating
+                    TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (enEpisodeType)xrefTemp.AniDBStartEpisodeType, xrefTemp.AniDBStartEpisodeNumber,
+                        xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
+                }
 
-		public List<Contract_CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID)
+                CrossRef_AniDB_TraktV2 xref = repXref.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID, aniEpType, aniEpNumber);
+                if (xref != null)
+                {
+                    string msg = string.Format("You have already linked Anime ID {0} to this Trakt show/season/ep", xref.AnimeID);
+                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                    AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+                    if (anime != null)
+                    {
+                        msg = string.Format("You have already linked Anime {0} ({1}) to this Trakt show/season/ep", anime.MainTitle, xref.AnimeID);
+                    }
+                    return msg;
+                }
+
+                return TraktTVHelper.LinkAniDBTrakt(animeID, (enEpisodeType)aniEpType, aniEpNumber, traktID, seasonNumber, traktEpNumber, false);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
+
+        
+
+        public List<Contract_CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID)
 		{
 			try
 			{
@@ -5871,7 +6085,120 @@ namespace JMMServer
 			}
 		}
 
-        
+        public string RemoveLinkAniDBTraktForAnime(int animeID)
+        {
+            try
+            {
+                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+
+                if (ser == null) return "Could not find Series for Anime!";
+
+                // check if there are default images used associated
+                AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
+                List<AniDB_Anime_DefaultImage> images = repDefaults.GetByAnimeID(animeID);
+                foreach (AniDB_Anime_DefaultImage image in images)
+                {
+                    if (image.ImageParentType == (int)JMMImageType.Trakt_Fanart ||
+                        image.ImageParentType == (int)JMMImageType.Trakt_Poster)
+                    {
+                        repDefaults.Delete(image.AniDB_Anime_DefaultImageID);
+                    }
+                }
+
+                CrossRef_AniDB_TraktV2Repository repXrefTrakt = new CrossRef_AniDB_TraktV2Repository();
+                foreach (CrossRef_AniDB_TraktV2 xref in repXrefTrakt.GetByAnimeID(animeID))
+                {
+                    TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType)xref.AniDBStartEpisodeType, xref.AniDBStartEpisodeNumber,
+                        xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber);
+                }
+
+                return "";
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
+
+        public string RemoveLinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int traktSeasonNumber, int traktEpNumber)
+        {
+            try
+            {
+                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+
+                if (ser == null) return "Could not find Series for Anime!";
+
+                // check if there are default images used associated
+                AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
+                List<AniDB_Anime_DefaultImage> images = repDefaults.GetByAnimeID(animeID);
+                foreach (AniDB_Anime_DefaultImage image in images)
+                {
+                    if (image.ImageParentType == (int)JMMImageType.Trakt_Fanart ||
+                        image.ImageParentType == (int)JMMImageType.Trakt_Poster)
+                    {
+                        repDefaults.Delete(image.AniDB_Anime_DefaultImageID);
+                    }
+                }
+
+                TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType)aniEpType, aniEpNumber,
+                       traktID, traktSeasonNumber, traktEpNumber);
+
+                return "";
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+        }
+
+        public List<int> GetSeasonNumbersForTrakt(string traktID)
+        {
+            List<int> seasonNumbers = new List<int>();
+            try
+            {
+                // refresh show info including season numbers from trakt
+                TraktV2ShowExtended tvshow = TraktTVHelper.GetShowInfoV2(traktID);
+
+                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+                Trakt_Show show = repShows.GetByTraktSlug(traktID);
+                if (show == null) return seasonNumbers;
+
+                foreach (Trakt_Season season in show.Seasons)
+                    seasonNumbers.Add(season.Season);
+
+                return seasonNumbers;
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return seasonNumbers;
+            }
+        }
+
+        #endregion
+
+        #region MAL
+
+        public Contract_CrossRef_AniDB_MALResult GetMALCrossRefWebCache(int animeID)
+        {
+            try
+            {
+                JMMServer.Providers.Azure.CrossRef_AniDB_MAL result = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBMAL(animeID);
+                if (result == null) return null;
+
+                return result.ToContract();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
 
         public List<Contract_MALAnimeResponse> SearchMAL(string criteria)
 		{
@@ -5892,41 +6219,6 @@ namespace JMMServer
 			}
 		}
 
-        public string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber, int traktEpNumber, int? crossRef_AniDB_TraktV2ID)
-		{
-			try
-			{
-                CrossRef_AniDB_TraktV2Repository repXref = new CrossRef_AniDB_TraktV2Repository();
-
-                if (crossRef_AniDB_TraktV2ID.HasValue)
-                {
-                    CrossRef_AniDB_TraktV2 xrefTemp = repXref.GetByID(crossRef_AniDB_TraktV2ID.Value);
-                    // delete the existing one if we are updating
-                    TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (enEpisodeType)xrefTemp.AniDBStartEpisodeType, xrefTemp.AniDBStartEpisodeNumber,
-                        xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
-                }
-
-                CrossRef_AniDB_TraktV2 xref = repXref.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID, aniEpType, aniEpNumber);
-                if (xref != null)
-                {
-                    string msg = string.Format("You have already linked Anime ID {0} to this Trakt show/season/ep", xref.AnimeID);
-                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
-                    if (anime != null)
-                    {
-                        msg = string.Format("You have already linked Anime {0} ({1}) to this Trakt show/season/ep", anime.MainTitle, xref.AnimeID);
-                    }
-                    return msg;
-                }
-
-                return TraktTVHelper.LinkAniDBTrakt(animeID, (enEpisodeType)aniEpType, aniEpNumber, traktID, seasonNumber, traktEpNumber, false);
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-				return ex.Message;
-			}
-		}
 
 		public string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber)
 		{
@@ -5986,76 +6278,7 @@ namespace JMMServer
 			}
 		}
 
-        public string RemoveLinkAniDBTraktForAnime(int animeID)
-		{
-			try
-			{
-				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-				AnimeSeries ser = repSeries.GetByAnimeID(animeID);
-
-				if (ser == null) return "Could not find Series for Anime!";
-
-				// check if there are default images used associated
-				AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
-				List<AniDB_Anime_DefaultImage> images = repDefaults.GetByAnimeID(animeID);
-				foreach (AniDB_Anime_DefaultImage image in images)
-				{
-					if (image.ImageParentType == (int)JMMImageType.Trakt_Fanart ||
-						image.ImageParentType == (int)JMMImageType.Trakt_Poster)
-					{
-						repDefaults.Delete(image.AniDB_Anime_DefaultImageID);
-					}
-				}
-
-                CrossRef_AniDB_TraktV2Repository repXrefTrakt = new CrossRef_AniDB_TraktV2Repository();
-                foreach (CrossRef_AniDB_TraktV2 xref in repXrefTrakt.GetByAnimeID(animeID))
-                {
-                    TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType)xref.AniDBStartEpisodeType, xref.AniDBStartEpisodeNumber,
-                        xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber);
-                }
-
-				return "";
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-				return ex.Message;
-			}
-		}
-
-        public string RemoveLinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int traktSeasonNumber, int traktEpNumber)
-        {
-            try
-            {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries ser = repSeries.GetByAnimeID(animeID);
-
-                if (ser == null) return "Could not find Series for Anime!";
-
-                // check if there are default images used associated
-                AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
-                List<AniDB_Anime_DefaultImage> images = repDefaults.GetByAnimeID(animeID);
-                foreach (AniDB_Anime_DefaultImage image in images)
-                {
-                    if (image.ImageParentType == (int)JMMImageType.Trakt_Fanart ||
-                        image.ImageParentType == (int)JMMImageType.Trakt_Poster)
-                    {
-                        repDefaults.Delete(image.AniDB_Anime_DefaultImageID);
-                    }
-                }
-
-                TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType)aniEpType, aniEpNumber,
-                       traktID, traktSeasonNumber, traktEpNumber);
-
-                return "";
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException(ex.ToString(), ex);
-                return ex.Message;
-            }
-        }
-
+        
 		public string RemoveLinkAniDBMAL(int animeID ,int epType, int epNumber)
 		{
 			try
@@ -6071,30 +6294,7 @@ namespace JMMServer
 			}
 		}
 
-		public List<int> GetSeasonNumbersForTrakt(string traktID)
-		{
-			List<int> seasonNumbers = new List<int>();
-			try
-			{
-				// refresh show info including season numbers from trakt
-				TraktV2ShowExtended tvshow = TraktTVHelper.GetShowInfoV2(traktID);
-
-				Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-				Trakt_Show show = repShows.GetByTraktSlug(traktID);
-				if (show == null) return seasonNumbers;
-
-				foreach (Trakt_Season season in show.Seasons)
-					seasonNumbers.Add(season.Season);
-
-				return seasonNumbers;
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-				return seasonNumbers;
-			}
-		}
+		
 
 		#endregion
 
@@ -8160,7 +8360,40 @@ namespace JMMServer
             return TraktTVHelper.PostShoutShow(traktID, shoutText, isSpoiler, ref returnMessage);
 		}
 
-		public List<Contract_Trakt_ShoutUser> GetTraktShoutsForAnime(int animeID)
+        public bool CheckTraktLinkValidity(string slug, bool removeDBEntries)
+        {
+            try
+            {
+                return TraktTVHelper.CheckTraktValidity(slug, removeDBEntries);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return false;
+        }
+
+        public List<Contract_CrossRef_AniDB_TraktV2> GetAllTraktCrossRefs()
+        {
+            List<Contract_CrossRef_AniDB_TraktV2> contracts = new List<Contract_CrossRef_AniDB_TraktV2>();
+            try
+            {
+                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+                List<CrossRef_AniDB_TraktV2> allCrossRefs = repCrossRef.GetAll();
+
+                foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
+                {
+                    contracts.Add(xref.ToContract());
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return contracts;
+        }
+
+        public List<Contract_Trakt_ShoutUser> GetTraktShoutsForAnime(int animeID)
 		{
 			List<Contract_Trakt_ShoutUser> shouts = new List<Contract_Trakt_ShoutUser>();
 

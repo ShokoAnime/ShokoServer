@@ -18,6 +18,7 @@ using JMMServer.Providers.TraktTV.Contracts;
 namespace JMMServer.Providers.TraktTV
 {
     using global::JMMServer.Utilities;
+    using Newtonsoft.Json;
 
     public class TraktTVHelper
     {
@@ -1036,7 +1037,7 @@ namespace JMMServer.Providers.TraktTV
                 // Search for a series
                 string json = GetFromTrakt(url);
 
-                if (json.Trim().Length == 0) return new List<TraktV2SearchShowResult>();
+                if (string.IsNullOrEmpty(json)) return new List<TraktV2SearchShowResult>();
 
                 var result = json.FromJSONArray<TraktV2SearchShowResult>();
                 if (result == null) return null;
@@ -1071,7 +1072,7 @@ namespace JMMServer.Providers.TraktTV
                 // Search for a series
                 string json = GetFromTrakt(url);
 
-                if (json.Trim().Length == 0) return new List<TraktV2SearchTvDBIDShowResult>();
+                if (string.IsNullOrEmpty(json)) return new List<TraktV2SearchTvDBIDShowResult>();
 
                 //var result2 = json.FromJSONArray<Class1>();
                 var result = json.FromJSONArray<TraktV2SearchTvDBIDShowResult>();
@@ -1087,12 +1088,15 @@ namespace JMMServer.Providers.TraktTV
             return null;
         }
 
-        public static TraktV2ShowExtended GetShowInfoV2(int tvDBID)
-        {
-            return GetShowInfoV2(tvDBID.ToString());
-        }
+        
 
         public static TraktV2ShowExtended GetShowInfoV2(string traktID)
+        {
+            int traktCode = TraktStatusCodes.Success;
+            return GetShowInfoV2(traktID, ref traktCode);
+        }
+
+        public static TraktV2ShowExtended GetShowInfoV2(string traktID, ref int traktCode)
         {
             TraktV2ShowExtended resultShow = null;
 
@@ -1105,9 +1109,9 @@ namespace JMMServer.Providers.TraktTV
                 logger.Trace("GetShowInfo: {0}", url);
 
                 // Search for a series
-                string json = GetFromTrakt(url);
-
-                if (json.Trim().Length == 0) return null;
+                string json = GetFromTrakt(url, ref traktCode);
+                
+                if (string.IsNullOrEmpty(json)) return null;
 
                 resultShow = json.FromJSON<TraktV2ShowExtended>();
                 if (resultShow == null) return null;
@@ -1118,7 +1122,7 @@ namespace JMMServer.Providers.TraktTV
                 json = GetFromTrakt(url);
 
                 List<TraktV2Season> seasons = new List<TraktV2Season>();
-                if (json.Trim().Length > 0)
+                if (!string.IsNullOrEmpty(json))
                 {
                     var resultSeasons = json.FromJSONArray<TraktV2Season>();
                     if (resultShow != null)
@@ -1298,7 +1302,7 @@ namespace JMMServer.Providers.TraktTV
 
                         string json = GetFromTrakt(url);
 
-                        if (json.Trim().Length == 0)
+                        if (string.IsNullOrEmpty(json))
                             return null;
 
                         var resultComments = json.FromJSONArray<TraktV2Comment>();
@@ -1341,7 +1345,7 @@ namespace JMMServer.Providers.TraktTV
                 logger.Trace("GetFollowers: {0}", url);
 
                 string json = GetFromTrakt(url);
-                if (json.Trim().Length == 0) return null;
+                if (string.IsNullOrEmpty(json)) return null;
 
                 var resultFollowers = json.FromJSONArray<TraktV2Follower>();
 
@@ -1363,7 +1367,7 @@ namespace JMMServer.Providers.TraktTV
                     logger.Trace("GetUserHistory: {0}", url);
 
                     json = GetFromTrakt(url);
-                    if (json.Trim().Length == 0) continue;
+                    if (string.IsNullOrEmpty(json)) continue;
 
                     var resultHistory = json.FromJSONArray<TraktV2UserEpisodeHistory>();
 
@@ -1429,7 +1433,7 @@ namespace JMMServer.Providers.TraktTV
                 // Search for a series
                 string json = GetFromTrakt(url, ref traktCode);
 
-                if (json.Trim().Length == 0) return null;
+                if (string.IsNullOrEmpty(json)) return null;
 
                 var result = json.FromJSONArray<TraktV2ShowWatchedResult>();
                 if (result == null) return null;
@@ -1459,7 +1463,9 @@ namespace JMMServer.Providers.TraktTV
                 // Search for a series
                 string json = GetFromTrakt(url, ref traktCode);
 
-                if (json.Trim().Length == 0) return null;
+                if (string.IsNullOrEmpty(json)) return null;
+
+                
 
                 var result = json.FromJSONArray<TraktV2ShowCollectedResult>();
                 if (result == null) return null;
@@ -1518,7 +1524,7 @@ namespace JMMServer.Providers.TraktTV
                 {
                     if (ep.EpisodeTypeEnum == enEpisodeType.Episode || ep.EpisodeTypeEnum == enEpisodeType.Special)
                     {
-                        ReconSyncTraktEpisode(series, ep, traktSummary, traktUsers, collected, watched);
+                        ReconSyncTraktEpisode(series, ep, traktSummary, traktUsers, collected, watched, true);
                     }
                 }
             }
@@ -1548,7 +1554,10 @@ namespace JMMServer.Providers.TraktTV
 
                 if (!GetTraktCollectionInfo(ref collected, ref watched)) return;
 
-
+                TraktV2SyncCollectionEpisodesByNumber syncCollectionAdd = new TraktV2SyncCollectionEpisodesByNumber();
+                TraktV2SyncCollectionEpisodesByNumber syncCollectionRemove = new TraktV2SyncCollectionEpisodesByNumber();
+                TraktV2SyncWatchedEpisodesByNumber syncHistoryAdd = new TraktV2SyncWatchedEpisodesByNumber();
+                TraktV2SyncWatchedEpisodesByNumber syncHistoryRemove = new TraktV2SyncWatchedEpisodesByNumber();
 
                 #region Local Collection Sync
 
@@ -1561,10 +1570,12 @@ namespace JMMServer.Providers.TraktTV
                 foreach (AnimeSeries series in allSeries)
                 {
                     counter++;
-                    logger.Trace("Syncing local collection: {0} / {1} - {2}", counter, allSeries.Count, series.GetSeriesName());
+                    logger.Trace("Syncing check -  local collection: {0} / {1} - {2}", counter, allSeries.Count, series.GetSeriesName());
 
                     AniDB_Anime anime = repAnime.GetByAnimeID(series.AniDB_ID);
-                    if (anime == null) return;
+                    if (anime == null) continue;
+
+                    //if (anime.AnimeID != 3427) continue;
 
                     TraktSummaryContainer traktSummary = new TraktSummaryContainer();
                     traktSummary.Populate(series.AniDB_ID);
@@ -1576,8 +1587,21 @@ namespace JMMServer.Providers.TraktTV
                     {
                         if (ep.EpisodeTypeEnum == enEpisodeType.Episode || ep.EpisodeTypeEnum == enEpisodeType.Special)
                         {
-                            ReconSyncTraktEpisode(series, ep, traktSummary, traktUsers, collected, watched);
-
+                            EpisodeSyncDetails epsync = ReconSyncTraktEpisode(series, ep, traktSummary, traktUsers, collected, watched, false);
+                            if (epsync != null)
+                            {
+                                switch (epsync.SyncType)
+                                {
+                                    case TraktSyncType.CollectionAdd:
+                                        syncCollectionAdd.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                    case TraktSyncType.CollectionRemove:
+                                        syncCollectionRemove.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                    case TraktSyncType.HistoryAdd:
+                                        syncHistoryAdd.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                    case TraktSyncType.HistoryRemove:
+                                        syncHistoryRemove.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                }
+                            }
                         }
                     }
                 }
@@ -1597,7 +1621,8 @@ namespace JMMServer.Providers.TraktTV
                 foreach (TraktV2ShowCollectedResult col in collected)
                 {
                     counter++;
-                    logger.Trace("Syncing Online collection: {0} / {1} - {2}", counter, collected.Count, col.show.Title);
+                    logger.Trace("Syncing check - Online collection: {0} / {1} - {2}", counter, collected.Count, col.show.Title);
+                    //continue;
 
                     // check if we have this series locally
                     List<CrossRef_AniDB_TraktV2> xrefs = repCrossRef.GetByTraktID(col.show.ids.slug);
@@ -1618,7 +1643,21 @@ namespace JMMServer.Providers.TraktTV
                             {
                                 if (ep.EpisodeTypeEnum == enEpisodeType.Episode || ep.EpisodeTypeEnum == enEpisodeType.Special)
                                 {
-                                    ReconSyncTraktEpisode(locSeries, ep, traktSummary, traktUsers, collected, watched);
+                                    EpisodeSyncDetails epsync = ReconSyncTraktEpisode(locSeries, ep, traktSummary, traktUsers, collected, watched, false);
+                                    if (epsync != null)
+                                    {
+                                        switch (epsync.SyncType)
+                                        {
+                                            case TraktSyncType.CollectionAdd:
+                                                syncCollectionAdd.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                            case TraktSyncType.CollectionRemove:
+                                                syncCollectionRemove.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                            case TraktSyncType.HistoryAdd:
+                                                syncHistoryAdd.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                            case TraktSyncType.HistoryRemove:
+                                                syncHistoryRemove.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                        }
+                                    }
                                 }
                             }
                             
@@ -1659,7 +1698,8 @@ namespace JMMServer.Providers.TraktTV
                 foreach (TraktV2ShowWatchedResult wtch in watched)
                 {
                     counter++;
-                    logger.Trace("Syncing Online History: {0} / {1} - {2}", counter, watched.Count, wtch.show.Title);
+                    logger.Trace("Syncing check - Online History: {0} / {1} - {2}", counter, watched.Count, wtch.show.Title);
+                    //continue;
 
                     // check if we have this series locally
                     List<CrossRef_AniDB_TraktV2> xrefs = repCrossRef.GetByTraktID(wtch.show.ids.slug);
@@ -1680,7 +1720,21 @@ namespace JMMServer.Providers.TraktTV
                             {
                                 if (ep.EpisodeTypeEnum == enEpisodeType.Episode || ep.EpisodeTypeEnum == enEpisodeType.Special)
                                 {
-                                    ReconSyncTraktEpisode(locSeries, ep, traktSummary, traktUsers, collected, watched);
+                                    EpisodeSyncDetails epsync = ReconSyncTraktEpisode(locSeries, ep, traktSummary, traktUsers, collected, watched, false);
+                                    if (epsync != null)
+                                    {
+                                        switch (epsync.SyncType)
+                                        {
+                                            case TraktSyncType.CollectionAdd:
+                                                syncCollectionAdd.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                            case TraktSyncType.CollectionRemove:
+                                                syncCollectionRemove.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                            case TraktSyncType.HistoryAdd:
+                                                syncHistoryAdd.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                            case TraktSyncType.HistoryRemove:
+                                                syncHistoryRemove.AddEpisode(epsync.Slug, epsync.Season, epsync.EpNumber, epsync.EpDate); break;
+                                        }
+                                    }
                                 }
                             }
 
@@ -1708,6 +1762,47 @@ namespace JMMServer.Providers.TraktTV
 
                 #endregion
 
+                // send the data to Trakt
+                string json = string.Empty;
+                string url = TraktURIs.SyncCollectionAdd;
+                string retData = string.Empty;
+
+                if (syncCollectionAdd.shows != null && syncCollectionAdd.shows.Count > 0)
+                {
+                    json = JSONHelper.Serialize<TraktV2SyncCollectionEpisodesByNumber>(syncCollectionAdd);
+                    url = TraktURIs.SyncCollectionAdd;
+                    retData = string.Empty;
+                    SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
+                }
+
+                if (syncCollectionRemove.shows != null && syncCollectionRemove.shows.Count > 0)
+                {
+                    json = JSONHelper.Serialize<TraktV2SyncCollectionEpisodesByNumber>(syncCollectionRemove);
+                    url = TraktURIs.SyncCollectionRemove;
+                    retData = string.Empty;
+                    SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
+                }
+
+                if (syncHistoryAdd.shows != null && syncHistoryAdd.shows.Count > 0)
+                {
+                    json = JSONHelper.Serialize<TraktV2SyncWatchedEpisodesByNumber>(syncHistoryAdd);
+                    url = TraktURIs.SyncHistoryAdd;
+                    retData = string.Empty;
+                    SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
+                }
+
+                if (syncHistoryRemove.shows != null && syncHistoryRemove.shows.Count > 0)
+                {
+                    json = JSONHelper.Serialize<TraktV2SyncWatchedEpisodesByNumber>(syncHistoryRemove);
+                    url = TraktURIs.SyncHistoryRemove;
+                    retData = string.Empty;
+                    SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
+                }
+                
+
+
+                logger.Trace("Test");
+
             }
             catch (Exception ex)
             {
@@ -1715,8 +1810,104 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
-        private static void ReconSyncTraktEpisode(AnimeSeries ser, AnimeEpisode ep, TraktSummaryContainer traktSummary, List<JMMUser> traktUsers,
-            List<TraktV2ShowCollectedResult> collected, List<TraktV2ShowWatchedResult> watched)
+        public static bool CheckTraktValidity(string slug, bool removeDBEntries)
+        {
+            try
+            {
+                // get all the shows from the database and make sure they are still valid Trakt Slugs
+                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+                Trakt_Show show = repShows.GetByTraktSlug(slug);
+
+                // let's check if we can get this show on Trakt
+                int traktCode = TraktStatusCodes.Success;
+
+                // note - getting extended show info also updates it as well
+                TraktV2ShowExtended showOnline = GetShowInfoV2(show.TraktID, ref traktCode);
+                if (showOnline == null && traktCode == TraktStatusCodes.Not_Found)
+                {
+                    if (removeDBEntries)
+                    {
+                        logger.Info("TRAKT_CLEANUP: Could not find '{0}' on Trakt so starting removal from database", show.TraktID);
+                        RemoveTraktDBEntries(show);
+                    }
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.CleanupDatabase: " + ex.ToString(), ex);
+                return false;
+            }
+        }
+
+        public static void RemoveTraktDBEntries(Trakt_Show show)
+        {
+            Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+            CrossRef_AniDB_TraktV2Repository repXRefs = new CrossRef_AniDB_TraktV2Repository();
+            Trakt_ImageFanartRepository repFanart = new Trakt_ImageFanartRepository();
+            Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
+            Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
+            Trakt_ImagePosterRepository repPosters = new Trakt_ImagePosterRepository();
+
+            // this means Trakt has no record of this slug.
+            // 1. Delete any cross ref links
+            foreach (CrossRef_AniDB_TraktV2 xref in repXRefs.GetByTraktID(show.TraktID))
+                repXRefs.Delete(xref.CrossRef_AniDB_TraktV2ID);
+
+            // 2. Delete default image links
+
+            // 3. Delete episodes
+            foreach (Trakt_Episode epTemp in repEpisodes.GetByShowID(show.Trakt_ShowID))
+                repEpisodes.Delete(epTemp.Trakt_EpisodeID);
+
+            // 4. Delete fanart and posters
+            foreach (Trakt_ImageFanart fanart in repFanart.GetByShowID(show.Trakt_ShowID))
+                repFanart.Delete(fanart.Trakt_ImageFanartID);
+
+            foreach (Trakt_ImagePoster poster in repPosters.GetByShowID(show.Trakt_ShowID))
+                repPosters.Delete(poster.Trakt_ImagePosterID);
+
+            // 5. Delete seasons
+            foreach (Trakt_Season season in repSeasons.GetByShowID(show.Trakt_ShowID))
+                repSeasons.Delete(season.Trakt_SeasonID);
+
+            // 6. Delete the show
+            repShows.Delete(show.Trakt_ShowID);
+        }
+
+        public static void CleanupDatabase()
+        {
+            try
+            {
+                // get all the shows from the database and make sure they are still valid Trakt Slugs
+                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+                
+
+                foreach (Trakt_Show show in repShows.GetAll())
+                {
+                    // let's check if we can get this show on Trakt
+                    int traktCode = TraktStatusCodes.Success;
+
+                    // note - getting extended show info also updates as well
+                    TraktV2ShowExtended showOnline = GetShowInfoV2(show.TraktID, ref traktCode);
+                    if (showOnline == null && traktCode == TraktStatusCodes.Not_Found)
+                    {
+                        logger.Info("TRAKT_CLEANUP: Could not find '{0}' on Trakt so starting removal from database", show.TraktID);
+                        RemoveTraktDBEntries(show);
+
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.CleanupDatabase: " + ex.ToString(), ex);
+            }
+        }
+
+        private static EpisodeSyncDetails ReconSyncTraktEpisode(AnimeSeries ser, AnimeEpisode ep, TraktSummaryContainer traktSummary, List<JMMUser> traktUsers,
+            List<TraktV2ShowCollectedResult> collected, List<TraktV2ShowWatchedResult> watched, bool sendNow)
         {
             try
             {
@@ -1726,7 +1917,7 @@ namespace JMMServer.Providers.TraktTV
                 int epNumber = -1;
 
                 GetTraktEpisodeIdV2(ep, ref traktShowID, ref season, ref epNumber);
-                if (string.IsNullOrEmpty(traktShowID) || season < 0 || epNumber < 0) return;
+                if (string.IsNullOrEmpty(traktShowID) || season < 0 || epNumber < 0) return null;
 
                 // get the current collected records for this series on Trakt
                 TraktV2CollectedEpisode epTraktCol = null;
@@ -1792,7 +1983,10 @@ namespace JMMServer.Providers.TraktTV
                         string msg = string.Format("SYNC LOCAL: Adding to Trakt Collection:  Slug: {0} - S:{1} - EP:{2}", traktShowID, season, epNumber);
                         logger.Trace(msg);
                         DateTime epDate = GetEpisodeDateForSync(ep, TraktSyncType.CollectionAdd);
-                        SyncEpisodeToTrakt(TraktSyncType.CollectionAdd, traktShowID, season, epNumber, epDate, false);
+                        if (sendNow)
+                            SyncEpisodeToTrakt(TraktSyncType.CollectionAdd, traktShowID, season, epNumber, epDate, false);
+                        else
+                            return new EpisodeSyncDetails(TraktSyncType.CollectionAdd, traktShowID, season, epNumber, epDate);
                     }
                 }
                 else
@@ -1803,7 +1997,10 @@ namespace JMMServer.Providers.TraktTV
                         string msg = string.Format("SYNC LOCAL: Removing from Trakt Collection:  Slug: {0} - S:{1} - EP:{2}", traktShowID, season, epNumber);
                         logger.Trace(msg);
                         DateTime epDate = GetEpisodeDateForSync(ep, TraktSyncType.CollectionRemove);
-                        SyncEpisodeToTrakt(TraktSyncType.CollectionRemove, traktShowID, season, epNumber, epDate, false);
+                        if (sendNow)
+                            SyncEpisodeToTrakt(TraktSyncType.CollectionRemove, traktShowID, season, epNumber, epDate, false);
+                        else
+                            return new EpisodeSyncDetails(TraktSyncType.CollectionRemove, traktShowID, season, epNumber, epDate);
                     }
 
                 }
@@ -1817,7 +2014,10 @@ namespace JMMServer.Providers.TraktTV
                         string msg = string.Format("SYNC LOCAL: Adding to Trakt History:  Slug: {0} - S:{1} - EP:{2}", traktShowID, season, epNumber);
                         logger.Trace(msg);
                         DateTime epDate = GetEpisodeDateForSync(ep, TraktSyncType.HistoryAdd);
-                        SyncEpisodeToTrakt(TraktSyncType.HistoryAdd, traktShowID, season, epNumber, epDate, false);
+                        if (sendNow)
+                            SyncEpisodeToTrakt(TraktSyncType.HistoryAdd, traktShowID, season, epNumber, epDate, false);
+                        else
+                            return new EpisodeSyncDetails(TraktSyncType.HistoryAdd, traktShowID, season, epNumber, epDate);
                     }
                 }
                 else
@@ -1828,14 +2028,20 @@ namespace JMMServer.Providers.TraktTV
                         string msg = string.Format("SYNC LOCAL: Removing from Trakt History:  Slug: {0} - S:{1} - EP:{2}", traktShowID, season, epNumber);
                         logger.Trace(msg);
                         DateTime epDate = GetEpisodeDateForSync(ep, TraktSyncType.HistoryRemove);
-                        SyncEpisodeToTrakt(TraktSyncType.HistoryRemove, traktShowID, season, epNumber, epDate, false);
+                        if (sendNow)
+                            SyncEpisodeToTrakt(TraktSyncType.HistoryRemove, traktShowID, season, epNumber, epDate, false);
+                        else
+                            return new EpisodeSyncDetails(TraktSyncType.HistoryRemove, traktShowID, season, epNumber, epDate);
                     }
 
                 }
+
+                return null;
             }
             catch (Exception ex)
             {
                 logger.ErrorException("Error in TraktTVHelper.SyncTraktEpisode: " + ex.ToString(), ex);
+                return null;
             }
         }
 
@@ -1875,6 +2081,35 @@ namespace JMMServer.Providers.TraktTV
                 logger.ErrorException("Error in TraktTVHelper.GetTraktCollectionInfo: " + ex.ToString(), ex);
                 return false;
             }
+        }
+
+    }
+
+    public class EpisodeSyncDetails
+    {
+        //TraktSyncType syncType, string slug, int season, int epNumber, DateTime epDate
+        public TraktSyncType SyncType { get; set; }
+
+        public string Slug { get; set; }
+
+        public int Season { get; set; }
+
+        public int EpNumber { get; set; }
+
+        public DateTime EpDate { get; set; }
+
+        public EpisodeSyncDetails()
+        {
+
+        }
+
+        public EpisodeSyncDetails(TraktSyncType syncType, string slug, int season, int epNumber, DateTime epDate)
+        {
+            SyncType = syncType;
+            Slug = slug;
+            Season = season;
+            EpNumber = epNumber;
+            EpDate = epDate;
         }
     }
 }

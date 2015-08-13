@@ -690,7 +690,24 @@ namespace JMMServer.Providers.Azure
 
         #endregion
 
-        #region Admin
+        #region Admin - General
+
+        public static string Admin_AuthUser()
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, ServerSettings.WebCacheAuthKey);
+            //string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, "");
+            string json = string.Empty;
+
+            return SendData(uri, json, "POST");
+        }
+
+        #endregion
+
+        #region Admin - TvDB
 
 
         public static List<CrossRef_AniDB_TvDB> Admin_Get_CrossRefAniDBTvDB(int animeID)
@@ -734,26 +751,70 @@ namespace JMMServer.Providers.Azure
             return SendData(uri, json, "PUT");
         }
 
-        public static string Admin_AuthUser()
+        public static Azure_AnimeLink Admin_GetRandomTvDBLinkForApproval()
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 username = Constants.AnonWebCacheUsername;
 
-            string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, ServerSettings.WebCacheAuthKey);
-            //string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, "");
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}&p3=dummy", azureHostBaseAddress, (int)AzureLinkType.TvDB, username, ServerSettings.WebCacheAuthKey);
+            string json = GetDataJson(uri);
+
+            return JSONHelper.Deserialize<Azure_AnimeLink>(json);
+        }
+
+        #endregion
+
+        #region Admin - Trakt
+
+        public static List<CrossRef_AniDB_Trakt> Admin_Get_CrossRefAniDBTrakt(int animeID)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}", azureHostBaseAddress, animeID, username, ServerSettings.WebCacheAuthKey);
+            string msg = string.Format("Getting AniDB/Trakt Cross Ref From Cache: {0}", animeID);
+
+            string json = GetDataJson(uri);
+
+            List<CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_Trakt>>(json);
+
+            return xrefs;
+        }
+
+        public static string Admin_Approve_CrossRefAniDBTrakt(int crossRef_AniDB_TraktId)
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}", azureHostBaseAddress, crossRef_AniDB_TraktId, username, ServerSettings.WebCacheAuthKey);
             string json = string.Empty;
 
             return SendData(uri, json, "POST");
         }
 
-        public static Azure_AnimeLink Admin_GetRandomLinkForApproval(AzureLinkType linkType)
+        public static string Admin_Revoke_CrossRefAniDBTrakt(int crossRef_AniDB_TraktId)
         {
             string username = ServerSettings.AniDB_Username;
             if (ServerSettings.WebCache_Anonymous)
                 username = Constants.AnonWebCacheUsername;
 
-            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}&p3=dummy", azureHostBaseAddress, (int)linkType, username, ServerSettings.WebCacheAuthKey);
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}", azureHostBaseAddress, crossRef_AniDB_TraktId, username, ServerSettings.WebCacheAuthKey);
+            string json = string.Empty;
+
+            return SendData(uri, json, "PUT");
+        }
+
+        public static Azure_AnimeLink Admin_GetRandomTraktLinkForApproval()
+        {
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}&p3=dummy", azureHostBaseAddress, (int)AzureLinkType.Trakt, username, ServerSettings.WebCacheAuthKey);
             string json = GetDataJson(uri);
 
             return JSONHelper.Deserialize<Azure_AnimeLink>(json);

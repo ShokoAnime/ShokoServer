@@ -45,7 +45,8 @@ namespace JMMServer.Commands.Azure
 			try
 			{
 				bool process = (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-					ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
+					ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase) ||
+                    ServerSettings.AniDB_Username.Equals("jmmtesting", StringComparison.InvariantCultureIgnoreCase));
 
 				if (!process) return;
 
@@ -53,7 +54,7 @@ namespace JMMServer.Commands.Azure
 				AniDB_Anime anime = rep.GetByAnimeID(AnimeID);
 				if (anime == null) return;
 
-				if (anime.AllCategories.ToUpper().Contains("18 RESTRICTED")) return;
+				if (anime.AllTags.ToUpper().Contains("18 RESTRICTED")) return;
 
 				AzureWebAPI.Send_AnimeFull(anime);
 			}

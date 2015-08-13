@@ -22,6 +22,8 @@ namespace JMMServer.Providers.Azure
         public int IsAdminApproved { get; set; }
         public long DateSubmitted { get; set; }
 
+        public int? CrossRef_AniDB_TraktId { get; set; }
+
         public CrossRef_AniDB_Trakt()
 		{
 		}
@@ -30,6 +32,7 @@ namespace JMMServer.Providers.Azure
         {
             Contract_Azure_CrossRef_AniDB_Trakt ret = new Contract_Azure_CrossRef_AniDB_Trakt();
 
+            ret.CrossRef_AniDB_TraktId = CrossRef_AniDB_TraktId;
             ret.AnimeID = AnimeID;
             ret.AnimeName = AnimeName;
             ret.AniDBStartEpisodeType = AniDBStartEpisodeType;

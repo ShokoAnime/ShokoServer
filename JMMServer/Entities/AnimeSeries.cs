@@ -699,7 +699,10 @@ namespace JMMServer.Entities
 	    private static void InternalUpdaterAction(int ser, ParInfo parameters)
 	    {
 	        AnimeSeriesRepository repo = new AnimeSeriesRepository();
-            repo.GetByID(ser).InmediateUpdateStats(parameters.WatchedStats, parameters.MissingEpsStats, parameters.AllGroupsAbove);
+            AnimeSeries series = repo.GetByID(ser);
+            if (series == null) return;
+
+            series.InmediateUpdateStats(parameters.WatchedStats, parameters.MissingEpsStats, parameters.AllGroupsAbove);
 	    }
 
 	    private static ParInfo InternalUpdaterUpdate(ParInfo original, ParInfo update)

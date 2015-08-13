@@ -652,10 +652,12 @@ namespace JMMServer
 			get
 			{
 				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				bool usecache = false;
-				bool.TryParse(appSettings["WebCache_TvDB_Get"], out usecache);
-				return usecache;
-			}
+				bool usecache = true;
+				if (bool.TryParse(appSettings["WebCache_TvDB_Get"], out usecache))
+				    return usecache;
+                else
+                    return true; // default
+            }
 			set
 			{
 				UpdateSetting("WebCache_TvDB_Get", value.ToString());
@@ -667,10 +669,12 @@ namespace JMMServer
 			get
 			{
 				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				bool usecache = false;
-				bool.TryParse(appSettings["WebCache_TvDB_Send"], out usecache);
-				return usecache;
-			}
+				bool usecache = true;
+				if (bool.TryParse(appSettings["WebCache_TvDB_Send"], out usecache))
+				    return usecache;
+                else
+                    return true; // default
+            }
 			set
 			{
 				UpdateSetting("WebCache_TvDB_Send", value.ToString());
@@ -682,9 +686,11 @@ namespace JMMServer
             get
             {
                 NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                bool usecache = false;
-                bool.TryParse(appSettings["WebCache_Trakt_Get"], out usecache);
-                return usecache;
+                bool usecache = true;
+                if (bool.TryParse(appSettings["WebCache_Trakt_Get"], out usecache))
+                    return usecache;
+                else
+                    return true; // default
             }
             set
             {
@@ -697,9 +703,11 @@ namespace JMMServer
             get
             {
                 NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                bool usecache = false;
-                bool.TryParse(appSettings["WebCache_Trakt_Send"], out usecache);
-                return usecache;
+                bool usecache = true;
+                if (bool.TryParse(appSettings["WebCache_Trakt_Send"], out usecache))
+                    return usecache;
+                else
+                    return true; // default
             }
             set
             {
@@ -712,7 +720,7 @@ namespace JMMServer
 			get
 			{
 				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				bool usecache = false;
+				bool usecache = true;
 				if (bool.TryParse(appSettings["WebCache_MAL_Get"], out usecache))
 					return usecache;
 				else
@@ -729,7 +737,7 @@ namespace JMMServer
 			get
 			{
 				NameValueCollection appSettings = ConfigurationManager.AppSettings;
-				bool usecache = false;
+				bool usecache = true;
 				if (bool.TryParse(appSettings["WebCache_MAL_Send"], out usecache))
 					return usecache;
 				else

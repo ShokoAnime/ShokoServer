@@ -39,7 +39,24 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public Trakt_Show GetByTraktSlug(ISession session, string slug)
+        public List<Trakt_Show> GetAll()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return GetAll(session);
+            }
+        }
+
+        public List<Trakt_Show> GetAll(ISession session)
+        {
+            var objs = session
+                .CreateCriteria(typeof(Trakt_Show))
+                .List<Trakt_Show>();
+
+            return new List<Trakt_Show>(objs);
+        }
+
+        public Trakt_Show GetByTraktSlug(ISession session, string slug)
 		{
 			Trakt_Show cr = session
 				.CreateCriteria(typeof(Trakt_Show))

@@ -32,6 +32,70 @@ namespace JMMServer.Providers.TraktTV.Contracts
             shows[0].seasons[0].episodes[0].number = episodeNumber;
             shows[0].seasons[0].episodes[0].watched_at = watchedDate.ToUniversalTime().ToString("s") + "Z";
         }
+
+        public void AddEpisode(string slug, int season, int episodeNumber, DateTime watchedDate)
+        {
+            if (shows == null)
+                shows = new List<TraktV2ShowWatchedPostByNumber>();
+
+            TraktV2ShowWatchedPostByNumber thisShow = null;
+            foreach (TraktV2ShowWatchedPostByNumber shw in shows)
+            {
+                if (shw.ids.slug.Equals(slug, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    thisShow = shw;
+                    break;
+                }
+            }
+            if (thisShow == null)
+            {
+                thisShow = new TraktV2ShowWatchedPostByNumber();
+                thisShow.ids = new TraktV2IdsWatchedByNumber();
+                thisShow.ids.slug = slug;
+
+                thisShow.seasons = new List<TaktV2SeasonWatchedPostByNumber>();
+                //thisShow.seasons.Add(new TaktV2SeasonWatchedPostByNumber());
+                //thisShow.seasons[0].number = season;
+
+                //thisShow.seasons[0].episodes = new List<TraktV2EpisodeWatchedPostByNumber>();
+
+                shows.Add(thisShow);
+            }
+
+            TaktV2SeasonWatchedPostByNumber thisSeason = null;
+            foreach (TaktV2SeasonWatchedPostByNumber sea in thisShow.seasons)
+            {
+                if (sea.number == season)
+                {
+                    thisSeason = sea;
+                    break;
+                }
+            }
+            if (thisSeason == null)
+            {
+                thisSeason = new TaktV2SeasonWatchedPostByNumber();
+                thisSeason.number = season;
+                thisSeason.episodes = new List<TraktV2EpisodeWatchedPostByNumber>();
+                thisShow.seasons.Add(thisSeason);
+            }
+
+            TraktV2EpisodeWatchedPostByNumber thisEp = null;
+            foreach (TraktV2EpisodeWatchedPostByNumber ep in thisSeason.episodes)
+            {
+                if (ep.number == episodeNumber)
+                {
+                    thisEp = ep;
+                    break;
+                }
+            }
+            if (thisEp == null)
+            {
+                thisEp = new TraktV2EpisodeWatchedPostByNumber();
+                thisEp.number = episodeNumber;
+                thisEp.watched_at = watchedDate.ToUniversalTime().ToString("s") + "Z";
+                thisSeason.episodes.Add(thisEp);
+            }
+        }
     }
 
     [DataContract]

@@ -11,6 +11,18 @@ namespace JMMContracts
 	public interface IJMMServer
 	{
         [OperationContract]
+        string UseMyTraktLinksWebCache(int animeID);
+
+        [OperationContract]
+        string UseMyTvDBLinksWebCache(int animeID);
+
+        [OperationContract]
+        List<Contract_CrossRef_AniDB_TraktV2> GetAllTraktCrossRefs();
+
+        [OperationContract]
+        bool CheckTraktLinkValidity(string slug, bool removeDBEntries);
+
+        [OperationContract]
         Contract_Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType);
 
         [OperationContract]
@@ -379,9 +391,16 @@ namespace JMMContracts
         List<Contract_Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID);
 
         [OperationContract]
-        List<Contract_Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID);
+        List<Contract_Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin);
 
-		[OperationContract]
+        [OperationContract]
+        string ApproveTraktCrossRefWebCache(int crossRef_AniDB_TraktId);
+
+        [OperationContract]
+        string RevokeTraktCrossRefWebCache(int crossRef_AniDB_TraktId);
+
+
+        [OperationContract]
 		List<Contract_CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID);
 
         [OperationContract]

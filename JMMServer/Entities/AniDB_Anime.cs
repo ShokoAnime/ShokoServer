@@ -1940,7 +1940,8 @@ namespace JMMServer.Entities
 			contract.Shouts = new List<Providers.Azure.AnimeShout>();
 
 			contract.Detail.AllTags = this.TagsString;
-			contract.Detail.AnimeID = this.AnimeID;
+            contract.Detail.AllCategories = this.TagsString;
+            contract.Detail.AnimeID = this.AnimeID;
 			contract.Detail.AnimeName = this.MainTitle;
 			contract.Detail.AnimeType = this.AnimeTypeDescription;
 			contract.Detail.Description = this.Description;

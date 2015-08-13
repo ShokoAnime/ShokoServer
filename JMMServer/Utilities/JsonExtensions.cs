@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using NLog;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,6 +12,8 @@ namespace JMMServer.Utilities
 {
     public static class JsonExtensions
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         /// <summary>
         /// Creates a list based on a JSON Array
         /// </summary>
@@ -20,9 +24,33 @@ namespace JMMServer.Utilities
         {
             if (string.IsNullOrEmpty(jsonArray)) return new List<T>();
 
+            
+
             try
             {
-                using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(jsonArray)))
+                /*var settings = new JsonSerializerSettings
+                {
+                    Error = (sender, args) =>
+                    {
+                        if (System.Diagnostics.Debugger.IsAttached)
+                        {
+                            System.Diagnostics.Debugger.Break();
+                        }
+                    }
+                };*/
+
+                //var result = JsonConvert.DeserializeObject<IEnumerable<T>>(jsonArray, settings);
+                var result = JsonConvert.DeserializeObject<IEnumerable<T>>(jsonArray);
+                if (result == null)
+                {
+                    return new List<T>();
+                }
+                else
+                {
+                    return result;
+                }
+
+                /*using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(jsonArray)))
                 {
                     var ser = new DataContractJsonSerializer(typeof(IEnumerable<T>));
                     var result = (IEnumerable<T>)ser.ReadObject(ms);
@@ -35,10 +63,11 @@ namespace JMMServer.Utilities
                     {
                         return result;
                     }
-                }
+                }*/
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.ErrorException("Error in Serialization: " + ex.ToString(), ex);
                 return new List<T>();
             }
         }
@@ -55,11 +84,14 @@ namespace JMMServer.Utilities
 
             try
             {
-                using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(json.ToCharArray())))
+                var ser = JsonConvert.DeserializeObject<T>(json);
+                return ser;
+
+                /*using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(json.ToCharArray())))
                 {
                     var ser = new DataContractJsonSerializer(typeof(T));
                     return (T)ser.ReadObject(ms);
-                }
+                }*/
             }
             catch (Exception ex)
             {

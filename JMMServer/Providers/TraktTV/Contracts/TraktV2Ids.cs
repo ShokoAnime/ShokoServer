@@ -17,7 +17,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
         public string slug { get; set; }
 
         [DataMember(Name = "tvdb")]
-        public int tvdb { get; set; }
+        public int? tvdb { get; set; }
 
         [DataMember(Name = "imdb")]
         public string imdb { get; set; }
