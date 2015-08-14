@@ -11,6 +11,9 @@ namespace JMMContracts
 	public interface IJMMServer
 	{
         [OperationContract]
+        Contract_AnimeEpisode GetLastWatchedEpisodeForSeries(int animeSeriesID, int jmmuserID);
+
+        [OperationContract]
         string UseMyTraktLinksWebCache(int animeID);
 
         [OperationContract]

@@ -7101,14 +7101,44 @@ namespace JMMServer
 			return retSeries;
 		}
 
+        public Contract_AnimeEpisode GetLastWatchedEpisodeForSeries(int animeSeriesID, int jmmuserID)
+        {
+            try
+            {
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+                    AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
+                    JMMUserRepository repUsers = new JMMUserRepository();
 
-		/// <summary>
-		/// Delete a series, and everything underneath it (episodes, files)
-		/// </summary>
-		/// <param name="animeSeriesID"></param>
-		/// <param name="deleteFiles">also delete the physical files</param>
-		/// <returns></returns>
-		public string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup)
+                    JMMUser user = repUsers.GetByID(session, jmmuserID);
+                    if (user == null) return null;
+
+                    List<AnimeEpisode_User> userRecords = repEpUser.GetLastWatchedEpisodeForSeries(session, animeSeriesID, jmmuserID);
+                    if (userRecords == null || userRecords.Count == 0) return null;
+
+                    AnimeEpisode ep = repEps.GetByID(session, userRecords[0].AnimeEpisodeID);
+                    if (ep == null) return null;
+
+                    return ep.ToContract(session, jmmuserID);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+
+            return null;
+        }
+
+
+        /// <summary>
+        /// Delete a series, and everything underneath it (episodes, files)
+        /// </summary>
+        /// <param name="animeSeriesID"></param>
+        /// <param name="deleteFiles">also delete the physical files</param>
+        /// <returns></returns>
+        public string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup)
 		{
 			try
 			{
