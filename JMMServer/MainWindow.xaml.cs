@@ -1244,23 +1244,6 @@ namespace JMMServer
             //CommandRequest_ReadMediaInfo cr2 = new CommandRequest_ReadMediaInfo(2037);
             //cr2.Save();
 
-            /*AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-			foreach (AniDB_Anime anime in repAnime.GetAll())
-			{
-				List<TraktTV_ShoutGet> shouts = TraktTVHelper.GetShowShouts(anime.AnimeID);
-				if (shouts == null || shouts.Count == 0)
-				{
-					//logger.Info("{0} ({1}) = 0 Shouts", anime.MainTitle, anime.AnimeID);
-				}
-				else
-				{
-					if (shouts.Count <= 5)
-						logger.Info("{0} ({1}) = {2} MINOR Shouts", anime.MainTitle, anime.AnimeID, shouts.Count);
-					else
-						logger.Info("{0} ({1}) = {2} *** MAJOR *** Shouts", anime.MainTitle, anime.AnimeID, shouts.Count);
-				}
-			}*/
-
             //anime temp = MALHelper.SearchAnimesByTitle("Naruto");
             //MALHelper.VerifyCredentials();
 
@@ -1405,7 +1388,7 @@ namespace JMMServer
 
             // trinity-seven - 10441
             //TraktV2ShowExtended show = TraktTVHelper.GetShowInfoV2("madan-no-ou-to-vanadis");
-            //TraktTVHelper.GetShowShoutsV2(8660);
+            //TraktTVHelper.GetShowCommentsV2(8660);
             //TraktTVHelper.GetFriendsV2();
             //TraktTVHelper.RefreshAuthToken();
 
@@ -1414,7 +1397,7 @@ namespace JMMServer
             //string ret = TraktTVHelper.EnterTraktPIN("D003BB3D");
 
             //string x = "";
-            //TraktTVHelper.PostShoutShow("mayday", "this is a test comment", false, ref x);
+            //TraktTVHelper.PostCommentShow("mayday", "this is a test comment", false, ref x);
 
             //AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
             //AnimeEpisode ep = repEp.GetByID(32);

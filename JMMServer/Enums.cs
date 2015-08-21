@@ -28,7 +28,7 @@ namespace JMMServer
 
 	public enum WhatPeopleAreSayingType
 	{
-		TraktShout = 1,
+		TraktComment = 1,
 		AniDBRecommendation = 2,
 		AniDBMustSee = 3,
 		AniDBForFans = 4,
@@ -93,7 +93,7 @@ namespace JMMServer
 		Trakt_Episode = 12,
 		Trakt_Friend = 13,
 		Trakt_ActivityScrobble = 14,
-		Trakt_ShoutUser = 15,
+		Trakt_CommentUser = 15,
 		Trakt_WatchedEpisode = 16
 	}
 
@@ -263,7 +263,7 @@ namespace JMMServer
 		Trakt_Episode = 12,
 		Trakt_Friend = 13,
 		Trakt_ActivityScrobble = 14,
-		Trakt_ShoutUser = 15,
+		Trakt_CommentUser = 15,
 		Trakt_WatchedEpisode = 16
 	}
 
@@ -418,7 +418,7 @@ namespace JMMServer
 	public enum TraktActivityAction
 	{
 		Scrobble = 1,
-		Shout = 2
+		Comment = 2
 	}
 
 	public enum TraktActivityType

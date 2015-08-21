@@ -1937,7 +1937,7 @@ namespace JMMServer.Entities
 			JMMServer.Providers.Azure.AnimeFull contract = new JMMServer.Providers.Azure.AnimeFull();
 			contract.Detail = new Providers.Azure.AnimeDetail();
 			contract.Characters = new List<Providers.Azure.AnimeCharacter>();
-			contract.Shouts = new List<Providers.Azure.AnimeShout>();
+			contract.Comments = new List<Providers.Azure.AnimeComment>();
 
 			contract.Detail.AllTags = this.TagsString;
             contract.Detail.AllCategories = this.TagsString;
@@ -1983,28 +1983,28 @@ namespace JMMServer.Entities
 
 			foreach (AniDB_Recommendation rec in repBA.GetByAnimeID(session, AnimeID))
 			{
-				JMMServer.Providers.Azure.AnimeShout shout = new JMMServer.Providers.Azure.AnimeShout();
+				JMMServer.Providers.Azure.AnimeComment comment = new JMMServer.Providers.Azure.AnimeComment();
 
-				shout.UserID = rec.UserID;
-				shout.UserName = "";
+				comment.UserID = rec.UserID;
+				comment.UserName = "";
 
-				// shout details
-				shout.ShoutText = rec.RecommendationText;
-				shout.IsSpoiler = false;
-				shout.ShoutDateLong = 0;
+                // Comment details
+                comment.CommentText = rec.RecommendationText;
+				comment.IsSpoiler = false;
+				comment.CommentDateLong = 0;
 
-				shout.ImageURL = string.Empty;
+				comment.ImageURL = string.Empty;
 
 				AniDBRecommendationType recType = (AniDBRecommendationType)rec.RecommendationType;
 				switch (recType)
 				{
-					case AniDBRecommendationType.ForFans: shout.ShoutType = (int)WhatPeopleAreSayingType.AniDBForFans; break;
-					case AniDBRecommendationType.MustSee: shout.ShoutType = (int)WhatPeopleAreSayingType.AniDBMustSee; break;
-					case AniDBRecommendationType.Recommended: shout.ShoutType = (int)WhatPeopleAreSayingType.AniDBRecommendation; break;
+					case AniDBRecommendationType.ForFans: comment.CommentType = (int)WhatPeopleAreSayingType.AniDBForFans; break;
+					case AniDBRecommendationType.MustSee: comment.CommentType = (int)WhatPeopleAreSayingType.AniDBMustSee; break;
+					case AniDBRecommendationType.Recommended: comment.CommentType = (int)WhatPeopleAreSayingType.AniDBRecommendation; break;
 				}
 
-				shout.Source = "AniDB";
-				contract.Shouts.Add(shout);
+				comment.Source = "AniDB";
+				contract.Comments.Add(comment);
 			}
 
 			return contract;

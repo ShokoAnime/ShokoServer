@@ -8385,9 +8385,9 @@ namespace JMMServer
 			}
 		}
 
-		public bool PostShoutShow(string traktID, string shoutText, bool isSpoiler, ref string returnMessage)
+		public bool PostTraktCommentShow(string traktID, string commentText, bool isSpoiler, ref string returnMessage)
 		{
-            return TraktTVHelper.PostShoutShow(traktID, shoutText, isSpoiler, ref returnMessage);
+            return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler, ref returnMessage);
 		}
 
         public bool CheckTraktLinkValidity(string slug, bool removeDBEntries)
@@ -8423,51 +8423,51 @@ namespace JMMServer
             return contracts;
         }
 
-        public List<Contract_Trakt_ShoutUser> GetTraktShoutsForAnime(int animeID)
+        public List<Contract_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID)
 		{
-			List<Contract_Trakt_ShoutUser> shouts = new List<Contract_Trakt_ShoutUser>();
+			List<Contract_Trakt_CommentUser> comments = new List<Contract_Trakt_CommentUser>();
 
 			try
 			{
 				Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
 
-                List<TraktV2Comment> shoutsTemp = TraktTVHelper.GetShowShoutsV2(animeID);
-				if (shoutsTemp == null || shoutsTemp.Count == 0) return shouts;
+                List<TraktV2Comment> commentsTemp = TraktTVHelper.GetShowCommentsV2(animeID);
+				if (commentsTemp == null || commentsTemp.Count == 0) return comments;
 
-                foreach (TraktV2Comment sht in shoutsTemp)
+                foreach (TraktV2Comment sht in commentsTemp)
 				{
-					Contract_Trakt_ShoutUser shout = new Contract_Trakt_ShoutUser();
+					Contract_Trakt_CommentUser comment = new Contract_Trakt_CommentUser();
 
 					Trakt_Friend traktFriend = repFriends.GetByUsername(sht.user.username);
 
 					// user details
-					shout.User = new Contract_Trakt_User();
+					comment.User = new Contract_Trakt_User();
 					if (traktFriend == null)
-						shout.User.Trakt_FriendID = 0;
+						comment.User.Trakt_FriendID = 0;
 					else
-						shout.User.Trakt_FriendID = traktFriend.Trakt_FriendID;
+						comment.User.Trakt_FriendID = traktFriend.Trakt_FriendID;
 
-                    shout.User.Username = sht.user.username;
-                    shout.User.Full_name = sht.user.name;
+                    comment.User.Username = sht.user.username;
+                    comment.User.Full_name = sht.user.name;
 
-					// shout details
-					shout.Shout = new Contract_Trakt_Shout();
-					shout.Shout.ShoutType = (int)TraktActivityType.Show; // episode or show
-                    shout.Shout.Text = sht.comment;
-					shout.Shout.Spoiler = sht.spoiler;
-                    shout.Shout.Inserted = sht.CreatedAtDate;
+					// comment details
+					comment.Comment = new Contract_Trakt_Comment();
+					comment.Comment.CommentType = (int)TraktActivityType.Show; // episode or show
+                    comment.Comment.Text = sht.comment;
+					comment.Comment.Spoiler = sht.spoiler;
+                    comment.Comment.Inserted = sht.CreatedAtDate;
 
                     // urls
-                    shout.Shout.Comment_Url = string.Format(TraktURIs.WebsiteComment, sht.id);
+                    comment.Comment.Comment_Url = string.Format(TraktURIs.WebsiteComment, sht.id);
 
-					shouts.Add(shout);
+					comments.Add(comment);
 				}
 			}
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
-			return shouts;
+			return comments;
 		}
 
 		public Contract_AniDBVote GetUserVote(int animeID)

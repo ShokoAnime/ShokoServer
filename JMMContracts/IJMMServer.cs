@@ -530,10 +530,10 @@ namespace JMMContracts
 		string ChangePassword(int userID, string newPassword);
 
 		[OperationContract]
-		List<Contract_Trakt_ShoutUser> GetTraktShoutsForAnime(int animeID);
+		List<Contract_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID);
 
 		[OperationContract]
-        bool PostShoutShow(string traktID, string shoutText, bool isSpoiler, ref string returnMessage);
+        bool PostTraktCommentShow(string traktID, string commentText, bool isSpoiler, ref string returnMessage);
 
 		[OperationContract]
 		Contract_AnimeGroup GetTopLevelGroupForSeries(int animeSeriesID, int userID);

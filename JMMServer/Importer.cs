@@ -621,6 +621,12 @@ namespace JMMServer
 				AniDB_CharacterRepository repChars = new AniDB_CharacterRepository();
 				foreach (AniDB_Character chr in repChars.GetAll())
 				{
+
+                    if (chr.CharID == 75250)
+                    {
+                        Console.WriteLine("test");
+                    }
+
 					if (string.IsNullOrEmpty(chr.PosterPath)) continue;
 					bool fileExists = File.Exists(chr.PosterPath);
 					if (!fileExists)

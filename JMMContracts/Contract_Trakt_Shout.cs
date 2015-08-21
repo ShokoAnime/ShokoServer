@@ -5,9 +5,9 @@ using System.Text;
 
 namespace JMMContracts
 {
-	public class Contract_Trakt_Shout
+	public class Contract_Trakt_Comment
 	{
-		public int ShoutType { get; set; } // episode, show
+		public int CommentType { get; set; } // episode, show
 		public string Text { get; set; }
 		public bool Spoiler { get; set; }
 		public DateTime? Inserted { get; set; }

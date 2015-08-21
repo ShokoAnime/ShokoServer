@@ -63,9 +63,9 @@ namespace JMMServer
 			return contract;
 		}
 
-        public bool PostShoutShow(string traktID, string shoutText, bool isSpoiler, ref string returnMessage)
+        public bool PostCommentShow(string traktID, string commentText, bool isSpoiler, ref string returnMessage)
 		{
-            return TraktTVHelper.PostShoutShow(traktID, shoutText, isSpoiler, ref returnMessage);
+            return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler, ref returnMessage);
 		}
 
 		public MetroContract_CommunityLinks GetCommunityLinks(int animeID)
@@ -1160,9 +1160,9 @@ namespace JMMServer
 			return chars;
 		}
 
-		public List<MetroContract_Shout> GetTraktShoutsForAnime(int animeID, int maxRecords)
+		public List<MetroContract_Comment> GetTraktCommentsForAnime(int animeID, int maxRecords)
 		{
-			List<MetroContract_Shout> shouts = new List<MetroContract_Shout>();
+			List<MetroContract_Comment> comments = new List<MetroContract_Comment>();
 
 			try
 			{
@@ -1170,46 +1170,46 @@ namespace JMMServer
 				{
 					Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
 
-                    List<TraktV2Comment> shoutsTemp = TraktTVHelper.GetShowShoutsV2(session, animeID);
+                    List<TraktV2Comment> commentsTemp = TraktTVHelper.GetShowCommentsV2(session, animeID);
 
-					if (shoutsTemp == null || shoutsTemp.Count == 0) return shouts;
+					if (commentsTemp == null || commentsTemp.Count == 0) return comments;
 
 					int cnt = 0;
-                    foreach (TraktV2Comment sht in shoutsTemp)
+                    foreach (TraktV2Comment sht in commentsTemp)
 					{
-						MetroContract_Shout shout = new MetroContract_Shout();
+						MetroContract_Comment comment = new MetroContract_Comment();
 
 						Trakt_Friend traktFriend = repFriends.GetByUsername(session, sht.user.username);
 
 						// user details
 						Contract_Trakt_User user = new Contract_Trakt_User();
 						if (traktFriend == null)
-							shout.UserID = 0;
+							comment.UserID = 0;
 						else
-							shout.UserID = traktFriend.Trakt_FriendID;
+							comment.UserID = traktFriend.Trakt_FriendID;
 
-						shout.UserName = sht.user.username;
+						comment.UserName = sht.user.username;
 
 						// shout details
-						shout.ShoutText = sht.comment;
-						shout.IsSpoiler = sht.spoiler;
-                        shout.ShoutDate = sht.CreatedAtDate;
+						comment.CommentText = sht.comment;
+						comment.IsSpoiler = sht.spoiler;
+                        comment.CommentDate = sht.CreatedAtDate;
 
 						//shout.ImageURL = sht.user.avatar;
-						shout.ShoutType = (int)WhatPeopleAreSayingType.TraktShout;
-						shout.Source = "Trakt";
+						comment.CommentType = (int)WhatPeopleAreSayingType.TraktComment;
+						comment.Source = "Trakt";
 
 						cnt++;
-						shouts.Add(shout);
+						comments.Add(comment);
 
 						if (cnt == maxRecords) break;
 					}
 
-					if (shouts.Count > 0)
+					if (comments.Count > 0)
 					{
 						List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
 						sortCriteria.Add(new SortPropOrFieldAndDirection("ShoutDate", false, SortType.eDateTime));
-						shouts = Sorting.MultiSort<MetroContract_Shout>(shouts, sortCriteria);
+						comments = Sorting.MultiSort<MetroContract_Comment>(comments, sortCriteria);
 					}
 				}
 			}
@@ -1217,12 +1217,12 @@ namespace JMMServer
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
-			return shouts;
+			return comments;
 		}
 
-		public List<MetroContract_Shout> GetAniDBRecommendationsForAnime(int animeID, int maxRecords)
+		public List<MetroContract_Comment> GetAniDBRecommendationsForAnime(int animeID, int maxRecords)
 		{
-			List<MetroContract_Shout> contracts = new List<MetroContract_Shout>();
+			List<MetroContract_Comment> contracts = new List<MetroContract_Comment>();
 			try
 			{
 				using (var session = JMMService.SessionFactory.OpenSession())
@@ -1232,24 +1232,24 @@ namespace JMMServer
 					int cnt = 0;
 					foreach (AniDB_Recommendation rec in repBA.GetByAnimeID(session, animeID))
 					{
-						MetroContract_Shout shout = new MetroContract_Shout();
+						MetroContract_Comment shout = new MetroContract_Comment();
 
 						shout.UserID = rec.UserID;
 						shout.UserName = "";
 
 						// shout details
-						shout.ShoutText = rec.RecommendationText;
+						shout.CommentText = rec.RecommendationText;
 						shout.IsSpoiler = false;
-						shout.ShoutDate = null;
+						shout.CommentDate = null;
 
 						shout.ImageURL = string.Empty;
 
 						AniDBRecommendationType recType = (AniDBRecommendationType)rec.RecommendationType;
 						switch (recType)
 						{
-							case AniDBRecommendationType.ForFans: shout.ShoutType = (int)WhatPeopleAreSayingType.AniDBForFans; break;
-							case AniDBRecommendationType.MustSee: shout.ShoutType = (int)WhatPeopleAreSayingType.AniDBMustSee; break;
-							case AniDBRecommendationType.Recommended: shout.ShoutType = (int)WhatPeopleAreSayingType.AniDBRecommendation; break;
+							case AniDBRecommendationType.ForFans: shout.CommentType = (int)WhatPeopleAreSayingType.AniDBForFans; break;
+							case AniDBRecommendationType.MustSee: shout.CommentType = (int)WhatPeopleAreSayingType.AniDBMustSee; break;
+							case AniDBRecommendationType.Recommended: shout.CommentType = (int)WhatPeopleAreSayingType.AniDBRecommendation; break;
 						}
 
 						shout.Source = "AniDB";

@@ -773,7 +773,7 @@ namespace JMMServer.Providers.TraktTV
 
         #region Send Data to Trakt
 
-        public static bool PostShoutShow(string traktSlug, string shoutText, bool isSpoiler, ref string returnMessage)
+        public static bool PostCommentShow(string traktSlug, string commentText, bool isSpoiler, ref string returnMessage)
         {
             returnMessage = "";
             try
@@ -790,14 +790,14 @@ namespace JMMServer.Providers.TraktTV
                     return false;
                 }
 
-                if (string.IsNullOrEmpty(shoutText))
+                if (string.IsNullOrEmpty(commentText))
                 {
-                    returnMessage = "Please enter text for your shout";
+                    returnMessage = "Please enter text for your comment";
                     return false;
                 }
 
                 TraktV2CommentShowPost comment = new TraktV2CommentShowPost();
-                comment.Init(shoutText, isSpoiler, traktSlug);
+                comment.Init(commentText, isSpoiler, traktSlug);
 
                 string json = JSONHelper.Serialize<TraktV2CommentShowPost>(comment);
 
@@ -817,7 +817,7 @@ namespace JMMServer.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TraktTVHelper.PostShoutShow: " + ex.ToString(), ex);
+                logger.ErrorException("Error in TraktTVHelper.PostCommentShow: " + ex.ToString(), ex);
                 returnMessage = ex.Message;
                 return false;
             }
@@ -1261,15 +1261,15 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
-        public static List<TraktV2Comment> GetShowShoutsV2(int animeID)
+        public static List<TraktV2Comment> GetShowCommentsV2(int animeID)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetShowShoutsV2(session, animeID);
+                return GetShowCommentsV2(session, animeID);
             }
         }
 
-        public static List<TraktV2Comment> GetShowShoutsV2(ISession session, int animeID)
+        public static List<TraktV2Comment> GetShowCommentsV2(ISession session, int animeID)
         {
             List<TraktV2Comment> ret = new List<TraktV2Comment>();
             try
@@ -1298,7 +1298,7 @@ namespace JMMServer.Providers.TraktTV
                     {
                         curPage++;
                         string url = string.Format(TraktURIs.ShowComments, id, curPage, TraktConstants.PaginationLimit);
-                        logger.Trace("GetShowShouts: {0}", url);
+                        logger.Trace("GetShowComments: {0}", url);
 
                         string json = GetFromTrakt(url);
 
@@ -1326,7 +1326,7 @@ namespace JMMServer.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TraktTVHelper.GetShowShouts: " + ex.ToString(), ex);
+                logger.ErrorException("Error in TraktTVHelper.GetShowComments: " + ex.ToString(), ex);
             }
 
             return ret;

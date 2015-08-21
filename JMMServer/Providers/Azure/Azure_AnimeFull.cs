@@ -9,7 +9,7 @@ namespace JMMServer.Providers.Azure
 	{
 		public AnimeDetail Detail { get; set; }
 		public List<AnimeCharacter> Characters { get; set; }
-		public List<AnimeShout> Shouts { get; set; }
+		public List<AnimeComment> Comments { get; set; }
 	}
 
 	

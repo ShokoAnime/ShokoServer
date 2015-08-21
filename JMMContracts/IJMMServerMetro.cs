@@ -18,7 +18,7 @@ namespace JMMContracts
 		Contract_ServerSettings GetServerSettings();
 
 		[OperationContract]
-		bool PostShoutShow(string traktID, string shoutText, bool isSpoiler, ref string returnMessage);
+		bool PostCommentShow(string traktID, string commentText, bool isSpoiler, ref string returnMessage);
 
 		[OperationContract]
 		MetroContract_CommunityLinks GetCommunityLinks(int animeID);
@@ -48,10 +48,10 @@ namespace JMMContracts
 		List<MetroContract_AniDB_Character> GetCharactersForAnime(int animeID, int maxRecords);
 
 		[OperationContract]
-		List<MetroContract_Shout> GetTraktShoutsForAnime(int animeID, int maxRecords);
+		List<MetroContract_Comment> GetTraktCommentsForAnime(int animeID, int maxRecords);
 
 		[OperationContract]
-		List<MetroContract_Shout> GetAniDBRecommendationsForAnime(int animeID, int maxRecords);
+		List<MetroContract_Comment> GetAniDBRecommendationsForAnime(int animeID, int maxRecords);
 
 		[OperationContract]
 		List<MetroContract_Anime_Summary> GetAnimeContinueWatching(int maxRecords, int jmmuserID);
