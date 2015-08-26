@@ -852,7 +852,18 @@ namespace JMMServer.Providers.TvDB
 					CommandRequest_WebCacheSendXRefAniDBTvDB req = new CommandRequest_WebCacheSendXRefAniDBTvDB(xref.CrossRef_AniDB_TvDBV2ID);
 					req.Save();
 				}
-			}
+
+                if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                {
+                    CrossRef_AniDB_TraktV2Repository repTraktXrefs = new CrossRef_AniDB_TraktV2Repository();
+                    if (repTraktXrefs.GetByAnimeID(animeID).Count == 0)
+                    {
+                        // check for Trakt associations
+                        CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
+                        cmd2.Save(session);
+                    }
+                }
+            }
 
 			return "";
 		}
