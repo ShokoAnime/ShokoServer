@@ -122,9 +122,9 @@ namespace JMMFileHelper
                     {
                         rhash.ed2k = HashToString(hash, 0, 16);
                         if (!string.IsNullOrEmpty(rhash.ed2k)) gotHash = true;
-                        rhash.crc32 = HashToString(hash, 16, 4);
-                        rhash.md5 = HashToString(hash, 20, 16);
-                        rhash.sha1 = HashToString(hash, 36, 20);
+                        if (getCRC32) rhash.crc32 = HashToString(hash, 16, 4);
+                        if (getMD5) rhash.md5 = HashToString(hash, 20, 16);
+                        if (getSHA1) rhash.sha1 = HashToString(hash, 36, 20);
                     }
                 }
                 catch (Exception ex)
