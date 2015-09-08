@@ -752,5 +752,42 @@ namespace JMMServer.Databases
             }
 
         }
-	}
+
+        public static void FixHashes()
+        {
+            try
+            {
+                VideoLocalRepository repVids = new VideoLocalRepository();
+
+                foreach (VideoLocal vid in repVids.GetAll())
+                {
+                    bool fixedHash = false;
+                    if (vid.CRC32.Equals("00000000"))
+                    {
+                        vid.CRC32 = null;
+                        fixedHash = true;
+                    }
+                    if (vid.MD5.Equals("00000000000000000000000000000000"))
+                    {
+                        vid.MD5 = null;
+                        fixedHash = true;
+                    }
+                    if (vid.SHA1.Equals("0000000000000000000000000000000000000000"))
+                    {
+                        vid.SHA1 = null;
+                        fixedHash = true;
+                    }
+                    if (fixedHash)
+                    {
+                        repVids.Save(vid);
+                        logger.Info("Fixed hashes on file: {0}", vid.FullServerPath);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+        }
+    }
 }

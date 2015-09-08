@@ -144,6 +144,7 @@ namespace JMMServer.Databases
                 UpdateSchema_036(versionNumber);
                 UpdateSchema_037(versionNumber);
                 UpdateSchema_038(versionNumber);
+                UpdateSchema_039(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1207,7 +1208,7 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            DatabaseHelper.CreateInitialCustomTags();
+            DatabaseHelper.PopulateTagWeight();
         }
 
         private static void UpdateSchema_038(int currentVersionNumber)
@@ -1225,7 +1226,19 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-		private static void ExecuteSQLCommands(List<string> cmds)
+        private static void UpdateSchema_039(int currentVersionNumber)
+        {
+            int thisVersion = 39;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            DatabaseHelper.FixHashes();
+
+            UpdateDatabaseVersion(thisVersion);
+        }
+
+        private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
 			myConn.Open();
