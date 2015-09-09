@@ -344,6 +344,11 @@ namespace JMMServer.Commands
 					CommandRequest_SyncMyList cr_SyncMyList = new CommandRequest_SyncMyList();
 					cr_SyncMyList.LoadFromDBCommand(crdb);
 					return (ICommandRequest)cr_SyncMyList;
+
+                case CommandRequestType.Refresh_AnimeStats:
+                    CommandRequest_RefreshAnime cr_refreshAnime=new CommandRequest_RefreshAnime();
+                    cr_refreshAnime.LoadFromDBCommand(crdb);
+			        return cr_refreshAnime;
 			}
 
 			return null;

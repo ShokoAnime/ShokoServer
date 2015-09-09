@@ -1418,7 +1418,7 @@ namespace JMMServer
 				}
 
 				ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID, true);
-				ep.GetAnimeSeries().InmediateUpdateStats(true, false, true);
+				ep.GetAnimeSeries().UpdateStats(true, false, true);
 				//StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
 
 				// refresh from db

@@ -118,7 +118,7 @@ namespace JMMServer.Commands
 
 					AnimeSeries ser = animeEpisodes[0].GetAnimeSeries();
 					// all the eps should belong to the same anime
-					ser.UpdateStats(true, true, true);
+                    ser.QueueUpdateStats();
 					//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 
                     // lets also try adding to the users trakt collecion
