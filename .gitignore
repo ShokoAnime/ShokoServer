@@ -182,3 +182,21 @@ UpgradeLog*.htm
 # Microsoft Fakes
 FakesAssemblies/
 hasher/Debug_x64/
+JMMServer/Antlr3.Runtime.dll
+JMMServer/AutomaticUpdaterWPF.dll
+JMMServer/Castle.Core.dll
+hasher/Hasher.vcproj.bak
+hasher/Hasher.vcxproj.bak
+hasher/Release_x64/hasher.dll
+hasher/Release_x64/hasher.exp
+hasher/Release_x64/hasher.lib
+hasher/Release_x64/Hasher.tlog/cl.command.1.tlog
+hasher/Release_x64/Hasher.tlog/CL.read.1.tlog
+hasher/Release_x64/Hasher.tlog/CL.write.1.tlog
+hasher/Release_x64/Hasher.tlog/Hasher.lastbuildstate
+hasher/Release_x64/Hasher.tlog/Hasher.write.1u.tlog
+hasher/Release_x64/Hasher.tlog/link.command.1.tlog
+hasher/Release_x64/Hasher.tlog/link.read.1.tlog
+hasher/Release_x64/Hasher.tlog/link.write.1.tlog
+JMMFileHelper/PlexMediaInfo/Convert.cs.bak
+JMMServer/FluentNHibernate.dll

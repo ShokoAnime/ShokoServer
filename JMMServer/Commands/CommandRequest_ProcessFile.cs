@@ -290,7 +290,7 @@ namespace JMMServer.Commands
 			if (ser != null)
 			{
 				// update all the groups above this series in the heirarchy
-				ser.UpdateStats(true, true, true);
+				ser.QueueUpdateStats();
 				//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 			}
 			

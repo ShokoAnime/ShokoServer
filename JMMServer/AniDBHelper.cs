@@ -910,7 +910,7 @@ namespace JMMServer
 						AnimeSeries series = repSeries.GetByAnimeID(animeID);
 						if (series != null)
 						{
-							series.UpdateStats(true, true, true);
+                            series.QueueUpdateStats();
 							//series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
 						}
 
