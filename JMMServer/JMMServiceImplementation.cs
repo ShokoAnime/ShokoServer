@@ -1108,7 +1108,7 @@ namespace JMMServer
 
 				// update stats for new groups
 				//ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
-				ser.UpdateStats(true, true, true);
+				ser.QueueUpdateStats();
 
 				// update stats for old groups
 				AnimeGroup grp = repGroups.GetByID(oldGroupID);
@@ -1203,7 +1203,7 @@ namespace JMMServer
 
 				// update stats for groups
 				//ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true ,true, true);
-				ser.UpdateStats(true, true, true);
+				ser.QueueUpdateStats();
 
 				if (oldGroupID.HasValue)
 				{
@@ -1310,7 +1310,7 @@ namespace JMMServer
 					AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 					AnimeSeries ser = repSeries.GetByID(animeSeriesID.Value);
 					if (ser != null)
-						ser.UpdateStats(true, true, true);
+						ser.QueueUpdateStats();
 				}
 
 				return "";
@@ -1404,7 +1404,7 @@ namespace JMMServer
 				cr.Save();
 
 				AnimeSeries ser = ep.GetAnimeSeries();
-				ser.UpdateStats(true, true, true);
+				ser.QueueUpdateStats();
 
 				// update epidsode added stats
 				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
@@ -1476,7 +1476,7 @@ namespace JMMServer
 				vid.RenameIfRequired();
 				vid.MoveFileIfRequired();
 
-				ser.UpdateStats(true, true, true);
+				ser.QueueUpdateStats();
 
 				// update epidsode added stats
 				ser.EpisodeAddedDate = DateTime.Now;
@@ -1561,7 +1561,7 @@ namespace JMMServer
 					if (!singleEpisode) epNumber++;
 				}
 
-				ser.UpdateStats(true, true, true);
+				ser.QueueUpdateStats();
 
 				// update epidsode added stats
 				ser.EpisodeAddedDate = DateTime.Now;
@@ -1659,7 +1659,7 @@ namespace JMMServer
 					}
 
 
-					ser.UpdateStats(true, true, true);
+					ser.QueueUpdateStats();
 
 					// check for TvDB associations
 					CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(anime.AnimeID, false);
@@ -3339,7 +3339,7 @@ namespace JMMServer
 				}
 
 				ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, false, userID, true);
-				ep.GetAnimeSeries().InmediateUpdateStats(true, false, true);
+				ep.GetAnimeSeries().UpdateStats(true, false, true);
 				//StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
 
 				// refresh from db
@@ -3396,7 +3396,7 @@ namespace JMMServer
 				// now update the stats
 				if (ser != null)
 				{
-					ser.InmediateUpdateStats(true, true, true);
+					ser.UpdateStats(true, true, true);
 					//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 				}
 				return "";
@@ -4177,7 +4177,7 @@ namespace JMMServer
 
 				if (ser != null)
 				{
-					ser.UpdateStats(true, true, true);
+					ser.QueueUpdateStats();
 					//StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 				}
 
@@ -7546,7 +7546,7 @@ namespace JMMServer
 				{
 					AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 					foreach (AnimeSeries ser in repSeries.GetAll())
-						ser.UpdateStats(true, false, true);
+						ser.QueueUpdateStats();
 				}
 
 			}
