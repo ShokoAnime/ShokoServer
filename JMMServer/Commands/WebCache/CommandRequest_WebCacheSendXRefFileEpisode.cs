@@ -9,7 +9,7 @@ using JMMServer.WebCache;
 
 namespace JMMServer.Commands
 {
-	public class CommandRequest_WebCacheSendXRefFileEpisode : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_WebCacheSendXRefFileEpisode : BaseCommandRequest, ICommandRequest
 	{
 		public int CrossRef_File_EpisodeID { get; set; }
 

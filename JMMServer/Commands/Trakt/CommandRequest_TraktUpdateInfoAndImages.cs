@@ -12,7 +12,7 @@ using JMMServer.Providers.TraktTV;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_TraktUpdateInfoAndImages : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_TraktUpdateInfoAndImages : BaseCommandRequest, ICommandRequest
 	{
 		public string TraktID { get; set; }
 

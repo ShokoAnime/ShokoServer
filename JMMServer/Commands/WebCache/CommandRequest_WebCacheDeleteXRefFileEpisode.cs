@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace JMMServer.Commands
 {
-	public class CommandRequest_WebCacheDeleteXRefFileEpisode : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_WebCacheDeleteXRefFileEpisode : BaseCommandRequest, ICommandRequest
 	{
 		public string Hash { get; set; }
 		public int EpisodeID { get; set; }

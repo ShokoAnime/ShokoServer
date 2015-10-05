@@ -13,7 +13,7 @@ using AniDBAPI;
 namespace JMMServer.Commands.MAL
 {
 	[Serializable]
-	public class CommandRequest_MALSearchAnime : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_MALSearchAnime : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeID { get; set; }
 		public bool ForceRefresh { get; set; }

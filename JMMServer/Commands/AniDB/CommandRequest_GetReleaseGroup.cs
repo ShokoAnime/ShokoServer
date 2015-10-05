@@ -5,11 +5,13 @@ using System.Text;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
+using JMMDatabase;
+using JMMServerModels.DB.Childs;
 
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_GetReleaseGroup : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_GetReleaseGroup : BaseCommandRequest, ICommandRequest
 	{
 		public int GroupID { get; set; }
 		public bool ForceRefresh { get; set; }
@@ -23,7 +25,7 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Getting release group info from UDP API: {0}", GroupID);
+				return $"Getting release group info from UDP API: {GroupID}";
 			}
 		}
 
@@ -35,10 +37,10 @@ namespace JMMServer.Commands
 		{
 			this.GroupID = grpid;
 			this.ForceRefresh = forced;
-			this.CommandType = (int)CommandRequestType.AniDB_GetReleaseGroup;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+			this.CommandType = CommandRequestType.AniDB_GetReleaseGroup;
+			this.Priority = DefaultPriority;
+            this.JMMUserId= Store.JmmUserRepo.GetMasterUser().Id;
+            this.Id= $"CommandRequest_GetReleaseGroup_{this.GroupID}";
 		}
 
 		public override void ProcessCommand()
@@ -47,13 +49,12 @@ namespace JMMServer.Commands
 
 			try
 			{
-				AniDB_ReleaseGroupRepository repRelGrp = new AniDB_ReleaseGroupRepository();
-				AniDB_ReleaseGroup relGroup = repRelGrp.GetByGroupID(GroupID);
+                JMMModels.AniDB_ReleaseGroup relGroup = Store.ReleaseGroupRepo.Find(GroupID.ToString());
 
 				if (ForceRefresh || relGroup == null)
 				{
 					// redownload anime details from http ap so we can get an update character list
-					JMMService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
+					JMMService.AnidbProcessor.GetReleaseGroupUDP(JMMUserId, GroupID);
 				}
 
 			}
@@ -62,48 +63,6 @@ namespace JMMServer.Commands
 				logger.Error("Error processing CommandRequest_GetReleaseGroup: {0} - {1}", GroupID, ex.ToString());
 				return;
 			}
-		}
-
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_GetReleaseGroup_{0}", this.GroupID);
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-
-				// populate the fields
-				this.GroupID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "GroupID"));
-				this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "ForceRefresh"));
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
 		}
 	}
 }

@@ -7,11 +7,15 @@ using JMMServer.Entities;
 using System.Xml;
 using AniDBAPI.Commands;
 using AniDBAPI;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels.Childs;
+using JMMServerModels.DB.Childs;
 
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_SyncMyList : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_SyncMyList : BaseCommandRequest, ICommandRequest
 	{
 		public bool ForceRefresh { get; set; }
 
@@ -32,13 +36,14 @@ namespace JMMServer.Commands
 		{
 		}
 
-		public CommandRequest_SyncMyList(bool forced)
+		public CommandRequest_SyncMyList(string userid, bool forced)
 		{
 			this.ForceRefresh = forced;
-			this.CommandType = (int)CommandRequestType.AniDB_SyncMyList;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+		    this.JMMUserId = userid;
+			this.CommandType = CommandRequestType.AniDB_SyncMyList;
+			this.Priority = DefaultPriority;
+		    this.JMMUserId = userid;
+            this.Id= "CommandRequest_SyncMyList";
 		}
 
 		public override void ProcessCommand()
@@ -52,12 +57,12 @@ namespace JMMServer.Commands
 				AniDB_FileRepository repAniFile = new AniDB_FileRepository();
 				VideoLocalRepository repVidLocals = new VideoLocalRepository();
 
-				ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
+				JMMServerModels.DB.ScheduledUpdate sched = Store.ScheduleUpdateRepo.GetByUpdateType(ScheduledUpdateType.AniDBMyListSync);
 				if (sched == null)
 				{
-					sched = new ScheduledUpdate();
-					sched.UpdateType = (int)ScheduledUpdateType.AniDBMyListSync;
-					sched.UpdateDetails = "";
+					sched = new JMMServerModels.DB.ScheduledUpdate();
+					sched.Type = ScheduledUpdateType.AniDBMyListSync;
+					sched.Details = "";
 				}
 				else
 				{
@@ -72,8 +77,11 @@ namespace JMMServer.Commands
 				}
 
 				AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-				cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
-				enHelperActivityType ev = cmd.Process();
+			    JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetRealUser();
+			    AniDBAuthorization auth = user.GetAniDBAuthorizationFromUser();
+
+				cmd.Init(auth.UserName, auth.Password);
+                enHelperActivityType ev = cmd.Process();
 				if (ev == enHelperActivityType.GotMyListHTTP && cmd.MyListItems.Count > 1)
 				{
 					int totalItems = 0;
@@ -83,31 +91,21 @@ namespace JMMServer.Commands
 
 					// 2. find files locally for the user, which are not recorded on anidb
 					//    and then add them to anidb
-					Dictionary<int, Raw_AniDB_MyListFile> onlineFiles = new Dictionary<int, Raw_AniDB_MyListFile>();
-					foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
-						onlineFiles[myitem.FileID] = myitem;
+				    Dictionary<int, Raw_AniDB_MyListFile> onlineFiles = cmd.MyListItems.ToDictionary(a => a.FileID, a => a);
+                    int missingFiles = 0;
 
-					Dictionary<string, AniDB_File> dictAniFiles = new Dictionary<string, AniDB_File>();
-					List<AniDB_File> allAniFiles = repAniFile.GetAll();
-					foreach (AniDB_File anifile in allAniFiles)
-						dictAniFiles[anifile.Hash] = anifile;
-
-					int missingFiles = 0;
-					foreach (VideoLocal vid in repVidLocals.GetAll())
-					{
-						if (!dictAniFiles.ContainsKey(vid.Hash)) continue;
-
-						int fileID = dictAniFiles[vid.Hash].FileID;
-
-						if (!onlineFiles.ContainsKey(fileID))
-						{
-							// means we have found a file in our local collection, which is not recorded online
-							CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
-							cmdAddFile.Save();
-							missingFiles++;
-						}
-					}
-					logger.Info(string.Format("MYLIST Missing Files: {0} Added to queue for inclusion", missingFiles));
+				    foreach (string s in Store.VideoLocalRepo.GetVideolocalsWithoutAniDBFile())
+				    {
+				        int fileID = Store.AniDB_FileRepo.Find(s).FileId;
+                        if (!onlineFiles.ContainsKey(fileID))
+                        {
+                            // means we have found a file in our local collection, which is not recorded online
+                            CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(JMMUserId, s);
+                            cmdAddFile.Save();
+                            missingFiles++;
+                        }
+                    }
+					logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
 
 					JMMUserRepository repUsers = new JMMUserRepository();
 					List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();

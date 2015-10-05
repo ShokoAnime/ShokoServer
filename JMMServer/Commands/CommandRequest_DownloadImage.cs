@@ -11,7 +11,7 @@ using System.Net;
 
 namespace JMMServer.Commands
 {
-	public class CommandRequest_DownloadImage : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_DownloadImage : BaseCommandRequest, ICommandRequest
 	{
 		public int EntityID { get; set; }
 		public int EntityType { get; set; }

@@ -6,10 +6,14 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
 using System.Xml;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels.Childs;
+using JMMServerModels.DB.Childs;
 
 namespace JMMServer.Commands.Azure
 {
-	public class CommandRequest_Azure_SendAnimeTitle : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_Azure_SendAnimeTitle : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeID { get; set; }
 		public string MainTitle { get; set; }
@@ -24,7 +28,7 @@ namespace JMMServer.Commands.Azure
 		{
 			get
 			{
-				return string.Format("Sending anime title to azure: {0}", AnimeID);
+				return $"Sending anime title to azure: {AnimeID}";
 			}
 		}
 
@@ -37,19 +41,22 @@ namespace JMMServer.Commands.Azure
 			this.AnimeID = animeID;
 			this.MainTitle = main;
 			this.Titles = titles;
-			this.CommandType = (int)CommandRequestType.Azure_SendAnimeTitle;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
-		}
+			this.CommandType = CommandRequestType.Azure_SendAnimeTitle;
+			this.Priority = DefaultPriority;
+            this.JMMUserId = Store.JmmUserRepo.GetMasterUser().Id;
+            this.Id= $"CommandRequest_Azure_SendAnimeTitle_{this.AnimeID}";
+        }
 
 		public override void ProcessCommand()
 		{
 			
 			try
 			{
-				bool process = (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-					ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
+                JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId);
+                AniDBAuthorization auth = user.GetAniDBAuthorizationFromUser();
+
+                bool process = (auth.UserName.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
+                    auth.UserName.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
 
 				if (!process) return;
 
@@ -66,49 +73,6 @@ namespace JMMServer.Commands.Azure
 				logger.Error("Error processing CommandRequest_Azure_SendAnimeTitle: {0} - {1}", AnimeID, ex.ToString());
 				return;
 			}
-		}
-
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_Azure_SendAnimeTitle_{0}", this.AnimeID);
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-
-				// populate the fields
-				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeTitle", "AnimeID"));
-				this.MainTitle = TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeTitle", "MainTitle");
-				this.Titles = TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeTitle", "Titles");
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
 		}
 	}
 }

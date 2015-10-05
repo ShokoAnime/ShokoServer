@@ -6,7 +6,8 @@ using System.Collections.Specialized;
 using System.Configuration;
 using NLog;
 using System.IO;
-using JMMContracts;
+using JMMModels.Childs;
+using JMMServerModels.Hasher;
 
 namespace JMMFileHelper
 {
@@ -20,10 +21,10 @@ namespace JMMFileHelper
 		/// <param name="fileName"></param>
 		/// <param name="hashInfo"></param>
 		/// <param name="vidInfo"></param>
-		public static void GetVideoInfo(string fileName, ref Hashes hashInfo, ref MediaInfoResult vidInfo, bool forceRefresh)
+		public static void GetVideoInfo(string fileName, ref Hashes hashInfo, ref MediaInfo vidInfo, bool forceRefresh)
 		{
 			hashInfo = Hasher.CalculateHashes(fileName, null);
-			if (vidInfo == null) vidInfo = new MediaInfoResult();
+			if (vidInfo == null) vidInfo = new MediaInfo();
 			MediaInfoReader.ReadMediaInfo(fileName, forceRefresh, ref vidInfo);
 		}
 
@@ -32,9 +33,9 @@ namespace JMMFileHelper
 			return Hasher.CalculateHashes(fileName, hashProgress, getCRC32, getMD5, getSHA1);
 		}
 
-		public static MediaInfoResult GetMediaInfo(string fileName, bool forceRefresh)
+		public static MediaInfo GetMediaInfo(string fileName, bool forceRefresh)
 		{
-			MediaInfoResult vidInfo = new MediaInfoResult();
+			MediaInfo vidInfo = new MediaInfo();
 			MediaInfoReader.ReadMediaInfo(fileName, forceRefresh, ref vidInfo);
 			return vidInfo;
 		}

@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
+using JMMDatabase;
+using JMMModels;
+using JMMModels.Childs;
+using JMMModels.ClientExtensions;
 using JMMServer;
 
 namespace AniDBAPI
@@ -399,6 +404,74 @@ namespace AniDBAPI
 			sb.Append(" | LanguagesRAW: " + LanguagesRAW);
 			sb.Append(" | SubtitlesRAW: " + SubtitlesRAW);
             return sb.ToString();
+        }
+
+	    public void PopulateAniDBFile(string userid, AniDB_File file)
+	    {
+            
+            file.GroupName =  Anime_GroupName;
+            file.GroupNameShort =  Anime_GroupNameShort;
+            file.CRC =  CRC;
+            file.DateTimeUpdated = file.DateTimeCreated = DateTime.Now;
+            file.Rating = (float)Episode_Rating/100F;
+            file.Votes = Episode_Votes;       
+            file.Description = File_Description;
+            file.FileExtension = File_FileExtension;
+            file.LengthSeconds = File_LengthSeconds;
+            file.ReleaseDate = ((long)File_ReleaseDate).ToDateTime();
+            file.Source = File_Source;
+            file.VideoCodec = File_VideoCodec;
+            file.VideoResolution = File_VideoResolution;
+            file.FileId = FileID;
+            file.FileName = FileName;
+            file.FileSize = FileSize;
+	        file.GroupId = GroupID.ToString();
+            file.Hash = ED2KHash;
+            if (file.UserStats==null)
+                file.UserStats=new List<UserStats>();
+	        UserStats s = file.UserStats.FirstOrDefault(a => a.JMMUserId == userid);
+	        if (s == null)
+	        {
+	            s = new UserStats();
+	            file.UserStats.Add(s);
+                
+	        }
+            file.MD5 = MD5;
+            file.SHA1 = SHA1;
+            file.FileVersion=FileVersion;
+	        file.IsCensored = IsCensored != 0;
+            file.IsDeprecated = IsDeprecated!=0;
+            file.InternalVersion = InternalVersion;
+            file.AudioLanguages=new List<AudioLanguage>();
+            file.Subtitles=new List<Language>();
+	        string[] codecs = File_AudioCodec.Split('\'');
+	        int cnt = 0;
+	        foreach (string l in this.LanguagesRAW.Split('\''))
+	        {
+	            AudioLanguage al=new AudioLanguage();
+                Store.LanguageRepo.CheckLanguage(l.ToLowerInvariant());
+	            al.Id = l.ToLowerInvariant();
+	            if (codecs.Length > cnt)
+	                al.Codec = codecs[cnt];
+	            file.AudioLanguages.Add(al);
+	            cnt++;
+	        }
+            foreach (string l in this.SubtitlesRAW.Split('\''))
+            {
+                JMMModels.Language al=new Language();
+                Store.LanguageRepo.CheckLanguage(l.ToLowerInvariant());
+                al.Id = l.ToLowerInvariant();
+                file.Subtitles.Add(al);
+            }
+            file.Episodes=new List<AniDB_File_Episode>();
+	        string[] percents = EpisodesPercentRAW.Split('\'');
+	        string[] epraws = EpisodesRAW.Split('\'');
+	        if (epraws.Length == percents.Length)
+	        {
+	            cnt = 0;
+                foreach (string e in epraws)
+                    file.Episodes.Add(new AniDB_File_Episode { AniDBEpisodeId = e, Percent = float.Parse(percents[cnt++]) });
+            }
         }
     }
 }

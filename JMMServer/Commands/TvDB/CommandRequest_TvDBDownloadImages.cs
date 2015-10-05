@@ -10,7 +10,7 @@ using JMMServer.Providers.TvDB;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_TvDBDownloadImages : BaseCommandRequest, ICommandRequest
 	{
 		public int TvDBSeriesID { get; set; }
 		public bool ForceRefresh { get; set; }

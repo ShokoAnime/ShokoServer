@@ -11,7 +11,7 @@ using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands
 {
-	public class CommandRequest_WebCacheSendXRefAniDBOther : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_WebCacheSendXRefAniDBOther : BaseCommandRequest, ICommandRequest
 	{
 		public int CrossRef_AniDB_OtherID { get; set; }
 

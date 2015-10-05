@@ -96,7 +96,7 @@ namespace JMMServer
 		Trakt_CommentUser = 15,
 		Trakt_WatchedEpisode = 16
 	}
-
+    /*
 	public enum CommandRequestType
 	{
 		ProcessFile = 1,
@@ -176,20 +176,20 @@ namespace JMMServer
 		Priority11 = 11,
 		Default = 99
 	}
-
+    */
 	public enum HashSource
 	{
 		DirectHash = 1, // the file was hashed by the user
 		WebCacheFileName = 2 // the hash was retrieved from the web cache based on file name
 	}
-
+    /*
 	public enum CrossRefSource
 	{
 		AniDB = 1,
 		User = 2,
 		WebCache = 3
 	}
-
+    */
 	public enum RenamingType
 	{
 		Raw = 1,
@@ -231,7 +231,7 @@ namespace JMMServer
 		HDD = 1, // files stored on a "permanent" hard drive
 		DVD = 2 // files stored on a cd/dvd 
 	}
-
+    /*
 	public enum ScheduledUpdateType
 	{
 		AniDBCalendar = 1,
@@ -247,7 +247,7 @@ namespace JMMServer
 		LogClean = 11,
         AzureUserInfo = 12
 	}
-
+    */
 	public enum JMMImageType
 	{
 		AniDB_Cover = 1,

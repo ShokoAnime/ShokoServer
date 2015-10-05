@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace JMMServer.Commands.Azure
 {
-    public class CommandRequest_Azure_SendUserInfo : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_Azure_SendUserInfo : BaseCommandRequest, ICommandRequest
     {
         public string Username { get; set; }
 

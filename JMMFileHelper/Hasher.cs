@@ -5,8 +5,9 @@ using System.Text;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Security.Cryptography;
+using JMMServerModels.Hasher;
 using NLog;
-using JMMContracts;
+
 
 namespace JMMFileHelper
 {

@@ -9,7 +9,7 @@ using JMMServer.Repositories;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_UpdateMyListFileStatus : BaseCommandRequest, ICommandRequest
 	{
 		public string FullFileName { get; set; }
 		public string Hash { get; set; }

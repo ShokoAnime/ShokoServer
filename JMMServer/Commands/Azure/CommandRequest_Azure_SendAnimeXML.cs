@@ -11,7 +11,7 @@ using System.IO;
 
 namespace JMMServer.Commands.Azure
 {
-	public class CommandRequest_Azure_SendAnimeXML : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_Azure_SendAnimeXML : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeID { get; set; }
 

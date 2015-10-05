@@ -11,7 +11,7 @@ using System.Globalization;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_VoteAnime : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_VoteAnime : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeID { get; set; }
 		public int VoteType { get; set; }

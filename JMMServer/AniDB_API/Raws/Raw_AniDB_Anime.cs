@@ -5,6 +5,7 @@ using System.Text;
 using System.Xml.Serialization;
 using System.IO;
 using System.Xml;
+using JMMModels.Childs;
 using JMMServer;
 
 
@@ -291,7 +292,5 @@ namespace AniDBAPI
 			sb.Append(" | relatedAnimeTypes: " + RelatedAnimeTypesRAW);
 			return sb.ToString();
 		}
-
-		
     }
 }

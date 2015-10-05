@@ -10,7 +10,7 @@ using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands
 {
-	public class CommandRequest_WebCacheDeleteXRefAniDBTrakt : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_WebCacheDeleteXRefAniDBTrakt : BaseCommandRequest, ICommandRequest
 	{
         public int AnimeID { get; set; }
         public int AniDBStartEpisodeType { get; set; }

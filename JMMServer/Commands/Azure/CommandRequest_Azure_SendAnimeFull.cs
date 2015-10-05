@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace JMMServer.Commands.Azure
 {
-	public class CommandRequest_Azure_SendAnimeFull : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_Azure_SendAnimeFull : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeID { get; set; }
 

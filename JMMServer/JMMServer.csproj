@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
@@ -10,12 +10,13 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>JMMServer</RootNamespace>
     <AssemblyName>JMMServer</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
     <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>ce0854c0</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -55,12 +56,6 @@
     <Reference Include="AutomaticUpdaterWPF">
       <HintPath>..\Dependencies\AutomaticUpdaterWPF.dll</HintPath>
     </Reference>
-    <Reference Include="FluentNHibernate">
-      <HintPath>..\Dependencies\FluentNHibernate.dll</HintPath>
-    </Reference>
-    <Reference Include="HibernatingRhinos.Profiler.Appender">
-      <HintPath>..\Dependencies\HibernatingRhinos.Profiler.Appender.dll</HintPath>
-    </Reference>
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.84.0.0, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\ICSharpCode.SharpZipLib.dll</HintPath>
@@ -68,43 +63,21 @@
     <Reference Include="Iesi.Collections">
       <HintPath>..\Dependencies\Iesi.Collections.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=10.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc, Version=10.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Smo, Version=10.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Microsoft.SqlServer.Smo.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.SqlEnum, Version=10.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Microsoft.SqlServer.SqlEnum.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="MySql.Data, Version=6.7.4.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\MySql.Data.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="NHibernate">
-      <HintPath>..\Dependencies\NHibernate.dll</HintPath>
-    </Reference>
-    <Reference Include="NHibernate.ByteCode.Castle">
-      <HintPath>..\Dependencies\NHibernate.ByteCode.Castle.dll</HintPath>
-    </Reference>
     <Reference Include="NLog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\NLog.dll</HintPath>
+    </Reference>
+    <Reference Include="Raven.Abstractions, Version=3.0.0.0, Culture=neutral, PublicKeyToken=37f41c7f99471593, processorArchitecture=MSIL">
+      <HintPath>..\packages\RavenDB.Client.3.0.3800\lib\net45\Raven.Abstractions.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Raven.Client.Lightweight, Version=3.0.0.0, Culture=neutral, PublicKeyToken=37f41c7f99471593, processorArchitecture=MSIL">
+      <HintPath>..\packages\RavenDB.Client.3.0.3800\lib\net45\Raven.Client.Lightweight.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Remotion.Data.Linq">
       <HintPath>..\Dependencies\Remotion.Data.Linq.dll</HintPath>
@@ -113,12 +86,9 @@
       <HintPath>..\packages\RestSharp.104.5.0\lib\net4\RestSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Data.SQLite, Version=1.0.94.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\System.Data.SQLite.Core.1.0.94.0\lib\net45\System.Data.SQLite.dll</HintPath>
-    </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Net" />
     <Reference Include="System.Net.Http" />
@@ -224,7 +194,7 @@
     <Compile Include="Commands\CommandProcessorGeneral.cs" />
     <Compile Include="Commands\CommandProcessorHasher.cs" />
     <Compile Include="Commands\CommandProcessorImages.cs" />
-    <Compile Include="Commands\CommandRequestImplementation.cs" />
+    <Compile Include="Commands\BaseCommandRequest.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_AddFileToMyList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_DeleteFileFromMyList.cs" />
     <Compile Include="Commands\CommandRequest_DownloadImage.cs" />
@@ -274,8 +244,6 @@
     <Compile Include="Constants.cs" />
     <Compile Include="CustomHttpBinding.cs" />
     <Compile Include="DataAccessHelper.cs" />
-    <Compile Include="Databases\DatabaseHelper.cs" />
-    <Compile Include="Databases\MySQL.cs" />
     <Compile Include="Entities\AniDB_MylistStats.cs" />
     <Compile Include="Entities\AniDB_Recommendation.cs" />
     <Compile Include="Entities\BookmarkedAnime.cs" />
@@ -405,8 +373,6 @@
     <Compile Include="Security\CRC32.cs" />
     <Compile Include="Security\Digest.cs" />
     <Compile Include="MyAnime2Helper\MA2Progress.cs" />
-    <Compile Include="Databases\SQLite.cs" />
-    <Compile Include="Databases\SQLServer.cs" />
     <Compile Include="Entities\AniDB_Anime.cs" />
     <Compile Include="Entities\AniDB_Anime_Character.cs" />
     <Compile Include="Entities\AniDB_Anime_DefaultImage.cs" />
@@ -764,13 +730,21 @@
     <Resource Include="db.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\JMMContracts\JMMContracts.csproj">
-      <Project>{D777636B-F927-4C7D-9D00-4A7858E75F3E}</Project>
-      <Name>JMMContracts</Name>
+    <ProjectReference Include="..\JMMDatabase\JMMDatabase.csproj">
+      <Project>{cd4285a3-e542-451c-9b81-30d585eff1cd}</Project>
+      <Name>JMMDatabase</Name>
     </ProjectReference>
     <ProjectReference Include="..\JMMFileHelper\JMMFileHelper.csproj">
       <Project>{73E4CFC4-291B-47A2-ACAA-78096CEBB7DF}</Project>
       <Name>JMMFileHelper</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JMMModels\JMMModels.csproj">
+      <Project>{74cd1d1c-4629-4ea0-a5af-2e830da5333d}</Project>
+      <Name>JMMModels</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JMMServerShared\JMMServerModels.csproj">
+      <Project>{deeb59a8-c89e-428d-99a6-eda89b2a4b8a}</Project>
+      <Name>JMMServerModels</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -862,13 +836,6 @@ xcopy "$(TargetDir)x64\*.dll" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer
 xcopy "$(SolutionDir)JMMFileHelper\bin\$(ConfigurationName)\x64\*.dll" "$(TargetDir)\x64\*.dll" /S /R /I /Y	
 </PreBuildEvent>
   </PropertyGroup>
-  <Import Project="..\packages\System.Data.SQLite.Core.1.0.94.0\build\net45\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.94.0\build\net45\System.Data.SQLite.Core.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.1.0.94.0\build\net45\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.1.0.94.0\build\net45\System.Data.SQLite.Core.targets'))" />
-  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

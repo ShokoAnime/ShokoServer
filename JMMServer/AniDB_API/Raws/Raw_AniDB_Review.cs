@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using JMMModels.Childs;
 
 namespace AniDBAPI
 {
@@ -69,6 +70,19 @@ namespace AniDBAPI
             sb.Append(" | reviewText: " + ReviewText);
 
             return sb.ToString();
+        }
+
+        public void Populate(AniDB_Anime_Review rev)
+        {
+            rev.ReviewId = this.ReviewID.ToString();
+            rev.AuthorId = this.AuthorID.ToString();
+            rev.RatingAnimation = this.RatingAnimation;
+            rev.RatingSound = this.RatingSound;
+            rev.RatingStory = this.RatingStory;
+            rev.RatingCharacter = this.RatingCharacter;
+            rev.RatingValue = this.RatingValue;
+            rev.RatingEnjoyment = this.RatingEnjoyment;
+            rev.Text = this.ReviewText;
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
+using JMMModels;
 
 namespace AniDBAPI.Commands
 {
@@ -137,4 +138,5 @@ namespace AniDBAPI.Commands
 			//BaseConfig.MyAnimeLog.Write(commandText);
 		}
 	}
+
 }

@@ -12,7 +12,7 @@ using JMMServer.Repositories;
 namespace JMMServer.Commands.MAL
 {
 	[Serializable]
-	public class CommandRequest_MALUpdatedWatchedStatus : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_MALUpdatedWatchedStatus : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeID { get; set; }
 

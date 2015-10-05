@@ -11,7 +11,7 @@ namespace JMMServer.Commands
 {
 
 	[Serializable]
-	public class CommandRequest_TraktSyncCollection : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_TraktSyncCollection : BaseCommandRequest, ICommandRequest
 	{
 		public bool ForceRefresh { get; set; }
 

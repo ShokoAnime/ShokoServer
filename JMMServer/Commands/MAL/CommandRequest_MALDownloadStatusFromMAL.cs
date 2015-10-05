@@ -12,7 +12,7 @@ using JMMServer.Repositories;
 namespace JMMServer.Commands.MAL
 {
 	[Serializable]
-	public class CommandRequest_MALDownloadStatusFromMAL : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_MALDownloadStatusFromMAL : BaseCommandRequest, ICommandRequest
 	{
 		public CommandRequestPriority DefaultPriority 
 		{

@@ -13,7 +13,7 @@ using JMMServer.AniDB_API.Raws;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_SyncMyVotes : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_SyncMyVotes : BaseCommandRequest, ICommandRequest
 	{
 		public CommandRequestPriority DefaultPriority 
 		{

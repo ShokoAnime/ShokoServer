@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-using Stream = JMMContracts.PlexContracts.Stream;
+using Stream = JMMServerModels.Plex.Stream;
 
 namespace JMMFileHelper.Subtitles
 {

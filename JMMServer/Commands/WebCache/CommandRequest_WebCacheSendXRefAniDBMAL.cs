@@ -10,7 +10,7 @@ using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands.WebCache
 {
-	public class CommandRequest_WebCacheSendXRefAniDBMAL : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_WebCacheSendXRefAniDBMAL : BaseCommandRequest, ICommandRequest
 	{
 		public int CrossRef_AniDB_MALID { get; set; }
 

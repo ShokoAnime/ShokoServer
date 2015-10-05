@@ -10,7 +10,7 @@ using JMMServer.Providers.TraktTV;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_TraktSyncCollectionSeries : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeSeriesID { get; set; }
 		public string SeriesName { get; set; }

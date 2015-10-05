@@ -16,7 +16,7 @@ using JMMServer.Commands.AniDB;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_ProcessFile : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_ProcessFile : BaseCommandRequest, ICommandRequest
 	{
 
 		public int VideoLocalID { get; set; }

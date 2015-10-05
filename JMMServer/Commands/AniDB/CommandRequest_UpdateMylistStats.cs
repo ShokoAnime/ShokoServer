@@ -10,7 +10,7 @@ using AniDBAPI;
 namespace JMMServer.Commands.AniDB
 {
 	[Serializable]
-	public class CommandRequest_UpdateMylistStats : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_UpdateMylistStats : BaseCommandRequest, ICommandRequest
 	{
 		public bool ForceRefresh { get; set; }
 

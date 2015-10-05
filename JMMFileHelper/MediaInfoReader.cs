@@ -5,9 +5,10 @@ using System.Text;
 using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
-using JMMContracts.PlexContracts;
 using NLog;
-using JMMContracts;
+using JMMModels.Childs;
+using JMMServerModels.Plex;
+using Stream = JMMServerModels.Plex.Stream;
 
 namespace JMMFileHelper
 {
@@ -29,7 +30,7 @@ namespace JMMFileHelper
             return sb.ToString();
         }
 
-        public static bool ReadMediaInfo(string fileNameFull, bool forceRefresh, ref MediaInfoResult info)
+        public static bool ReadMediaInfo(string fileNameFull, bool forceRefresh, ref MediaInfo info)
 
         {
             try
@@ -53,7 +54,7 @@ namespace JMMFileHelper
 			            info.AudioCodec = m.AudioCodec;
 			        if (!string.IsNullOrEmpty(m.Duration))
 			            info.Duration = int.Parse(m.Duration);
-			        List<JMMContracts.PlexContracts.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
+			        List<Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
 			        if (vparts.Count > 0)
 			        {
 			            if (!string.IsNullOrEmpty(vparts[0].Bitrate))
@@ -63,7 +64,7 @@ namespace JMMFileHelper
 			            if (!string.IsNullOrEmpty(vparts[0].FrameRate))
 			                info.VideoFrameRate = vparts[0].FrameRate;
 			        }
-			        List<JMMContracts.PlexContracts.Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
+			        List<Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
 			        if (aparts.Count > 0)
 			        {
 			            if (!string.IsNullOrEmpty(aparts[0].Bitrate))

@@ -8,7 +8,7 @@ using JMMServer.Repositories;
 
 namespace JMMServer.Commands
 {
-    public class CommandRequest_RefreshAnime : CommandRequestImplementation, ICommandRequest
+    public class CommandRequest_RefreshAnime : BaseCommandRequest, ICommandRequest
     {
         public int AnimeID { get; set; }
         public CommandRequest_RefreshAnime(int animeID)

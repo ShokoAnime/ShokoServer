@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using JMMContracts.PlexContracts;
 using JMMFileHelper;
+using JMMServerModels.Plex;
 using NLog;
-using Stream = JMMContracts.PlexContracts.Stream;
+using Stream = JMMServerModels.Plex.Stream;
 
 
 namespace PlexMediaInfo

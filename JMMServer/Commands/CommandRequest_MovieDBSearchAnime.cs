@@ -13,7 +13,7 @@ using NHibernate;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_MovieDBSearchAnime : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeID { get; set; }
 		public bool ForceRefresh { get; set; }

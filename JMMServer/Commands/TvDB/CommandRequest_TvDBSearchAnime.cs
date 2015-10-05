@@ -11,7 +11,7 @@ using JMMServer.WebCache;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_TvDBSearchAnime : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeID { get; set; }
 		public bool ForceRefresh { get; set; }

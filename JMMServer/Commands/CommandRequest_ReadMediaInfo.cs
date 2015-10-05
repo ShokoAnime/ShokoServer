@@ -14,7 +14,7 @@ using System.Threading;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_ReadMediaInfo : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_ReadMediaInfo : BaseCommandRequest, ICommandRequest
 	{
 		public int VideoLocalID { get; set; }
 

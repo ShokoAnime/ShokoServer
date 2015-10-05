@@ -10,17 +10,36 @@ using System.Threading;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using System.IO;
+using System.ServiceModel.Channels;
 using AniDBAPI.Commands;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels;
+using JMMModels.Childs;
 using JMMServer.Commands;
 using JMMServer.WebCache;
 using JMMServer.Commands.Azure;
-using NHibernate;
+using Raven.Client;
+using AniDB_Anime = JMMServer.Entities.AniDB_Anime;
+using AniDB_Anime_Character = JMMServer.Entities.AniDB_Anime_Character;
+using AniDB_Character = JMMServer.Entities.AniDB_Character;
+using AniDB_Episode = JMMServer.Entities.AniDB_Episode;
+using AniDB_ReleaseGroup = JMMServer.Entities.AniDB_ReleaseGroup;
+using AniDB_Vote = JMMServer.Entities.AniDB_Vote;
+
 
 namespace JMMServer
 {
 	public class AniDBHelper
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
+
+
+
+
+
+
+
 
 		// we use this lock to make don't try and access AniDB too much (UDP and HTTP)
 		private object lockAniDBConnections = new object();
@@ -34,6 +53,8 @@ namespace JMMServer
 
 		private string userName = string.Empty;
 		private string password = string.Empty;
+
+
 		private string serverName = string.Empty;
 		private string serverPort = string.Empty;
 		private string clientPort = string.Empty;
@@ -99,6 +120,12 @@ namespace JMMServer
 
 		}
 
+	    private string loggedUserId = null;
+	    public string LoggedJMMUserId
+	    {
+	        get { return loggedUserId; }
+            set { loggedUserId = value; }
+	    }
 		private bool isLoggedOn = false;
 		public bool IsLoggedOn
 		{
@@ -157,12 +184,34 @@ namespace JMMServer
 			ServerInfo.Instance.HasExtendedPause = false;
 		}
 
-		public void Init(string userName, string password, string serverName, string serverPort, string clientPort)
+	    public bool MayNeedSwitchAccounts(string newuserid)
+	    {
+	        if (string.IsNullOrEmpty(loggedUserId))
+	            return true;
+            if (loggedUserId != newuserid)
+	        {
+	            ForceLogout();
+                JMMModels.JMMUser nuser = Store.JmmUserRepo.Find(newuserid);
+	            AniDBAuthorization an = nuser.GetAniDBAuthorizationFromUser();
+	            userName = an.UserName;
+	            password = an.Password;
+                bool res= Login();
+                if (res)    
+                    loggedUserId = newuserid;
+	            return res;
+	        }
+	        return true;
+	    }
+
+
+
+		public void Init(string serverName, string serverPort, string clientPort)
 		{
 			soUdp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-
-			this.userName = userName;
-			this.password = password;
+		    JMMModels.JMMUser user = Store.JmmUserRepo.GetMasterUser();
+            AniDBAuthorization an = user.GetAniDBAuthorizationFromUser();
+            userName = an.UserName;
+            password = an.Password;
 			this.serverName = serverName;
 			this.serverPort = serverPort;
 			this.clientPort = clientPort;
@@ -280,7 +329,7 @@ namespace JMMServer
 		{
 			Pause(AniDBPause.Long);
 		}
-
+        
 		public bool Login()
 		{
 			// check if we are already logged in
@@ -341,8 +390,9 @@ namespace JMMServer
 			}
 		}
 
-        public Raw_AniDB_Episode GetEpisodeInfo(int episodeID)
+        public Raw_AniDB_Episode GetEpisodeInfo(string userid, int episodeID)
         {
+            if (!MayNeedSwitchAccounts(userid)) return null;
             if (!Login()) return null;
 
             enHelperActivityType ev = enHelperActivityType.NoSuchEpisode;
@@ -376,9 +426,10 @@ namespace JMMServer
             return null;
         }
 
-		public Raw_AniDB_File GetFileInfo(IHash vidLocal)
+		public Raw_AniDB_File GetFileInfo(string userid, IHash vidLocal)
 		{
-			if (!Login()) return null;
+            if (!MayNeedSwitchAccounts(userid)) return null;
+            if (!Login()) return null;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchFile;
 			AniDBCommand_GetFileInfo getInfoCmd = null;
@@ -420,11 +471,12 @@ namespace JMMServer
 			return null;
 		}
 
-		public void GetMyListFileStatus(int aniDBFileID)
+		public void GetMyListFileStatus(string userid, int aniDBFileID)
 		{
-			if (!ServerSettings.AniDB_MyList_ReadWatched) return;
+            if (!ServerSettings.AniDB_MyList_ReadWatched) return;
 
-			if (!Login()) return;
+            if (!MayNeedSwitchAccounts(userid)) return;
+            if (!Login()) return;
 
 			lock (lockAniDBConnections)
 			{
@@ -438,9 +490,10 @@ namespace JMMServer
 			}
 		}
 
-		public void UpdateMyListStats()
+		public void UpdateMyListStats(string userid)
 		{
-			if (!Login()) return;
+            if (!MayNeedSwitchAccounts(userid)) return;
+            if (!Login()) return;
 
 			lock (lockAniDBConnections)
 			{
@@ -467,12 +520,13 @@ namespace JMMServer
 			}
 		}
 
-		public bool GetUpdated(ref List<int> updatedAnimeIDs, ref long startTime)
+		public bool GetUpdated(string userid, ref List<int> updatedAnimeIDs, ref long startTime)
 		{
 			//startTime = 0;
-			updatedAnimeIDs = new List<int>();
 
-			if (!Login()) return false;
+			updatedAnimeIDs = new List<int>();
+            if (!MayNeedSwitchAccounts(userid)) return false;
+            if (!Login()) return false;
 
 			lock (lockAniDBConnections)
 			{
@@ -497,11 +551,11 @@ namespace JMMServer
 
 		}
 
-		public void UpdateMyListFileStatus(IHash fileDataLocal, bool watched, DateTime? watchedDate)
+		public void UpdateMyListFileStatus(string userid, IHash fileDataLocal, bool watched, DateTime? watchedDate)
 		{
 			if (!ServerSettings.AniDB_MyList_AddFiles) return;
-
-			if (!Login()) return;
+            if (!MayNeedSwitchAccounts(userid)) return;
+            if (!Login()) return;
 
 			lock (lockAniDBConnections)
 			{
@@ -529,11 +583,11 @@ namespace JMMServer
 		/// <param name="animeID"></param>
 		/// <param name="episodeNumber"></param>
 		/// <param name="watched"></param>
-		public void UpdateMyListFileStatus(int animeID, int episodeNumber, bool watched)
+		public void UpdateMyListFileStatus(string userid, int animeID, int episodeNumber, bool watched)
 		{
 			if (!ServerSettings.AniDB_MyList_AddFiles) return;
-
-			if (!Login()) return;
+            if (!MayNeedSwitchAccounts(userid)) return;
+            if (!Login()) return;
 
 			lock (lockAniDBConnections)
 			{
@@ -556,10 +610,10 @@ namespace JMMServer
 			}
 		}
 
-		public bool AddFileToMyList(IHash fileDataLocal, ref DateTime? watchedDate)
+		public bool AddFileToMyList(string userid, IHash fileDataLocal, ref DateTime? watchedDate)
 		{
 			if (!ServerSettings.AniDB_MyList_AddFiles) return false;
-
+		    if (!MayNeedSwitchAccounts(userid)) return false;
 			if (!Login()) return false;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
@@ -587,10 +641,10 @@ namespace JMMServer
 			return false;
 		}
 
-		public bool AddFileToMyList(int animeID, int episodeNumber, ref DateTime? watchedDate)
+		public bool AddFileToMyList(string userid, string animeID, int episodeNumber, ref DateTime? watchedDate)
 		{
 			if (!ServerSettings.AniDB_MyList_AddFiles) return false;
-
+		    if (!MayNeedSwitchAccounts(userid)) return false;
 			if (!Login()) return false;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
@@ -601,7 +655,7 @@ namespace JMMServer
 				Pause();
 
 				cmdAddFile = new AniDBCommand_AddFile();
-				cmdAddFile.Init(animeID, episodeNumber, ServerSettings.AniDB_MyList_StorageState);
+				cmdAddFile.Init(int.Parse(animeID), episodeNumber, ServerSettings.AniDB_MyList_StorageState);
 				SetWaitingOnResponse(true);
 				ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
 				SetWaitingOnResponse(false);
@@ -618,8 +672,9 @@ namespace JMMServer
 			return false;
 		}
 
-        internal bool MarkFileAsExternalStorage(string Hash, long FileSize)
+        internal bool MarkFileAsExternalStorage(string userid, string Hash, long FileSize)
         {
+            if (!MayNeedSwitchAccounts(userid)) return false;
             if (!Login()) return false;
 
             enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
@@ -639,9 +694,10 @@ namespace JMMServer
             return true;
         }
 
-		public bool MarkFileAsDeleted(string hash, long fileSize)
+		public bool MarkFileAsDeleted(string userid, string hash, long fileSize)
 		{
-			if (!Login()) return false;
+            if (!MayNeedSwitchAccounts(userid)) return false;
+            if (!Login()) return false;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
 			AniDBCommand_MarkFileAsDeleted cmdDelFile = null;
@@ -660,11 +716,11 @@ namespace JMMServer
 			return true;
 		}
 
-		public bool DeleteFileFromMyList(string hash, long fileSize)
+		public bool DeleteFileFromMyList(string userid, string hash, long fileSize)
 		{
 			if (!ServerSettings.AniDB_MyList_AddFiles) return false;
-
-			if (!Login()) return false;
+            if (!MayNeedSwitchAccounts(userid)) return false;
+            if (!Login()) return false;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
 			AniDBCommand_DeleteFile cmdDelFile = null;
@@ -683,10 +739,10 @@ namespace JMMServer
 			return true;
 		}
 
-		public bool DeleteFileFromMyList(int fileID)
+		public bool DeleteFileFromMyList(string userid, int fileID)
 		{
 			if (!ServerSettings.AniDB_MyList_AddFiles) return false;
-
+		    if (!MayNeedSwitchAccounts(userid)) return false;
 			if (!Login()) return false;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
@@ -706,30 +762,17 @@ namespace JMMServer
 			return true;
 		}
 
-		public AniDB_Anime GetAnimeInfoUDP(int animeID, bool forceRefresh)
+		public List<int> GetReviewsFromAnimeInfoUDP(string userid, int animeID, bool forceRefresh)
 		{
-			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-			AniDB_Anime anime = null;
-
-			bool skip = true;
-			if (forceRefresh)
-				skip = false;
-			else
-			{
-				anime = repAnime.GetByAnimeID(animeID);
-				if (anime == null) skip = false;
-			}
-
-			if (skip)
-			{
-				if (anime == null)
-					anime = repAnime.GetByAnimeID(animeID);
-
-				return anime;
-
-			}
-
-			if (!Login()) return null;
+            AnimeSerie ser = Store.AnimeSerieRepo.AnimeSerieFromAniDBAnime(animeID.ToString());
+		    if (!forceRefresh)
+		    {
+                if (ser==null)
+                    return new List<int>();
+		        return ser.AniDB_Anime.Reviews.Select(a => a.ReviewId).ToList();
+		    }
+		    if (!MayNeedSwitchAccounts(userid)) return null;
+            if (!Login()) return null;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchAnime;
 			AniDBCommand_GetAnimeInfo getAnimeCmd = null;
@@ -747,19 +790,16 @@ namespace JMMServer
 
 			if (ev == enHelperActivityType.GotAnimeInfo && getAnimeCmd.AnimeInfo != null)
 			{
-				// check for an existing record so we don't over write the description
-				anime = repAnime.GetByAnimeID(getAnimeCmd.AnimeInfo.AnimeID);
-				if (anime == null) anime = new AniDB_Anime();
-
-				anime.PopulateAndSaveFromUDP(getAnimeCmd.AnimeInfo);
+			    return getAnimeCmd.AnimeInfo.ReviewIDList;
 			}
+            return new List<int>();
 
-			return anime;
 		}
 
-		public AniDB_Character GetCharacterInfoUDP(int charID)
+		public AniDB_Character GetCharacterInfoUDP(string userid, int charID)
 		{
-			if (!Login()) return null;
+		    if (!MayNeedSwitchAccounts(userid)) return null;
+            if (!Login()) return null;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchChar;
 			AniDBCommand_GetCharacterInfo getCharCmd = null;
@@ -818,9 +858,10 @@ namespace JMMServer
 			return chr;
 		}*/
 
-		public AniDB_ReleaseGroup GetReleaseGroupUDP(int groupID)
-		{
-			if (!Login()) return null;
+		public AniDB_ReleaseGroup GetReleaseGroupUDP(string userid, int groupID)
+        {
+            if (!MayNeedSwitchAccounts(userid)) return null;
+            if (!Login()) return null;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchGroup;
 			AniDBCommand_GetGroup getCmd = null;
@@ -849,9 +890,10 @@ namespace JMMServer
 			return relGroup;
 		}
 
-		public GroupStatusCollection GetReleaseGroupStatusUDP(int animeID)
+		public GroupStatusCollection GetReleaseGroupStatusUDP(string userid, int animeID)
 		{
-			if (!Login()) return null;
+            if (!MayNeedSwitchAccounts(userid)) return false;
+            if (!Login()) return null;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchCreator;
 			AniDBCommand_GetGroupStatus getCmd = null;
@@ -921,9 +963,10 @@ namespace JMMServer
 			return getCmd.GrpStatusCollection;
 		}
 
-		public CalendarCollection GetCalendarUDP()
+		public CalendarCollection GetCalendarUDP(string userid)
 		{
-			if (!Login()) return null;
+            if (!MayNeedSwitchAccounts(userid)) return null;
+            if (!Login()) return null;
 
 			enHelperActivityType ev = enHelperActivityType.CalendarEmpty;
 			AniDBCommand_GetCalendar cmd = null;
@@ -944,9 +987,10 @@ namespace JMMServer
 			return null;
 		}
 
-		public AniDB_Review GetReviewUDP(int reviewID)
+		public Raw_AniDB_Review GetReviewUDP(string userid, int reviewID)
 		{
-			if (!Login()) return null;
+            if (!MayNeedSwitchAccounts(userid)) return null;
+            if (!Login()) return null;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchReview;
 			AniDBCommand_GetReview cmd = null;
@@ -976,9 +1020,10 @@ namespace JMMServer
 			return review;
 		}
 
-		public bool VoteAnime(int animeID, decimal voteValue, enAniDBVoteType voteType)
+		public bool VoteAnime(string userid, int animeID, decimal voteValue, enAniDBVoteType voteType)
 		{
-			if (!Login()) return false;
+            if (!MayNeedSwitchAccounts(userid)) return false;
+            if (!Login()) return false;
 
 			enHelperActivityType ev = enHelperActivityType.NoSuchVote;
 			AniDBCommand_Vote cmdVote = null;
@@ -1028,9 +1073,9 @@ namespace JMMServer
 			return false;
 		}
 
-		public void VoteAnimeRevoke(int animeID, enAniDBVoteType voteType)
+		public void VoteAnimeRevoke(string userid, int animeID, enAniDBVoteType voteType)
 		{
-			VoteAnime(animeID, -1, voteType);
+			VoteAnime(userid, animeID, -1, voteType);
 		}
 
 
@@ -1041,36 +1086,25 @@ namespace JMMServer
 
 		public AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh, bool downloadRelations)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
+			using (var session = Store.GetSession())
 			{
 				return GetAnimeInfoHTTP(session, animeID, forceRefresh, downloadRelations);
 			}
 		}
 
-		public AniDB_Anime GetAnimeInfoHTTP(ISession session, int animeID, bool forceRefresh, bool downloadRelations)
+		public AnimeSerie GetAnimeInfoHTTP(IDocumentSession session, int animeID, bool forceRefresh, bool downloadRelations)
 		{
 			//if (!Login()) return null;
 
-			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-			AniDB_Anime anime = null;
 
-			bool skip = true;
-			if (forceRefresh)
-				skip = false;
-			else
+		    AnimeSerie anime;
+
+			if (!forceRefresh)
 			{
-				anime = repAnime.GetByAnimeID(session, animeID);
-				if (anime == null) skip = false;
+				anime =  Store.AnimeSerieRepo.AnimeSerieFromAniDBAnime(animeID);
+			    if (anime != null) return anime;
 			}
 
-			if (skip)
-			{
-				if (anime == null)
-					anime = repAnime.GetByAnimeID(session, animeID);
-
-				return anime;
-
-			}
 
 			AniDBHTTPCommand_GetFullAnime getAnimeCmd = null;
 			lock (lockAniDBConnections)
@@ -1098,7 +1132,7 @@ namespace JMMServer
 			return anime;
 		}
 
-		private AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations, AniDBHTTPCommand_GetFullAnime getAnimeCmd)
+		private AniDB_Anime SaveResultsForAnimeXML(IDocumentSession session, int animeID, bool downloadRelations, AniDBHTTPCommand_GetFullAnime getAnimeCmd)
 		{
 			AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 			AniDB_Anime anime = null;
@@ -1186,6 +1220,7 @@ namespace JMMServer
 
 		public bool ValidAniDBCredentials()
 		{
+
 			if (string.IsNullOrEmpty(this.userName) || string.IsNullOrEmpty(this.password) || string.IsNullOrEmpty(this.serverName)
 				|| string.IsNullOrEmpty(this.serverPort) || string.IsNullOrEmpty(this.clientPort))
 			{

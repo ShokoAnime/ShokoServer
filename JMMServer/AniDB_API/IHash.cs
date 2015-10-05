@@ -11,7 +11,7 @@ namespace AniDBAPI
         string Info { get; }
     }
 
-	public class IHashDummy : IHash
+	public class Hash : IHash
 	{
 		public long FileSize { get; set; }
 		public string ED2KHash { get; set; }

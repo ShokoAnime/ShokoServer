@@ -10,7 +10,7 @@ using JMMServer.Providers.TraktTV;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_TraktUpdateAllSeries : BaseCommandRequest, ICommandRequest
 	{
 		public bool ForceRefresh { get; set; }
 

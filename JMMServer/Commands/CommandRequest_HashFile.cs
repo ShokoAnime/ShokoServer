@@ -14,7 +14,7 @@ using System.Threading;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_HashFile : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_HashFile : BaseCommandRequest, ICommandRequest
 	{
 		public string FileName { get; set; }
 		public bool ForceHash { get; set; }

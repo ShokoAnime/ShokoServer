@@ -11,7 +11,7 @@ using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands
 {
-	public class CommandRequest_WebCacheDeleteXRefAniDBTvDB : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_WebCacheDeleteXRefAniDBTvDB : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeID { get; set; }
 		public int AniDBStartEpisodeType { get; set; }

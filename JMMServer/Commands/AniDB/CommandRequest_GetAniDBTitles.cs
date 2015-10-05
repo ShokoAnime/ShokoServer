@@ -6,13 +6,17 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
 using System.IO;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels.Childs;
 using JMMServer.Providers.Azure;
 using JMMServer.Commands.Azure;
+using JMMServerModels.DB.Childs;
 
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_GetAniDBTitles : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_GetAniDBTitles : BaseCommandRequest, ICommandRequest
 	{
 		public CommandRequestPriority DefaultPriority
 		{
@@ -29,10 +33,10 @@ namespace JMMServer.Commands
 
 		public CommandRequest_GetAniDBTitles()
 		{
-			this.CommandType = (int)CommandRequestType.AniDB_GetTitles;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+			this.CommandType = CommandRequestType.AniDB_GetTitles;
+			this.Priority = DefaultPriority;
+            this.JMMUserId = Store.JmmUserRepo.GetMasterUser().Id;
+            this.Id = $"CommandRequest_GetAniDBTitles_{DateTime.Now}";
 		}
 
 		public override void ProcessCommand()
@@ -42,8 +46,11 @@ namespace JMMServer.Commands
 			
 			try
 			{
-				bool process = (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-					ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
+			    JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId);
+			    AniDBAuthorization auth=user.GetAniDBAuthorizationFromUser();
+
+				bool process = (auth.UserName.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
+                    auth.UserName.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
 
 				if (!process) return;
 
@@ -119,48 +126,6 @@ namespace JMMServer.Commands
 				logger.Error("Error processing CommandRequest_GetAniDBTitles: {0}", ex.ToString());
 				return;
 			}
-		}
-
-		/// <summary>
-		/// This should generate a unique key for a command
-		/// It will be used to check whether the command has already been queued before adding it
-		/// </summary>
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_GetAniDBTitles_{0}",DateTime.Now.ToString());
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
 		}
 	}
 }

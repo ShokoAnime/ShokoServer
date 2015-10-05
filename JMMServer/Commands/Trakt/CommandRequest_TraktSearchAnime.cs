@@ -16,7 +16,7 @@ using JMMServer.Providers.TraktTV.Contracts;
 namespace JMMServer.Commands
 {
 	[Serializable]
-	public class CommandRequest_TraktSearchAnime : CommandRequestImplementation, ICommandRequest
+	public class CommandRequest_TraktSearchAnime : BaseCommandRequest, ICommandRequest
 	{
 		public int AnimeID { get; set; }
 		public bool ForceRefresh { get; set; }
