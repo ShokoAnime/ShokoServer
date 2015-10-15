@@ -422,7 +422,7 @@
                                 <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="5" Margin="0,10,5,0">
                                     <TextBlock VerticalAlignment="Center" Text="For help on installing SQL Server and creating your database, go" Margin="0,0,0,0"/>
                                     <local:HyperLinkStandard VerticalAlignment="Center" Margin="5,0,0,0" DisplayText="here"
-                                                                        URL="http://japanesemediamanager.github.io/setup_sqlserver.html"/>
+                                                                        URL="http://japanesemediamanager.github.io/setup/sqlserver.html"/>
                                 </StackPanel>
                                 
                             </Grid>
@@ -461,7 +461,7 @@
                                 <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="3" Margin="0,10,5,0">
                                     <TextBlock VerticalAlignment="Center" Text="For help on installing MySQL, go" Margin="0,0,0,0"/>
                                     <local:HyperLinkStandard VerticalAlignment="Center" Margin="5,0,0,0" DisplayText="here"
-                                                                        URL="http://japanesemediamanager.github.io/setup_mysql.html"/>
+                                                                        URL="http://japanesemediamanager.github.io/setup/mysql.html"/>
                                 </StackPanel>
 
                             </Grid>
@@ -687,7 +687,7 @@
                     <TextBlock VerticalAlignment="Center" Margin="0,0,0,0" Text=")" FontWeight="Bold"/>
                     <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=BanReason}"/>
                     <local:HyperLinkStandard VerticalAlignment="Center" Margin="10,0,0,0" DisplayText="What does this mean?" Grid.Column="1"
-                                                                            URL="http://japanesemediamanager.github.io/wiki_faq.html"/>
+                                                                            URL="http://japanesemediamanager.github.io/general/faq.html"/>
                 </StackPanel>
             </StackPanel>
         </Border>
