@@ -312,7 +312,9 @@ namespace JMMServer
 		Never = 1,
 		HoursSix = 2,
 		HoursTwelve = 3,
-		Daily = 4
+		Daily = 4,
+        WeekOne = 5,
+        MonthOne = 6
 	}
 
 	public enum GroupFilterConditionType

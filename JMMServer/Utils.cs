@@ -780,7 +780,9 @@ namespace JMMServer
 				case ScheduledUpdateFrequency.Daily: return 24;
 				case ScheduledUpdateFrequency.HoursSix: return 6;
 				case ScheduledUpdateFrequency.HoursTwelve: return 12;
-				case ScheduledUpdateFrequency.Never: return int.MaxValue;
+                case ScheduledUpdateFrequency.WeekOne: return 24 * 7;
+                case ScheduledUpdateFrequency.MonthOne: return 24 * 30;
+                case ScheduledUpdateFrequency.Never: return int.MaxValue;
 			}
 
 			return int.MaxValue;
