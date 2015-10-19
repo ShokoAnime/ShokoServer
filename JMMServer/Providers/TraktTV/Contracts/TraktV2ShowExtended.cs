@@ -29,7 +29,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
         public TraktV2Airs airs { get; set; }
 
         [DataMember(Name = "runtime")]
-        public int runtime { get; set; }
+        public string runtime { get; set; }
 
         [DataMember(Name = "certification")]
         public string certification { get; set; }
