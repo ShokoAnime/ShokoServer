@@ -1865,7 +1865,6 @@ namespace JMMServer
 			Importer.CheckForMALUpdate(false);
 			Importer.CheckForMyListStatsUpdate(false);
 			Importer.CheckForAniDBFileUpdate(false);
-			Importer.CheckForLogClean();
 			Importer.UpdateAniDBTitles();
             Importer.SendUserInfoUpdate(false);
 		}

@@ -1154,54 +1154,6 @@ namespace JMMServer
 			repSched.Save(sched);
 		}
 
-		public static void CheckForLogClean()
-		{
-			int freqHours = 24;
-
-			// check for truncating the logs
-			ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-
-			ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.LogClean);
-			if (sched != null)
-			{
-				// if we have run this in the last 24 hours and are not forcing it, then exit
-				TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-				if (tsLastRun.TotalHours < freqHours) return;
-			}
-
-			// files which have been hashed, but don't have an associated episode
-			LogMessageRepository repVidLocals = new LogMessageRepository();
-
-			DateTime logCutoff = DateTime.Now.AddDays(-30);
-            //DateTime logCutoff = DateTime.Now.AddMinutes(-45);
-            try
-            {
-                using (var session = JMMService.SessionFactory.OpenSession())
-			    {
-				    foreach (LogMessage log in repVidLocals.GetAll(session))
-				    {
-                    
-                            if (log.LogDate < logCutoff)
-                                repVidLocals.Delete(session, log.LogMessageID);
-                    
-				    }
-			    }
-            }
-            catch { }
-
-            // now check for any files which have been manually linked and are less than 30 days old
-
-
-            if (sched == null)
-			{
-				sched = new ScheduledUpdate();
-				sched.UpdateType = (int)ScheduledUpdateType.LogClean;
-				sched.UpdateDetails = "";
-			}
-			sched.LastUpdate = DateTime.Now;
-			repSched.Save(sched);
-		}
-
 		public static void UpdateAniDBTitles()
 		{
 			int freqHours = 100;
