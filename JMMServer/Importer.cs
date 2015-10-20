@@ -1109,7 +1109,42 @@ namespace JMMServer
 			cmd.Save();
 		}
 
-		public static void CheckForAniDBFileUpdate(bool forceRefresh)
+        public static void CheckForTraktTokenUpdate(bool forceRefresh)
+        {
+            try
+            {
+                // by updating the Trakt token regularly, the user won't need to authorize again
+                int freqHours = 24; // we need to update this daily
+
+                ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+
+                ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.TraktToken);
+                if (sched != null)
+                {
+                    // if we have run this in the last xxx hours and are not forcing it, then exit
+                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+                    logger.Trace("Last Trakt Token Update: {0} minutes ago", tsLastRun.TotalMinutes);
+                    if (tsLastRun.TotalHours < freqHours)
+                    {
+                        if (!forceRefresh) return;
+                    }
+                }
+
+                TraktTVHelper.RefreshAuthToken();
+
+                sched = new ScheduledUpdate();
+                sched.UpdateType = (int)ScheduledUpdateType.TraktToken;
+                sched.UpdateDetails = "";
+                sched.LastUpdate = DateTime.Now;
+                repSched.Save(sched);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in CheckForTraktTokenUpdate: " + ex.ToString(), ex);
+            }
+        }
+
+        public static void CheckForAniDBFileUpdate(bool forceRefresh)
 		{
 			if (ServerSettings.AniDB_File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
 			int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_File_UpdateFrequency);

@@ -1861,7 +1861,7 @@ namespace JMMServer
 			Importer.CheckForTvDBUpdates(false);
 			Importer.CheckForMyListSyncUpdate(false);
 			Importer.CheckForTraktAllSeriesUpdate(false);
-			//Importer.CheckForTraktSyncUpdate(false);
+			Importer.CheckForTraktTokenUpdate(false);
 			Importer.CheckForMALUpdate(false);
 			Importer.CheckForMyListStatsUpdate(false);
 			Importer.CheckForAniDBFileUpdate(false);
