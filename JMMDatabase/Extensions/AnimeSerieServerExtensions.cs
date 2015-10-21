@@ -22,5 +22,13 @@ namespace JMMDatabase.Extensions
         {
             return s.Episodes.FirstOrDefault(b => b.AniDbEpisodes.SelectMany(a=>a.Value).Any(a=>a.Id==ep.Id));
         }
+        public static AnimeEpisode AnimeEpisodeFromAniDB_EpisodeId(this AnimeSerie s, string id)
+        {
+            return s.Episodes.FirstOrDefault(b => b.AniDbEpisodes.SelectMany(a => a.Value).Any(a => a.Id == id));
+        }
+        public static AniDB_Episode  AniDBEpisodeFromAniDB_EpisodeId(this AnimeSerie s, string id)
+        {
+            return s.Episodes.SelectMany(a => a.AniDbEpisodes).SelectMany(a => a.Value).FirstOrDefault(a => a.Id == id);
+        }
     }
 }

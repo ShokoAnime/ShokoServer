@@ -10,6 +10,7 @@ namespace JMMDatabase
         GroupFilter=2,
         User=4,
         ParentGroup=8,
-        All=15
+        LinkedData=16,
+        All=31
     }
 }

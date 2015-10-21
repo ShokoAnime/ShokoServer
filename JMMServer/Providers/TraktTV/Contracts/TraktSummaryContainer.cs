@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMModels.Childs;
 using JMMServer.Entities;
 using NLog;
 using JMMServer.Repositories;
@@ -12,11 +13,13 @@ namespace JMMServer.Providers.TraktTV
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public int AnimeID { get; set; }
+        public JMMModels.AnimeSerie Serie { get; set; }
 
         // Trakt ID
         public Dictionary<string, TraktDetailsContainer> TraktDetails = new Dictionary<string, TraktDetailsContainer>();
 
+        public List<AniDB_Anime_Trakt> CrossRefTraktV2 => Serie?.AniDB_Anime.Trakts ?? new List<AniDB_Anime_Trakt>();
+        /*
         // All the Trakt cross refs for this anime
         private List<CrossRef_AniDB_TraktV2> crossRefTraktV2 = null;
         public List<CrossRef_AniDB_TraktV2> CrossRefTraktV2
@@ -44,10 +47,10 @@ namespace JMMServer.Providers.TraktTV
                 logger.ErrorException(ex.ToString(), ex);
             }
         }
-
+        */
         // All the episodes regardless of which cross ref they come from 
-        private Dictionary<int, Trakt_Episode> dictTraktEpisodes = null;
-        public Dictionary<int, Trakt_Episode> DictTraktEpisodes
+        private Dictionary<int, Episode_TraktEpisode> dictTraktEpisodes = null;
+        public Dictionary<int, Episode_TraktEpisode> DictTraktEpisodes
         {
             get
             {
@@ -63,7 +66,7 @@ namespace JMMServer.Providers.TraktTV
         {
             try
             {
-                dictTraktEpisodes = new Dictionary<int, Trakt_Episode>();
+                dictTraktEpisodes = new Dictionary<int, Episode_TraktEpisode>();
                 foreach (TraktDetailsContainer det in TraktDetails.Values)
                 {
                     if (det != null)
@@ -72,13 +75,13 @@ namespace JMMServer.Providers.TraktTV
                         // create a dictionary of absolute episode numbers for Trakt episodes
                         // sort by season and episode number
                         // ignore season 0, which is used for specials
-                        List<Trakt_Episode> eps = det.TraktEpisodes;
+                        List<Episode_TraktEpisode> eps = det.TraktEpisodes;
 
                         int i = 1;
-                        foreach (Trakt_Episode ep in eps)
+                        foreach (Episode_TraktEpisode ep in eps)
                         {
                             // ignore episode 0, this can't be mapped to Trakt
-                            if (ep.EpisodeNumber > 0)
+                            if (ep.Number > 0)
                             {
                                 dictTraktEpisodes[i] = ep;
                                 i++;
@@ -95,13 +98,13 @@ namespace JMMServer.Providers.TraktTV
 
      
 
-        public void Populate(int animeID)
+        public void Populate(JMMModels.AnimeSerie serie)
         {
-            AnimeID = animeID;
-
+            Serie = serie;
+            
             try
             {
-                PopulateCrossRefs();
+                //PopulateCrossRefs();
                 PopulateTraktDetails();
                 PopulateDictTraktEpisodes();
             }
@@ -113,12 +116,12 @@ namespace JMMServer.Providers.TraktTV
 
         private void PopulateTraktDetails()
         {
-            if (CrossRefTraktV2 == null) return;
+            //if (CrossRefTraktV2 == null) return;
 
-            foreach (CrossRef_AniDB_TraktV2 xref in CrossRefTraktV2)
+            foreach (AniDB_Anime_Trakt xref in Serie.AniDB_Anime.Trakts)
             {
-                TraktDetailsContainer det = new TraktDetailsContainer(xref.TraktID);
-                TraktDetails[xref.TraktID] = det;
+                TraktDetailsContainer det = new TraktDetailsContainer(Serie,xref);
+                TraktDetails[xref.TraktId] = det;
             }
         }
     }

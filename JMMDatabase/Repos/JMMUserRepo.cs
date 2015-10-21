@@ -20,6 +20,7 @@ namespace JMMDatabase.Repos
             Items[obj.Id] = obj;
             s.Store(obj);
         }
+        public int UserCount => Items.Count;
 
         internal override void InternalDelete(JMMUser obj, IDocumentSession s)
         {
@@ -75,9 +76,9 @@ namespace JMMDatabase.Repos
         }
         public static void UpdateReleaseGroups(JMMUser user, IDocumentSession session)
         {
-            if (!user.IsRealUserAccount)
+            JMMUser authuser = user.GetUserWithAuth(AuthorizationProvider.AniDB);
+            if (authuser == null)
                 return;
-            JMMUser authuser = user.GetAniDBUser();
             bool clone = user.Id != authuser.Id;
             if (clone)
             {
@@ -109,7 +110,9 @@ namespace JMMDatabase.Repos
         {
             if (!user.IsRealUserAccount)
                 return new List<string>();
-            JMMUser authuser = user.GetAniDBUser();
+            JMMUser authuser = user.GetUserWithAuth(AuthorizationProvider.AniDB);
+            if (authuser != null)
+                return;
             bool clone = user.Id != authuser.Id;
             List<string> changedGroups = new List<string>();
             foreach (AnimeSerie ser in Store.AnimeSerieRepo.ToList())

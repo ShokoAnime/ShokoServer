@@ -6,6 +6,10 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
 using AniDBAPI;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels.Childs;
+using JMMServerModels.DB.Childs;
 
 namespace JMMServer.Commands.AniDB
 {
@@ -31,13 +35,13 @@ namespace JMMServer.Commands.AniDB
 		{
 		}
 
-		public CommandRequest_UpdateMylistStats(bool forced)
+		public CommandRequest_UpdateMylistStats(string userid, bool forced)
 		{
 			this.ForceRefresh = forced;
-			this.CommandType = (int)CommandRequestType.AniDB_UpdateMylistStats;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+			this.CommandType = CommandRequestType.AniDB_UpdateMylistStats;
+			this.Priority = DefaultPriority;
+		    this.JMMUserId = userid;
+			this.Id= "CommandRequest_UpdateMylistStats";
 		}
 
 		public override void ProcessCommand()
@@ -46,14 +50,18 @@ namespace JMMServer.Commands.AniDB
 
 			try
 			{
-				// we will always assume that an anime was downloaded via http first
-				ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-				ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AniDBMylistStats);
+                JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetUserWithAuth(AuthorizationProvider.AniDB);
+                if (user == null)
+                    return;
+
+                // we will always assume that an anime was downloaded via http first
+                ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+				JMMServerModels.DB.ScheduledUpdate sched = Store.ScheduleUpdateRepo.GetByUpdateType(ScheduledUpdateType.AniDBMylistStats);
 				if (sched == null)
 				{
-					sched = new ScheduledUpdate();
-					sched.UpdateType = (int)ScheduledUpdateType.AniDBMylistStats;
-					sched.UpdateDetails = "";
+					sched = new JMMServerModels.DB.ScheduledUpdate();
+					sched.Type = ScheduledUpdateType.AniDBMylistStats;
+					sched.Details = "";
 				}
 				else
 				{
@@ -68,9 +76,9 @@ namespace JMMServer.Commands.AniDB
 				}
 
 				sched.LastUpdate = DateTime.Now;
-				repSched.Save(sched);
+                Store.ScheduleUpdateRepo.Save(sched);
 
-				JMMService.AnidbProcessor.UpdateMyListStats();
+				JMMService.AnidbProcessor.UpdateMyListStats(user.Id);
 
 
 			}
@@ -81,45 +89,5 @@ namespace JMMServer.Commands.AniDB
 			}
 		}
 
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_UpdateMylistStats");
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-
-				// populate the fields
-				this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_UpdateMylistStats", "ForceRefresh"));
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
-		}
 	}
 }

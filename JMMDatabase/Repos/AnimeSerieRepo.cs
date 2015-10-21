@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using JMMDatabase.Extensions;
 using JMMDatabase.Helpers;
@@ -16,7 +17,8 @@ namespace JMMDatabase.Repos
         private BiDictionary<string> AniDBAnimes { get; set; }=new BiDictionary<string>(); 
         private BiDictionaryHashSet<string> AniDBEpisodes { get; set; }=new BiDictionaryHashSet<string>();
         private BiDictionaryHashSet<string> AniDBFiles { get; set; } = new BiDictionaryHashSet<string>();
-
+        private BiDictionaryHashSet<string> MALs { get; set; }= new BiDictionaryHashSet<string>();
+        private BiDictionaryHashSet<string> AnimeEpisodes { get; set; } = new BiDictionaryHashSet<string>();
 
 
         public string GetGroupId(string serieid)
@@ -28,6 +30,16 @@ namespace JMMDatabase.Repos
         {
             string n = GetGroupId(serieid);
             return n == null ? null : Store.AnimeGroupRepo.Find(n);
+        }
+
+        public DateTime LastEpisodeDate(JMMUser user)
+        {
+            user = user.GetRealUser();
+            if (user != null)
+            {
+                return Items.Values.SelectMany(a=>a.Episodes).SelectMany(a=>a.UsersStats).Where(a=>a.JMMUserId==user.Id && a.WatchedCount>0 && a.WatchedDate.HasValue).Max(a=>a.WatchedDate.Value);
+            }
+            return DateTime.MinValue;
         }
 
 
@@ -76,26 +88,35 @@ namespace JMMDatabase.Repos
             AniDBAnimes.Delete(obj.Id);
             AniDBEpisodes.Delete(obj.Id);
             AniDBFiles.Delete(obj.Id);
+            MALs.Delete(obj.Id);
+            AnimeEpisodes.Delete(obj.Id);
             s.Delete(obj);
         }
 
 
-        public Dictionary<AnimeSerie,List<VideoLocal>> AnimeSerieFromVideoLocal(string id)
+        public List<AnimeSerie> AnimeSeriesFromVideoLocal(string id)
         {
-            Dictionary<AnimeSerie, List<VideoLocal>> v = VideoLocals.FindInverse(id).SelectOrDefault(a => Items.Find(a)).ToDictionary(a => a, a=>new List<VideoLocal>());
-            foreach (AnimeSerie s in v.Keys)
-                v[s].AddRange(s.Episodes.SelectMany(a => a.AniDbEpisodes).SelectMany(a => a.Value).SelectMany(a => a.VideoLocals));
-            return v;
+            return VideoLocals.FindInverse(id).SelectOrDefault(a => Items.Find(a)).ToList();
         }
-
-        public Dictionary<AnimeSerie, List<AniDB_File>> AnimeSerieFromAniDBFile(string id)
+        public List<AnimeSerie> AnimeSeriesFromMAL(string id)
         {
+            return MALs.FindInverse(id).SelectOrDefault(a => Items.Find(a)).ToList();
+        }
+        public AnimeSerie AnimeSerieFromAnimeEpisode(string id)
+        {
+            return AnimeEpisodes.FindInverse(id).SelectOrDefault(a => Items.Find(a)).FirstOrDefault();
+        }
+        public List<AnimeSerie> AnimeSeriesFromAniDBFile(string id)
+        {
+            return AniDBFiles.FindInverse(id).SelectOrDefault(a => Items.Find(a)).ToList();
+
+/*
             Dictionary<AnimeSerie, List<AniDB_File>> v = AniDBFiles.FindInverse(id).SelectOrDefault(a => Items.Find(a)).ToDictionary(a => a, a => new List<AniDB_File>());
             foreach (AnimeSerie s in v.Keys)
             {
                 v[s].AddRange(s.Episodes.SelectMany(a => a.AniDbEpisodes).SelectMany(a => a.Value).SelectMany(a => a.Files));
             }
-            return v; 
+            return v; */
         }
         public AnimeSerie AnimeSerieFromAniDBEpisode(string epid)
         {
@@ -123,6 +144,8 @@ namespace JMMDatabase.Repos
                 AniDBAnimes.Add(n.Id, n.AniDB_Anime.Id);
                 AniDBEpisodes.Add(n.Id, n.Episodes.SelectMany(a => a.AniDbEpisodes).SelectMany(a => a.Value).Select(a=>a.Id).ToHashSet());
                 AniDBFiles.Add(n.Id, n.Episodes.SelectMany(a => a.AniDbEpisodes).SelectMany(a => a.Value).SelectMany(a=>a.Files).Select(a=>a.Id).ToHashSet());
+                MALs.Add(n.Id,n.AniDB_Anime.MALs.Select(a=>a.MalId).ToHashSet());
+                AnimeEpisodes.Add(n.Id, n.Episodes.Select(a => a.Id).ToHashSet());
             }
         }
 
@@ -142,6 +165,8 @@ namespace JMMDatabase.Repos
             AniDBAnimes.Update(s.Id, s.AniDB_Anime.Id);
             AniDBEpisodes.Update(s.Id, s.Episodes.SelectMany(a => a.AniDbEpisodes).SelectMany(a => a.Value).Select(a=>a.Id).ToHashSet());
             AniDBFiles.Update(s.Id, s.Episodes.SelectMany(a => a.AniDbEpisodes).SelectMany(a => a.Value).SelectMany(a => a.Files).Select(a => a.Id).ToHashSet());
+            MALs.Update(s.Id,s.AniDB_Anime.MALs.Select(a => a.MalId).ToHashSet());
+            AnimeEpisodes.Update(s.Id,s.Episodes.Select(a=>a.Id).ToHashSet());
             session.Store(s);
         }
 
@@ -180,8 +205,8 @@ namespace JMMDatabase.Repos
                 if (found)
                     s.AvailableReleaseQualities.Add(sn);
             }
-            s.Languages = allfiles.SelectMany(a => a.Languages).Select(a => a.Name).Distinct().ToHashSet();
-            s.Subtitles = allfiles.SelectMany(a => a.Subtitles).Select(a => a.Name).Distinct().ToHashSet();
+            s.Languages = allfiles.SelectMany(a => a.AudioLanguages).Select(a => a.Id).Distinct().ToHashSet();
+            s.Subtitles = allfiles.SelectMany(a => a.Subtitles).Select(a => a.Id).Distinct().ToHashSet();
         }
 
     }

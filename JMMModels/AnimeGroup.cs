@@ -7,7 +7,7 @@ namespace JMMModels
 {
     public class AnimeGroup : MissingCount
     {
-        public string Id { get; set; }
+        public string Id { get; set; } //GUID
         public string ParentId { get; set; }
         public string GroupName { get; set; }
         public string Description { get; set; }

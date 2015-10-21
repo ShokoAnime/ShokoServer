@@ -25,23 +25,17 @@ namespace JMMServer.Commands
 	{
 		public string HashAndSize { get; set; }
 
+		public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
-	    private List<VideoLocal> vidLocals = null;
-
-		public CommandRequestPriority DefaultPriority
-		{
-			get { return CommandRequestPriority.Priority9; }
-		}
-
-		public string PrettyDescription
+	    public string PrettyDescription
 		{
 			get
 			{
 			    JMMModels.JMMUser u = Store.JmmUserRepo.Find(JMMUserId);
-
-                if ((vidLocals.HasItems()))
-					return $"Adding file to user {u.UserName} MyList: {vidLocals[0].FullServerPath()}";
-				return $"Adding file to user {u.UserName} MyList: {HashAndSize}";
+                VideoLocal vl = Store.VideoLocalRepo.Find(HashAndSize);
+			    if ((vl != null) && (u!=null))
+                    return $"Adding file '{vl.FileInfo.Path}'to user {u.UserName}";
+			    return string.Empty;
 			}
 		}
 
@@ -52,7 +46,10 @@ namespace JMMServer.Commands
 		public CommandRequest_AddFileToMyList(string userid, string hashandsize)
 		{
 		    HashAndSize = hashandsize;
-		    JMMUserId = userid;
+            JMMModels.JMMUser user = Store.JmmUserRepo.Find(userid).GetUserWithAuth(AuthorizationProvider.AniDB);
+		    if (user != null)
+		        userid = user.Id;
+            JMMUserId = userid;
 			CommandType = CommandRequestType.AniDB_AddFileUDP;
 			Priority = DefaultPriority;
             Id= $"CommandRequest_AddFileToMyList_{JMMUserId}_{HashAndSize}";
@@ -61,55 +58,61 @@ namespace JMMServer.Commands
 		public override void ProcessCommand()
 		{
 			logger.Info("Processing CommandRequest_AddFileToMyList: {0}", HashAndSize);
-			try
-			{
-                JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetRealUser();
-			    Dictionary<AnimeSerie, List<VideoLocal>> series = Store.AnimeSerieRepo.AnimeSerieFromVideoLocal(HashAndSize);
-                vidLocals = series.SelectMany(a=>a.Value).ToList();
-			    if (vidLocals.HasItems())
-			    {
-			        foreach (AnimeSerie s in series.Keys)
-			        {
-			            foreach (VideoLocal vl in series[s])
-			            {
-                            DateTime? watchedDate = null;
-                            List<JMMModels.AniDB_Episode> eps = s.AniDB_EpisodesFromVideoLocal(vl);
-                            bool isManualLink = vl.CrossRefSource != CrossRefSourceType.AniDB;
-			                foreach (JMMModels.AniDB_Episode e in eps)
-			                {
-                                JMMModels.Childs.AnimeEpisode aep = s.AnimeEpisodeFromAniDB_Episode(e);
-                                bool newWatchedStatus = false;
-                                JMMModels.JMMUser anidbuser = user.GetAniDBUser();
-			                    if (isManualLink)
-			                        newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(anidbuser.Id, s.AniDB_Anime.Id, e.Number, ref watchedDate);
-			                    else
-			                        newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(anidbuser.Id, new Hash { FileSize = vl.FileSize, ED2KHash = vl.Hash, Info= vl.FileInfo.Path ?? string.Empty }, ref watchedDate);
-                                vl.ToggleWatchedStatus(s, newWatchedStatus, false, watchedDate, user, false,true);
-                                logger.Info("Adding file to list: {0} - {1}", vl.ToString(), watchedDate);
-			                    if (ServerSettings.Import_UseExistingFileWatchedStatus && !newWatchedStatus)
-			                    {
-                                    UserStats n = aep.UsersStats.FirstOrDefault(a => a.JMMUserId == user.Id);
-			                        if ((n != null) && (n.WatchedCount > 0))
-			                        {
-                                        logger.Info("Setting file as watched, because episode was already watched: {0} - user: {1}", vl.ToString(), user.UserName);                                        
-                                        vl.ToggleWatchedStatus(s, true, true, n.WatchedDate, user, false, true);
-			                        }
-			                    }
-                                if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                                {
-                                    CommandRequest_TraktCollectionEpisode cmdSyncTrakt = new CommandRequest_TraktCollectionEpisode(aep.Id, TraktSyncAction.Add);
-                                    cmdSyncTrakt.Save();
-                                }
+		    try
+		    {
+		        JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId);
+		        if (user == null)
+		            return;
+                VideoLocal vl = Store.VideoLocalRepo.Find(HashAndSize);
+		        if (vl != null)
+		        {
+		            foreach (AnimeSerie s in Store.AnimeSerieRepo.AnimeSeriesFromVideoLocal(vl.Id))
+		            {
+		                DateTime? watchedDate = null;
+		                List<JMMModels.AniDB_Episode> eps = s.AniDB_EpisodesFromVideoLocal(vl);
+		                bool isManualLink = vl.CrossRefSource != CrossRefSourceType.AniDB;
+		                foreach (JMMModels.AniDB_Episode e in eps)
+		                {
+		                    JMMModels.Childs.AnimeEpisode aep = s.AnimeEpisodeFromAniDB_Episode(e);
+		                    bool newWatchedStatus = false;
+                            if (isManualLink)
+		                        newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(user.Id, s.AniDB_Anime.Id, e.Number, ref watchedDate);
+		                    else
+		                        newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(user.Id, new Hash {FileSize = vl.FileSize, ED2KHash = vl.Hash, Info = vl.FileInfo.Path ?? string.Empty}, ref watchedDate);
+		                    vl.ToggleWatchedStatus(newWatchedStatus, false, watchedDate, user, false, true);
+		                    logger.Info("Adding file to list: {0} - {1}", vl.ToString(), watchedDate);
+		                    if (ServerSettings.Import_UseExistingFileWatchedStatus && !newWatchedStatus)
+		                    {
+		                        UserStats n = aep.UsersStats.FirstOrDefault(a => a.JMMUserId == user.Id);
+		                        if ((n != null) && (n.WatchedCount > 0))
+		                        {
+		                            logger.Info("Setting file as watched, because episode was already watched: {0} - user: {1}",
+		                                vl.ToString(), user.UserName);
+		                            vl.ToggleWatchedStatus(true, true, n.WatchedDate, user, false, true);
+		                        }
+		                    }
+                            Store.VideoLocalRepo.Save(vl);
+		                    if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+		                    {
+		                        CommandRequest_TraktCollectionEpisode cmdSyncTrakt =
+		                            new CommandRequest_TraktCollectionEpisode(aep.Id, TraktSyncAction.Add);
+		                        cmdSyncTrakt.Save();
+		                    }
+		                }
+		                JMMModels.JMMUser maluser = user.GetUserWithAuth(AuthorizationProvider.MAL);
+		                if (maluser != null)
+		                {
+		                    UserNameAuthorization auth = maluser.GetMALAuthorization();
+                            if (!string.IsNullOrEmpty(auth.UserName) && !string.IsNullOrEmpty(auth.Password))
+                            {
+                                CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(maluser.Id, int.Parse(s.AniDB_Anime.Id));
+                                cmdMAL.Save();
                             }
-                        }
-                        if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) && !string.IsNullOrEmpty(ServerSettings.MAL_Password))
-                        {
-                            CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(s.AniDB_Anime.Id);
-                            cmdMAL.Save();
+
                         }
                     }
                 }
-			}
+		    }
 			catch (Exception ex)
 			{
 				logger.Error("Error processing CommandRequest_AddFileToMyList: {0} - {1}", Hash, ex.ToString());

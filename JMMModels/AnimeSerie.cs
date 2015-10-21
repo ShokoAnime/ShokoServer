@@ -7,7 +7,7 @@ namespace JMMModels
 {
     public partial class AnimeSerie : MissingCount
     {
-        public string Id { get; set; }
+        public string Id { get; set; } //GUID
         public string GroupId { get; set; }
         public string DefaultAudioLanguage { get; set; }
         public string DefaultSubtitleLanguage { get; set; }

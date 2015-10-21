@@ -6,8 +6,13 @@ using JMMServer.WebCache;
 using JMMServer.Providers.MyAnimeList;
 using AniDBAPI;
 using System.Xml;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels.Childs;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServerModels.DB.Childs;
+using AniDB_Anime = JMMServer.Entities.AniDB_Anime;
 
 namespace JMMServer.Commands.MAL
 {
@@ -28,12 +33,12 @@ namespace JMMServer.Commands.MAL
 		}
 
 
-		public CommandRequest_MALUploadStatusToMAL()
+		public CommandRequest_MALUploadStatusToMAL(string userid)
 		{
-			this.CommandType = (int)CommandRequestType.MAL_UploadWatchedStates;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+			this.CommandType = CommandRequestType.MAL_UploadWatchedStates;
+			this.Priority = DefaultPriority;
+		    this.JMMUserId = userid;
+            this.Id= "CommandRequest_MALUploadStatusToMAL";
 		}
 
 		public override void ProcessCommand()
@@ -42,7 +47,15 @@ namespace JMMServer.Commands.MAL
 
 			try
 			{
-				if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
+                JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId);
+			    if (user == null)
+			        return;
+                user = user.GetUserWithAuth(AuthorizationProvider.AniDB);
+			    if (user == null)
+			        return;
+                UserNameAuthorization auth = user.GetMALAuthorization();
+
+                if (string.IsNullOrEmpty(auth.UserName) || string.IsNullOrEmpty(auth.Password))
 					return;
 
 				// find the latest eps to update
@@ -51,7 +64,7 @@ namespace JMMServer.Commands.MAL
 
 				foreach (AniDB_Anime anime in animes)
 				{
-					CommandRequest_MALUpdatedWatchedStatus cmd = new CommandRequest_MALUpdatedWatchedStatus(anime.AnimeID);
+					CommandRequest_MALUpdatedWatchedStatus cmd = new CommandRequest_MALUpdatedWatchedStatus(user.Id, anime.AnimeID);
 					cmd.Save();
 				}
 			}
@@ -60,44 +73,6 @@ namespace JMMServer.Commands.MAL
 				logger.Error("Error processing CommandRequest_MALUploadStatusToMAL: {0}", ex.ToString());
 				return;
 			}
-		}
-
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_MALUploadStatusToMAL");
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
 		}
 	}
 }

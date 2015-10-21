@@ -7,8 +7,15 @@ using JMMServer.Entities;
 using System.Xml;
 using AniDBAPI.Commands;
 using AniDBAPI;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels;
+using JMMModels.Childs;
 using JMMServer.AniDB_API.Commands;
 using JMMServer.AniDB_API.Raws;
+using JMMServerModels.DB.Childs;
+using Raven.Client;
+using AniDB_Vote = JMMServer.Entities.AniDB_Vote;
 
 namespace JMMServer.Commands
 {
@@ -24,17 +31,17 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Syncing Vote info from HTTP API");
+				return "Syncing Vote info from HTTP API";
 			}
 		}
 
 
-		public CommandRequest_SyncMyVotes()
+		public CommandRequest_SyncMyVotes(string userid)
 		{
-			this.CommandType = (int)CommandRequestType.AniDB_SyncVotes;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+			this.CommandType = CommandRequestType.AniDB_SyncVotes;
+			this.Priority = DefaultPriority;
+		    this.JMMUserId = userid;
+            this.Id= "CommandRequest_SyncMyVotes";
 		}
 
 		public override void ProcessCommand()
@@ -43,98 +50,108 @@ namespace JMMServer.Commands
 
 			try
 			{
-				AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
 
-				AniDBHTTPCommand_GetVotes cmd = new AniDBHTTPCommand_GetVotes();
-				cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
-				enHelperActivityType ev = cmd.Process();
-				if (ev == enHelperActivityType.GotVotesHTTP)
-				{
-					foreach (Raw_AniDB_Vote_HTTP myVote in cmd.MyVotes)
-					{
-						List<AniDB_Vote> dbVotes = repVotes.GetByEntity(myVote.EntityID);
-						AniDB_Vote thisVote = null;
-						foreach (AniDB_Vote dbVote in dbVotes)
-						{
-							// we can only have anime permanent or anime temp but not both
-							if (myVote.VoteType == enAniDBVoteType.Anime || myVote.VoteType == enAniDBVoteType.AnimeTemp)
-							{
-								if (dbVote.VoteType == (int)enAniDBVoteType.Anime || dbVote.VoteType == (int)enAniDBVoteType.AnimeTemp)
-								{
-									thisVote = dbVote;
-								}
-							}
-							else
-							{
-								thisVote = dbVote;
-							}
-						}
+                JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetUserWithAuth(AuthorizationProvider.AniDB);
+                if (user == null)
+                    return;
 
-						if (thisVote == null)
-						{
-							thisVote = new AniDB_Vote();
-							thisVote.EntityID = myVote.EntityID;
-						}
-						thisVote.VoteType = (int)myVote.VoteType;
-						thisVote.VoteValue = myVote.VoteValue;
+                AniDBAuthorization auth = user.GetAniDBAuthorization();
+                AniDBHTTPCommand_GetVotes cmd = new AniDBHTTPCommand_GetVotes();
+                cmd.Init(auth.UserName, auth.Password);
+                enHelperActivityType ev = cmd.Process();
+			    using (IDocumentSession session = Store.GetSession())
+			    {
+                    List<AnimeSerie> changedSeries=new List<AnimeSerie>();
 
-						repVotes.Save(thisVote);
+			        if (ev == enHelperActivityType.GotVotesHTTP)
+			        {
+			            foreach (Raw_AniDB_Vote_HTTP myVote in cmd.MyVotes)
+			            {
+                            float val = myVote.VoteValue / 100F;
+                            switch (myVote.VoteType)
+			                {
+			                    case enAniDBVoteType.Anime:
+			                    case enAniDBVoteType.AnimeTemp:
+			                        AnimeSerie ser = Store.AnimeSerieRepo.AnimeSerieFromAniDBAnime(myVote.EntityID.ToString());
+			                        if (ser != null)
+			                        {
+			                            JMMModels.Childs.AniDB_Vote v = ser.AniDB_Anime.MyVotes.FirstOrDefault(a => a.JMMUserId == user.Id && a.Type == (AniDB_Vote_Type) (int) myVote.VoteType);
+			                            if (v == null)
+			                            {
+			                                v = new JMMModels.Childs.AniDB_Vote { Type= (AniDB_Vote_Type)(int)myVote.VoteType, JMMUserId = user.Id};
+			                                ser.AniDB_Anime.MyVotes.Add(v);
+			                            }
+			                            else if (Math.Abs(v.Vote - val) < float.Epsilon)
+			                            {
+			                                continue;
+			                            }
+			                            v.Vote = val;
+			                            if (!changedSeries.Contains(ser))
+			                                changedSeries.Add(ser);
+			                        }
+                                    else
+                                    {
+                                        CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(myVote.EntityID, false, false);
+                                        cmdAnime.Save();
+                                    }
+                                    break;
+                                case enAniDBVoteType.Episode:
+			                        AnimeSerie ser2 = Store.AnimeSerieRepo.AnimeSerieFromAniDBEpisode(myVote.EntityID.ToString());
+			                        if (ser2 != null)
+			                        {
+			                            JMMModels.AniDB_Episode ep = ser2.AniDBEpisodeFromAniDB_EpisodeId(myVote.EntityID.ToString());
+			                            if (ep != null)
+			                            {
+                                            JMMModels.Childs.AniDB_Vote v = ep.MyVotes.FirstOrDefault(a => a.JMMUserId == user.Id && a.Type == (AniDB_Vote_Type)(int)myVote.VoteType);
+                                            if (v == null)
+                                            {
+                                                v = new JMMModels.Childs.AniDB_Vote { Type = (AniDB_Vote_Type)(int)myVote.VoteType, JMMUserId = user.Id };
+                                                ep.MyVotes.Add(v);
+                                            }
+                                            else if (Math.Abs(v.Vote - val) < float.Epsilon)
+                                            {
+                                                continue;
+                                            }
+                                            v.Vote = val;
+                                            if (!changedSeries.Contains(ser2))
+                                                changedSeries.Add(ser2);
+                                        }
+			                        }
+			                        break;
+                                case enAniDBVoteType.Group:
+			                        JMMModels.AniDB_ReleaseGroup grp = Store.ReleaseGroupRepo.Find(myVote.EntityID.ToString());
+			                        if (grp != null)
+			                        {
+                                        JMMModels.Childs.AniDB_Vote v = grp.MyVotes.FirstOrDefault(a => a.JMMUserId == user.Id && a.Type == (AniDB_Vote_Type)(int)myVote.VoteType);
+                                        if (v == null)
+                                        {
+                                            v = new JMMModels.Childs.AniDB_Vote { Type = (AniDB_Vote_Type)(int)myVote.VoteType, JMMUserId = user.Id };
+                                            grp.MyVotes.Add(v);
+                                        }
+                                        else if (Math.Abs(v.Vote - val) < float.Epsilon)
+                                        {
+                                            continue;
+                                        }
+                                        Store.ReleaseGroupRepo.Save(grp,session);
+                                    }
+			                        else
+			                        {
+			                            CommandRequest_GetReleaseGroup rg=new CommandRequest_GetReleaseGroup(myVote.EntityID,false);
+			                            rg.Save();
+			                        }
+			                        break;
 
-						if (myVote.VoteType == enAniDBVoteType.Anime || myVote.VoteType == enAniDBVoteType.AnimeTemp)
-						{
-							// download the anime info if the user doesn't already have it
-							CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(thisVote.EntityID, false, false);
-							cmdAnime.Save();
-						}
-					}
-
-					logger.Info("Processed Votes: {0} Items", cmd.MyVotes.Count);
-				}
+			                }			                
+			            }
+			            logger.Info("Processed Votes: {0} Items", cmd.MyVotes.Count);
+			        }
+			    }
 			}
 			catch (Exception ex)
 			{
 				logger.Error("Error processing CommandRequest_SyncMyVotes: {0} ", ex.ToString());
-				return;
-			}
-		}
-
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_SyncMyVotes");
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
 
 			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
 		}
 	}
 }

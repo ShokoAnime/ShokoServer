@@ -192,7 +192,7 @@ namespace JMMServer
 	        {
 	            ForceLogout();
                 JMMModels.JMMUser nuser = Store.JmmUserRepo.Find(newuserid);
-	            AniDBAuthorization an = nuser.GetAniDBAuthorizationFromUser();
+	            AniDBAuthorization an = nuser.GetAniDBAuthorization();
 	            userName = an.UserName;
 	            password = an.Password;
                 bool res= Login();
@@ -209,7 +209,7 @@ namespace JMMServer
 		{
 			soUdp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 		    JMMModels.JMMUser user = Store.JmmUserRepo.GetMasterUser();
-            AniDBAuthorization an = user.GetAniDBAuthorizationFromUser();
+            AniDBAuthorization an = user.GetAniDBAuthorization();
             userName = an.UserName;
             password = an.Password;
 			this.serverName = serverName;

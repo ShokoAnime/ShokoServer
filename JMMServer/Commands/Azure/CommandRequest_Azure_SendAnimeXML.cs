@@ -7,6 +7,11 @@ using JMMServer.Entities;
 using JMMServer.Providers.Azure;
 using System.Xml;
 using System.IO;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels.Childs;
+using JMMServerModels.DB.Childs;
+using AniDB_Anime = JMMServer.Entities.AniDB_Anime;
 
 
 namespace JMMServer.Commands.Azure
@@ -24,7 +29,7 @@ namespace JMMServer.Commands.Azure
 		{
 			get
 			{
-				return string.Format("Sending anime xml to azure: {0}", AnimeID);
+				return $"Sending anime xml to azure: {AnimeID}";
 			}
 		}
 
@@ -35,10 +40,10 @@ namespace JMMServer.Commands.Azure
 		public CommandRequest_Azure_SendAnimeXML(int animeID)
 		{
 			this.AnimeID = animeID;
-			this.CommandType = (int)CommandRequestType.Azure_SendAnimeXML;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+			this.CommandType = CommandRequestType.Azure_SendAnimeXML;
+			this.Priority = DefaultPriority;
+            this.JMMUserId= Store.JmmUserRepo.GetMasterUser().Id;
+            this.Id= $"CommandRequest_Azure_SendAnimeXML_{this.AnimeID}";
 		}
 
 		public override void ProcessCommand()
@@ -46,8 +51,12 @@ namespace JMMServer.Commands.Azure
 			
 			try
 			{
-				bool process = (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-					ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
+			    JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetUserWithAuth(AuthorizationProvider.AniDB);
+			    if (user == null)
+			        return;
+                AniDBAuthorization auth = user.GetAniDBAuthorization();
+                bool process = (auth.UserName.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
+                    auth.UserName.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
 
 				if (!process) return;
 
@@ -61,7 +70,7 @@ namespace JMMServer.Commands.Azure
 				if (!Directory.Exists(filePath))
 					Directory.CreateDirectory(filePath);
 
-				string fileName = string.Format("AnimeDoc_{0}.xml", AnimeID);
+				string fileName = $"AnimeDoc_{AnimeID}.xml";
 				string fileNameWithPath = Path.Combine(filePath, fileName);
 
 				string rawXML = "";
@@ -86,47 +95,6 @@ namespace JMMServer.Commands.Azure
 				logger.Error("Error processing CommandRequest_Azure_SendAnimeXML: {0} - {1}", AnimeID, ex.ToString());
 				return;
 			}
-		}
-
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_Azure_SendAnimeXML_{0}", this.AnimeID);
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-
-				// populate the fields
-				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeXML", "AnimeID"));
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
 		}
 	}
 }

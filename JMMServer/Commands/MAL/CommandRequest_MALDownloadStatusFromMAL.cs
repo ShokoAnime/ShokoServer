@@ -6,8 +6,16 @@ using JMMServer.WebCache;
 using JMMServer.Providers.MyAnimeList;
 using AniDBAPI;
 using System.Xml;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels;
+using JMMModels.Childs;
+using JMMModels.Extensions;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServerModels.DB.Childs;
+using AniDB_Episode = JMMServer.Entities.AniDB_Episode;
+using AnimeEpisode = JMMServer.Entities.AnimeEpisode;
 
 namespace JMMServer.Commands.MAL
 {
@@ -23,17 +31,17 @@ namespace JMMServer.Commands.MAL
 		{
 			get
 			{
-				return string.Format("Downloading watched states from MAL");
+				return "Downloading watched states from MAL";
 			}
 		}
 
 
-		public CommandRequest_MALDownloadStatusFromMAL()
+		public CommandRequest_MALDownloadStatusFromMAL(string userid)
 		{
-			this.CommandType = (int)CommandRequestType.MAL_DownloadWatchedStates;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+		    this.JMMUserId = userid;
+            this.CommandType = CommandRequestType.MAL_DownloadWatchedStates;
+			this.Priority = DefaultPriority;
+            this.Id= "CommandRequest_MALDownloadStatusFromMAL";
 		}
 
 		public override void ProcessCommand()
@@ -42,145 +50,77 @@ namespace JMMServer.Commands.MAL
 
 			try
 			{
-				if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
-					return;
+			    JMMModels.JMMUser oruser = Store.JmmUserRepo.Find(JMMUserId).GetRealUser();
+                JMMModels.JMMUser usermal = oruser.GetUserWithAuth(AuthorizationProvider.MAL);
+			    JMMModels.JMMUser useranidb = oruser.GetUserWithAuth(AuthorizationProvider.AniDB);
+                if (usermal==null || useranidb==null || usermal!=useranidb)
+                    return;
+
 
 				// find the latest eps to update
 				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-				myanimelist mal = MALHelper.GetMALAnimeList();
+				myanimelist mal = MALHelper.GetMALAnimeList(usermal.Id);
 				if (mal == null) return;
 				if (mal.anime == null) return;
 
-				CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-				AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-				AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
-
-				// find the anidb user
-				JMMUserRepository repUsers = new JMMUserRepository();
-				List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
-				if (aniDBUsers.Count == 0) return;
-
-				JMMUser user = aniDBUsers[0];
-
-
 				foreach (myanimelistAnime malAnime in mal.anime)
 				{
-					// look up the anime
-					CrossRef_AniDB_MAL xref = repCrossRef.GetByMALID(malAnime.series_animedb_id);
-					if (xref == null) continue;
+                    // look up the anime
+                    List<JMMModels.AnimeSerie> sers = Store.AnimeSerieRepo.AnimeSeriesFromMAL(malAnime.series_animedb_id.ToString());
+                    if (malAnime.series_animedb_id == 8107 || malAnime.series_animedb_id == 10737)
+                    {
+                        Console.Write("");
+                    }
+                    if (sers.Count == 0)
+				        continue;
+				    foreach (AnimeSerie ser in sers)
+				    {
+				        AniDB_Anime_MAL first = ser.AniDB_Anime.MALs.First(a => a.MalId == malAnime.series_animedb_id.ToString());
+				        int maxep =
+				            ser.AniDB_Anime.MALs.Where(a => a.StartEpisodeType == first.StartEpisodeType)
+				                .Max(a => a.StartEpisodeNumber);
+				        if (maxep > first.StartEpisodeNumber)
+				            maxep = maxep - 1;
+				        else
+				            maxep = int.MaxValue;
+				        foreach (JMMModels.Childs.AnimeEpisode ep in ser.Episodes.Where(a => a.AniDbEpisodes.Any(b => b.Value.Any(a => a.Type == first.StartEpisodeType))))				            
+				        {
+				            int adjustedWatchedEps = malAnime.my_watched_episodes + first.StartEpisodeNumber - 1;
+				            int epNum = ep.GetAniDB_Episode().Number;
+                            
+				            if (epNum < first.StartEpisodeNumber || epNum > maxep) continue;
 
-					if (malAnime.series_animedb_id == 8107 || malAnime.series_animedb_id == 10737)
-					{
-						Console.Write("");
-					}
+				            //AnimeEpisode_User usrRec = ep.GetUserRecord(user.JMMUserID);
+				            UserStats stats = ep.UsersStats.FirstOrDefault(a => a.JMMUserId == usermal.Id);
+				            if (epNum <= adjustedWatchedEps)
+				            {
 
-					// check if this anime has any other links
-					List<CrossRef_AniDB_MAL> allXrefs = repCrossRef.GetByAnimeID(xref.AnimeID);
-					if (allXrefs.Count == 0) continue;
+				                // update if the user doesn't have a record (means not watched)
+				                // or it is currently un-watched
+				                bool update = false;
+				                if (stats == null)
+				                    update = true;
+				                else
+				                {
+				                    if (!stats.WatchedDate.HasValue) update = true;
+				                }
 
-					// find the range of watched episodes that this applies to
-					int startEpNumber = xref.StartEpisodeNumber;
-					int endEpNumber = GetUpperEpisodeLimit(allXrefs, xref);
-
-					List<AniDB_Episode> aniEps = repAniEps.GetByAnimeID(xref.AnimeID);
-					foreach (AniDB_Episode aniep in aniEps)
-					{
-						if (aniep.EpisodeType != xref.StartEpisodeType) continue;
-
-						AnimeEpisode ep = repEp.GetByAniDBEpisodeID(aniep.EpisodeID);
-						if (ep == null) continue;
-
-						int adjustedWatchedEps = malAnime.my_watched_episodes + xref.StartEpisodeNumber - 1;
-						int epNum = aniep.EpisodeNumber;
-
-						if (epNum < startEpNumber || epNum > endEpNumber) continue;
-
-						AnimeEpisode_User usrRec = ep.GetUserRecord(user.JMMUserID);
-
-						if (epNum <= adjustedWatchedEps)
-						{
-							// update if the user doesn't have a record (means not watched)
-							// or it is currently un-watched
-							bool update = false;
-							if (usrRec == null) update = true;
-							else
-							{
-								if (!usrRec.WatchedDate.HasValue) update = true;
-							}
-
-							if (update) ep.ToggleWatchedStatus(true, true, DateTime.Now, user.JMMUserID, false);
-						}
-						else
-						{
-							bool update = false;
-							if (usrRec != null)
-							{
-								if (usrRec.WatchedDate.HasValue) update = true;
-							}
-
-							if (update) ep.ToggleWatchedStatus(false, true, DateTime.Now, user.JMMUserID, false);
-						}
-					}
+				                if (update) ep.ToggleWatchedStatus(true, true, DateTime.Now, usermal, false);
+				            }
+				            else
+				            {
+				                if (stats?.WatchedDate != null) ep.ToggleWatchedStatus(false, true, DateTime.Now, usermal, false);
+				            }
+				        }
+				    }
 				}
 			}
 			catch (Exception ex)
 			{
 				logger.Error("Error processing CommandRequest_MALDownloadStatusFromMAL: {0}", ex.ToString());
-				return;
 			}
 		}
 
-		private int GetUpperEpisodeLimit(List<CrossRef_AniDB_MAL> crossRefs, CrossRef_AniDB_MAL xrefBase)
-		{
-			foreach (CrossRef_AniDB_MAL xref in crossRefs)
-			{
-				if (xref.StartEpisodeType == xrefBase.StartEpisodeType)
-				{
-					if (xref.StartEpisodeNumber > xrefBase.StartEpisodeNumber)
-						return xref.StartEpisodeNumber - 1;
-				}
-			}
-
-			return int.MaxValue;
-		}
-
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_MALDownloadStatusFromMAL");
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
-		}
 	}
 }

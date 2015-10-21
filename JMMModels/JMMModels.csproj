@@ -44,8 +44,9 @@
     <Compile Include="AniDB_File.cs" />
     <Compile Include="Attributes\Attributes.cs" />
     <Compile Include="Childs\AniDB_Anime.cs" />
-    <Compile Include="Extensions\AniDB_Anime.cs" />
+    <Compile Include="Extensions\AniDB_AnimeExtensions.cs" />
     <Compile Include="Extensions\AniDB_TypeExtensions.cs" />
+    <Compile Include="Extensions\AnimeEpisodeExtensions.cs" />
     <Compile Include="Extensions\AnimeGroupExtensions.cs" />
     <Compile Include="Extensions\AnimeSerieExtensions.cs" />
     <Compile Include="Extensions\ExtendedUserStatsExtensions.cs" />

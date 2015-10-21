@@ -16,8 +16,16 @@ using JMMServer.Commands.MAL;
 using System.Collections;
 using AniDBAPI;
 using System.Diagnostics;
-using JMMContracts;
 using System.Globalization;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels;
+using JMMModels.Childs;
+using JMMModels.Extensions;
+using JMMServer.Extensions;
+using AniDB_Anime = JMMServer.Entities.AniDB_Anime;
+using AnimeEpisode = JMMServer.Entities.AnimeEpisode;
+using JMMUser = JMMServer.Entities.JMMUser;
 
 namespace JMMServer.Providers.MyAnimeList
 {
@@ -25,9 +33,17 @@ namespace JMMServer.Providers.MyAnimeList
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public static anime SearchAnimesByTitle(string searchTitle)
+		public static anime SearchAnimesByTitle(string userid, string searchTitle)
 		{
-			if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
+		    JMMModels.JMMUser user=Store.JmmUserRepo.Find(userid);
+            if (user == null)
+                return GetEmptyAnimes(); 
+		    user = user.GetUserWithAuth(AuthorizationProvider.MAL);
+            if (user == null)
+                return GetEmptyAnimes();
+		    UserNameAuthorization auth = user.GetMALAuthorization();
+
+			if (string.IsNullOrEmpty(auth.UserName) || string.IsNullOrEmpty(auth.Password))
 			{
 				logger.Warn("Won't search MAL, MAL credentials not provided");
 				return GetEmptyAnimes();
@@ -38,7 +54,7 @@ namespace JMMServer.Providers.MyAnimeList
 			string searchResultXML = "";
 			try
 			{
-				searchResultXML = SendMALAuthenticatedRequest("http://myanimelist.net/api/anime/search.xml?q=" + searchTitle);
+				searchResultXML = SendMALAuthenticatedRequest(user.Id, "http://myanimelist.net/api/anime/search.xml?q=" + searchTitle);
 			}
 			catch (Exception ex)
 			{
@@ -123,11 +139,19 @@ namespace JMMServer.Providers.MyAnimeList
 			return animes;
 		}
 
-		private static string SendMALAuthenticatedRequest(string url)
+		private static string SendMALAuthenticatedRequest(string userid, string url)
 		{
-			HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(url);
+            JMMModels.JMMUser user = Store.JmmUserRepo.Find(userid);
+		    if (user == null)
+		        return string.Empty;
+            user = user.GetUserWithAuth(AuthorizationProvider.MAL);
+		    if (user == null)
+		        return string.Empty;
+            UserNameAuthorization auth = user.GetMALAuthorization();
+
+            HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(url);
 			webReq.Timeout = 30 * 1000;
-			webReq.Credentials = new NetworkCredential(ServerSettings.MAL_Username, ServerSettings.MAL_Password);
+			webReq.Credentials = new NetworkCredential(auth.UserName, auth.Password);
 			webReq.PreAuthenticate = true;
             webReq.UserAgent = "api-jmm-7EC61C5283B99DC1CFE9A3730BF507CE";
 
@@ -151,13 +175,22 @@ namespace JMMServer.Providers.MyAnimeList
 
 		}
 
-		public static bool VerifyCredentials()
+		public static bool VerifyCredentials(string userid)
 		{
 
 			try
 			{
-				string username = ServerSettings.MAL_Username;
-				string password = ServerSettings.MAL_Password;
+                JMMModels.JMMUser user = Store.JmmUserRepo.Find(userid);
+			    if (user == null)
+			        return false;
+                user = user.GetUserWithAuth(AuthorizationProvider.MAL);
+			    if (user == null)
+			        return false;
+                UserNameAuthorization auth = user.GetMALAuthorization();
+
+
+			    string username = auth.UserName;
+			    string password = auth.Password;
 
 				string url = "http://myanimelist.net/api/account/verify_credentials.xml";
 				HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(url);
@@ -251,100 +284,95 @@ namespace JMMServer.Providers.MyAnimeList
 
 		}
 
-		public static void LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber, bool fromWebCache)
+		public static void LinkAniDBMAL(string userid, int animeID, int malID, string malTitle, int epType, int epNumber, bool fromWebCache)
 		{
-			CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-			CrossRef_AniDB_MAL xrefTemp = repCrossRef.GetByMALID(malID);
-			if (xrefTemp != null)
-			{
-				string msg = string.Format("Not using MAL link as this MAL ID ({0}) is already in use by {1}", malID, xrefTemp.AnimeID);
+		    List<AnimeSerie> ser=Store.AnimeSerieRepo.AnimeSeriesFromMAL(malID.ToString());
+            if (ser!=null && ser.Count>0)
+            { 
+				string msg = $"Not using MAL link as this MAL ID ({malID}) is already in use by {ser[0].AniDB_Anime.Id}";
 				logger.Warn(msg);
 				return;
 			}
+		    AnimeSerie serie = Store.AnimeSerieRepo.AnimeSerieFromAniDBAnime(animeID.ToString());
+            serie.AniDB_Anime.MALs=new List<AniDB_Anime_MAL>();
+            AniDB_Anime_MAL xref=new AniDB_Anime_MAL();
 
-			CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL();
-			xref.AnimeID = animeID;
-			xref.MALID = malID;
-			xref.MALTitle = malTitle;
-			xref.StartEpisodeType = epType;
+			xref.MalId = malID.ToString();
+			xref.Title = malTitle;
+			xref.StartEpisodeType = (AniDB_Episode_Type)epType;
 			xref.StartEpisodeNumber = epNumber;
-			if (fromWebCache)
-				xref.CrossRefSource = (int)CrossRefSource.WebCache;
-			else
-				xref.CrossRefSource = (int)CrossRefSource.User;
-
-			repCrossRef.Save(xref);
-
-			StatsCache.Instance.UpdateUsingAnime(animeID);
-
+			xref.CrossRefSource = fromWebCache ? CrossRefSourceType.WebCache : CrossRefSourceType.User;
+            Store.AnimeSerieRepo.Save(serie, UpdateType.None);
 			logger.Trace("Changed MAL association: {0}", animeID);
 
-			CommandRequest_MALUpdatedWatchedStatus cmd = new CommandRequest_MALUpdatedWatchedStatus(animeID);
+			CommandRequest_MALUpdatedWatchedStatus cmd = new CommandRequest_MALUpdatedWatchedStatus(userid, animeID);
 			cmd.Save();
 
-			CommandRequest_WebCacheSendXRefAniDBMAL req = new CommandRequest_WebCacheSendXRefAniDBMAL(xref.CrossRef_AniDB_MALID);
+		    CommandRequest_WebCacheSendXRefAniDBMAL req = new CommandRequest_WebCacheSendXRefAniDBMAL(animeID, malID);
 			req.Save();
 		}
 
 		public static void RemoveLinkAniDBMAL(int animeID, int epType, int epNumber)
 		{
-			CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-			CrossRef_AniDB_MAL xref = repCrossRef.GetByAnimeConstraint(animeID, epType, epNumber);
-			if (xref == null) return;
-
-			repCrossRef.Delete(xref.CrossRef_AniDB_MALID);
-
-			StatsCache.Instance.UpdateUsingAnime(animeID);
+		    AnimeSerie ser = Store.AnimeSerieRepo.Find(animeID.ToString());
+		    if (ser == null)
+		        return;
+            JMMModels.Childs.AniDB_Anime_MAL mal=ser.AniDB_Anime.MALs.FirstOrDefault(a=>a.StartEpisodeType==(AniDB_Episode_Type)epType && a.StartEpisodeNumber==epNumber);
+		    if (mal == null)
+		        return;
+		    ser.AniDB_Anime.MALs.Remove(mal);
+            Store.AnimeSerieRepo.Save(ser,UpdateType.None);
 
 			CommandRequest_WebCacheDeleteXRefAniDBMAL req = new CommandRequest_WebCacheDeleteXRefAniDBMAL(animeID, epType, epNumber);
 			req.Save();
 		}
 
-		public static void ScanForMatches()
+		public static void ScanForMatches(string userid)
 		{
-			if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
+            JMMModels.JMMUser user = Store.JmmUserRepo.Find(userid);
+		    if (user == null)
+		        return;
+            user = user.GetUserWithAuth(AuthorizationProvider.MAL);
+		    if (user == null)
+		        return;
+		    UserNameAuthorization auth = user.GetMALAuthorization();
+
+            if (string.IsNullOrEmpty(auth.UserName) || string.IsNullOrEmpty(auth.Password))
 			{
 				logger.Warn("Won't SCAN MAL, MAL credentials not provided");
 				return;
 			}
-
-			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-			List<AnimeSeries> allSeries = repSeries.GetAll();
-
-			CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-			foreach (AnimeSeries ser in allSeries)
+			foreach (AnimeSerie ser in Store.AnimeSerieRepo.AsQueryable().Where(a=>!a.AniDB_Anime.IsMALLinkDisabled() && a.AniDB_Anime.MALs==null || a.AniDB_Anime.MALs.Count==0))
 			{
-				AniDB_Anime anime = ser.GetAnime();
-				if (anime == null) continue;
-
-				if (anime.IsMALLinkDisabled) continue;
-
-				// don't scan if it is associated on the TvDB
-				List<CrossRef_AniDB_MAL> xrefs = anime.GetCrossRefMAL();
-				if (xrefs == null || xrefs.Count == 0)
-				{
-					logger.Trace(string.Format("Found anime without MAL association: {0} ({1})", anime.AnimeID, anime.MainTitle));
-
-					CommandRequest_MALSearchAnime cmd = new CommandRequest_MALSearchAnime(ser.AniDB_ID, false);
-					cmd.Save();
-				}
+				logger.Trace($"Found anime without MAL association: {ser.AniDB_Anime.Id} ({ser.AniDB_Anime.MainTitle})");
+				CommandRequest_MALSearchAnime cmd = new CommandRequest_MALSearchAnime(int.Parse(ser.AniDB_Anime.Id), false);
+				cmd.Save();
 			}
 
 		}
 
 		// non official API to retrieve current watching state
-		public static myanimelist GetMALAnimeList()
+		public static myanimelist GetMALAnimeList(string userid)
 		{
 			try
 			{
-				if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
+
+			    JMMModels.JMMUser user = Store.JmmUserRepo.Find(userid);
+			    if (user == null)
+			        return null;
+                user = user.GetUserWithAuth(AuthorizationProvider.AniDB);
+			    if (user == null)
+			        return null;
+                UserNameAuthorization auth = user.GetMALAuthorization();
+
+                if (string.IsNullOrEmpty(auth.UserName) || string.IsNullOrEmpty(auth.Password))
 				{
 					logger.Warn("Won't search MAL, MAL credentials not provided");
 					return null;
 				}
 
 				string url = string.Format("http://myanimelist.net/malappinfo.php?u={0}&status=all&type=anime", ServerSettings.MAL_Username);
-				string malAnimeListXML = SendMALAuthenticatedRequest(url);
+				string malAnimeListXML = SendMALAuthenticatedRequest(user.Id, url);
 				malAnimeListXML = ReplaceEntityNamesByCharacter(malAnimeListXML);
 
 				XmlSerializer serializer = new XmlSerializer(typeof(myanimelist));
@@ -386,18 +414,26 @@ namespace JMMServer.Providers.MyAnimeList
 			}
 		}*/
 
-		public static void UpdateMALSeries(AnimeSeries ser)
+		public static void UpdateMALSeries(string userid, AnimeSerie ser)
 		{
 			try
 			{
-				if (string.IsNullOrEmpty(ServerSettings.MAL_Username) || string.IsNullOrEmpty(ServerSettings.MAL_Password))
-					return;
+			    JMMModels.JMMUser user = Store.JmmUserRepo.Find(userid);
+			    if (user == null)
+			        return;
+                JMMModels.JMMUser userauth = user.GetUserWithAuth(AuthorizationProvider.MAL);
+			    JMMModels.JMMUser useranidb = user.GetUserWithAuth(AuthorizationProvider.AniDB);
+			    if (userauth == null) 
+			        return;
+			    UserNameAuthorization auth = userauth.GetMALAuthorization();
+			    if (auth == null)
+			        return;
 
 				// Populate MAL animelist hashtable if isNeverDecreaseWatched set
 				Hashtable animeListHashtable = new Hashtable();
 				if (ServerSettings.MAL_NeverDecreaseWatchedNums) //if set, check watched number before update: take some time, as user anime list must be loaded
 				{
-					myanimelist malAnimeList = GetMALAnimeList();
+					myanimelist malAnimeList = GetMALAnimeList(userauth.Id);
 					if (malAnimeList != null && malAnimeList.anime != null)
 					{
 						for (int i = 0; i < malAnimeList.anime.Length; i++)
@@ -408,14 +444,14 @@ namespace JMMServer.Providers.MyAnimeList
 				}
 
 				// look for MAL Links
-				List<CrossRef_AniDB_MAL> crossRefs = ser.GetAnime().GetCrossRefMAL();
-				if (crossRefs == null || crossRefs.Count == 0)
+                
+				if (ser.AniDB_Anime.MALs == null || ser.AniDB_Anime.MALs.Count == 0)
 				{
-					logger.Warn("Could not find MAL link for : {0} ({1})", ser.GetAnime().GetFormattedTitle(), ser.GetAnime().AnimeID);
+					logger.Warn("Could not find MAL link for : {0} ({1})", ser.AniDB_Anime.GetFormattedTitle(), ser.AniDB_Anime.Id);
 					return;
 				}
 
-				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+				/*AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
 				AniDB_FileRepository repFiles = new AniDB_FileRepository();
 
 				List<AnimeEpisode> eps = ser.GetAnimeEpisodes();
@@ -426,19 +462,22 @@ namespace JMMServer.Providers.MyAnimeList
 				if (aniDBUsers.Count == 0) return;
 
 				JMMUser user = aniDBUsers[0];
-
-				int score = 0;
-				if (ser.GetAnime().UserVote != null)
-					score = (int)(ser.GetAnime().UserVote.VoteValue / 100);
-
-				// e.g.
+                */
+				float score = 0;
+			    if (useranidb != null)
+			    {
+			        JMMModels.Childs.AniDB_Vote vote = ser.AniDB_Anime.MyVotes.FirstOrDefault(a => a.JMMUserId == useranidb.Id);
+			        if (vote != null)
+			            score = vote.Vote;
+			    }
+			    // e.g.
 				// AniDB - Code Geass R2
 				// MAL Equivalent = AniDB Normal Eps 1 - 25 / Code Geass: Hangyaku no Lelouch R2 / hxxp://myanimelist.net/anime/2904/Code_Geass:_Hangyaku_no_Lelouch_R2
 				// MAL Equivalent = AniDB Special Eps 1 - 9 / Code Geass: Hangyaku no Lelouch R2 Picture Drama / hxxp://myanimelist.net/anime/5163/Code_Geass:_Hangyaku_no_Lelouch_R2_Picture_Drama
 				// MAL Equivalent = AniDB Special Eps 9 - 18 / Code Geass: Hangyaku no Lelouch R2: Flash Specials / hxxp://myanimelist.net/anime/9591/Code_Geass:_Hangyaku_no_Lelouch_R2:_Flash_Specials
 				// MAL Equivalent = AniDB Special Eps 20 / Code Geass: Hangyaku no Lelouch - Kiseki no Birthday Picture Drama / hxxp://myanimelist.net/anime/8728/Code_Geass:_Hangyaku_no_Lelouch_-_Kiseki_no_Birthday_Picture_Drama
 
-				foreach (CrossRef_AniDB_MAL xref in crossRefs)
+				foreach (JMMModels.Childs.AniDB_Anime_MAL xref in ser.AniDB_Anime.MALs)
 				{
 					// look for the right MAL id
 					int malID = -1;
@@ -452,51 +491,47 @@ namespace JMMServer.Providers.MyAnimeList
 					int lastWatchedEpNumber = 0;
 					int downloadedEps = 0;
 
-					foreach (AnimeEpisode ep in eps)
-					{
-						int epNum = ep.AniDB_Episode.EpisodeNumber;
-						if (xref.StartEpisodeType == (int)ep.EpisodeTypeEnum && epNum >= xref.StartEpisodeNumber &&
-							epNum <= GetUpperEpisodeLimit(crossRefs, xref))
-						{
-							malID = xref.MALID;
+                    foreach (JMMModels.Childs.AnimeEpisode ep in ser.Episodes.Where(a => a.AniDbEpisodes.Any(b => b.Value.Any(c => c.Type == xref.StartEpisodeType))))
+                    {
+                        int epNum = ep.GetAniDB_Episode().Number;
+                        int maxep = ser.AniDB_Anime.MALs.Where(a => a.StartEpisodeType == xref.StartEpisodeType).Max(a => a.StartEpisodeNumber);
+                        if (maxep > xref.StartEpisodeNumber)
+                            maxep = maxep - 1;
+                        else
+                            maxep = int.MaxValue;
+                        if (epNum >= xref.StartEpisodeNumber && epNum <= maxep)
+                        {
+                            malID = int.Parse(xref.MalId);
 							epNumber = epNum - xref.StartEpisodeNumber + 1;
 
 							// find the total episode count
 							if (totalEpCount < 0)
 							{
-								if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode) totalEpCount = ser.GetAnime().EpisodeCountNormal;
-								if (ep.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special) totalEpCount = ser.GetAnime().EpisodeCountSpecial;
+								if (xref.StartEpisodeType == AniDB_Episode_Type.RegularEpisode) totalEpCount = ser.AniDB_Anime.EpisodeCountNormal;
+								if (xref.StartEpisodeType == AniDB_Episode_Type.Special) totalEpCount = ser.AniDB_Anime.EpisodeCountSpecial;
 								totalEpCount = totalEpCount - xref.StartEpisodeNumber + 1;
 							}
 
 							// any episodes here belong to the MAL series
 							// find the latest watched episod enumber
-							AnimeEpisode_User usrRecord = ep.GetUserRecord(user.JMMUserID);
-							if (usrRecord != null && usrRecord.WatchedDate.HasValue && epNum > lastWatchedEpNumber)
+
+                            UserStats stats = ep.UsersStats.FirstOrDefault(a => a.JMMUserId == useranidb.Id);
+	
+							if (stats != null && stats.WatchedDate.HasValue && epNum > lastWatchedEpNumber)
 							{
 								lastWatchedEpNumber = epNum;
 							}
 
-							List<Contract_VideoDetailed> contracts = ep.GetVideoDetailedContracts(user.JMMUserID);
-
 							// find the latest episode number in the collection
-							if (contracts.Count > 0)
+							if (ep.AniDbEpisodes.SelectMany(a=>a.Value).SelectMany(a=>a.VideoLocals).Any())
 								downloadedEps++;
 
-							foreach (Contract_VideoDetailed contract in contracts)
-							{
-								if (!string.IsNullOrEmpty(contract.AniDB_Anime_GroupNameShort) && !fanSubGroups.Contains(contract.AniDB_Anime_GroupNameShort))
-									fanSubGroups.Add(contract.AniDB_Anime_GroupNameShort);
-							}
 						}
 					}
+                    List<string> fansubs = ser.Episodes.SelectMany(a=>a.AniDbEpisodes).SelectMany(a=>a.Value).Where(a=>a.Type== xref.StartEpisodeType).SelectMany(a=>a.Files).Select(a=>a.GroupNameShort).Distinct().ToList();
+				    string fanSubs = string.Join(",", fansubs);
 
-					string fanSubs = "";
-					foreach (string fgrp in fanSubGroups)
-					{
-						if (!string.IsNullOrEmpty(fanSubs)) fanSubs += ",";
-						fanSubs += fgrp;
-					}
+
 
 					// determine status
 					int status = 1; //watching
@@ -513,18 +548,18 @@ namespace JMMServer.Providers.MyAnimeList
 
 					if (lastWatchedEpNumber > totalEpCount)
 					{
-						logger.Error("updateMAL, episode number > matching anime episode total : {0} ({1}) / {2}", ser.GetAnime().GetFormattedTitle(), ser.GetAnime().AnimeID, epNumber);
+						logger.Error("updateMAL, episode number > matching anime episode total : {0} ({1}) / {2}", ser.AniDB_Anime.GetFormattedTitle(), ser.AniDB_Anime.Id, epNumber);
 						continue;
 					}
 
 					if (malID <= 0 || totalEpCount <= 0)
 					{
-						logger.Warn("Could not find MAL link for : {0} ({1})", ser.GetAnime().GetFormattedTitle(), ser.GetAnime().AnimeID);
+						logger.Warn("Could not find MAL link for : {0} ({1})", ser.AniDB_Anime.GetFormattedTitle(), ser.AniDB_Anime.Id);
 						continue;
 					}
 					else
 					{
-						bool res = UpdateAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
+						bool res = UpdateAnime(userauth.Id, malID, lastWatchedEpNumber, status, (int)score, downloadedEps, fanSubs);
 
 						string confirmationMessage = string.Format("MAL successfully updated, mal id: {0}, ep: {1}, score: {2}", malID, lastWatchedEpNumber, score);
 						if (res) logger.Trace(confirmationMessage);
@@ -541,7 +576,7 @@ namespace JMMServer.Providers.MyAnimeList
 		}
 
 
-
+        /*
 		private static int GetUpperEpisodeLimit(List<CrossRef_AniDB_MAL> crossRefs, CrossRef_AniDB_MAL xrefBase)
 		{
 			foreach (CrossRef_AniDB_MAL xref in crossRefs)
@@ -555,9 +590,9 @@ namespace JMMServer.Providers.MyAnimeList
 
 			return int.MaxValue;
 		}
+        */
 
-
-		public static bool AddAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps, string fanSubs)
+		public static bool AddAnime(string userid, int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps, string fanSubs)
 		{
 			try
 			{
@@ -566,7 +601,7 @@ namespace JMMServer.Providers.MyAnimeList
 				string animeValuesXMLString = string.Format("?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score><downloaded_episodes>{3}</downloaded_episodes><fansub_group>{4}</fansub_group></entry>",
 							lastEpisodeWatched, status, score, downloadedEps, fanSubs);
 
-				res = SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/add/" + animeId + ".xml" + animeValuesXMLString);
+				res = SendMALAuthenticatedRequest(userid, "http://myanimelist.net/api/animelist/add/" + animeId + ".xml" + animeValuesXMLString);
 
 				return true;
 			}
@@ -576,7 +611,7 @@ namespace JMMServer.Providers.MyAnimeList
 			}
 		}
 
-		public static bool ModifyAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps, string fanSubs)
+		public static bool ModifyAnime(string userid, int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps, string fanSubs)
 		{
 			try
 			{
@@ -585,7 +620,7 @@ namespace JMMServer.Providers.MyAnimeList
 				string animeValuesXMLString = string.Format("?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score><downloaded_episodes>{3}</downloaded_episodes><fansub_group>{4}</fansub_group></entry>",
 							lastEpisodeWatched, status, score, downloadedEps, fanSubs);
 
-				res = SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/update/" + animeId + ".xml" + animeValuesXMLString);
+				res = SendMALAuthenticatedRequest(userid, "http://myanimelist.net/api/animelist/update/" + animeId + ".xml" + animeValuesXMLString);
 
 				return true;
 			}
@@ -596,7 +631,7 @@ namespace JMMServer.Providers.MyAnimeList
 		}
 
 		// status: 1/watching, 2/completed, 3/onhold, 4/dropped, 6/plantowatch
-		public static bool UpdateAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps, string fanSubs)
+		public static bool UpdateAnime(string userid, int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps, string fanSubs)
 		{
 			try
 			{
@@ -606,9 +641,9 @@ namespace JMMServer.Providers.MyAnimeList
 				try
 				{
 					// now modify back to proper status
-					if (!AddAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs))
+					if (!AddAnime(userid,animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs))
 					{
-						ModifyAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs);
+						ModifyAnime(userid, animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs);
 					}
 
 					

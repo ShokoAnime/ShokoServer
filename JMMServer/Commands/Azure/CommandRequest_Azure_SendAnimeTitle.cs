@@ -52,8 +52,10 @@ namespace JMMServer.Commands.Azure
 			
 			try
 			{
-                JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId);
-                AniDBAuthorization auth = user.GetAniDBAuthorizationFromUser();
+                JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetUserWithAuth(AuthorizationProvider.AniDB);
+			    if (user == null)
+			        return;
+                AniDBAuthorization auth = user.GetAniDBAuthorization();
 
                 bool process = (auth.UserName.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
                     auth.UserName.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));

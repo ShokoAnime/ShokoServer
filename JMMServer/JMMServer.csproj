@@ -258,6 +258,7 @@
     <Compile Include="Entities\LogMessage.cs" />
     <Compile Include="Entities\Playlist.cs" />
     <Compile Include="Entities\RenameScript.cs" />
+    <Compile Include="Extensions\AniDB_AnimeExtensions.cs" />
     <Compile Include="FileRenamer.cs" />
     <Compile Include="FileServer\FileServer.cs" />
     <Compile Include="FileServer\UPnP.cs" />

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels.Childs;
 using JMMServer.Entities;
 
 namespace JMMServer.Providers
@@ -21,18 +24,19 @@ namespace JMMServer.Providers
 		{
 		}
 
-        public CrossRef_AniDB_MALInput(CrossRef_AniDB_MAL xref)
-		{
-			this.AnimeID = xref.AnimeID;
-            this.MALID = xref.MALID;
-            this.CrossRefSource = xref.CrossRefSource;
-            this.MALTitle = xref.MALTitle;
-            this.StartEpisodeType = xref.StartEpisodeType;
+        public CrossRef_AniDB_MALInput(string userid, int animeId, AniDB_Anime_MAL xref)
+        {
+            JMMModels.JMMUser user = Store.JmmUserRepo.Find(userid);
+            this.AnimeID = animeId;
+            this.MALID = int.Parse(xref.MalId);
+            this.CrossRefSource = (int)xref.CrossRefSource;
+            this.MALTitle = xref.Title;
+            this.StartEpisodeType = (int)xref.StartEpisodeType;
             this.StartEpisodeNumber = xref.StartEpisodeNumber;
-
-			this.Username = ServerSettings.AniDB_Username;
-			if (ServerSettings.WebCache_Anonymous)
-				this.Username = Constants.AnonWebCacheUsername;
+            AniDBAuthorization auth = user.GetAniDBAuthorization();
+            this.Username = Constants.AnonWebCacheUsername;
+            if ((auth != null) && (!ServerSettings.WebCache_Anonymous))
+                Username = auth.UserName;
 		}
     }
 }

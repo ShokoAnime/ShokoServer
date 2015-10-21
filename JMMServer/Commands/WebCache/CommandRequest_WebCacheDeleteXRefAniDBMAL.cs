@@ -6,6 +6,7 @@ using JMMServer.WebCache;
 using JMMServer.Entities;
 using System.Xml;
 using JMMServer.Providers.Azure;
+using JMMServerModels.DB.Childs;
 
 namespace JMMServer.Commands.WebCache
 {
@@ -24,7 +25,7 @@ namespace JMMServer.Commands.WebCache
 		{
 			get
 			{
-				return string.Format("Deleting cross ref for Anidb to MAL from web cache: {0}", AnimeID);
+				return $"Deleting cross ref for Anidb to MAL from web cache: {AnimeID}";
 			}
 		}
 
@@ -37,10 +38,9 @@ namespace JMMServer.Commands.WebCache
 			this.AnimeID = animeID;
 			this.StartEpisodeType = epType;
 			this.StartEpisodeNumber = epNumber;
-			this.CommandType = (int)CommandRequestType.WebCache_DeleteXRefAniDBMAL;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+			this.CommandType = CommandRequestType.WebCache_DeleteXRefAniDBMAL;
+			this.Priority = DefaultPriority;
+            this.Id= $"CommandRequest_WebCacheDeleteXRefAniDBMAL{AnimeID}";
 		}
 
 		public override void ProcessCommand()
@@ -55,49 +55,6 @@ namespace JMMServer.Commands.WebCache
 				logger.ErrorException("Error processing CommandRequest_WebCacheDeleteXRefAniDBMAL: {0}" + ex.ToString(), ex);
 				return;
 			}
-		}
-
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_WebCacheDeleteXRefAniDBMAL{0}", AnimeID);
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-
-				// populate the fields
-				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL", "AnimeID"));
-				this.StartEpisodeType = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL", "StartEpisodeType"));
-				this.StartEpisodeNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBMAL", "StartEpisodeNumber"));
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
 		}
 	}
 }

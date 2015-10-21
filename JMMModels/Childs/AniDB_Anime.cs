@@ -37,7 +37,7 @@ namespace JMMModels.Childs
         public int? AllCinemaId { get; set; }
         public int? AnimeNfo { get; set; }
         public int? LatestEpisodeNumber { get; set; }
-        public int DisableExternalLinksFlag { get; set; }
+        public LinkFlags DisableExternalLinksFlag { get; set; }
 
 
         //Account Related
@@ -67,5 +67,13 @@ namespace JMMModels.Childs
         public List<Trakt_Image> TraktPosters { get; set; }
         public List<Trakt_Image> TraktFanarts{ get; set; }
 
+    }
+    [Flags]
+    public enum LinkFlags
+    {
+        LinkTvDB = 1,
+        LinkTrakt = 2,
+        LinkMAL = 4,
+        LinkMovieDB = 8
     }
 }

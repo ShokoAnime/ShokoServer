@@ -67,19 +67,20 @@ namespace JMMDatabase.Extensions
 
         public static void ToggleWatchedStatus(this VideoLocal vl, AnimeSerie ser, bool watched, JMMUser user)
         {
-            ToggleWatchedStatus(vl, ser, watched, true, null,user, true, true);
+            ToggleWatchedStatus(vl, watched, true, null,user, true, true);
         }
         
-        public static void ToggleWatchedStatus(this VideoLocal vl, AnimeSerie serie, bool watched, bool updateOnline, DateTime? watchedDate, JMMUser user, bool syncTrakt, bool updateWatchedDate)
+        public static void ToggleWatchedStatus(this VideoLocal vl, bool watched, bool updateOnline, DateTime? watchedDate, JMMUser user, bool syncTrakt, bool updateWatchedDate)
         {
-            if (!user.IsRealUserAccount)
-            {
-                user = user.GetAniDBUser();
-                if (user == null)
-                    return;
-            }
+            user = user.GetUserWithAuth(AuthorizationProvider.AniDB);
+            if (user == null)
+                return;
             vl.UsersStats.SetWatchedState(watched,user.Id, watchedDate, updateWatchedDate);
-            List<AniDB_Episode> eps = serie.AniDB_EpisodesFromVideoLocal(vl);
+            Dictionary<AnimeSerie, List<VideoLocal>> l = Store.AnimeSerieRepo.AnimeSeriesFromVideoLocal(vl.Id);
+
+            foreach(AnimeSerie serie in l.Keys)
+            { 
+                List<AniDB_Episode> eps = serie.AniDB_EpisodesFromVideoLocal(vl);
 
 
 
@@ -103,72 +104,73 @@ namespace JMMDatabase.Extensions
             // but we also need to check if theer are any other files attached to this episode with a watched
             // status, 
 
-            foreach (AniDB_Episode e in eps)
-            {
-                AnimeEpisode aep = serie.AnimeEpisodeFromAniDB_Episode(e);
-                if (watched)
+                foreach (AniDB_Episode e in eps)
                 {
-                    KeyValuePair<int, List<AniDB_Episode>> m = aep.AniDbEpisodes.FirstOrDefault(a => a.Value.Contains(e));
-                    float epPercentWatched = 0;
-                    foreach (AniDB_Episode k in m.Value)
+                    AnimeEpisode aep = serie.AnimeEpisodeFromAniDB_Episode(e);
+                    if (watched)
                     {
-                        if (k == e)
-                            epPercentWatched += k.Percentage;
-                        else
+                        KeyValuePair<int, List<AniDB_Episode>> m =aep.AniDbEpisodes.FirstOrDefault(a => a.Value.Contains(e));
+                        float epPercentWatched = 0;
+                        foreach (AniDB_Episode k in m.Value)
                         {
-                            VideoLocal mn =
-                                k.VideoLocals.FirstOrDefault(
-                                    a => a.UsersStats.Any(b => b.JMMUserId == user.Id && b.WatchedCount > 0));
-                            if (mn != null)
+                            if (k == e)
                                 epPercentWatched += k.Percentage;
+                            else
+                            {
+                                VideoLocal mn =
+                                    k.VideoLocals.FirstOrDefault(
+                                        a => a.UsersStats.Any(b => b.JMMUserId == user.Id && b.WatchedCount > 0));
+                                if (mn != null)
+                                    epPercentWatched += k.Percentage;
+                            }
+                        }
+                        if (epPercentWatched > 95)
+                        {
+                            aep.UsersStats.SetWatchedState(true, user.Id, watchedDate, updateWatchedDate);
+                        }
+                        if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
+                            !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                        {
+                            CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
+                                new CommandRequest_TraktHistoryEpisode(aep.Id, TraktSyncAction.Add);
+                            cmdSyncTrakt.Save();
+                        }
+
+                        if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
+                            !string.IsNullOrEmpty(ServerSettings.MAL_Password))
+                        {
+                            CommandRequest_MALUpdatedWatchedStatus cmdMAL =
+                                new CommandRequest_MALUpdatedWatchedStatus(serie.AniDB_Anime.Id);
+                            cmdMAL.Save();
                         }
                     }
-                    if (epPercentWatched > 95)
+                    else
                     {
-                        aep.UsersStats.SetWatchedState(true, user.Id, watchedDate, updateWatchedDate);
-                    }
-                    if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
-                        !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                    {
-                        CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
-                            new CommandRequest_TraktHistoryEpisode(aep, TraktSyncAction.Add);
-                        cmdSyncTrakt.Save();
-                    }
-
-                    if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
-                        !string.IsNullOrEmpty(ServerSettings.MAL_Password))
-                    {
-                        CommandRequest_MALUpdatedWatchedStatus cmdMAL =
-                            new CommandRequest_MALUpdatedWatchedStatus(serie.AniDB_Anime.Id);
-                        cmdMAL.Save();
-                    }
-                }
-                else
-                {
-                    // if setting a file to unwatched only set the episode unwatched, if ALL the files are unwatched
-                    if (
-                        aep.AniDbEpisodes.SelectMany(a => a.Value)
-                            .SelectMany(a => a.VideoLocals)
-                            .All(a => a.UsersStats.All(b => b.JMMUserId == user.Id && b.WatchedCount == 0)))
-                    {
-                        aep.UsersStats.SetWatchedState(false, user.Id, watchedDate, true);
-                    }
-                    if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
-                        !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                    {
-                        CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
-                            new CommandRequest_TraktHistoryEpisode(eep.AnimeEpisodeID, TraktSyncAction.Remove);
-                        cmdSyncTrakt.Save();
-                    }
-                    if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
-                        !string.IsNullOrEmpty(ServerSettings.MAL_Password))
-                    {
-                        CommandRequest_MALUpdatedWatchedStatus cmdMAL =
-                            new CommandRequest_MALUpdatedWatchedStatus(serie.AniDB_Anime.Id);
-                        cmdMAL.Save();
-                    }
+                        // if setting a file to unwatched only set the episode unwatched, if ALL the files are unwatched
+                        if (
+                            aep.AniDbEpisodes.SelectMany(a => a.Value)
+                                .SelectMany(a => a.VideoLocals)
+                                .All(a => a.UsersStats.All(b => b.JMMUserId == user.Id && b.WatchedCount == 0)))
+                        {
+                            aep.UsersStats.SetWatchedState(false, user.Id, watchedDate, true);
+                        }
+                        if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
+                            !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                        {
+                            CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
+                                new CommandRequest_TraktHistoryEpisode(aep.Id, TraktSyncAction.Remove);
+                            cmdSyncTrakt.Save();
+                        }
+                        if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
+                            !string.IsNullOrEmpty(ServerSettings.MAL_Password))
+                        {
+                            CommandRequest_MALUpdatedWatchedStatus cmdMAL =
+                                new CommandRequest_MALUpdatedWatchedStatus(serie.AniDB_Anime.Id);
+                            cmdMAL.Save();
+                        }
 
 
+                    }
                 }
 
             }

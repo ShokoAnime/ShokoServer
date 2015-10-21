@@ -19,18 +19,26 @@ namespace JMMDatabase.Repos
         {
             return Find(hash + "_" + filesize);
         }
+        public int RecordCount => Items.Count;
+
         internal override void InternalSave(VideoLocal obj, IDocumentSession s, UpdateType type = UpdateType.All)
         {
             Items[obj.Id] = obj;
             s.Store(obj);
-            Dictionary<AnimeSerie,List<VideoLocal>> l=Store.AnimeSerieRepo.AnimeSerieFromVideoLocal(obj.Id);
-            foreach (AnimeSerie sa in l.Keys)
+            if ((type & UpdateType.LinkedData) > 0)
             {
-                foreach (VideoLocal v in l[sa])
+                List<AnimeSerie> l = Store.AnimeSerieRepo.AnimeSeriesFromVideoLocal(obj.Id);
+                foreach (AnimeSerie sa in l)
                 {
-                    obj.CopyTo(v);                    
+                    foreach (AniDB_Episode ep in sa.Episodes.SelectMany(a => a.AniDbEpisodes).SelectMany(a => a.Value))
+                    {
+                        foreach (VideoLocal v in ep.VideoLocals.Where(a => a.Id == obj.Id).ToList())
+                        {
+                            obj.CopyTo(v);
+                        }
+                    }
+                    Store.AnimeSerieRepo.Save(sa, s);
                 }
-                Store.AnimeSerieRepo.Save(sa);
             }
         }
 
@@ -59,12 +67,17 @@ namespace JMMDatabase.Repos
         {
             Items.Remove(obj.Id);
             s.Delete(obj);
-            Dictionary<AnimeSerie, List<VideoLocal>> l = Store.AnimeSerieRepo.AnimeSerieFromVideoLocal(obj.Id);
-            foreach (AnimeSerie sa in l.Keys)
+            List<AnimeSerie> l = Store.AnimeSerieRepo.AnimeSeriesFromVideoLocal(obj.Id);
+            foreach (AnimeSerie sa in l)
             {
-                foreach (VideoLocal v in l[sa])
-                    sa.Episodes.SelectMany(a => a.AniDbEpisodes).SelectMany(a => a.Value).Where(a => a.VideoLocals.Contains(v)).ForEach(a=>a.VideoLocals.Remove(v));
-                Store.AnimeSerieRepo.Save(sa);
+                foreach (AniDB_Episode ep in sa.Episodes.SelectMany(a => a.AniDbEpisodes).SelectMany(a => a.Value))
+                {
+                    foreach (VideoLocal v in ep.VideoLocals.Where(a=>a.Id==obj.Id).ToList())
+                    {
+                        ep.VideoLocals.Remove(v);
+                    }
+                }
+                Store.AnimeSerieRepo.Save(sa,s);
             }
         }
 

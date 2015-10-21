@@ -6,13 +6,18 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.WebCache;
 using System.Xml;
+using JMMDatabase;
+using JMMModels;
+using JMMModels.Childs;
 using JMMServer.Providers.Azure;
+using JMMServerModels.DB.Childs;
 
 namespace JMMServer.Commands.WebCache
 {
 	public class CommandRequest_WebCacheSendXRefAniDBMAL : BaseCommandRequest, ICommandRequest
 	{
-		public int CrossRef_AniDB_MALID { get; set; }
+        public int AnimeID { get; set; }
+        public int MalID { get; set; }
 
 		public CommandRequestPriority DefaultPriority
 		{
@@ -23,7 +28,7 @@ namespace JMMServer.Commands.WebCache
 		{
 			get
 			{
-				return string.Format("Sending cross ref for Anidb to MAL from web cache: {0}", CrossRef_AniDB_MALID);
+				return $"Sending cross ref for Anidb to MAL from web cache AnimeID: {AnimeID} MalID {MalID}";
 			}
 		}
 
@@ -31,13 +36,15 @@ namespace JMMServer.Commands.WebCache
 		{
 		}
 
-		public CommandRequest_WebCacheSendXRefAniDBMAL(int xrefID)
+		public CommandRequest_WebCacheSendXRefAniDBMAL(int animeId, int malId)
 		{
-			this.CrossRef_AniDB_MALID = xrefID;
-			this.CommandType = (int)CommandRequestType.WebCache_SendXRefAniDBMAL;
-			this.Priority = (int)DefaultPriority;
+		    this.AnimeID = animeId;
+		    this.MalID = malId;        
+			this.CommandType = CommandRequestType.WebCache_SendXRefAniDBMAL;
+			this.Priority = DefaultPriority;
+            this.JMMUserId = Store.JmmUserRepo.GetMasterUser().Id;
+            this.Id= $"CommandRequest_WebCacheSendXRefAniDBMAL{AnimeID}_{MalID}";
 
-			GenerateCommandID();
 		}
 
 		public override void ProcessCommand()
@@ -45,59 +52,19 @@ namespace JMMServer.Commands.WebCache
 			
 			try
 			{
-				CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-				JMMServer.Entities.CrossRef_AniDB_MAL xref = repCrossRef.GetByID(CrossRef_AniDB_MALID);
-				if (xref == null) return;
-
-
-                AzureWebAPI.Send_CrossRefAniDBMAL(xref);
+			    AnimeSerie ser = Store.AnimeSerieRepo.AnimeSerieFromAniDBAnime(AnimeID.ToString());
+			    if (ser == null)
+			        return;
+			    AniDB_Anime_MAL mal = ser.AniDB_Anime.MALs.FirstOrDefault(a => a.MalId == MalID.ToString());
+			    if (mal == null)
+			        return;
+                AzureWebAPI.Send_CrossRefAniDBMAL(JMMUserId, AnimeID, mal);
 			}
 			catch (Exception ex)
 			{
 				logger.ErrorException("Error processing CommandRequest_WebCacheSendXRefAniDBMAL: {0}" + ex.ToString(), ex);
 				return;
 			}
-		}
-
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_WebCacheSendXRefAniDBMAL{0}", CrossRef_AniDB_MALID);
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-
-				// populate the fields
-				this.CrossRef_AniDB_MALID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheSendXRefAniDBMAL", "CrossRef_AniDB_MALID"));
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
 		}
 	}
 }

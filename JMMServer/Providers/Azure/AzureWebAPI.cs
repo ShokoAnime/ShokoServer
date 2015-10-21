@@ -6,6 +6,10 @@ using System.Net;
 using System.IO;
 using NLog;
 using System.Web;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels.Childs;
+using JMMModels.ClientExtensions;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 
@@ -141,13 +145,13 @@ namespace JMMServer.Providers.Azure
 
         #region MAL
 
-        public static void Send_CrossRefAniDBMAL(JMMServer.Entities.CrossRef_AniDB_MAL data)
+        public static void Send_CrossRefAniDBMAL(string userid, int animeId, AniDB_Anime_MAL data)
 		{
 			if (!ServerSettings.WebCache_MAL_Send) return;
 
-			string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_MAL", azureHostBaseAddress);
+			string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_MAL";
 
-            CrossRef_AniDB_MALInput input = new CrossRef_AniDB_MALInput(data);
+            CrossRef_AniDB_MALInput input = new CrossRef_AniDB_MALInput(userid, animeId, data);
             string json = JSONHelper.Serialize<CrossRef_AniDB_MALInput>(input);
 
 			SendData(uri, json, "POST");
@@ -638,7 +642,11 @@ namespace JMMServer.Providers.Azure
         {
             try
             {
-                if (string.IsNullOrEmpty(ServerSettings.AniDB_Username)) return null;
+                JMMModels.JMMUser user = Store.JmmUserRepo.GetMasterUser();
+                if (user == null)
+                    return null;
+                AniDBAuthorization auth = user.GetAniDBAuthorization();
+                if (string.IsNullOrEmpty(auth.UserName)) return null;
 
                 UserInfo uinfo = new UserInfo();
 
@@ -656,29 +664,21 @@ namespace JMMServer.Providers.Azure
                 }
                 catch {}
 
-                uinfo.UsernameHash = Utils.GetMd5Hash(ServerSettings.AniDB_Username);
+                uinfo.UsernameHash = Utils.GetMd5Hash(auth.UserName);
                 uinfo.DatabaseType = ServerSettings.DatabaseType;
                 uinfo.WindowsVersion = Utils.GetOSInfo();
                 uinfo.TraktEnabled = ServerSettings.Trakt_IsEnabled ? 1 : 0;
-                uinfo.MALEnabled = string.IsNullOrEmpty(ServerSettings.MAL_Username) ? 0 : 1;
-
+                uinfo.MALEnabled = user.HasMALAccount() ? 1 : 0;
                 uinfo.CountryLocation = "";
                 
                 // this field is not actually used
                 uinfo.LastEpisodeWatchedAsDate = DateTime.Now.AddDays(-5);
 
-                JMMUserRepository repUsers = new JMMUserRepository();
-                uinfo.LocalUserCount = (int)(repUsers.GetTotalRecordCount());
+                uinfo.LocalUserCount = Store.JmmUserRepo.UserCount;
+                uinfo.FileCount = Store.VideoLocalRepo.RecordCount;
 
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                uinfo.FileCount = repVids.GetTotalRecordCount();
-
-                AnimeEpisode_UserRepository repEps = new AnimeEpisode_UserRepository();
-                List<AnimeEpisode_User> recs = repEps.GetLastWatchedEpisode();
-                uinfo.LastEpisodeWatched = 0;
-                if (recs.Count > 0)
-                    uinfo.LastEpisodeWatched = Utils.GetAniDBDateAsSeconds(recs[0].WatchedDate);
-
+                DateTime lastepwatched = Store.AnimeSerieRepo.LastEpisodeDate(user);
+                uinfo.LastEpisodeWatched = lastepwatched == DateTime.MinValue ? 0 : lastepwatched.ToUnixTime();
                 return uinfo;
             }
             catch (Exception ex)

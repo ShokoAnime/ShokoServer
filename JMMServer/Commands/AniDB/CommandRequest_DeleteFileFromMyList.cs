@@ -7,6 +7,7 @@ using JMMServer.Entities;
 using System.Xml;
 using JMMDatabase;
 using JMMDatabase.Extensions;
+using JMMModels.Childs;
 using JMMServer.Commands.MAL;
 using JMMServerModels.DB.Childs;
 
@@ -58,8 +59,10 @@ namespace JMMServer.Commands
 		public override void ProcessCommand()
 		{
 			logger.Info("Processing {0}",Id);
-		    JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetAniDBUser();
-			try
+		    JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetUserWithAuth(AuthorizationProvider.AniDB);
+		    if (user == null)
+		        return;
+            try
 			{
 				if (ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.Delete)
 				{

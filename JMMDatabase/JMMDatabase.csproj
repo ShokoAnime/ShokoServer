@@ -66,6 +66,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions\AniDB_AnimeExtensions.cs" />
+    <Compile Include="Extensions\AnimeEpisodeExtensions.cs" />
     <Compile Include="Repos\AniDB_FileRepo.cs" />
     <Compile Include="Repos\LanguageRepo.cs" />
     <Compile Include="Repos\ScheduleUpdateRepo.cs" />

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.ServiceModel.Channels;
 using System.Text;
 using System.Xml;
 using JMMServer.Entities;
@@ -11,7 +12,14 @@ using JMMServer.Providers.TraktTV;
 using NHibernate;
 using JMMContracts;
 using AniDBAPI;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels;
+using JMMModels.Childs;
 using JMMServer.Providers.TraktTV.Contracts;
+using JMMServerModels.DB.Childs;
+using AniDB_Anime = JMMServer.Entities.AniDB_Anime;
+using AniDB_Anime_Title = JMMServer.Entities.AniDB_Anime_Title;
 
 namespace JMMServer.Commands
 {
@@ -42,10 +50,12 @@ namespace JMMServer.Commands
 		{
 			this.AnimeID = animeID;
 			this.ForceRefresh = forced;
-			this.CommandType = (int)CommandRequestType.Trakt_SearchAnime;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+            JMMModels.JMMUser user = Store.JmmUserRepo.GetMasterUser().GetUserWithAuth(AuthorizationProvider.Trakt);
+		    if (user != null)
+		        this.JMMUserId = user.Id;
+            this.CommandType = CommandRequestType.Trakt_SearchAnime;
+			this.Priority = DefaultPriority;
+            this.Id= $"CommandRequest_TraktSearchAnime{this.JMMUserId ?? string.Empty}-{this.AnimeID}";
 		}
 
 		
@@ -56,15 +66,11 @@ namespace JMMServer.Commands
 
 			try
 			{
-				using (var session = JMMService.SessionFactory.OpenSession())
-				{
 					// first check if the user wants to use the web cache
 					if (ServerSettings.WebCache_Trakt_Get)
 					{
 						try
 						{
-                            List<Contract_Azure_CrossRef_AniDB_Trakt> contracts = new List<Contract_Azure_CrossRef_AniDB_Trakt>();
-
                             List<JMMServer.Providers.Azure.CrossRef_AniDB_Trakt> resultsCache = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBTrakt(AnimeID);
                             if (resultsCache != null && resultsCache.Count > 0)
                             {
@@ -92,14 +98,17 @@ namespace JMMServer.Commands
 
 					// lets try to see locally if we have a tvDB link for this anime
 					// Trakt allows the use of TvDB ID's or their own Trakt ID's
-					CrossRef_AniDB_TvDBV2Repository repCrossRefTvDB = new CrossRef_AniDB_TvDBV2Repository();
-					List<CrossRef_AniDB_TvDBV2> xrefTvDBs = repCrossRefTvDB.GetByAnimeID(session, AnimeID);
-					if (xrefTvDBs != null && xrefTvDBs.Count > 0) 
+
+				    AnimeSerie ser = Store.AnimeSerieRepo.AnimeSerieFromAniDBAnime(AnimeID.ToString());
+
+//					CrossRef_AniDB_TvDBV2Repository repCrossRefTvDB = new CrossRef_AniDB_TvDBV2Repository();
+//					List<CrossRef_AniDB_TvDBV2> xrefTvDBs = repCrossRefTvDB.GetByAnimeID(session, AnimeID);
+					if (ser!=null && ser.AniDB_Anime.TvDBs!= null && ser.AniDB_Anime.TvDBs.Count > 0) 
 					{
-                        foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
+                        foreach (AniDB_Anime_TvDB tvXRef in ser.AniDB_Anime.TvDBs)
                         {
                             // first search for this show by the TvDB ID
-                            List<TraktV2SearchTvDBIDShowResult> searchResults = TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb, tvXRef.TvDBID.ToString());
+                            List<TraktV2SearchTvDBIDShowResult> searchResults = TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb, tvXRef.TvDBSeriesId.ToString());
                             if (searchResults != null && searchResults.Count > 0)
                             {
                                 // since we are searching by ID, there will only be one 'show' result

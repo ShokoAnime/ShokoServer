@@ -6,6 +6,8 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
 using System.Xml;
+using JMMDatabase;
+using JMMServerModels.DB.Childs;
 
 namespace JMMServer.Commands.Azure
 {
@@ -33,10 +35,10 @@ namespace JMMServer.Commands.Azure
 		public CommandRequest_Azure_SendUserInfo(string username)
 		{
 			this.Username = username;
-            this.CommandType = (int)CommandRequestType.Azure_SendUserInfo;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+            this.CommandType = CommandRequestType.Azure_SendUserInfo;
+			this.Priority = DefaultPriority;
+            this.JMMUserId = Store.JmmUserRepo.GetMasterUser().Id;
+            this.Id= $"CommandRequest_Azure_SendUserInfo_{this.Username}";
 		}
 
 		public override void ProcessCommand()
@@ -53,45 +55,5 @@ namespace JMMServer.Commands.Azure
 			}
 		}
 
-		public override void GenerateCommandID()
-		{
-            this.CommandID = string.Format("CommandRequest_Azure_SendUserInfo_{0}", this.Username);
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-
-				// populate the fields
-                this.Username = TryGetProperty(docCreator, "CommandRequest_Azure_SendUserInfo", "Username");
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
-		}
     }
 }

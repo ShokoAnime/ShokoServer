@@ -4,17 +4,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
-using JMMServer.Entities;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels.Childs;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
+using JMMServerModels.DB.Childs;
+using AnimeEpisode = JMMServer.Entities.AnimeEpisode;
 
 namespace JMMServer.Commands
 {
     [Serializable]
     public class CommandRequest_TraktCollectionEpisode : BaseCommandRequest, ICommandRequest
     {
-        public int AnimeEpisodeID { get; set; }
-        public int Action { get; set; }
+        public string AnimeEpisodeID { get; set; }
+        public TraktSyncAction Action { get; set; }
 
         public TraktSyncAction ActionEnum
         {
@@ -33,7 +37,10 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-                return string.Format("Sync episode to collection on Trakt: {0} - {1}", AnimeEpisodeID, Action);
+			    JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId);
+			    if (user != null)
+			        return $"Sync episode to collection of {user.UserName} on Trakt: {AnimeEpisodeID} - {Action}";
+			    return string.Empty;
 			}
 		}
 
@@ -41,14 +48,17 @@ namespace JMMServer.Commands
 		{
 		}
 
-        public CommandRequest_TraktCollectionEpisode(int animeEpisodeID, TraktSyncAction action)
+        public CommandRequest_TraktCollectionEpisode(string userid, string animeEpisodeID, TraktSyncAction action)
 		{
 			this.AnimeEpisodeID = animeEpisodeID;
-            this.Action = (int)action;
-            this.CommandType = (int)CommandRequestType.Trakt_EpisodeCollection;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+            this.Action = action;
+            JMMModels.JMMUser user = Store.JmmUserRepo.Find(userid).GetUserWithAuth(AuthorizationProvider.Trakt);
+            if (user != null)
+                userid = user.Id;
+            this.JMMUserId = userid;
+            this.CommandType = CommandRequestType.Trakt_EpisodeCollection;
+			this.Priority = DefaultPriority;
+            this.Id= $"CommandRequest_TraktCollectionEpisode{userid}-{AnimeEpisodeID}-{Action}";
 		}
 
 		public override void ProcessCommand()
@@ -57,19 +67,22 @@ namespace JMMServer.Commands
 
 			try
 			{
+			    JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId);
+			    TraktAuthorization trakt = user.GetTraktAuthorization();
 
                 logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG01");
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
+                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(trakt.Trakt_AuthToken)) return;
                 logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG02");
-
-                AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-				AnimeEpisode ep = repEpisodes.GetByID(AnimeEpisodeID);
+			    JMMModels.AnimeSerie serie = Store.AnimeSerieRepo.AnimeSerieFromAnimeEpisode(AnimeEpisodeID);
+			    if (serie == null)
+			        return;
+			    JMMModels.Childs.AnimeEpisode ep = serie.Episodes.FirstOrDefault(a => a.Id == AnimeEpisodeID);
 				if (ep != null)
 				{
                     logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG03");
                     TraktSyncType syncType = TraktSyncType.CollectionAdd;
                     if (ActionEnum == TraktSyncAction.Remove) syncType = TraktSyncType.CollectionRemove;
-                    TraktTVHelper.SyncEpisodeToTrakt(ep, syncType);
+                    TraktTVHelper.SyncEpisodeToTrakt(user.Id, ep, syncType);
 				}
 			}
 			catch (Exception ex)
@@ -79,50 +92,5 @@ namespace JMMServer.Commands
 			}
 		}
 
-		/// <summary>
-		/// This should generate a unique key for a command
-		/// It will be used to check whether the command has already been queued before adding it
-		/// </summary>
-		public override void GenerateCommandID()
-		{
-            this.CommandID = string.Format("CommandRequest_TraktCollectionEpisode{0}-{1}", AnimeEpisodeID, Action);
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-
-				// populate the fields
-                this.AnimeEpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktCollectionEpisode", "AnimeEpisodeID"));
-                this.Action = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktCollectionEpisode", "Action"));
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
-		}
     }
 }

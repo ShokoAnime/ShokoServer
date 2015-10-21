@@ -9,8 +9,11 @@ using AniDBAPI.Commands;
 using AniDBAPI;
 using JMMDatabase;
 using JMMDatabase.Extensions;
+using JMMModels;
 using JMMModels.Childs;
 using JMMServerModels.DB.Childs;
+using JMMUser = JMMServer.Entities.JMMUser;
+using VideoLocal = JMMServer.Entities.VideoLocal;
 
 namespace JMMServer.Commands
 {
@@ -52,10 +55,9 @@ namespace JMMServer.Commands
 
 			try
 			{
+                
+
 				// we will always assume that an anime was downloaded via http first
-				ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-				AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-				VideoLocalRepository repVidLocals = new VideoLocalRepository();
 
 				JMMServerModels.DB.ScheduledUpdate sched = Store.ScheduleUpdateRepo.GetByUpdateType(ScheduledUpdateType.AniDBMyListSync);
 				if (sched == null)
@@ -77,8 +79,10 @@ namespace JMMServer.Commands
 				}
 
 				AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-			    JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetRealUser();
-			    AniDBAuthorization auth = user.GetAniDBAuthorizationFromUser();
+                JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetUserWithAuth(AuthorizationProvider.AniDB);
+                if (user == null)
+                    return;
+                AniDBAuthorization auth = user.GetAniDBAuthorization();
 
 				cmd.Init(auth.UserName, auth.Password);
                 enHelperActivityType ev = cmd.Process();
@@ -107,12 +111,6 @@ namespace JMMServer.Commands
                     }
 					logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
 
-					JMMUserRepository repUsers = new JMMUserRepository();
-					List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
-
-					VideoLocal_UserRepository repVidUsers = new VideoLocal_UserRepository();
-					CrossRef_File_EpisodeRepository repFileEp = new CrossRef_File_EpisodeRepository();
-
 					// 1 . sync mylist items
 					foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
 					{
@@ -127,91 +125,82 @@ namespace JMMServer.Commands
 						string spct = pct.ToString("#0.0");
 
 						string hash = string.Empty;
-
-						AniDB_File anifile = repAniFile.GetByFileID(myitem.FileID);
+					    long size=0;
+						JMMModels.AniDB_File anifile = Store.AniDB_FileRepo.FindByFileId(myitem.FileID);
 						if (anifile != null)
+                        { 
 							hash = anifile.Hash;
+                            size = anifile.FileSize;
+                        }
 						else
-						{
+						{                            
 							// look for manually linked files
-							List<CrossRef_File_Episode> xrefs = repFileEp.GetByEpisodeID(myitem.EpisodeID);
-							foreach (CrossRef_File_Episode xref in xrefs)
-							{
-								if (xref.CrossRefSource != (int)CrossRefSource.AniDB)
-								{
-									hash = xref.Hash;
-									break;
-								}
-							}
-						}
-
-
+						    AnimeSerie s=Store.AnimeSerieRepo.AnimeSerieFromAniDBEpisode(myitem.EpisodeID.ToString());
+						    if (s != null)
+						    {
+						        JMMModels.Childs.AnimeEpisode aep = s.AnimeEpisodeFromAniDB_EpisodeId(myitem.EpisodeID.ToString());
+						        List<JMMModels.VideoLocal> vls = aep.AniDbEpisodes.SelectMany(a => a.Value).SelectMany(a => a.VideoLocals).Where(a=>a.CrossRefSource!=CrossRefSourceType.AniDB).ToList();
+						        if (vls.Count > 0)
+                                { 
+						            hash = vls[0].Hash;
+                                    size = vls[0].FileSize;
+                                }
+                            }
+                        }
 						if (!string.IsNullOrEmpty(hash))
 						{
 							// find the video associated with this record
-							VideoLocal vl = repVidLocals.GetByHash(hash);
-							if (vl == null) continue;
-
-							foreach (JMMUser juser in aniDBUsers)
+						    JMMModels.VideoLocal vl = Store.VideoLocalRepo.Find(hash, size);
+                            if (vl == null) continue;
+                            bool localStatus = false;
+                            UserStats s = vl.UsersStats.FirstOrDefault(a => a.JMMUserId == user.Id);
+						    if (s != null)
+						        localStatus = s.WatchedCount > 0;
+                            string action=string.Empty;
+							if (localStatus != myitem.IsWatched)
 							{
-								bool localStatus = false;
-								int? jmmUserID = null;
-
-								// doesn't matter which anidb user we use
-								jmmUserID = juser.JMMUserID;
-								VideoLocal_User userRecord = vl.GetUserRecord(juser.JMMUserID);
-								if (userRecord != null) localStatus = true;
-
-								string action = "";
-								if (localStatus != myitem.IsWatched)
+								if (localStatus)
 								{
-									if (localStatus == true)
+									// local = watched, anidb = unwatched
+									if (ServerSettings.AniDB_MyList_ReadUnwatched)
 									{
-										// local = watched, anidb = unwatched
-										if (ServerSettings.AniDB_MyList_ReadUnwatched)
-										{
-											modifiedItems++;
-											if (jmmUserID.HasValue)
-												vl.ToggleWatchedStatus(myitem.IsWatched, false, myitem.WatchedDate, false, false, jmmUserID.Value, false, true);
-											action = "Used AniDB Status";
-										}
+										modifiedItems++;
+										vl.ToggleWatchedStatus(myitem.IsWatched, false, myitem.WatchedDate, user, false, true);
+										action = "Used AniDB Status";
 									}
-									else
-									{
-										// means local is un-watched, and anidb is watched
-										if (ServerSettings.AniDB_MyList_ReadWatched)
-										{
-											modifiedItems++;
-											if (jmmUserID.HasValue)
-												vl.ToggleWatchedStatus(true, false, myitem.WatchedDate, false, false, jmmUserID.Value, false, true);
-											action = "Updated Local record to Watched";
-										}
-									}
-
-									string msg = string.Format("MYLISTDIFF:: File {0} - Local Status = {1}, AniDB Status = {2} --- {3}",
-									vl.FullServerPath, localStatus, myitem.IsWatched, action);
-									logger.Info(msg);
 								}
+								else
+								{
+									// means local is un-watched, and anidb is watched
+									if (ServerSettings.AniDB_MyList_ReadWatched)
+									{
+										modifiedItems++;
+										vl.ToggleWatchedStatus(true, false, myitem.WatchedDate,user, false, true);
+										action = "Updated Local record to Watched";
+									}
+								}
+
+								string msg = $"MYLISTDIFF:: File {vl.FullServerPath()} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}";
+								logger.Info(msg);
 							}
+						}
 
 							
 
 							//string msg = string.Format("MYLIST:: File {0} - Local Status = {1}, AniDB Status = {2} --- {3}",
 							//	vl.FullServerPath, localStatus, myitem.IsWatched, action);
 							//logger.Info(msg);
-						}
+
 					}
 
 					
 
 
 					// now update all stats
-					Importer.UpdateAllStats();
-
 					logger.Info("Process MyList: {0} Items, {1} Watched, {2} Modified", totalItems, watchedItems, modifiedItems);
 
 					sched.LastUpdate = DateTime.Now;
-					repSched.Save(sched);
+                    Store.ScheduleUpdateRepo.Save(sched);
 				}
 			}
 			catch (Exception ex)
@@ -221,45 +210,5 @@ namespace JMMServer.Commands
 			}
 		}
 
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_SyncMyList");
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-
-				// populate the fields
-				this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_SyncMyList", "ForceRefresh"));
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
-		}
 	}
 }

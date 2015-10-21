@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using JMMServer.Repositories;
@@ -7,6 +8,10 @@ using JMMServer.Entities;
 using System.Xml;
 using JMMServer.Commands.MAL;
 using System.Globalization;
+using JMMDatabase;
+using JMMDatabase.Extensions;
+using JMMModels.Childs;
+using JMMServerModels.DB.Childs;
 
 namespace JMMServer.Commands
 {
@@ -26,7 +31,7 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Voting: {0} - {1}", AnimeID, VoteValue);
+				return $"Voting: {AnimeID} - {VoteValue}";
 			}
 		}
 
@@ -34,25 +39,30 @@ namespace JMMServer.Commands
 		{
 		}
 
-		public CommandRequest_VoteAnime(int animeID, int voteType, decimal voteValue)
+		public CommandRequest_VoteAnime(string userid, int animeID, int voteType, decimal voteValue)
 		{
 			this.AnimeID = animeID;
 			this.VoteType = voteType;
 			this.VoteValue = voteValue;
-			this.CommandType = (int)CommandRequestType.AniDB_VoteAnime;
-			this.Priority = (int)DefaultPriority;
-
-			GenerateCommandID();
+		    this.JMMUserId = userid;
+            this.CommandType = CommandRequestType.AniDB_VoteAnime;
+			this.Priority = DefaultPriority;
+            this.Id= $"CommandRequest_Vote_{AnimeID}_{(int) VoteType}_{VoteValue}";
 		}
 
 		public override void ProcessCommand()
 		{
-			logger.Info("Processing CommandRequest_Vote: {0}", CommandID);
+			logger.Info("Processing CommandRequest_Vote: {0}", Id);
 
 			
 			try
 			{
-				JMMService.AnidbProcessor.VoteAnime(AnimeID, VoteValue, (AniDBAPI.enAniDBVoteType)VoteType);
+                JMMModels.JMMUser user = Store.JmmUserRepo.Find(JMMUserId).GetUserWithAuth(AuthorizationProvider.AniDB);
+                if (user == null)
+                    return;
+
+
+                JMMService.AnidbProcessor.VoteAnime(user.Id, AnimeID, VoteValue, (AniDBAPI.enAniDBVoteType)VoteType);
 
 				if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) && !string.IsNullOrEmpty(ServerSettings.MAL_Password))
 				{
@@ -62,59 +72,9 @@ namespace JMMServer.Commands
 			}
 			catch (Exception ex)
 			{
-				logger.Error("Error processing CommandRequest_Vote: {0} - {1}", CommandID, ex.ToString());
+				logger.Error("Error processing CommandRequest_Vote: {0} - {1}", Id, ex.ToString());
 				return;
 			}
-		}
-
-		/// <summary>
-		/// This should generate a unique key for a command
-		/// It will be used to check whether the command has already been queued before adding it
-		/// </summary>
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_Vote_{0}_{1}_{2}", AnimeID, (int)VoteType, VoteValue);
-		}
-
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
-
-			NumberStyles style = NumberStyles.Number;
-			CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
-
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-
-				// populate the fields
-				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "AnimeID"));
-				this.VoteType = int.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "VoteType"));
-				this.VoteValue = decimal.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "VoteValue"), style, culture);
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
 		}
 	}
 }
