@@ -74,7 +74,7 @@ namespace AniDBAPI
 
 				DateTime start = DateTime.Now;
 				string msg = string.Format("Getting Anime XML Data From ANIDB: {0}", animeID);
-				JMMService.LogToDatabase(Constants.DBLogType.APIAniDBHTTP, msg);
+				JMMService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 					
 				rawXML = APIUtils.DownloadWebPage(uri);
 
@@ -82,7 +82,7 @@ namespace AniDBAPI
 				string content = rawXML;
 				if (content.Length > 100) content = content.Substring(0, 100);
 				msg = string.Format("Got Anime XML Data From ANIDB: {0} - {1} - {2}", animeID, ts.TotalMilliseconds, content);
-				JMMService.LogToDatabase(Constants.DBLogType.APIAniDBHTTP, msg);
+				JMMService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
 				//APIUtils.WriteToLog("GetAnimeXMLFromAPI result: " + rawXML);
 

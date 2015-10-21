@@ -9238,34 +9238,6 @@ namespace JMMServer
 			}
 		}
 
-		public List<Contract_LogMessage> GetLogMessages(string logType)
-		{
-			List<Contract_LogMessage> retLogs = new List<Contract_LogMessage>();
-			try
-			{
-				List<LogMessage> logs = null;
-				LogMessageRepository repIgnore = new LogMessageRepository();
-
-				using (var session = JMMService.SessionFactory.OpenSession())
-				{
-					if (string.IsNullOrEmpty(logType))
-						logs = repIgnore.GetAll(session);
-					else
-						logs = repIgnore.GetByLogType(session, logType);
-
-					foreach (LogMessage log in logs)
-						retLogs.Add(log.ToContract());
-				}
-
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-			}
-
-			return retLogs;
-		}
-
 		public List<Contract_AnimeSearch> OnlineAnimeTitleSearch(string titleQuery)
 		{
 			List<Contract_AnimeSearch> retTitles = new List<Contract_AnimeSearch>();

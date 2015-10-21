@@ -245,7 +245,8 @@ namespace JMMServer
 		AniDBMylistStats = 9,
 		AniDBFileUpdates = 10,
 		LogClean = 11,
-        AzureUserInfo = 12
+        AzureUserInfo = 12,
+        TraktToken = 13
 	}
 
 	public enum JMMImageType
@@ -312,7 +313,9 @@ namespace JMMServer
 		Never = 1,
 		HoursSix = 2,
 		HoursTwelve = 3,
-		Daily = 4
+		Daily = 4,
+        WeekOne = 5,
+        MonthOne = 6
 	}
 
 	public enum GroupFilterConditionType

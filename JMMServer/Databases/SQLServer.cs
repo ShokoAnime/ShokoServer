@@ -179,6 +179,7 @@ namespace JMMServer.Databases
                 UpdateSchema_035(versionNumber);
                 UpdateSchema_036(versionNumber);
                 UpdateSchema_037(versionNumber);
+                UpdateSchema_038(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1365,6 +1366,22 @@ namespace JMMServer.Databases
 
             // Now do the migration
             DatabaseHelper.FixHashes();
+
+            UpdateDatabaseVersion(thisVersion);
+        }
+
+        private static void UpdateSchema_038(int currentVersionNumber)
+        {
+            int thisVersion = 38;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("DROP TABLE LogMessage");
+
+            ExecuteSQLCommands(cmds);
 
             UpdateDatabaseVersion(thisVersion);
         }

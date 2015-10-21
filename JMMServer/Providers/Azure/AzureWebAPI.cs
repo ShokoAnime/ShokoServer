@@ -63,13 +63,13 @@ namespace JMMServer.Providers.Azure
 			string msg = string.Format("Getting AniDB/TvDB Cross Ref From Cache: {0}", animeID);
 
 			DateTime start = DateTime.Now;
-			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+			JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
 			string json = GetDataJson(uri);
 
 			TimeSpan ts = DateTime.Now - start;
 			msg = string.Format("Got AniDB/TvDB Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-			JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+			JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
 			List<CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_TvDB>>(json);
 
@@ -90,13 +90,13 @@ namespace JMMServer.Providers.Azure
             string msg = string.Format("Getting AniDB/Trakt Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/Trakt Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             List<CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<CrossRef_AniDB_Trakt>>(json);
 
@@ -165,13 +165,13 @@ namespace JMMServer.Providers.Azure
             string msg = string.Format("Getting AniDB/MAL Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/MAL Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             CrossRef_AniDB_MAL xref = JSONHelper.Deserialize<CrossRef_AniDB_MAL>(json);
 
@@ -212,13 +212,13 @@ namespace JMMServer.Providers.Azure
             string msg = string.Format("Getting AniDB/Other Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got AniDB/MAL Cross Ref From Cache: {0} - {1}", animeID, ts.TotalMilliseconds);
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             CrossRef_AniDB_Other xref = JSONHelper.Deserialize<CrossRef_AniDB_Other>(json);
 
@@ -272,13 +272,13 @@ namespace JMMServer.Providers.Azure
             string msg = string.Format("Getting File/Episode Cross Ref From Cache: {0}", vid.Hash);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got File/Episode Cross Ref From Cache: {0} - {1}", vid.Hash, ts.TotalMilliseconds);
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             List<CrossRef_File_Episode> xrefs = JSONHelper.Deserialize<List<CrossRef_File_Episode>>(json);
 
@@ -323,7 +323,7 @@ namespace JMMServer.Providers.Azure
 
             DateTime start = DateTime.Now;
             string msg = string.Format("Getting Anime XML Data From Cache: {0}", animeID);
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string xml = GetDataXML(uri);
 
@@ -343,7 +343,7 @@ namespace JMMServer.Providers.Azure
             string content = xml;
             if (content.Length > 100) content = content.Substring(0, 100);
             msg = string.Format("Got Anime XML Data From Cache: {0} - {1} - {2}", animeID, ts.TotalMilliseconds, content);
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             return xml;
         }
@@ -388,13 +388,13 @@ namespace JMMServer.Providers.Azure
             string msg = string.Format("Getting Anime Title Data From Cache: {0}", query);
 
             DateTime start = DateTime.Now;
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             string json = GetDataJson(uri);
 
             TimeSpan ts = DateTime.Now - start;
             msg = string.Format("Got Anime Title Data From Cache: {0} - {1}", query, ts.TotalMilliseconds);
-            JMMService.LogToDatabase(Constants.DBLogType.APIAzureHTTP, msg);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
             List<AnimeIDTitle> titles = JSONHelper.Deserialize<List<AnimeIDTitle>>(json);
 

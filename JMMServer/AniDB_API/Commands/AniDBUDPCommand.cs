@@ -76,7 +76,7 @@ namespace AniDBAPI.Commands
 				if (commandType != enAniDBCommandType.Login)
 				{
 					string msg = string.Format("UDP_COMMAND: {0}", mcommandText);
-					JMMService.LogToDatabase(Constants.DBLogType.APIAniDBUDP, msg);
+					JMMService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
 				}
 				else
 				{
@@ -243,7 +243,7 @@ namespace AniDBAPI.Commands
 
 					TimeSpan ts = DateTime.Now - start;
 					string msg = string.Format("UDP_RESPONSE in {0} ms - {1} ", ts.TotalMilliseconds, socketResponse);
-					JMMService.LogToDatabase(Constants.DBLogType.APIAniDBUDP, msg);
+					JMMService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
 				}
 				else
 				{
@@ -251,7 +251,7 @@ namespace AniDBAPI.Commands
 
 					TimeSpan ts = DateTime.Now - start;
 					string msg = string.Format("UDP_RESPONSE_TRUNC in {0}ms - {1} ", ts.TotalMilliseconds, socketResponse);
-					JMMService.LogToDatabase(Constants.DBLogType.APIAniDBUDP, msg);
+					JMMService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
 				}
 			}
 			int val = 0;

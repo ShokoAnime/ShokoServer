@@ -287,7 +287,6 @@
     <Compile Include="Entities\CrossRef_CustomTag.cs" />
     <Compile Include="Entities\CustomTag.cs" />
     <Compile Include="Entities\FileFfdshowPreset.cs" />
-    <Compile Include="Entities\LogMessage.cs" />
     <Compile Include="Entities\Playlist.cs" />
     <Compile Include="Entities\RenameScript.cs" />
     <Compile Include="FileRenamer.cs" />
@@ -309,7 +308,6 @@
     <Compile Include="Mappings\CrossRef_CustomTagMap.cs" />
     <Compile Include="Mappings\CustomTagMap.cs" />
     <Compile Include="Mappings\FileFfdshowPresetMap.cs" />
-    <Compile Include="Mappings\LogMessageMap.cs" />
     <Compile Include="Mappings\PlaylistMap.cs" />
     <Compile Include="Mappings\RenameScriptMap.cs" />
     <Compile Include="Plex\PlexEpisodeType.cs" />
@@ -399,7 +397,6 @@
     <Compile Include="Repositories\CrossRef_CustomTagRepository.cs" />
     <Compile Include="Repositories\CustomTagRepository.cs" />
     <Compile Include="Repositories\FileFfdshowPresetRepository.cs" />
-    <Compile Include="Repositories\LogMessageRepository.cs" />
     <Compile Include="Repositories\PlaylistRepository.cs" />
     <Compile Include="Repositories\RenameScriptRepository.cs" />
     <Compile Include="Security\CRC32.cs" />
