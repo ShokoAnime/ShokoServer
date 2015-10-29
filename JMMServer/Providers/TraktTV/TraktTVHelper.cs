@@ -1422,7 +1422,7 @@ namespace JMMServer.Providers.TraktTV
         public static List<TraktV2ShowWatchedResult> GetWatchedShows(ref int traktCode)
         {
             if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                return null;
+                return new List<TraktV2ShowWatchedResult>();
 
             try
             {
@@ -1433,10 +1433,10 @@ namespace JMMServer.Providers.TraktTV
                 // Search for a series
                 string json = GetFromTrakt(url, ref traktCode);
 
-                if (string.IsNullOrEmpty(json)) return null;
+                if (string.IsNullOrEmpty(json)) return new List<TraktV2ShowWatchedResult>();
 
                 var result = json.FromJSONArray<TraktV2ShowWatchedResult>();
-                if (result == null) return null;
+                if (result == null) return new List<TraktV2ShowWatchedResult>();
 
                 return new List<TraktV2ShowWatchedResult>(result);
 
@@ -1446,13 +1446,13 @@ namespace JMMServer.Providers.TraktTV
                 logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
             }
 
-            return null;
+            return new List<TraktV2ShowWatchedResult>();
         }
 
         public static List<TraktV2ShowCollectedResult> GetCollectedShows(ref int traktCode)
         {
             if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                return null;
+                return new List<TraktV2ShowWatchedResult>();
 
             try
             {
@@ -1463,12 +1463,12 @@ namespace JMMServer.Providers.TraktTV
                 // Search for a series
                 string json = GetFromTrakt(url, ref traktCode);
 
-                if (string.IsNullOrEmpty(json)) return null;
+                if (string.IsNullOrEmpty(json)) return new List<TraktV2ShowCollectedResult>();
 
                 
 
                 var result = json.FromJSONArray<TraktV2ShowCollectedResult>();
-                if (result == null) return null;
+                if (result == null) return new List<TraktV2ShowCollectedResult>();
 
                 return new List<TraktV2ShowCollectedResult>(result);
 
@@ -1478,7 +1478,7 @@ namespace JMMServer.Providers.TraktTV
                 logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
             }
 
-            return null;
+            return new List<TraktV2ShowCollectedResult>();
         }
 
         #endregion
