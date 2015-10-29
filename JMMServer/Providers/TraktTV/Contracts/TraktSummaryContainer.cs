@@ -74,14 +74,17 @@ namespace JMMServer.Providers.TraktTV
                         // ignore season 0, which is used for specials
                         List<Trakt_Episode> eps = det.TraktEpisodes;
 
-                        int i = 1;
-                        foreach (Trakt_Episode ep in eps)
+                        if (eps != null)
                         {
-                            // ignore episode 0, this can't be mapped to Trakt
-                            if (ep.EpisodeNumber > 0)
+                            int i = 1;
+                            foreach (Trakt_Episode ep in eps)
                             {
-                                dictTraktEpisodes[i] = ep;
-                                i++;
+                                // ignore episode 0, this can't be mapped to Trakt
+                                if (ep.EpisodeNumber > 0)
+                                {
+                                    dictTraktEpisodes[i] = ep;
+                                    i++;
+                                }
                             }
                         }
                     }

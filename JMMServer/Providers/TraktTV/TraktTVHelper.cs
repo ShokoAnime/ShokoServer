@@ -1452,7 +1452,7 @@ namespace JMMServer.Providers.TraktTV
         public static List<TraktV2ShowCollectedResult> GetCollectedShows(ref int traktCode)
         {
             if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                return new List<TraktV2ShowWatchedResult>();
+                return new List<TraktV2ShowCollectedResult>();
 
             try
             {
