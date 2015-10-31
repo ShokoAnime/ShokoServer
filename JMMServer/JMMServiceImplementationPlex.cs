@@ -307,7 +307,7 @@ namespace JMMServer
                         break;
                 }
             }
-            ret.Childrens= ls.OrderBy(a => a.Title).ToList();
+            ret.MediaContainer.Childrens= ls;
             return ret.GetStream();
         }
 
