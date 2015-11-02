@@ -52,9 +52,6 @@
     <Reference Include="Antlr3.Runtime">
       <HintPath>..\Dependencies\Antlr3.Runtime.dll</HintPath>
     </Reference>
-    <Reference Include="AutomaticUpdaterWPF">
-      <HintPath>..\Dependencies\AutomaticUpdaterWPF.dll</HintPath>
-    </Reference>
     <Reference Include="FluentNHibernate">
       <HintPath>..\Dependencies\FluentNHibernate.dll</HintPath>
     </Reference>
@@ -335,6 +332,11 @@
     <Compile Include="Providers\Azure\Azure_CrossRef_File_Episode.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_File_EpisodeInput.cs" />
     <Compile Include="Providers\Azure\Azure_UserInfo.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\JMMAutoUpdatesHelper.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\JMMVersions.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\Update.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\Updates.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\Versions.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
@@ -625,6 +627,9 @@
     </Compile>
     <Compile Include="UI\PasswordBoxAssistant.cs" />
     <Compile Include="UI\ServerInfo.cs" />
+    <Compile Include="UI\UpdateForm.xaml.cs">
+      <DependentUpon>UpdateForm.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UnhandledExceptionManager.cs" />
     <Compile Include="Utilities\GroupFilterHelper.cs" />
     <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
@@ -681,6 +686,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\UIStyles.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\UpdateForm.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

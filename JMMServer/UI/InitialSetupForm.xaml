@@ -2,7 +2,6 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:JMMServer"
-        xmlns:my="clr-namespace:wyDay.Controls;assembly=AutomaticUpdaterWPF"
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
         Title="Initial Setup" MinHeight="200" MinWidth="500" Name="aboutWindow" Icon="/JMMServer;component/db.ico">

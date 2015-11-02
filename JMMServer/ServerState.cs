@@ -163,7 +163,18 @@ namespace JMMServer
 			}
 		}
 
-		private string aniDB_Username = "";
+        private string applicationVersionLatest = "";
+        public string ApplicationVersionLatest
+        {
+            get { return applicationVersionLatest; }
+            set
+            {
+                applicationVersionLatest = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("ApplicationVersionLatest"));
+            }
+        }
+
+        private string aniDB_Username = "";
 		public string AniDB_Username
 		{
 			get { return aniDB_Username; }

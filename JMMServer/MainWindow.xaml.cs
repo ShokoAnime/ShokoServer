@@ -49,6 +49,7 @@ using JMMServer.Providers.Azure;
 using JMMServer.Commands.Azure;
 using TMDbLib.Objects.General;
 using JMMServer.Providers.TraktTV.Contracts;
+using System.Xml.Serialization;
 
 namespace JMMServer
 {
@@ -111,7 +112,6 @@ namespace JMMServer
 
 		private static System.Timers.Timer autoUpdateTimer = null;
 		private static System.Timers.Timer autoUpdateTimerShort = null;
-        private System.Timers.Timer autoUpdateTimerLocal = null;
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12,0,0));
 		private static List<FileSystemWatcher> watcherVids = null;
 
@@ -821,7 +821,6 @@ namespace JMMServer
 
 				if (autoUpdateTimer != null) autoUpdateTimer.Enabled = false;
 				if (autoUpdateTimerShort != null) autoUpdateTimerShort.Enabled = false;
-                if (autoUpdateTimerLocal != null) autoUpdateTimerLocal.Enabled = false;
 
 				JMMService.CloseSessionFactory();
 
@@ -886,13 +885,6 @@ namespace JMMServer
 				autoUpdateTimerShort.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimerShort_Elapsed);
 				autoUpdateTimerShort.Start();
 
-                // timer for automatic updates
-                autoUpdateTimerLocal = new System.Timers.Timer();
-                autoUpdateTimerLocal.AutoReset = true;
-                autoUpdateTimerLocal.Interval = 15 * 60 * 1000; // 15 * 60 seconds (15 minutes)
-                autoUpdateTimerLocal.Elapsed += autoUpdateTimerLocal_Elapsed;
-                autoUpdateTimerLocal.Start();
-
 				ServerState.Instance.CurrentSetupStatus = "Initializing File Watchers...";
 				StartWatchingFiles();
 
@@ -915,20 +907,6 @@ namespace JMMServer
 				e.Result = false;
 			}
 		}
-
-        void autoUpdateTimerLocal_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            TimeSpan ts = DateTime.Now - lastVersionCheck;
-            if (ts.TotalHours > 6)
-            {
-                logger.Trace("Checking for JMM Server updates...");
-                lastVersionCheck = DateTime.Now;
-                System.Windows.Application.Current.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Normal, (Action)delegate ()
-                {
-                    automaticUpdater.ForceCheckForUpdate(true);
-                });  
-            }
-        }
 
 		#endregion
 
@@ -1426,7 +1404,9 @@ namespace JMMServer
             //JMMServer.Providers.Azure.Azure_AnimeLink link2 = JMMServer.Providers.Azure.AzureWebAPI.Admin_GetRandomTraktLinkForApproval();
             //List<Providers.Azure.CrossRef_AniDB_Trakt> xrefs= JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(link2.RandomAnimeID);
 
-
+            
+            
+            
 
             AboutForm frm = new AboutForm();
 			frm.Owner = this;
@@ -1588,8 +1568,54 @@ namespace JMMServer
 			}
 
             logger.Info("Checking for updates...");
-            automaticUpdater.ForceCheckForUpdate(true);
-		}
+            CheckForUpdatesNew(false);
+
+        }
+
+        public void CheckForUpdatesNew(bool forceShowForm)
+        {
+            try
+            {
+                long verCurrent = 0;
+                long verNew = 0;
+
+                // get the latest version as according to the release
+                if (!forceShowForm)
+                {
+                    Providers.JMMAutoUpdates.JMMVersions verInfo = Providers.JMMAutoUpdates.JMMAutoUpdatesHelper.GetLatestVersionInfo();
+                    if (verInfo == null) return;
+
+                    // get the user's version
+                    System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
+                    if (a == null)
+                    {
+                        logger.Error("Could not get current version");
+                        return;
+                    }
+                    System.Reflection.AssemblyName an = a.GetName();
+
+                    verNew = verInfo.versions.ServerVersionAbs;
+
+                    verCurrent = (an.Version.Revision * 100) +
+                        (an.Version.Build * 100 * 100) +
+                        (an.Version.Minor * 100 * 100 * 100) +
+                        (an.Version.Major * 100 * 100 * 100 * 100);
+                }
+
+                if (forceShowForm || verNew > verCurrent)
+                {
+                    UpdateForm frm = new UpdateForm();
+                    frm.Owner = this;
+                    frm.ShowDialog();
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+
+        }
 
 
 

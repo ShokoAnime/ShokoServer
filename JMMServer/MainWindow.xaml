@@ -2,7 +2,6 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:JMMServer"
-        xmlns:my="clr-namespace:wyDay.Controls;assembly=AutomaticUpdaterWPF"
         Title="JMM Server" Height="550" Width="550" Icon="/JMMServer;component/db.ico" WindowStartupLocation="CenterScreen" >
 
     <Window.Resources>
@@ -76,9 +75,7 @@
                     </StackPanel>
                 </Button>
 
-                <my:AutomaticUpdater Height="100" Name="automaticUpdater" Width="200" GUID="JMM-JMMServer" DaysBetweenChecks="1" UpdateType="OnlyCheck"/>
 
-                
             </StackPanel>
         </Border>
 
