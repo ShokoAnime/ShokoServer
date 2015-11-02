@@ -27,7 +27,11 @@ namespace JMMServer.UI
 
 		void btnUpdates_Click(object sender, RoutedEventArgs e)
 		{
-			automaticUpdater.ForceCheckForUpdate(true);
+            MainWindow mdw = this.Owner as MainWindow;
+            if (mdw == null) return;
+
+            this.Close();
+            mdw.CheckForUpdatesNew(true);
 		}
 	}
 }

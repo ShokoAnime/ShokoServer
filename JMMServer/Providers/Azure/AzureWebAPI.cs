@@ -260,6 +260,31 @@ namespace JMMServer.Providers.Azure
 
         #region Cross Ref File Episode
 
+        /*public static List<CrossRef_File_Episode> Get_CrossRefFileEpisode()
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Get) return null;
+
+            //string username = ServerSettings.AniDB_Username;
+            //if (ServerSettings.WebCache_Anonymous)
+            //    username = Constants.AnonWebCacheUsername;
+
+            string uri = string.Format(@"http://{0}/api/CrossRef_File_Episode/{1}?p={2}", azureHostBaseAddress, "88D29145F18DCEA4D4C41EF94B950378", "Ilast");
+            string msg = string.Format("Getting File/Episode Cross Ref From Cache: {0}", "88D29145F18DCEA4D4C41EF94B950378");
+
+            DateTime start = DateTime.Now;
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+
+            string json = GetDataJson(uri);
+
+            TimeSpan ts = DateTime.Now - start;
+            msg = string.Format("Got File/Episode Cross Ref From Cache: {0} - {1}", "88D29145F18DCEA4D4C41EF94B950378", ts.TotalMilliseconds);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+
+            List<CrossRef_File_Episode> xrefs = JSONHelper.Deserialize<List<CrossRef_File_Episode>>(json);
+
+            return xrefs;
+        }*/
+
         public static List<CrossRef_File_Episode> Get_CrossRefFileEpisode(VideoLocal vid)
         {
             if (!ServerSettings.WebCache_XRefFileEpisode_Get) return null;
@@ -822,4 +847,5 @@ namespace JMMServer.Providers.Azure
 
         #endregion
     }
+
 }

@@ -1,0 +1,87 @@
+﻿<Window x:Class="JMMServer.UI.UpdateForm"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:JMMServer"
+        mc:Ignorable="d"
+        ShowInTaskbar="False" WindowStyle="ToolWindow"
+        WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
+        Title="Update Available" Height="300" Width="600" Icon="/JMMServer;component/db.ico">
+    <Grid>
+        <Grid.Resources>
+            <ResourceDictionary>
+                <ResourceDictionary.MergedDictionaries>
+                    <ResourceDictionary Source="/UI/UIStyles.xaml" />
+                </ResourceDictionary.MergedDictionaries>
+
+                <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+            </ResourceDictionary>
+        </Grid.Resources>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+
+        <!-- Selected series details -->
+
+        <Border Grid.Row="0" Grid.Column="0" Margin="0" Padding="5" Background="White" BorderBrush="LightGray" BorderThickness="1">
+            <StackPanel Orientation="Horizontal"  Margin="0,0,0,5">
+                <Image Height="24" Width="24" Source="/Images/db.ico" Margin="5,0,5,0"/>
+
+                <TextBlock Margin="5,0,0,0" FontWeight="DemiBold" Text="JMM Server Updates" FontSize="20" VerticalAlignment="Center"/>
+                
+
+
+
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Grid.Column="0" Margin="0" Background="#F1F1F1" BorderBrush="LightGray" BorderThickness="1" Height="226" VerticalAlignment="Top">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Margin="10,6"  Text="Download Page"  VerticalAlignment="Center"/>
+                <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="10,6,10,5" DisplayText="http://japanesemediamanager.github.io/downloads.html"
+                                                                        URL="http://japanesemediamanager.github.io/downloads.html"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Margin="10,4.864,10,6"  Text="Change Log"  VerticalAlignment="Center"/>
+                <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="10,4.864,10,5" DisplayText="http://japanesemediamanager.github.io/changelog.html"
+                                                                        URL="http://japanesemediamanager.github.io/changelog.html"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="10,4.864,10,6"  Text="Available Version"  VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="10,4.864,10,5" FontWeight="DemiBold" 
+                           Text="{Binding Source={x:Static local:ServerState.Instance},Path=ApplicationVersionLatest}" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Margin="10,4.864,10,6"  Text="Your Version"  VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="10,4.864,10,5" FontWeight="DemiBold" 
+                           Text="{Binding Source={x:Static local:ServerState.Instance},Path=ApplicationVersion}" />
+
+
+            </Grid>
+
+
+        </Border>
+
+
+
+    </Grid>
+</Window>
