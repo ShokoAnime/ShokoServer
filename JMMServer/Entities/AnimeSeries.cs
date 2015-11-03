@@ -684,7 +684,7 @@ namespace JMMServer.Entities
 
 	    public void QueueUpdateStats()
 	    {
-            CommandRequest_RefreshAnime cmdRefreshAnime=new CommandRequest_RefreshAnime(this.AnimeSeriesID);
+            CommandRequest_RefreshAnime cmdRefreshAnime=new CommandRequest_RefreshAnime(this.AniDB_ID);
             cmdRefreshAnime.Save();
         }
 

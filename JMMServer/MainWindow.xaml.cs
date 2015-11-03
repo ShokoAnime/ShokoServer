@@ -1678,7 +1678,7 @@ namespace JMMServer
 			this.Cursor = Cursors.Wait;
 			Importer.UpdateAllStats();
 			this.Cursor = Cursors.Arrow;
-			MessageBox.Show("Stats have been updated", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show("Stat updates have been queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
 		void btnSyncVotes_Click(object sender, RoutedEventArgs e)

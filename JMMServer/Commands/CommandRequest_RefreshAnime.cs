@@ -44,7 +44,7 @@ namespace JMMServer.Commands
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
             AnimeSeries ser = repSeries.GetByAnimeID(AnimeID);
             if (ser!=null)
-                ser.QueueUpdateStats();
+                ser.UpdateStats(true, true, true);
         }
 
         public override void GenerateCommandID()

@@ -177,7 +177,21 @@ namespace JMMServer
 				{
 					i++;
 
-					if (dictFilesExisting.ContainsKey(fileName)) continue;
+                    if (dictFilesExisting.ContainsKey(fileName))
+                    {
+                        if (fldr.IsDropSource != 1)
+                            continue;
+                        else
+                        {
+                            // if this is a file in a drop source, try moving it
+                            string filePath = string.Empty;
+                            int nshareID = 0;
+                            DataAccessHelper.GetShareAndPath(fileName, repFolders.GetAll(), ref nshareID, ref filePath);
+                            List<VideoLocal> filesSearch = repVidLocals.GetByName(filePath);
+                            foreach (VideoLocal vid in filesSearch)
+                                vid.MoveFileIfRequired();
+                        }
+                    }
 					
 					filesFound++;
 					logger.Info("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
@@ -709,26 +723,6 @@ namespace JMMServer
 
 					CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
 					cmdDel.Save();
-
-                    // For deletion of files from Trakt, we will rely on the Daily sync
-                    /*
-                    // lets also try removing from the users trakt collection
-                    if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                    {
-                        AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-                        List<AnimeEpisode> animeEpisodes = vl.GetAnimeEpisodes();
-
-                        if (animeEpisodes.Count > 0)
-                        {
-                            AnimeSeries ser = animeEpisodes[0].GetAnimeSeries();
-                            if (ser != null)
-                            {
-                                CommandRequest_TraktSyncCollectionSeries cmdSyncTrakt = new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID, ser.GetSeriesName());
-                                cmdSyncTrakt.Save();
-                            }
-                        }
-
-                    }*/
 				}
 			}
 
@@ -797,11 +791,11 @@ namespace JMMServer
 
 		public static void UpdateAllStats()
 		{
-			AnimeGroupRepository repGroups = new AnimeGroupRepository();
-			foreach (AnimeGroup grp in repGroups.GetAllTopLevelGroups())
-			{
-				grp.UpdateStatsFromTopLevel(true, true);
-			}
+            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+            foreach (AnimeSeries ser in repSeries.GetAll())
+            {
+                ser.QueueUpdateStats();
+            }
 		}
 
 
