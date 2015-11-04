@@ -1125,10 +1125,12 @@ namespace JMMServer
                 }
 
                 TraktTVHelper.RefreshAuthToken();
-
-                sched = new ScheduledUpdate();
-                sched.UpdateType = (int)ScheduledUpdateType.TraktToken;
-                sched.UpdateDetails = "";
+                if (sched == null)
+                {
+                    sched = new ScheduledUpdate();
+                    sched.UpdateType = (int)ScheduledUpdateType.TraktToken;
+                    sched.UpdateDetails = "";
+                }
                 sched.LastUpdate = DateTime.Now;
                 repSched.Save(sched);
             }
