@@ -2303,7 +2303,33 @@ namespace JMMServer
 			hostREST.Open();
 		}
 
-		private static void ReadFiles()
+        private static void StartRESTHost_New()
+        {
+            hostREST = new WebServiceHost(typeof(JMMServiceImplementationREST), baseAddressREST);
+
+            ServiceEndpoint ep = hostREST.AddServiceEndpoint(typeof(IJMMServerREST), new WebHttpBinding()
+            {
+                CloseTimeout = TimeSpan.FromMinutes(20),
+                OpenTimeout = TimeSpan.FromMinutes(20),
+                SendTimeout = TimeSpan.FromMinutes(20),
+                MaxBufferSize = 65536,
+                MaxBufferPoolSize = 524288,
+                MaxReceivedMessageSize = 107374182400,
+                TransferMode = TransferMode.StreamedResponse
+            }, "");
+
+            // modify behaviours
+
+            WebHttpBehavior wbb = hostREST.Description.Behaviors.Find<WebHttpBehavior>();
+            wbb.AutomaticFormatSelectionEnabled = true;
+
+            ServiceDebugBehavior stp = hostREST.Description.Behaviors.Find<ServiceDebugBehavior>();
+            stp.HttpHelpPageEnabled = false;
+
+            hostREST.Open();
+        }
+
+        private static void ReadFiles()
 		{
 			// Steps for processing a file
 			// 1. Check if it is a video file

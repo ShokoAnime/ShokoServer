@@ -146,6 +146,7 @@ namespace JMMServer.Databases
                 UpdateSchema_038(versionNumber);
                 UpdateSchema_039(versionNumber);
                 UpdateSchema_040(versionNumber);
+                UpdateSchema_041(versionNumber);
             }
 			catch (Exception ex)
 			{
@@ -1248,6 +1249,21 @@ namespace JMMServer.Databases
 
             List<string> cmds = new List<string>();
             cmds.Add("DROP TABLE LogMessage;");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+        }
+
+        private static void UpdateSchema_041(int currentVersionNumber)
+        {
+            int thisVersion = 41;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE AnimeSeries ADD DefaultFolder text NULL");
 
             ExecuteSQLCommands(cmds);
 
