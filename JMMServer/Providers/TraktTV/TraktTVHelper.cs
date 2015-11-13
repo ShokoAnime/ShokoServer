@@ -1229,27 +1229,30 @@ namespace JMMServer.Providers.TraktTV
                         }
                     }
 
-                    foreach (TraktV2Episode ep in sea.episodes)
+                    if (sea.episodes != null)
                     {
-                        Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, ep.season, ep.number);
-                        if (episode == null)
-                            episode = new Trakt_Episode();
+                        foreach (TraktV2Episode ep in sea.episodes)
+                        {
+                            Trakt_Episode episode = repEpisodes.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, ep.season, ep.number);
+                            if (episode == null)
+                                episode = new Trakt_Episode();
 
-                        Console.Write(ep.ids.trakt);
+                            Console.Write(ep.ids.trakt);
 
-                        if (ep.images.screenshot != null)
-                            episode.EpisodeImage = ep.images.screenshot.full;
-                        else
-                            episode.EpisodeImage = string.Empty;
+                            if (ep.images.screenshot != null)
+                                episode.EpisodeImage = ep.images.screenshot.full;
+                            else
+                                episode.EpisodeImage = string.Empty;
 
-                        episode.TraktID = ep.ids.TraktID;
-                        episode.EpisodeNumber = ep.number;
-                        episode.Overview = string.Empty; // this is now part of a separate API call for V2, we get this info from TvDB anyway
-                        episode.Season = ep.season;
-                        episode.Title = ep.title;
-                        episode.URL = string.Format(TraktURIs.WebsiteEpisode, show.TraktID, ep.season, ep.number);
-                        episode.Trakt_ShowID = show.Trakt_ShowID;
-                        repEpisodes.Save(episode);
+                            episode.TraktID = ep.ids.TraktID;
+                            episode.EpisodeNumber = ep.number;
+                            episode.Overview = string.Empty; // this is now part of a separate API call for V2, we get this info from TvDB anyway
+                            episode.Season = ep.season;
+                            episode.Title = ep.title;
+                            episode.URL = string.Format(TraktURIs.WebsiteEpisode, show.TraktID, ep.season, ep.number);
+                            episode.Trakt_ShowID = show.Trakt_ShowID;
+                            repEpisodes.Save(episode);
+                        }
                     }
                 }
 

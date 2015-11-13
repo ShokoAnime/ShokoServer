@@ -13,5 +13,7 @@ namespace JMMContracts
 		public string DefaultAudioLanguage { get; set; }
 		public string DefaultSubtitleLanguage { get; set; }
 		public string SeriesNameOverride { get; set; }
-	}
+
+        public string DefaultFolder { get; set; }
+    }
 }

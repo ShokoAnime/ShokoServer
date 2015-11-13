@@ -1190,8 +1190,9 @@ namespace JMMServer
 				ser.DefaultSubtitleLanguage = contract.DefaultSubtitleLanguage;
 				ser.DateTimeUpdated = DateTime.Now;
 				ser.SeriesNameOverride = contract.SeriesNameOverride;
+                ser.DefaultFolder = contract.DefaultFolder;
 
-				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 				AniDB_Anime anime = repAnime.GetByAnimeID(ser.AniDB_ID);
 				if (anime == null)
 				{

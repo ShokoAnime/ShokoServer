@@ -24,7 +24,9 @@ namespace JMMContracts
 		public int LatestLocalEpisodeNumber { get; set; }
 		public string SeriesNameOverride { get; set; }
 
-		public int MissingEpisodeCount { get; set; }
+        public string DefaultFolder { get; set; }
+
+        public int MissingEpisodeCount { get; set; }
 		public int MissingEpisodeCountGroups { get; set; }
 
 		public Contract_AniDBAnime AniDBAnime { get; set; }

@@ -98,17 +98,13 @@ namespace JMMServer.Commands
 							foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
 							{
 								CommandRequest_GetReleaseGroup cmdRelgrp = new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
-								session.SaveOrUpdate(cmdRelgrp);
-							}
+                                cmdRelgrp.Save(session);
+                            }
 
 							transaction.Commit();
 						}
 					}
-
-					
 				}
-
-				//}
 
 			}
 			catch (Exception ex)

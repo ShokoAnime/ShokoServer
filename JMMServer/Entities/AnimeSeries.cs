@@ -31,11 +31,12 @@ namespace JMMServer.Entities
 		public int MissingEpisodeCountGroups { get; set; }
 		public int LatestLocalEpisodeNumber { get; set; }
 		public string SeriesNameOverride { get; set; }
-		
 
-		#endregion
+        public string DefaultFolder { get; set; }
 
-		public string Year
+        #endregion
+
+        public string Year
 		{
 			get
 			{
@@ -433,10 +434,11 @@ namespace JMMServer.Entities
 			contract.MissingEpisodeCount = this.MissingEpisodeCount;
 			contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
 			contract.SeriesNameOverride = this.SeriesNameOverride;
-			
-			
+            contract.DefaultFolder = this.DefaultFolder;
 
-			if (userRecord == null)
+
+
+            if (userRecord == null)
 			{
 				contract.PlayedCount = 0;
 				contract.StoppedCount = 0;
@@ -684,7 +686,7 @@ namespace JMMServer.Entities
 
 	    public void QueueUpdateStats()
 	    {
-            CommandRequest_RefreshAnime cmdRefreshAnime=new CommandRequest_RefreshAnime(this.AnimeSeriesID);
+            CommandRequest_RefreshAnime cmdRefreshAnime=new CommandRequest_RefreshAnime(this.AniDB_ID);
             cmdRefreshAnime.Save();
         }
 

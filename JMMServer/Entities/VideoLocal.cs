@@ -470,172 +470,207 @@ namespace JMMServer.Entities
 
 		public void MoveFileIfRequired()
 		{
-			// check if this file is in the drop folder
-			// otherwise we don't need to move it
-			if (this.ImportFolder.IsDropSource == 0) return;
+            try
+            {
+                logger.Trace("Attempting to move file: {0}", this.FullServerPath);
 
-			if (!File.Exists(this.FullServerPath)) return;
+                // check if this file is in the drop folder
+                // otherwise we don't need to move it
+                if (this.ImportFolder.IsDropSource == 0)
+                {
+                    logger.Trace("Not moving file as it is NOT in the drop folder: {0}", this.FullServerPath);
+                    return;
+                }
 
-			// find the default destination
-			ImportFolder destFolder = null;
-			ImportFolderRepository repFolders = new ImportFolderRepository();
-			foreach (ImportFolder fldr in repFolders.GetAll())
-			{
-				if (fldr.IsDropDestination == 1)
-				{
-					destFolder = fldr;
-					break;
-				}
-			}
+                if (!File.Exists(this.FullServerPath))
+                {
+                    logger.Error("Could not find the file to move: {0}", this.FullServerPath);
+                    return;
+                }
 
-			if (destFolder == null) return;
+                // find the default destination
+                ImportFolder destFolder = null;
+                ImportFolderRepository repFolders = new ImportFolderRepository();
+                foreach (ImportFolder fldr in repFolders.GetAll())
+                {
+                    if (fldr.IsDropDestination == 1)
+                    {
+                        destFolder = fldr;
+                        break;
+                    }
+                }
 
-			if (!Directory.Exists(destFolder.ImportFolderLocation)) return;
+                if (destFolder == null) return;
 
-			// we can only move the file if it has an anime associated with it
-			List<CrossRef_File_Episode> xrefs = this.EpisodeCrossRefs;
-			if (xrefs.Count == 0) return;
-			CrossRef_File_Episode xref = xrefs[0];
+                if (!Directory.Exists(destFolder.ImportFolderLocation)) return;
 
-			// find the series associated with this episode
-			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-			AnimeSeries series = repSeries.GetByAnimeID(xref.AnimeID);
-			if (series == null) return;
+                // keep the original drop folder for later (take a copy, not a reference)
+                ImportFolder dropFolder = this.ImportFolder;
 
-			// find where the other files are stored for this series
-			// if there are no other files except for this one, it means we need to create a new location
-			bool foundLocation = false;
-			string newFullPath = "";
+                // we can only move the file if it has an anime associated with it
+                List<CrossRef_File_Episode> xrefs = this.EpisodeCrossRefs;
+                if (xrefs.Count == 0) return;
+                CrossRef_File_Episode xref = xrefs[0];
 
-			// sort the episodes by air date, so that we will move the file to the location of the latest episode
-			List<AnimeEpisode> allEps = series.GetAnimeEpisodes();
-			List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-			sortCriteria.Add(new SortPropOrFieldAndDirection("AniDB_EpisodeID", true, SortType.eInteger));
-			allEps = Sorting.MultiSort<AnimeEpisode>(allEps, sortCriteria);
+                // find the series associated with this episode
+                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                AnimeSeries series = repSeries.GetByAnimeID(xref.AnimeID);
+                if (series == null) return;
 
-			foreach (AnimeEpisode ep in allEps)
-			{
-				foreach (VideoLocal vid in ep.GetVideoLocals())
-				{
-					if (vid.VideoLocalID != this.VideoLocalID)
-					{
-						// make sure this folder is not the drop source
-						if (vid.ImportFolder.IsDropSource == 1) continue;
+                // find where the other files are stored for this series
+                // if there are no other files except for this one, it means we need to create a new location
+                bool foundLocation = false;
+                string newFullPath = "";
 
-						string thisFileName = vid.FullServerPath;
-						string folderName = Path.GetDirectoryName(thisFileName);
+                // sort the episodes by air date, so that we will move the file to the location of the latest episode
+                List<AnimeEpisode> allEps = series.GetAnimeEpisodes();
+                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+                sortCriteria.Add(new SortPropOrFieldAndDirection("AniDB_EpisodeID", true, SortType.eInteger));
+                allEps = Sorting.MultiSort<AnimeEpisode>(allEps, sortCriteria);
 
-						if (Directory.Exists(folderName))
-						{
-							newFullPath = folderName;
-							foundLocation = true;
-							break;
-						}
-					}
-				}
-				if (foundLocation) break;
-			}
+                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                CrossRef_File_EpisodeRepository repFileEpXref = new CrossRef_File_EpisodeRepository();
 
-			if (!foundLocation)
-			{
-				// we need to create a new folder
-				string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().MainTitle);
-				newFullPath = Path.Combine(destFolder.ImportFolderLocation, newFolderName);
-				if (!Directory.Exists(newFullPath))
-					Directory.CreateDirectory(newFullPath);
-			}
+                foreach (AnimeEpisode ep in allEps)
+                {
+                    // check if this episode belongs to more than one anime
+                    // if it does we will ignore it
+                    List<CrossRef_File_Episode> fileEpXrefs = repFileEpXref.GetByEpisodeID(ep.AniDB_EpisodeID);
+                    int? animeID = null;
+                    bool crossOver = false;
+                    foreach (CrossRef_File_Episode fileEpXref in fileEpXrefs)
+                    {
+                        if (!animeID.HasValue)
+                            animeID = fileEpXref.AnimeID;
+                        else
+                        {
+                            if (animeID.Value != fileEpXref.AnimeID)
+                                crossOver = true;
+                        }
+                    }
+                    if (crossOver) continue;
 
-			int newFolderID = 0;
-			string newPartialPath = "";
-			string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
+                    foreach (VideoLocal vid in ep.GetVideoLocals())
+                    {
+                        if (vid.VideoLocalID != this.VideoLocalID)
+                        {
+                            // make sure this folder is not the drop source
+                            if (vid.ImportFolder.IsDropSource == 1) continue;
 
-			DataAccessHelper.GetShareAndPath(newFullServerPath, repFolders.GetAll(), ref newFolderID, ref newPartialPath);
+                            string thisFileName = vid.FullServerPath;
+                            string folderName = Path.GetDirectoryName(thisFileName);
 
+                            if (Directory.Exists(folderName))
+                            {
+                                newFullPath = folderName;
+                                foundLocation = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (foundLocation) break;
+                }
 
-			logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
+                if (!foundLocation)
+                {
+                    // we need to create a new folder
+                    string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().MainTitle);
+                    newFullPath = Path.Combine(destFolder.ImportFolderLocation, newFolderName);
+                    if (!Directory.Exists(newFullPath))
+                        Directory.CreateDirectory(newFullPath);
+                }
 
-			
+                int newFolderID = 0;
+                string newPartialPath = "";
+                string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
 
-			if (File.Exists(newFullServerPath))
-			{
-				// if the file already exists, we can just delete the source file instead
-				// this is safer than deleting and moving
-				File.Delete(this.FullServerPath);
+                DataAccessHelper.GetShareAndPath(newFullServerPath, repFolders.GetAll(), ref newFolderID, ref newPartialPath);
+                logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
 
-				this.ImportFolderID = newFolderID;
-				this.FilePath = newPartialPath;
-				VideoLocalRepository repVids = new VideoLocalRepository();
-				repVids.Save(this);
-			}
-			else
-			{
-				string originalFileName = this.FullServerPath;
-				FileInfo fi = new FileInfo(originalFileName);
+                if (File.Exists(newFullServerPath))
+                {
+                    logger.Trace("Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}", 
+                        this.FullServerPath, newFullServerPath);
 
-				// now move the file
-				File.Move(this.FullServerPath, newFullServerPath);
+                    // if the file already exists, we can just delete the source file instead
+                    // this is safer than deleting and moving
+                    File.Delete(this.FullServerPath);
 
-				this.ImportFolderID = newFolderID;
-				this.FilePath = newPartialPath;
-				VideoLocalRepository repVids = new VideoLocalRepository();
-				repVids.Save(this);
+                    this.ImportFolderID = newFolderID;
+                    this.FilePath = newPartialPath;
+                    VideoLocalRepository repVids = new VideoLocalRepository();
+                    repVids.Save(this);
+                }
+                else
+                {
+                    string originalFileName = this.FullServerPath;
+                    FileInfo fi = new FileInfo(originalFileName);
 
-				try
-				{
-					// move any subtitle files
-					foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
-					{
-						if (File.Exists(subtitleFile))
-						{
-							FileInfo fiSub = new FileInfo(subtitleFile);
-							string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath), fiSub.Name);
-							if (File.Exists(newSubPath))
-							{
-								// if the file already exists, we can just delete the source file instead
-								// this is safer than deleting and moving
-								File.Delete(newSubPath);
-							}
-							else
-								File.Move(subtitleFile, newSubPath);
-						}
-					}
-				}
-				catch (Exception ex)
-				{
-					logger.ErrorException(ex.ToString(), ex);
-				}
+                    // now move the file
+                    File.Move(this.FullServerPath, newFullServerPath);
 
-				// check for any empty folders in drop folder
-				// only for the drop folder
-				if (this.ImportFolder.IsDropSource == 1)
-				{
-					foreach (string folderName in Directory.GetDirectories(this.ImportFolder.ImportFolderLocation, "*", SearchOption.AllDirectories))
-					{
-						if (Directory.Exists(folderName))
-						{
-							if (Directory.GetFiles(folderName, "*", SearchOption.AllDirectories).Length == 0)
-							{
-								try
-								{
-									Directory.Delete(folderName, true);
-								}
-								/*catch (IOException)
-								{
-									Thread.Sleep(0);
-									Directory.Delete(folderName, false);
-								}*/
-								catch (Exception ex)
-								{
-									logger.ErrorException(ex.ToString(), ex);
-								}
-							}
-						}
-					}
-				}
+                    this.ImportFolderID = newFolderID;
+                    this.FilePath = newPartialPath;
+                    VideoLocalRepository repVids = new VideoLocalRepository();
+                    repVids.Save(this);
 
-			}
+                    try
+                    {
+                        // move any subtitle files
+                        foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
+                        {
+                            if (File.Exists(subtitleFile))
+                            {
+                                FileInfo fiSub = new FileInfo(subtitleFile);
+                                string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath), fiSub.Name);
+                                if (File.Exists(newSubPath))
+                                {
+                                    // if the file already exists, we can just delete the source file instead
+                                    // this is safer than deleting and moving
+                                    File.Delete(newSubPath);
+                                }
+                                else
+                                    File.Move(subtitleFile, newSubPath);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.ErrorException(ex.ToString(), ex);
+                    }
 
-		}
+                    // check for any empty folders in drop folder
+                    // only for the drop folder
+                    if (dropFolder.IsDropSource == 1)
+                    {
+                        foreach (string folderName in Directory.GetDirectories(dropFolder.ImportFolderLocation, "*", SearchOption.AllDirectories))
+                        {
+                            if (Directory.Exists(folderName))
+                            {
+                                if (Directory.GetFiles(folderName, "*", SearchOption.AllDirectories).Length == 0)
+                                {
+                                    try
+                                    {
+                                        Directory.Delete(folderName, true);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        logger.ErrorException(ex.ToString(), ex);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                string msg = string.Format("Could not move file: {0} -- {1}", this.FullServerPath, ex.ToString());
+                logger.ErrorException(msg, ex);
+            }
+
+        }
 
 		
 
