@@ -173,6 +173,7 @@
     <Compile Include="IJMMServer.cs" />
     <Compile Include="IJMMServerImage.cs" />
     <Compile Include="IJMMServerMetro.cs" />
+    <Compile Include="IJMMServerKodi.cs" />
     <Compile Include="IJMMServerPlex.cs" />
     <Compile Include="IJMMServerREST.cs" />
     <Compile Include="IJMMServerStreaming.cs" />
@@ -183,6 +184,7 @@
     <Compile Include="MetroContract_Anime_Summary.cs" />
     <Compile Include="MetroContract_CommunityLinks.cs" />
     <Compile Include="MetroContract_Shout.cs" />
+    <Compile Include="KodiContracts.cs" />
     <Compile Include="PlexContracts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

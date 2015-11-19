@@ -83,21 +83,24 @@ namespace JMMServer
 		private static string baseAddressMetroImageString = @"http://localhost:{0}/JMMServerMetroImage";
 		private static string baseAddressRESTString = @"http://localhost:{0}/JMMServerREST";
         private static string baseAddressPlexString = @"http://localhost:{0}/JMMServerPlex";
+        private static string baseAddressKodiString = @"http://localhost:{0}/JMMServerKodi";
 
-	    public static string PathAddressREST = "JMMServerREST";
+        public static string PathAddressREST = "JMMServerREST";
         public static string PathAddressPlex = "JMMServerPlex";
+        public static string PathAddressKodi = "JMMServerKodi";
 
         //private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
-		//private static ServiceHost host = null;
-		//private static ServiceHost hostTCP = null;
-		private static ServiceHost hostImage = null;
+        //private static ServiceHost host = null;
+        //private static ServiceHost hostTCP = null;
+        private static ServiceHost hostImage = null;
 		private static ServiceHost hostStreaming = null;
 		private static ServiceHost hostBinary = null;
 		private static ServiceHost hostMetro = null;
 		private static ServiceHost hostMetroImage = null;
 		private static WebServiceHost hostREST = null;
         private static WebServiceHost hostPlex = null;
-	    //private static MessagingServer hostFile = null;
+        private static WebServiceHost hostKodi = null;
+        //private static MessagingServer hostFile = null;
         private static FileServer.FileServer hostFile = null;
 
 		private static BackgroundWorker workerImport = new BackgroundWorker();
@@ -179,8 +182,15 @@ namespace JMMServer
                 return new Uri(string.Format(baseAddressPlexString, ServerSettings.JMMServerPort));
             }
         }
+        public static Uri baseAddressKodi
+        {
+            get
+            {
+                return new Uri(string.Format(baseAddressKodiString, ServerSettings.JMMServerPort));
+            }
+        }
 
-		private Mutex mutex;
+        private Mutex mutex;
 		private readonly string mutexName = "JmmServer3.0Mutex";
 
 		public MainWindow()
@@ -858,6 +868,7 @@ namespace JMMServer
 				StartMetroHost();
 				StartImageHostMetro();
                 StartPlexHost();
+                StartKodiHost();
 			    StartFileHost();
                 StartRESTHost();
                 StartStreamingHost();
@@ -1189,6 +1200,7 @@ namespace JMMServer
 				StartImageHost();
 				StartImageHostMetro();
 			    StartPlexHost();
+                StartKodiHost();
 			    StartFileHost();
 				StartStreamingHost();
 				StartRESTHost();
@@ -2285,7 +2297,16 @@ namespace JMMServer
             hostPlex.Open();
 	    }
 
-	    private static void StartFileHost()
+        private static void StartKodiHost()
+        {
+            hostKodi = new WebServiceHost(typeof(JMMServiceImplementationKodi), baseAddressKodi);
+            ServiceEndpoint ep = hostKodi.AddServiceEndpoint(typeof(IJMMServerKodi), new WebHttpBinding(), "");
+            ServiceDebugBehavior stp = hostKodi.Description.Behaviors.Find<ServiceDebugBehavior>();
+            stp.HttpHelpPageEnabled = false;
+            hostKodi.Open();
+        }
+
+        private static void StartFileHost()
 	    {
             hostFile = new FileServer.FileServer(int.Parse(ServerSettings.JMMServerFilePort));
             hostFile.Start();
@@ -2399,6 +2420,9 @@ namespace JMMServer
 
             if (hostPlex!=null)
                 hostPlex.Close();
+
+            if (hostKodi != null)
+                hostKodi.Close();
 
             if (hostFile!=null)
                 hostFile.Stop();
