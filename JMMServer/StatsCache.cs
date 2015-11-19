@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using JMMContracts.PlexContracts;
+using JMMContracts.KodiContracts;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using NLog;
@@ -11,6 +12,7 @@ using System.Diagnostics;
 using JMMServer.Providers.TraktTV;
 using System.Globalization;
 using JMMServer.Plex;
+using JMMServer.Kodi;
 using NHibernate;
 
 namespace JMMServer
@@ -61,10 +63,11 @@ namespace JMMServer
 
 	    public Dictionary<int, Dictionary<int, HashSet<int>>> StatUserGroupFilter = null;
 
-        public Dictionary<int, Dictionary<int, Video>> StatPlexGroupsCache = null;
+        public Dictionary<int, Dictionary<int, JMMContracts.PlexContracts.Video>> StatPlexGroupsCache = null;
+        public Dictionary<int, Dictionary<int, JMMContracts.KodiContracts.Video>> StatKodiGroupsCache = null;
 
 
-		public StatsCache()
+        public StatsCache()
 		{
 			ClearAllData();
 		}
@@ -99,8 +102,9 @@ namespace JMMServer
 
             StatUserGroupFilter = new Dictionary<int, Dictionary<int, HashSet<int>>>();
 
-            StatPlexGroupsCache=new Dictionary<int, Dictionary<int, Video>>();
-		}
+            StatPlexGroupsCache = new Dictionary<int, Dictionary<int, JMMContracts.PlexContracts.Video>>();
+            StatKodiGroupsCache = new Dictionary<int, Dictionary<int, JMMContracts.KodiContracts.Video>>();
+        }
         public void UpdatePlexAnimeGroup(ISession session, AnimeGroup grp, List<AnimeSeries> allSeries)
 	    {
             JMMUserRepository repUser = new JMMUserRepository();
@@ -108,17 +112,36 @@ namespace JMMServer
 	        foreach (JMMUser user in repUser.GetAll(session))
 	        {
                 AnimeGroup_User userRec = repUserGroups.GetByUserAndGroupID(session, user.JMMUserID, grp.AnimeGroupID);
-	            Dictionary<int, Video> cdic;
+	            Dictionary<int, JMMContracts.PlexContracts.Video> cdic;
 	            if (StatPlexGroupsCache.ContainsKey(user.JMMUserID))
 	                cdic = StatPlexGroupsCache[user.JMMUserID];
 	            else
 	            {
-	                cdic = new Dictionary<int, Video>();
+	                cdic = new Dictionary<int, JMMContracts.PlexContracts.Video>();
 	                StatPlexGroupsCache[user.JMMUserID] = cdic;
 	            }
 	            cdic[grp.AnimeGroupID]=PlexHelper.VideoFromAnimeGroup(session,grp,user.JMMUserID,allSeries);
 	        }
 	    }
+
+        public void UpdateKodiAnimeGroup(ISession session, AnimeGroup grp, List<AnimeSeries> allSeries)
+        {
+            JMMUserRepository repUser = new JMMUserRepository();
+            AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
+            foreach (JMMUser user in repUser.GetAll(session))
+            {
+                AnimeGroup_User userRec = repUserGroups.GetByUserAndGroupID(session, user.JMMUserID, grp.AnimeGroupID);
+                Dictionary<int, JMMContracts.KodiContracts.Video> cdic;
+                if (StatKodiGroupsCache.ContainsKey(user.JMMUserID))
+                    cdic = StatKodiGroupsCache[user.JMMUserID];
+                else
+                {
+                    cdic = new Dictionary<int, JMMContracts.KodiContracts.Video>();
+                    StatKodiGroupsCache[user.JMMUserID] = cdic;
+                }
+                cdic[grp.AnimeGroupID] = KodiHelper.VideoFromAnimeGroup(session, grp, user.JMMUserID, allSeries);
+            }
+        }
 
 
         public void UpdateGroupFilterUsingGroupFilter(int groupfilter)
@@ -731,6 +754,7 @@ namespace JMMServer
                     start = DateTime.Now;
                     UpdateGroupFilterUsingGroup(grp.AnimeGroupID);
                     UpdatePlexAnimeGroup(session, grp,grp.GetAllSeries());
+                    UpdateKodiAnimeGroup(session, grp, grp.GetAllSeries());
                     ts = DateTime.Now - start;
                     logger.Trace("Updating cached stats for GROUP - END ({0}) in {1} ms", grp.GroupName, ts.TotalMilliseconds);
                 }
@@ -1214,7 +1238,8 @@ namespace JMMServer
 
                     UpdateGroupFilterUsingGroup(ag.AnimeGroupID);
                     UpdatePlexAnimeGroup(session, ag, allSeries);
-				}
+                    UpdateKodiAnimeGroup(session, ag, allSeries);
+                }
 
 
 				ts = DateTime.Now - start;
