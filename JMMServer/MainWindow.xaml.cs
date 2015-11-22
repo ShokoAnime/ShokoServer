@@ -2145,6 +2145,7 @@ namespace JMMServer
 			// no endpoints are explicitly configured, the runtime will create
 			// one endpoint per base address for each service contract implemented
 			// by the service.
+           
 			hostImage.Open();
 			logger.Trace("Now Accepting client connections for images...");
 		}

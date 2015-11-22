@@ -486,12 +486,12 @@ namespace JMMServer.Kodi
         public static Video FromSerieWithPossibleReplacement(Contract_AnimeSeries cserie, AnimeSeries ser, int userid)
         {
             Video v = KodiHelper.FromSerie(cserie, userid);
-            if (ser.GetAnimeNumberOfEpisodeTypes() > 1)
+            //if (ser.GetAnimeNumberOfEpisodeTypes() > 1)
                 v.Type = "show";
-            else if ((cserie.AniDBAnime.AnimeType == (int)enAnimeType.Movie) || (cserie.AniDBAnime.AnimeType == (int)enAnimeType.OVA))
-            {
-                v = MayReplaceVideo((Directory)v, ser, ser.GetAnime(), JMMType.File, userid);
-            }
+            //else if ((cserie.AniDBAnime.AnimeType == (int)enAnimeType.Movie) || (cserie.AniDBAnime.AnimeType == (int)enAnimeType.OVA))
+            //{
+            //    v = MayReplaceVideo((Directory)v, ser, ser.GetAnime(), JMMType.File, userid);
+            //}
             return v;
         }
 
