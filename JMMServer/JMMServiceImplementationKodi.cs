@@ -22,7 +22,6 @@ namespace JMMServer
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
         
-
         public System.IO.Stream GetSupportImage(string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -145,7 +144,6 @@ namespace JMMServer
             }
         }
 
-
         public System.IO.Stream GetMetadata(string UserId, string TypeId, string Id)
         {
             try
@@ -211,6 +209,7 @@ namespace JMMServer
             JMMUser user = KodiHelper.GetUser("0");
             return InternalGetFile(user.JMMUserID, Id);
         }
+
         private System.IO.Stream InternalGetFile(int userid, string Id)
         {
 
@@ -309,8 +308,6 @@ namespace JMMServer
             ret.MediaContainer.Childrens= ls;
             return ret.GetStream();
         }
-
-
        
         public System.IO.Stream GetItemsFromGroup(int userid, string GroupId)
         {
@@ -354,8 +351,6 @@ namespace JMMServer
             }
         }
 
-
-        
         public System.IO.Stream GetItemsFromSerie(int userid, string SerieId)
         {
             KodiObject ret = new KodiObject(KodiHelper.NewMediaContainer("Series", true));
@@ -538,9 +533,19 @@ namespace JMMServer
                         {
                             if (groups.Contains(grp.AnimeGroupID))
                             {
-                                Video v = StatsCache.Instance.StatKodiGroupsCache[userid][grp.AnimeGroupID];
-                                if (v!=null)
-                                retGroups.Add(v.Clone());
+                                try {
+                                    if (grp.GroupName == "Rockman.EXE")
+                                    {
+                                        int x = grp.MissingEpisodeCount;
+                                    }
+                                    Video v = StatsCache.Instance.StatKodiGroupsCache[userid][grp.AnimeGroupID];
+                                    if (v != null)
+                                        retGroups.Add(v.Clone());
+                                }
+                                catch(Exception e)
+                                {
+                                    int x = retGroups.Count;
+                                }
                             }
                         }
                     }
@@ -589,11 +594,6 @@ namespace JMMServer
             }
             return new MemoryStream();
         }
-
-
-
-
-
     }
 
 }

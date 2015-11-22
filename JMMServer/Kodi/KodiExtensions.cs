@@ -102,6 +102,7 @@ namespace JMMServer.Kodi
             v.ParentTitle = o.ParentTitle;
             v.PrimaryExtraKey = o.PrimaryExtraKey;
             v.Rating = o.Rating;
+            v.Votes = o.Votes;
             v.RatingKey = o.RatingKey;
             if (o.Related != null)
             {

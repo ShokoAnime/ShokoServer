@@ -104,6 +104,7 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("art")]
         public string Art { get; set; }
+
         [XmlAttribute("url")]
         public string Url { get; set; }
 
@@ -112,7 +113,6 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("parentThumb")]
         public string ParentThumb { get; set; }
-
 
         [XmlAttribute("grandparentThumb")]
         public string GrandparentThumb { get; set; }
@@ -155,7 +155,6 @@ namespace JMMContracts.KodiContracts
         [XmlAttribute("grandparentTitle")]
         public string GrandparentTitle { get; set; }
 
-
         [XmlAttribute("summary")]
         public string Summary { get; set; }
 
@@ -192,6 +191,9 @@ namespace JMMContracts.KodiContracts
         [XmlAttribute("rating")]
         public string Rating { get; set; }
 
+        [XmlAttribute("votes")]
+        public string Votes { get; set; }
+
         [XmlAttribute("season")]
         public string Season { get; set; }
 
@@ -214,9 +216,6 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("contentRating")]
         public string ContentRating { get; set; }
-
-        [XmlAttribute("studio")]
-        public string Studio { get; set; }
 
         [XmlAttribute("extraType")]
         public string ExtraType { get; set; }
