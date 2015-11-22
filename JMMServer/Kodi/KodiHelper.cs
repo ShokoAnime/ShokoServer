@@ -163,7 +163,7 @@ namespace JMMServer.Kodi
             l.Title = Path.GetFileNameWithoutExtension(v.FilePath);
             l.Key = l.PrimaryExtraKey = ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetMetadata/0/" + (int)type + "/" + v.VideoLocalID);
             l.AddedAt = v.DateTimeCreated.Year.ToString("0000") + "-" + v.DateTimeCreated.Month.ToString("00") + "-" + v.DateTimeCreated.Day.ToString("00") + " " + v.DateTimeCreated.Hour.ToString("00") + ":" + v.DateTimeCreated.Minute.ToString("00") + ":" + v.DateTimeCreated.Millisecond.ToString("00");
-            l.UpdatedAt = v.DateTimeUpdated.ToString(CultureInfo.InvariantCulture);
+            l.UpdatedAt = v.DateTimeUpdated.Year.ToString("0000") + "-" + v.DateTimeUpdated.Month.ToString("00") + "-" + v.DateTimeUpdated.Day.ToString("00") + " " + v.DateTimeUpdated.Hour.ToString("00") + ":" + v.DateTimeUpdated.Minute.ToString("00") + ":" + v.DateTimeUpdated.Millisecond.ToString("00");
             l.OriginallyAvailableAt = v.DateTimeCreated.Year.ToString("0000") + "-" + v.DateTimeCreated.Month.ToString("00") + "-" + v.DateTimeCreated.Day.ToString("00");
             l.Year = v.DateTimeCreated.Year.ToString();
      
