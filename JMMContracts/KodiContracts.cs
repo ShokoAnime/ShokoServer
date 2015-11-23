@@ -131,6 +131,7 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("parentKey")]
         public string ParentKey { get; set; }
+
         [XmlAttribute("grandparentKey")]
         public string GrandparentKey { get; set; }
 
@@ -202,6 +203,7 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("viewCount")]
         public string ViewCount { get; set; }
+
         [XmlAttribute("viewOffset")]
         public string ViewOffset { get; set; }
 
@@ -219,6 +221,10 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("extraType")]
         public string ExtraType { get; set; }
+
+        //experimental support//
+        [XmlAttribute("characters")]
+        public List<Contract_AniDB_Character> characters { get; set; }
     }
 
     [Serializable]
@@ -228,11 +234,11 @@ namespace JMMContracts.KodiContracts
         public string Value { get; set; }
         
     }
+
     [XmlType("Media")]
     [Serializable]
     public class Media
     {
-
         [XmlElement("Part")]
         public List<Part> Parts { get; set; }
 
@@ -263,7 +269,6 @@ namespace JMMContracts.KodiContracts
         [XmlAttribute("width")]
         public string Width { get; set; }
 
-
         [XmlAttribute("bitrate")]
         public string Bitrate { get; set; }
 
@@ -276,6 +281,7 @@ namespace JMMContracts.KodiContracts
         [XmlAttribute("optimizedForStreaming")]
         public string OptimizedForStreaming { get; set; }
     }
+
     [XmlType("Part")]
     public class Part
     {
@@ -497,6 +503,29 @@ namespace JMMContracts.KodiContracts
 
 
     }
+
+    //expriment
+    [XmlType("Characters")]
+    [Serializable]
+    public class Characters
+    {
+        [XmlElement("Character")]
+        public List<Character> CharactersList { get; set; }
+    }
+
+    [XmlType("Character")]
+    public class Character
+    {
+        [XmlAttribute("name")]
+        public string Name { get; set; }
+
+        [XmlAttribute("picture")]
+        public string Picture { get; set; }
+
+        [XmlAttribute("description")]
+        public string Description { get; set; }
+    }
+
     public enum JMMType
     {
         GroupFilter,

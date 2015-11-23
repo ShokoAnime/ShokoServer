@@ -276,6 +276,13 @@ namespace JMMServer
                 {
                     Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(user.JMMUserID), true);
                     Video v = KodiHelper.FromSerieWithPossibleReplacement(cserie, ser, user.JMMUserID);
+                    v.characters = new List<Contract_AniDB_Character>();
+                    foreach (AniDB_Anime_Character achar in anidb_anime.GetAnimeCharacters())
+                    {
+                        AniDB_Character x = achar.GetCharacter();
+                        v.characters.Add(x.ToContract(achar));
+
+                    }
                     switch (anidb_anime.AnimeTypeEnum)
                     {
                         case enAnimeType.Movie:
