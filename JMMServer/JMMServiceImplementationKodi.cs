@@ -276,6 +276,13 @@ namespace JMMServer
                 {
                     Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(user.JMMUserID), true);
                     Video v = KodiHelper.FromSerieWithPossibleReplacement(cserie, ser, user.JMMUserID);
+                    //experiment
+                    Characters c = new Characters();
+                    c.CharactersList = new List<Character>();
+                    c.CharactersList = GetCharactersFromAniDB(anidb_anime);
+                    v.CharactersList = new List<Characters>();
+                    v.CharactersList.Add(c);
+                    //experiment END
                     switch (anidb_anime.AnimeTypeEnum)
                     {
                         case enAnimeType.Movie:
@@ -373,7 +380,6 @@ namespace JMMServer
                 if (!int.TryParse(SerieId, out serieID))
                     return new MemoryStream();
             }
-
             
             using (var session = JMMService.SessionFactory.OpenSession())
             {
@@ -428,6 +434,14 @@ namespace JMMServer
                                 v = KodiHelper.MayReplaceVideo((Directory)v, ser,anime,  JMMType.File, userid, false);
                             }
 
+                            //experiment
+                            Characters c = new Characters();
+                            c.CharactersList = new List<Character>();
+                            c.CharactersList = GetCharactersFromAniDB(anime);
+                            v.CharactersList = new List<Characters>();
+                            v.CharactersList.Add(c);
+                            //experimentEND
+
                             dirs.Add(v);
                         }
                         ret.Childrens = dirs;
@@ -460,6 +474,15 @@ namespace JMMServer
                         {
                             v.ParentTitle = k.Name;
                         }
+
+                        //experiment
+                        Characters c = new Characters();
+                        c.CharactersList = new List<Character>();
+                        c.CharactersList = GetCharactersFromAniDB(anime);
+                        v.CharactersList = new List<Characters>();
+                        v.CharactersList.Add(c);
+                        //experimentEND
+
                         vids.Add(v);
                     }
                     catch (Exception e)
@@ -572,6 +595,20 @@ namespace JMMServer
                         {
                             if (j.Group == gr)
                             {
+                                //experiment
+                                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                                AnimeGroup ag = repGroups.GetByID(gr.AnimeGroupID);
+                                List<AnimeSeries> sers = ag.GetAllSeries();
+                                AnimeSeries ser = sers[0];
+                                AniDB_Anime anim = ser.GetAnime();
+
+                                j.CharactersList = new List<Characters>();
+                                Characters c = new Characters();
+                                c.CharactersList = GetCharactersFromAniDB(anim);
+                                j.CharactersList.Add(c);
+
+                                //experimentEND
                                 joints2.Add(j);
                                 retGroups.Remove(j);
                                 break;
@@ -593,6 +630,26 @@ namespace JMMServer
                 logger.ErrorException(ex.ToString(), ex);
             }
             return new MemoryStream();
+        }
+        //experiment
+        private List<Character> GetCharactersFromAniDB( AniDB_Anime anidb_anime)
+        {
+
+            List<Character> char_list = new List<Character>();
+            foreach (AniDB_Anime_Character achar in anidb_anime.GetAnimeCharacters())
+            {
+                AniDB_Character x = achar.GetCharacter();
+                Character c = new Character();
+                c.CharID = x.AniDB_CharacterID;
+                c.CharName = x.CharName;
+                c.Description = x.CharDescription;
+                c.Picture = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/2/" + c.CharID);
+                c.SeiyuuName = "";
+                c.SeiyuuPic = "";
+
+                char_list.Add(c);
+            }
+            return char_list;
         }
     }
 
