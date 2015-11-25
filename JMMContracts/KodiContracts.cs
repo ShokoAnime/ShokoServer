@@ -222,9 +222,10 @@ namespace JMMContracts.KodiContracts
         [XmlAttribute("extraType")]
         public string ExtraType { get; set; }
 
-        //experimental support//
-        [XmlAttribute("characters")]
-        public List<Contract_AniDB_Character> characters { get; set; }
+        //experiment
+        [XmlElement("Characters")]
+        public List<Characters> CharactersList { get; set; }
+
     }
 
     [Serializable]
@@ -504,9 +505,8 @@ namespace JMMContracts.KodiContracts
 
     }
 
-    //expriment
+    //experiment
     [XmlType("Characters")]
-    [Serializable]
     public class Characters
     {
         [XmlElement("Character")]
@@ -516,15 +516,25 @@ namespace JMMContracts.KodiContracts
     [XmlType("Character")]
     public class Character
     {
-        [XmlAttribute("name")]
-        public string Name { get; set; }
+        [XmlAttribute("charID")]
+        public int CharID { get; set; }
+
+        [XmlAttribute("charname")]
+        public string CharName { get; set; }
 
         [XmlAttribute("picture")]
         public string Picture { get; set; }
 
         [XmlAttribute("description")]
         public string Description { get; set; }
+
+        [XmlAttribute("seiyuuname")]
+        public string SeiyuuName { get; set; }
+
+        [XmlAttribute("seiyuupic")]
+        public string SeiyuuPic { get; set; }
     }
+    //experimentEND
 
     public enum JMMType
     {
