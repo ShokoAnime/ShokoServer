@@ -330,6 +330,8 @@ namespace JMMServer.Kodi
                 v.Tags = nv.Tags;
             if (v.Genres == null)
                 v.Genres = nv.Genres;
+            if (v.Season == null)
+                v.Season = nv.Season;
             v.ParentThumb = nv.Thumb;
             v.ParentRatingKey = v.ParentKey = nv.Key;
             if (string.IsNullOrEmpty(v.Rating))
