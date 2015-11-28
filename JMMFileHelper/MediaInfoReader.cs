@@ -6,6 +6,7 @@ using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
 using JMMContracts.PlexContracts;
+using JMMContracts.KodiContracts;
 using NLog;
 using JMMContracts;
 
@@ -30,7 +31,11 @@ namespace JMMFileHelper
         }
 
         public static bool ReadMediaInfo(string fileNameFull, bool forceRefresh, ref MediaInfoResult info)
+        {
+            return ReadMediaInfo(fileNameFull, forceRefresh, ref info, false);
+        }
 
+        public static bool ReadMediaInfo(string fileNameFull, bool forceRefresh, ref MediaInfoResult info, bool useKodi)
         {
             try
 			{
@@ -40,41 +45,82 @@ namespace JMMFileHelper
 					// if we have populated the full info, we have already read the data
 					if (!string.IsNullOrEmpty(info.FullInfo)) return false;
 				}
-			    Media m = PlexMediaInfo.MediaConvert.Convert(fileNameFull);
-			    if (m != null)
-			    {
+			   if (useKodi)
+                {
+                    JMMContracts.KodiContracts.Media m = KodiMediaInfo.MediaConvert.Convert(fileNameFull);
+                    if (m != null)
+                    {
 
-			        string xml = XmlSerializeToString(m);
-                    if (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
-			            info.VideoResolution = m.Width + "x" + m.Height;
-			        if (!string.IsNullOrEmpty(m.VideoCodec))
-                        info.VideoCodec = m.VideoCodec;
-			        if (!string.IsNullOrEmpty(m.AudioCodec))
-			            info.AudioCodec = m.AudioCodec;
-			        if (!string.IsNullOrEmpty(m.Duration))
-			            info.Duration = int.Parse(m.Duration);
-			        List<JMMContracts.PlexContracts.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
-			        if (vparts.Count > 0)
-			        {
-			            if (!string.IsNullOrEmpty(vparts[0].Bitrate))
-			                info.VideoBitrate = vparts[0].Bitrate;
-                        if (!string.IsNullOrEmpty(vparts[0].BitDepth))
-			                info.VideoBitDepth = vparts[0].BitDepth;
-			            if (!string.IsNullOrEmpty(vparts[0].FrameRate))
-			                info.VideoFrameRate = vparts[0].FrameRate;
-			        }
-			        List<JMMContracts.PlexContracts.Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
-			        if (aparts.Count > 0)
-			        {
-			            if (!string.IsNullOrEmpty(aparts[0].Bitrate))
-			                info.AudioBitrate = aparts[0].Bitrate;
-			        }
-			        info.FullInfo = xml;
-			    }
-			    else
-			    {
-                    logger.Error("ERROR getting media info:: {0}", fileNameFull);
-			    }
+                        string xml = XmlSerializeToString(m);
+                        if (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
+                            info.VideoResolution = m.Width + "x" + m.Height;
+                        if (!string.IsNullOrEmpty(m.VideoCodec))
+                            info.VideoCodec = m.VideoCodec;
+                        if (!string.IsNullOrEmpty(m.AudioCodec))
+                            info.AudioCodec = m.AudioCodec;
+                        if (!string.IsNullOrEmpty(m.Duration))
+                            info.Duration = int.Parse(m.Duration);
+                        List<JMMContracts.KodiContracts.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
+                        if (vparts.Count > 0)
+                        {
+                            if (!string.IsNullOrEmpty(vparts[0].Bitrate))
+                                info.VideoBitrate = vparts[0].Bitrate;
+                            if (!string.IsNullOrEmpty(vparts[0].BitDepth))
+                                info.VideoBitDepth = vparts[0].BitDepth;
+                            if (!string.IsNullOrEmpty(vparts[0].FrameRate))
+                                info.VideoFrameRate = vparts[0].FrameRate;
+                        }
+                        List<JMMContracts.KodiContracts.Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
+                        if (aparts.Count > 0)
+                        {
+                            if (!string.IsNullOrEmpty(aparts[0].Bitrate))
+                                info.AudioBitrate = aparts[0].Bitrate;
+                        }
+                        info.FullInfo = xml;
+                    }
+                    else
+                    {
+                        logger.Error("ERROR getting kodi media info:: {0}", fileNameFull);
+                    }
+                }
+               else
+                {
+                    JMMContracts.PlexContracts.Media m = PlexMediaInfo.MediaConvert.Convert(fileNameFull);
+                    if (m != null)
+                    {
+
+                        string xml = XmlSerializeToString(m);
+                        if (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
+                            info.VideoResolution = m.Width + "x" + m.Height;
+                        if (!string.IsNullOrEmpty(m.VideoCodec))
+                            info.VideoCodec = m.VideoCodec;
+                        if (!string.IsNullOrEmpty(m.AudioCodec))
+                            info.AudioCodec = m.AudioCodec;
+                        if (!string.IsNullOrEmpty(m.Duration))
+                            info.Duration = int.Parse(m.Duration);
+                        List<JMMContracts.PlexContracts.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
+                        if (vparts.Count > 0)
+                        {
+                            if (!string.IsNullOrEmpty(vparts[0].Bitrate))
+                                info.VideoBitrate = vparts[0].Bitrate;
+                            if (!string.IsNullOrEmpty(vparts[0].BitDepth))
+                                info.VideoBitDepth = vparts[0].BitDepth;
+                            if (!string.IsNullOrEmpty(vparts[0].FrameRate))
+                                info.VideoFrameRate = vparts[0].FrameRate;
+                        }
+                        List<JMMContracts.PlexContracts.Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
+                        if (aparts.Count > 0)
+                        {
+                            if (!string.IsNullOrEmpty(aparts[0].Bitrate))
+                                info.AudioBitrate = aparts[0].Bitrate;
+                        }
+                        info.FullInfo = xml;
+                    }
+                    else
+                    {
+                        logger.Error("ERROR getting plex media info:: {0}", fileNameFull);
+                    }
+                }
 			}
 			catch (Exception ex)
 			{

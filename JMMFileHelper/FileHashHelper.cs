@@ -32,10 +32,15 @@ namespace JMMFileHelper
 			return Hasher.CalculateHashes(fileName, hashProgress, getCRC32, getMD5, getSHA1);
 		}
 
-		public static MediaInfoResult GetMediaInfo(string fileName, bool forceRefresh)
-		{
-			MediaInfoResult vidInfo = new MediaInfoResult();
-			MediaInfoReader.ReadMediaInfo(fileName, forceRefresh, ref vidInfo);
+        public static MediaInfoResult GetMediaInfo(string fileName, bool forceRefresh)
+        {
+            return GetMediaInfo(fileName, forceRefresh, false);
+        }
+
+        public static MediaInfoResult GetMediaInfo(string fileName, bool forceRefresh, bool useKodi)
+        {
+            MediaInfoResult vidInfo = new MediaInfoResult();
+			MediaInfoReader.ReadMediaInfo(fileName, forceRefresh, ref vidInfo, useKodi);
 			return vidInfo;
 		}
 

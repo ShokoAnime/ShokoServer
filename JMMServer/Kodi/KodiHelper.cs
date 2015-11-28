@@ -186,7 +186,7 @@ namespace JMMServer.Kodi
                 if (string.IsNullOrEmpty(info.FullInfo))
                 {
                     VideoInfoRepository repo = new VideoInfoRepository();
-                    MediaInfoResult mInfo = FileHashHelper.GetMediaInfo(v.FullServerPath, true);
+                    MediaInfoResult mInfo = FileHashHelper.GetMediaInfo(v.FullServerPath, true, true);
                     info.AudioBitrate = string.IsNullOrEmpty(mInfo.AudioBitrate) ? "" : mInfo.AudioBitrate;
                     info.AudioCodec = string.IsNullOrEmpty(mInfo.AudioCodec) ? "" : mInfo.AudioCodec;
                     info.Duration = mInfo.Duration;
