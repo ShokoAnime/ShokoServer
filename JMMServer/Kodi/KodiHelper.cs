@@ -186,7 +186,7 @@ namespace JMMServer.Kodi
                 if (string.IsNullOrEmpty(info.FullInfo))
                 {
                     VideoInfoRepository repo = new VideoInfoRepository();
-                    MediaInfoResult mInfo = FileHashHelper.GetMediaInfo(v.FullServerPath, true);
+                    MediaInfoResult mInfo = FileHashHelper.GetMediaInfo(v.FullServerPath, true, true);
                     info.AudioBitrate = string.IsNullOrEmpty(mInfo.AudioBitrate) ? "" : mInfo.AudioBitrate;
                     info.AudioCodec = string.IsNullOrEmpty(mInfo.AudioCodec) ? "" : mInfo.AudioCodec;
                     info.Duration = mInfo.Duration;
@@ -330,6 +330,8 @@ namespace JMMServer.Kodi
                 v.Tags = nv.Tags;
             if (v.Genres == null)
                 v.Genres = nv.Genres;
+            if (v.Season == null)
+                v.Season = nv.Season;
             v.ParentThumb = nv.Thumb;
             v.ParentRatingKey = v.ParentKey = nv.Key;
             if (string.IsNullOrEmpty(v.Rating))

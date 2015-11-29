@@ -495,7 +495,7 @@ namespace JMMServer.Entities
 				else
 					animecontract.DefaultImageFanart = defaultFanart.ToContract();
 
-                if ((animecontract.DefaultImagePoster == null) && (forceimages))
+                if ((animecontract.DefaultImageFanart == null) && (forceimages))
                 {
                     ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
                     if (im != null)
