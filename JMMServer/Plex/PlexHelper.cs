@@ -261,6 +261,7 @@ namespace JMMServer.Plex
             AniDB_Episode aep = ep.AniDB_Episode;
             if (aep != null)
             {
+                v.JMMEpisodeId = ep.AnimeEpisodeID;
                 v.EpNumber = aep.EpisodeNumber;
                 v.Index = aep.EpisodeNumber.ToString();
                 v.Title = aep.EnglishName;
