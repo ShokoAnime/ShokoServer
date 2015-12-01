@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.ServiceModel.Web;
@@ -7,6 +8,7 @@ using AniDBAPI;
 using BinaryNorthwest;
 using JMMContracts;
 using JMMContracts.KodiContracts;
+using JMMServer.Commands;
 using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.Properties;
@@ -631,6 +633,103 @@ namespace JMMServer
             }
             return new MemoryStream();
         }
+
+        public void ToggleWatchedStatusOnEpisode(string userid, string episodeid, string watchedstatus)
+        {
+            try
+            {
+                int aep = 0;
+                int usid = 0;
+                bool wstatus = false;
+                if (!int.TryParse(episodeid, out aep))
+                    return;
+                if (!int.TryParse(userid, out usid))
+                    return;
+                if (!bool.TryParse(watchedstatus, out wstatus))
+                    return;
+
+                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+                AnimeEpisode ep = repEps.GetByID(aep);
+                if (ep == null)
+                   return;
+
+                ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
+                ep.GetAnimeSeries().UpdateStats(true, false, true);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+        }
+
+        public void VoteAnime(string userid, string seriesid, string votevalue, string votetype)
+        {
+            int serid = 0;
+            int usid = 0;
+            int vt = 0;
+            double vvalue = 0;
+            if (!int.TryParse(seriesid, out serid))
+                return;
+            if (!int.TryParse(userid, out usid))
+                return;
+            if (!int.TryParse(votetype, out vt))
+                return;
+            if (!double.TryParse(votevalue, NumberStyles.Any, CultureInfo.InvariantCulture, out vvalue))
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                
+                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                AnimeSeries ser = repSeries.GetByID(session, serid);
+                AniDB_Anime anime = ser?.GetAnime();
+                if (anime == null)
+                    return;
+                string msg = string.Format("Voting for anime: {0} - Value: {1}", anime.AnimeID, vvalue);
+                logger.Info(msg);
+
+                // lets save to the database and assume it will work
+                AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
+                List<AniDB_Vote> dbVotes = repVotes.GetByEntity(anime.AnimeID);
+                AniDB_Vote thisVote = null;
+                foreach (AniDB_Vote dbVote in dbVotes)
+                {
+                    // we can only have anime permanent or anime temp but not both
+                    if (vt == (int) enAniDBVoteType.Anime || vt == (int) enAniDBVoteType.AnimeTemp)
+                    {
+                        if (dbVote.VoteType == (int) enAniDBVoteType.Anime ||
+                            dbVote.VoteType == (int) enAniDBVoteType.AnimeTemp)
+                        {
+                            thisVote = dbVote;
+                        }
+                    }
+                    else
+                    {
+                        thisVote = dbVote;
+                    }
+                }
+
+                if (thisVote == null)
+                {
+                    thisVote = new AniDB_Vote();
+                    thisVote.EntityID = anime.AnimeID;
+                }
+                thisVote.VoteType = vt;
+
+                int iVoteValue = 0;
+                if (vvalue > 0)
+                    iVoteValue = (int) (vvalue*100);
+                else
+                    iVoteValue = (int) vvalue;
+
+                msg = string.Format("Voting for anime Formatted: {0} - Value: {1}", anime.AnimeID, iVoteValue);
+                logger.Info(msg);
+                thisVote.VoteValue = iVoteValue;
+                repVotes.Save(thisVote);
+                CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt, Convert.ToDecimal(vvalue));
+                cmdVote.Save();
+            }
+        }
+        
         //experiment
         private List<Character> GetCharactersFromAniDB( AniDB_Anime anidb_anime)
         {
@@ -651,6 +750,7 @@ namespace JMMServer
             }
             return char_list;
         }
+
     }
 
 }
