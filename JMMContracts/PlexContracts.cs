@@ -81,6 +81,9 @@ namespace JMMContracts.PlexContracts
         [XmlIgnore]
         public DateTime AirDate { get; set; }
 
+        [XmlAttribute]
+        public int JMMEpisodeId { get; set; }
+
         [XmlIgnore]
         public Contract_AnimeGroup Group { get; set; }
 
