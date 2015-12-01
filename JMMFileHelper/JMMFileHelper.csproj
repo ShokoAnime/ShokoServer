@@ -69,6 +69,8 @@
     <Compile Include="Crc32.cs" />
     <Compile Include="FileHashHelper.cs" />
     <Compile Include="Hasher.cs" />
+    <Compile Include="KodiMediaInfo\Convert.cs" />
+    <Compile Include="KodiMediaInfo\MediaInfoDLL.cs" />
     <Compile Include="MD4Managed.cs" />
     <Compile Include="PlexMediaInfo\Convert.cs" />
     <Compile Include="PlexMediaInfo\MediaInfoDLL.cs" />
