@@ -37,6 +37,13 @@ namespace JMMContracts
         [WebGet(UriTemplate = "GetSupportImage/{name}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
         System.IO.Stream GetSupportImage(string name);
        
+        [OperationContract]
+        [WebGet(UriTemplate = "Watch/{userid}/{episodeid}/{watchedstatus}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
+        void ToggleWatchedStatusOnEpisode(string userid, string episodeid, string watchedstatus);
+
+        [OperationContract]
+        [WebGet(UriTemplate = "Vote/{userid}/{seriesid}/{votevalue}/{votetype}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
+        void VoteAnime(string userid, string seriesid, string votevalue, string votetype);
 
 
     }
