@@ -34,6 +34,10 @@ namespace JMMContracts
         System.IO.Stream Search(string UserId, string limit, string query);
 
         [OperationContract]
+        [WebGet(UriTemplate = "SearchTag/{UserId}/{limit}/{query}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
+        System.IO.Stream SearchTag(string UserId, string limit, string query);
+
+        [OperationContract]
         [WebGet(UriTemplate = "GetSupportImage/{name}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
         System.IO.Stream GetSupportImage(string name);
        

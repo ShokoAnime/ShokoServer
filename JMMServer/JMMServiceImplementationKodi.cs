@@ -258,18 +258,37 @@ namespace JMMServer
 
         public System.IO.Stream Search(string UserId, string limit, string query)
         {
+            return Search(UserId, limit, query, false);
+        }
+
+        public System.IO.Stream SearchTag(string UserId, string limit, string query)
+        {
+            return Search(UserId, limit, query, true);
+        }
+
+        public System.IO.Stream Search(string UserId, string limit, string query, bool searchTag)
+        {
             KodiObject ret =new KodiObject(KodiHelper.NewMediaContainer("Search",false));
             ret.MediaContainer.Title2 = "Search Results for '" + query + "'...";
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
             int lim;
             if (!int.TryParse(limit, out lim))
-                lim = 20;
+                lim = 100;
             JMMUser user = KodiHelper.GetUser(UserId);
             if (user == null) return new MemoryStream();
             List<Video> ls=new List<Video>();
             int cnt = 0;
-            List<AniDB_Anime> animes = repAnime.SearchByName(query);
+            List<AniDB_Anime> animes;
+            if (searchTag)
+            {
+                animes = repAnime.SearchByTag(query);
+            }
+            else
+            {
+                animes = repAnime.SearchByName(query);
+            }
             foreach (AniDB_Anime anidb_anime in animes)
             {
                 if (!user.AllowedAnime(anidb_anime)) continue;
