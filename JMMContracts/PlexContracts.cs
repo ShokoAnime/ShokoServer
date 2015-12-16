@@ -510,6 +510,7 @@ namespace JMMContracts.PlexContracts
         EpisodeType,
         Episode,
         Movie,
-        File
+        File,
+        Playlist
     }
 }
