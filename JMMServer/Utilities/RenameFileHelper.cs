@@ -91,6 +91,45 @@ namespace JMMServer
 			}
 		}
 
+        /// <summary>
+        /// Test if the file belongs to the specified group
+        /// </summary>
+        /// <param name="test"></param>
+        /// <param name="vid"></param>
+        /// <param name="aniFile"></param>
+        /// <returns></returns>
+        private static bool EvaluateTestG(string test, VideoLocal vid, AniDB_File aniFile)
+        {
+            try
+            {
+                bool notCondition = false;
+                if (test.Substring(0, 1).Equals("!"))
+                {
+                    notCondition = true;
+                    test = test.Substring(1, test.Length - 1);
+                }
+                                
+                int groupID = 0;
+
+                //Leave groupID at 0 if "unknown".
+                if (String.Compare(test, "unknown", StringComparison.OrdinalIgnoreCase) != 0)
+                {
+                    int.TryParse(test, out groupID);
+                }
+
+                if (notCondition)
+                    return groupID != aniFile.GroupID;
+                else
+                    return groupID == aniFile.GroupID;
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return false;
+            }
+        }
+
 		/// <summary>
 		/// Test if the file is manually linked
 		/// No test parameter is required
@@ -2161,6 +2200,7 @@ namespace JMMServer
 			switch (testChar)
 			{
 				case 'A': return EvaluateTestA(testCondition, vid, aniFile, episodes);
+                case 'G': return EvaluateTestG(testCondition, vid, aniFile);
 				case 'D': return EvaluateTestD(testCondition, vid, aniFile);
 				case 'S': return EvaluateTestS(testCondition, vid, aniFile);
 				case 'F': return EvaluateTestF(testCondition, vid, aniFile);
