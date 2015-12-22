@@ -194,7 +194,9 @@ namespace JMMServer
                 {
                     KodiHelper.PopulateVideo(m, v, JMMType.File, userid);
                     if (!string.IsNullOrEmpty(m.Duration))
+                    {
                         dirs.Add(m);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -297,6 +299,19 @@ namespace JMMServer
                 {
                     Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(user.JMMUserID), true);
                     Video v = KodiHelper.FromSerieWithPossibleReplacement(cserie, ser, user.JMMUserID);
+
+                    //proper naming 
+                    v.OriginalTitle = "";
+                    foreach (AniDB_Anime_Title title in anidb_anime.GetTitles())
+                    {
+                        if (title.TitleType == "official" || title.TitleType == "main")
+                        {
+                            v.Title += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                        }
+                    }
+                    v.OriginalTitle = v.Title.Substring(0, v.Title.Length - 1);
+                    //proper naming end
+
                     //experiment
                     Characters c = new Characters();
                     c.CharactersList = new List<Character>();
@@ -304,6 +319,7 @@ namespace JMMServer
                     v.CharactersList = new List<Characters>();
                     v.CharactersList.Add(c);
                     //experiment END
+
                     switch (anidb_anime.AnimeTypeEnum)
                     {
                         case enAnimeType.Movie:
@@ -454,6 +470,18 @@ namespace JMMServer
                             {
                                 v = KodiHelper.MayReplaceVideo((Directory)v, ser,anime,  JMMType.File, userid, false);
                             }
+
+                            //proper naming 
+                            v.OriginalTitle = "";
+                            foreach (AniDB_Anime_Title title in anime.GetTitles())
+                            {
+                                if (title.TitleType == "official" || title.TitleType == "main")
+                                {
+                                    v.Title += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                                }
+                            }
+                            v.OriginalTitle = v.Title.Substring(0, v.Title.Length - 1);
+                            //proper naming end
 
                             //experiment
                             Characters c = new Characters();
@@ -628,8 +656,20 @@ namespace JMMServer
                                 Characters c = new Characters();
                                 c.CharactersList = GetCharactersFromAniDB(anim);
                                 j.CharactersList.Add(c);
-
                                 //experimentEND
+
+                                //proper naming 
+                                j.OriginalTitle = "";
+                                foreach (AniDB_Anime_Title title in anim.GetTitles())
+                                {
+                                    if (title.TitleType == "official" || title.TitleType == "main")
+                                    {
+                                        j.Title += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                                    }
+                                }
+                                j.OriginalTitle = j.Title.Substring(0, j.Title.Length - 1);
+                                //proper naming end
+
                                 joints2.Add(j);
                                 retGroups.Remove(j);
                                 break;
