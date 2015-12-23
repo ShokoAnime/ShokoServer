@@ -13,9 +13,9 @@ namespace JMMContracts.KodiContracts
     [Serializable]
     public class MediaContainer
     {
-
         [XmlElement(typeof(Video), ElementName = "Video")]
         [XmlElement(typeof(Directory), ElementName = "Directory")]
+       
         public List<Video> Childrens { get; set; }
 
         [XmlAttribute("viewGroup")]
@@ -228,7 +228,7 @@ namespace JMMContracts.KodiContracts
         //experiment
         [XmlElement("Characters")]
         public List<Characters> CharactersList { get; set; }
-
+        //experiment end
     }
 
     [Serializable]

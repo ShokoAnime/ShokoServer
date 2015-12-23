@@ -456,6 +456,8 @@ namespace JMMServer
                         eps = Sorting.MultiSort(eps, sortCriteria);
                         List<Video> dirs= new List<Video>();
 
+                        bool isCharacterSetup_ = false;
+
                         foreach (KodiEpisodeType ee in  eps)
                         {
                             Video v = new Directory();
@@ -484,11 +486,15 @@ namespace JMMServer
                             //proper naming end
 
                             //experiment
-                            Characters c = new Characters();
-                            c.CharactersList = new List<Character>();
-                            c.CharactersList = GetCharactersFromAniDB(anime);
-                            v.CharactersList = new List<Characters>();
-                            v.CharactersList.Add(c);
+                            if (!isCharacterSetup_)
+                            {
+                                Characters ch = new Characters();
+                                ch.CharactersList = new List<Character>();
+                                ch.CharactersList = GetCharactersFromAniDB(anime);
+                                v.CharactersList = new List<Characters>();
+                                v.CharactersList.Add(ch);
+                                isCharacterSetup_ = true;
+                            }
                             //experimentEND
 
                             dirs.Add(v);
@@ -506,6 +512,9 @@ namespace JMMServer
                     KodiEpisodeType.EpisodeTypeTranslated(k, (enEpisodeType) eptype.Value, (AnimeTypes) anime.AnimeType,
                         episodes.Count);
                 }
+
+                bool isCharacterSetup = false;
+
                 foreach (AnimeEpisode ep in episodes)
                 {
                     Video v = new Video();
@@ -525,11 +534,15 @@ namespace JMMServer
                         }
 
                         //experiment
-                        Characters c = new Characters();
-                        c.CharactersList = new List<Character>();
-                        c.CharactersList = GetCharactersFromAniDB(anime);
-                        v.CharactersList = new List<Characters>();
-                        v.CharactersList.Add(c);
+                        if (!isCharacterSetup)
+                        {
+                            Characters c = new Characters();
+                            c.CharactersList = new List<Character>();
+                            c.CharactersList = GetCharactersFromAniDB(anime);
+                            v.CharactersList = new List<Characters>();
+                            v.CharactersList.Add(c);
+                            isCharacterSetup = true;
+                        }
                         //experimentEND
 
                         vids.Add(v);
@@ -544,6 +557,7 @@ namespace JMMServer
                 sortCriteria2.Add(new SortPropOrFieldAndDirection("EpNumber", SortType.eInteger));
                 vids= Sorting.MultiSort(vids, sortCriteria2);
                 ret.Childrens = vids;
+
                 return ret.GetStream();
             }
         }
