@@ -306,10 +306,10 @@ namespace JMMServer
                     {
                         if (title.TitleType == "official" || title.TitleType == "main")
                         {
-                            v.Title += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                            v.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
                         }
                     }
-                    v.OriginalTitle = v.Title.Substring(0, v.Title.Length - 1);
+                    v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
                     //proper naming end
 
                     //experiment
@@ -479,10 +479,10 @@ namespace JMMServer
                             {
                                 if (title.TitleType == "official" || title.TitleType == "main")
                                 {
-                                    v.Title += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                                    v.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
                                 }
                             }
-                            v.OriginalTitle = v.Title.Substring(0, v.Title.Length - 1);
+                            v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
                             //proper naming end
 
                             //experiment
@@ -678,10 +678,10 @@ namespace JMMServer
                                 {
                                     if (title.TitleType == "official" || title.TitleType == "main")
                                     {
-                                        j.Title += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                                        j.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
                                     }
                                 }
-                                j.OriginalTitle = j.Title.Substring(0, j.Title.Length - 1);
+                                j.OriginalTitle = j.OriginalTitle.Substring(0, j.OriginalTitle.Length - 1);
                                 //proper naming end
 
                                 joints2.Add(j);
