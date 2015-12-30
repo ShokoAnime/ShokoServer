@@ -105,6 +105,7 @@ namespace JMMServer.Repositories
 
 			return new List<AniDB_Anime>(objs);
 		}
+
         public List<AniDB_Anime> SearchByName(string queryText)
          {
             using (var session = JMMService.SessionFactory.OpenSession())
@@ -117,7 +118,8 @@ namespace JMMServer.Repositories
                 return new List<AniDB_Anime>(objs);
             }
         }
-		public void Delete(int id)
+
+        public void Delete(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -133,5 +135,18 @@ namespace JMMServer.Repositories
 				}
 			}
 		}
+
+        public List<AniDB_Anime> SearchByTag(string queryText)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                var objs = session
+                    .CreateCriteria(typeof(AniDB_Anime))
+                    .Add(Restrictions.InsensitiveLike("AllTags", queryText, MatchMode.Anywhere))
+                    .List<AniDB_Anime>();
+
+                return new List<AniDB_Anime>(objs);
+            }
+        }
 	}
 }

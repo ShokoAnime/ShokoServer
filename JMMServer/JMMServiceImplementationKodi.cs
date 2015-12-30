@@ -194,7 +194,9 @@ namespace JMMServer
                 {
                     KodiHelper.PopulateVideo(m, v, JMMType.File, userid);
                     if (!string.IsNullOrEmpty(m.Duration))
+                    {
                         dirs.Add(m);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -258,18 +260,37 @@ namespace JMMServer
 
         public System.IO.Stream Search(string UserId, string limit, string query)
         {
+            return Search(UserId, limit, query, false);
+        }
+
+        public System.IO.Stream SearchTag(string UserId, string limit, string query)
+        {
+            return Search(UserId, limit, query, true);
+        }
+
+        public System.IO.Stream Search(string UserId, string limit, string query, bool searchTag)
+        {
             KodiObject ret =new KodiObject(KodiHelper.NewMediaContainer("Search",false));
             ret.MediaContainer.Title2 = "Search Results for '" + query + "'...";
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
             int lim;
             if (!int.TryParse(limit, out lim))
-                lim = 20;
+                lim = 100;
             JMMUser user = KodiHelper.GetUser(UserId);
             if (user == null) return new MemoryStream();
             List<Video> ls=new List<Video>();
             int cnt = 0;
-            List<AniDB_Anime> animes = repAnime.SearchByName(query);
+            List<AniDB_Anime> animes;
+            if (searchTag)
+            {
+                animes = repAnime.SearchByTag(query);
+            }
+            else
+            {
+                animes = repAnime.SearchByName(query);
+            }
             foreach (AniDB_Anime anidb_anime in animes)
             {
                 if (!user.AllowedAnime(anidb_anime)) continue;
@@ -278,6 +299,19 @@ namespace JMMServer
                 {
                     Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(user.JMMUserID), true);
                     Video v = KodiHelper.FromSerieWithPossibleReplacement(cserie, ser, user.JMMUserID);
+
+                    //proper naming 
+                    v.OriginalTitle = "";
+                    foreach (AniDB_Anime_Title title in anidb_anime.GetTitles())
+                    {
+                        if (title.TitleType == "official" || title.TitleType == "main")
+                        {
+                            v.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                        }
+                    }
+                    v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
+                    //proper naming end
+
                     //experiment
                     Characters c = new Characters();
                     c.CharactersList = new List<Character>();
@@ -285,6 +319,7 @@ namespace JMMServer
                     v.CharactersList = new List<Characters>();
                     v.CharactersList.Add(c);
                     //experiment END
+
                     switch (anidb_anime.AnimeTypeEnum)
                     {
                         case enAnimeType.Movie:
@@ -421,6 +456,8 @@ namespace JMMServer
                         eps = Sorting.MultiSort(eps, sortCriteria);
                         List<Video> dirs= new List<Video>();
 
+                        bool isCharacterSetup_ = false;
+
                         foreach (KodiEpisodeType ee in  eps)
                         {
                             Video v = new Directory();
@@ -436,12 +473,28 @@ namespace JMMServer
                                 v = KodiHelper.MayReplaceVideo((Directory)v, ser,anime,  JMMType.File, userid, false);
                             }
 
+                            //proper naming 
+                            v.OriginalTitle = "";
+                            foreach (AniDB_Anime_Title title in anime.GetTitles())
+                            {
+                                if (title.TitleType == "official" || title.TitleType == "main")
+                                {
+                                    v.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                                }
+                            }
+                            v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
+                            //proper naming end
+
                             //experiment
-                            Characters c = new Characters();
-                            c.CharactersList = new List<Character>();
-                            c.CharactersList = GetCharactersFromAniDB(anime);
-                            v.CharactersList = new List<Characters>();
-                            v.CharactersList.Add(c);
+                            if (!isCharacterSetup_)
+                            {
+                                Characters ch = new Characters();
+                                ch.CharactersList = new List<Character>();
+                                ch.CharactersList = GetCharactersFromAniDB(anime);
+                                v.CharactersList = new List<Characters>();
+                                v.CharactersList.Add(ch);
+                                isCharacterSetup_ = true;
+                            }
                             //experimentEND
 
                             dirs.Add(v);
@@ -459,6 +512,9 @@ namespace JMMServer
                     KodiEpisodeType.EpisodeTypeTranslated(k, (enEpisodeType) eptype.Value, (AnimeTypes) anime.AnimeType,
                         episodes.Count);
                 }
+
+                bool isCharacterSetup = false;
+
                 foreach (AnimeEpisode ep in episodes)
                 {
                     Video v = new Video();
@@ -478,11 +534,15 @@ namespace JMMServer
                         }
 
                         //experiment
-                        Characters c = new Characters();
-                        c.CharactersList = new List<Character>();
-                        c.CharactersList = GetCharactersFromAniDB(anime);
-                        v.CharactersList = new List<Characters>();
-                        v.CharactersList.Add(c);
+                        if (!isCharacterSetup)
+                        {
+                            Characters c = new Characters();
+                            c.CharactersList = new List<Character>();
+                            c.CharactersList = GetCharactersFromAniDB(anime);
+                            v.CharactersList = new List<Characters>();
+                            v.CharactersList.Add(c);
+                            isCharacterSetup = true;
+                        }
                         //experimentEND
 
                         vids.Add(v);
@@ -497,6 +557,7 @@ namespace JMMServer
                 sortCriteria2.Add(new SortPropOrFieldAndDirection("EpNumber", SortType.eInteger));
                 vids= Sorting.MultiSort(vids, sortCriteria2);
                 ret.Childrens = vids;
+
                 return ret.GetStream();
             }
         }
@@ -609,8 +670,20 @@ namespace JMMServer
                                 Characters c = new Characters();
                                 c.CharactersList = GetCharactersFromAniDB(anim);
                                 j.CharactersList.Add(c);
-
                                 //experimentEND
+
+                                //proper naming 
+                                j.OriginalTitle = "";
+                                foreach (AniDB_Anime_Title title in anim.GetTitles())
+                                {
+                                    if (title.TitleType == "official" || title.TitleType == "main")
+                                    {
+                                        j.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                                    }
+                                }
+                                j.OriginalTitle = j.OriginalTitle.Substring(0, j.OriginalTitle.Length - 1);
+                                //proper naming end
+
                                 joints2.Add(j);
                                 retGroups.Remove(j);
                                 break;
