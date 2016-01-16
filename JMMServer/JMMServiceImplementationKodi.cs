@@ -620,13 +620,28 @@ namespace JMMServer
                             if (groups.Contains(grp.AnimeGroupID))
                             {
                                 try {
-                                    if (grp.GroupName == "Rockman.EXE")
-                                    {
-                                        int x = grp.MissingEpisodeCount;
-                                    }
+                                    //if (grp.GroupName == "Rockman.EXE")
+                                    //{
+                                    //    int x = grp.MissingEpisodeCount;
+                                    //}
                                     Video v = StatsCache.Instance.StatKodiGroupsCache[userid][grp.AnimeGroupID];
                                     if (v != null)
+                                    {
+                                        //proper naming
+                                        AniDB_Anime anim = grp.Anime[0];
+                                        v.OriginalTitle = "";
+                                        foreach (AniDB_Anime_Title title in anim.GetTitles())
+                                        {
+                                            if (title.TitleType == "official" || title.TitleType == "main")
+                                            {
+                                                v.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                                            }
+                                        }
+                                        v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
+                                        //proper naming end
+
                                         retGroups.Add(v.Clone());
+                                    }
                                 }
                                 catch(Exception e)
                                 {
