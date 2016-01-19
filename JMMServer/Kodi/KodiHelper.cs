@@ -280,6 +280,30 @@ namespace JMMServer.Kodi
                 else
                     v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404.png");
                 v.Summary = contract.EpisodeOverview;
+
+                //community support
+
+                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+                List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(aep.AnimeID);
+                if (Trakt != null)
+                {
+                    if (Trakt.Count > 0)
+                    {
+                        v.Trakt = Trakt[0].TraktID;
+                    }
+                }
+
+                CrossRef_AniDB_TvDBV2Repository repCrossRefV2 = new CrossRef_AniDB_TvDBV2Repository();
+                List<CrossRef_AniDB_TvDBV2> TvDB = repCrossRefV2.GetByAnimeID(aep.AnimeID);
+                if (TvDB != null)
+                {
+                    if (TvDB.Count > 0)
+                    {
+                        v.TvDB = TvDB[0].TvDBID.ToString();
+                    }
+                }
+
+                //community support END
             }
 
         }
@@ -559,8 +583,8 @@ namespace JMMServer.Kodi
             p.Thumb = poster != null ? poster.GenPoster() : ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404V.png");
             if (fanart != null)
                 p.Art = fanart.GenArt();
-            
-            
+
+
             /*
                 List<AniDB_Anime_Character> chars = anime.GetAnimeCharacters(session);
             
@@ -582,6 +606,30 @@ namespace JMMServer.Kodi
                 if (sey.Count > 0)
                     p.Roles = sey.Select(a => new Tag() {Value = a}).ToList();
                 */
+
+            //community support
+
+            CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+            List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(anime.AnimeID);
+            if (Trakt != null)
+            {
+                if (Trakt.Count > 0)
+                {
+                    p.Trakt = Trakt[0].TraktID;
+                }
+            }
+
+            CrossRef_AniDB_TvDBV2Repository repCrossRefV2 = new CrossRef_AniDB_TvDBV2Repository();
+            List<CrossRef_AniDB_TvDBV2> TvDB = repCrossRefV2.GetByAnimeID(anime.AnimeID);
+            if (TvDB != null)
+            {
+                if (TvDB.Count > 0)
+                {
+                    p.TvDB = TvDB[0].TvDBID.ToString();
+                }
+            }
+
+            //community support END
 
 
             return p;

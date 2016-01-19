@@ -1013,10 +1013,54 @@ namespace JMMServer.Providers.TraktTV
 
         }
 
+        public static void Scrobble(ScrobblePlayingType scrobbleType, string slug, string traktid, ScrobblePlayingStatus scrobbleStatus, float progress)
+        {
+            try
+            {
+                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                    return;
 
+                string json = "";
+
+                string url = "";
+                switch (scrobbleStatus)
+                {
+                    case ScrobblePlayingStatus.Start:
+                        url = TraktURIs.SetScrobbleStart;
+                        break;
+                    case ScrobblePlayingStatus.Pause:
+                        url = TraktURIs.SetScrobblePause;
+                        break;
+                    case ScrobblePlayingStatus.Stop:
+                        url = TraktURIs.SetScrobbleStop;
+                        break;
+                }
+
+                switch (scrobbleType)
+                {
+                    case ScrobblePlayingType.episode:
+                        TraktV2ScrobbleEpisode showE = new TraktV2ScrobbleEpisode();
+                        showE.Init(progress, traktid);
+                        json = JSONHelper.Serialize<TraktV2ScrobbleEpisode>(showE);
+                        break;
+                    case ScrobblePlayingType.movie:
+                        TraktV2ScrobbleMovie showM = new TraktV2ScrobbleMovie();
+                        showM.Init(progress, slug);
+                        json = JSONHelper.Serialize<TraktV2ScrobbleMovie>(showM);
+                        break;
+                }
+
+                string retData = string.Empty;
+                int response = SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.Scrobble: " + ex.ToString(), ex);
+            }
+        }
         #endregion
 
-        #region Get Data From Trakt
+            #region Get Data From Trakt
 
         public static List<TraktV2SearchShowResult> SearchShowV2(string criteria)
         {

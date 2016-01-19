@@ -68,7 +68,6 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("librarySectionID")]
         public string LibrarySectionID { get; set; }
-
     }
 
     [XmlRoot(ElementName = "Directory")]
@@ -224,6 +223,12 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("extraType")]
         public string ExtraType { get; set; }
+
+        [XmlAttribute("tvdb")]
+        public string TvDB { get; set; }
+
+        [XmlAttribute("trakt")]
+        public string Trakt { get; set; }
 
         //experiment
         [XmlElement("Characters")]

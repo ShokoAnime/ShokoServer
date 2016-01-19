@@ -684,6 +684,30 @@ namespace JMMServer
                                 j.OriginalTitle = j.OriginalTitle.Substring(0, j.OriginalTitle.Length - 1);
                                 //proper naming end
 
+                                //community support
+
+                                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+                                List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(anim.AnimeID);
+                                if (Trakt != null)
+                                {
+                                    if (Trakt.Count > 0)
+                                    {
+                                        j.Trakt = Trakt[0].TraktID;
+                                    }
+                                }
+
+                                CrossRef_AniDB_TvDBV2Repository repCrossRefV2 = new CrossRef_AniDB_TvDBV2Repository();
+                                List<CrossRef_AniDB_TvDBV2> TvDB = repCrossRefV2.GetByAnimeID(anim.AnimeID);
+                                if (TvDB != null)
+                                {
+                                    if (TvDB.Count > 0)
+                                    {
+                                        j.TvDB = TvDB[0].TvDBID.ToString();
+                                    }
+                                }
+
+                                //community support END
+
                                 joints2.Add(j);
                                 retGroups.Remove(j);
                                 break;
@@ -822,6 +846,48 @@ namespace JMMServer
                 char_list.Add(c);
             }
             return char_list;
+        }
+
+        public void TraktScrobble(string slug, string traktid, string type, string progress, string status)
+        {
+            int typeTrakt;
+            int statusTrakt;
+            Providers.TraktTV.ScrobblePlayingStatus statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
+            float progressTrakt;
+
+            int.TryParse(status, out statusTrakt);
+
+            switch (statusTrakt)
+            {
+                case (int)Providers.TraktTV.ScrobblePlayingStatus.Start:
+                    statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
+                    break;
+                case (int)Providers.TraktTV.ScrobblePlayingStatus.Pause:
+                    statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Pause;
+                    break;
+                case (int)Providers.TraktTV.ScrobblePlayingStatus.Stop:
+                    statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Stop;
+                    break;
+            }
+
+            float.TryParse(progress, out progressTrakt);
+            progressTrakt = progressTrakt / 10;
+
+            int.TryParse(type, out typeTrakt);
+            switch (typeTrakt)
+            {
+                //1
+                case (int)Providers.TraktTV.ScrobblePlayingType.movie:
+                    Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.movie, slug, traktid, statusTraktV2, progressTrakt);
+                    break;
+                //2
+                case (int)Providers.TraktTV.ScrobblePlayingType.episode:
+                    Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.episode, slug, traktid, statusTraktV2, progressTrakt);
+                    break;
+                //error
+                default:
+                    break;
+            }
         }
 
     }

@@ -105,6 +105,8 @@ namespace JMMServer.Providers.TraktTV
         //public const string SyncRatingsRemove = "https://api-v2launch.trakt.tv/sync/ratings/remove";
         //public const string SyncWatchlistRemove = "https://api-v2launch.trakt.tv/sync/watchlist/remove";
 
-     
+        public const string SetScrobbleStart = TraktConstants.BaseAPIURL + @"/scrobble/start";
+        public const string SetScrobblePause = TraktConstants.BaseAPIURL + @"/scrobble/pause";
+        public const string SetScrobbleStop = TraktConstants.BaseAPIURL + @"/scrobble/stop";
     }
 }

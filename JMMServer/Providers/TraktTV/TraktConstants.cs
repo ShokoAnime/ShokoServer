@@ -56,6 +56,19 @@ namespace JMMServer.Providers.TraktTV
         HistoryRemove = 4
     }
 
+    public enum ScrobblePlayingStatus
+    {
+        Start = 1,
+        Pause = 2,
+        Stop = 3
+    }
+
+    public enum ScrobblePlayingType
+    {
+        movie = 1,
+        episode = 2
+    }
+
     public enum SearchIDType
     {
         Show = 1,
