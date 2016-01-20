@@ -283,25 +283,25 @@ namespace JMMServer.Kodi
 
                 //community support
 
-                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-                List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(aep.AnimeID);
-                if (Trakt != null)
-                {
-                    if (Trakt.Count > 0)
-                    {
-                        v.Trakt = Trakt[0].TraktID;
-                    }
-                }
+                //CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+                //List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(aep.AnimeID);
+                //if (Trakt != null)
+                //{
+                //    if (Trakt.Count > 0)
+                //    {
+                //        v.Trakt = Trakt[0].TraktID;
+                //    }
+                //}
 
-                CrossRef_AniDB_TvDBV2Repository repCrossRefV2 = new CrossRef_AniDB_TvDBV2Repository();
-                List<CrossRef_AniDB_TvDBV2> TvDB = repCrossRefV2.GetByAnimeID(aep.AnimeID);
-                if (TvDB != null)
-                {
-                    if (TvDB.Count > 0)
-                    {
-                        v.TvDB = TvDB[0].TvDBID.ToString();
-                    }
-                }
+                //CrossRef_AniDB_TvDBV2Repository repCrossRefV2 = new CrossRef_AniDB_TvDBV2Repository();
+                //List<CrossRef_AniDB_TvDBV2> TvDB = repCrossRefV2.GetByAnimeID(aep.AnimeID);
+                //if (TvDB != null)
+                //{
+                //    if (TvDB.Count > 0)
+                //    {
+                //        v.TvDB = TvDB[0].TvDBID.ToString();
+                //    }
+                //}
 
                 //community support END
             }
@@ -609,25 +609,25 @@ namespace JMMServer.Kodi
 
             //community support
 
-            CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-            List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(anime.AnimeID);
-            if (Trakt != null)
-            {
-                if (Trakt.Count > 0)
-                {
-                    p.Trakt = Trakt[0].TraktID;
-                }
-            }
+            //CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+            //List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(anime.AnimeID);
+            //if (Trakt != null)
+            //{
+            //    if (Trakt.Count > 0)
+            //    {
+            //        p.Trakt = Trakt[0].TraktID;
+            //    }
+            //}
 
-            CrossRef_AniDB_TvDBV2Repository repCrossRefV2 = new CrossRef_AniDB_TvDBV2Repository();
-            List<CrossRef_AniDB_TvDBV2> TvDB = repCrossRefV2.GetByAnimeID(anime.AnimeID);
-            if (TvDB != null)
-            {
-                if (TvDB.Count > 0)
-                {
-                    p.TvDB = TvDB[0].TvDBID.ToString();
-                }
-            }
+            //CrossRef_AniDB_TvDBV2Repository repCrossRefV2 = new CrossRef_AniDB_TvDBV2Repository();
+            //List<CrossRef_AniDB_TvDBV2> TvDB = repCrossRefV2.GetByAnimeID(anime.AnimeID);
+            //if (TvDB != null)
+            //{
+            //    if (TvDB.Count > 0)
+            //    {
+            //        p.TvDB = TvDB[0].TvDBID.ToString();
+            //    }
+            //}
 
             //community support END
 

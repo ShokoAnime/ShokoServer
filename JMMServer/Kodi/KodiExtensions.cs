@@ -124,8 +124,8 @@ namespace JMMServer.Kodi
             v.ViewOffset = o.ViewOffset;
             v.ViewedLeafCount = o.ViewedLeafCount;
             v.Year = o.Year;
-            v.TvDB = o.TvDB;
-            v.Trakt = o.Trakt;
+            //v.TvDB = o.TvDB;
+            //v.Trakt = o.Trakt;
             return v;
         }
 
