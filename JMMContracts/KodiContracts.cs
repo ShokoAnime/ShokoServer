@@ -224,12 +224,6 @@ namespace JMMContracts.KodiContracts
         [XmlAttribute("extraType")]
         public string ExtraType { get; set; }
 
-        [XmlAttribute("tvdb")]
-        public string TvDB { get; set; }
-
-        [XmlAttribute("trakt")]
-        public string Trakt { get; set; }
-
         //experiment
         [XmlElement("Characters")]
         public List<Characters> CharactersList { get; set; }
@@ -462,7 +456,7 @@ namespace JMMContracts.KodiContracts
     }
 
     [XmlType("User")]
-    public class PlexContract_User
+    public class KodiContract_User
     {
         [XmlAttribute("id")]
         public string id { get; set; }
@@ -472,10 +466,10 @@ namespace JMMContracts.KodiContracts
     }
 
     [XmlType("Users")]
-    public class PlexContract_Users
+    public class KodiContract_Users
     {
         [XmlElement("User")]
-        public List<PlexContract_User> Users { get; set; }
+        public List<KodiContract_User> Users { get; set; }
     }
 
     [XmlType("Extras")]
@@ -543,6 +537,14 @@ namespace JMMContracts.KodiContracts
         public string SeiyuuPic { get; set; }
     }
     //experimentEND
+
+    //better respond than void with blank page
+    [XmlType("Respond")]
+    public class Respond
+    {
+        [XmlAttribute("Respond")]
+        public int code { get; set; }
+    }
 
     public enum JMMType
     {

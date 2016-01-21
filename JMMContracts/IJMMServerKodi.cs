@@ -47,10 +47,10 @@ namespace JMMContracts
 
         [OperationContract]
         [WebGet(UriTemplate = "Vote/{userid}/{seriesid}/{votevalue}/{votetype}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
-        void VoteAnime(string userid, string seriesid, string votevalue, string votetype);
+        System.IO.Stream VoteAnime(string userid, string seriesid, string votevalue, string votetype);
 
         [OperationContract]
-        [WebGet(UriTemplate = "traktscrobble/{slug_traktid}/{type}/{progress}/{status}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
-        void TraktScrobble(string slug, string traktid, string type, string progress, string status);
+        [WebGet(UriTemplate = "TraktScrobble/{animeId}/{type}/{progress}/{status}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
+        System.IO.Stream TraktScrobble(string animeId, string type, string progress, string status);
     }
 }
