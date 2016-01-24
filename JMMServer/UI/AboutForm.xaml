@@ -42,7 +42,7 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="1" Grid.Column="0" Margin="0" Background="#F1F1F1" BorderBrush="LightGray" BorderThickness="1" Height="226" VerticalAlignment="Top">
+        <Border Grid.Row="1" Grid.Column="0" Margin="0" Background="#F1F1F1" BorderBrush="LightGray" BorderThickness="1" Height="165" VerticalAlignment="Top">
 
             <Grid>
                 <Grid.RowDefinitions>
@@ -58,12 +58,12 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Margin="5,6"  Text="Home Page"  VerticalAlignment="Center"/>
-                <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="5,6,5,5" DisplayText="http://japanesemediamanager.github.io/"
-                                                                        URL="http://japanesemediamanager.github.io/"/>
+                <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="5,6,5,5" DisplayText="http://jmediamanager.org"
+                                                                        URL="http://jmediamanager.org"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Margin="5,6"  Text="Online Documentation"  VerticalAlignment="Center"/>
-                <local:HyperLinkStandard Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="5,5,5,6" DisplayText="http://japanesemediamanager.github.io/documentation.html"
-                                                                        URL="http://japanesemediamanager.github.io/documentation.html"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="5,6"  Text="JMM Blog"  VerticalAlignment="Center"/>
+                <local:HyperLinkStandard Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="5,5,5,6" DisplayText="http://jmediamanager.org/blog"
+                                                                        URL="http://jmediamanager.org/blog"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Margin="5,4.864,5,6"  Text="Project Page"  VerticalAlignment="Center"/>
                 <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="5,4.864,5,5" DisplayText="https://github.com/japanesemediamanager"

@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
-        Title="Update Available" Height="300" Width="600" Icon="/JMMServer;component/db.ico">
+        Title="Update Available" Height="200" Width="600" Icon="/JMMServer;component/db.ico">
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>
@@ -44,7 +44,7 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="1" Grid.Column="0" Margin="0" Background="#F1F1F1" BorderBrush="LightGray" BorderThickness="1" Height="226" VerticalAlignment="Top">
+        <Border Grid.Row="1" Grid.Column="0" Margin="0" Background="#F1F1F1" BorderBrush="LightGray" BorderThickness="1" Height="130" VerticalAlignment="Top">
 
             <Grid>
                 <Grid.RowDefinitions>
@@ -60,12 +60,12 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Margin="10,6"  Text="Download Page"  VerticalAlignment="Center"/>
-                <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="10,6,10,5" DisplayText="http://japanesemediamanager.github.io/downloads.html"
-                                                                        URL="http://japanesemediamanager.github.io/downloads.html"/>
+                <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="10,6,10,5" DisplayText="http://jmediamanager.org/downloads"
+                                                                        URL="http://jmediamanager.org/downloads"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Margin="10,4.864,10,6"  Text="Change Log"  VerticalAlignment="Center"/>
-                <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="10,4.864,10,5" DisplayText="http://japanesemediamanager.github.io/changelog.html"
-                                                                        URL="http://japanesemediamanager.github.io/changelog.html"/>
+                <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="10,4.864,10,5" DisplayText="http://jmediamanager.org/changelog"
+                                                                        URL="http://jmediamanager.org/changelog"/>
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Margin="10,4.864,10,6"  Text="Available Version"  VerticalAlignment="Center"/>
                 <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="10,4.864,10,5" FontWeight="DemiBold" 
