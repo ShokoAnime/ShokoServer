@@ -639,6 +639,27 @@ namespace JMMServer
             return true;
         }
 
+        internal bool MarkFileAsUnknown(string Hash, long FileSize)
+        {
+            if (!Login()) return false;
+
+            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+            AniDBCommand_MarkFileAsUnknown cmdMarkFileUnknown = null;
+
+            lock (lockAniDBConnections)
+            {
+                Pause();
+
+                cmdMarkFileUnknown = new AniDBCommand_MarkFileAsUnknown();
+                cmdMarkFileUnknown.Init(Hash, FileSize);
+                SetWaitingOnResponse(true);
+                ev = cmdMarkFileUnknown.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                SetWaitingOnResponse(false);
+            }
+
+            return true;
+        }
+		
 		public bool MarkFileAsDeleted(string hash, long fileSize)
 		{
 			if (!Login()) return false;
