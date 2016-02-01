@@ -238,14 +238,14 @@ namespace JMMServer
 
         public System.IO.Stream GetUsers()
         {
-            PlexContract_Users gfs = new PlexContract_Users();
+            KodiContract_Users gfs = new KodiContract_Users();
             try
             {
-                gfs.Users=new List<PlexContract_User>();
+                gfs.Users=new List<KodiContract_User>();
                 JMMUserRepository repUsers = new JMMUserRepository();
                 foreach (JMMUser us in repUsers.GetAll())
                 {
-                    PlexContract_User p = new PlexContract_User();
+                    KodiContract_User p = new KodiContract_User();
                     p.id = us.JMMUserID.ToString();
                     p.name = us.Username;
                     gfs.Users.Add(p);
@@ -620,13 +620,28 @@ namespace JMMServer
                             if (groups.Contains(grp.AnimeGroupID))
                             {
                                 try {
-                                    if (grp.GroupName == "Rockman.EXE")
-                                    {
-                                        int x = grp.MissingEpisodeCount;
-                                    }
+                                    //if (grp.GroupName == "Rockman.EXE")
+                                    //{
+                                    //    int x = grp.MissingEpisodeCount;
+                                    //}
                                     Video v = StatsCache.Instance.StatKodiGroupsCache[userid][grp.AnimeGroupID];
                                     if (v != null)
+                                    {
+                                        //proper naming
+                                        AniDB_Anime anim = grp.Anime[0];
+                                        v.OriginalTitle = "";
+                                        foreach (AniDB_Anime_Title title in anim.GetTitles())
+                                        {
+                                            if (title.TitleType == "official" || title.TitleType == "main")
+                                            {
+                                                v.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                                            }
+                                        }
+                                        v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
+                                        //proper naming end
+
                                         retGroups.Add(v.Clone());
+                                    }
                                 }
                                 catch(Exception e)
                                 {
@@ -684,6 +699,30 @@ namespace JMMServer
                                 j.OriginalTitle = j.OriginalTitle.Substring(0, j.OriginalTitle.Length - 1);
                                 //proper naming end
 
+                                //community support
+
+                                //CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+                                //List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(anim.AnimeID);
+                                //if (Trakt != null)
+                                //{
+                                //    if (Trakt.Count > 0)
+                                //    {
+                                //        j.Trakt = Trakt[0].TraktID;
+                                //    }
+                                //}
+
+                                //CrossRef_AniDB_TvDBV2Repository repCrossRefV2 = new CrossRef_AniDB_TvDBV2Repository();
+                                //List<CrossRef_AniDB_TvDBV2> TvDB = repCrossRefV2.GetByAnimeID(anim.AnimeID);
+                                //if (TvDB != null)
+                                //{
+                                //    if (TvDB.Count > 0)
+                                //    {
+                                //        j.TvDB = TvDB[0].TvDBID.ToString();
+                                //    }
+                                //}
+
+                                //community support END
+
                                 joints2.Add(j);
                                 retGroups.Remove(j);
                                 break;
@@ -735,71 +774,127 @@ namespace JMMServer
             }
         }
 
-        public void VoteAnime(string userid, string seriesid, string votevalue, string votetype)
+        public System.IO.Stream VoteAnime(string userid, string objectid, string votevalue, string votetype)
         {
-            int serid = 0;
+            Respond rsp = new Respond();
+            rsp.code = 500;
+
+            int objid = 0;
             int usid = 0;
             int vt = 0;
             double vvalue = 0;
-            if (!int.TryParse(seriesid, out serid))
-                return;
+            if (!int.TryParse(objectid, out objid))
+                return KodiHelper.GetStreamFromXmlObject(rsp);
             if (!int.TryParse(userid, out usid))
-                return;
+                return KodiHelper.GetStreamFromXmlObject(rsp);
             if (!int.TryParse(votetype, out vt))
-                return;
+                return KodiHelper.GetStreamFromXmlObject(rsp);
             if (!double.TryParse(votevalue, NumberStyles.Any, CultureInfo.InvariantCulture, out vvalue))
-                return;
+                return KodiHelper.GetStreamFromXmlObject(rsp);
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries ser = repSeries.GetByID(session, serid);
-                AniDB_Anime anime = ser?.GetAnime();
-                if (anime == null)
-                    return;
-                string msg = string.Format("Voting for anime: {0} - Value: {1}", anime.AnimeID, vvalue);
-                logger.Info(msg);
-
-                // lets save to the database and assume it will work
-                AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
-                List<AniDB_Vote> dbVotes = repVotes.GetByEntity(anime.AnimeID);
-                AniDB_Vote thisVote = null;
-                foreach (AniDB_Vote dbVote in dbVotes)
+                if (vt == (int)enAniDBVoteType.Episode)
                 {
-                    // we can only have anime permanent or anime temp but not both
-                    if (vt == (int) enAniDBVoteType.Anime || vt == (int) enAniDBVoteType.AnimeTemp)
+                    AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
+                    AnimeEpisode ep = repEpisodes.GetByID(session, objid);
+                    AniDB_Anime anime = ep?.GetAnimeSeries().GetAnime();
+                    if (anime == null)
                     {
-                        if (dbVote.VoteType == (int) enAniDBVoteType.Anime ||
-                            dbVote.VoteType == (int) enAniDBVoteType.AnimeTemp)
+                        rsp.code = 404;
+                        return KodiHelper.GetStreamFromXmlObject(rsp);
+                    }
+                    string msg = string.Format("Voting for anime episode: {0} - Value: {1}", ep.AnimeEpisodeID, vvalue);
+                    logger.Info(msg);
+
+                    // lets save to the database and assume it will work
+                    AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
+                    List<AniDB_Vote> dbVotes = repVotes.GetByEntity(ep.AnimeEpisodeID);
+                    AniDB_Vote thisVote = null;
+                    foreach (AniDB_Vote dbVote in dbVotes)
+                    {
+                        if (dbVote.VoteType == (int)enAniDBVoteType.Episode)
                         {
                             thisVote = dbVote;
                         }
                     }
-                    else
+
+                    if (thisVote == null)
                     {
-                        thisVote = dbVote;
+                        thisVote = new AniDB_Vote();
+                        thisVote.EntityID = ep.AnimeEpisodeID;
                     }
+                    thisVote.VoteType = vt;
+
+                    int iVoteValue = 0;
+                    if (vvalue > 0)
+                        iVoteValue = (int)(vvalue * 100);
+                    else
+                        iVoteValue = (int)vvalue;
+
+                    msg = string.Format("Voting for anime episode Formatted: {0} - Value: {1}", ep.AnimeEpisodeID, iVoteValue);
+                    logger.Info(msg);
+                    thisVote.VoteValue = iVoteValue;
+                    repVotes.Save(thisVote);
+                    CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt, Convert.ToDecimal(vvalue));
+                    cmdVote.Save();
                 }
 
-                if (thisVote == null)
+                if (vt == (int)enAniDBVoteType.Anime)
                 {
-                    thisVote = new AniDB_Vote();
-                    thisVote.EntityID = anime.AnimeID;
+                    AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                    AnimeSeries ser = repSeries.GetByID(session, objid);
+                    AniDB_Anime anime = ser?.GetAnime();
+                    if (anime == null)
+                    {
+                        rsp.code = 404;
+                        return KodiHelper.GetStreamFromXmlObject(rsp); 
+                    }
+                    string msg = string.Format("Voting for anime: {0} - Value: {1}", anime.AnimeID, vvalue);
+                    logger.Info(msg);
+
+                    // lets save to the database and assume it will work
+                    AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
+                    List<AniDB_Vote> dbVotes = repVotes.GetByEntity(anime.AnimeID);
+                    AniDB_Vote thisVote = null;
+                    foreach (AniDB_Vote dbVote in dbVotes)
+                    {
+                        // we can only have anime permanent or anime temp but not both
+                        if (vt == (int)enAniDBVoteType.Anime || vt == (int)enAniDBVoteType.AnimeTemp)
+                        {
+                            if (dbVote.VoteType == (int)enAniDBVoteType.Anime ||
+                                dbVote.VoteType == (int)enAniDBVoteType.AnimeTemp)
+                            {
+                                thisVote = dbVote;
+                            }
+                        }
+                        else
+                        {
+                            thisVote = dbVote;
+                        }
+                    }
+
+                    if (thisVote == null)
+                    {
+                        thisVote = new AniDB_Vote();
+                        thisVote.EntityID = anime.AnimeID;
+                    }
+                    thisVote.VoteType = vt;
+
+                    int iVoteValue = 0;
+                    if (vvalue > 0)
+                        iVoteValue = (int)(vvalue * 100);
+                    else
+                        iVoteValue = (int)vvalue;
+
+                    msg = string.Format("Voting for anime Formatted: {0} - Value: {1}", anime.AnimeID, iVoteValue);
+                    logger.Info(msg);
+                    thisVote.VoteValue = iVoteValue;
+                    repVotes.Save(thisVote);
+                    CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt, Convert.ToDecimal(vvalue));
+                    cmdVote.Save();
                 }
-                thisVote.VoteType = vt;
-
-                int iVoteValue = 0;
-                if (vvalue > 0)
-                    iVoteValue = (int) (vvalue*100);
-                else
-                    iVoteValue = (int) vvalue;
-
-                msg = string.Format("Voting for anime Formatted: {0} - Value: {1}", anime.AnimeID, iVoteValue);
-                logger.Info(msg);
-                thisVote.VoteValue = iVoteValue;
-                repVotes.Save(thisVote);
-                CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt, Convert.ToDecimal(vvalue));
-                cmdVote.Save();
+                rsp.code = 200;
+                return KodiHelper.GetStreamFromXmlObject(rsp);
             }
         }
         
@@ -822,6 +917,55 @@ namespace JMMServer
                 char_list.Add(c);
             }
             return char_list;
+        }
+
+        public System.IO.Stream TraktScrobble(string animeId, string type, string progress, string status)
+        {
+            Respond rsp = new Respond();
+
+            int typeTrakt;
+            int statusTrakt;
+            Providers.TraktTV.ScrobblePlayingStatus statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
+            float progressTrakt;
+
+            int.TryParse(status, out statusTrakt);
+
+            switch (statusTrakt)
+            {
+                case (int)Providers.TraktTV.ScrobblePlayingStatus.Start:
+                    statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
+                    break;
+                case (int)Providers.TraktTV.ScrobblePlayingStatus.Pause:
+                    statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Pause;
+                    break;
+                case (int)Providers.TraktTV.ScrobblePlayingStatus.Stop:
+                    statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Stop;
+                    break;
+            }
+
+            float.TryParse(progress, out progressTrakt);
+            progressTrakt = progressTrakt / 10;
+
+            rsp.code = 404;
+
+            int.TryParse(type, out typeTrakt);
+            switch (typeTrakt)
+            {
+                //1
+                case (int)Providers.TraktTV.ScrobblePlayingType.movie:
+                    rsp.code = Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.movie, animeId, statusTraktV2, progressTrakt);
+                    break;
+                //2
+                case (int)Providers.TraktTV.ScrobblePlayingType.episode:
+                    rsp.code = Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.episode, animeId, statusTraktV2, progressTrakt);
+                    break;
+                //error
+                default:
+                    rsp.code = 500;
+                    break;
+            }
+
+            return KodiHelper.GetStreamFromXmlObject(rsp);
         }
 
     }

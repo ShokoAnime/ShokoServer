@@ -22,6 +22,9 @@ namespace JMMServer.Providers.TraktTV.Contracts
         [DataMember(Name = "tmdb")]
         public string tmdb { get; set; }
 
+        [DataMember(Name = "slug")]
+        public string slug { get; set; }
+
         [DataMember(Name = "tvrage")]
         public string tvrage { get; set; }
 

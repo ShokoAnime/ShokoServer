@@ -1013,7 +1013,74 @@ namespace JMMServer.Providers.TraktTV
 
         }
 
+        public static int Scrobble(ScrobblePlayingType scrobbleType, string AnimeEpisodeID, ScrobblePlayingStatus scrobbleStatus, float progress)
+        {
+            try
+            {
+                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                    return 401;
 
+                string json = "";
+
+                string url = "";
+                switch (scrobbleStatus)
+                {
+                    case ScrobblePlayingStatus.Start:
+                        url = TraktURIs.SetScrobbleStart;
+                        break;
+                    case ScrobblePlayingStatus.Pause:
+                        url = TraktURIs.SetScrobblePause;
+                        break;
+                    case ScrobblePlayingStatus.Stop:
+                        url = TraktURIs.SetScrobbleStop;
+                        break;
+                }
+
+                //1.get traktid and slugid from episode id
+                int aep = 0;
+                int.TryParse(AnimeEpisodeID, out aep);
+                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+                AnimeEpisode ep = repEps.GetByID(aep);
+                string slugID = "";
+                int season = 0;
+                int epNumber = 0;
+                int? traktID = GetTraktEpisodeIdV2(ep, ref slugID, ref season, ref epNumber);
+                //2.generate json
+                if (traktID == null && traktID > 0)
+                {
+                    switch (scrobbleType)
+                    {
+                        case ScrobblePlayingType.episode:
+                            TraktV2ScrobbleEpisode showE = new TraktV2ScrobbleEpisode();
+                            showE.Init(progress, traktID, slugID, season, epNumber);
+                            json = JSONHelper.Serialize<TraktV2ScrobbleEpisode>(showE);
+                            break;
+
+                            //do we have any movies that work?
+                        case ScrobblePlayingType.movie:
+                            TraktV2ScrobbleMovie showM = new TraktV2ScrobbleMovie();
+                            json = JSONHelper.Serialize<TraktV2ScrobbleMovie>(showM);
+                            showM.Init(progress, slugID, traktID.ToString());
+                            break;
+                    }
+                    //3. send Json
+                    string retData = string.Empty;
+                    int response = SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
+                }
+                else
+                {
+                    //3. nothing to send log error
+                    logger.Warn("TraktTVHelper.Scrobble: No TraktID found for: " + "AnimeEpisodeID: " + aep.ToString() + " AnimeRomajiName: " + ep.AniDB_Episode.RomajiName);
+                    return 404;
+                }
+                return 200;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error in TraktTVHelper.Scrobble: " + ex.ToString(), ex);
+                return 500;
+            }
+        }
         #endregion
 
         #region Get Data From Trakt
