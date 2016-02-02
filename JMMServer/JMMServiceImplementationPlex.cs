@@ -511,7 +511,7 @@ namespace JMMServer
                 
                 AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                 AnimeSeries ser = repSeries.GetByID(session, serid);
-                AniDB_Anime anime = ser?.GetAnime();
+                AniDB_Anime anime = ser.GetAnime();
                 if (anime == null)
                     return;
                 string msg = string.Format("Voting for anime: {0} - Value: {1}", anime.AnimeID, vvalue);

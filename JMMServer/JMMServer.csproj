@@ -165,6 +165,7 @@
     <Compile Include="AniDB_API\Commands\AniDBCommand_Logout.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsDeleted.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsExternal.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsUnknown.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_NotifyGet.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_NotifyList.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_Ping.cs" />
@@ -370,9 +371,12 @@
     <Compile Include="Providers\TraktTV\Contracts\TraktV2Images.cs" />
     <Compile Include="Providers\TraktTV\Contracts\TraktV2ImagesExtended.cs" />
     <Compile Include="Providers\TraktTV\Contracts\TraktV2Logo.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Movie.cs" />
     <Compile Include="Providers\TraktTV\Contracts\TraktV2Poster.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Search\TraktV2SearchShowResult.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Search\TraktV2SearchTvDBIDShowResult.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2ScrobbleEpisode.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2ScrobbleMovie.cs" />
     <Compile Include="Providers\TraktTV\Contracts\TraktV2Season.cs" />
     <Compile Include="Providers\TraktTV\Contracts\TraktV2SeasonIds.cs" />
     <Compile Include="Providers\TraktTV\Contracts\TraktV2Show.cs" />

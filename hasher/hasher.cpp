@@ -346,8 +346,8 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR psz
 			memcpy(pResult, pTemp, 16);
 		}
 		if (getCRC32) crc32.digest((char *)(pResult+16),4);
-		if (getSHA1) md5.digest((char *)(pResult+20),16);
-		if (getMD5) sha1.digest((char *)(pResult+36),20);
+		if (getMD5) md5.digest((char *)(pResult+20),16);
+		if (getSHA1) sha1.digest((char *)(pResult+36),20);
 	}
 
 	delete pTemp;

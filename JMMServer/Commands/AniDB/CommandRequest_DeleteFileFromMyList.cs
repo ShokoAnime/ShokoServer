@@ -61,31 +61,46 @@ namespace JMMServer.Commands
 
 			try
 			{
-				if (ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.Delete)
-				{
-					if (FileID > 0)
-						JMMService.AnidbProcessor.DeleteFileFromMyList(FileID);
-					else
-						JMMService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
+                switch (ServerSettings.AniDB_MyList_DeleteType)
+                {
+                    case AniDBAPI.AniDBFileDeleteType.Delete:
+                        if (FileID > 0)
+                            JMMService.AnidbProcessor.DeleteFileFromMyList(FileID);
+                        else
+                            JMMService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
 
-					logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
-				}
-                else if (ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.MarkDeleted)
-                {
-                    if (FileID < 0)
-                    {
-                        JMMService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
-                        logger.Info("Marking file as deleted from list: {0}_{1}", Hash, FileID);
-                    }
+                        logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
+                        break;
+
+                    case AniDBAPI.AniDBFileDeleteType.MarkDeleted:
+                        if (FileID < 0)
+                        {
+                            JMMService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
+                            logger.Info("Marking file as deleted from list: {0}_{1}", Hash, FileID);
+                        }
+                        break;
+
+                    case AniDBAPI.AniDBFileDeleteType.MarkUnknown:
+                        if (FileID < 0)
+                        {
+                            JMMService.AnidbProcessor.MarkFileAsUnknown(Hash, FileSize);
+                            logger.Info("Marking file as unknown: {0}_{1}", Hash, FileID);
+                        }
+                        break;
+
+                    case AniDBAPI.AniDBFileDeleteType.DeleteLocalOnly:
+                            logger.Info("Keeping physical file and AniDB MyList entry, deleting from local DB: {0}_{1}", Hash, FileID);
+                        break;
+
+                    default:
+                        if (FileID < 0)
+                        {
+                            JMMService.AnidbProcessor.MarkFileAsExternalStorage(Hash, FileSize);
+                            logger.Info("Moving file to external storage: {0}_{1}", Hash, FileID);
+                        }
+                        break;
                 }
-                else
-                {
-                    if (FileID < 0)
-                    {
-                        JMMService.AnidbProcessor.MarkFileAsExternalStorage(Hash, FileSize);
-                        logger.Info("Moving File to external storage: {0}_{1}", Hash, FileID);
-                    }
-                }
+
 
                 if (ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.Delete ||
                     ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.MarkDeleted)
