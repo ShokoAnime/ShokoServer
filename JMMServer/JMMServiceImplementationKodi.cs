@@ -797,7 +797,7 @@ namespace JMMServer
                 {
                     AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
                     AnimeEpisode ep = repEpisodes.GetByID(session, objid);
-                    AniDB_Anime anime = ep?.GetAnimeSeries().GetAnime();
+                    AniDB_Anime anime = ep.GetAnimeSeries().GetAnime();
                     if (anime == null)
                     {
                         rsp.code = 404;
@@ -843,7 +843,7 @@ namespace JMMServer
                 {
                     AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                     AnimeSeries ser = repSeries.GetByID(session, objid);
-                    AniDB_Anime anime = ser?.GetAnime();
+                    AniDB_Anime anime = ser.GetAnime();
                     if (anime == null)
                     {
                         rsp.code = 404;

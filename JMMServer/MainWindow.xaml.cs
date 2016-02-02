@@ -1416,8 +1416,8 @@ namespace JMMServer
             //JMMServer.Providers.Azure.Azure_AnimeLink link2 = JMMServer.Providers.Azure.AzureWebAPI.Admin_GetRandomTraktLinkForApproval();
             //List<Providers.Azure.CrossRef_AniDB_Trakt> xrefs= JMMServer.Providers.Azure.AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(link2.RandomAnimeID);
 
-            
-            
+
+            //TraktTVHelper.RefreshAuthToken();
             
 
             AboutForm frm = new AboutForm();
