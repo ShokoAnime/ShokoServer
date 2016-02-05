@@ -1523,7 +1523,7 @@ namespace JMMServer
 							if (cat.Trim().Length == 0) continue;
 							if (cat.Trim() == ",") continue;
 
-							index = contractGroup.Stat_AllTags.IndexOf(cat, 0, StringComparison.InvariantCultureIgnoreCase);
+							index = contractGroup.Stat_AllTags.IndexOf(cat.Trim(), 0, StringComparison.InvariantCultureIgnoreCase);
 							if (index > -1)
 							{
 								foundCat = true;
@@ -1550,7 +1550,7 @@ namespace JMMServer
                             if (tag.Trim().Length == 0) continue;
                             if (tag.Trim() == ",") continue;
 
-                            index = contractGroup.Stat_AllCustomTags.IndexOf(tag, 0, StringComparison.InvariantCultureIgnoreCase);
+                            index = contractGroup.Stat_AllCustomTags.IndexOf(tag.Trim(), 0, StringComparison.InvariantCultureIgnoreCase);
                             if (index > -1)
                             {
                                 foundTag = true;
