@@ -1577,8 +1577,13 @@ namespace JMMServer.Entities
 
 			List<AniDB_Tag> tagsToSave = new List<AniDB_Tag>();
 			List<AniDB_Anime_Tag> xrefsToSave = new List<AniDB_Anime_Tag>();
+            List<AniDB_Anime_Tag> xrefsToDelete = new List<AniDB_Anime_Tag>();
 
-			foreach (Raw_AniDB_Tag rawtag in tags)
+            // find all the current links, and then later remove the ones that are no longer relevant
+            List<AniDB_Anime_Tag> currentTags = repTagsXRefs.GetByAnimeID(AnimeID);
+            List<int> newTagIDs = new List<int>();
+
+            foreach (Raw_AniDB_Tag rawtag in tags)
 			{
 				AniDB_Tag tag = repTags.GetByTagID(rawtag.TagID, session);
 				if (tag == null) tag = new AniDB_Tag();
@@ -1586,7 +1591,9 @@ namespace JMMServer.Entities
 				tag.Populate(rawtag);
 				tagsToSave.Add(tag);
 
-				AniDB_Anime_Tag anime_tag = repTagsXRefs.GetByAnimeIDAndTagID(session, rawtag.AnimeID, rawtag.TagID);
+                newTagIDs.Add(tag.TagID);
+
+                AniDB_Anime_Tag anime_tag = repTagsXRefs.GetByAnimeIDAndTagID(session, rawtag.AnimeID, rawtag.TagID);
 				if (anime_tag == null) anime_tag = new AniDB_Anime_Tag();
 
 				anime_tag.Populate(rawtag);
@@ -1596,6 +1603,12 @@ namespace JMMServer.Entities
 				this.AllTags += tag.TagName;
 			}
 
+            foreach (AniDB_Anime_Tag curTag in currentTags)
+            {
+                if (!newTagIDs.Contains(curTag.TagID))
+                    xrefsToDelete.Add(curTag);
+            }
+
 			using (var transaction = session.BeginTransaction())
 			{
 				foreach (AniDB_Tag tag in tagsToSave)
@@ -1604,7 +1617,10 @@ namespace JMMServer.Entities
 				foreach (AniDB_Anime_Tag xref in xrefsToSave)
 					session.SaveOrUpdate(xref);
 
-				transaction.Commit();
+                foreach (AniDB_Anime_Tag xref in xrefsToDelete)
+                    repTagsXRefs.Delete(xref.AniDB_Anime_TagID);
+
+                transaction.Commit();
 			}
 		}
 
