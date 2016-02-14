@@ -580,6 +580,7 @@ namespace JMMServer.Kodi
             }
             Contract_AniDB_Anime_DefaultImage poster = anime.DefaultImagePoster;
             Contract_AniDB_Anime_DefaultImage fanart = anime.DefaultImageFanart;
+
             p.Thumb = poster != null ? poster.GenPoster() : ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404V.png");
             if (fanart != null)
                 p.Art = fanart.GenArt();

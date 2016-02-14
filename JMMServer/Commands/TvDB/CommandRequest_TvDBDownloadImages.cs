@@ -31,7 +31,7 @@ namespace JMMServer.Commands
 		public CommandRequest_TvDBDownloadImages()
 		{
 		}
-
+        /*
 		public CommandRequest_TvDBDownloadImages(int tvDBSeriesID, bool forced)
 		{
 			this.TvDBSeriesID = tvDBSeriesID;
@@ -40,8 +40,8 @@ namespace JMMServer.Commands
 			this.Priority = (int)DefaultPriority;
 
 			GenerateCommandID();
-		}
-
+        }
+        */
 		public override void ProcessCommand()
 		{
 			logger.Info("Processing CommandRequest_TvDBDownloadImages: {0}", TvDBSeriesID);
