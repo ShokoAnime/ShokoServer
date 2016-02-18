@@ -641,6 +641,8 @@
       <DependentUpon>UpdateForm.xaml</DependentUpon>
     </Compile>
     <Compile Include="UnhandledExceptionManager.cs" />
+    <Compile Include="UPnPData.cs" />
+    <Compile Include="UPnPServerBrowserDialog.cs" />
     <Compile Include="Utilities\GroupFilterHelper.cs" />
     <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
     <Compile Include="Utilities\JsonExtensions.cs" />
@@ -862,7 +864,17 @@
   <ItemGroup>
     <Resource Include="Images\32_mail.png" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <COMReference Include="UPNPLib">
+      <Guid>{DB3442A7-A2E9-4A59-9CB5-F5C1A5D901E5}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(TargetDir)*.dll" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	
