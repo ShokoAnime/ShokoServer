@@ -60,10 +60,11 @@ namespace JMMServer
         /// <param name="parent"></param>
         /// <param name="o"></param>
         /// <returns></returns>
-        public static TreeNode addToTree(TreeNode parent, object o)
+        public static TreeNode addToTree(TreeNode parent, object name, object tag)
         {
             TreeNode child = new TreeNode();
-            child.Text = o.ToString();
+            child.Text = name.ToString();
+            child.Tag = tag.ToString();
             parent.Nodes.Add(child);
 
             return child;
@@ -74,14 +75,14 @@ namespace JMMServer
         /// </summary>
         /// <param name="structure"></param>
         /// <param name="parent"></param>
-        public static void buildTreeView(object[,] structure, TreeNode parent)
+        public static void buildTreeView(object[,] o, TreeNode parent)
         {
-            for (int i = 0; i < structure.Length / 2; i++)
+            for (int i = 0; i < o.Length / 3; i++)
             {
-                TreeNode child = addToTree(parent, structure[1, i]);
-                if (structure[0, i] is object[,])
+                TreeNode child = addToTree(parent, o[1, i], o[2, i]);
+                if (o[0, i] is object[,])
                 {
-                    buildTreeView((object[,])structure[0, i], child);
+                    buildTreeView((object[,])o[0, i], child);
                 }
             }
         }
@@ -116,7 +117,7 @@ namespace JMMServer
             if (items.Count() != 0)
             {
                 int i = 0;
-                object[,] files = new object[2, items.Count()];
+                object[,] files = new object[3, items.Count()];
                 foreach (XElement item in items)
                 {
                     try
@@ -131,6 +132,8 @@ namespace JMMServer
                         {
                             files.SetValue(counter.Current.Value, 0, i);
                         }
+                        Array itemids = buildDecendents(itemTag, item.Document, "id");
+                        files.SetValue(itemids.GetValue(i), 2, i);
                         i++;
                     }
                     catch
@@ -142,7 +145,7 @@ namespace JMMServer
             }
             else
             {
-                object[,] containerFolders = new object[2, folders.Count()];
+                object[,] containerFolders = new object[3, folders.Count()];
                 int i = 0;
                 foreach (XElement item in containers)
                 {
@@ -158,7 +161,7 @@ namespace JMMServer
                         }
                         if (childIds.Length != 0)
                         {
-                            object[,] childs = new object[2, childIds.Length];
+                            object[,] childs = new object[3, childIds.Length];
                             int j = 0;
                             List<string> childtitlearr = new List<string>();
                             var childtitles = browsef.Descendants(titleTag).GetEnumerator();
@@ -172,15 +175,18 @@ namespace JMMServer
                                 object[,] childfolder = buildStructure(s, browsef);
                                 childs.SetValue(childfolder, 0, j);
                                 childs.SetValue(childtitlearr[j], 1, j);
+                                childs.SetValue(child, 2, j);
                                 j++;
                             }
                             containerFolders.SetValue(childs, 0, i);
                             containerFolders.SetValue(titlesarr[i], 1, i);
+                            containerFolders.SetValue(containerIds.GetValue(i), 2, i);
                         }
                         else
                         {
                             containerFolders.SetValue(buildStructure(s, browsef), 0, i);
                             containerFolders.SetValue(titlesarr[i], 1, i);
+                            containerFolders.SetValue(containerIds.GetValue(i), 2, i);
                         }
                         i++;
                     }
