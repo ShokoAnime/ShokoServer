@@ -7,6 +7,8 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.Xml.Linq;
 using UPNPLib;
+using JMMContracts;
+using JMMServer.Entities;
 
 namespace JMMServer
 {
@@ -15,6 +17,8 @@ namespace JMMServer
     /// </summary>
     public partial class UPnPServerBrowserDialog
     {
+        private ImportFolder importFldr = null;
+
         public Form frmMainWindow = new Form();
 
         public static TreeView tvwServerList = new TreeView();
@@ -70,7 +74,7 @@ namespace JMMServer
         {
             //To-Do: Code to import
             frmMainWindow.DialogResult = DialogResult.OK;
-            throw new NotImplementedException();
+            frmMainWindow.Close();
         }
     }
 
@@ -87,7 +91,6 @@ namespace JMMServer
         public void DeviceAdded(int lFindData, UPnPDevice pDevice)
         {
             var enumerate = pDevice.Services.GetEnumerator();
-            UPnPServerBrowserDialog.tvwServerList.Nodes.Clear();
             TreeNode parent = new TreeNode();
             parent.Text = pDevice.FriendlyName;
             UPnPServerBrowserDialog.tvwServerList.Nodes.Add(parent);
@@ -96,9 +99,17 @@ namespace JMMServer
             {
                 while (enumerate.MoveNext())
                 {
-                    UPnPService current = enumerate.Current as UPnPService;
-                    XDocument content = UPnPData.Browser(current, "0", parent);
-                    UPnPData.buildTreeView(current, parent, content);
+                    try
+                    {
+                        UPnPService current = enumerate.Current as UPnPService;
+                        XDocument content = UPnPData.Browser(current, "0");
+                        object[,] structure = UPnPData.buildStructure(current, content);
+                        UPnPData.buildTreeView(structure, parent);
+                    }
+                    catch
+                    {
+                        //Do nothing
+                    }
 
                 }
             }
@@ -133,7 +144,6 @@ namespace JMMServer
         /// <param name="lFindData"></param>
         public void SearchComplete(int lFindData)
         {
-            MessageBox.Show("Search Complete!");
             UPnPServerBrowserDialog.tvwServerList.Enabled = true;
         }
     }

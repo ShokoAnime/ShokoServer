@@ -9,6 +9,9 @@ using UPNPLib;
 
 namespace JMMServer
 {
+    /// <summary>
+    /// Class containing functions for use with UPnP devices
+    /// </summary>
     class UPnPData
     {
         /// <summary>
@@ -18,7 +21,7 @@ namespace JMMServer
         /// <param name="objectId"></param>
         /// <param name="parent"></param>
         /// <returns></returns>
-        public static XDocument Browser(UPnPService service, string objectId, TreeNode parent)
+        public static XDocument Browser(UPnPService service, string objectId)
         {
             object output = new object();
             object[] input = new object[6] { objectId, "BrowseDirectChildren", "", 0, 0, "0", };
@@ -52,79 +55,137 @@ namespace JMMServer
         }
 
         /// <summary>
-        /// Adds TreeNode based on Xml.Linq.XElement
+        /// Adds TreeNode based on folder name stored in 'o'
         /// </summary>
         /// <param name="parent"></param>
-        /// <param name="XML"></param>
+        /// <param name="o"></param>
         /// <returns></returns>
-        public static TreeNode addToTree(TreeNode parent, XElement XML)
+        public static TreeNode addToTree(TreeNode parent, object o)
         {
             TreeNode child = new TreeNode();
-            child.Text = XML.Value.ToString();
+            child.Text = o.ToString();
             parent.Nodes.Add(child);
 
             return child;
         }
 
         /// <summary>
-        /// Builds TreeNode structure by recursively reading the XML document made by Browser
+        /// Builds TreeNode structure by recursively reading the multidimensional array containing the folder structure
+        /// </summary>
+        /// <param name="structure"></param>
+        /// <param name="parent"></param>
+        public static void buildTreeView(object[,] structure, TreeNode parent)
+        {
+            for (int i = 0; i < structure.Length / 2; i++)
+            {
+                TreeNode child = addToTree(parent, structure[1, i]);
+                if (structure[0, i] is object[,])
+                {
+                    buildTreeView((object[,])structure[0, i], child);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Generates the folder structure, reading in all the names
         /// </summary>
         /// <param name="s"></param>
-        /// <param name="parent"></param>
         /// <param name="XML"></param>
-        public static void buildTreeView(UPnPService s, TreeNode parent, XDocument XML)
+        /// <returns></returns>
+        public static object[,] buildStructure(UPnPService s, XDocument XML)
         {
+
             string containerTag = "{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}container";
             string itemTag = "{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item";
             string resTag = "{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res";
+            string titleTag = "{http://purl.org/dc/elements/1.1/}title";
+
             var items = XML.Descendants(itemTag);
-            var p = XML.Descendants("{http://purl.org/dc/elements/1.1/}" + "title");
-            var files = XML.Descendants(resTag);
-            int i = 0;
+            var containers = XML.Descendants(containerTag);
+            var videofile = XML.Descendants(resTag);
+            var titles = XML.Descendants(titleTag);
+
             Array containerIds = buildDecendents(containerTag, XML, "id");
             List<String> folders = new List<String>();
-            List<XElement> itemlist = new List<XElement>();
+
             foreach (XElement e in XML.Descendants("{urn:schemas-upnp-org:metadata-1-0/upnp/}class"))
             {
                 folders.Add(e.Value);
             }
+
             if (items.Count() != 0)
             {
-                for (int k = 0; k < items.Count(); k++)
+                int i = 0;
+                object[,] files = new object[2, items.Count()];
+                foreach (XElement item in items)
                 {
-                    itemlist.Add((XElement)items.ToArray().GetValue(k));
-                    TreeNode child = addToTree(parent, itemlist[k]);
-                    child.Text = itemlist[k].Value.ToString();
-                    child.Tag = ((XElement)files.ToArray().GetValue(k)).Value;
-
+                    try
+                    {
+                        var counter = item.Descendants(titleTag).GetEnumerator();
+                        while (counter.MoveNext())
+                        {
+                            files.SetValue(counter.Current.Value, 1, i);
+                        }
+                        counter = item.Descendants(resTag).GetEnumerator();
+                        while (counter.MoveNext())
+                        {
+                            files.SetValue(counter.Current.Value, 0, i);
+                        }
+                        i++;
+                    }
+                    catch
+                    {
+                        MessageBox.Show(i.ToString() + " of " + items.Count().ToString());
+                    }
                 }
+                return files;
             }
-            else {
-                foreach (XElement c in p)
+            else
+            {
+                object[,] containerFolders = new object[2, folders.Count()];
+                int i = 0;
+                foreach (XElement item in containers)
                 {
-
                     if (folders[i] == "object.container.storageFolder")
                     {
-                        TreeNode child = addToTree(parent, c);
-                        XDocument browsef = Browser(s, containerIds.GetValue(i).ToString(), child);
+                        XDocument browsef = Browser(s, containerIds.GetValue(i).ToString());
                         Array childIds = buildDecendents(containerTag, browsef, "id");
+                        var counter = titles.GetEnumerator();
+                        List<string> titlesarr = new List<string>();
+                        while (counter.MoveNext())
+                        {
+                            titlesarr.Add(counter.Current.Value);
+                        }
                         if (childIds.Length != 0)
                         {
-                            buildTreeView(s, child, browsef);
-                            for (int j = 0; j < childIds.Length; j++)
+                            object[,] childs = new object[2, childIds.Length];
+                            int j = 0;
+                            List<string> childtitlearr = new List<string>();
+                            var childtitles = browsef.Descendants(titleTag).GetEnumerator();
+                            while (childtitles.MoveNext())
                             {
-                                TreeNode folder = new TreeNode();
-                                browsef = Browser(s, childIds.GetValue(j).ToString(), folder);
-                                buildTreeView(s, folder, browsef);
+                                childtitlearr.Add(childtitles.Current.Value);
                             }
+                            foreach (string child in childIds)
+                            {
+                                browsef = Browser(s, child);
+                                object[,] childfolder = buildStructure(s, browsef);
+                                childs.SetValue(childfolder, 0, j);
+                                childs.SetValue(childtitlearr[j], 1, j);
+                                j++;
+                            }
+                            containerFolders.SetValue(childs, 0, i);
+                            containerFolders.SetValue(titlesarr[i], 1, i);
                         }
                         else
                         {
-                            buildTreeView(s, child, browsef);
+                            containerFolders.SetValue(buildStructure(s, browsef), 0, i);
+                            containerFolders.SetValue(titlesarr[i], 1, i);
                         }
                         i++;
                     }
                 }
+                return containerFolders;
             }
         }
     }
