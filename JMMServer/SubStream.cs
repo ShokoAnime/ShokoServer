@@ -9,6 +9,15 @@ namespace JMMServer
         private long _pos;
         private long _original;
 
+
+        public long CrossPosition { get; set; }
+
+        public delegate void CrossPositionHandler(long position);
+
+        public event CrossPositionHandler CrossPositionCrossed;
+
+
+
         public override void Close()
         {
             _stream.Close();
@@ -69,9 +78,17 @@ namespace JMMServer
             {
                 count = (int) _bytesLeft;
             }
+            long oldpos = _stream.Position;
             int read = _stream.Read(buffer, offset, count);
             _pos += read;
             _bytesLeft -= read;
+            if (CrossPositionCrossed != null)
+            {
+                if ((oldpos <= CrossPosition) && (_stream.Position >= CrossPosition))
+                {
+                    CrossPositionCrossed(_stream.Position);
+                }
+            }
             return read;
         }
 

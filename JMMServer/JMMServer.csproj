@@ -314,6 +314,8 @@
     <Compile Include="Kodi\KodiHelper.cs" />
     <Compile Include="Kodi\KodiObject.cs" />
     <Compile Include="Kodi\Utf8SringWriter.cs" />
+    <Compile Include="Plex\HistoryInfo.cs" />
+    <Compile Include="Plex\MediaContainerTypes.cs" />
     <Compile Include="Plex\PlexEpisodeType.cs" />
     <Compile Include="Plex\PlexExtensions.cs" />
     <Compile Include="Plex\PlexHelper.cs" />
@@ -753,6 +755,7 @@
     <None Include="Resources\plex_others.bin" />
     <None Include="Resources\plex_ovas.bin" />
     <None Include="Resources\plex_parodies.bin" />
+    <None Include="Resources\plex_playlists.bin" />
     <None Include="Resources\plex_specials.bin" />
     <None Include="Resources\plex_trailers.bin" />
     <None Include="Resources\plex_tvepisodes.bin" />

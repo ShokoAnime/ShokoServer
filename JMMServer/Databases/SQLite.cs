@@ -147,8 +147,9 @@ namespace JMMServer.Databases
                 UpdateSchema_039(versionNumber);
                 UpdateSchema_040(versionNumber);
                 UpdateSchema_041(versionNumber);
+                UpdateSchema_042(versionNumber);
             }
-			catch (Exception ex)
+            catch (Exception ex)
 			{
 				logger.ErrorException("Error updating schema: " + ex.ToString(), ex);
 			}
@@ -1269,7 +1270,20 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
         }
+        private static void UpdateSchema_042(int currentVersionNumber)
+        {
+            int thisVersion = 42;
+            if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE ADD PlexUsers text NULL");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+        }
         private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());

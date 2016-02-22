@@ -74,6 +74,25 @@ namespace JMMServer
 			}
 		}
 
+	    public static string PlexThumbnailAspects
+	    {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string thumbaspect = appSettings["PlexThumbnailAspects"];
+                if (string.IsNullOrEmpty(thumbaspect))
+                {
+                    thumbaspect = "Default, 0.6667, IOS, 1.0, Android, 1.3333";
+                    UpdateSetting("PlexThumbnailAspects", thumbaspect);
+                }
+
+                return thumbaspect;
+            }
+            set
+            {
+                UpdateSetting("PlexThumbnailAspect", value);
+            }
+        }
 		#region Database
 
 		public static string DatabaseType

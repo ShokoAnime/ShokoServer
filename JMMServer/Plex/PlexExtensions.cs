@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Reflection;
 using JMMContracts;
 using JMMContracts.PlexContracts;
 using JMMServer.ImageDownload;
@@ -7,43 +10,59 @@ namespace JMMServer.Plex
 {
     public static class PlexExtensions
     {
-
-
-        public static string GenPoster(this ImageDetails im)
+        public static string GenPoster(this ImageDetails im, string fallbackimage = "plex_404V.png")
         {
-            if (im == null)
-                return null;
-            return PlexHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetThumb/" + (int)im.ImageType + "/" + im.ImageID + "/0.6667");
+            if ((im == null) || (im.ImageID == 0))
+                return PlexHelper.ConstructSupportImageLink(fallbackimage);
+            return PlexHelper.ConstructThumbLink((int)im.ImageType, im.ImageID);
         }
 
         public static string GenArt(this ImageDetails im)
         {
             if (im == null)
                 return null;
-            return PlexHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetImage/" + (int)im.ImageType + "/" + im.ImageID);
+            return PlexHelper.ConstructImageLink((int) im.ImageType, im.ImageID);
         }
 
-        public static string GenPoster(this Contract_AniDB_Anime_DefaultImage im)
+        public static string GenPoster(this MetroContract_Anime_Episode im, string fallbackimage = "plex_404.png")
         {
-            if (im == null)
-                return null;
-
-            return PlexHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetThumb/" + im.ImageType + "/" + im.AnimeID + "/0.6667");
+            if ((im == null) || (im.ImageID==0))
+                return PlexHelper.ConstructSupportImageLinkTV(fallbackimage);
+            return PlexHelper.ConstructThumbLink((int) im.ImageType, im.ImageID);
+        }
+        public static string GenPoster(this Contract_AniDB_Anime_DefaultImage im, string fallbackimage = "plex_404V.png")
+        {
+            if ((im == null) || (im.AnimeID == 0))
+                return PlexHelper.ConstructSupportImageLink(fallbackimage);
+            return PlexHelper.ConstructThumbLink((int) im.ImageType, im.AnimeID);
         }
 
         public static string GenArt(this Contract_AniDB_Anime_DefaultImage im)
         {
             if (im == null)
                 return null;
-
-            return PlexHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetImage/" + im.ImageType + "/" + im.AnimeID);
+            return PlexHelper.ConstructImageLink((int)im.ImageType, im.AnimeID);
         }
 
-
+        public static string ToPlexDate(this DateTime dt)
+        {
+            return dt.Year.ToString("0000") + "-" + dt.Month.ToString("00") + "-" + dt.Day.ToString("00");
+        }
+        public static void CopyTo(this object s, object d)
+        {
+            foreach (PropertyInfo pis in s.GetType().GetProperties())
+            {
+                foreach (PropertyInfo pid in d.GetType().GetProperties())
+                {
+                    if (pid.Name == pis.Name)
+                        (pid.GetSetMethod()).Invoke(d, new[] { pis.GetGetMethod().Invoke(s, null) });
+                }
+            };
+        }
+        public static string ToUnixTime(this DateTime v)
+        {
+            return ((long) (v.Subtract(new DateTime(1970, 1, 1))).TotalSeconds).ToString(CultureInfo.InvariantCulture);
+        }
         public static Hub Clone(this Hub o)
         {
             Hub h = new Hub();
@@ -56,6 +75,64 @@ namespace JMMServer.Plex
             return h;
         }
 
+        private static string Proxyfy(HistoryInfo info)
+        {
+            string key = info.Key;
+            if (key.Contains("/GetMetadata/"))
+                return PlexHelper.PlexProxy(key + "/" + info.ToKey());
+            return PlexHelper.PlexProxy(key);
+        } 
+        public static void FillInfo(this Video m, HistoryInfo info)
+        {
+            if (info != null)
+            {
+                if (info.Key != null)
+                    m.Key = Proxyfy(info);
+                if (info.ParentKey != null)
+                    m.ParentKey = PlexHelper.PlexProxy(info.ParentKey);
+                if (info.GrandParentKey != null)
+                    m.GrandparentKey = PlexHelper.PlexProxy(info.GrandParentKey);
+                m.Title = info.Title ?? "";
+                m.ParentTitle = info.ParentTitle ?? "";
+                m.GrandparentTitle = info.GrandParentTitle ?? "";
+                m.Title1 = info.GrandParentTitle;
+                m.Title2 = info.ParentTitle;
+                m.Art = info.Art;
+                m.ParentArt = info.ParentArt;
+                m.GrandparentArt = info.GrandParentArt;
+                m.Thumb = info.Thumb;
+                m.ParentThumb = info.ParentThumb;
+                m.GrandparentThumb = info.GrandParentThumb;
+            }
+        }
+
+
+        public static void Add(this List<Video> l, Video m, HistoryInfo info)
+        {
+
+            m.FillInfo(info.Update(m));
+            if (m is Directory)
+                m.ParentThumb = m.GrandparentThumb = null;
+            m.GrandparentTitle = m.ParentTitle ?? "";
+            m.ParentTitle = "";
+            m.Title1 = m.Title2="";
+            if (m is Video)
+               m.GrandparentKey = m.ParentKey;
+            m.ParentKey = null;
+            l.Add(m);
+        }
+        public static void Add(this List<Directory> l, Directory m, HistoryInfo info, bool donotparentinfo = false)
+        {
+            m.FillInfo(info.Update(m));
+            m.ParentThumb = m.GrandparentThumb = null;
+            m.GrandparentTitle = m.ParentTitle ?? "";
+            m.ParentTitle = "";
+            if (m is Video)
+                m.GrandparentKey = m.ParentKey;
+            m.ParentKey = null;
+            m.Title1 = m.Title2 = "";
+            l.Add(m);
+        }
         public static Video Clone(this Video o)
         {
             Video v;
@@ -66,6 +143,8 @@ namespace JMMServer.Plex
             v.AddedAt = o.AddedAt;
             v.AirDate = o.AirDate;
             v.Art = PlexHelper.ReplaceSchemeHost(o.Art);
+            v.ParentArt= PlexHelper.ReplaceSchemeHost(o.ParentArt);
+            v.GrandparentArt = PlexHelper.ReplaceSchemeHost(o.GrandparentArt);
             v.ChapterSource = o.ChapterSource;
             v.ContentRating = o.ContentRating;
             v.Duration = o.Duration;
@@ -85,7 +164,6 @@ namespace JMMServer.Plex
             v.Genres = o.Genres;
             v.GrandparentKey = o.GrandparentKey;
             v.GrandparentRatingKey = o.GrandparentRatingKey;
-            v.GrandparentThumb = o.GrandparentThumb;
             v.GrandparentTitle = o.GrandparentTitle;
             v.Group = o.Group;
             v.Guid = o.Guid;
@@ -98,7 +176,6 @@ namespace JMMServer.Plex
             v.ParentIndex = o.ParentIndex;
             v.ParentKey = o.ParentKey;
             v.ParentRatingKey = o.ParentRatingKey;
-            v.ParentThumb = o.ParentThumb;
             v.ParentTitle = o.ParentTitle;
             v.PrimaryExtraKey = o.PrimaryExtraKey;
             v.Rating = o.Rating;
@@ -115,6 +192,8 @@ namespace JMMServer.Plex
             v.Tagline = o.Tagline;
             v.Tags = o.Tags;
             v.Thumb = PlexHelper.ReplaceSchemeHost(o.Thumb);
+            v.ParentThumb = PlexHelper.ReplaceSchemeHost(o.ParentThumb);
+            v.GrandparentThumb = PlexHelper.ReplaceSchemeHost(o.GrandparentThumb);
             v.Title = o.Title;
             v.Type = o.Type;
             v.UpdatedAt = o.UpdatedAt;

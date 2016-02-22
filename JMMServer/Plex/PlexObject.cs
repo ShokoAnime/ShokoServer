@@ -54,8 +54,26 @@ namespace JMMServer.Plex
             set { MediaContainer.Childrens = LimitVideos(value); }
         }
 
+
         public System.IO.Stream GetStream()
         {
+            if (MediaContainer.Childrens.Count > 0 && MediaContainer.Childrens[0].Type == "movie")
+            {
+                MediaContainer.ViewGroup = null;
+                MediaContainer.ViewMode = null;
+            }
+            if (WebOperationContext.Current != null && WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
+            {
+                //Fix for android hang, if the type is populated
+                string kh = WebOperationContext.Current.IncomingRequest.Headers.Get("X-Plex-Product").ToUpper();
+                if (kh.Contains("ANDROID"))
+                {
+                    MediaContainer.Childrens.ForEach(a =>
+                    {
+                        a.Type = null;
+                    });
+                }
+            }
             return PlexHelper.GetStreamFromXmlObject(MediaContainer);
         }
         public PlexObject(MediaContainer m)
@@ -80,11 +98,9 @@ namespace JMMServer.Plex
                     WebOperationContext.Current.OutgoingResponse.ContentType = "text/plain";
                     return false;
                 }
-
                 if ((WebOperationContext.Current.IncomingRequest.UriTemplateMatch != null) && (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters != null))
                 {
-                    if (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains("X-Plex-Container-Start"))
-                        Start = int.Parse(WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters["X-Plex-Container-Start"]);
+
                     if (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains("X-Plex-Container-Size"))
                     {
                         int max = int.Parse(WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters["X-Plex-Container-Size"]);

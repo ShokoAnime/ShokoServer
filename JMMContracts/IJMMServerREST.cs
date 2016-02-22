@@ -22,6 +22,9 @@ namespace JMMContracts
         [OperationContract]
         [WebInvoke(UriTemplate = "GetStream/{cmd}/{arg}/{opt}",Method="*")]
         Stream GetStream(string cmd, string arg,string opt);*/
+        [OperationContract]
+        [WebGet(UriTemplate = "GetSupportImage/{name}/{Ratio}")]
+        Stream GetSupportImage(string name, string ratio);
 
         [OperationContract]
 		[WebGet(UriTemplate = "GetImageUsingPath/{ServerImagePath}")]
