@@ -181,8 +181,9 @@ namespace JMMServer.Databases
                 UpdateSchema_037(versionNumber);
                 UpdateSchema_038(versionNumber);
                 UpdateSchema_039(versionNumber);
+                UpdateSchema_040(versionNumber);
             }
-			catch (Exception ex)
+            catch (Exception ex)
 			{
 				logger.ErrorException("Error updating schema: " + ex.ToString(), ex);
 			}
@@ -1403,6 +1404,24 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
         }
+
+        private static void UpdateSchema_040(int currentVersionNumber)
+        {
+            int thisVersion = 40;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE JMMUser ADD PlexUsers nvarchar(max) NULL");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+
 
         private static void ExecuteSQLCommands(List<string> cmds)
 		{

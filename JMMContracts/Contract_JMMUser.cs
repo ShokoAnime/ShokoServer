@@ -15,5 +15,6 @@ namespace JMMContracts
 		public int IsTraktUser { get; set; }
 		public string HideCategories { get; set; }
 		public int? CanEditServerSettings { get; set; }
+        public string PlexUsers { get; set; }
 	}
 }

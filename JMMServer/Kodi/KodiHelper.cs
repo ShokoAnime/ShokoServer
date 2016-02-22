@@ -211,7 +211,7 @@ namespace JMMServer.Kodi
                 {
                     foreach (JMMContracts.KodiContracts.Stream s in subs)
                     {
-                        s.Key = ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + Base64EncodeUrl(s.File),KodiObject.IsExternalRequest);
+                        s.Key = ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/0/"+Base64EncodeUrl(s.File),KodiObject.IsExternalRequest);
                     }
                     m.Parts[0].Streams.AddRange(subs);
                 }
@@ -221,7 +221,7 @@ namespace JMMServer.Kodi
 
                     p.File = v.FullServerPath;
                     string ff = Path.GetExtension(v.FullServerPath);
-                    p.Key = ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + v.VideoLocalID + "/file" + ff,KodiObject.IsExternalRequest);
+                    p.Key = ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/0/"+v.VideoLocalID + "/file" + ff,KodiObject.IsExternalRequest);
                     p.Accessible = "1";
                     p.Exists = "1";
                     bool vid = false;

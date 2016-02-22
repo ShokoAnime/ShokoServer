@@ -145,6 +145,9 @@
   <data name="plex_parodies" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\plex_parodies.bin;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="plex_playlists" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\plex_playlists.bin;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="plex_specials" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\plex_specials.bin;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>

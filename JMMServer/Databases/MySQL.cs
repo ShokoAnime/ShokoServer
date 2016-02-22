@@ -169,8 +169,9 @@ namespace JMMServer.Databases
                 UpdateSchema_041(versionNumber);
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
+                UpdateSchema_044(versionNumber);
             }
-			catch (Exception ex)
+            catch (Exception ex)
 			{
 				logger.ErrorException("Error updating schema: " + ex.ToString(), ex);
 			}
@@ -1714,7 +1715,22 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
         }
+        private static void UpdateSchema_044(int currentVersionNumber)
+        {
+            int thisVersion = 44;
+            if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE JMMUser ADD PlexUsers text character set utf8");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
         private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

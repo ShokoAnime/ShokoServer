@@ -17,8 +17,9 @@ namespace JMMServer.Entities
 		public int IsTraktUser { get; set; }
 		public string HideCategories { get; set; }
 		public int? CanEditServerSettings { get; set; }
+        public string PlexUsers { get; set; }
 
-		public Contract_JMMUser ToContract()
+        public Contract_JMMUser ToContract()
 		{
 			Contract_JMMUser contract = new Contract_JMMUser();
 
@@ -30,7 +31,7 @@ namespace JMMServer.Entities
 			contract.IsTraktUser = this.IsTraktUser;
 			contract.HideCategories = this.HideCategories;
 			contract.CanEditServerSettings = this.CanEditServerSettings;
-
+            contract.PlexUsers = this.PlexUsers;
 			return contract;
 		}
 
