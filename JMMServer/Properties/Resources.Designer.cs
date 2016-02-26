@@ -61,6 +61,195 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Remove Missing Files.
+        /// </summary>
+        internal static string Action_RemoveMissing {
+            get {
+                return ResourceManager.GetString("Action_RemoveMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run Import.
+        /// </summary>
+        internal static string Action_RunImport {
+            get {
+                return ResourceManager.GetString("Action_RunImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sync My List.
+        /// </summary>
+        internal static string Action_SyncMyList {
+            get {
+                return ResourceManager.GetString("Action_SyncMyList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sync Trakt Collection.
+        /// </summary>
+        internal static string Action_SyncTrakt {
+            get {
+                return ResourceManager.GetString("Action_SyncTrakt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sync Votes.
+        /// </summary>
+        internal static string Action_SyncVotes {
+            get {
+                return ResourceManager.GetString("Action_SyncVotes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update All Media Info.
+        /// </summary>
+        internal static string Action_UpdateAllMediaInfo {
+            get {
+                return ResourceManager.GetString("Action_UpdateAllMediaInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update All Stats.
+        /// </summary>
+        internal static string Action_UpdateAllStats {
+            get {
+                return ResourceManager.GetString("Action_UpdateAllStats", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update All AniDB Series Info.
+        /// </summary>
+        internal static string Action_UpdateAniDB {
+            get {
+                return ResourceManager.GetString("Action_UpdateAniDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update All Trakt Info.
+        /// </summary>
+        internal static string Action_UpdateTrakt {
+            get {
+                return ResourceManager.GetString("Action_UpdateTrakt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update All TvDB Info.
+        /// </summary>
+        internal static string Action_UpdateTvDB {
+            get {
+                return ResourceManager.GetString("Action_UpdateTvDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Upload All Anime data To Azure Cache.
+        /// </summary>
+        internal static string Action_UploadCache {
+            get {
+                return ResourceManager.GetString("Action_UploadCache", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Custom.
+        /// </summary>
+        internal static string Images_Custom {
+            get {
+                return ResourceManager.GetString("Images_Custom", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Default.
+        /// </summary>
+        internal static string Images_Default {
+            get {
+                return ResourceManager.GetString("Images_Default", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to JMM Server.
+        /// </summary>
+        internal static string JMMServer {
+            get {
+                return ResourceManager.GetString("JMMServer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to JMM Server needs to restart to change the language, click OK to restart JMM Server or Cancel the language switch..
+        /// </summary>
+        internal static string Language_Info {
+            get {
+                return ResourceManager.GetString("Language_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Switch Language.
+        /// </summary>
+        internal static string Language_Switch {
+            get {
+                return ResourceManager.GetString("Language_Switch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Learn more about.
+        /// </summary>
+        internal static string LearnMore {
+            get {
+                return ResourceManager.GetString("LearnMore", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/setup/mysql/.
+        /// </summary>
+        internal static string Link_MySQL {
+            get {
+                return ResourceManager.GetString("Link_MySQL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/setup/sqlserver/.
+        /// </summary>
+        internal static string Link_SQLServer {
+            get {
+                return ResourceManager.GetString("Link_SQLServer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MySQL.
+        /// </summary>
+        internal static string MySQL {
+            get {
+                return ResourceManager.GetString("MySQL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        internal static string MySQL_Info {
+            get {
+                return ResourceManager.GetString("MySQL_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
         internal static byte[] plex_404 {
@@ -207,6 +396,240 @@ namespace JMMServer.Properties {
             get {
                 object obj = ResourceManager.GetObject("plex_webclips", resourceCulture);
                 return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Apply.
+        /// </summary>
+        internal static string Settings_Apply {
+            get {
+                return ResourceManager.GetString("Settings_Apply", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Image Path.
+        /// </summary>
+        internal static string Settings_ImagePath {
+            get {
+                return ResourceManager.GetString("Settings_ImagePath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Minimize on Startup.
+        /// </summary>
+        internal static string Settings_Minimize {
+            get {
+                return ResourceManager.GetString("Settings_Minimize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Allow Multiple Instances.
+        /// </summary>
+        internal static string Settings_Multiple {
+            get {
+                return ResourceManager.GetString("Settings_Multiple", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select Folder.
+        /// </summary>
+        internal static string Settings_SelectFolder {
+            get {
+                return ResourceManager.GetString("Settings_SelectFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Server Port.
+        /// </summary>
+        internal static string Settings_ServerPort {
+            get {
+                return ResourceManager.GetString("Settings_ServerPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start With Windows.
+        /// </summary>
+        internal static string Settings_Windows {
+            get {
+                return ResourceManager.GetString("Settings_Windows", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database Name.
+        /// </summary>
+        internal static string Setup_DatabaseName {
+            get {
+                return ResourceManager.GetString("Setup_DatabaseName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database Type.
+        /// </summary>
+        internal static string Setup_DatabaseType {
+            get {
+                return ResourceManager.GetString("Setup_DatabaseType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Password.
+        /// </summary>
+        internal static string Setup_Password {
+            get {
+                return ResourceManager.GetString("Setup_Password", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Save and Start Server.
+        /// </summary>
+        internal static string Setup_SaveStart {
+            get {
+                return ResourceManager.GetString("Setup_SaveStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Server Address.
+        /// </summary>
+        internal static string Setup_ServerAddress {
+            get {
+                return ResourceManager.GetString("Setup_ServerAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Username.
+        /// </summary>
+        internal static string Setup_Username {
+            get {
+                return ResourceManager.GetString("Setup_Username", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SQLite.
+        /// </summary>
+        internal static string SQLite {
+            get {
+                return ResourceManager.GetString("SQLite", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        internal static string SQLite_Info {
+            get {
+                return ResourceManager.GetString("SQLite_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SQL Server.
+        /// </summary>
+        internal static string SQLServer {
+            get {
+                return ResourceManager.GetString("SQLServer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fast performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we&apos;ve created..
+        /// </summary>
+        internal static string SQLServer_Info {
+            get {
+                return ResourceManager.GetString("SQLServer_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SQL Server can use quite a lot of memory.
+        /// </summary>
+        internal static string SQLServer_Memory {
+            get {
+                return ResourceManager.GetString("SQLServer_Memory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Actions.
+        /// </summary>
+        internal static string Tab_Actions {
+            get {
+                return ResourceManager.GetString("Tab_Actions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import Folders.
+        /// </summary>
+        internal static string Tab_ImportFolders {
+            get {
+                return ResourceManager.GetString("Tab_ImportFolders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Settings.
+        /// </summary>
+        internal static string Tab_Settings {
+            get {
+                return ResourceManager.GetString("Tab_Settings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Setup.
+        /// </summary>
+        internal static string Tab_Setup {
+            get {
+                return ResourceManager.GetString("Tab_Setup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to About.
+        /// </summary>
+        internal static string Toolbar_About {
+            get {
+                return ResourceManager.GetString("Toolbar_About", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Logs.
+        /// </summary>
+        internal static string Toolbar_Logs {
+            get {
+                return ResourceManager.GetString("Toolbar_Logs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Messages.
+        /// </summary>
+        internal static string Toolbar_Messages {
+            get {
+                return ResourceManager.GetString("Toolbar_Messages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shutdown.
+        /// </summary>
+        internal static string Toolbar_Shutdown {
+            get {
+                return ResourceManager.GetString("Toolbar_Shutdown", resourceCulture);
             }
         }
     }

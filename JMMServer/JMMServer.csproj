@@ -65,6 +65,10 @@
     <Reference Include="Iesi.Collections">
       <HintPath>..\Dependencies\Iesi.Collections.dll</HintPath>
     </Reference>
+    <Reference Include="Infralution.Localization.Wpf, Version=3.3.0.0, Culture=neutral, PublicKeyToken=91e893994f047aa1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dependencies\Infralution.Localization.Wpf.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=10.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
@@ -645,6 +649,7 @@
     <Compile Include="UnhandledExceptionManager.cs" />
     <Compile Include="UPnPData.cs" />
     <Compile Include="UPnPServerBrowserDialog.cs" />
+    <Compile Include="UserCulture.cs" />
     <Compile Include="Utilities\GroupFilterHelper.cs" />
     <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
     <Compile Include="Utilities\JsonExtensions.cs" />
@@ -722,6 +727,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <EmbeddedResource Include="Properties\Resources.de.resx" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -877,6 +883,50 @@
       <Isolated>False</Isolated>
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Flags\ar.gif" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Flags\au_australia.gif" />
+    <Resource Include="Images\Flags\bd.gif" />
+    <Resource Include="Images\Flags\bg.gif" />
+    <Resource Include="Images\Flags\br.gif" />
+    <Resource Include="Images\Flags\ca.gif" />
+    <Resource Include="Images\Flags\cn.gif" />
+    <Resource Include="Images\Flags\cz.gif" />
+    <Resource Include="Images\Flags\de_germany.gif" />
+    <Resource Include="Images\Flags\dk.gif" />
+    <Resource Include="Images\Flags\es.gif" />
+    <Resource Include="Images\Flags\et.gif" />
+    <Resource Include="Images\Flags\fi.gif" />
+    <Resource Include="Images\Flags\fr.gif" />
+    <Resource Include="Images\Flags\gl.gif" />
+    <Resource Include="Images\Flags\gr.gif" />
+    <Resource Include="Images\Flags\hu.gif" />
+    <Resource Include="Images\Flags\il.gif" />
+    <Resource Include="Images\Flags\it.gif" />
+    <Resource Include="Images\Flags\jp.gif" />
+    <Resource Include="Images\Flags\ko.gif" />
+    <Resource Include="Images\Flags\lt.gif" />
+    <Resource Include="Images\Flags\mn.gif" />
+    <Resource Include="Images\Flags\my.gif" />
+    <Resource Include="Images\Flags\nl.gif" />
+    <Resource Include="Images\Flags\no.gif" />
+    <Resource Include="Images\Flags\pl.gif" />
+    <Resource Include="Images\Flags\ro.gif" />
+    <Resource Include="Images\Flags\ru.gif" />
+    <Resource Include="Images\Flags\se.gif" />
+    <Resource Include="Images\Flags\sk.gif" />
+    <Resource Include="Images\Flags\sl.gif" />
+    <Resource Include="Images\Flags\sr.gif" />
+    <Resource Include="Images\Flags\sv.gif" />
+    <Resource Include="Images\Flags\th.gif" />
+    <Resource Include="Images\Flags\tr.gif" />
+    <Resource Include="Images\Flags\ua.gif" />
+    <Resource Include="Images\Flags\uk_unitedkingdom.gif" />
+    <Resource Include="Images\Flags\us.gif" />
+    <Resource Include="Images\Flags\vi.gif" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

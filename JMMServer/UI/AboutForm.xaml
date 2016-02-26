@@ -34,7 +34,7 @@
             <StackPanel Orientation="Horizontal"  Margin="0,0,0,5">
                 <Image Height="24" Width="24" Source="/Images/32_WebDatabase.png" Margin="0,0,5,0"/>
 
-                <TextBlock Margin="5,0,0,0" FontWeight="DemiBold" Text="JMM Server" FontSize="20" VerticalAlignment="Center"/>
+                <TextBlock Margin="5,0,0,0" FontWeight="DemiBold" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=JMMServer}" FontSize="20" VerticalAlignment="Center"/>
                 <TextBlock Margin="10,0,0,0" FontWeight="DemiBold" FontSize="20" Foreground="DarkGray" Text="{Binding Source={x:Static local:ServerState.Instance},Path=ApplicationVersion}" VerticalAlignment="Center"/>
 
 

@@ -66,6 +66,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"></RowDefinition>
                     <RowDefinition Height="Auto"></RowDefinition>
+                    <RowDefinition Height="Auto"></RowDefinition>
                 </Grid.RowDefinitions>
 
                 <Grid.ColumnDefinitions>
@@ -77,6 +78,12 @@
                 <TextBlock VerticalAlignment="Center" Text="Import folders are the the base locations where you keep your anime. You will need to add at least one folder and then select 'Run Import' on the Actions tab" Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1"/>
                 <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,5,5,5" DisplayText="Detailed explanation of options"
                                                                         URL="http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders"/>
+                <Image Height="16" Width="16" Source="/Images/32_info.png" Margin="5,2,5,0" Grid.Column="0" Grid.Row="2" VerticalAlignment="Top"/>
+                <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="2" Margin="0,0,5,0">
+                    <TextBlock VerticalAlignment="Center" Text="Fix for using" Margin="0,0,5,0"/>
+                    <local:HyperLinkStandard VerticalAlignment="Center" Margin="0,0,5,0" DisplayText="JMM Server with shared drives"
+                                                                        URL="http://jmediamanager.org/faq/#jmm-shared-drive"/>
+                </StackPanel>
             </Grid>
         </Border>
 

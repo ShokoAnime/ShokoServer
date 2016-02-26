@@ -163,4 +163,145 @@
   <data name="plex_webclips" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\plex_webclips.bin;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="JMMServer" xml:space="preserve">
+    <value>JMM Server</value>
+  </data>
+  <data name="Action_RunImport" xml:space="preserve">
+    <value>Run Import</value>
+  </data>
+  <data name="Action_RemoveMissing" xml:space="preserve">
+    <value>Remove Missing Files</value>
+  </data>
+  <data name="Action_SyncMyList" xml:space="preserve">
+    <value>Sync My List</value>
+  </data>
+  <data name="Action_SyncTrakt" xml:space="preserve">
+    <value>Sync Trakt Collection</value>
+  </data>
+  <data name="Action_SyncVotes" xml:space="preserve">
+    <value>Sync Votes</value>
+  </data>
+  <data name="Action_UpdateAniDB" xml:space="preserve">
+    <value>Update All AniDB Series Info</value>
+  </data>
+  <data name="Action_UpdateTvDB" xml:space="preserve">
+    <value>Update All TvDB Info</value>
+  </data>
+  <data name="Action_UpdateTrakt" xml:space="preserve">
+    <value>Update All Trakt Info</value>
+  </data>
+  <data name="Action_UpdateAllStats" xml:space="preserve">
+    <value>Update All Stats</value>
+  </data>
+  <data name="Action_UpdateAllMediaInfo" xml:space="preserve">
+    <value>Update All Media Info</value>
+  </data>
+  <data name="Action_UploadCache" xml:space="preserve">
+    <value>Upload All Anime data To Azure Cache</value>
+  </data>
+  <data name="Toolbar_Shutdown" xml:space="preserve">
+    <value>Shutdown</value>
+  </data>
+  <data name="Toolbar_About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Toolbar_Logs" xml:space="preserve">
+    <value>Logs</value>
+  </data>
+  <data name="Toolbar_Messages" xml:space="preserve">
+    <value>Messages</value>
+  </data>
+  <data name="Tab_Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Tab_ImportFolders" xml:space="preserve">
+    <value>Import Folders</value>
+  </data>
+  <data name="Tab_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Tab_Setup" xml:space="preserve">
+    <value>Setup</value>
+  </data>
+  <data name="Settings_Windows" xml:space="preserve">
+    <value>Start With Windows</value>
+  </data>
+  <data name="Settings_Multiple" xml:space="preserve">
+    <value>Allow Multiple Instances</value>
+  </data>
+  <data name="Settings_Minimize" xml:space="preserve">
+    <value>Minimize on Startup</value>
+  </data>
+  <data name="Settings_SelectFolder" xml:space="preserve">
+    <value>Select Folder</value>
+  </data>
+  <data name="Settings_ImagePath" xml:space="preserve">
+    <value>Image Path</value>
+  </data>
+  <data name="Settings_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Settings_ServerPort" xml:space="preserve">
+    <value>Server Port</value>
+  </data>
+  <data name="Setup_ServerAddress" xml:space="preserve">
+    <value>Server Address</value>
+  </data>
+  <data name="Setup_DatabaseType" xml:space="preserve">
+    <value>Database Type</value>
+  </data>
+  <data name="Setup_Username" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="Setup_Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Setup_DatabaseName" xml:space="preserve">
+    <value>Database Name</value>
+  </data>
+  <data name="Setup_SaveStart" xml:space="preserve">
+    <value>Save and Start Server</value>
+  </data>
+  <data name="SQLite" xml:space="preserve">
+    <value>SQLite</value>
+  </data>
+  <data name="SQLServer" xml:space="preserve">
+    <value>SQL Server</value>
+  </data>
+  <data name="MySQL" xml:space="preserve">
+    <value>MySQL</value>
+  </data>
+  <data name="Link_SQLServer" xml:space="preserve">
+    <value>http://jmediamanager.org/setup/sqlserver/</value>
+  </data>
+  <data name="Link_MySQL" xml:space="preserve">
+    <value>http://jmediamanager.org/setup/mysql/</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fast performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we've created.</value>
+  </data>
+  <data name="MySQL_Info" xml:space="preserve">
+    <value></value>
+  </data>
+  <data name="SQLite_Info" xml:space="preserve">
+    <value></value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Learn more about</value>
+  </data>
+  <data name="SQLServer_Memory" xml:space="preserve">
+    <value>SQL Server can use quite a lot of memory</value>
+  </data>
+  <data name="Language_Switch" xml:space="preserve">
+    <value>Switch Language</value>
+  </data>
+  <data name="Language_Info" xml:space="preserve">
+    <value>JMM Server needs to restart to change the language, click OK to restart JMM Server or Cancel the language switch.</value>
+  </data>
+  <data name="Images_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Images_Custom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
 </root>

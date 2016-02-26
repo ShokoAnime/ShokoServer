@@ -44,12 +44,17 @@ using JMMServer.UI;
 using System.ServiceModel.Dispatcher;
 using BinaryNorthwest;
 using System.Collections;
+using System.Collections.Specialized;
+using System.Configuration;
 using System.ServiceModel.Web;
 using JMMServer.Providers.Azure;
 using JMMServer.Commands.Azure;
 using TMDbLib.Objects.General;
 using JMMServer.Providers.TraktTV.Contracts;
 using System.Xml.Serialization;
+using System.Windows.Controls;
+using System.Globalization;
+using Infralution.Localization.Wpf;
 
 namespace JMMServer
 {
@@ -120,7 +125,9 @@ namespace JMMServer
 
 		BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
-		public static Uri baseAddressBinary
+        public static List<UserCulture> userLanguages = new List<UserCulture>();
+
+        public static Uri baseAddressBinary
 		{
 			get
 			{
@@ -202,6 +209,8 @@ namespace JMMServer
 			try
 			{
 				UnhandledExceptionManager.AddHandler();
+
+                InitCulture();
 			}
 			catch {}
 
@@ -319,13 +328,17 @@ namespace JMMServer
 
 			cboDatabaseType.Items.Clear();
 			cboDatabaseType.Items.Add("SQLite");
-			cboDatabaseType.Items.Add("Microsoft SQL Server 2008");
+			cboDatabaseType.Items.Add("Microsoft SQL Server 2014");
 			cboDatabaseType.Items.Add("MySQL");
 			cboDatabaseType.SelectionChanged += new System.Windows.Controls.SelectionChangedEventHandler(cboDatabaseType_SelectionChanged);
 
-			cboImagesPath.Items.Clear();
-			cboImagesPath.Items.Add("Default");
-			cboImagesPath.Items.Add("Custom");
+            NameValueCollection appSettings = ConfigurationManager.AppSettings;
+            string cult = appSettings["Culture"];
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+            cboImagesPath.Items.Clear();
+			cboImagesPath.Items.Add(JMMServer.Properties.Resources.Images_Default);
+			cboImagesPath.Items.Add(JMMServer.Properties.Resources.Images_Custom);
 			cboImagesPath.SelectionChanged += new System.Windows.Controls.SelectionChangedEventHandler(cboImagesPath_SelectionChanged);
 			btnChooseImagesFolder.Click += new RoutedEventHandler(btnChooseImagesFolder_Click);
 
@@ -336,13 +349,15 @@ namespace JMMServer
 
 			btnSaveDatabaseSettings.Click += new RoutedEventHandler(btnSaveDatabaseSettings_Click);
 			btnRefreshMSSQLServerList.Click += new RoutedEventHandler(btnRefreshMSSQLServerList_Click);
-			btnInstallMSSQLServer.Click += new RoutedEventHandler(btnInstallMSSQLServer_Click);
+			// btnInstallMSSQLServer.Click += new RoutedEventHandler(btnInstallMSSQLServer_Click);
 			btnMaxOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
 			btnMinOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
 			btnLogs.Click += new RoutedEventHandler(btnLogs_Click);
 			btnChooseVLCLocation.Click += new RoutedEventHandler(btnChooseVLCLocation_Click);
+            btnJMMStartWithWindows.Click += new RoutedEventHandler(btnJMMStartWithWindows_Click);
 
-			btnAllowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
+
+            btnAllowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
 			btnDisallowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
 
 			btnHasherClear.Click += new RoutedEventHandler(btnHasherClear_Click);
@@ -353,7 +368,9 @@ namespace JMMServer
 
 			ServerState.Instance.LoadSettings();
             workerFileEvents.RunWorkerAsync();
-		}
+
+            cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
+        }
 
         private void BtnUpdateTraktInfo_Click(object sender, RoutedEventArgs e)
         {
@@ -556,16 +573,74 @@ namespace JMMServer
 			ServerState.Instance.MaxOnStartup = !ServerState.Instance.MaxOnStartup;
 		}
 
+        /*
 		void btnInstallMSSQLServer_Click(object sender, RoutedEventArgs e)
 		{
 			System.Diagnostics.Process.Start("http://www.microsoft.com/web/gallery/install.aspx?appsxml=&appid=SQLExpressTools");
 		}
+        */
+
+        void btnJMMStartWithWindows_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Process.Start("http://jmediamanager.org/jmm-server/configuring-jmm-server/#jmm-start-with-windows");
+        }
 
 
 
+        void cboLanguages_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            SetCulture();
+        }
+
+        void InitCulture()
+        {
+            try
+            {
+                string currentCulture = ServerSettings.Culture;
+
+                cboLanguages.ItemsSource = UserCulture.SupportedLanguages;
+
+                for (int i = 0; i < cboLanguages.Items.Count; i++)
+                {
+                    UserCulture ul = cboLanguages.Items[i] as UserCulture;
+                    if (ul.Culture.Trim().ToUpper() == currentCulture.Trim().ToUpper())
+                    {
+                        cboLanguages.SelectedIndex = i;
+                        break;
+                    }
+
+                }
+                if (cboLanguages.SelectedIndex < 0)
+                    cboLanguages.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+            }
+
+        }
+
+        private void SetCulture()
+        {
+            if (cboLanguages.SelectedItem == null) return;
+            UserCulture ul = cboLanguages.SelectedItem as UserCulture;
+
+            try
+            {
+                CultureInfo ci = new CultureInfo(ul.Culture);
+                CultureManager.UICulture = ci;
+
+                ServerSettings.Culture = ul.Culture;
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+            }
+
+        }
 
 
-		void btnChooseVLCLocation_Click(object sender, RoutedEventArgs e)
+        void btnChooseVLCLocation_Click(object sender, RoutedEventArgs e)
 		{
 			string errorMsg = "";
 			string streamingAddress = "";

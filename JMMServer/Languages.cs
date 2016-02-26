@@ -35,7 +35,64 @@ namespace JMMServer
 			}
 		}
 
-		public static string GetLanguageDescription(string language)
+        public static string GetFlagImage(string language)
+        {
+            switch (language.Trim().ToUpper())
+            {
+                case "EN": return @"/Images/Flags/uk_unitedkingdom.gif";
+                case "X-JAT": return @"/Images/Flags/jp.gif";
+                case "JA": return @"/Images/Flags/jp.gif";
+                case "AR": return @"/Images/Flags/ar.gif"; // Arabic
+                case "BD": return @"/Images/Flags/bd.gif"; // Bangladesh
+                case "BG": return @"/Images/Flags/bg.gif"; // Bulgarian
+                case "CA": return @"/Images/Flags/ca.gif"; // Canadian
+                case "CS": return @"/Images/Flags/cz.gif"; // Czech
+                case "CZ": return @"/Images/Flags/cz.gif"; // Czech
+                case "DA": return @"/Images/Flags/dk.gif"; // Danish
+                case "DK": return @"/Images/Flags/dk.gif"; // Danish
+                case "DE": return @"/Images/Flags/de_germany.gif"; // German
+                case "EL": return @"/Images/Flags/gr.gif"; // Greek
+                case "ES": return @"/Images/Flags/es.gif"; // Spanish
+                case "ET": return @"/Images/Flags/et.gif"; // Estonian
+                case "FI": return @"/Images/Flags/fi.gif"; // Finnish
+                case "FR": return @"/Images/Flags/fr.gif"; // french
+                case "GL": return @"/Images/Flags/gl.gif"; // Galician
+                case "GR": return @"/Images/Flags/gr.gif"; // Greek
+                case "HE": return @"/Images/Flags/il.gif"; // Hebrew
+                case "HU": return @"/Images/Flags/hu.gif"; // Hungarian
+                case "IL": return @"/Images/Flags/il.gif"; // Hebrew
+                case "IT": return @"/Images/Flags/it.gif"; // Italy
+                case "KO": return @"/Images/Flags/ko.gif"; // Korean
+                case "LT": return @"/Images/Flags/lt.gif"; // Lithuanian
+                case "MN": return @"/Images/Flags/mn.gif"; // Mongolian
+                case "MS": return @"/Images/Flags/my.gif"; // Malaysian
+                case "MY": return @"/Images/Flags/my.gif"; // Malaysian
+                case "NL": return @"/Images/Flags/nl.gif"; // Dutch
+                case "NO": return @"/Images/Flags/no.gif"; // Norwegian
+                case "PL": return @"/Images/Flags/pl.gif"; // Polish
+                case "PT": return @"/Images/Flags/pt.gif"; // Portuguese
+                case "PT-BR": return @"/Images/Flags/br.gif"; // Portuguese - Brazil
+                case "RO": return @"/Images/Flags/ro.gif"; // Romanian
+                case "RU": return @"/Images/Flags/ru.gif"; // Russian
+                case "SK": return @"/Images/Flags/sk.gif"; // Slovak
+                case "SL": return @"/Images/Flags/sl.gif"; // Slovenian
+                case "SR": return @"/Images/Flags/sr.gif"; // Serbian
+                case "SV": return @"/Images/Flags/se.gif"; // Swedish
+                case "SE": return @"/Images/Flags/se.gif"; // Swedish
+                case "TH": return @"/Images/Flags/th.gif"; // Thai
+                case "TR": return @"/Images/Flags/tr.gif"; // Turkish
+                case "UK": return @"/Images/Flags/ua.gif"; // Ukrainian
+                case "UA": return @"/Images/Flags/ua.gif"; // Ukrainian
+                case "VI": return @"/Images/Flags/vi.gif"; // Vietnamese
+                case "ZH": return @"/Images/Flags/cn.gif"; // Chinese
+                case "ZH-HANS": return @"/Images/Flags/cn.gif"; // Chinese (Simplified)
+                case "ZH-HANT": return @"/Images/Flags/cn.gif"; // Chinese (Traditional)
+                default: return @"/Images/32_warning.png";
+
+            }
+        }
+
+        public static string GetLanguageDescription(string language)
 		{
 			switch (language.Trim().ToUpper())
 			{
