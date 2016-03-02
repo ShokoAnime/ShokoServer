@@ -58,12 +58,12 @@ namespace JMMServer.Commands
 					paused = value;
 					if (paused)
 					{
-						QueueState = "Paused";
+						QueueState = JMMServer.Properties.Resources.Command_Paused;
 						pauseTime = DateTime.Now;
 					}
 					else
 					{
-						QueueState = "Idle";
+						QueueState = JMMServer.Properties.Resources.Command_Idle;
 						pauseTime = null;
 					}
 
@@ -93,7 +93,7 @@ namespace JMMServer.Commands
 			}
 		}
 
-		private string queueState = "Idle";
+		private string queueState = JMMServer.Properties.Resources.Command_Idle;
 		public string QueueState
 		{
 			get
@@ -130,7 +130,7 @@ namespace JMMServer.Commands
 		{
 			processingCommands = false;
 			//logger.Trace("Stopping command worker (hasher)...");
-			QueueState = "Idle";
+			QueueState = JMMServer.Properties.Resources.Command_Idle;
 			QueueCount = 0;
 		}
 
@@ -138,7 +138,7 @@ namespace JMMServer.Commands
 		{
 			processingCommands = true;
 			//logger.Trace("Starting command worker (hasher)...");
-			QueueState = "Starting command worker (hasher)...";
+		    QueueState = JMMServer.Properties.Resources.Command_StartingHasher;
 			this.workerCommands.RunWorkerAsync();
 		}
 

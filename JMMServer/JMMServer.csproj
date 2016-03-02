@@ -325,6 +325,11 @@
     <Compile Include="Plex\PlexHelper.cs" />
     <Compile Include="Plex\PlexObject.cs" />
     <Compile Include="Plex\Utf8SringWriter.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="Providers\Azure\Azure_AdminMessage.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeIDTitle.cs" />
     <Compile Include="Providers\Azure\Azure_AnimeLink.cs" />
@@ -716,11 +721,6 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>

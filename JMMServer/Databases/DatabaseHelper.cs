@@ -75,13 +75,13 @@ namespace JMMServer.Databases
 					}
 
 					JMMService.CloseSessionFactory();
-					ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Initializing;
 					ISessionFactory temp = JMMService.SessionFactory;
 
-					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateSchema;
 					SQLServer.CreateInitialSchema();
 
-					ServerState.Instance.CurrentSetupStatus = "Database - Applying Schema Patches...";
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_ApplySchema;
 					SQLServer.UpdateSchema();
 
 					PopulateInitialData();
@@ -91,18 +91,18 @@ namespace JMMServer.Databases
 				}
 				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE")
 				{
-					ServerState.Instance.CurrentSetupStatus = "Database - Creating Database...";
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateDatabase;
 					SQLite.CreateDatabase();
 
 					JMMService.CloseSessionFactory();
-					ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
-					ISessionFactory temp = JMMService.SessionFactory;
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Initializing;
+                    ISessionFactory temp = JMMService.SessionFactory;
 
-					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
-					SQLite.CreateInitialSchema();
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateSchema;
+                    SQLite.CreateInitialSchema();
 
-					ServerState.Instance.CurrentSetupStatus = "Database - Applying Schema Patches...";
-					SQLite.UpdateSchema();
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_ApplySchema;
+                    SQLite.UpdateSchema();
 
 					PopulateInitialData();
                     DatabaseHelper.CreateInitialCustomTags();
@@ -112,21 +112,21 @@ namespace JMMServer.Databases
 				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL")
 				{
 					logger.Trace("Database - Creating Database...");
-					ServerState.Instance.CurrentSetupStatus = "Database - Creating Database...";
-					MySQL.CreateDatabase();
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateDatabase;
+                    MySQL.CreateDatabase();
 
 					logger.Trace("Initializing Session Factory...");
 					JMMService.CloseSessionFactory();
-					ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
-					ISessionFactory temp = JMMService.SessionFactory;
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Initializing;
+                    ISessionFactory temp = JMMService.SessionFactory;
 
 					logger.Trace("Database - Creating Initial Schema...");
-					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
-					MySQL.CreateInitialSchema();
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateSchema;
+                    MySQL.CreateInitialSchema();
 
 					logger.Trace("Database - Applying Schema Patches...");
-					ServerState.Instance.CurrentSetupStatus = "Database - Applying Schema Patches...";
-					MySQL.UpdateSchema();
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_ApplySchema;
+                    MySQL.UpdateSchema();
 					//MySQL.UpdateSchema_Fix();
 
 					PopulateInitialData();
@@ -206,7 +206,7 @@ namespace JMMServer.Databases
 
 			// Missing Episodes
 			gf = new GroupFilter();
-			gf.GroupFilterName = "Missing Episodes";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_MissingEpisodes;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
 
@@ -221,7 +221,7 @@ namespace JMMServer.Databases
 
 			// Newly Added Series
 			gf = new GroupFilter();
-			gf.GroupFilterName = "Newly Added Series";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_Added;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
 
@@ -236,7 +236,7 @@ namespace JMMServer.Databases
 
 			// Newly Airing Series
 			gf = new GroupFilter();
-			gf.GroupFilterName = "Newly Airing Series";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_Airing;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
 
@@ -251,7 +251,7 @@ namespace JMMServer.Databases
 
 			// Votes Needed
 			gf = new GroupFilter();
-			gf.GroupFilterName = "Votes Needed";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_Votes;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
 
@@ -280,7 +280,7 @@ namespace JMMServer.Databases
 
 			// Recently Watched
 			gf = new GroupFilter();
-			gf.GroupFilterName = "Recently Watched";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_RecentlyWatched;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
 
@@ -295,7 +295,7 @@ namespace JMMServer.Databases
 
 			// TvDB/MovieDB Link Missing
 			gf = new GroupFilter();
-			gf.GroupFilterName = "TvDB/MovieDB Link Missing";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_LinkMissing;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
 

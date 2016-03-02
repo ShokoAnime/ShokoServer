@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:JMMServer"
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
-        Title="Initial Setup" MinHeight="200" MinWidth="500" Name="aboutWindow" Icon="/JMMServer;component/db.ico">
+        Title="{Resx ResxName=JMMServer.Properties.Resources, Key=InitialSetup_InitialSetup}" MinHeight="200" MinWidth="500" Name="aboutWindow" Icon="/JMMServer;component/db.ico">
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>
@@ -31,7 +31,7 @@
         <Border Grid.Row="0" Grid.Column="0" Margin="0" Padding="5" Background="White" BorderBrush="LightGray" BorderThickness="1">
             <StackPanel Orientation="Horizontal"  Margin="0,0,0,5">
                 <Image Height="24" Width="24" Source="/Images/32_WebDatabase.png" Margin="0,0,5,0"/>
-                <TextBlock Margin="5,0,0,0" FontWeight="DemiBold" Text="Initial Setup" FontSize="20" VerticalAlignment="Center"/>
+                <TextBlock Margin="5,0,0,0" FontWeight="DemiBold" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=InitialSetup_InitialSetup}" FontSize="20" VerticalAlignment="Center"/>
 
             </StackPanel>
         </Border>
@@ -51,31 +51,31 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Margin="10,5,5,5"  Text="AniDB Username"  VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="0" Grid.Column="0" Margin="10,5,5,5"  Text="{Resx ResxName=JMMServer.Properties.Resources, Key=InitialSetup_AniDBUsername}"  VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="1" Margin="5" Name="txtUsername" Width="150"  VerticalAlignment="Center" HorizontalAlignment="Left"
                          Text="{Binding Source={x:Static local:ServerState.Instance},Path=AniDB_Username}"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Margin="10,5,5,5"  Text="AniDB Password"  VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Margin="10,5,5,5"  Text="{Resx ResxName=JMMServer.Properties.Resources, Key=InitialSetup_AniDBPassword}"  VerticalAlignment="Center"/>
                 <PasswordBox Grid.Row="1" Grid.Column="1" Width="150" Margin="5" VerticalAlignment="Center" x:Name="txtPassword" 
                              local:PasswordBoxAssistant.BindPassword="true"  HorizontalAlignment="Left"
                              local:PasswordBoxAssistant.BoundPassword="{Binding Source={x:Static local:ServerState.Instance},Path=AniDB_Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Margin="10,5,5,5"  Text="AniDB Client Port"  VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="10,5,5,5"  Text="{Resx ResxName=JMMServer.Properties.Resources, Key=InitialSetup_AniDBClientPort}"  VerticalAlignment="Center"/>
                 <TextBox Grid.Row="2" Grid.Column="1" Margin="5" Name="txtClientPort" Width="50"  VerticalAlignment="Center" HorizontalAlignment="Left"
                          Text="{Binding Source={x:Static local:ServerState.Instance},Path=AniDB_ClientPort}"/>
 
                 <Button Grid.Row="3" Grid.Column="0" Name="btnTestConnection" Margin="10,5,5,15" Style="{DynamicResource RoundButtonStyle}">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
                         <Image Height="16" Width="16" Source="/Images/16_key.png" Margin="0,0,5,0"/>
-                        <TextBlock VerticalAlignment="Center" Text="Test Login" Margin="0,0,5,0"/>
+                        <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=InitialSetup_Test}" Margin="0,0,5,0"/>
                     </StackPanel>
                 </Button>
                 <TextBlock Grid.Row="3" Grid.Column="1" Margin="5,0,5,5"  Text="{Binding Source={x:Static local:ServerState.Instance},Path=AniDB_TestStatus}"  VerticalAlignment="Center"/>
 
                 <StackPanel Orientation="Horizontal" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="10,5,5,5" VerticalAlignment="Center">
                     <Image Height="16" Width="16" Source="/Images/anidb.ico" Margin="0,0,5,0"/>
-                    <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="5" DisplayText="Get an AniDB account now"
-                                                                        URL="http://anidb.net"/>
+                    <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="5" DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=InitialSetup_Get}"
+                                                                        URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_AniDB}"/>
                 </StackPanel>
                 
             </Grid>

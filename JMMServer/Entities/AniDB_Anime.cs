@@ -54,6 +54,7 @@ namespace JMMServer.Entities
 		public int? AnimeNfo { get; set; }
 		public int? LatestEpisodeNumber { get; set; }
 		public int DisableExternalLinksFlag { get; set; }
+
 		#endregion
 
 		private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -89,13 +90,13 @@ namespace JMMServer.Entities
 			{
 				switch (AnimeTypeEnum)
 				{
-					case enAnimeType.Movie: return "Movie";
-					case enAnimeType.Other: return "Other";
-					case enAnimeType.OVA: return "OVA";
-					case enAnimeType.TVSeries: return "TV Series";
-					case enAnimeType.TVSpecial: return "TV Special";
-					case enAnimeType.Web: return "Web";
-					default: return "Other";
+					case enAnimeType.Movie: return JMMServer.Properties.Resources.AnimeType_Movie;
+					case enAnimeType.Other: return JMMServer.Properties.Resources.AnimeType_Other;
+					case enAnimeType.OVA: return JMMServer.Properties.Resources.AnimeType_OVA;
+					case enAnimeType.TVSeries: return JMMServer.Properties.Resources.AnimeType_TVSeries;
+					case enAnimeType.TVSpecial: return JMMServer.Properties.Resources.AnimeType_TVSpecial;
+					case enAnimeType.Web: return JMMServer.Properties.Resources.AnimeType_Web;
+					default: return JMMServer.Properties.Resources.AnimeType_Other;
 
 				}
 			}

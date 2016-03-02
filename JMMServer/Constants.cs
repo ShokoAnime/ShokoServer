@@ -26,7 +26,7 @@ namespace JMMServer
 
 		public struct GroupFilterName
 		{
-			public static readonly string ContinueWatching = "Continue Watching (SYSTEM)";
+			public static readonly string ContinueWatching = JMMServer.Properties.Resources.Filter_Continue;
 		}
 
 		public struct DatabaseType
@@ -204,12 +204,12 @@ namespace JMMServer
 
 		public struct EpisodeTypeStrings
 		{
-			public static readonly string Normal = "Episodes";
-			public static readonly string Credits = "Credits";
-			public static readonly string Specials = "Specials";
-			public static readonly string Trailer = "Trailer";
-			public static readonly string Parody = "Parody";
-			public static readonly string Other = "Other";
+			public static readonly string Normal = JMMServer.Properties.Resources.EpisodeType_Episodes;
+			public static readonly string Credits = JMMServer.Properties.Resources.EpisodeType_Credits;
+			public static readonly string Specials = JMMServer.Properties.Resources.EpisodeType_Specials;
+			public static readonly string Trailer = JMMServer.Properties.Resources.EpisodeType_Trailer;
+			public static readonly string Parody = JMMServer.Properties.Resources.EpisodeType_Parody;
+			public static readonly string Other = JMMServer.Properties.Resources.EpisodeType_Other;
 		}
 
 		public struct TvDBURLs

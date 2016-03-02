@@ -266,9 +266,10 @@ namespace JMMServer
 			ServerInfo.Instance.WaitingOnResponseAniDBUDP = isWaiting;
 
 			if (isWaiting)
-				ServerInfo.Instance.WaitingOnResponseAniDBUDPString = "Waiting on response...";
+				ServerInfo.Instance.WaitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.AniDB_ResponseWait;
 			else
-				ServerInfo.Instance.WaitingOnResponseAniDBUDPString = "Idle";
+
+				ServerInfo.Instance.WaitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.Command_Idle;
 
 			if (isWaiting)
 				WaitingOnResponseTime = DateTime.Now;

@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:JMMServer"
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
-        Title="JMM Server" MinHeight="200" MinWidth="500" Name="aboutWindow" Icon="/JMMServer;component/db.ico" Height="238.636">
+        Title="{Resx ResxName=JMMServer.Properties.Resources, Key=JMMServer}" MinHeight="200" MinWidth="500" Name="aboutWindow" Icon="/JMMServer;component/db.ico" Height="238.636">
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>
@@ -57,17 +57,17 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Margin="5,6"  Text="Home Page"  VerticalAlignment="Center"/>
-                <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="5,6,5,5" DisplayText="http://jmediamanager.org"
-                                                                        URL="http://jmediamanager.org"/>
+                <TextBlock Grid.Row="0" Grid.Column="0" Margin="5,6"  Text="{Resx ResxName=JMMServer.Properties.Resources, Key=About_Home}"  VerticalAlignment="Center"/>
+                <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="5,6,5,5" DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_Home}"
+                                                                        URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_Home}"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Margin="5,6"  Text="JMM Blog"  VerticalAlignment="Center"/>
-                <local:HyperLinkStandard Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="5,5,5,6" DisplayText="http://jmediamanager.org/blog"
-                                                                        URL="http://jmediamanager.org/blog"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="5,6"  Text="{Resx ResxName=JMMServer.Properties.Resources, Key=About_Blog}"  VerticalAlignment="Center"/>
+                <local:HyperLinkStandard Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="5,5,5,6" DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_Blog}"
+                                                                        URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_Blog}"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Margin="5,4.864,5,6"  Text="Project Page"  VerticalAlignment="Center"/>
-                <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="5,4.864,5,5" DisplayText="https://github.com/japanesemediamanager"
-                                                                        URL="https://github.com/japanesemediamanager"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Margin="5,4.864,5,6"  Text="{Resx ResxName=JMMServer.Properties.Resources, Key=About_Project}" VerticalAlignment="Center"/>
+                <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="5,4.864,5,5" DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_GitHub}"
+                                                                        URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_Github}"/>
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Margin="5,2,5,46"  Text="MediaPortal Forum"  VerticalAlignment="Center"/>
                 <local:HyperLinkStandard Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="5,2,5,47" DisplayText="http://forum.team-mediaportal.com/threads/my-anime-3.107475/"
@@ -76,7 +76,7 @@
                 <Button Grid.Row="3" Grid.Column="0" Name="btnUpdates" Margin="5,30,5,-5" Style="{DynamicResource RoundButtonStyle}" Grid.RowSpan="2">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
 
-                        <TextBlock VerticalAlignment="Center" Text="Check for Updates" Margin="5,0,5,0"/>
+                        <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=About_UpdateCheck}" Margin="5,0,5,0"/>
                     </StackPanel>
                 </Button>
             </Grid>

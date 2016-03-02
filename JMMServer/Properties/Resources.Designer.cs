@@ -61,101 +61,551 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to JMM Blog.
+        /// </summary>
+        internal static string About_Blog {
+            get {
+                return ResourceManager.GetString("About_Blog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Home Page.
+        /// </summary>
+        internal static string About_Home {
+            get {
+                return ResourceManager.GetString("About_Home", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Project Page.
+        /// </summary>
+        internal static string About_Project {
+            get {
+                return ResourceManager.GetString("About_Project", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Check for Updates.
+        /// </summary>
+        internal static string About_UpdateCheck {
+            get {
+                return ResourceManager.GetString("About_UpdateCheck", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Remove Missing Files.
         /// </summary>
-        internal static string Action_RemoveMissing {
+        internal static string Actions_RemoveMissing {
             get {
-                return ResourceManager.GetString("Action_RemoveMissing", resourceCulture);
+                return ResourceManager.GetString("Actions_RemoveMissing", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Run Import.
         /// </summary>
-        internal static string Action_RunImport {
+        internal static string Actions_RunImport {
             get {
-                return ResourceManager.GetString("Action_RunImport", resourceCulture);
+                return ResourceManager.GetString("Actions_RunImport", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Sync My List.
         /// </summary>
-        internal static string Action_SyncMyList {
+        internal static string Actions_SyncMyList {
             get {
-                return ResourceManager.GetString("Action_SyncMyList", resourceCulture);
+                return ResourceManager.GetString("Actions_SyncMyList", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Sync Trakt Collection.
         /// </summary>
-        internal static string Action_SyncTrakt {
+        internal static string Actions_SyncTrakt {
             get {
-                return ResourceManager.GetString("Action_SyncTrakt", resourceCulture);
+                return ResourceManager.GetString("Actions_SyncTrakt", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Sync Votes.
         /// </summary>
-        internal static string Action_SyncVotes {
+        internal static string Actions_SyncVotes {
             get {
-                return ResourceManager.GetString("Action_SyncVotes", resourceCulture);
+                return ResourceManager.GetString("Actions_SyncVotes", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Update All Media Info.
         /// </summary>
-        internal static string Action_UpdateAllMediaInfo {
+        internal static string Actions_UpdateAllMediaInfo {
             get {
-                return ResourceManager.GetString("Action_UpdateAllMediaInfo", resourceCulture);
+                return ResourceManager.GetString("Actions_UpdateAllMediaInfo", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Update All Stats.
         /// </summary>
-        internal static string Action_UpdateAllStats {
+        internal static string Actions_UpdateAllStats {
             get {
-                return ResourceManager.GetString("Action_UpdateAllStats", resourceCulture);
+                return ResourceManager.GetString("Actions_UpdateAllStats", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Update All AniDB Series Info.
         /// </summary>
-        internal static string Action_UpdateAniDB {
+        internal static string Actions_UpdateAniDB {
             get {
-                return ResourceManager.GetString("Action_UpdateAniDB", resourceCulture);
+                return ResourceManager.GetString("Actions_UpdateAniDB", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Update All Trakt Info.
         /// </summary>
-        internal static string Action_UpdateTrakt {
+        internal static string Actions_UpdateTrakt {
             get {
-                return ResourceManager.GetString("Action_UpdateTrakt", resourceCulture);
+                return ResourceManager.GetString("Actions_UpdateTrakt", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Update All TvDB Info.
         /// </summary>
-        internal static string Action_UpdateTvDB {
+        internal static string Actions_UpdateTvDB {
             get {
-                return ResourceManager.GetString("Action_UpdateTvDB", resourceCulture);
+                return ResourceManager.GetString("Actions_UpdateTvDB", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Upload All Anime data To Azure Cache.
         /// </summary>
-        internal static string Action_UploadCache {
+        internal static string Actions_UploadCache {
             get {
-                return ResourceManager.GetString("Action_UploadCache", resourceCulture);
+                return ResourceManager.GetString("Actions_UploadCache", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Admin Messages.
+        /// </summary>
+        internal static string Admin_AdminMessages {
+            get {
+                return ResourceManager.GetString("Admin_AdminMessages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to More Information.
+        /// </summary>
+        internal static string Admin_MoreInfo {
+            get {
+                return ResourceManager.GetString("Admin_MoreInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AniDB Activity.
+        /// </summary>
+        internal static string AniDB_Activity {
+            get {
+                return ResourceManager.GetString("AniDB_Activity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Paused due to BAN from AniDB.
+        /// </summary>
+        internal static string AniDB_Ban {
+            get {
+                return ResourceManager.GetString("AniDB_Ban", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting on response....
+        /// </summary>
+        internal static string AniDB_ResponseWait {
+            get {
+                return ResourceManager.GetString("AniDB_ResponseWait", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Movie.
+        /// </summary>
+        internal static string AnimeType_Movie {
+            get {
+                return ResourceManager.GetString("AnimeType_Movie", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Other.
+        /// </summary>
+        internal static string AnimeType_Other {
+            get {
+                return ResourceManager.GetString("AnimeType_Other", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OVA.
+        /// </summary>
+        internal static string AnimeType_OVA {
+            get {
+                return ResourceManager.GetString("AnimeType_OVA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TV Series.
+        /// </summary>
+        internal static string AnimeType_TVSeries {
+            get {
+                return ResourceManager.GetString("AnimeType_TVSeries", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TV Special.
+        /// </summary>
+        internal static string AnimeType_TVSpecial {
+            get {
+                return ResourceManager.GetString("AnimeType_TVSpecial", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Web.
+        /// </summary>
+        internal static string AnimeType_Web {
+            get {
+                return ResourceManager.GetString("AnimeType_Web", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        internal static string Cancel {
+            get {
+                return ResourceManager.GetString("Cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Idle.
+        /// </summary>
+        internal static string Command_Idle {
+            get {
+                return ResourceManager.GetString("Command_Idle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Paused.
+        /// </summary>
+        internal static string Command_Paused {
+            get {
+                return ResourceManager.GetString("Command_Paused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Queued.
+        /// </summary>
+        internal static string Command_Queued {
+            get {
+                return ResourceManager.GetString("Command_Queued", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Starting command worker (general)....
+        /// </summary>
+        internal static string Command_StartingGeneral {
+            get {
+                return ResourceManager.GetString("Command_StartingGeneral", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Starting command worker (hasher)....
+        /// </summary>
+        internal static string Command_StartingHasher {
+            get {
+                return ResourceManager.GetString("Command_StartingHasher", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Starting command worker (images)....
+        /// </summary>
+        internal static string Command_StartingImages {
+            get {
+                return ResourceManager.GetString("Command_StartingImages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Confirm.
+        /// </summary>
+        internal static string Confirm {
+            get {
+                return ResourceManager.GetString("Confirm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Applying Schema Patches....
+        /// </summary>
+        internal static string Database_ApplySchema {
+            get {
+                return ResourceManager.GetString("Database_ApplySchema", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Creating Database....
+        /// </summary>
+        internal static string Database_CreateDatabase {
+            get {
+                return ResourceManager.GetString("Database_CreateDatabase", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Creating Initial Schema....
+        /// </summary>
+        internal static string Database_CreateSchema {
+            get {
+                return ResourceManager.GetString("Database_CreateSchema", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing Session Factory....
+        /// </summary>
+        internal static string Database_Initializing {
+            get {
+                return ResourceManager.GetString("Database_Initializing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detailed explanation of options.
+        /// </summary>
+        internal static string DetailedExplanation {
+            get {
+                return ResourceManager.GetString("DetailedExplanation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Credit.
+        /// </summary>
+        internal static string EpisodeType_Credits {
+            get {
+                return ResourceManager.GetString("EpisodeType_Credits", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Episodes.
+        /// </summary>
+        internal static string EpisodeType_Episodes {
+            get {
+                return ResourceManager.GetString("EpisodeType_Episodes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Other.
+        /// </summary>
+        internal static string EpisodeType_Other {
+            get {
+                return ResourceManager.GetString("EpisodeType_Other", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Parody.
+        /// </summary>
+        internal static string EpisodeType_Parody {
+            get {
+                return ResourceManager.GetString("EpisodeType_Parody", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Specials.
+        /// </summary>
+        internal static string EpisodeType_Specials {
+            get {
+                return ResourceManager.GetString("EpisodeType_Specials", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trailer.
+        /// </summary>
+        internal static string EpisodeType_Trailer {
+            get {
+                return ResourceManager.GetString("EpisodeType_Trailer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error.
+        /// </summary>
+        internal static string Error {
+            get {
+                return ResourceManager.GetString("Error", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Newly Added Series.
+        /// </summary>
+        internal static string Filter_Added {
+            get {
+                return ResourceManager.GetString("Filter_Added", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Newly Airing Series.
+        /// </summary>
+        internal static string Filter_Airing {
+            get {
+                return ResourceManager.GetString("Filter_Airing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Continue Watching (SYSTEM).
+        /// </summary>
+        internal static string Filter_Continue {
+            get {
+                return ResourceManager.GetString("Filter_Continue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Favorites.
+        /// </summary>
+        internal static string Filter_Favorites {
+            get {
+                return ResourceManager.GetString("Filter_Favorites", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TvDB/MovieDB Link Missing.
+        /// </summary>
+        internal static string Filter_LinkMissing {
+            get {
+                return ResourceManager.GetString("Filter_LinkMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Missing Episodes.
+        /// </summary>
+        internal static string Filter_MissingEpisodes {
+            get {
+                return ResourceManager.GetString("Filter_MissingEpisodes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Recently Watched.
+        /// </summary>
+        internal static string Filter_RecentlyWatched {
+            get {
+                return ResourceManager.GetString("Filter_RecentlyWatched", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Votes Needed.
+        /// </summary>
+        internal static string Filter_Votes {
+            get {
+                return ResourceManager.GetString("Filter_Votes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clear all queued general commands.
+        /// </summary>
+        internal static string General_Clear {
+            get {
+                return ResourceManager.GetString("General_Clear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to General - Paused.
+        /// </summary>
+        internal static string General_Paused {
+            get {
+                return ResourceManager.GetString("General_Paused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to General - Running.
+        /// </summary>
+        internal static string General_Running {
+            get {
+                return ResourceManager.GetString("General_Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clear all queued hash commands.
+        /// </summary>
+        internal static string Hash_Clear {
+            get {
+                return ResourceManager.GetString("Hash_Clear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hasher - Paused.
+        /// </summary>
+        internal static string Hash_Paused {
+            get {
+                return ResourceManager.GetString("Hash_Paused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hasher - Running.
+        /// </summary>
+        internal static string Hash_Running {
+            get {
+                return ResourceManager.GetString("Hash_Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clear all queued image download commands.
+        /// </summary>
+        internal static string Images_Clear {
+            get {
+                return ResourceManager.GetString("Images_Clear", resourceCulture);
             }
         }
         
@@ -174,6 +624,303 @@ namespace JMMServer.Properties {
         internal static string Images_Default {
             get {
                 return ResourceManager.GetString("Images_Default", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Images - Paused.
+        /// </summary>
+        internal static string Images_Paused {
+            get {
+                return ResourceManager.GetString("Images_Paused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Images - Running.
+        /// </summary>
+        internal static string Images_Running {
+            get {
+                return ResourceManager.GetString("Images_Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The import folder location cannot be blank. Enter a valid path on JMM Server..
+        /// </summary>
+        internal static string ImportFolders_BlankImport {
+            get {
+                return ResourceManager.GetString("ImportFolders_BlankImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete.
+        /// </summary>
+        internal static string ImportFolders_Delete {
+            get {
+                return ResourceManager.GetString("ImportFolders_Delete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to delete the Import Folder: {0}?.
+        /// </summary>
+        internal static string ImportFolders_DeleteFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_DeleteFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Drop Destination.
+        /// </summary>
+        internal static string ImportFolders_DropDestination {
+            get {
+                return ResourceManager.GetString("ImportFolders_DropDestination", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Drop Source.
+        /// </summary>
+        internal static string ImportFolders_DropSource {
+            get {
+                return ResourceManager.GetString("ImportFolders_DropSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fix for using.
+        /// </summary>
+        internal static string ImportFolders_Fix {
+            get {
+                return ResourceManager.GetString("ImportFolders_Fix", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import Folder.
+        /// </summary>
+        internal static string ImportFolders_ImportFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_ImportFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import folders are the the base locations where you keep your anime. You will need to add at least one folder and then select &apos;Run Import&apos; on the Actions tab.
+        /// </summary>
+        internal static string ImportFolders_Info {
+            get {
+                return ResourceManager.GetString("ImportFolders_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import Folder Path.
+        /// </summary>
+        internal static string ImportFolders_InputPath {
+            get {
+                return ResourceManager.GetString("ImportFolders_InputPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New Folder.
+        /// </summary>
+        internal static string ImportFolders_NewFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_NewFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An import folder cannot be both the drop source and the drop destination..
+        /// </summary>
+        internal static string ImportFolders_SameFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_SameFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Server Details.
+        /// </summary>
+        internal static string ImportFolders_ServerDetails {
+            get {
+                return ResourceManager.GetString("ImportFolders_ServerDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Server Path.
+        /// </summary>
+        internal static string ImportFolders_ServerPath {
+            get {
+                return ResourceManager.GetString("ImportFolders_ServerPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to JMM Server with shared drives.
+        /// </summary>
+        internal static string ImportFolders_Shared {
+            get {
+                return ResourceManager.GetString("ImportFolders_Shared", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UPnP Source.
+        /// </summary>
+        internal static string ImportFolders_UPnP {
+            get {
+                return ResourceManager.GetString("ImportFolders_UPnP", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Watch For New Files.
+        /// </summary>
+        internal static string ImportFolders_Watch {
+            get {
+                return ResourceManager.GetString("ImportFolders_Watch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AniDB Client Port.
+        /// </summary>
+        internal static string InitalSetup_AniDBPort {
+            get {
+                return ResourceManager.GetString("InitalSetup_AniDBPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AniDB Password.
+        /// </summary>
+        internal static string InitialSetup_AniDBPassword {
+            get {
+                return ResourceManager.GetString("InitialSetup_AniDBPassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AniDB Username.
+        /// </summary>
+        internal static string InitialSetup_AniDBUsername {
+            get {
+                return ResourceManager.GetString("InitialSetup_AniDBUsername", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Disposing....
+        /// </summary>
+        internal static string InitialSetup_Disposing {
+            get {
+                return ResourceManager.GetString("InitialSetup_Disposing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please enter a valid password..
+        /// </summary>
+        internal static string InitialSetup_EnterPassword {
+            get {
+                return ResourceManager.GetString("InitialSetup_EnterPassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please enter a valid client port..
+        /// </summary>
+        internal static string InitialSetup_EnterPort {
+            get {
+                return ResourceManager.GetString("InitialSetup_EnterPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please enter a valid username..
+        /// </summary>
+        internal static string InitialSetup_EnterUsername {
+            get {
+                return ResourceManager.GetString("InitialSetup_EnterUsername", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Don&apos;t have an AniDB account? Click here to register for one.
+        /// </summary>
+        internal static string InitialSetup_Get {
+            get {
+                return ResourceManager.GetString("InitialSetup_Get", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing....
+        /// </summary>
+        internal static string InitialSetup_Initializing {
+            get {
+                return ResourceManager.GetString("InitialSetup_Initializing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initial Setup.
+        /// </summary>
+        internal static string InitialSetup_InitialSetup {
+            get {
+                return ResourceManager.GetString("InitialSetup_InitialSetup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Login....
+        /// </summary>
+        internal static string InitialSetup_Login {
+            get {
+                return ResourceManager.GetString("InitialSetup_Login", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Login FAILED!.
+        /// </summary>
+        internal static string InitialSetup_LoginFail {
+            get {
+                return ResourceManager.GetString("InitialSetup_LoginFail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Login Success! Logging out....
+        /// </summary>
+        internal static string InitialSetup_LoginPass1 {
+            get {
+                return ResourceManager.GetString("InitialSetup_LoginPass1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Login Success! Logged out..
+        /// </summary>
+        internal static string InitialSetup_LoginPass2 {
+            get {
+                return ResourceManager.GetString("InitialSetup_LoginPass2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Test Login.
+        /// </summary>
+        internal static string InitialSetup_Test {
+            get {
+                return ResourceManager.GetString("InitialSetup_Test", resourceCulture);
             }
         }
         
@@ -214,11 +961,92 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to https://anidb.net/perl-bin/animedb.pl?show=signup.
+        /// </summary>
+        internal static string Link_AniDB {
+            get {
+                return ResourceManager.GetString("Link_AniDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/faq/#banned-from-anidb.
+        /// </summary>
+        internal static string Link_AniDBBan {
+            get {
+                return ResourceManager.GetString("Link_AniDBBan", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/blog.
+        /// </summary>
+        internal static string Link_Blog {
+            get {
+                return ResourceManager.GetString("Link_Blog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/changelog.
+        /// </summary>
+        internal static string Link_Changelog {
+            get {
+                return ResourceManager.GetString("Link_Changelog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/downloads.
+        /// </summary>
+        internal static string Link_Download {
+            get {
+                return ResourceManager.GetString("Link_Download", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to https://github.com/japanesemediamanager.
+        /// </summary>
+        internal static string Link_GitHub {
+            get {
+                return ResourceManager.GetString("Link_GitHub", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/.
+        /// </summary>
+        internal static string Link_Home {
+            get {
+                return ResourceManager.GetString("Link_Home", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders.
+        /// </summary>
+        internal static string Link_ImportFolders {
+            get {
+                return ResourceManager.GetString("Link_ImportFolders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/setup/mysql/.
         /// </summary>
         internal static string Link_MySQL {
             get {
                 return ResourceManager.GetString("Link_MySQL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/faq/#jmm-shared-drive.
+        /// </summary>
+        internal static string Link_SharedDrive {
+            get {
+                return ResourceManager.GetString("Link_SharedDrive", resourceCulture);
             }
         }
         
@@ -241,7 +1069,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to MySQL is the mid-tier and recommend database type for use with JMM for users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using JMM. It is easy to setup and using our guide you&apos;ll be up and running in a matter of minutes..
         /// </summary>
         internal static string MySQL_Info {
             get {
@@ -400,6 +1228,276 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Save.
+        /// </summary>
+        internal static string Save {
+            get {
+                return ResourceManager.GetString("Save", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating all files video media info added to queue..
+        /// </summary>
+        internal static string Serrver_VideoMediaUpdate {
+            get {
+                return ResourceManager.GetString("Serrver_VideoMediaUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating all series AniDB info added to queue..
+        /// </summary>
+        internal static string Server_AniDBInfoUpdate {
+            get {
+                return ResourceManager.GetString("Server_AniDBInfoUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cleaning up....
+        /// </summary>
+        internal static string Server_Cleaning {
+            get {
+                return ResourceManager.GetString("Server_Cleaning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Complete!.
+        /// </summary>
+        internal static string Server_Complete {
+            get {
+                return ResourceManager.GetString("Server_Complete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please select and configure your database..
+        /// </summary>
+        internal static string Server_DatabaseConfig {
+            get {
+                return ResourceManager.GetString("Server_DatabaseConfig", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to start. Please review database settings..
+        /// </summary>
+        internal static string Server_DatabaseFail {
+            get {
+                return ResourceManager.GetString("Server_DatabaseFail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Setting up database....
+        /// </summary>
+        internal static string Server_DatabaseSetup {
+            get {
+                return ResourceManager.GetString("Server_DatabaseSetup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please enter a value.
+        /// </summary>
+        internal static string Server_EnterAnyValue {
+            get {
+                return ResourceManager.GetString("Server_EnterAnyValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please enter a value between 1 and 65535.
+        /// </summary>
+        internal static string Server_EnterCertainValue {
+            get {
+                return ResourceManager.GetString("Server_EnterCertainValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to set start: .
+        /// </summary>
+        internal static string Server_FailedToStart {
+            get {
+                return ResourceManager.GetString("Server_FailedToStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please fill out all the settings.
+        /// </summary>
+        internal static string Server_FillOutSettings {
+            get {
+                return ResourceManager.GetString("Server_FillOutSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Scanning for newly added files added to queue..
+        /// </summary>
+        internal static string Server_Import {
+            get {
+                return ResourceManager.GetString("Server_Import", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import is already running.
+        /// </summary>
+        internal static string Server_ImportRunning {
+            get {
+                return ResourceManager.GetString("Server_ImportRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing....
+        /// </summary>
+        internal static string Server_Initializing {
+            get {
+                return ResourceManager.GetString("Server_Initializing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing File Watchers....
+        /// </summary>
+        internal static string Server_InitializingFile {
+            get {
+                return ResourceManager.GetString("Server_InitializingFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing Hosts....
+        /// </summary>
+        internal static string Server_InitializingHosts {
+            get {
+                return ResourceManager.GetString("Server_InitializingHosts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing Queue Processors....
+        /// </summary>
+        internal static string Server_InitializingQueue {
+            get {
+                return ResourceManager.GetString("Server_InitializingQueue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing Session Factory....
+        /// </summary>
+        internal static string Server_InitializingSession {
+            get {
+                return ResourceManager.GetString("Server_InitializingSession", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Initializing Stats....
+        /// </summary>
+        internal static string Server_InitializingStats {
+            get {
+                return ResourceManager.GetString("Server_InitializingStats", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to JMM Server has been minimized to the system tray. To open the application, double-click the icon in the system tray..
+        /// </summary>
+        internal static string Server_MinimizeInfo {
+            get {
+                return ResourceManager.GetString("Server_MinimizeInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Scanning for missing files added to queue..
+        /// </summary>
+        internal static string Server_RemoveMising {
+            get {
+                return ResourceManager.GetString("Server_RemoveMising", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to JMM Server is already running. Please check your system tray (notification area)..
+        /// </summary>
+        internal static string Server_Running {
+            get {
+                return ResourceManager.GetString("Server_Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Folder scanning in progess.
+        /// </summary>
+        internal static string Server_ScanFolder {
+            get {
+                return ResourceManager.GetString("Server_ScanFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating all series info added to queue. .
+        /// </summary>
+        internal static string Server_StatsInfoUpdate {
+            get {
+                return ResourceManager.GetString("Server_StatsInfoUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Syncing collection metadata with AniDB added to queue. .
+        /// </summary>
+        internal static string Server_SyncMyList {
+            get {
+                return ResourceManager.GetString("Server_SyncMyList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Syncing collection metadata with Trakt added to queue. .
+        /// </summary>
+        internal static string Server_SyncTrakt {
+            get {
+                return ResourceManager.GetString("Server_SyncTrakt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Syncing local votes with AniDB and MyAnimeList added to queue. .
+        /// </summary>
+        internal static string Server_SyncVotes {
+            get {
+                return ResourceManager.GetString("Server_SyncVotes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trakt series info updates have been added to the queue..
+        /// </summary>
+        internal static string Server_TraktInfoUpdate {
+            get {
+                return ResourceManager.GetString("Server_TraktInfoUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating all series TvDB info added to queue..
+        /// </summary>
+        internal static string Server_TvDBInfoUpdate {
+            get {
+                return ResourceManager.GetString("Server_TvDBInfoUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Apply.
         /// </summary>
         internal static string Settings_Apply {
@@ -490,6 +1588,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Refresh.
+        /// </summary>
+        internal static string Setup_Refresh {
+            get {
+                return ResourceManager.GetString("Setup_Refresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Save and Start Server.
         /// </summary>
         internal static string Setup_SaveStart {
@@ -526,7 +1633,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to While SQLite is the easiest of the three database types to setup with it&apos;s one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when JMM attempts to access your collection via your SQLite database. In regards to how JMM uses the database, it&apos;s simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations which ov [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string SQLite_Info {
             get {
@@ -558,6 +1665,15 @@ namespace JMMServer.Properties {
         internal static string SQLServer_Memory {
             get {
                 return ResourceManager.GetString("SQLServer_Memory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Success.
+        /// </summary>
+        internal static string Success {
+            get {
+                return ResourceManager.GetString("Success", resourceCulture);
             }
         }
         
@@ -625,11 +1741,105 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Show.
+        /// </summary>
+        internal static string Toolbar_Show {
+            get {
+                return ResourceManager.GetString("Toolbar_Show", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Shutdown.
         /// </summary>
         internal static string Toolbar_Shutdown {
             get {
                 return ResourceManager.GetString("Toolbar_Shutdown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Used in conjunction with Drop Source, JMM Server will move all files from your Drop Source/Drop Sources into the selected Drop Destination. 
+        ///
+        ///You can only have one folder listed as a Drop Destination..
+        /// </summary>
+        internal static string Tooltip_DropDestination {
+            get {
+                return ResourceManager.GetString("Tooltip_DropDestination", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to JMM Server will monitor this folder and move any files it detects to the folder selected as a Drop Destination. Additionally JMM Server will automatically group files that belong to the same series and create the series folder in the Drop Destination if it doesn’t already exist.
+        ///
+        ///You can have as many Drop Sources as you want, however you must setup a Drop Destination to use Drop Source..
+        /// </summary>
+        internal static string Tooltip_DropSource {
+            get {
+                return ResourceManager.GetString("Tooltip_DropSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to About Page.
+        /// </summary>
+        internal static string Update_AboutPage {
+            get {
+                return ResourceManager.GetString("Update_AboutPage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Available Version.
+        /// </summary>
+        internal static string Update_AvailableVersion {
+            get {
+                return ResourceManager.GetString("Update_AvailableVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Download Page.
+        /// </summary>
+        internal static string Update_DownloadPage {
+            get {
+                return ResourceManager.GetString("Update_DownloadPage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update JMM Server.
+        /// </summary>
+        internal static string Update_JMMServer {
+            get {
+                return ResourceManager.GetString("Update_JMMServer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update Available.
+        /// </summary>
+        internal static string Update_UpdateAvailable {
+            get {
+                return ResourceManager.GetString("Update_UpdateAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Your Version.
+        /// </summary>
+        internal static string Update_YourVersion {
+            get {
+                return ResourceManager.GetString("Update_YourVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to What does this mean?.
+        /// </summary>
+        internal static string WhatDoesThisMean {
+            get {
+                return ResourceManager.GetString("WhatDoesThisMean", resourceCulture);
             }
         }
     }
