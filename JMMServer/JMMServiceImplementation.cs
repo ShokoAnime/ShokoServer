@@ -3597,7 +3597,7 @@ namespace JMMServer
 					return response;
 				}
 
-				if (!Directory.Exists(contract.ImportFolderLocation))
+				if (contract.ImportFolderType!=1 && !Directory.Exists(contract.ImportFolderLocation))
 				{
 					response.ErrorMessage = "Cannot find Import Folder location";
 					return response;

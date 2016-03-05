@@ -10,12 +10,13 @@ using UPNPLib;
 namespace JMMServer
 {
     /// <summary>
-    /// Class containing functions for use with UPnP devices
+    /// Class containing functions for use with UPnP devices.
     /// </summary>
     class UPnPData
     {
+
         /// <summary>
-        /// Browses through UPnPService object with id objectId and adds it to a TreeView
+        /// Browses through UPnPService object with id objectId and adds it to a TreeView.
         /// </summary>
         /// <param name="service"></param>
         /// <param name="objectId"></param>
@@ -36,7 +37,7 @@ namespace JMMServer
         }
 
         /// <summary>
-        /// Returns array of XML attributes from an XML decendent of type tag
+        /// Returns array of XML attributes from an XML decendent of type 'tag'.
         /// </summary>
         /// <param name="tag"></param>
         /// <param name="XMLDoc"></param>
@@ -55,7 +56,7 @@ namespace JMMServer
         }
 
         /// <summary>
-        /// Adds TreeNode based on folder name stored in 'o'
+        /// Adds TreeNode based on folder name stored in 'o'.
         /// </summary>
         /// <param name="parent"></param>
         /// <param name="o"></param>
@@ -71,7 +72,7 @@ namespace JMMServer
         }
 
         /// <summary>
-        /// Builds TreeNode structure by recursively reading the multidimensional array containing the folder structure
+        /// Builds TreeNode structure by recursively reading the multidimensional array containing the folder structure.
         /// </summary>
         /// <param name="structure"></param>
         /// <param name="parent"></param>
@@ -88,7 +89,7 @@ namespace JMMServer
         }
 
         /// <summary>
-        /// Generates the folder structure, reading in all the names
+        /// Generates the folder structure by recursively reading folders in the XML document.
         /// </summary>
         /// <param name="s"></param>
         /// <param name="XML"></param>
@@ -194,5 +195,45 @@ namespace JMMServer
                 return containerFolders;
             }
         }
+
+        /// <summary>
+        /// Gets a list of files in the import folder.
+        /// </summary>
+        /// <param name="udn"></param>
+        /// <param name="containerID"></param>
+        /// <param name="files"></param>
+        public static void GetFilesForImport(string udn, string containerID, ref List<string> files)
+        {
+            UPnPDevice device = new UPnPDevice();
+            UPnPDeviceFinder search = new UPnPDeviceFinder();
+
+            device = search.FindByUDN(udn);
+            try
+            {
+                var services = device.Services.GetEnumerator();
+
+
+                while (services.MoveNext())
+                {
+                    UPnPService current = services.Current as UPnPService;
+                    if (current.Id == "urn:upnp-org:serviceId:ContentDirectory")
+                    {
+                        foreach (object o in buildStructure(current, Browser(current, containerID)))
+                        {
+                            if(o is object[,])
+                            {
+                                for(int i =0;i<((object[,])o).Length/3;i++)
+                                files.Add(((object[,])o)[0,i].ToString());
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                MessageBox.Show("Error");
+            }
+        }
     }
 }
+   

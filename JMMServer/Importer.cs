@@ -288,7 +288,14 @@ namespace JMMServer
 				logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 				try
 				{
-					Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
+                    if (share.ImportFolderType == 0)
+                    {
+                        Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
+                    }
+                    else
+                    {
+                        UPnPData.GetFilesForImport("uuid:4d696e69-444c-164e-9d41-b827eb0702ab", share.ImportFolderLocation, ref fileList);
+                    }
 				}
 				catch (Exception ex)
 				{

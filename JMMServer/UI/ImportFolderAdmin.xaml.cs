@@ -90,7 +90,7 @@ namespace JMMServer
         void btnAddUPnPSource_Click(object sender, RoutedEventArgs e)
         {
             UPnPServerBrowserDialog addSource = new UPnPServerBrowserDialog();
-            addSource.ShowDialog();
+            addSource.ShowDialog(new ImportFolder());
         }
 
 		private Window GetTopParent()
