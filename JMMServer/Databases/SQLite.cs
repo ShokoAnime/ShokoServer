@@ -1278,7 +1278,7 @@ namespace JMMServer.Databases
             logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
             List<string> cmds = new List<string>();
-            cmds.Add("ALTER TABLE ADD PlexUsers text NULL");
+            cmds.Add("ALTER TABLE JMMUser ADD PlexUsers text NULL");
 
             ExecuteSQLCommands(cmds);
 
