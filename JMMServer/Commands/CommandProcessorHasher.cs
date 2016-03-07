@@ -7,6 +7,10 @@ using System.ComponentModel;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Threading;
+using System.Collections;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
@@ -128,7 +132,11 @@ namespace JMMServer.Commands
 
 		void  workerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
-			processingCommands = false;
+            NameValueCollection appSettings = ConfigurationManager.AppSettings;
+            string cult = appSettings["Culture"];
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+            processingCommands = false;
 			//logger.Trace("Stopping command worker (hasher)...");
 			QueueState = JMMServer.Properties.Resources.Command_Idle;
 			QueueCount = 0;

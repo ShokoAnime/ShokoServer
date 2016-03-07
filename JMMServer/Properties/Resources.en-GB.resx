@@ -121,286 +121,286 @@
     <value>JMM Server</value>
   </data>
   <data name="Actions_RunImport" xml:space="preserve">
-    <value>Run Import!</value>
+    <value>Run Import</value>
   </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
-    <value>Entfernen von Dateien fehlen!</value>
+    <value>Remove Missing Files</value>
   </data>
   <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Meine Listen</value>
+    <value>Sync My List</value>
   </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
-    <value>Sync-Trakt-Sammlung!</value>
+    <value>Sync Trakt Collection</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync-Stimmen!</value>
+    <value>Sync Votes</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
-    <value>Aktualisieren Sie alle AniDB Serie Info!</value>
+    <value>Update All AniDB Series Info</value>
   </data>
   <data name="Actions_UpdateTvDB" xml:space="preserve">
-    <value>Aktualisieren Sie alle TvDB Info!</value>
+    <value>Update All TvDB Info</value>
   </data>
   <data name="Actions_UpdateTrakt" xml:space="preserve">
-    <value>Aktualisieren Sie alle Trakt Info!</value>
+    <value>Update All Trakt Info</value>
   </data>
   <data name="Actions_UpdateAllStats" xml:space="preserve">
-    <value>Aktualisieren Sie alle Statistiken!</value>
+    <value>Update All Stats</value>
   </data>
   <data name="Actions_UpdateAllMediaInfo" xml:space="preserve">
-    <value>Aktualisieren Sie alle MediaInfo!</value>
+    <value>Update All Media Info</value>
   </data>
   <data name="Actions_UploadCache" xml:space="preserve">
-    <value>Hochladen Sie alle Anime Daten zu Azure Cache!</value>
+    <value>Upload All Anime data To Azure Cache</value>
   </data>
   <data name="Toolbar_Shutdown" xml:space="preserve">
-    <value>Herunterfahren</value>
+    <value>Shutdown</value>
   </data>
   <data name="Toolbar_About" xml:space="preserve">
-    <value>Über</value>
+    <value>About</value>
   </data>
   <data name="Toolbar_Logs" xml:space="preserve">
-    <value>Protokolle</value>
+    <value>Logs</value>
   </data>
   <data name="Toolbar_Messages" xml:space="preserve">
-    <value>Nachrichten</value>
+    <value>Messages</value>
   </data>
   <data name="Tab_Actions" xml:space="preserve">
-    <value>Aktionen</value>
+    <value>Actions</value>
   </data>
   <data name="Tab_ImportFolders" xml:space="preserve">
-    <value>Import-Ordner</value>
+    <value>Import Folders</value>
   </data>
   <data name="Tab_Settings" xml:space="preserve">
-    <value>Einstellungen</value>
-  </data>
-  <data name="Settings_ServerPort" xml:space="preserve">
-    <value>Server-Port</value>
-  </data>
-  <data name="Settings_Apply" xml:space="preserve">
-    <value>Gelten</value>
-  </data>
-  <data name="Settings_ImagePath" xml:space="preserve">
-    <value>Image-Pfad</value>
-  </data>
-  <data name="Settings_SelectFolder" xml:space="preserve">
-    <value>Wählen Sie Ordner</value>
-  </data>
-  <data name="Settings_Minimize" xml:space="preserve">
-    <value>Beim Start zu minimieren</value>
-  </data>
-  <data name="Settings_Multiple" xml:space="preserve">
-    <value>Mehrere Instanzen zulassen</value>
-  </data>
-  <data name="Settings_Windows" xml:space="preserve">
-    <value>Mit Windows starten</value>
+    <value>Settings</value>
   </data>
   <data name="Tab_Setup" xml:space="preserve">
-    <value>Einrichten</value>
+    <value>Setup</value>
+  </data>
+  <data name="Settings_Windows" xml:space="preserve">
+    <value>Start With Windows</value>
+  </data>
+  <data name="Settings_Multiple" xml:space="preserve">
+    <value>Allow Multiple Instances</value>
+  </data>
+  <data name="Settings_Minimize" xml:space="preserve">
+    <value>Minimize on Startup</value>
+  </data>
+  <data name="Settings_SelectFolder" xml:space="preserve">
+    <value>Select Folder</value>
+  </data>
+  <data name="Settings_ImagePath" xml:space="preserve">
+    <value>Image Path</value>
+  </data>
+  <data name="Settings_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Settings_ServerPort" xml:space="preserve">
+    <value>Server Port</value>
   </data>
   <data name="Setup_ServerAddress" xml:space="preserve">
-    <value>Serveradresse</value>
+    <value>Server Address</value>
   </data>
   <data name="Setup_DatabaseType" xml:space="preserve">
-    <value>Datenbanktyp</value>
+    <value>Database Type</value>
   </data>
   <data name="Setup_Username" xml:space="preserve">
-    <value>Benutzername</value>
+    <value>Username</value>
   </data>
   <data name="Setup_Password" xml:space="preserve">
-    <value>Passwort</value>
+    <value>Password</value>
   </data>
   <data name="Setup_DatabaseName" xml:space="preserve">
-    <value>Datenbankname</value>
+    <value>Database Name</value>
   </data>
   <data name="Setup_SaveStart" xml:space="preserve">
-    <value>Speichern und Server starten</value>
+    <value>Save and Start Server</value>
   </data>
   <data name="SQLite" xml:space="preserve">
     <value>SQLite</value>
   </data>
   <data name="SQLServer" xml:space="preserve">
-    <value>SQLServer</value>
+    <value>SQL Server</value>
   </data>
   <data name="MySQL" xml:space="preserve">
     <value>MySQL</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/SQLServer/</value>
+    <value>http://jmediamanager.org/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/MySQL/</value>
+    <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
   <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server ist für Benutzer mit einer großen Sammlung gedacht, die mehr als 200 Serie überschreitet wollen auch die schnelle Leistung möglich. Aus den drei verfügbaren Datenbank-Typen SQL Server gilt als das schwierigste bei der Einrichtung aber kann Setup mit Leichtigkeit sein, wenn der Führer zu folgen, die wir erstellt haben.</value>
-  </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>Erfahren Sie mehr über</value>
-  </data>
-  <data name="SQLServer_Memory" xml:space="preserve">
-    <value>SQL Server kann eine ganze Menge an Arbeitsspeicher verwenden.</value>
-  </data>
-  <data name="Language_Switch" xml:space="preserve">
-    <value>Sprache wechseln</value>
-  </data>
-  <data name="Language_Info" xml:space="preserve">
-    <value>JMM-Server muss neu starten, um die Sprache zu ändern, klicken Sie auf OK um JMM-Server neu starten oder Abbrechen der Sprachumschaltung.</value>
-  </data>
-  <data name="Images_Default" xml:space="preserve">
-    <value>In der Standardeinstellung</value>
-  </data>
-  <data name="Images_Custom" xml:space="preserve">
-    <value>Benutzerdefinierte</value>
+    <value>SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fast performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we've created.</value>
   </data>
   <data name="SQLite_Info" xml:space="preserve">
-    <value>SQLite ist die einfachste der drei Datenbanktypen zu Setup mit seiner ein-Klick-Installation. Wenn Ihre Sammlung 200 oder mehrere Datenreihen enthält, beginnen Sie erleben eine Menge Fragen einschließlich langsame Reaktionszeiten und Programm-Abstürze, wenn JMM versucht, Ihre Sammlung über die SQLite-Datenbank zuzugreifen. In Bezug auf wie JMM die Datenbank verwendet ist es einfach nicht für große Sammlungen entwickelt. SQLite hat auch Schwierigkeiten mit der Handhabung mehrerer Operationen steigt die Wartezeit zwischen Operationen, die insgesamt erhöhen Ihre Wartezeit, Zeit, wenn Ihre Sammlung zugreifen.</value>
+    <value>While SQLite is the easiest of the three database types to setup with it's one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when JMM attempts to access your collection via your SQLite database. In regards to how JMM uses the database, it's simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations which overall increase your wait time when accessing your collection.</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Learn more about</value>
+  </data>
+  <data name="SQLServer_Memory" xml:space="preserve">
+    <value>SQL Server can use quite a lot of memory</value>
+  </data>
+  <data name="Language_Switch" xml:space="preserve">
+    <value>Switch Language</value>
+  </data>
+  <data name="Language_Info" xml:space="preserve">
+    <value>JMM Server needs to restart to change the language, click OK to restart JMM Server or Cancel the language switch.</value>
+  </data>
+  <data name="Images_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Images_Custom" xml:space="preserve">
+    <value>Custom</value>
   </data>
   <data name="Setup_Refresh" xml:space="preserve">
-    <value>Aktualisieren</value>
+    <value>Refresh</value>
   </data>
   <data name="Hash_Clear" xml:space="preserve">
-    <value>Deaktivieren Sie alle in der Warteschlange Hash-Befehle</value>
+    <value>Clear all queued hash commands</value>
   </data>
   <data name="Hash_Running" xml:space="preserve">
-    <value>Hasher - Ausführung</value>
+    <value>Hasher - Running</value>
   </data>
   <data name="Hash_Paused" xml:space="preserve">
-    <value>Hasher - angehalten</value>
+    <value>Hasher - Paused</value>
   </data>
   <data name="General_Clear" xml:space="preserve">
-    <value>Deaktivieren Sie alle in der Warteschlange allgemeine Befehle</value>
+    <value>Clear all queued general commands</value>
   </data>
   <data name="General_Running" xml:space="preserve">
-    <value>Allgemein - Ausführung</value>
+    <value>General - Running</value>
   </data>
   <data name="General_Paused" xml:space="preserve">
-    <value>Allgemein - angehalten</value>
+    <value>General - Paused</value>
   </data>
   <data name="Images_Clear" xml:space="preserve">
-    <value>Deaktivieren Sie alle in der Warteschlange Bild herunterladen-Befehle</value>
+    <value>Clear all queued image download commands</value>
   </data>
   <data name="Images_Running" xml:space="preserve">
-    <value>Bilder - Ausführung</value>
+    <value>Images - Running</value>
   </data>
   <data name="Images_Paused" xml:space="preserve">
-    <value>Bilder - angehalten</value>
+    <value>Images - Paused</value>
   </data>
   <data name="AniDB_Activity" xml:space="preserve">
-    <value>AniDB Aktivität</value>
+    <value>AniDB Activity</value>
   </data>
   <data name="AniDB_Ban" xml:space="preserve">
-    <value>Angehalten wegen Verbot von AniDB</value>
+    <value>Paused due to BAN from AniDB</value>
   </data>
   <data name="WhatDoesThisMean" xml:space="preserve">
-    <value>Was bedeutet das?</value>
+    <value>What does this mean?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#Banned-from-anidb</value>
+    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
-    <value>JMM-Server läuft bereits. Bitte überprüfen Sie Ihre Taskleiste (Infobereich).</value>
+    <value>JMM Server is already running. Please check your system tray (notification area).</value>
   </data>
   <data name="Error" xml:space="preserve">
-    <value>Fehler</value>
+    <value>Error</value>
   </data>
   <data name="Server_FillOutSettings" xml:space="preserve">
-    <value>Bitte füllen Sie alle Einstellungen</value>
+    <value>Please fill out all the settings</value>
   </data>
   <data name="Server_FailedToStart" xml:space="preserve">
-    <value>Fehler beim Start festlegen: </value>
+    <value>Failed to set start: </value>
   </data>
   <data name="Server_Complete" xml:space="preserve">
-    <value>Komplett!</value>
+    <value>Complete!</value>
   </data>
   <data name="Server_Cleaning" xml:space="preserve">
-    <value>Aufräumen...</value>
+    <value>Cleaning up...</value>
   </data>
   <data name="Server_Initializing" xml:space="preserve">
-    <value>Wird initialisiert...</value>
+    <value>Initializing...</value>
   </data>
   <data name="Server_DatabaseSetup" xml:space="preserve">
-    <value>Einrichten einer Datenbank...</value>
+    <value>Setting up database...</value>
   </data>
   <data name="Server_DatabaseConfig" xml:space="preserve">
-    <value>Bitte wählen Sie und konfigurieren Sie Ihre Datenbank.</value>
+    <value>Please select and configure your database.</value>
   </data>
   <data name="Server_DatabaseFail" xml:space="preserve">
-    <value>Es konnte nicht gestartet werden. Bitte überprüfen Sie Datenbankeinstellungen.</value>
+    <value>Failed to start. Please review database settings.</value>
   </data>
   <data name="Server_InitializingSession" xml:space="preserve">
-    <value>Initialisiere Session Factory...</value>
+    <value>Initializing Session Factory...</value>
   </data>
   <data name="Server_InitializingHosts" xml:space="preserve">
-    <value>Initialisierung des Hosts...</value>
+    <value>Initializing Hosts...</value>
   </data>
   <data name="Server_InitializingStats" xml:space="preserve">
-    <value>Initialisiere Stats...</value>
+    <value>Initializing Stats...</value>
   </data>
   <data name="Server_InitializingQueue" xml:space="preserve">
-    <value>Initialisierung des Warteschlangenverarbeiter...</value>
+    <value>Initializing Queue Processors...</value>
   </data>
   <data name="Server_InitializingFile" xml:space="preserve">
-    <value>Initialisiere Datei Watchers...</value>
+    <value>Initializing File Watchers...</value>
   </data>
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
-    <value>Aktualisieren alle Dateien videoMedia Infos zur Warteschlange hinzugefügt.</value>
+    <value>Updating all files video media info added to queue.</value>
   </data>
   <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Import läuft bereits</value>
+    <value>Import is already running</value>
   </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
-    <value>Bitte geben Sie einen Wert</value>
+    <value>Please enter a value</value>
   </data>
   <data name="Server_EnterCertainValue" xml:space="preserve">
-    <value>Bitte geben Sie einen Wert zwischen 1 und 65535</value>
+    <value>Please enter a value between 1 and 65535</value>
   </data>
   <data name="Server_ScanFolder" xml:space="preserve">
-    <value>Ordner scannen in progess</value>
+    <value>Folder scanning in progess</value>
   </data>
   <data name="Success" xml:space="preserve">
-    <value>Erfolg</value>
+    <value>Success</value>
   </data>
   <data name="Server_AniDBInfoUpdate" xml:space="preserve">
-    <value>Aktualisieren alle Reihen AniDB Info zur Warteschlange hinzugefügt.</value>
+    <value>Updating all series AniDB info added to queue.</value>
   </data>
   <data name="Server_TvDBInfoUpdate" xml:space="preserve">
-    <value>Aktualisieren alle Reihen TvDB Info zur Warteschlange hinzugefügt.</value>
+    <value>Updating all series TvDB info added to queue.</value>
   </data>
   <data name="Server_StatsInfoUpdate" xml:space="preserve">
-    <value>Aktualisierung alle Serie-Infos hinzugefügt zur Warteschlange. </value>
+    <value>Updating all series info added to queue. </value>
   </data>
   <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Trakt Serie Info Aktuelles wurden in die Warteschlange aufgenommen.</value>
+    <value>Trakt series info updates have been added to the queue.</value>
   </data>
   <data name="Server_SyncVotes" xml:space="preserve">
-    <value>Beim Synchronisieren lokale stimmen mit AniDB und MyAnimeList hinzugefügt zur Warteschlange. </value>
+    <value>Syncing local votes with AniDB and MyAnimeList added to queue. </value>
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
-    <value>Beim Synchronisieren Auflistung Metadaten mit Trakt hinzugefügt zur Warteschlange. </value>
+    <value>Syncing collection metadata with Trakt added to queue. </value>
   </data>
   <data name="Server_SyncMyList" xml:space="preserve">
-    <value>Beim Synchronisieren Auflistung Metadaten mit AniDB hinzugefügt zur Warteschlange. </value>
+    <value>Syncing collection metadata with AniDB added to queue. </value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Scannen nach verlorenen Dateien zur Warteschlange hinzugefügt.</value>
+    <value>Scanning for missing files added to queue.</value>
   </data>
   <data name="Server_Import" xml:space="preserve">
-    <value>Scannen nach neu hinzugefügt Dateien zur Warteschlange hinzugefügt.</value>
+    <value>Scanning for newly added files added to queue.</value>
   </data>
   <data name="Toolbar_Show" xml:space="preserve">
-    <value>Karte</value>
+    <value>Show</value>
   </data>
   <data name="Server_MinimizeInfo" xml:space="preserve">
-    <value>JMM-Server hat in der Taskleiste angezeigt wurde. Um die Anwendung zu öffnen, doppelklicken Sie das Symbol in der Taskleiste.</value>
+    <value>JMM Server has been minimized to the system tray. To open the application, double-click the icon in the system tray.</value>
   </data>
   <data name="About_Home" xml:space="preserve">
-    <value>Homepage</value>
+    <value>Home Page</value>
   </data>
   <data name="About_Project" xml:space="preserve">
-    <value>Projektseite</value>
+    <value>Project Page</value>
   </data>
   <data name="About_Blog" xml:space="preserve">
-    <value>JMM-Blog</value>
+    <value>JMM Blog</value>
   </data>
   <data name="Link_Home" xml:space="preserve">
     <value>http://jmediamanager.org/</value>
@@ -409,286 +409,286 @@
     <value>https://github.com/japanesemediamanager</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
-    <value>http://jmediamanager.org/Blog</value>
+    <value>http://jmediamanager.org/blog</value>
   </data>
   <data name="Admin_AdminMessages" xml:space="preserve">
-    <value>Administratornachrichten</value>
+    <value>Admin Messages</value>
   </data>
   <data name="Admin_MoreInfo" xml:space="preserve">
-    <value>Weitere Informationen</value>
+    <value>More Information</value>
   </data>
   <data name="Tooltip_DropSource" xml:space="preserve">
-    <value>JMM-Server überwacht diesen Ordner und verschieben Sie alle Dateien, die es erkennt in den Ordner als Drop-Ziel ausgewählt. JMM-Server wird außerdem automatisch Dateien gruppieren, die gehören zur gleichen Serie und den Serie-Ordner im Drop-Ziel zu erstellen, wenn es nicht bereits vorhanden.
+    <value>JMM Server will monitor this folder and move any files it detects to the folder selected as a Drop Destination. Additionally JMM Server will automatically group files that belong to the same series and create the series folder in the Drop Destination if it doesn’t already exist.
 
-Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein Drop-Ziel um Drop Quelle zu verwenden.</value>
+You can have as many Drop Sources as you want, however you must setup a Drop Destination to use Drop Source.</value>
   </data>
   <data name="Tooltip_DropDestination" xml:space="preserve">
-    <value>In Verbindung mit Drop Quelle verwendet, wird JMM Server alle Dateien aus Ihrem Drop Quelle/Drop-Quellen in das ausgewählte Ziel-Drop verschieben. 
+    <value>Used in conjunction with Drop Source, JMM Server will move all files from your Drop Source/Drop Sources into the selected Drop Destination. 
 
-Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
+You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Import-Ordner sind die Basis Standorte wo Sie Ihre Anime halten. Sie müssen mindestens einen Ordner hinzufügen und wählen dann 'Import ausführen' auf der Registerkarte "Aktionen"</value>
+    <value>Import folders are the the base locations where you keep your anime. You will need to add at least one folder and then select 'Run Import' on the Actions tab</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://jmediamanager.org/JMM-Server/Configuring-JMM-Server/#Import-Folders</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
-    <value>Verlegenheit für die Verwendung von</value>
+    <value>Fix for using</value>
   </data>
   <data name="ImportFolders_Shared" xml:space="preserve">
-    <value>JMM-Server mit freigegebenen Laufwerke</value>
+    <value>JMM Server with shared drives</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#JMM-Shared-Drive</value>
+    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
-    <value>Ausführliche Erläuterung der Optionen</value>
+    <value>Detailed explanation of options</value>
   </data>
   <data name="ImportFolders_ServerPath" xml:space="preserve">
-    <value>Serverpfad</value>
+    <value>Server Path</value>
   </data>
   <data name="ImportFolders_Delete" xml:space="preserve">
-    <value>Löschen</value>
+    <value>Delete</value>
   </data>
   <data name="ImportFolders_NewFolder" xml:space="preserve">
-    <value>Neuer Ordner</value>
+    <value>New Folder</value>
   </data>
   <data name="ImportFolders_UPnP" xml:space="preserve">
-    <value>UPnP-Quelle</value>
+    <value>UPnP Source</value>
   </data>
   <data name="Confirm" xml:space="preserve">
-    <value>Bestätigen</value>
+    <value>Confirm</value>
   </data>
   <data name="ImportFolders_DeleteFolder" xml:space="preserve">
-    <value>Sind Sie sicher, dass Sie den Import-Ordner löschen: {0}?</value>
+    <value>Are you sure you want to delete the Import Folder: {0}?</value>
   </data>
   <data name="ImportFolders_ImportFolder" xml:space="preserve">
-    <value>Importordner</value>
+    <value>Import Folder</value>
   </data>
   <data name="ImportFolders_ServerDetails" xml:space="preserve">
-    <value>Serverdetails</value>
+    <value>Server Details</value>
   </data>
   <data name="ImportFolders_InputPath" xml:space="preserve">
-    <value>Import-Ordner-Pfad</value>
+    <value>Import Folder Path</value>
   </data>
   <data name="ImportFolders_DropSource" xml:space="preserve">
-    <value>Ablagequelle</value>
+    <value>Drop Source</value>
   </data>
   <data name="ImportFolders_DropDestination" xml:space="preserve">
-    <value>Ablageposition</value>
+    <value>Drop Destination</value>
   </data>
   <data name="ImportFolders_Watch" xml:space="preserve">
-    <value>Achten Sie auf neue Dateien</value>
+    <value>Watch For New Files</value>
   </data>
   <data name="Save" xml:space="preserve">
-    <value>Sie sparen</value>
+    <value>Save</value>
   </data>
   <data name="Cancel" xml:space="preserve">
-    <value>Abbrechen</value>
+    <value>Cancel</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
-    <value>Ein Importordner darf nicht die Ablagequelle und die Ablageposition sein.</value>
+    <value>An import folder cannot be both the drop source and the drop destination.</value>
   </data>
   <data name="ImportFolders_BlankImport" xml:space="preserve">
-    <value>Der Speicherort des Ordners darf nicht leer sein. Geben Sie einen gültigen Pfad auf JMM Server</value>
+    <value>The import folder location cannot be blank. Enter a valid path on JMM Server.</value>
   </data>
   <data name="About_UpdateCheck" xml:space="preserve">
-    <value>Nach Updates suchen</value>
+    <value>Check for Updates</value>
   </data>
   <data name="InitialSetup_InitialSetup" xml:space="preserve">
-    <value>Ersteinrichtung</value>
+    <value>Initial Setup</value>
   </data>
   <data name="InitialSetup_AniDBUsername" xml:space="preserve">
     <value>AniDB Username</value>
   </data>
   <data name="InitialSetup_AniDBPassword" xml:space="preserve">
-    <value>AniDB Passwort</value>
+    <value>AniDB Password</value>
   </data>
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
-    <value>AniDB Client-Port</value>
+    <value>AniDB Client Port</value>
   </data>
   <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Test-Login</value>
+    <value>Test Login</value>
   </data>
   <data name="InitialSetup_Get" xml:space="preserve">
-    <value>Sie haben noch kein AniDB-Konto? Klicken Sie hier, um zum einen zu registrieren</value>
+    <value>Don't have an AniDB account? Click here to register for one</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
-    <value>https://anidb.net/perl-bin/AnimeDB.pl?Show=Signup</value>
+    <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Wird initialisiert...</value>
+    <value>Initializing...</value>
   </data>
   <data name="InitialSetup_Login" xml:space="preserve">
     <value>Login...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
-    <value>Entsorgung...</value>
+    <value>Disposing...</value>
   </data>
   <data name="InitialSetup_LoginPass1" xml:space="preserve">
-    <value>Anmeldung-Erfolg! Ausloggen...</value>
+    <value>Login Success! Logging out...</value>
   </data>
   <data name="InitialSetup_LoginPass2" xml:space="preserve">
-    <value>Anmeldung-Erfolg! Ausgeloggt.</value>
+    <value>Login Success! Logged out.</value>
   </data>
   <data name="InitialSetup_LoginFail" xml:space="preserve">
-    <value>Login fehlgeschlagen!</value>
+    <value>Login FAILED!</value>
   </data>
   <data name="InitialSetup_EnterUsername" xml:space="preserve">
-    <value>Bitte geben Sie einen gültigen Benutzernamen.</value>
+    <value>Please enter a valid username.</value>
   </data>
   <data name="InitialSetup_EnterPassword" xml:space="preserve">
-    <value>Bitte geben Sie ein gültiges Kennwort.</value>
+    <value>Please enter a valid password.</value>
   </data>
   <data name="InitialSetup_EnterPort" xml:space="preserve">
-    <value>Bitte geben Sie einen gültige Client-Port.</value>
+    <value>Please enter a valid client port.</value>
   </data>
   <data name="Update_DownloadPage" xml:space="preserve">
-    <value>Download-Seite</value>
+    <value>Download Page</value>
   </data>
   <data name="Update_AboutPage" xml:space="preserve">
-    <value>Über die Seite</value>
+    <value>About Page</value>
   </data>
   <data name="Update_YourVersion" xml:space="preserve">
-    <value>Ihre Version</value>
+    <value>Your Version</value>
   </data>
   <data name="Update_AvailableVersion" xml:space="preserve">
-    <value>Verfügbare Version</value>
+    <value>Available Version</value>
   </data>
   <data name="Update_JMMServer" xml:space="preserve">
-    <value>JMM Updateserver</value>
+    <value>Update JMM Server</value>
   </data>
   <data name="Update_UpdateAvailable" xml:space="preserve">
-    <value>Update verfügbar</value>
+    <value>Update Available</value>
   </data>
   <data name="Link_Download" xml:space="preserve">
-    <value>http://jmediamanager.org/Downloads</value>
+    <value>http://jmediamanager.org/downloads</value>
   </data>
   <data name="Link_Changelog" xml:space="preserve">
-    <value>http://jmediamanager.org/Changelog</value>
+    <value>http://jmediamanager.org/changelog</value>
   </data>
   <data name="Command_Paused" xml:space="preserve">
-    <value>Angehalten</value>
+    <value>Paused</value>
   </data>
   <data name="Command_Queued" xml:space="preserve">
-    <value>In der Warteschlange</value>
+    <value>Queued</value>
   </data>
   <data name="Command_Idle" xml:space="preserve">
-    <value>Leerlauf</value>
+    <value>Idle</value>
   </data>
   <data name="Command_StartingHasher" xml:space="preserve">
-    <value>Befehl-Arbeiter (Hasher) gestartet...</value>
+    <value>Starting command worker (hasher)...</value>
   </data>
   <data name="Command_StartingImages" xml:space="preserve">
-    <value>Start Befehl Arbeiter (Bilder)...</value>
+    <value>Starting command worker (images)...</value>
   </data>
   <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>Start Befehl Arbeiter (allgemein)...</value>
+    <value>Starting command worker (general)...</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
-    <value>Film</value>
+    <value>Movie</value>
   </data>
   <data name="AnimeType_OVA" xml:space="preserve">
-    <value>EIZELLEN</value>
+    <value>OVA</value>
   </data>
   <data name="AnimeType_Other" xml:space="preserve">
-    <value>Andere</value>
+    <value>Other</value>
   </data>
   <data name="AnimeType_TVSeries" xml:space="preserve">
-    <value>TV-Serie</value>
+    <value>TV Series</value>
   </data>
   <data name="AnimeType_TVSpecial" xml:space="preserve">
-    <value>TV-Special</value>
+    <value>TV Special</value>
   </data>
   <data name="AnimeType_Web" xml:space="preserve">
     <value>Web</value>
   </data>
   <data name="AniDB_ResponseWait" xml:space="preserve">
-    <value>Warte auf Antwort...</value>
+    <value>Waiting on response...</value>
   </data>
   <data name="Database_Initializing" xml:space="preserve">
-    <value>Initialisiere Session Factory...</value>
+    <value>Initializing Session Factory...</value>
   </data>
   <data name="Database_CreateSchema" xml:space="preserve">
-    <value>Datenbank - anfängliche Schema erstellen...</value>
+    <value>Database - Creating Initial Schema...</value>
   </data>
   <data name="Database_ApplySchema" xml:space="preserve">
-    <value>Datenbank - Schema Patches anwenden...</value>
+    <value>Database - Applying Schema Patches...</value>
   </data>
   <data name="Database_CreateDatabase" xml:space="preserve">
-    <value>Datenbank - Datenbank erstellen...</value>
+    <value>Database - Creating Database...</value>
   </data>
   <data name="Filter_Favorites" xml:space="preserve">
-    <value>Favoriten</value>
+    <value>Favorites</value>
   </data>
   <data name="Filter_MissingEpisodes" xml:space="preserve">
-    <value>Fehlende Episoden</value>
+    <value>Missing Episodes</value>
   </data>
   <data name="Filter_Airing" xml:space="preserve">
-    <value>Neu lüften Serie</value>
+    <value>Newly Airing Series</value>
   </data>
   <data name="Filter_Added" xml:space="preserve">
-    <value>Neu hinzugefügte Serie</value>
+    <value>Newly Added Series</value>
   </data>
   <data name="Filter_Votes" xml:space="preserve">
-    <value>Erforderlichen Stimmen</value>
+    <value>Votes Needed</value>
   </data>
   <data name="Filter_RecentlyWatched" xml:space="preserve">
-    <value>Vor kurzem sah</value>
+    <value>Recently Watched</value>
   </data>
   <data name="Filter_LinkMissing" xml:space="preserve">
-    <value>TvDB/MovieDB-Link fehlt</value>
+    <value>TvDB/MovieDB Link Missing</value>
   </data>
   <data name="Filter_Continue" xml:space="preserve">
-    <value>Weiter beobachten (SYSTEM)</value>
+    <value>Continue Watching (SYSTEM)</value>
   </data>
   <data name="EpisodeType_Episodes" xml:space="preserve">
-    <value>Episoden</value>
+    <value>Episodes</value>
   </data>
   <data name="EpisodeType_Credits" xml:space="preserve">
-    <value>Kredit</value>
+    <value>Credit</value>
   </data>
   <data name="EpisodeType_Specials" xml:space="preserve">
-    <value>Angebote</value>
+    <value>Specials</value>
   </data>
   <data name="EpisodeType_Trailer" xml:space="preserve">
-    <value>Anhänger</value>
+    <value>Trailer</value>
   </data>
   <data name="EpisodeType_Parody" xml:space="preserve">
-    <value>Parodie</value>
+    <value>Parody</value>
   </data>
   <data name="EpisodeType_Other" xml:space="preserve">
-    <value>Andere</value>
+    <value>Other</value>
   </data>
   <data name="Command_Refresh" xml:space="preserve">
-    <value>Erfrischende Anime Stats: {0}</value>
+    <value>Refreshing Anime Stats: {0}</value>
   </data>
   <data name="AniDB_GettingAnimeXML" xml:space="preserve">
-    <value>Erste Anime-XML-Daten aus ANIDB: {0}</value>
+    <value>Getting Anime XML Data From ANIDB: {0}</value>
   </data>
   <data name="AniDB_GotAnimeXML" xml:space="preserve">
-    <value>Habe Anime-XML-Daten von ANIDB: {0} - {1} - {2}</value>
+    <value>Got Anime XML Data From ANIDB: {0} - {1} - {2}</value>
   </data>
   <data name="Command_AnimeInfo" xml:space="preserve">
-    <value>Anime-Info von HTTP-API erhalten: {0}</value>
+    <value>Getting anime info from HTTP API: {0}</value>
   </data>
   <data name="Command_FileInfo" xml:space="preserve">
-    <value>Abrufen von Dateiinformationen aus UDP-API: {0}</value>
+    <value>Getting file info from UDP API: {0}</value>
   </data>
   <data name="Command_ReadingMedia" xml:space="preserve">
-    <value>Mediadaten für Datei lesen: {0}</value>
+    <value>Reading Media Info for File: {0}</value>
   </data>
   <data name="Commanding_GettingTvDB" xml:space="preserve">
-    <value>Immer Episoden von The TvDB: {0}</value>
+    <value>Getting episodes from The TvDB: {0}</value>
   </data>
   <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL ist die Mid-Tier- und empfohlene Datenbanktyp für JMM-Benutzer mit einer großen Sammlung, die beabsichtigen, eine große Sammlung zu bauen oder einfach nur eine Erhöhung der Geschwindigkeit und Leistung bei der Verwendung von JMM. Es ist einfach zu Setup und mithilfe unserer Anleitung werden Sie oben und in wenigen Minuten ausgeführt.</value>
+    <value>MySQL is the mid-tier and recommended database type for JMM users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using JMM. It is easy to setup and using our guide you’ll be up and running in a matter of minutes.</value>
   </data>
   <data name="Toolbar_Translate" xml:space="preserve">
-    <value>Helfen Sie, JMM zu übersetzen!</value>
+    <value>Help Translate JMM!</value>
   </data>
   <data name="Link_Translate" xml:space="preserve">
-    <value>http://jmediamanager.org/Translate</value>
+    <value>http://jmediamanager.org/translate</value>
   </data>
 </root>

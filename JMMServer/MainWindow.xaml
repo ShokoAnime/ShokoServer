@@ -690,14 +690,32 @@
         <Border Style="{DynamicResource ToolbarBorderControlStyle}" Grid.Row="3" Background="AliceBlue" Padding="5">
 
             <StackPanel Orientation="Vertical">
-                <StackPanel Orientation="Horizontal" Margin="5">
-                    <TextBlock Margin="0,0,0,0" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=AniDB_Activity}" FontWeight="Bold" VerticalAlignment="Center"/>
-                    <Image Height="16" Width="16" Source="/Images/32_green_button.png" Margin="10,0,5,0"
+
+                <Grid>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Margin="0,0,0,0" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=AniDB_Activity}" Grid.Column="1" FontWeight="Bold"/>
+                    <Image Height="16" Width="16" Source="/Images/32_green_button.png" Margin="10,0,5,0" Grid.Column="2" 
                            Visibility="{Binding Source={x:Static local:ServerInfo.Instance}, Path=WaitingOnResponseAniDBUDP, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                    <Image Height="16" Width="16" Source="/Images/32_red_button.png" Margin="10,0,5,0"
+                    <Image Height="16" Width="16" Source="/Images/32_red_button.png" Margin="10,0,5,0" Grid.Column="2" 
                            Visibility="{Binding Source={x:Static local:ServerInfo.Instance}, Path=NotWaitingOnResponseAniDBUDP, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                    <TextBlock Margin="10,0,0,0" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=WaitingOnResponseAniDBUDPString}"  VerticalAlignment="Center"/>
-                </StackPanel>
+                    <TextBlock Margin="10,0,0,0" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=WaitingOnResponseAniDBUDPString}" Grid.Column="3"/>
+                    <local:HyperLinkStandard VerticalAlignment="Center" Margin="5,0,0,0" Grid.Column="6" HorizontalAlignment="Right" FontWeight="Bold" DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=Toolbar_Translate}"
+                                                                        URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_Translate}"/>
+
+                </Grid>
+
 
                 <StackPanel Orientation="Horizontal" Margin="5"
                             Visibility="{Binding Source={x:Static local:ServerInfo.Instance}, Path=HasExtendedPause, Converter={StaticResource BooleanToVisibilityConverter}}">

@@ -232,6 +232,24 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Getting Anime XML Data From ANIDB: {0}.
+        /// </summary>
+        internal static string AniDB_GettingAnimeXML {
+            get {
+                return ResourceManager.GetString("AniDB_GettingAnimeXML", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Got Anime XML Data From ANIDB: {0} - {1} - {2}.
+        /// </summary>
+        internal static string AniDB_GotAnimeXML {
+            get {
+                return ResourceManager.GetString("AniDB_GotAnimeXML", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Waiting on response....
         /// </summary>
         internal static string AniDB_ResponseWait {
@@ -304,6 +322,24 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Getting anime info from HTTP API: {0}.
+        /// </summary>
+        internal static string Command_AnimeInfo {
+            get {
+                return ResourceManager.GetString("Command_AnimeInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Getting file info from UDP API: {0}.
+        /// </summary>
+        internal static string Command_FileInfo {
+            get {
+                return ResourceManager.GetString("Command_FileInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Idle.
         /// </summary>
         internal static string Command_Idle {
@@ -331,6 +367,24 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Reading Media Info for File: {0}.
+        /// </summary>
+        internal static string Command_ReadingMedia {
+            get {
+                return ResourceManager.GetString("Command_ReadingMedia", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refreshing Anime Stats: {0}.
+        /// </summary>
+        internal static string Command_Refresh {
+            get {
+                return ResourceManager.GetString("Command_Refresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Starting command worker (general)....
         /// </summary>
         internal static string Command_StartingGeneral {
@@ -354,6 +408,15 @@ namespace JMMServer.Properties {
         internal static string Command_StartingImages {
             get {
                 return ResourceManager.GetString("Command_StartingImages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Getting episodes from The TvDB: {0}.
+        /// </summary>
+        internal static string Commanding_GettingTvDB {
+            get {
+                return ResourceManager.GetString("Commanding_GettingTvDB", resourceCulture);
             }
         }
         
@@ -1060,6 +1123,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/translate.
+        /// </summary>
+        internal static string Link_Translate {
+            get {
+                return ResourceManager.GetString("Link_Translate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to MySQL.
         /// </summary>
         internal static string MySQL {
@@ -1069,7 +1141,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MySQL is the mid-tier and recommend database type for use with JMM for users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using JMM. It is easy to setup and using our guide you&apos;ll be up and running in a matter of minutes..
+        ///   Looks up a localized string similar to MySQL is the mid-tier and recommended database type for JMM users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using JMM. It is easy to setup and using our guide you’ll be up and running in a matter of minutes..
         /// </summary>
         internal static string MySQL_Info {
             get {
@@ -1755,6 +1827,15 @@ namespace JMMServer.Properties {
         internal static string Toolbar_Shutdown {
             get {
                 return ResourceManager.GetString("Toolbar_Shutdown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Help Translate JMM!.
+        /// </summary>
+        internal static string Toolbar_Translate {
+            get {
+                return ResourceManager.GetString("Toolbar_Translate", resourceCulture);
             }
         }
         

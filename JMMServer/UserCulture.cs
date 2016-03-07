@@ -29,7 +29,13 @@ namespace JMMServer
                 List<UserCulture> userLanguages = new List<UserCulture>();
 
                 userLanguages.Add(new UserCulture("en", "English (US)", @"Images/Flags/us.gif"));
-                userLanguages.Add(new UserCulture("de", "German", @"Images/Flags/de_germany.gif"));
+                userLanguages.Add(new UserCulture("nl", "Dutch (Machine Translated)", @"Images/Flags/nl.gif"));
+                userLanguages.Add(new UserCulture("fr", "French (Machine Translated)", @"Images/Flags/fr.gif"));
+                userLanguages.Add(new UserCulture("de", "German (Machine Translated)", @"Images/Flags/de_germany.gif"));
+                userLanguages.Add(new UserCulture("it", "Italian (Machine Translated)", @"Images/Flags/it.gif"));
+                userLanguages.Add(new UserCulture("pl", "Polish (Machine Translated)", @"Images/Flags/pl.gif"));
+                userLanguages.Add(new UserCulture("ru", "Russian (Machine Translated)", @"Images/Flags/ru.gif"));
+                userLanguages.Add(new UserCulture("es", "Spanish (Machine Translated)", @"Images/Flags/es.gif"));
 
                 return userLanguages;
             }

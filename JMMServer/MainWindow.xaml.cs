@@ -585,8 +585,6 @@ namespace JMMServer
             System.Diagnostics.Process.Start("http://jmediamanager.org/jmm-server/configuring-jmm-server/#jmm-start-with-windows");
         }
 
-
-
         void cboLanguages_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             SetCulture();
