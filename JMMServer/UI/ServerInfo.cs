@@ -335,7 +335,15 @@ namespace JMMServer
 		private string waitingOnResponseAniDBUDPString =  JMMServer.Properties.Resources.Command_Idle; 
 		public string WaitingOnResponseAniDBUDPString
 		{
-			get { return waitingOnResponseAniDBUDPString; }
+			get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                waitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.Command_Idle;
+                return waitingOnResponseAniDBUDPString;
+            }
 			set
 			{
                 waitingOnResponseAniDBUDPString = value;

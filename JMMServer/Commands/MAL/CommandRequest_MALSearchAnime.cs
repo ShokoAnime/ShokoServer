@@ -9,6 +9,10 @@ using JMMServer.Providers.TvDB;
 using JMMServer.WebCache;
 using JMMServer.Providers.MyAnimeList;
 using AniDBAPI;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands.MAL
 {
@@ -27,7 +31,11 @@ namespace JMMServer.Commands.MAL
 		{
 			get
 			{
-				return string.Format("Searching for anime on MAL: {0}", AnimeID);
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                return string.Format(JMMServer.Properties.Resources.Command_SearchMal, AnimeID);
 			}
 		}
 

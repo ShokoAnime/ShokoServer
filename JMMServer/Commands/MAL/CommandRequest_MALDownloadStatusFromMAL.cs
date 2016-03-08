@@ -8,6 +8,10 @@ using AniDBAPI;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands.MAL
 {
@@ -23,7 +27,11 @@ namespace JMMServer.Commands.MAL
 		{
 			get
 			{
-				return string.Format("Downloading watched states from MAL");
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                return string.Format(JMMServer.Properties.Resources.Command_DownloadMalWatched);
 			}
 		}
 

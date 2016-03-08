@@ -7,6 +7,9 @@ using JMMServer.Entities;
 using System.Xml;
 using JMMServer.Commands.MAL;
 using System.Globalization;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -26,7 +29,11 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Voting: {0} - {1}", AnimeID, VoteValue);
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                return string.Format(JMMServer.Properties.Resources.Command_VoteAnime, AnimeID, VoteValue);
 			}
 		}
 

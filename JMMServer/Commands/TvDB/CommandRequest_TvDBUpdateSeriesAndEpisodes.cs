@@ -32,7 +32,7 @@ namespace JMMServer.Commands
                 string cult = appSettings["Culture"];
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
 
-                return string.Format(JMMServer.Properties.Resources.Commanding_GettingTvDB, TvDBSeriesID);
+                return string.Format(JMMServer.Properties.Resources.Command_GettingTvDB, TvDBSeriesID);
 			}
 		}
 

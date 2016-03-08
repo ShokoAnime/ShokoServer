@@ -728,7 +728,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Command_ReadingMedia" xml:space="preserve">
     <value>Reading Media Info for File: {0}</value>
   </data>
-  <data name="Commanding_GettingTvDB" xml:space="preserve">
+  <data name="Command_GettingTvDB" xml:space="preserve">
     <value>Getting episodes from The TvDB: {0}</value>
   </data>
   <data name="Toolbar_Translate" xml:space="preserve">
@@ -736,5 +736,125 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Link_Translate" xml:space="preserve">
     <value>http://jmediamanager.org/translate</value>
+  </data>
+  <data name="Command_GetReleaseInfo" xml:space="preserve">
+    <value>Getting release group info from UDP API: {0}</value>
+  </data>
+  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
+    <value>Getting release group info from UDP API: {0}</value>
+  </data>
+  <data name="Command_SearchTMDb" xml:space="preserve">
+    <value>Searching for anime on The MovieDB: {0}</value>
+  </data>
+  <data name="AniDB_Paused" xml:space="preserve">
+    <value>Paused communications for {0} seconds: {1} </value>
+  </data>
+  <data name="AniDB_ResponseWaitSeconds" xml:space="preserve">
+    <value>Waiting on response for {0} seconds...</value>
+  </data>
+  <data name="AniDB_LastMessage" xml:space="preserve">
+    <value>Last message sent {0} seconds ago</value>
+  </data>
+  <data name="Command_DownloadImage" xml:space="preserve">
+    <value>Downloading Image: {0}</value>
+  </data>
+  <data name="Command_DeleteError" xml:space="preserve">
+    <value>Error deleting image: ({0}) - {1}</value>
+  </data>
+  <data name="Command_HashingFile" xml:space="preserve">
+    <value>Hashing File: {0}</value>
+  </data>
+  <data name="AniDB_MyListAdd" xml:space="preserve">
+    <value>Adding file to MyList: {0}</value>
+  </data>
+  <data name="AniDB_MyListDelete" xml:space="preserve">
+    <value>Deleting file from MyList: {0}_{1}</value>
+  </data>
+  <data name="AniDB_GetTitles" xml:space="preserve">
+    <value>Getting AniDB Titles</value>
+  </data>
+  <data name="Command_GetCalendar" xml:space="preserve">
+    <value>Getting calendar info from UDP API</value>
+  </data>
+  <data name="Command_GetEpisodeList" xml:space="preserve">
+    <value>Getting episode info from UDP API: {0}</value>
+  </data>
+  <data name="Command_GetFileInfo" xml:space="preserve">
+    <value>Getting file info from UDP API: {0}</value>
+  </data>
+  <data name="Command_GetReleaseGroup" xml:space="preserve">
+    <value>Getting group status info from UDP API for Anime: {0}</value>
+  </data>
+  <data name="Command_GetReviewInfo" xml:space="preserve">
+    <value>Getting review info from UDP API for Anime: {0}</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Getting list of updated animes from UDP API</value>
+  </data>
+  <data name="Command_SyncMyList" xml:space="preserve">
+    <value>Syncing MyList info from HTTP API</value>
+  </data>
+  <data name="Command_SyncVotes" xml:space="preserve">
+    <value>Syncing Vote info from HTTP API</value>
+  </data>
+  <data name="Command_UpdateMyListInfo" xml:space="preserve">
+    <value>Updating MyList info from UDP API for File: {0}</value>
+  </data>
+  <data name="Command_UpdateMyListStats" xml:space="preserve">
+    <value>Updating AniDB MyListStats</value>
+  </data>
+  <data name="Command_VoteAnime" xml:space="preserve">
+    <value>Voting: {0} - {1}</value>
+  </data>
+  <data name="Command_DownloadMalWatched" xml:space="preserve">
+    <value>Downloading watched states from MAL</value>
+  </data>
+  <data name="Command_SearchMal" xml:space="preserve">
+    <value>Searching for anime on MAL: {0}</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Updating status on MAL: {0}</value>
+  </data>
+  <data name="Command_UploadMALWatched" xml:space="preserve">
+    <value>Uploading watched states to MAL</value>
+  </data>
+  <data name="Command_SyncTraktEpisodes" xml:space="preserve">
+    <value>Sync episode to collection on Trakt: {0} - {1}</value>
+  </data>
+  <data name="Command_TraktAddHistory" xml:space="preserve">
+    <value>Add episode to history on Trakt: {0}</value>
+  </data>
+  <data name="Command_SearchTrakt" xml:space="preserve">
+    <value>Searching for anime on Trakt.TV: {0}</value>
+  </data>
+  <data name="Command_SyncTrakt" xml:space="preserve">
+    <value>Syncing Trakt Collection</value>
+  </data>
+  <data name="Command_SyncTraktSeries" xml:space="preserve">
+    <value>Syncing Trakt Collection for series: {0}</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Updating all Trakt Series Info</value>
+  </data>
+  <data name="Command_UpdateTraktData" xml:space="preserve">
+    <value>Updating info/images on Trakt.TV: {0}</value>
+  </data>
+  <data name="Command_SendAnimeFull" xml:space="preserve">
+    <value>Sending anime full to azure: {0}</value>
+  </data>
+  <data name="Command_SendAnimeTitle" xml:space="preserve">
+    <value>Sending anime title to azure: {0}</value>
+  </data>
+  <data name="Command_SendAnimeAzure" xml:space="preserve">
+    <value>Sending anime xml to azure: {0}</value>
+  </data>
+  <data name="Command_SendAnonymousData" xml:space="preserve">
+    <value>Sending anonymous usage data to azure</value>
+  </data>
+  <data name="Command_DownloadTvDBImages" xml:space="preserve">
+    <value>Getting images from The TvDB: {0}</value>
+  </data>
+  <data name="Command_SearchTvDB" xml:space="preserve">
+    <value>Searching for anime on The TvDB: {0}</value>
   </data>
 </root>

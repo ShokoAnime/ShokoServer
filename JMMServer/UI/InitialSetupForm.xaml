@@ -60,7 +60,7 @@
                              local:PasswordBoxAssistant.BindPassword="true"  HorizontalAlignment="Left"
                              local:PasswordBoxAssistant.BoundPassword="{Binding Source={x:Static local:ServerState.Instance},Path=AniDB_Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Margin="10,5,5,5"  Text="{Resx ResxName=JMMServer.Properties.Resources, Key=InitialSetup_AniDBClientPort}"  VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="10,5,5,5"  Text="{Resx ResxName=JMMServer.Properties.Resources, Key=InitalSetup_AniDBPort}"  VerticalAlignment="Center"/>
                 <TextBox Grid.Row="2" Grid.Column="1" Margin="5" Name="txtClientPort" Width="50"  VerticalAlignment="Center" HorizontalAlignment="Left"
                          Text="{Binding Source={x:Static local:ServerState.Instance},Path=AniDB_ClientPort}"/>
 

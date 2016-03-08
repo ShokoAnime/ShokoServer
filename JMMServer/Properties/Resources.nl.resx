@@ -679,7 +679,7 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Command_ReadingMedia" xml:space="preserve">
     <value>Media-Info voor bestand lezen: {0}</value>
   </data>
-  <data name="Commanding_GettingTvDB" xml:space="preserve">
+  <data name="Command_GettingTvDB" xml:space="preserve">
     <value>Krijgen van afleveringen van The TvDB: {0}</value>
   </data>
   <data name="MySQL_Info" xml:space="preserve">
@@ -690,5 +690,122 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="Link_Translate" xml:space="preserve">
     <value>http://jmediamanager.org/Translate</value>
+  </data>
+  <data name="Command_GetReleaseInfo" xml:space="preserve">
+    <value>Krijgen van groep versieinfo van UDP-API: {0}</value>
+  </data>
+  <data name="Command_SearchTMDb" xml:space="preserve">
+    <value>Op zoek naar anime op The MovieDB: {0}</value>
+  </data>
+  <data name="AniDB_Paused" xml:space="preserve">
+    <value>Communicatie {0} seconden onderbroken: {1} </value>
+  </data>
+  <data name="AniDB_ResponseWaitSeconds" xml:space="preserve">
+    <value>Wachten op antwoord {0} seconden...</value>
+  </data>
+  <data name="AniDB_LastMessage" xml:space="preserve">
+    <value>Laatste bericht verzonden {0} seconden geleden</value>
+  </data>
+  <data name="Command_DownloadImage" xml:space="preserve">
+    <value>Afbeelding downloaden: {0}</value>
+  </data>
+  <data name="Command_DeleteError" xml:space="preserve">
+    <value>Fout bij het verwijderen van afbeelding: ({0}) - {1}</value>
+  </data>
+  <data name="Command_HashingFile" xml:space="preserve">
+    <value>Hashing bestand: {0}</value>
+  </data>
+  <data name="AniDB_MyListAdd" xml:space="preserve">
+    <value>Toevoegen bestand MyList: {0}</value>
+  </data>
+  <data name="AniDB_MyListDelete" xml:space="preserve">
+    <value>Verwijderen bestand uit MyList: {0} _ {1}</value>
+  </data>
+  <data name="AniDB_GetTitles" xml:space="preserve">
+    <value>Krijgen AniDB titels</value>
+  </data>
+  <data name="Command_GetCalendar" xml:space="preserve">
+    <value>Kalender info krijgen van UDP-API</value>
+  </data>
+  <data name="Command_GetEpisodeList" xml:space="preserve">
+    <value>Verkrijgen van info van de aflevering van UDP-API: {0}</value>
+  </data>
+  <data name="Command_GetFileInfo" xml:space="preserve">
+    <value>Bestandsinfo krijgen van UDP-API: {0}</value>
+  </data>
+  <data name="Command_GetReleaseGroup" xml:space="preserve">
+    <value>Groep status info krijgen van UDP-API voor Anime: {0}</value>
+  </data>
+  <data name="Command_GetReviewInfo" xml:space="preserve">
+    <value>Krijgen lees info van UDP-API voor Anime: {0}</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Het krijgen van de lijst van bijgewerkte animes van UDP-API</value>
+  </data>
+  <data name="Command_SyncMyList" xml:space="preserve">
+    <value>Synchroniseren MyList info van HTTP API</value>
+  </data>
+  <data name="Command_SyncVotes" xml:space="preserve">
+    <value>Synchroniseren van stemming info van HTTP API</value>
+  </data>
+  <data name="Command_UpdateMyListInfo" xml:space="preserve">
+    <value>MyList info van UDP-API voor bestand bijwerken: {0}</value>
+  </data>
+  <data name="Command_UpdateMyListStats" xml:space="preserve">
+    <value>Bijwerken van AniDB MyListStats</value>
+  </data>
+  <data name="Command_VoteAnime" xml:space="preserve">
+    <value>Stemmen: {0} - {1}</value>
+  </data>
+  <data name="Command_DownloadMalWatched" xml:space="preserve">
+    <value>Staten van MAL downloaden keek</value>
+  </data>
+  <data name="Command_SearchMal" xml:space="preserve">
+    <value>Op zoek naar anime op MAL: {0}</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Bijwerken van status op MAL: {0}</value>
+  </data>
+  <data name="Command_UploadMALWatched" xml:space="preserve">
+    <value>Uploaden keek Staten MAL</value>
+  </data>
+  <data name="Command_SyncTraktEpisodes" xml:space="preserve">
+    <value>Sync aflevering aan collectie op Trakt: {0} - {1}</value>
+  </data>
+  <data name="Command_TraktAddHistory" xml:space="preserve">
+    <value>Aflevering aan geschiedenis op Trakt toevoegen: {0}</value>
+  </data>
+  <data name="Command_SearchTrakt" xml:space="preserve">
+    <value>Op zoek naar anime op Trakt.TV: {0}</value>
+  </data>
+  <data name="Command_SyncTrakt" xml:space="preserve">
+    <value>Synchroniseren Trakt collectie</value>
+  </data>
+  <data name="Command_SyncTraktSeries" xml:space="preserve">
+    <value>Syncing Trakt collectie voor serie: {0}</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Bijwerken van alle Trakt serie Info</value>
+  </data>
+  <data name="Command_UpdateTraktData" xml:space="preserve">
+    <value>Info/Foto's op Trakt.TV bijwerken: {0}</value>
+  </data>
+  <data name="Command_SendAnimeFull" xml:space="preserve">
+    <value>Verzenden van anime volledige naar azure: {0}</value>
+  </data>
+  <data name="Command_SendAnimeTitle" xml:space="preserve">
+    <value>Verzenden van anime titel naar azure: {0}</value>
+  </data>
+  <data name="Command_SendAnimeAzure" xml:space="preserve">
+    <value>Anime xml te sturen naar azure: {0}</value>
+  </data>
+  <data name="Command_SendAnonymousData" xml:space="preserve">
+    <value>Verzenden van anonieme gebruiksgegevens naar azure</value>
+  </data>
+  <data name="Command_DownloadTvDBImages" xml:space="preserve">
+    <value>Om afbeeldingen van de TvDB: {0}</value>
+  </data>
+  <data name="Command_SearchTvDB" xml:space="preserve">
+    <value>Op zoek naar anime op de TvDB: {0}</value>
   </data>
 </root>

@@ -679,7 +679,7 @@
   <data name="Command_ReadingMedia" xml:space="preserve">
     <value>Чтение для файла СМИ информация: {0}</value>
   </data>
-  <data name="Commanding_GettingTvDB" xml:space="preserve">
+  <data name="Command_GettingTvDB" xml:space="preserve">
     <value>Получение TvDB эпизоды: {0}</value>
   </data>
   <data name="MySQL_Info" xml:space="preserve">
@@ -690,5 +690,122 @@
   </data>
   <data name="Link_Translate" xml:space="preserve">
     <value>http://JMediaManager.org/Translate</value>
+  </data>
+  <data name="Command_GetReleaseInfo" xml:space="preserve">
+    <value>Получать информацию о группе выпуска от UDP API: {0}</value>
+  </data>
+  <data name="Command_SearchTMDb" xml:space="preserve">
+    <value>Поиск для аниме на MovieDB: {0}</value>
+  </data>
+  <data name="AniDB_Paused" xml:space="preserve">
+    <value>Приостановлено коммуникаций для {0} секунд: {1} </value>
+  </data>
+  <data name="AniDB_ResponseWaitSeconds" xml:space="preserve">
+    <value>Ожидая ответа для {0} секунд...</value>
+  </data>
+  <data name="AniDB_LastMessage" xml:space="preserve">
+    <value>Последнее сообщение, отправленное {0} секунд назад</value>
+  </data>
+  <data name="Command_DownloadImage" xml:space="preserve">
+    <value>Загрузка изображений: {0}</value>
+  </data>
+  <data name="Command_DeleteError" xml:space="preserve">
+    <value>Ошибка при удалении изображения: ({0}) - {1}</value>
+  </data>
+  <data name="Command_HashingFile" xml:space="preserve">
+    <value>Хэширование файла: {0}</value>
+  </data>
+  <data name="AniDB_MyListAdd" xml:space="preserve">
+    <value>Добавление файла MyList: {0}</value>
+  </data>
+  <data name="AniDB_MyListDelete" xml:space="preserve">
+    <value>Удаление файла из MyList: {0} _ {1}</value>
+  </data>
+  <data name="AniDB_GetTitles" xml:space="preserve">
+    <value>Получение звания AniDB</value>
+  </data>
+  <data name="Command_GetCalendar" xml:space="preserve">
+    <value>Получение календаря информация от UDP API</value>
+  </data>
+  <data name="Command_GetEpisodeList" xml:space="preserve">
+    <value>Получать информацию эпизод от UDP API: {0}</value>
+  </data>
+  <data name="Command_GetFileInfo" xml:space="preserve">
+    <value>Получение файла информация от UDP API: {0}</value>
+  </data>
+  <data name="Command_GetReleaseGroup" xml:space="preserve">
+    <value>Получать информацию о группе статус от UDP API для аниме: {0}</value>
+  </data>
+  <data name="Command_GetReviewInfo" xml:space="preserve">
+    <value>Получить обзор информация от UDP API для аниме: {0}</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Получение списка Обновлено аниме от UDP API</value>
+  </data>
+  <data name="Command_SyncMyList" xml:space="preserve">
+    <value>Синхронизация MyList информация от HTTP API</value>
+  </data>
+  <data name="Command_SyncVotes" xml:space="preserve">
+    <value>Синхронизация голосования информация от HTTP API</value>
+  </data>
+  <data name="Command_UpdateMyListInfo" xml:space="preserve">
+    <value>Обновление MyList информация от UDP API для файла: {0}</value>
+  </data>
+  <data name="Command_UpdateMyListStats" xml:space="preserve">
+    <value>Обновление AniDB MyListStats</value>
+  </data>
+  <data name="Command_VoteAnime" xml:space="preserve">
+    <value>Голосование: {0} - {1}</value>
+  </data>
+  <data name="Command_DownloadMalWatched" xml:space="preserve">
+    <value>Загрузка смотрел государства от MAL</value>
+  </data>
+  <data name="Command_SearchMal" xml:space="preserve">
+    <value>Поиск для аниме на ТЗА: {0}</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Обновление статуса на ТЗА: {0}</value>
+  </data>
+  <data name="Command_UploadMALWatched" xml:space="preserve">
+    <value>Загрузка смотрел государства MAL</value>
+  </data>
+  <data name="Command_SyncTraktEpisodes" xml:space="preserve">
+    <value>Синхронизация эпизод коллекцию на тракт: {0} - {1}</value>
+  </data>
+  <data name="Command_TraktAddHistory" xml:space="preserve">
+    <value>Добавить эпизод в истории на тракт: {0}</value>
+  </data>
+  <data name="Command_SearchTrakt" xml:space="preserve">
+    <value>Поиск для аниме на Trakt.TV: {0}</value>
+  </data>
+  <data name="Command_SyncTrakt" xml:space="preserve">
+    <value>Синхронизация коллекции тракт</value>
+  </data>
+  <data name="Command_SyncTraktSeries" xml:space="preserve">
+    <value>Синхронизация коллекции тракт для серии: {0}</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Обновление всех тракт серии информация</value>
+  </data>
+  <data name="Command_UpdateTraktData" xml:space="preserve">
+    <value>Обновление информация/изображений на Trakt.TV: {0}</value>
+  </data>
+  <data name="Command_SendAnimeFull" xml:space="preserve">
+    <value>Отправка аниме полный в azure: {0}</value>
+  </data>
+  <data name="Command_SendAnimeTitle" xml:space="preserve">
+    <value>Отправка название аниме в azure: {0}</value>
+  </data>
+  <data name="Command_SendAnimeAzure" xml:space="preserve">
+    <value>Отправка xml аниме в azure: {0}</value>
+  </data>
+  <data name="Command_SendAnonymousData" xml:space="preserve">
+    <value>Отправка анонимных данных в azure</value>
+  </data>
+  <data name="Command_DownloadTvDBImages" xml:space="preserve">
+    <value>Получение изображений из TvDB: {0}</value>
+  </data>
+  <data name="Command_SearchTvDB" xml:space="preserve">
+    <value>Поиск для аниме на TvDB: {0}</value>
   </data>
 </root>

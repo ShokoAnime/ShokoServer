@@ -37,7 +37,11 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				if (vlocal != null)
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                if (vlocal != null)
 					return string.Format(JMMServer.Properties.Resources.Command_FileInfo, vlocal.FullServerPath);
 				else
 					return string.Format(JMMServer.Properties.Resources.Command_FileInfo, VideoLocalID);

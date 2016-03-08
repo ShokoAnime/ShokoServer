@@ -1577,7 +1577,7 @@ namespace JMMServer
 			else
 				config.AppSettings.Settings.Add(key, value);
 
-			config.Save(ConfigurationSaveMode.Modified);
+			config.Save();
 			ConfigurationManager.RefreshSection("appSettings");
 		}
 

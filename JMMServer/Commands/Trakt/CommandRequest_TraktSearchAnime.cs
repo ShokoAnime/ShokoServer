@@ -12,6 +12,10 @@ using NHibernate;
 using JMMContracts;
 using AniDBAPI;
 using JMMServer.Providers.TraktTV.Contracts;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -30,7 +34,11 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Searching for anime on Trakt.TV: {0}", AnimeID);
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                return string.Format(JMMServer.Properties.Resources.Command_SearchTrakt, AnimeID);
 			}
 		}
 

@@ -59,7 +59,11 @@ namespace JMMServer.Commands
 			{
 				lock (lockPaused)
 				{
-					paused = value;
+                    NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                    string cult = appSettings["Culture"];
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                    paused = value;
 					if (paused)
 					{
 						QueueState = JMMServer.Properties.Resources.Command_Paused;
@@ -104,7 +108,12 @@ namespace JMMServer.Commands
 			{
 				lock (lockQueueState)
 				{
-					return queueState;
+                    NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                    string cult = appSettings["Culture"];
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                    queueState = JMMServer.Properties.Resources.Command_Idle;
+                    return queueState;
 				}
 			}
 			set
@@ -144,7 +153,11 @@ namespace JMMServer.Commands
 
 		public void Init()
 		{
-			processingCommands = true;
+            NameValueCollection appSettings = ConfigurationManager.AppSettings;
+            string cult = appSettings["Culture"];
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+            processingCommands = true;
 			//logger.Trace("Starting command worker (images)...");
 			QueueState = JMMServer.Properties.Resources.Command_StartingImages;
 			this.workerCommands.RunWorkerAsync();

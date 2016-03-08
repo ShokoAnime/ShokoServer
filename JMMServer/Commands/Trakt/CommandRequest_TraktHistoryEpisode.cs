@@ -6,6 +6,10 @@ using JMMServer.Entities;
 using System.Xml;
 using JMMServer.Repositories;
 using JMMServer.Providers.TraktTV;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -32,7 +36,11 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Add episode to history on Trakt: {0}", AnimeEpisodeID);
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                return string.Format(JMMServer.Properties.Resources.Command_TraktAddHistory, AnimeEpisodeID);
 			}
 		}
 
