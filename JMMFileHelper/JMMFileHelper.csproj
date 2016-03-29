@@ -60,6 +60,7 @@
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
@@ -83,12 +84,24 @@
     <Compile Include="Subtitles\TextSubtitles.cs" />
     <Compile Include="Subtitles\KodiVobSubSubtitles.cs" />
     <Compile Include="Subtitles\VobSubSubtitles.cs" />
+    <Compile Include="UPnPData.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JMMContracts\JMMContracts.csproj">
       <Project>{d777636b-f927-4c7d-9d00-4a7858e75f3e}</Project>
       <Name>JMMContracts</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="UPNPLib">
+      <Guid>{DB3442A7-A2E9-4A59-9CB5-F5C1A5D901E5}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

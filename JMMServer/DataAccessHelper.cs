@@ -29,6 +29,16 @@ namespace JMMServer
 					filePath = filePath.TrimStart('\\');
 					break;
 				}
+                else if(fileName.Contains("http"))
+                {
+                    string location = string.Format("{0}|{1}",fileName.Split('|')[0], fileName.Split('|')[1]);
+                    if (ifolder.ImportFolderLocation == location) {
+                        importFolderID = ifolder.ImportFolderID;
+                        filePath = string.Format("{0}|{1}", fileName.Split('|')[2], fileName.Split('|')[3]);
+                        filePath = filePath.TrimStart('\\');
+                        break;
+                    }
+                }
 			}
 		}
 	}

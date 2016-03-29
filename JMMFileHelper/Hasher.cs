@@ -7,6 +7,8 @@ using System.IO;
 using System.Security.Cryptography;
 using NLog;
 using JMMContracts;
+using UPNPLib;
+using System.Text.RegularExpressions;
 
 namespace JMMFileHelper
 {
@@ -147,15 +149,34 @@ namespace JMMFileHelper
 		    bool getED2k = true;
             logger.Trace("Using C# code to has file: {0}", strPath);
 
-			FileStream fs;
-			Hashes rhash = new Hashes();
-			FileInfo fi = new FileInfo(strPath);
-			fs = fi.OpenRead();
-			int lChunkSize = 9728000;
+            FileStream fs = null;
+            Hashes rhash = new Hashes();
+            FileInfo fi;
+            UPnPDeviceFinder search = new UPnPDeviceFinder();
+            long length = 0;
+            bool dlna = false;
+            if (!strPath.Contains("http"))
+            {
+                fi = new FileInfo(strPath);
+                fs = fi.OpenRead();
+                length = fs.Length;
+            } 
+            else
+            {
+                dlna = true;
+                foreach (UPnPService s in search.FindByUDN(strPath.Split('|')[0]).Services) {
+                    if (s.Id == "urn:upnp-org:serviceId:ContentDirectory") {
+                        Array sizes = UPnPData.buildDecendents("{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res", UPnPData.Search(s, strPath.Split('|')[1],
+                            "dc:title contains \"" + strPath.Split('|')[2] + "\""), "size");
+                        length = long.Parse(sizes.GetValue(0).ToString());
+                    }
+                }
+            }
+            int lChunkSize = 9728000;
 
-			long nBytes = (long)fs.Length;
+			long nBytes = length;
 
-			long nBytesRemaining = (long)fs.Length;
+			long nBytesRemaining = length;
 			int nBytesToRead = 0;
 
 			long nBlocks = nBytes / lChunkSize;
@@ -186,38 +207,62 @@ namespace JMMFileHelper
 			{
 				iChunkCount++;
 
-				//logger.Trace("Hashing Chunk: " + iChunkCount.ToString());
+                //logger.Trace("Hashing Chunk: " + iChunkCount.ToString());
+                try {
 
-				int nBytesRead = fs.Read(ByteArray, 0, nBytesToRead);
+                    int nBytesRead = 0;
+                    try {
+                        nBytesRead = fs.Read(ByteArray, 0, nBytesToRead);
+                    } catch (Exception e) {
+                        if (dlna) {
+                            UPnPDeviceFinder searchForID = new UPnPDeviceFinder();
+                            foreach (UPnPService s in searchForID.FindByUDN(strPath.Split('|')[0]).Services) {
+                                if (s.Id == "urn:upnp-org:serviceId:ContentDirectory") {
+                                    string name = UPnPData.buildDecendents("{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item",
+                                    UPnPData.Search(s, strPath.Split('|')[1], "dc:title contains \"" + strPath.Split('|')[2] + "\""), "id").GetValue(0).ToString();
+                                    name += strPath.Split('|')[3];
+                                    Regex r = new Regex(@"http://[\d.:/\w]*/");
+                                    name = r.Replace(name, "");
+                                    nBytesRead = name[(name.Length - 3) - (Convert.ToInt32(iChunkCount))/name.Length];
+                                }
+                            }
+                        } else {
+                            logger.Error(e.Message);
+                        }
+                    }
 
-				if (getED2k)
-				{
-					byte[] baHash = md4.ComputeHash(ByteArray, 0, nBytesRead);
-					int j = (int)((iChunkCount - 1) * 16);
-					for (int i = 0; i < 16; i++)
-						baED2KHash[j + i] = baHash[i];
-				}
+                    if (getED2k) {
+                        byte[] baHash = md4.ComputeHash(ByteArray, 0, nBytesRead);
+                        int j = (int)((iChunkCount - 1) * 16);
+                        for (int i = 0; i < 16; i++)
+                            baED2KHash[j + i] = baHash[i];
+                    }
 
-				if (getMD5) md5.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
-				if (getSHA1) sha1.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
-				if (getCRC32) crc32.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
+                    if (getMD5) md5.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
+                    if (getSHA1) sha1.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
+                    if (getCRC32) crc32.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
 
-				int percentComplete = (int)((float)iChunkCount / (float)nBlocks * 100);
-				if (onHashProgress != null)
-					onHashProgress(strPath, percentComplete);
+                    int percentComplete = (int)((float)iChunkCount / (float)nBlocks * 100);
+                    if (onHashProgress != null)
+                        onHashProgress(strPath, percentComplete);
 
-				iOffSet += lChunkSize;
-				nBytesRemaining = nBytes - iOffSet;
-				if (nBytesRemaining < lChunkSize)
-					nBytesToRead = (int)nBytesRemaining;
+                    iOffSet += lChunkSize;
+                    nBytesRemaining = nBytes - iOffSet;
+                    if (nBytesRemaining < lChunkSize)
+                        nBytesToRead = (int)nBytesRemaining;
+                } catch (Exception e) {
+                    System.Windows.Forms.MessageBox.Show(e.Message);
+                }
 
-			}
-			if (getMD5) md5.TransformFinalBlock(ByteArray, 0, 0);
+            }
+            if (getMD5) md5.TransformFinalBlock(ByteArray, 0, 0);
 			if (getSHA1) sha1.TransformFinalBlock(ByteArray, 0, 0);
 			if (getCRC32) crc32.TransformFinalBlock(ByteArray, 0, 0);
 
 
-			fs.Close();
+            if (!dlna) {
+                fs.Close();
+            }
 
 			if (onHashProgress != null)
 				onHashProgress(strPath, 100);

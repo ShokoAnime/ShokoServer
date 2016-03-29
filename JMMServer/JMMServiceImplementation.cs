@@ -3636,6 +3636,7 @@ namespace JMMServer
 
 				ns.ImportFolderName = contract.ImportFolderName;
 				ns.ImportFolderLocation = contract.ImportFolderLocation;
+                ns.ImportFolderType = contract.ImportFolderType;
 				ns.IsDropDestination = contract.IsDropDestination;
 				ns.IsDropSource = contract.IsDropSource;
 				ns.IsWatched = contract.IsWatched;

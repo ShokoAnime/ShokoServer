@@ -812,7 +812,7 @@ namespace JMMServer
 			}
 		}*/
 
-		public static void GetFilesForImportFolder(string sDir, ref List<string> fileList)
+		public static void GetFilesForImportFolder(string sDir, ref List<object> fileList)
 		{
 			try
 			{
