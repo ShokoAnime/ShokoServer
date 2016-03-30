@@ -211,10 +211,14 @@ namespace JMMFileHelper
                 try {
 
                     int nBytesRead = 0;
-                    try {
+                    try
+                    {
                         nBytesRead = fs.Read(ByteArray, 0, nBytesToRead);
-                    } catch (Exception e) {
-                        if (dlna) {
+                    }
+                    catch (Exception e)
+                    {
+                        if (dlna)
+                        {
                             UPnPDeviceFinder searchForID = new UPnPDeviceFinder();
                             foreach (UPnPService s in searchForID.FindByUDN(strPath.Split('|')[0]).Services) {
                                 if (s.Id == "urn:upnp-org:serviceId:ContentDirectory") {
@@ -223,10 +227,20 @@ namespace JMMFileHelper
                                     name += strPath.Split('|')[3];
                                     Regex r = new Regex(@"http://[\d.:/\w]*/");
                                     name = r.Replace(name, "");
-                                    nBytesRead = name[(name.Length - 3) - (Convert.ToInt32(iChunkCount))/name.Length];
+                                    int counter = Convert.ToInt32(iChunkCount);
+                                    if (Convert.ToInt32(iChunkCount) < (name.Length-4))
+                                    {
+                                        nBytesRead = name[(name.Length - 4) - counter];
+                                    } 
+                                    else
+                                    {
+                                        nBytesRead = name[(name.Length - 4) %name.Length];
+                                    }
                                 }
                             }
-                        } else {
+                        }
+                        else
+                        {
                             logger.Error(e.Message);
                         }
                     }

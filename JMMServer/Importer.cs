@@ -16,6 +16,7 @@ using JMMServer.Providers.MyAnimeList;
 using JMMServer.Commands.AniDB;
 using JMMServer.Commands.Azure;
 using System.Xml.Linq;
+using UPNPLib;
 
 namespace JMMServer
 {
@@ -751,22 +752,39 @@ namespace JMMServer
 			List<VideoLocal> filesAll = repVidLocals.GetAll();
 			foreach (VideoLocal vl in filesAll)
 			{
-				if (!File.Exists(vl.FullServerPath))
-				{
-                    
+                if(!vl.FullServerPath.Contains('|')) 
+                {
+                    if (!File.Exists(vl.FullServerPath)) {
 
-					// delete video local record
-					logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
-					repVidLocals.Delete(vl.VideoLocalID);
 
-					CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
-					cmdDel.Save();
-				}
+                        // delete video local record
+                        logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
+                        repVidLocals.Delete(vl.VideoLocalID);
+
+                        CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
+                        cmdDel.Save();
+                    }
+                } 
+                else
+                {
+                    UPnPDeviceFinder search = new UPnPDeviceFinder();
+                    foreach (UPnPService s in search.FindByUDN(vl.FullServerPath.Split('|')[0]).Services) {
+                        if (s.Id == "urn:upnp-org:serviceId:ContentDirectory") {
+                            XDocument result = UPnPData.Search(s, vl.FullServerPath.Split('|')[1], string.Format("dc:title contains \"{0}\"", vl.FullServerPath.Split('|')[2]));
+                            if (result.DescendantNodes().Count() == 0) {
+                                logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
+                                repVidLocals.Delete(vl.VideoLocalID);
+
+                                CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
+                                cmdDel.Save();
+                            }
+                        }
+                    }
+                }
 			}
 
 			UpdateAllStats();
 		}
-
 
 		public static string DeleteImportFolder(int importFolderID)
 		{
@@ -835,7 +853,6 @@ namespace JMMServer
                 ser.QueueUpdateStats();
             }
 		}
-
 
 		public static int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
 		{

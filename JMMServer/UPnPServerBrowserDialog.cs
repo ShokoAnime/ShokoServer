@@ -100,7 +100,7 @@ namespace JMMServer
                 contract.ImportFolderType = 1;
                 contract.IsDropDestination = 0;
                 contract.IsDropSource = 0;
-                contract.IsWatched = 1;
+                contract.IsWatched = 0;
 
                 JMMServiceImplementation imp = new JMMServiceImplementation();
                 Contract_ImportFolder_SaveResponse response = imp.SaveImportFolder(contract);
