@@ -10,6 +10,7 @@ using JMMFileHelper;
 using System.Xml;
 using JMMServer.WebCache;
 using System.Threading;
+using UPNPLib;
 
 namespace JMMServer.Commands
 {
@@ -17,6 +18,7 @@ namespace JMMServer.Commands
 	public class CommandRequest_HashFile : CommandRequestImplementation, ICommandRequest
 	{
 		public string FileName { get; set; }
+        public long FileSize { get; set; }
 		public bool ForceHash { get; set; }
 
 		public CommandRequestPriority DefaultPriority
@@ -46,7 +48,18 @@ namespace JMMServer.Commands
 			GenerateCommandID();
 		}
 
-		public override void ProcessCommand()
+        public CommandRequest_HashFile(string filename, long filesize, bool force)
+        {
+            this.FileName = filename;
+            this.ForceHash = force;
+            this.FileSize = filesize;
+            this.CommandType = (int)CommandRequestType.HashFile;
+            this.Priority = (int)DefaultPriority;
+
+            GenerateCommandID();
+        }
+
+        public override void ProcessCommand()
 		{
 			logger.Info("Hashing File: {0}", FileName);
 
@@ -79,6 +92,30 @@ namespace JMMServer.Commands
 			}
 		}
 
+        private bool CanAccessFile(string fileName, string udn, string container)
+        {
+            UPnPDeviceFinder search = new UPnPDeviceFinder();
+            bool exists=false;
+            foreach (UPnPService s in search.FindByUDN(udn).Services)
+            {
+                if (s.Id == "urn:upnp-org:serviceId:ContentDirectory")
+                {
+                    try
+                    {
+                        UPnPData.Search(s, container, "dc:title contains \"" + fileName + "\"");
+                        exists = true;
+                    }
+                    catch(Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                        exists = false;
+                    }
+                }
+            }
+
+            return exists;
+        }
+
 		private VideoLocal ProcessFile_LocalInfo()
 		{
 			// hash and read media info for file
@@ -89,20 +126,25 @@ namespace JMMServer.Commands
 			List<ImportFolder> shares = repNS.GetAll();
 			DataAccessHelper.GetShareAndPath(FileName, shares, ref nshareID, ref filePath);
 
-			if (!File.Exists(FileName))
+			if (!File.Exists(FileName) && !FileName.Contains("http"))
 			{
 				logger.Error("File does not exist: {0}", FileName);
 				return null;
 			}
-
+            bool dlna = shares[nshareID-1].ImportFolderType == 1 ? true : false;
 			int numAttempts = 0;
-			// Wait 3 minutes seconds before giving up on trying to access the file
-			while ((!CanAccessFile(FileName)) && (numAttempts < 180))
+            // Wait 3 minutes seconds before giving up on trying to access the file
+            bool canAcces = dlna ? CanAccessFile(FileName.Split('|')[3], shares[nshareID-1].ImportFolderLocation.Split('|')[0],
+                shares[nshareID-1].ImportFolderLocation.Split('|')[1]) : CanAccessFile(FileName);
+
+			while ((!canAcces) && (numAttempts < 180))
 			{
 				numAttempts++;
 				Thread.Sleep(1000);
 				Console.WriteLine("Attempt # " + numAttempts.ToString());
-			}
+                canAcces = dlna ? CanAccessFile(FileName.Split('|')[3], shares[nshareID-1].ImportFolderLocation.Split('|')[0],
+                 shares[nshareID-1].ImportFolderLocation.Split('|')[1]) : CanAccessFile(FileName);
+            }
 
 			// if we failed to access the file, get ouuta here
 			if (numAttempts == 180)
@@ -118,7 +160,6 @@ namespace JMMServer.Commands
 			FileNameHashRepository repFNHash = new FileNameHashRepository();
 
 			List<VideoLocal> vidLocals = repVidLocal.GetByFilePathAndShareID(filePath, nshareID);
-			FileInfo fi = new FileInfo(FileName);
 
 			if (vidLocals.Count > 0)
 			{
@@ -127,7 +168,7 @@ namespace JMMServer.Commands
 
 				if (ForceHash)
 				{
-					vlocal.FileSize = fi.Length;
+					vlocal.FileSize = FileSize;
 					vlocal.DateTimeUpdated = DateTime.Now;
 				}
 			}
@@ -138,7 +179,7 @@ namespace JMMServer.Commands
 				vlocal.DateTimeUpdated = DateTime.Now;
 				vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
 				vlocal.FilePath = filePath;
-				vlocal.FileSize = fi.Length;
+				vlocal.FileSize = FileSize;
 				vlocal.ImportFolderID = nshareID;
 				vlocal.Hash = "";
 				vlocal.CRC32 = "";
@@ -156,7 +197,15 @@ namespace JMMServer.Commands
 				if (!ForceHash)
 				{
 					CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
-					List<CrossRef_File_Episode> crossRefs = repCrossRefs.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath), vlocal.FileSize);
+                    List<CrossRef_File_Episode> crossRefs;
+                    try
+                    {
+                        crossRefs= repCrossRefs.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath), vlocal.FileSize);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        crossRefs = repCrossRefs.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath.Split('|')[1]), vlocal.FileSize);
+                    }
 					if (crossRefs.Count == 1)
 					{
 						vlocal.Hash = crossRefs[0].Hash;
@@ -167,8 +216,13 @@ namespace JMMServer.Commands
 				// try getting the hash from the LOCAL cache
 				if (!ForceHash && string.IsNullOrEmpty(vlocal.Hash))
 				{
-					List<FileNameHash> fnhashes = repFNHash.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath), vlocal.FileSize);
-					if (fnhashes != null && fnhashes.Count > 1)
+					List<FileNameHash> fnhashes;
+                    try {
+                        fnhashes = repFNHash.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath), vlocal.FileSize);
+                    } catch (ArgumentException ex) {
+                        fnhashes = repFNHash.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath.Split('|')[1]), vlocal.FileSize);
+                    }
+                    if (fnhashes != null && fnhashes.Count > 1)
 					{
 						// if we have more than one record it probably means there is some sort of corruption
 						// lets delete the local records
@@ -283,7 +337,7 @@ namespace JMMServer.Commands
 				vinfo.Hash = vlocal.Hash;
 
 				vinfo.Duration = 0;
-				vinfo.FileSize = fi.Length;
+                vinfo.FileSize = FileSize;
 				vinfo.DateTimeUpdated = DateTime.Now;
 				vinfo.FileName = filePath;
 
@@ -318,7 +372,7 @@ namespace JMMServer.Commands
 				vinfo.DateTimeUpdated = vlocal.DateTimeUpdated;
 				vinfo.Duration = mInfo.Duration;
 				vinfo.FileName = filePath;
-				vinfo.FileSize = fi.Length;
+				vinfo.FileSize = FileSize;
 
 				vinfo.VideoBitrate = string.IsNullOrEmpty(mInfo.VideoBitrate) ? "" : mInfo.VideoBitrate;
 				vinfo.VideoBitDepth = string.IsNullOrEmpty(mInfo.VideoBitDepth) ? "" : mInfo.VideoBitDepth;
@@ -332,7 +386,6 @@ namespace JMMServer.Commands
 			// now add a command to process the file
 			CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);
 			cr_procfile.Save();
-
 			return vlocal;
 		}
 

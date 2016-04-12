@@ -92,7 +92,14 @@ namespace JMMServer.Entities
 		{
 			get
 			{
-				return Path.Combine(ImportFolder.ImportFolderLocation, FilePath);
+                try
+                {
+                    return Path.Combine(ImportFolder.ImportFolderLocation, FilePath);
+                }
+                catch (ArgumentException ex) 
+                {
+                    return string.Format("{0}|{1}",ImportFolder.ImportFolderLocation,FilePath);
+                }
 			}
 		}
 

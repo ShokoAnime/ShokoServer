@@ -15,6 +15,8 @@ using System.Threading;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Commands.AniDB;
 using JMMServer.Commands.Azure;
+using System.Xml.Linq;
+using UPNPLib;
 
 namespace JMMServer
 {
@@ -137,7 +139,7 @@ namespace JMMServer
 		public static void RunImport_ScanFolder(int importFolderID)
 		{
 			// get a complete list of files
-			List<string> fileList = new List<string>();
+			List<object> fileList = new List<object>();
 			ImportFolderRepository repFolders = new ImportFolderRepository();
 			int filesFound = 0, videosFound = 0;
 			int i = 0;
@@ -211,14 +213,12 @@ namespace JMMServer
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
-		}
-
-		
+		}		
 
 		public static void RunImport_DropFolders()
 		{
 			// get a complete list of files
-			List<string> fileList = new List<string>();
+			List<object> fileList = new List<object>();
 			ImportFolderRepository repNetShares = new ImportFolderRepository();
 			foreach (ImportFolder share in repNetShares.GetAll())
 			{
@@ -281,14 +281,21 @@ namespace JMMServer
 			// .........
 
 			// get a complete list of files
-			List<string> fileList = new List<string>();
+			List<object> fileList = new List<object>();
 			ImportFolderRepository repNetShares = new ImportFolderRepository();
 			foreach (ImportFolder share in repNetShares.GetAll())
 			{
 				logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 				try
 				{
-					Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
+                    if (share.ImportFolderType == 0)
+                    {
+                        Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
+                    }
+                    else
+                    {
+                        UPnPData.GetFilesForImport(share.ImportFolderLocation.Split('|')[0], share.ImportFolderLocation.Split('|')[1], ref fileList);
+                    }
 				}
 				catch (Exception ex)
 				{
@@ -296,12 +303,39 @@ namespace JMMServer
 				}
 			}
 
-			// get a list fo files that we haven't processed before
-			List<string> fileListNew = new List<string>();
-			foreach (string fileName in fileList)
+			// get a list of files that we haven't processed before
+			List<object> fileListNew = new List<object>();
+            List<object> fileSizes = new List<object>();
+			foreach (object fileName in fileList)
 			{
-				if (!dictFilesExisting.ContainsKey(fileName))
-					fileListNew.Add(fileName);
+                if (fileName is XElement)
+                {
+                    var files = ((XElement)fileName).Descendants("{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res").GetEnumerator();
+                    var titles = ((XElement)fileName).Descendants("{http://purl.org/dc/elements/1.1/}title").GetEnumerator();
+                    string parentId = UPnPData.buildDecendents("{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item", ((XElement)fileName).Document,"parentID").GetValue(0).ToString();
+                    string path = "";
+                    foreach (ImportFolder share in repNetShares.GetAll()) {
+                        if (share.ImportFolderLocation.Contains(parentId)) {
+                            path = share.ImportFolderLocation;
+                            break;
+                        }
+                    }
+                    while (titles.MoveNext() && files.MoveNext())
+                    {
+                        string name = string.Format("{0}|{1}|{2}",path,titles.Current.Value.ToString(),files.Current.Value.ToString());
+                        if (!dictFilesExisting.ContainsKey(name))
+                        {
+                            fileListNew.Add(name);
+                            fileSizes.Add(UPnPData.buildDecendents("{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res", files.Current.Document, "size").GetValue(0));
+                        }
+                    }
+                }
+                else {
+                    if (!dictFilesExisting.ContainsKey(fileName.ToString())) {
+                        fileListNew.Add(fileName);
+                        fileSizes.Add(new FileInfo(fileName.ToString()).Length);
+                    }
+                }
 			}
 
 			// get a list of all the shares we are looking at
@@ -314,12 +348,17 @@ namespace JMMServer
 				i++;
 				filesFound++;
 				logger.Info("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
-
-				if (!FileHashHelper.IsVideo(fileName)) continue;
+                try {
+                    if (!FileHashHelper.IsVideo(fileName)) continue;
+                }
+                catch(ArgumentException e) {
+                    if (!FileHashHelper.IsVideo(fileName.Split('|')[3])) continue;
+                }
 
 				videosFound++;
+                CommandRequest_HashFile cr_hashfile = null;
 
-				CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(fileName, false);
+                cr_hashfile = new CommandRequest_HashFile(fileName, long.Parse(fileSizes[i-1].ToString()), false);
 				cr_hashfile.Save();
 
 			}
@@ -713,22 +752,39 @@ namespace JMMServer
 			List<VideoLocal> filesAll = repVidLocals.GetAll();
 			foreach (VideoLocal vl in filesAll)
 			{
-				if (!File.Exists(vl.FullServerPath))
-				{
-                    
+                if(!vl.FullServerPath.Contains('|')) 
+                {
+                    if (!File.Exists(vl.FullServerPath)) {
 
-					// delete video local record
-					logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
-					repVidLocals.Delete(vl.VideoLocalID);
 
-					CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
-					cmdDel.Save();
-				}
+                        // delete video local record
+                        logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
+                        repVidLocals.Delete(vl.VideoLocalID);
+
+                        CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
+                        cmdDel.Save();
+                    }
+                } 
+                else
+                {
+                    UPnPDeviceFinder search = new UPnPDeviceFinder();
+                    foreach (UPnPService s in search.FindByUDN(vl.FullServerPath.Split('|')[0]).Services) {
+                        if (s.Id == "urn:upnp-org:serviceId:ContentDirectory") {
+                            XDocument result = UPnPData.Search(s, vl.FullServerPath.Split('|')[1], string.Format("dc:title contains \"{0}\"", vl.FullServerPath.Split('|')[2]));
+                            if (result.DescendantNodes().Count() == 0) {
+                                logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
+                                repVidLocals.Delete(vl.VideoLocalID);
+
+                                CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
+                                cmdDel.Save();
+                            }
+                        }
+                    }
+                }
 			}
 
 			UpdateAllStats();
 		}
-
 
 		public static string DeleteImportFolder(int importFolderID)
 		{
@@ -797,7 +853,6 @@ namespace JMMServer
                 ser.QueueUpdateStats();
             }
 		}
-
 
 		public static int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
 		{

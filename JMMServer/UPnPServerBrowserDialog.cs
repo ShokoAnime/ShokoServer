@@ -8,6 +8,7 @@ using System.Drawing;
 using System.Xml.Linq;
 using UPNPLib;
 using JMMContracts;
+using JMMFileHelper;
 using JMMServer.Entities;
 
 namespace JMMServer
@@ -27,7 +28,6 @@ namespace JMMServer
         public Button btnCancel = new Button();
 
         public static UPnPService content = new UPnPService();
-        public static IUPnPServices services;
         public static List<UPnPDevice> servers = new List<UPnPDevice>();
         public UPnPDeviceFinder discovery = new UPnPDeviceFinder();
         UPnPFinderCallback call = new UPnPFinderCallback();
@@ -37,6 +37,7 @@ namespace JMMServer
         /// </summary>
         public void Initialise()
         {
+            tvwServerList.Nodes.Clear();
             frmMainWindow.Size = new Size(300, 360);
             frmMainWindow.Text = "UPnP Server Browser";
 
@@ -57,24 +58,65 @@ namespace JMMServer
             discovery.StartAsyncFind(discovery.CreateAsyncFind("urn:schemas-upnp-org:device:MediaServer:1", 0, call));
         }
 
-        public DialogResult ShowDialog()
+        /// <summary>
+        /// Open the form
+        /// </summary>
+        /// <param name="ifldr"></param>
+        /// <returns></returns>
+        public DialogResult ShowDialog(ImportFolder ifldr)
         {
             Initialise();
+            try
+            {
+                importFldr = ifldr;
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+            }
             frmMainWindow.ShowDialog();
             return frmMainWindow.DialogResult;
         }
 
         void btnCancel_Click(object sender, EventArgs e)
         {
-            frmMainWindow.Close();
             frmMainWindow.DialogResult = DialogResult.Cancel;
+            frmMainWindow.Close();
         }
 
         void btnOk_Click(object sender, EventArgs e)
         {
-            //To-Do: Code to import
-            frmMainWindow.DialogResult = DialogResult.OK;
-            frmMainWindow.Close();
+            try {
+                Contract_ImportFolder contract = new Contract_ImportFolder();
+                if (importFldr.ImportFolderID == 0)
+                    contract.ImportFolderID = null;
+                else
+                    contract.ImportFolderID = importFldr.ImportFolderID;
+                contract.ImportFolderName = tvwServerList.SelectedNode.Text;
+                TreeNode topparent = tvwServerList.SelectedNode;
+                while (topparent.Parent != null)
+                    topparent = topparent.Parent;
+                contract.ImportFolderLocation = topparent.Tag + "|" +tvwServerList.SelectedNode.Tag.ToString().Trim();
+                contract.ImportFolderType = 1;
+                contract.IsDropDestination = 0;
+                contract.IsDropSource = 0;
+                contract.IsWatched = 0;
+
+                JMMServiceImplementation imp = new JMMServiceImplementation();
+                Contract_ImportFolder_SaveResponse response = imp.SaveImportFolder(contract);
+                if (!string.IsNullOrEmpty(response.ErrorMessage))
+                    System.Windows.MessageBox.Show(response.ErrorMessage, "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+
+                ServerInfo.Instance.RefreshImportFolders();
+
+                frmMainWindow.DialogResult = DialogResult.OK;
+                frmMainWindow.Close();
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+                btnCancel_Click(sender, e);
+            }
         }
     }
 
@@ -93,6 +135,7 @@ namespace JMMServer
             var enumerate = pDevice.Services.GetEnumerator();
             TreeNode parent = new TreeNode();
             parent.Text = pDevice.FriendlyName;
+            parent.Tag = pDevice.UniqueDeviceName;
             UPnPServerBrowserDialog.tvwServerList.Nodes.Add(parent);
 
             try

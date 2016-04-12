@@ -643,7 +643,6 @@
       <DependentUpon>UpdateForm.xaml</DependentUpon>
     </Compile>
     <Compile Include="UnhandledExceptionManager.cs" />
-    <Compile Include="UPnPData.cs" />
     <Compile Include="UPnPServerBrowserDialog.cs" />
     <Compile Include="Utilities\GroupFilterHelper.cs" />
     <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />

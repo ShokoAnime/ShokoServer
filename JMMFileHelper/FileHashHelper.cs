@@ -22,6 +22,7 @@ namespace JMMFileHelper
 		/// <param name="vidInfo"></param>
 		public static void GetVideoInfo(string fileName, ref Hashes hashInfo, ref MediaInfoResult vidInfo, bool forceRefresh)
 		{
+            //string fixedName = (fileName.Contains("|")) ? fileName.Split('|')[1]:fileName;
 			hashInfo = Hasher.CalculateHashes(fileName, null);
 			if (vidInfo == null) vidInfo = new MediaInfoResult();
 			MediaInfoReader.ReadMediaInfo(fileName, forceRefresh, ref vidInfo);
@@ -29,7 +30,8 @@ namespace JMMFileHelper
 
 		public static Hashes GetHashInfo(string fileName, bool forceRefresh, JMMFileHelper.Hasher.OnHashProgress hashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 		{
-			return Hasher.CalculateHashes(fileName, hashProgress, getCRC32, getMD5, getSHA1);
+            //string fixedName = (fileName.Contains("|")) ? fileName.Split('|')[1] : fileName;
+            return Hasher.CalculateHashes(fileName, hashProgress, getCRC32, getMD5, getSHA1);
 		}
 
         public static MediaInfoResult GetMediaInfo(string fileName, bool forceRefresh)

@@ -7,20 +7,21 @@ using System.Xml.Linq;
 using System.Windows.Forms;
 using UPNPLib;
 
-namespace JMMServer
+namespace JMMFileHelper
 {
     /// <summary>
-    /// Class containing functions for use with UPnP devices
+    /// Class containing functions for use with UPnP devices.
     /// </summary>
-    class UPnPData
+    public class UPnPData
     {
+
         /// <summary>
-        /// Browses through UPnPService object with id objectId and adds it to a TreeView
+        /// Browses through UPnPService object with id objectId and adds it to a TreeView.
         /// </summary>
         /// <param name="service"></param>
         /// <param name="objectId"></param>
         /// <param name="parent"></param>
-        /// <returns></returns>
+        /// <returns>XML Document containing all children of a specified object</returns>
         public static XDocument Browser(UPnPService service, string objectId)
         {
             object output = new object();
@@ -36,7 +37,24 @@ namespace JMMServer
         }
 
         /// <summary>
-        /// Returns array of XML attributes from an XML decendent of type tag
+        /// Searches the Container for a specific term given in searchcriteria
+        /// </summary>
+        /// <param name="service"></param>
+        /// <param name="containerID"></param>
+        /// <param name="searchCriteria"></param>
+        /// <returns>XML Document with search output</returns>
+        public static XDocument Search(UPnPService service, string containerID, string searchCriteria)
+        {
+            object output = new object();
+            object input = new object[6] { containerID, searchCriteria, "", 0, 0, "" };
+            object respones = service.InvokeAction("Search", input, ref output);
+            Array outArray = (Array)output;
+
+            return XDocument.Parse(outArray.GetValue(0).ToString());
+        }
+
+        /// <summary>
+        /// Returns array of XML attributes from an XML decendent of type 'tag'.
         /// </summary>
         /// <param name="tag"></param>
         /// <param name="XMLDoc"></param>
@@ -44,7 +62,7 @@ namespace JMMServer
         /// <returns></returns>
         public static Array buildDecendents(string tag, XDocument XMLDoc, string attrib)
         {
-            List<String> ids = new List<String>();
+            List<string> ids = new List<string>();
             var a = XMLDoc.Descendants(tag);
             var ar = a.Attributes(attrib).GetEnumerator();
             while (ar.MoveNext())
@@ -55,7 +73,7 @@ namespace JMMServer
         }
 
         /// <summary>
-        /// Adds TreeNode based on folder name stored in 'o'
+        /// Adds TreeNode based on folder name stored in 'o'.
         /// </summary>
         /// <param name="parent"></param>
         /// <param name="o"></param>
@@ -64,14 +82,17 @@ namespace JMMServer
         {
             TreeNode child = new TreeNode();
             child.Text = name.ToString();
-            child.Tag = tag.ToString();
+            if (tag != null)
+            {
+                child.Tag = tag.ToString();
+            }
             parent.Nodes.Add(child);
 
             return child;
         }
 
         /// <summary>
-        /// Builds TreeNode structure by recursively reading the multidimensional array containing the folder structure
+        /// Builds TreeNode structure by recursively reading the multidimensional array containing the folder structure.
         /// </summary>
         /// <param name="structure"></param>
         /// <param name="parent"></param>
@@ -88,7 +109,7 @@ namespace JMMServer
         }
 
         /// <summary>
-        /// Generates the folder structure, reading in all the names
+        /// Generates the folder structure by recursively reading folders in the XML document.
         /// </summary>
         /// <param name="s"></param>
         /// <param name="XML"></param>
@@ -127,13 +148,8 @@ namespace JMMServer
                         {
                             files.SetValue(counter.Current.Value, 1, i);
                         }
-                        counter = item.Descendants(resTag).GetEnumerator();
-                        while (counter.MoveNext())
-                        {
-                            files.SetValue(counter.Current.Value, 0, i);
-                        }
                         Array itemids = buildDecendents(itemTag, item.Document, "id");
-                        files.SetValue(itemids.GetValue(i), 2, i);
+                        files.SetValue(item, 0, i);
                         i++;
                     }
                     catch
@@ -194,5 +210,50 @@ namespace JMMServer
                 return containerFolders;
             }
         }
+
+        /// <summary>
+        /// Gets a list of files in the import folder.
+        /// </summary>
+        /// <param name="udn"></param>
+        /// <param name="containerID"></param>
+        /// <param name="files"></param>
+        public static void GetFilesForImport(string udn, string containerID, ref List<object> files)
+        {
+            UPnPDevice device = new UPnPDevice();
+            UPnPDeviceFinder search = new UPnPDeviceFinder();
+
+            device = search.FindByUDN(udn);
+            try
+            {
+                var services = device.Services.GetEnumerator();
+
+
+                while (services.MoveNext())
+                {
+                    UPnPService current = services.Current as UPnPService;
+                    if (current.Id == "urn:upnp-org:serviceId:ContentDirectory")
+                    {
+                        object[,] struc = buildStructure(current, Browser(current, containerID));
+                        foreach (object o in struc)
+                        {
+                            if(o is object[,])
+                            {
+                                for(int i =0;i<((object[,])o).Length/3;i++)
+                                    files.Add((XElement)((object[,])o)[0,i]);
+                            }
+                            else if(o is XElement)
+                            {
+                                files.Add(o);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.Message);
+            }
+        }
     }
 }
+   

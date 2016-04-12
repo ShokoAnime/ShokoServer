@@ -2359,7 +2359,7 @@ namespace JMMServer
 			// .........
 
 			// get a complete list of files
-			List<string> fileList = new List<string>();
+			List<object> fileList = new List<object>();
 			ImportFolderRepository repNetShares = new ImportFolderRepository();
 			foreach (ImportFolder share in repNetShares.GetAll())
 			{
