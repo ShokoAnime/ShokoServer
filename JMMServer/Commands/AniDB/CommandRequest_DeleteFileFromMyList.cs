@@ -6,6 +6,10 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
 using JMMServer.Commands.MAL;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -25,7 +29,11 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Deleting file from MyList: {0}_{1}", Hash, FileID);
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                return string.Format(JMMServer.Properties.Resources.AniDB_MyListDelete, Hash, FileID);
 			}
 		}
 

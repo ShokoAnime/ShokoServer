@@ -54,7 +54,7 @@ namespace JMMServer
 				{
 					ImportFolder ns = (ImportFolder)obj;
 
-					MessageBoxResult res = MessageBox.Show(string.Format("Are you sure you want to delete the Import Folder: {0}", ns.ImportFolderLocation), "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question);
+					MessageBoxResult res = MessageBox.Show(string.Format(JMMServer.Properties.Resources.ImportFolders_DeleteFolder, ns.ImportFolderLocation), JMMServer.Properties.Resources.Confirm, MessageBoxButton.YesNo, MessageBoxImage.Question);
 					if (res == MessageBoxResult.Yes)
 					{
 						this.Cursor = Cursors.Wait;

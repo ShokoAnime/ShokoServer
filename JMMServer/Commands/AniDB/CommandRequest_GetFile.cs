@@ -11,6 +11,10 @@ using AniDBAPI;
 using System.Xml;
 using JMMServer.WebCache;
 using JMMServer.Commands.AniDB;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -31,10 +35,14 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				if (vlocal != null)
-					return string.Format("Getting file info from UDP API: {0}", vlocal.FullServerPath);
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                if (vlocal != null)
+					return string.Format(JMMServer.Properties.Resources.Command_GetFileInfo, vlocal.FullServerPath);
 				else
-					return string.Format("Getting file info from UDP API: {0}", VideoLocalID);
+					return string.Format(JMMServer.Properties.Resources.Command_GetFileInfo, VideoLocalID);
 			}
 		}
 

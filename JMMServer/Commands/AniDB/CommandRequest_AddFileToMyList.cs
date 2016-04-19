@@ -6,6 +6,10 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
 using JMMServer.Commands.MAL;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Configuration;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
@@ -25,10 +29,14 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				if (vid != null)
-					return string.Format("Adding file to MyList: {0}", vid.FullServerPath);
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                if (vid != null)
+					return string.Format(JMMServer.Properties.Resources.AniDB_MyListAdd, vid.FullServerPath);
 				else
-					return string.Format("Adding file to MyList: {0}", Hash);
+					return string.Format(JMMServer.Properties.Resources.AniDB_MyListAdd, Hash);
 			}
 		}
 

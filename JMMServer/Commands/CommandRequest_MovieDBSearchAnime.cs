@@ -9,6 +9,10 @@ using JMMServer.WebCache;
 using System.Xml;
 using JMMServer.Providers.MovieDB;
 using NHibernate;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Threading;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
@@ -27,7 +31,11 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Searching for anime on The MovieDB: {0}", AnimeID);
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                return string.Format(JMMServer.Properties.Resources.Command_SearchTMDb, AnimeID);
 			}
 		}
 

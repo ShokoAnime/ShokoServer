@@ -5,6 +5,10 @@ using System.Text;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Configuration;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
@@ -23,7 +27,11 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Getting release group info from UDP API: {0}", GroupID);
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                return string.Format(JMMServer.Properties.Resources.Command_GetReleaseInfo, GroupID);
 			}
 		}
 

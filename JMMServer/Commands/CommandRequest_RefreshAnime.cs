@@ -5,6 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using System.Collections;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Globalization;
+using System.Threading;
 
 namespace JMMServer.Commands
 {
@@ -35,7 +40,11 @@ namespace JMMServer.Commands
         {
             get
             {
-                return string.Format("Refreshing Anime Stats: {0}", AnimeID);
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                return string.Format(JMMServer.Properties.Resources.Command_Refresh, AnimeID);
             }
         }
 

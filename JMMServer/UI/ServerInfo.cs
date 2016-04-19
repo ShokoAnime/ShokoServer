@@ -4,6 +4,10 @@ using System.Linq;
 using System.Text;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Globalization;
+using System.Threading;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Providers.Azure;
@@ -22,7 +26,8 @@ namespace JMMServer
 					_instance = new ServerInfo();
 					_instance.Init();
 				}
-				return _instance;
+
+                return _instance;
 			}
 		}
 
@@ -327,13 +332,21 @@ namespace JMMServer
 			}
 		}
 
-		private string waitingOnResponseAniDBUDPString = "Idle";
+		private string waitingOnResponseAniDBUDPString =  JMMServer.Properties.Resources.Command_Idle; 
 		public string WaitingOnResponseAniDBUDPString
 		{
-			get { return waitingOnResponseAniDBUDPString; }
+			get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                waitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.Command_Idle;
+                return waitingOnResponseAniDBUDPString;
+            }
 			set
 			{
-				waitingOnResponseAniDBUDPString = value;
+                waitingOnResponseAniDBUDPString = value;
 				OnPropertyChanged(new PropertyChangedEventArgs("WaitingOnResponseAniDBUDPString"));
 			}
 		}

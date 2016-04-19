@@ -10,6 +10,7 @@ using System.IO;
 using JMMServer.ImageDownload;
 using NLog;
 using System.Diagnostics;
+using System.Threading;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 
@@ -93,9 +94,31 @@ namespace JMMServer
                 UpdateSetting("PlexThumbnailAspect", value);
             }
         }
-		#region Database
 
-		public static string DatabaseType
+        public static string Culture
+        {
+            get
+            {
+                string osCulture = Thread.CurrentThread.CurrentUICulture.ToString();
+
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                if (!string.IsNullOrEmpty(cult))
+                    return cult;
+                else
+                {
+                    return UserCulture.GetClosestMatch(osCulture); // default
+                }
+            }
+            set
+            {
+                UpdateSetting("Culture", value);
+            }
+        }
+
+        #region Database
+
+        public static string DatabaseType
 		{
 			get
 			{
@@ -1203,7 +1226,7 @@ namespace JMMServer
 			}
 		}
 
-		public static DataSourceType SeriesDescriptionSource
+        public static DataSourceType SeriesDescriptionSource
 		{
 			get
 			{
@@ -1554,7 +1577,7 @@ namespace JMMServer
 			else
 				config.AppSettings.Settings.Add(key, value);
 
-			config.Save(ConfigurationSaveMode.Modified);
+			config.Save();
 			ConfigurationManager.RefreshSection("appSettings");
 		}
 

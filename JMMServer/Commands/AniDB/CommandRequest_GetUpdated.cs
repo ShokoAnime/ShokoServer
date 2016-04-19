@@ -7,6 +7,10 @@ using JMMServer.Entities;
 using System.Xml;
 using JMMServer.AniDB_API;
 using JMMServer.WebCache;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -24,7 +28,11 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Getting list of updated animes from UDP API");
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string cult = appSettings["Culture"];
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+
+                return string.Format(JMMServer.Properties.Resources.Command_GetUpdatedAnime);
 			}
 		}
 
