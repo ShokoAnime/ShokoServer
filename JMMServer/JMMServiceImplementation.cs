@@ -6740,7 +6740,7 @@ namespace JMMServer
 						// if it already exists we can leave
 						foreach (GroupFilter gfTemp in lockedGFs)
 						{
-							if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase))
+							if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
 							{
 								gf = gfTemp;
 								break;

@@ -189,8 +189,10 @@ namespace JMMServer.Databases
 			gf.GroupFilterName = "Favorites";
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			GroupFilterCondition gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.Favourite;
@@ -206,8 +208,10 @@ namespace JMMServer.Databases
 			gf.GroupFilterName = "Missing Episodes";
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting;
@@ -221,8 +225,10 @@ namespace JMMServer.Databases
 			gf.GroupFilterName = "Newly Added Series";
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.SeriesCreatedDate;
@@ -236,8 +242,10 @@ namespace JMMServer.Databases
 			gf.GroupFilterName = "Newly Airing Series";
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.AirDate;
@@ -251,8 +259,10 @@ namespace JMMServer.Databases
 			gf.GroupFilterName = "Votes Needed";
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.CompletedSeries;
@@ -280,8 +290,10 @@ namespace JMMServer.Databases
 			gf.GroupFilterName = "Recently Watched";
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.EpisodeWatchedDate;
@@ -295,8 +307,10 @@ namespace JMMServer.Databases
 			gf.GroupFilterName = "TvDB/MovieDB Link Missing";
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
@@ -634,9 +648,16 @@ namespace JMMServer.Databases
 
 				if (lockedGFs != null)
 				{
-					// if it already exists we can leave
-					foreach (GroupFilter gfTemp in lockedGFs)
-						if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase)) return;
+                    // if it already exists we can leave
+                    foreach (GroupFilter gfTemp in lockedGFs)
+                        if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase) &&
+                            gfTemp.FilterType != (int)GroupFilterType.ContinueWatching)
+                        {
+                            // the default value when the column was added to the database was '1'
+                            // this is only needed for users of a migrated database
+                            FixContinueWatchingGroupFilter_20160406();
+                            return;
+                        }
 				}
 
 				GroupFilter gf = new GroupFilter();
@@ -645,8 +666,9 @@ namespace JMMServer.Databases
 				gf.SortingCriteria = "4;2"; // by last watched episode desc
 				gf.ApplyToSeries = 0;
 				gf.BaseCondition = 1; // all
+                gf.FilterType = (int)GroupFilterType.ContinueWatching;
 
-				repFilters.Save(gf);
+                repFilters.Save(gf);
 
 				GroupFilterCondition gfc = new GroupFilterCondition();
 				gfc.ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes;
@@ -663,6 +685,32 @@ namespace JMMServer.Databases
 				repGFC.Save(gfc);
 			}
 		}
+
+        public static void FixContinueWatchingGroupFilter_20160406()
+        {
+            // group filters
+            GroupFilterRepository repFilters = new GroupFilterRepository();
+            GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
+
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // check if it already exists
+                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
+
+                if (lockedGFs != null)
+                {
+                    // if it already exists we can leave
+                    foreach (GroupFilter gf in lockedGFs)
+                    {
+                        if (gf.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            gf.FilterType = (int)GroupFilterType.ContinueWatching;
+                            repFilters.Save(gf);
+                        }
+                    }
+                }
+            }
+        }
 
         public static void RemoveOldMovieDBImageRecords()
         {

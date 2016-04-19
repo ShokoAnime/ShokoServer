@@ -14,6 +14,8 @@ namespace JMMContracts
 		public string SortingCriteria { get; set; }
 		public int? Locked { get; set; }
 
-		public List<Contract_GroupFilterCondition> FilterConditions { get; set; }
+        public int FilterType { get; set; }
+
+        public List<Contract_GroupFilterCondition> FilterConditions { get; set; }
 	}
 }

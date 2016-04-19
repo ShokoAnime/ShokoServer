@@ -148,6 +148,7 @@ namespace JMMServer.Databases
                 UpdateSchema_040(versionNumber);
                 UpdateSchema_041(versionNumber);
                 UpdateSchema_042(versionNumber);
+                UpdateSchema_043(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1284,6 +1285,35 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
         }
+
+        private static void UpdateSchema_043(int currentVersionNumber)
+        {
+            int thisVersion = 43;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE GroupFilter ADD FilterType int NOT NULL DEFAULT 1");
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+
+            // Now do the migratiuon
+            DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
+        }
+
         private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());

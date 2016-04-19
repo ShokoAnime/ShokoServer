@@ -170,6 +170,7 @@ namespace JMMServer.Databases
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
                 UpdateSchema_044(versionNumber);
+                UpdateSchema_045(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1731,6 +1732,45 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
         }
+
+        private static void UpdateSchema_045(int currentVersionNumber)
+        {
+            int thisVersion = 45;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `FilterType` int NULL ;");
+            cmds.Add("UPDATE GroupFilter SET FilterType = 1 ;");
+            cmds.Add("ALTER TABLE `GroupFilter` CHANGE COLUMN `FilterType` `FilterType` int NOT NULL ;");
+
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+
         private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
