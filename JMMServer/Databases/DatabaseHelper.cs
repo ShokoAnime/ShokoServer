@@ -653,14 +653,22 @@ namespace JMMServer.Databases
 				{
                     // if it already exists we can leave
                     foreach (GroupFilter gfTemp in lockedGFs)
+                    {
+                        if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
+                            return;
+                    }
+
+                    // the default value when the column was added to the database was '1'
+                    // this is only needed for users of a migrated database
+                    foreach (GroupFilter gfTemp in lockedGFs)
+                    {
                         if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase) &&
                             gfTemp.FilterType != (int)GroupFilterType.ContinueWatching)
                         {
-                            // the default value when the column was added to the database was '1'
-                            // this is only needed for users of a migrated database
                             FixContinueWatchingGroupFilter_20160406();
                             return;
                         }
+                    }
 				}
 
 				GroupFilter gf = new GroupFilter();
