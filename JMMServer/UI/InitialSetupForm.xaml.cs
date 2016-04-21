@@ -67,9 +67,7 @@ namespace JMMServer.UI
 				JMMService.AnidbProcessor.CloseConnections();
 				Thread.Sleep(1000);
 
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string cult = appSettings["Culture"];
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 workerTestLogin.ReportProgress(0, Properties.Resources.Server_Initializing);
 				JMMService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password, ServerSettings.AniDB_ServerAddress,

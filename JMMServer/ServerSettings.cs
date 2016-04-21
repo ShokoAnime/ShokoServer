@@ -99,16 +99,16 @@ namespace JMMServer
         {
             get
             {
-                string osCulture = Thread.CurrentThread.CurrentUICulture.ToString();
-
                 NameValueCollection appSettings = ConfigurationManager.AppSettings;
+
                 string cult = appSettings["Culture"];
-                if (!string.IsNullOrEmpty(cult))
-                    return cult;
-                else
+                if (string.IsNullOrEmpty(cult))
                 {
-                    return UserCulture.GetClosestMatch(osCulture); // default
+                    // default value
+                    cult = "en";
+                    UpdateSetting("Culture", cult);
                 }
+                return cult;
             }
             set
             {

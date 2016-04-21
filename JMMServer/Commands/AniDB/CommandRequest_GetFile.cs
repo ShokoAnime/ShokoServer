@@ -35,9 +35,7 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string cult = appSettings["Culture"];
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 if (vlocal != null)
 					return string.Format(JMMServer.Properties.Resources.Command_GetFileInfo, vlocal.FullServerPath);

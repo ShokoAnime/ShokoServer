@@ -146,9 +146,7 @@ namespace JMMServer
 
 		public void ExtendPause(int secsToPause, string pauseReason)
 		{
-            NameValueCollection appSettings = ConfigurationManager.AppSettings;
-            string cult = appSettings["Culture"];
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             ExtendPauseSecs = secsToPause;
 			ExtendPauseReason = pauseReason;
@@ -220,9 +218,7 @@ namespace JMMServer
 				{
 					if (WaitingOnResponseTime.HasValue)
 					{
-                        NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                        string cult = appSettings["Culture"];
-                        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                         TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
 						ServerInfo.Instance.WaitingOnResponseAniDBUDPString = string.Format(JMMServer.Properties.Resources.AniDB_ResponseWaitSeconds, ts.TotalSeconds);
@@ -246,9 +242,7 @@ namespace JMMServer
 					ping.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
 				}
 
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string cult = appSettings["Culture"];
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 string msg = string.Format(JMMServer.Properties.Resources.AniDB_LastMessage, tsAniDBUDP.TotalSeconds);
 
@@ -280,9 +274,7 @@ namespace JMMServer
 			WaitingOnResponse = isWaiting;
 			ServerInfo.Instance.WaitingOnResponseAniDBUDP = isWaiting;
 
-            NameValueCollection appSettings = ConfigurationManager.AppSettings;
-            string cult = appSettings["Culture"];
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             if (isWaiting)
 				ServerInfo.Instance.WaitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.AniDB_ResponseWait;

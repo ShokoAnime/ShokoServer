@@ -337,9 +337,7 @@ namespace JMMServer
 		{
 			get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string cult = appSettings["Culture"];
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 waitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.Command_Idle;
                 return waitingOnResponseAniDBUDPString;

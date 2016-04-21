@@ -37,9 +37,7 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string cult = appSettings["Culture"];
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 if (vlocal != null)
 					return string.Format(JMMServer.Properties.Resources.Command_FileInfo, vlocal.FullServerPath);
@@ -66,9 +64,7 @@ namespace JMMServer.Commands
 		{
 			logger.Info("Processing File: {0}", VideoLocalID);
 
-            NameValueCollection appSettings = ConfigurationManager.AppSettings;
-            string cult = appSettings["Culture"];
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             try
 			{

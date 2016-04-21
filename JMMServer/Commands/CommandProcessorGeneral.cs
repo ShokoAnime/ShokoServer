@@ -60,9 +60,7 @@ namespace JMMServer.Commands
 			{
 				lock (lockPaused)
 				{
-                    NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                    string cult = appSettings["Culture"];
-                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                     paused = value;
 					if (paused)
@@ -110,9 +108,7 @@ namespace JMMServer.Commands
 			{
 				lock (lockQueueState)
 				{
-                    NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                    string cult = appSettings["Culture"];
-                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                     queueState = JMMServer.Properties.Resources.Command_Idle;
                     return queueState;
@@ -135,11 +131,9 @@ namespace JMMServer.Commands
 
 		public CommandProcessorGeneral()
         {
-            NameValueCollection appSettings = ConfigurationManager.AppSettings;
-            string cult = appSettings["Culture"];
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-			workerCommands.WorkerReportsProgress = true;
+            workerCommands.WorkerReportsProgress = true;
 			workerCommands.WorkerSupportsCancellation = true;
 			workerCommands.DoWork += new DoWorkEventHandler(workerCommands_DoWork);
 			workerCommands.RunWorkerCompleted +=new RunWorkerCompletedEventHandler(workerCommands_RunWorkerCompleted);
@@ -147,9 +141,7 @@ namespace JMMServer.Commands
 
 		void  workerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
-            NameValueCollection appSettings = ConfigurationManager.AppSettings;
-            string cult = appSettings["Culture"];
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             processingCommands = false;
 			//logger.Trace("Stopping command worker...");
@@ -159,9 +151,7 @@ namespace JMMServer.Commands
 
 		public void Init()
 		{
-            NameValueCollection appSettings = ConfigurationManager.AppSettings;
-            string cult = appSettings["Culture"];
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             processingCommands = true;
 			//logger.Trace("Starting command worker...");

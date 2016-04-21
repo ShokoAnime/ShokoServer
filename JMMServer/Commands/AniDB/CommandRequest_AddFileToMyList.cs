@@ -29,9 +29,7 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string cult = appSettings["Culture"];
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 if (vid != null)
 					return string.Format(JMMServer.Properties.Resources.AniDB_MyListAdd, vid.FullServerPath);

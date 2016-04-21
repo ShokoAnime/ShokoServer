@@ -75,9 +75,7 @@ namespace AniDBAPI
 				string uri = string.Format(AniDBHTTPHelper.AnimeURL, animeID);
                 //APIUtils.WriteToLog("GetAnimeXMLFromAPI: " + uri);
 
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string cult = appSettings["Culture"];
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 DateTime start = DateTime.Now;
 				string msg = string.Format(JMMServer.Properties.Resources.AniDB_GettingAnimeXML, animeID);

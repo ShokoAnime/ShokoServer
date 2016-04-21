@@ -26,9 +26,7 @@ namespace JMMServer.Commands.Azure
 		{
 			get
 			{
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string cult = appSettings["Culture"];
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(cult);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 return JMMServer.Properties.Resources.Command_SendAnonymousData;
 			}
