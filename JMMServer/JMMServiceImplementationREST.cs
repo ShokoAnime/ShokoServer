@@ -595,7 +595,7 @@ namespace JMMServer
                 if (m != null)
                 {
                     float newratio = 0F;
-                    if (float.TryParse(Ratio, NumberStyles.Any, CultureInfo.InvariantCulture, out newratio))
+                    if (float.TryParse(Ratio, NumberStyles.Any, CultureInfo.CurrentCulture, out newratio))
                     {
                         using (Image im = Image.FromStream(m))
                         {
