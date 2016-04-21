@@ -263,9 +263,15 @@
                             </StackPanel>
                         </Button>
 
+                        <Button Margin="2,10,2,2" Style="{DynamicResource FlatButtonStyle}" Name="btnUpdateAniDBLogin" HorizontalAlignment="Left" IsEnabled="True" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Settings_AniDB}" Margin="0,0,5,0"/>
+                            </StackPanel>
+                        </Button>
+
                         <Button Margin="2,10,2,2" Style="{DynamicResource FlatButtonStyle}" Name="btnJMMStartWithWindows" HorizontalAlignment="Left" IsEnabled="True" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
-                                <Image Height="16" Width="16" Source="/Images/16_arrow45.png" Margin="0,0,5,0"/>
+                               <!-- <Image Height="16" Width="16" Source="/Images/16_arrow45.png" Margin="0,0,5,0"/> -->
                                 <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Settings_Windows}" Margin="0,0,5,0"/>
                             </StackPanel>
                         </Button>

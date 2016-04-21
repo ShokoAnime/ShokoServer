@@ -808,4 +808,10 @@
   <data name="Command_SearchTvDB" xml:space="preserve">
     <value>Поиск для аниме на TvDB: {0}</value>
   </data>
+  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
+    <value>Получать информацию о группе выпуска от UDP API: {0}</value>
+  </data>
+  <data name="Settings_AniDB" xml:space="preserve">
+    <value>Обновление информации о AniDB</value>
+  </data>
 </root>

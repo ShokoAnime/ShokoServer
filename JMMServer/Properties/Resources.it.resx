@@ -808,4 +808,10 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Command_SearchTvDB" xml:space="preserve">
     <value>Alla ricerca di anime su The TvDB: {0}</value>
   </data>
+  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
+    <value>Ottenere informazioni di gruppo di rilascio dall'API di UDP: {0}</value>
+  </data>
+  <data name="Settings_AniDB" xml:space="preserve">
+    <value>Aggiornamento AniDB Info</value>
+  </data>
 </root>

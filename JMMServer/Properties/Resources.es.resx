@@ -808,4 +808,10 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Command_SearchTvDB" xml:space="preserve">
     <value>Busca anime en The TvDB: {0}</value>
   </data>
+  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
+    <value>Obtener información del grupo de lanzamiento del API de UDP: {0}</value>
+  </data>
+  <data name="Settings_AniDB" xml:space="preserve">
+    <value>Actualizar información de AniDB</value>
+  </data>
 </root>

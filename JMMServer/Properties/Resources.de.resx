@@ -808,4 +808,10 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Command_SearchTvDB" xml:space="preserve">
     <value>Suche nach Anime auf The TvDB: {0}</value>
   </data>
+  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
+    <value>Erste Gruppe Freigabeinfo von UDP-API: {0}</value>
+  </data>
+  <data name="Settings_AniDB" xml:space="preserve">
+    <value>Update AniDB Informationen </value>
+  </data>
 </root>
