@@ -6,6 +6,10 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
 using System.Xml;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands.Azure
 {
@@ -22,7 +26,9 @@ namespace JMMServer.Commands.Azure
 		{
 			get
 			{
-				return string.Format("Sending anime full to azure: {0}", AnimeID);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_SendAnimeFull, AnimeID);
 			}
 		}
 

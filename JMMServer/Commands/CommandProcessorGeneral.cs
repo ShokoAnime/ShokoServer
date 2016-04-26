@@ -7,6 +7,10 @@ using NLog;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Threading;
+using System.Collections;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
@@ -37,8 +41,8 @@ namespace JMMServer.Commands
 		protected void OQueueStateChanged(QueueStateEventArgs ev)
 		{
 			if (OnQueueStateChangedEvent != null)
-			{
-				OnQueueStateChangedEvent(ev);
+			{  
+                OnQueueStateChangedEvent(ev);
 			}
 		}
 
@@ -56,16 +60,18 @@ namespace JMMServer.Commands
 			{
 				lock (lockPaused)
 				{
-					paused = value;
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                    paused = value;
 					if (paused)
 					{
-						QueueState = "Paused";
+						QueueState = JMMServer.Properties.Resources.Command_Paused;
 						pauseTime = DateTime.Now;
 					}
 					else
 					{
-						QueueState = "Idle";
-						pauseTime = null;
+                        QueueState = JMMServer.Properties.Resources.Command_Idle;
+                        pauseTime = null;
 						JMMService.AnidbProcessor.IsBanned = false;
 						JMMService.AnidbProcessor.BanOrigin = "";
 					}
@@ -95,14 +101,17 @@ namespace JMMServer.Commands
 			}
 		}
 
-		private string queueState = "Idle";
-		public string QueueState
+		private string queueState = JMMServer.Properties.Resources.Command_Idle;
+        public string QueueState
 		{
 			get
 			{
 				lock (lockQueueState)
 				{
-					return queueState;
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                    queueState = JMMServer.Properties.Resources.Command_Idle;
+                    return queueState;
 				}
 			}
 			set
@@ -122,7 +131,9 @@ namespace JMMServer.Commands
 
 		public CommandProcessorGeneral()
         {
-			workerCommands.WorkerReportsProgress = true;
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+            workerCommands.WorkerReportsProgress = true;
 			workerCommands.WorkerSupportsCancellation = true;
 			workerCommands.DoWork += new DoWorkEventHandler(workerCommands_DoWork);
 			workerCommands.RunWorkerCompleted +=new RunWorkerCompletedEventHandler(workerCommands_RunWorkerCompleted);
@@ -130,17 +141,21 @@ namespace JMMServer.Commands
 
 		void  workerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
-			processingCommands = false;
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+            processingCommands = false;
 			//logger.Trace("Stopping command worker...");
-			QueueState = "Idle";
+			QueueState = JMMServer.Properties.Resources.Command_Idle;
 			QueueCount = 0;
 		}
 
 		public void Init()
 		{
-			processingCommands = true;
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+            processingCommands = true;
 			//logger.Trace("Starting command worker...");
-			QueueState = "Starting command worker (hasher)...";
+		    QueueState = JMMServer.Properties.Resources.Command_StartingGeneral;
 			this.workerCommands.RunWorkerAsync();
 		}
 

@@ -12,6 +12,10 @@ using System.Xml;
 using JMMServer.WebCache;
 using JMMServer.Commands.MAL;
 using JMMServer.Commands.AniDB;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Globalization;
+using System.Threading;
 
 namespace JMMServer.Commands
 {
@@ -33,10 +37,12 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				if (vlocal != null)
-					return string.Format("Getting file info from UDP API: {0}", vlocal.FullServerPath);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                if (vlocal != null)
+					return string.Format(JMMServer.Properties.Resources.Command_FileInfo, vlocal.FullServerPath);
 				else
-					return string.Format("Getting file info from UDP API: {0}", VideoLocalID);
+					return string.Format(JMMServer.Properties.Resources.Command_FileInfo, VideoLocalID);
 			}
 		}
 
@@ -58,8 +64,9 @@ namespace JMMServer.Commands
 		{
 			logger.Info("Processing File: {0}", VideoLocalID);
 
-			
-			try
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+            try
 			{
 				VideoLocalRepository repVids = new VideoLocalRepository();
 				vlocal = repVids.GetByID(VideoLocalID);

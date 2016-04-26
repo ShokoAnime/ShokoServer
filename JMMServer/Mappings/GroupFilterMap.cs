@@ -19,6 +19,7 @@ namespace JMMServer.Mappings
 			Map(x => x.BaseCondition).Not.Nullable();
 			Map(x => x.SortingCriteria);
 			Map(x => x.Locked);
+            Map(x => x.FilterType);
         }
 	}
 }

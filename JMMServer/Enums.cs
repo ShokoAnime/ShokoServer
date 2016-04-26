@@ -367,7 +367,13 @@ namespace JMMServer
 		NotInAllEpisodes = 11
 	}
 
-	public enum GroupFilterSorting
+    public enum GroupFilterType
+    {
+        UserDefined = 1,
+        ContinueWatching = 2
+    }
+
+    public enum GroupFilterSorting
 	{
 		SeriesAddedDate = 1,
 		EpisodeAddedDate = 2,

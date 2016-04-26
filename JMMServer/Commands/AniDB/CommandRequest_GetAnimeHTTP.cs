@@ -6,6 +6,10 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Providers.Azure;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Threading;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
@@ -25,7 +29,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Getting anime info from HTTP API: {0}", AnimeID);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_AnimeInfo, AnimeID);
 			}
 		}
 

@@ -8,6 +8,10 @@ using JMMServer.Repositories;
 using JMMServer.ImageDownload;
 using System.IO;
 using System.Net;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Configuration;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
@@ -34,7 +38,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Downloading Image: {0}", EntityID);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_DownloadImage, EntityID);
 			}
 		}
 
@@ -237,7 +243,9 @@ namespace JMMServer.Commands
 						}
 						catch (Exception ex)
 						{
-							string msg = string.Format("Error deleting image: ({0}) - {1}", fileName, ex.Message);
+                            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                            string msg = string.Format(JMMServer.Properties.Resources.Command_DeleteError, fileName, ex.Message);
 							logger.Warn(msg);
 							return;
 						}

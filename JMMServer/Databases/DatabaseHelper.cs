@@ -11,6 +11,9 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Threading;
 using System.Collections;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Globalization;
 
 namespace JMMServer.Databases
 {
@@ -72,13 +75,13 @@ namespace JMMServer.Databases
 					}
 
 					JMMService.CloseSessionFactory();
-					ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Initializing;
 					ISessionFactory temp = JMMService.SessionFactory;
 
-					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateSchema;
 					SQLServer.CreateInitialSchema();
 
-					ServerState.Instance.CurrentSetupStatus = "Database - Applying Schema Patches...";
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_ApplySchema;
 					SQLServer.UpdateSchema();
 
 					PopulateInitialData();
@@ -88,18 +91,18 @@ namespace JMMServer.Databases
 				}
 				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE")
 				{
-					ServerState.Instance.CurrentSetupStatus = "Database - Creating Database...";
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateDatabase;
 					SQLite.CreateDatabase();
 
 					JMMService.CloseSessionFactory();
-					ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
-					ISessionFactory temp = JMMService.SessionFactory;
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Initializing;
+                    ISessionFactory temp = JMMService.SessionFactory;
 
-					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
-					SQLite.CreateInitialSchema();
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateSchema;
+                    SQLite.CreateInitialSchema();
 
-					ServerState.Instance.CurrentSetupStatus = "Database - Applying Schema Patches...";
-					SQLite.UpdateSchema();
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_ApplySchema;
+                    SQLite.UpdateSchema();
 
 					PopulateInitialData();
                     DatabaseHelper.CreateInitialCustomTags();
@@ -109,21 +112,21 @@ namespace JMMServer.Databases
 				else if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL")
 				{
 					logger.Trace("Database - Creating Database...");
-					ServerState.Instance.CurrentSetupStatus = "Database - Creating Database...";
-					MySQL.CreateDatabase();
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateDatabase;
+                    MySQL.CreateDatabase();
 
 					logger.Trace("Initializing Session Factory...");
 					JMMService.CloseSessionFactory();
-					ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
-					ISessionFactory temp = JMMService.SessionFactory;
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Initializing;
+                    ISessionFactory temp = JMMService.SessionFactory;
 
 					logger.Trace("Database - Creating Initial Schema...");
-					ServerState.Instance.CurrentSetupStatus = "Database - Creating Initial Schema...";
-					MySQL.CreateInitialSchema();
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateSchema;
+                    MySQL.CreateInitialSchema();
 
 					logger.Trace("Database - Applying Schema Patches...");
-					ServerState.Instance.CurrentSetupStatus = "Database - Applying Schema Patches...";
-					MySQL.UpdateSchema();
+					ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_ApplySchema;
+                    MySQL.UpdateSchema();
 					//MySQL.UpdateSchema_Fix();
 
 					PopulateInitialData();
@@ -189,8 +192,10 @@ namespace JMMServer.Databases
 			gf.GroupFilterName = "Favorites";
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			GroupFilterCondition gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.Favourite;
@@ -203,11 +208,13 @@ namespace JMMServer.Databases
 
 			// Missing Episodes
 			gf = new GroupFilter();
-			gf.GroupFilterName = "Missing Episodes";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_MissingEpisodes;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting;
@@ -218,11 +225,13 @@ namespace JMMServer.Databases
 
 			// Newly Added Series
 			gf = new GroupFilter();
-			gf.GroupFilterName = "Newly Added Series";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_Added;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.SeriesCreatedDate;
@@ -233,11 +242,13 @@ namespace JMMServer.Databases
 
 			// Newly Airing Series
 			gf = new GroupFilter();
-			gf.GroupFilterName = "Newly Airing Series";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_Airing;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.AirDate;
@@ -248,11 +259,13 @@ namespace JMMServer.Databases
 
 			// Votes Needed
 			gf = new GroupFilter();
-			gf.GroupFilterName = "Votes Needed";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_Votes;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.CompletedSeries;
@@ -277,11 +290,13 @@ namespace JMMServer.Databases
 
 			// Recently Watched
 			gf = new GroupFilter();
-			gf.GroupFilterName = "Recently Watched";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_RecentlyWatched;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.EpisodeWatchedDate;
@@ -292,11 +307,13 @@ namespace JMMServer.Databases
 
 			// TvDB/MovieDB Link Missing
 			gf = new GroupFilter();
-			gf.GroupFilterName = "TvDB/MovieDB Link Missing";
+			gf.GroupFilterName = JMMServer.Properties.Resources.Filter_LinkMissing;
 			gf.ApplyToSeries = 0;
 			gf.BaseCondition = 1;
+            gf.Locked = 0;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
 
-			repFilters.Save(gf);
+            repFilters.Save(gf);
 
 			gfc = new GroupFilterCondition();
 			gfc.ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
@@ -634,9 +651,24 @@ namespace JMMServer.Databases
 
 				if (lockedGFs != null)
 				{
-					// if it already exists we can leave
-					foreach (GroupFilter gfTemp in lockedGFs)
-						if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase)) return;
+                    // if it already exists we can leave
+                    foreach (GroupFilter gfTemp in lockedGFs)
+                    {
+                        if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
+                            return;
+                    }
+
+                    // the default value when the column was added to the database was '1'
+                    // this is only needed for users of a migrated database
+                    foreach (GroupFilter gfTemp in lockedGFs)
+                    {
+                        if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase) &&
+                            gfTemp.FilterType != (int)GroupFilterType.ContinueWatching)
+                        {
+                            FixContinueWatchingGroupFilter_20160406();
+                            return;
+                        }
+                    }
 				}
 
 				GroupFilter gf = new GroupFilter();
@@ -645,8 +677,9 @@ namespace JMMServer.Databases
 				gf.SortingCriteria = "4;2"; // by last watched episode desc
 				gf.ApplyToSeries = 0;
 				gf.BaseCondition = 1; // all
+                gf.FilterType = (int)GroupFilterType.ContinueWatching;
 
-				repFilters.Save(gf);
+                repFilters.Save(gf);
 
 				GroupFilterCondition gfc = new GroupFilterCondition();
 				gfc.ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes;
@@ -663,6 +696,32 @@ namespace JMMServer.Databases
 				repGFC.Save(gfc);
 			}
 		}
+
+        public static void FixContinueWatchingGroupFilter_20160406()
+        {
+            // group filters
+            GroupFilterRepository repFilters = new GroupFilterRepository();
+            GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
+
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // check if it already exists
+                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
+
+                if (lockedGFs != null)
+                {
+                    // if it already exists we can leave
+                    foreach (GroupFilter gf in lockedGFs)
+                    {
+                        if (gf.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            gf.FilterType = (int)GroupFilterType.ContinueWatching;
+                            repFilters.Save(gf);
+                        }
+                    }
+                }
+            }
+        }
 
         public static void RemoveOldMovieDBImageRecords()
         {

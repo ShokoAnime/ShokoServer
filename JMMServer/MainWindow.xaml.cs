@@ -44,12 +44,17 @@ using JMMServer.UI;
 using System.ServiceModel.Dispatcher;
 using BinaryNorthwest;
 using System.Collections;
+using System.Collections.Specialized;
+using System.Configuration;
 using System.ServiceModel.Web;
 using JMMServer.Providers.Azure;
 using JMMServer.Commands.Azure;
 using TMDbLib.Objects.General;
 using JMMServer.Providers.TraktTV.Contracts;
 using System.Xml.Serialization;
+using System.Windows.Controls;
+using System.Globalization;
+using Infralution.Localization.Wpf;
 
 namespace JMMServer
 {
@@ -120,7 +125,9 @@ namespace JMMServer
 
 		BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
-		public static Uri baseAddressBinary
+        public static List<UserCulture> userLanguages = new List<UserCulture>();
+
+        public static Uri baseAddressBinary
 		{
 			get
 			{
@@ -195,11 +202,13 @@ namespace JMMServer
 
 		public MainWindow()
 		{
-			InitializeComponent();
+            InitializeComponent();
 
-			//HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-			try
+            //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
+
+            try
 			{
 				UnhandledExceptionManager.AddHandler();
 			}
@@ -211,8 +220,8 @@ namespace JMMServer
 				{
 					mutex = Mutex.OpenExisting(mutexName);
 					//since it hasn't thrown an exception, then we already have one copy of the app open.
-					MessageBox.Show("JMM Server is already running. Please check your system tray (notification area).",
-					"JMM Server", MessageBoxButton.OK, MessageBoxImage.Error);
+					MessageBox.Show(JMMServer.Properties.Resources.Server_Running,
+                    JMMServer.Properties.Resources.JMMServer, MessageBoxButton.OK, MessageBoxImage.Error);
 					Environment.Exit(0);
 				}
 				catch (Exception Ex)
@@ -319,13 +328,13 @@ namespace JMMServer
 
 			cboDatabaseType.Items.Clear();
 			cboDatabaseType.Items.Add("SQLite");
-			cboDatabaseType.Items.Add("Microsoft SQL Server 2008");
+			cboDatabaseType.Items.Add("Microsoft SQL Server 2014");
 			cboDatabaseType.Items.Add("MySQL");
 			cboDatabaseType.SelectionChanged += new System.Windows.Controls.SelectionChangedEventHandler(cboDatabaseType_SelectionChanged);
 
-			cboImagesPath.Items.Clear();
-			cboImagesPath.Items.Add("Default");
-			cboImagesPath.Items.Add("Custom");
+            cboImagesPath.Items.Clear();
+			cboImagesPath.Items.Add(JMMServer.Properties.Resources.Images_Default);
+			cboImagesPath.Items.Add(JMMServer.Properties.Resources.Images_Custom);
 			cboImagesPath.SelectionChanged += new System.Windows.Controls.SelectionChangedEventHandler(cboImagesPath_SelectionChanged);
 			btnChooseImagesFolder.Click += new RoutedEventHandler(btnChooseImagesFolder_Click);
 
@@ -336,13 +345,16 @@ namespace JMMServer
 
 			btnSaveDatabaseSettings.Click += new RoutedEventHandler(btnSaveDatabaseSettings_Click);
 			btnRefreshMSSQLServerList.Click += new RoutedEventHandler(btnRefreshMSSQLServerList_Click);
-			btnInstallMSSQLServer.Click += new RoutedEventHandler(btnInstallMSSQLServer_Click);
+			// btnInstallMSSQLServer.Click += new RoutedEventHandler(btnInstallMSSQLServer_Click);
 			btnMaxOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
 			btnMinOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
 			btnLogs.Click += new RoutedEventHandler(btnLogs_Click);
 			btnChooseVLCLocation.Click += new RoutedEventHandler(btnChooseVLCLocation_Click);
+            btnJMMStartWithWindows.Click += new RoutedEventHandler(btnJMMStartWithWindows_Click);
+            btnUpdateAniDBLogin.Click += new RoutedEventHandler(btnUpdateAniDBLogin_Click);
 
-			btnAllowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
+
+            btnAllowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
 			btnDisallowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
 
 			btnHasherClear.Click += new RoutedEventHandler(btnHasherClear_Click);
@@ -353,7 +365,11 @@ namespace JMMServer
 
 			ServerState.Instance.LoadSettings();
             workerFileEvents.RunWorkerAsync();
-		}
+
+            cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
+
+            InitCulture();
+        }
 
         private void BtnUpdateTraktInfo_Click(object sender, RoutedEventArgs e)
         {
@@ -556,16 +572,79 @@ namespace JMMServer
 			ServerState.Instance.MaxOnStartup = !ServerState.Instance.MaxOnStartup;
 		}
 
+        /*
 		void btnInstallMSSQLServer_Click(object sender, RoutedEventArgs e)
 		{
 			System.Diagnostics.Process.Start("http://www.microsoft.com/web/gallery/install.aspx?appsxml=&appid=SQLExpressTools");
 		}
+        */
+
+        void btnJMMStartWithWindows_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Process.Start("http://jmediamanager.org/jmm-server/configuring-jmm-server/#jmm-start-with-windows");
+        }
+
+        void btnUpdateAniDBLogin_Click(object sender, RoutedEventArgs e)
+        {
+            InitialSetupForm frm = new InitialSetupForm();
+            frm.Owner = this;
+            frm.ShowDialog();
+        }
+
+        void cboLanguages_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            SetCulture();
+        }
+
+        void InitCulture()
+        {
+            try
+            {
+                string currentCulture = ServerSettings.Culture;
+
+                cboLanguages.ItemsSource = UserCulture.SupportedLanguages;
+
+                for (int i = 0; i < cboLanguages.Items.Count; i++)
+                {
+                    UserCulture ul = cboLanguages.Items[i] as UserCulture;
+                    if (ul.Culture.Trim().ToUpper() == currentCulture.Trim().ToUpper())
+                    {
+                        cboLanguages.SelectedIndex = i;
+                        break;
+                    }
+
+                }
+                if (cboLanguages.SelectedIndex < 0)
+                    cboLanguages.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+            }
+
+        }
+
+        private void SetCulture()
+        {
+            if (cboLanguages.SelectedItem == null) return;
+            UserCulture ul = cboLanguages.SelectedItem as UserCulture;
+
+            try
+            {
+                CultureInfo ci = new CultureInfo(ul.Culture);
+                CultureManager.UICulture = ci;
+
+                ServerSettings.Culture = ul.Culture;
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+            }
+
+        }
 
 
-
-
-
-		void btnChooseVLCLocation_Click(object sender, RoutedEventArgs e)
+        void btnChooseVLCLocation_Click(object sender, RoutedEventArgs e)
 		{
 			string errorMsg = "";
 			string streamingAddress = "";
@@ -626,7 +705,7 @@ namespace JMMServer
 					if (string.IsNullOrEmpty(txtMSSQL_DatabaseName.Text) || string.IsNullOrEmpty(txtMSSQL_Password.Password)
 						|| string.IsNullOrEmpty(cboMSSQLServerList.Text) || string.IsNullOrEmpty(txtMSSQL_Username.Text))
 					{
-						MessageBox.Show("Please fill out all the settings", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+						MessageBox.Show(JMMServer.Properties.Resources.Server_FillOutSettings, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 						txtMSSQL_DatabaseName.Focus();
 						return;
 					}
@@ -644,7 +723,7 @@ namespace JMMServer
 					if (string.IsNullOrEmpty(txtMySQL_DatabaseName.Text) || string.IsNullOrEmpty(txtMySQL_Password.Password)
 						|| string.IsNullOrEmpty(txtMySQL_ServerAddress.Text) || string.IsNullOrEmpty(txtMySQL_Username.Text))
 					{
-						MessageBox.Show("Please fill out all the settings", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+						MessageBox.Show(JMMServer.Properties.Resources.Server_FillOutSettings, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 						txtMySQL_DatabaseName.Focus();
 						return;
 					}
@@ -662,7 +741,7 @@ namespace JMMServer
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.Message, ex);
-				MessageBox.Show("Failed to set start: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(JMMServer.Properties.Resources.Server_FailedToStart + ex.Message, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
 
@@ -731,7 +810,7 @@ namespace JMMServer
 			{
 				ServerInfo.Instance.RefreshImportFolders();
                 
-				ServerState.Instance.CurrentSetupStatus = "Complete!";
+				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_Complete;
 				ServerState.Instance.ServerOnline = true;
 
 				tabControl1.SelectedIndex = 0;
@@ -788,7 +867,7 @@ namespace JMMServer
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
-				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(ex.Message, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 
 			this.Cursor = Cursors.Arrow;
@@ -807,10 +886,12 @@ namespace JMMServer
 		void workerSetupDB_DoWork(object sender, DoWorkEventArgs e)
 		{
 
-			try
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+            try
 			{
 				ServerState.Instance.ServerOnline = false;
-				ServerState.Instance.CurrentSetupStatus = "Cleaning up...";
+				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_Cleaning;
 
 				StopWatchingFiles();
 				AniDBDispose();
@@ -834,19 +915,19 @@ namespace JMMServer
 
 				JMMService.CloseSessionFactory();
 
-				ServerState.Instance.CurrentSetupStatus = "Initializing...";
+				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_Initializing;
 				Thread.Sleep(1000);
 
-				ServerState.Instance.CurrentSetupStatus = "Setting up database...";
+				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseSetup;
                 logger.Info("Setting up database...");
                 if (!DatabaseHelper.InitDB())
 				{
 					ServerState.Instance.DatabaseAvailable = false;
 
 					if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
-						ServerState.Instance.CurrentSetupStatus = "Please select and configure your database.";
+						ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseConfig;
 					else
-						ServerState.Instance.CurrentSetupStatus = "Failed to start. Please review database settings.";
+						ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseFail;
 					e.Result = false;
 					return;
 				}
@@ -856,11 +937,11 @@ namespace JMMServer
 
 
 				//init session factory
-				ServerState.Instance.CurrentSetupStatus = "Initializing Session Factory...";
+				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingSession;
 				ISessionFactory temp = JMMService.SessionFactory;
 
                 logger.Info("Initializing Hosts...");
-                ServerState.Instance.CurrentSetupStatus = "Initializing Hosts...";
+                ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingHosts;
                 FileServer.FileServer.RegisterFirewallAndHttpUser(int.Parse(ServerSettings.JMMServerPort),int.Parse(ServerSettings.JMMServerFilePort));
 				SetupAniDBProcessor();
 				StartImageHost();
@@ -874,10 +955,10 @@ namespace JMMServer
                 StartStreamingHost();
 
 				//  Load all stats
-				ServerState.Instance.CurrentSetupStatus = "Initializing Stats...";
+				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
 				StatsCache.Instance.InitStats();
 
-				ServerState.Instance.CurrentSetupStatus = "Initializing Queue Processors...";
+				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
 				JMMService.CmdProcessorGeneral.Init();
 				JMMService.CmdProcessorHasher.Init();
 				JMMService.CmdProcessorImages.Init();
@@ -896,7 +977,7 @@ namespace JMMServer
 				autoUpdateTimerShort.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimerShort_Elapsed);
 				autoUpdateTimerShort.Start();
 
-				ServerState.Instance.CurrentSetupStatus = "Initializing File Watchers...";
+				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingFile;
 				StartWatchingFiles();
 
 				DownloadAllImages();
@@ -925,7 +1006,7 @@ namespace JMMServer
 		void btnUpdateMediaInfo_Click(object sender, RoutedEventArgs e)
 		{
 			RefreshAllMediaInfo();
-			MessageBox.Show("Actions have been queued", "Done", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show(JMMServer.Properties.Resources.Serrver_VideoMediaUpdate, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
 		void workerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
@@ -1144,7 +1225,7 @@ namespace JMMServer
 		{
 			if (workerMyAnime2.IsBusy)
 			{
-				MessageBox.Show("Importer is already running", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(JMMServer.Properties.Resources.Server_Import, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 				return;
 			}
 
@@ -1171,7 +1252,7 @@ namespace JMMServer
 		{
 			if (string.IsNullOrEmpty(txtServerPort.Text))
 			{
-				MessageBox.Show("Please enter a value", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(JMMServer.Properties.Resources.Server_EnterAnyValue, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 				txtServerPort.Focus();
 				return;
 			}
@@ -1180,7 +1261,7 @@ namespace JMMServer
 			int.TryParse(txtServerPort.Text, out port);
 			if (port <= 0 || port > 65535)
 			{
-				MessageBox.Show("Please enter a value between 1 and 65535", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(JMMServer.Properties.Resources.Server_EnterCertainValue, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 				txtServerPort.Focus();
 				return;
 			}
@@ -1214,7 +1295,7 @@ namespace JMMServer
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
-				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(ex.Message, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
 
@@ -1645,7 +1726,7 @@ namespace JMMServer
 					ImportFolder fldr = (ImportFolder)obj;
 
 					ScanFolder(fldr.ImportFolderID);
-					MessageBox.Show("Process is Running", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+					MessageBox.Show(JMMServer.Properties.Resources.Server_ScanFolder, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
 				}
 			}
 			catch (Exception ex)
@@ -1662,7 +1743,7 @@ namespace JMMServer
 				this.Cursor = Cursors.Wait;
 				Importer.RunImport_UpdateAllAniDB();
 				this.Cursor = Cursors.Arrow;
-				MessageBox.Show("Updates are queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+				MessageBox.Show(JMMServer.Properties.Resources.Server_AniDBInfoUpdate, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
 			}
 			catch (Exception ex)
 			{
@@ -1677,7 +1758,7 @@ namespace JMMServer
 				this.Cursor = Cursors.Wait;
 				Importer.RunImport_UpdateTvDB(false);
 				this.Cursor = Cursors.Arrow;
-				MessageBox.Show("Updates are queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+				MessageBox.Show(JMMServer.Properties.Resources.Server_TvDBInfoUpdate, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
 			}
 			catch (Exception ex)
 			{
@@ -1685,26 +1766,26 @@ namespace JMMServer
 			}
 		}
 
-		void btnUpdateAllStats_Click(object sender, RoutedEventArgs e)
+        void btnUpdateAllStats_Click(object sender, RoutedEventArgs e)
 		{
 			this.Cursor = Cursors.Wait;
 			Importer.UpdateAllStats();
 			this.Cursor = Cursors.Arrow;
-			MessageBox.Show("Stat updates have been queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show(JMMServer.Properties.Resources.Server_StatsInfoUpdate, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
 		void btnSyncVotes_Click(object sender, RoutedEventArgs e)
 		{
 			CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
 			cmdVotes.Save();
-			MessageBox.Show("Command added to queue", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show(JMMServer.Properties.Resources.Server_SyncVotes, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
 			//JMMService.AnidbProcessor.IsBanned = true;
 		}
 
 		void btnSyncMyList_Click(object sender, RoutedEventArgs e)
 		{
 			SyncMyList();
-			MessageBox.Show("Sync is Running", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show(JMMServer.Properties.Resources.Server_SyncMyList, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
 		void btnSyncTrakt_Click(object sender, RoutedEventArgs e)
@@ -1716,19 +1797,19 @@ namespace JMMServer
                 cmd.Save();
             }
 			this.Cursor = Cursors.Arrow;
-			MessageBox.Show("Sync is Queued", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show(JMMServer.Properties.Resources.Server_SyncTrakt, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
 		void btnRunImport_Click(object sender, RoutedEventArgs e)
 		{
 			RunImport();
-			MessageBox.Show("Import is Running", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show(JMMServer.Properties.Resources.Server_ImportRunning, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
 		void btnRemoveMissingFiles_Click(object sender, RoutedEventArgs e)
 		{
 			RemoveMissingFiles();
-			MessageBox.Show("Process is Running", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show(JMMServer.Properties.Resources.Server_SyncMyList, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 
 		void btnGeneralResume_Click(object sender, RoutedEventArgs e)
@@ -1830,13 +1911,13 @@ namespace JMMServer
 
 			//Add the Menu Item to the context menu
 			System.Windows.Forms.ToolStripMenuItem mnuShow = new System.Windows.Forms.ToolStripMenuItem();
-			mnuShow.Text = "Show";
+			mnuShow.Text = JMMServer.Properties.Resources.Toolbar_Show;
 			mnuShow.Click += new EventHandler(mnuShow_Click);
 			ctxTrayMenu.Items.Add(mnuShow);
 
 			//Add the Menu Item to the context menu
 			System.Windows.Forms.ToolStripMenuItem mnuExit = new System.Windows.Forms.ToolStripMenuItem();
-			mnuExit.Text = "Shut Down";
+			mnuExit.Text = JMMServer.Properties.Resources.Toolbar_Shutdown;
 			mnuExit.Click += new EventHandler(mnuExit_Click);
 			ctxTrayMenu.Items.Add(mnuExit);
 
@@ -1860,8 +1941,8 @@ namespace JMMServer
 		{
 			this.Hide();
 			TippuTrayNotify.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-			TippuTrayNotify.BalloonTipTitle = "JMM Server";
-			TippuTrayNotify.BalloonTipText = "JMM Server has been minimized to the system tray. To open the application, double-click the icon in the system tray.";
+			TippuTrayNotify.BalloonTipTitle = JMMServer.Properties.Resources.JMMServer;
+			TippuTrayNotify.BalloonTipText = JMMServer.Properties.Resources.Server_MinimizeInfo;
 			//TippuTrayNotify.ShowBalloonTip(400);
 		}
 

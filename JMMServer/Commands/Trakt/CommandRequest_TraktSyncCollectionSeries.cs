@@ -6,6 +6,10 @@ using JMMServer.Entities;
 using System.Xml;
 using JMMServer.Repositories;
 using JMMServer.Providers.TraktTV;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -24,7 +28,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Sync'ing Trakt Collection for series: {0}", SeriesName);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_SyncTraktSeries, SeriesName);
 			}
 		}
 

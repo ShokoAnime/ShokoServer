@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.Linq;
@@ -13,6 +14,7 @@ using JMMContracts;
 using JMMFileHelper.Subtitles;
 using JMMServer.Repositories;
 using JMMServer.Entities;
+using JMMServer.Properties;
 using NLog;
 
 namespace JMMServer
@@ -456,51 +458,153 @@ namespace JMMServer
 				return null;
 			}
 		}
+        public static Image ReSize(Image im, int width, int height)
+        {
+
+            Bitmap dest = new Bitmap(width, height);
+            using (Graphics g = Graphics.FromImage(dest))
+            {
+                g.InterpolationMode = width >= im.Width
+                    ? InterpolationMode.HighQualityBilinear
+                    : InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.DrawImage(im, 0, 0, width, height);
+            }
+            return dest;
+        }
+
+        public System.IO.Stream ResizeToRatio(Image im, float newratio)
+	    {
+            float calcwidth = im.Width;
+            float calcheight = im.Height;
+
+            float nheight = 0;
+            do
+            {
+                nheight = calcwidth / newratio;
+                if (nheight > ((float)im.Height + 0.5F))
+                {
+                    calcwidth = calcwidth * ((float)im.Height / nheight);
+                }
+                else
+                {
+                    calcheight = nheight;
+                }
+            } while (nheight > ((float)im.Height + 0.5F));
+
+            int newwidth = (int)Math.Round(calcwidth);
+            int newheight = (int)Math.Round(calcheight);
+            int x = 0;
+            int y = 0;
+            if (newwidth < im.Width)
+                x = (im.Width - newwidth) / 2;
+            if (newheight < im.Height)
+                y = (im.Height - newheight) / 2;
+
+            Image im2 = ReSize(im,newwidth, newheight);
+            Graphics g = Graphics.FromImage(im2);
+            g.DrawImage(im, new Rectangle(0, 0, im2.Width, im2.Height),
+                new Rectangle(x, y, im2.Width, im2.Height), GraphicsUnit.Pixel);
+            MemoryStream ms = new MemoryStream();
+            im2.Save(ms, ImageFormat.Jpeg);
+            ms.Seek(0, SeekOrigin.Begin);
+	        return ms;
+	    }
+
+	    public System.IO.Stream GetSupportImage(string name, string ratio)
+	    {
+            float newratio = 0F;
+	        if (float.TryParse(ratio, NumberStyles.Any, CultureInfo.InvariantCulture, out newratio))
+	        {
+                if (string.IsNullOrEmpty(name))
+                    return new MemoryStream();
+                name = Path.GetFileNameWithoutExtension(name);
+                System.Resources.ResourceManager man = Resources.ResourceManager;
+                byte[] dta = (byte[])man.GetObject(name);
+                if ((dta == null) || (dta.Length == 0))
+                    return new MemoryStream();
+                if (WebOperationContext.Current != null)
+                    WebOperationContext.Current.OutgoingResponse.ContentType = "image/png";
+                //Little hack
+                MemoryStream ms = new MemoryStream(dta);
+                ms.Seek(0, SeekOrigin.Begin);
+                if (!name.Contains("404") && newratio == 1.0F)
+	            {
+	                return ms;
+	            }
+	            Image im = Image.FromStream(ms);
+	            float w = im.Width;
+	            float h = im.Height;
+	            float nw;
+	            float nh;
+
+                
+                if (w <= h)
+                {
+                    nw = h * newratio;
+                    if (nw < w)
+                    {
+                        nw = w;
+                        nh = w / newratio;
+                    }
+                    else
+                    {
+                        nh = h;
+                    }
+                }
+                else
+                {
+                    nh = w / newratio;
+                    if (nh < h)
+                    {
+                        nh = h;
+                        nw = w * newratio;
+                    }
+                    else
+                    {
+                        nw = w;
+                    }
+                }
+	            nw = (float)Math.Round(nw);
+	            nh = (float)Math.Round(nh);
+	            Image im2 = new Bitmap((int) nw, (int) nh, PixelFormat.Format32bppArgb);
+	            using (Graphics g = Graphics.FromImage(im2))
+	            {
+                    g.InterpolationMode = nw >= im.Width ? InterpolationMode.HighQualityBilinear : InterpolationMode.HighQualityBicubic;
+                    g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    g.SmoothingMode = SmoothingMode.HighQuality;
+                    g.Clear(Color.Transparent);
+                    Rectangle src=new Rectangle(0,0,im.Width,im.Height);
+	                Rectangle dst = new Rectangle((int) ((nw - w)/2), (int) ((nh - h)/2), im.Width, im.Height);
+                    g.DrawImage(im,dst,src,GraphicsUnit.Pixel);
+	            }
+                MemoryStream ms2 = new MemoryStream();
+                im2.Save(ms2, ImageFormat.Png);
+                ms2.Seek(0, SeekOrigin.Begin);
+                ms.Dispose();
+                return ms2;
+            }
+            return new MemoryStream();
+        }
 
         public System.IO.Stream GetThumb(string ImageType, string ImageID, string Ratio)
-        {
-            MemoryStream ms = new MemoryStream();
-            Stream m = GetImage(ImageType, ImageID);
-            if (m != null)
+        {            
+            using (Stream m = GetImage(ImageType, ImageID))
             {
-                float newratio = 0F;
-                if (float.TryParse(Ratio, NumberStyles.Any, CultureInfo.InvariantCulture, out newratio))
+                if (m != null)
                 {
-                    Image im = Image.FromStream(m);
-                    float calcwidth = im.Width;
-                    float calcheight = im.Height;
-                    
-                    float nheight = 0;
-                    do
+                    float newratio = 0F;
+                    if (float.TryParse(Ratio, NumberStyles.Any, CultureInfo.CurrentCulture, out newratio))
                     {
-                        nheight = calcwidth/newratio;
-                        if (nheight > ((float) im.Height + 0.5F))
+                        using (Image im = Image.FromStream(m))
                         {
-                            calcwidth = calcwidth*((float) im.Height/nheight);
+                            return ResizeToRatio(im, newratio);
                         }
-                        else
-                        {
-                            calcheight = nheight;
-                        }
-                    } while (nheight > ((float) im.Height + 0.5F));
-                    
-                    int newwidth = (int)Math.Round(calcwidth);
-                    int newheight = (int) Math.Round(calcheight);
-                    int x = 0;
-                    int y = 0;
-                    if (newwidth<im.Width)
-                        x = (im.Width - newwidth) / 2;
-                    if (newheight<im.Height)
-                        y = (im.Height - newheight) / 2;
-
-                    Image im2 = new Bitmap(newwidth, newheight, PixelFormat.Format24bppRgb);
-                    Graphics g = Graphics.FromImage(im2);
-                    g.DrawImage(im, new Rectangle(0, 0, im2.Width, im2.Height), new Rectangle(x, y, im2.Width, im2.Height), GraphicsUnit.Pixel);
-                    im2.Save(ms, ImageFormat.Jpeg);
-                    ms.Seek(0, SeekOrigin.Begin);
+                    }
                 }
             }
-            return ms;
+            return new MemoryStream();
         }
     }
 }

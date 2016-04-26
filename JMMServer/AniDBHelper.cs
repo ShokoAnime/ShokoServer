@@ -15,6 +15,9 @@ using JMMServer.Commands;
 using JMMServer.WebCache;
 using JMMServer.Commands.Azure;
 using NHibernate;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Globalization;
 
 namespace JMMServer
 {
@@ -143,9 +146,11 @@ namespace JMMServer
 
 		public void ExtendPause(int secsToPause, string pauseReason)
 		{
-			ExtendPauseSecs = secsToPause;
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+            ExtendPauseSecs = secsToPause;
 			ExtendPauseReason = pauseReason;
-			ServerInfo.Instance.ExtendedPauseString = string.Format("Paused communications for {0} seconds: {1} ", secsToPause, pauseReason);
+			ServerInfo.Instance.ExtendedPauseString = string.Format(JMMServer.Properties.Resources.AniDB_Paused, secsToPause, pauseReason);
 			ServerInfo.Instance.HasExtendedPause = true;
 		}
 
@@ -213,8 +218,10 @@ namespace JMMServer
 				{
 					if (WaitingOnResponseTime.HasValue)
 					{
-						TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
-						ServerInfo.Instance.WaitingOnResponseAniDBUDPString = string.Format("Waiting on response for {0} seconds...", ts.TotalSeconds);
+                        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                        TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
+						ServerInfo.Instance.WaitingOnResponseAniDBUDPString = string.Format(JMMServer.Properties.Resources.AniDB_ResponseWaitSeconds, ts.TotalSeconds);
 					}
 				}
 				catch { }
@@ -235,7 +242,9 @@ namespace JMMServer
 					ping.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
 				}
 
-				string msg = string.Format("Last message sent {0} seconds ago", tsAniDBUDP.TotalSeconds);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                string msg = string.Format(JMMServer.Properties.Resources.AniDB_LastMessage, tsAniDBUDP.TotalSeconds);
 
 				if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
 				{
@@ -265,10 +274,13 @@ namespace JMMServer
 			WaitingOnResponse = isWaiting;
 			ServerInfo.Instance.WaitingOnResponseAniDBUDP = isWaiting;
 
-			if (isWaiting)
-				ServerInfo.Instance.WaitingOnResponseAniDBUDPString = "Waiting on response...";
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+            if (isWaiting)
+				ServerInfo.Instance.WaitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.AniDB_ResponseWait;
 			else
-				ServerInfo.Instance.WaitingOnResponseAniDBUDPString = "Idle";
+
+				ServerInfo.Instance.WaitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.Command_Idle;
 
 			if (isWaiting)
 				WaitingOnResponseTime = DateTime.Now;

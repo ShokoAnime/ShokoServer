@@ -26,6 +26,7 @@ namespace JMMServer
 			InitializeComponent();
 
 			btnAddImportFolder.Click += new RoutedEventHandler(btnAddImportFolder_Click);
+            btnAddUPnPSource.Click += new RoutedEventHandler(btnAddUPnPSource_Click);
 			btnDeleteImportFolder.Click += new RoutedEventHandler(btnDeleteImportFolder_Click);
 			lbImportFolders.MouseDoubleClick += new MouseButtonEventHandler(lbImportFolders_MouseDoubleClick);
 		}
@@ -53,7 +54,7 @@ namespace JMMServer
 				{
 					ImportFolder ns = (ImportFolder)obj;
 
-					MessageBoxResult res = MessageBox.Show(string.Format("Are you sure you want to delete the Import Folder: {0}", ns.ImportFolderLocation), "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question);
+					MessageBoxResult res = MessageBox.Show(string.Format(JMMServer.Properties.Resources.ImportFolders_DeleteFolder, ns.ImportFolderLocation), JMMServer.Properties.Resources.Confirm, MessageBoxButton.YesNo, MessageBoxImage.Question);
 					if (res == MessageBoxResult.Yes)
 					{
 						this.Cursor = Cursors.Wait;
@@ -85,6 +86,12 @@ namespace JMMServer
 				Utils.ShowErrorMessage(ex);
 			}
 		}
+
+        void btnAddUPnPSource_Click(object sender, RoutedEventArgs e)
+        {
+            UPnPServerBrowserDialog addSource = new UPnPServerBrowserDialog();
+            addSource.ShowDialog();
+        }
 
 		private Window GetTopParent()
 		{

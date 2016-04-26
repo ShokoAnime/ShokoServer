@@ -8,6 +8,10 @@ using JMMServer.Repositories;
 using JMMServer.Providers.TvDB;
 using JMMServer.WebCache;
 using JMMServer.Providers.TraktTV;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -25,7 +29,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Updating info/images on Trakt.TV: {0}", TraktID);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_UpdateTraktData, TraktID);
 			}
 		}
 

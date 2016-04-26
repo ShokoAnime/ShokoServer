@@ -6,6 +6,10 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
 using AniDBAPI;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -24,7 +28,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Getting group status info from UDP API for Anime: {0}", AnimeID);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_GetReleaseGroup, AnimeID);
 			}
 		}
 

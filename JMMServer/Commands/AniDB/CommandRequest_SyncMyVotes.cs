@@ -9,6 +9,10 @@ using AniDBAPI.Commands;
 using AniDBAPI;
 using JMMServer.AniDB_API.Commands;
 using JMMServer.AniDB_API.Raws;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -24,7 +28,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Syncing Vote info from HTTP API");
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Actions_SyncVotes);
 			}
 		}
 

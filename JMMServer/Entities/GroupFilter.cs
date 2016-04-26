@@ -17,7 +17,9 @@ namespace JMMServer.Entities
 		public string SortingCriteria { get; set; }
 		public int? Locked { get; set; }
 
-		public override string ToString()
+        public int FilterType { get; set; }
+
+        public override string ToString()
 		{
 			return string.Format("{0} - {1}", GroupFilterID, GroupFilterName);
 		}
@@ -89,8 +91,9 @@ namespace JMMServer.Entities
 			contract.BaseCondition = this.BaseCondition;
 			contract.SortingCriteria = this.SortingCriteria;
 			contract.Locked = this.Locked;
+            contract.FilterType = this.FilterType;
 
-			contract.FilterConditions = new List<Contract_GroupFilterCondition>();
+            contract.FilterConditions = new List<Contract_GroupFilterCondition>();
 			foreach (GroupFilterCondition gfc in GetFilterConditions(session))
 				contract.FilterConditions.Add(gfc.ToContract());
 

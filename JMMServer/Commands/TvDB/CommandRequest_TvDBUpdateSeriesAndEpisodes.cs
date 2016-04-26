@@ -6,6 +6,10 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Providers.TvDB;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Configuration;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
@@ -24,7 +28,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Getting episodes from The TvDB: {0}", TvDBSeriesID);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_GettingTvDB, TvDBSeriesID);
 			}
 		}
 

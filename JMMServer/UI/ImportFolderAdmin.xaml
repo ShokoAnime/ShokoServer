@@ -37,19 +37,19 @@
                         <Image Height="22" Width="23" Source="/Images/32_folder_down.png" VerticalAlignment="Center" Margin="0,0,5,0"
                                Visibility="{Binding Path=FolderIsDropSource, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Image.ToolTip>
-                                <TextBlock Text="Drop Source"/>
+                                <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropSource}" TextWrapping="Wrap" Width="250"/>
                             </Image.ToolTip>
                         </Image>
                         <Image Height="22" Width="23" Source="/Images/32_folder_up.png" VerticalAlignment="Center" Margin="0,0,5,0"
                                Visibility="{Binding Path=FolderIsDropDestination, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Image.ToolTip>
-                                <TextBlock Text="Drop Destination"/>
+                                <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropDestination}" TextWrapping="Wrap" Width="250"/>
                             </Image.ToolTip>
                         </Image>
                         <Image Height="16" Width="16" Source="/Images/16_folder_find.png" VerticalAlignment="Center" Margin="0,0,5,0"
                                Visibility="{Binding Path=FolderIsWatched, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Image.ToolTip>
-                                <TextBlock Text="This folder is being watched for new files"/>
+                                <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropDestination}"/>
                             </Image.ToolTip>
                         </Image>
                     </StackPanel>
@@ -66,6 +66,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"></RowDefinition>
                     <RowDefinition Height="Auto"></RowDefinition>
+                    <RowDefinition Height="Auto"></RowDefinition>
                 </Grid.RowDefinitions>
 
                 <Grid.ColumnDefinitions>
@@ -74,15 +75,21 @@
                 </Grid.ColumnDefinitions>
 
                 <Image Height="16" Width="16" Source="/Images/32_info.png" Margin="5,2,5,0" Grid.Column="0" VerticalAlignment="Top"/>
-                <TextBlock VerticalAlignment="Center" Text="Import folders are the the base locations where you keep your anime. You will need to add at least one folder and then select 'Run Import' on the Actions tab" Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1"/>
-                <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,5,5,5" DisplayText="Detailed explanation of options"
-                                                                        URL="http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders"/>
+                <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_Info}" Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1"/>
+                <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,5,5,5" DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=DetailedExplanation}"
+                                                                        URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_ImportFolders}"/>
+                <Image Height="16" Width="16" Source="/Images/32_info.png" Margin="5,2,5,0" Grid.Column="0" Grid.Row="2" VerticalAlignment="Top"/>
+                <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="2" Margin="0,0,5,0">
+                    <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_Fix}" Margin="0,0,5,0"/>
+                    <local:HyperLinkStandard VerticalAlignment="Center" Margin="0,0,5,0" DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_Shared}"
+                                                                        URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_SharedDrive}"/>
+                </StackPanel>
             </Grid>
         </Border>
 
         <StackPanel Orientation="Horizontal">
             <StackPanel Orientation="Vertical">
-                <TextBlock Text="Server Path" Margin="10,10,0,10" FontWeight="DemiBold"></TextBlock>
+                <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_ServerPath}" Margin="10,10,0,10" FontWeight="DemiBold"></TextBlock>
                 <ListBox Margin="10,0,0,10" Name="lbImportFolders" BorderThickness="0" Background="AntiqueWhite"
                                  HorizontalAlignment="Left" VerticalAlignment="Top" ItemTemplate="{StaticResource ImportFolderTemplate}" 
                                  ItemContainerStyle="{DynamicResource ListBoxItemStyleFolders}"
@@ -98,14 +105,21 @@
             <Button HorizontalAlignment="Left" Name="btnDeleteImportFolder" Margin="10,0,0,0" Style="{DynamicResource RoundButtonStyle}" Width="Auto">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
                     <Image Height="16" Width="16" Source="/Images/32_Delete.png" Margin="0,0,5,0"/>
-                    <TextBlock VerticalAlignment="Center" Text="Delete" Margin="0,0,5,0"/>
+                    <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_Delete}" Margin="0,0,5,0"/>
                 </StackPanel>
             </Button>
 
             <Button HorizontalAlignment="Left" Name="btnAddImportFolder" Margin="10,0,0,0" Style="{DynamicResource RoundButtonStyle}" Width="Auto">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
                     <Image Height="16" Width="16" Source="/Images/32_add.png" Margin="0,0,5,0"/>
-                    <TextBlock VerticalAlignment="Center" Text="New Folder" Margin="0,0,5,0"/>
+                    <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_NewFolder}" Margin="0,0,5,0"/>
+                </StackPanel>
+            </Button>
+
+            <Button HorizontalAlignment="Left" Name="btnAddUPnPSource" Margin="10,0,0,0" Style="{DynamicResource RoundButtonStyle}" Width="Auto">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
+                    <Image Height="16" Width="16" Source="/Images/32_add.png" Margin="0,0,5,0"/>
+                    <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_UPnP}" Margin="0,0,5,0"/>
                 </StackPanel>
             </Button>
         </StackPanel>

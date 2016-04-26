@@ -6,6 +6,10 @@ using JMMServer.Repositories;
 using JMMServer.Entities;
 using System.Xml;
 using AniDBAPI;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands.AniDB
 {
@@ -23,7 +27,9 @@ namespace JMMServer.Commands.AniDB
 		{
 			get
 			{
-				return string.Format("Updating AniDB MyListStats");
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_UpdateMyListStats);
 			}
 		}
 

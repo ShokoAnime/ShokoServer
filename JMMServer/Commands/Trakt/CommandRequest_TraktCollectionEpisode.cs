@@ -7,6 +7,10 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -33,7 +37,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-                return string.Format("Sync episode to collection on Trakt: {0} - {1}", AnimeEpisodeID, Action);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_SyncTraktEpisodes, AnimeEpisodeID, Action);
 			}
 		}
 

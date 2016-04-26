@@ -181,8 +181,10 @@ namespace JMMServer.Databases
                 UpdateSchema_037(versionNumber);
                 UpdateSchema_038(versionNumber);
                 UpdateSchema_039(versionNumber);
+                UpdateSchema_040(versionNumber);
+                UpdateSchema_041(versionNumber);
             }
-			catch (Exception ex)
+            catch (Exception ex)
 			{
 				logger.ErrorException("Error updating schema: " + ex.ToString(), ex);
 			}
@@ -1401,6 +1403,56 @@ namespace JMMServer.Databases
             ExecuteSQLCommands(cmds);
 
             UpdateDatabaseVersion(thisVersion);
+
+        }
+
+        private static void UpdateSchema_040(int currentVersionNumber)
+        {
+            int thisVersion = 40;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE JMMUser ADD PlexUsers nvarchar(max) NULL");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+
+        private static void UpdateSchema_041(int currentVersionNumber)
+        {
+            int thisVersion = 41;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE GroupFilter ADD FilterType int NULL");
+            cmds.Add("UPDATE GroupFilter SET FilterType = 1");
+            cmds.Add("ALTER TABLE GroupFilter ALTER COLUMN FilterType int NOT NULL");
+
+            using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+                ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+            // Now do the migratiuon
+            DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
 
         }
 

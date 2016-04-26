@@ -18,8 +18,8 @@ namespace JMMContracts
         System.IO.Stream GetFilters(string UserId);
 
         [OperationContract]
-        [WebInvoke(UriTemplate = "GetMetadata/{UserId}/{TypeId}/{Id}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare, Method = "*")]
-        System.IO.Stream GetMetadata(string UserId, string TypeId, string Id);
+        [WebInvoke(UriTemplate = "GetMetadata/{UserId}/{TypeId}/{Id}/{hkey}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare, Method = "*")]
+        System.IO.Stream GetMetadata(string UserId, string TypeId, string Id, string hkey);
 
         [OperationContract]
         [WebGet(UriTemplate = "GetFile/{Id}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]

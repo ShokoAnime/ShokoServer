@@ -8,6 +8,9 @@ using System.IO;
 using JMMServer.AniDB_API.Raws;
 using System.Globalization;
 using JMMServer.Repositories;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Threading;
 
 namespace AniDBAPI
 {
@@ -70,10 +73,12 @@ namespace AniDBAPI
 			try
 			{
 				string uri = string.Format(AniDBHTTPHelper.AnimeURL, animeID);
-				//APIUtils.WriteToLog("GetAnimeXMLFromAPI: " + uri);
+                //APIUtils.WriteToLog("GetAnimeXMLFromAPI: " + uri);
 
-				DateTime start = DateTime.Now;
-				string msg = string.Format("Getting Anime XML Data From ANIDB: {0}", animeID);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                DateTime start = DateTime.Now;
+				string msg = string.Format(JMMServer.Properties.Resources.AniDB_GettingAnimeXML, animeID);
 				JMMService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 					
 				rawXML = APIUtils.DownloadWebPage(uri);
@@ -81,7 +86,7 @@ namespace AniDBAPI
 				TimeSpan ts = DateTime.Now - start;
 				string content = rawXML;
 				if (content.Length > 100) content = content.Substring(0, 100);
-				msg = string.Format("Got Anime XML Data From ANIDB: {0} - {1} - {2}", animeID, ts.TotalMilliseconds, content);
+				msg = string.Format(JMMServer.Properties.Resources.AniDB_GotAnimeXML, animeID, ts.TotalMilliseconds, content);
 				JMMService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
 				//APIUtils.WriteToLog("GetAnimeXMLFromAPI result: " + rawXML);

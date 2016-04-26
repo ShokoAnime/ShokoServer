@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Windows;
@@ -11,6 +12,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.ComponentModel;
+using System.Configuration;
+using System.Globalization;
 using System.Threading;
 
 namespace JMMServer.UI
@@ -59,25 +62,27 @@ namespace JMMServer.UI
 		{
 			try
 			{
-				workerTestLogin.ReportProgress(0, "Disposing...");
+				workerTestLogin.ReportProgress(0, Properties.Resources.InitialSetup_Disposing);
 				JMMService.AnidbProcessor.ForceLogout();
 				JMMService.AnidbProcessor.CloseConnections();
 				Thread.Sleep(1000);
 
-				workerTestLogin.ReportProgress(0, "Init...");
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                workerTestLogin.ReportProgress(0, Properties.Resources.Server_Initializing);
 				JMMService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password, ServerSettings.AniDB_ServerAddress,
 				ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
 
-				workerTestLogin.ReportProgress(0, "Login...");
+				workerTestLogin.ReportProgress(0, Properties.Resources.InitialSetup_Login);
 				if (JMMService.AnidbProcessor.Login())
 				{
-					workerTestLogin.ReportProgress(0, "Login Success! Logging out...");
+					workerTestLogin.ReportProgress(0, Properties.Resources.InitialSetup_LoginPass1);
 					JMMService.AnidbProcessor.ForceLogout();
-					workerTestLogin.ReportProgress(0, "Login Success! Logged out.");
+					workerTestLogin.ReportProgress(0, Properties.Resources.InitialSetup_LoginPass2);
 				}
 				else
 				{
-					workerTestLogin.ReportProgress(0, "Login FAILED!");
+					workerTestLogin.ReportProgress(0, Properties.Resources.InitialSetup_LoginFail);
 				}
 			}
 			catch (Exception ex)
@@ -90,21 +95,21 @@ namespace JMMServer.UI
 		{
 			if (txtUsername.Text.Trim().Length == 0)
 			{
-				MessageBox.Show("Please enter a username", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(Properties.Resources.InitialSetup_EnterUsername, Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 				txtUsername.Focus();
 				return;
 			}
 
 			if (txtPassword.Password.Trim().Length == 0)
 			{
-				MessageBox.Show("Please enter a Password", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(Properties.Resources.InitialSetup_EnterPassword, Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 				txtPassword.Focus();
 				return;
 			}
 
 			if (txtClientPort.Text.Trim().Length == 0)
 			{
-				MessageBox.Show("Please enter a client port", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(Properties.Resources.InitialSetup_EnterPort, Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 				txtClientPort.Focus();
 				return;
 			}

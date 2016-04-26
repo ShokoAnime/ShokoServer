@@ -54,14 +54,14 @@ namespace JMMServer
 				// An import folder cannot be both the drop source and the drop destination
 				if (chkDropDestination.IsChecked.HasValue && chkDropSource.IsChecked.HasValue && chkDropDestination.IsChecked.Value && chkDropSource.IsChecked.Value)
 				{
-					MessageBox.Show("An import folder cannot be both the drop source and the drop destination", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+					MessageBox.Show(JMMServer.Properties.Resources.ImportFolders_SameFolder, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 					return;
 				}
 
 				// The import folder location cannot be blank. Enter a valid path on OMM Server
 				if (string.IsNullOrEmpty(txtImportFolderLocation.Text))
 				{
-					MessageBox.Show("The import folder location cannot be blank. Enter a valid path on JMM Server", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+					MessageBox.Show(JMMServer.Properties.Resources.ImportFolders_BlankImport, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 					txtImportFolderLocation.Focus();
 					return;
 				}
@@ -80,7 +80,7 @@ namespace JMMServer
 				JMMServiceImplementation imp = new JMMServiceImplementation();
 				Contract_ImportFolder_SaveResponse response = imp.SaveImportFolder(contract);
 				if (!string.IsNullOrEmpty(response.ErrorMessage))
-					MessageBox.Show(response.ErrorMessage, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+					MessageBox.Show(response.ErrorMessage, JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 
 				ServerInfo.Instance.RefreshImportFolders();
 			}

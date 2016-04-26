@@ -8,6 +8,10 @@ using System.Xml;
 using System.IO;
 using JMMServer.Providers.Azure;
 using JMMServer.Commands.Azure;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -23,7 +27,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Getting AniDB Titles");
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.AniDB_GetTitles);
 			}
 		}
 

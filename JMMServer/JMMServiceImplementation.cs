@@ -6740,7 +6740,7 @@ namespace JMMServer
 						// if it already exists we can leave
 						foreach (GroupFilter gfTemp in lockedGFs)
 						{
-							if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase))
+							if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
 							{
 								gf = gfTemp;
 								break;
@@ -7514,7 +7514,7 @@ namespace JMMServer
 				jmmUser.IsAdmin = user.IsAdmin;
 				jmmUser.Username = user.Username;
 				jmmUser.CanEditServerSettings = user.CanEditServerSettings;
-
+			    jmmUser.PlexUsers = user.PlexUsers;
 				if (string.IsNullOrEmpty(user.Password))
 					jmmUser.Password = "";
 

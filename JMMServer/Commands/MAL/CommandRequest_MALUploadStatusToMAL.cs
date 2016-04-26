@@ -8,6 +8,10 @@ using AniDBAPI;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands.MAL
 {
@@ -23,7 +27,9 @@ namespace JMMServer.Commands.MAL
 		{
 			get
 			{
-				return string.Format("Uploading watched states to MAL");
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_UploadMALWatched);
 			}
 		}
 

@@ -10,6 +10,7 @@ using System.IO;
 using JMMServer.ImageDownload;
 using NLog;
 using System.Diagnostics;
+using System.Threading;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 
@@ -74,9 +75,50 @@ namespace JMMServer
 			}
 		}
 
-		#region Database
+	    public static string PlexThumbnailAspects
+	    {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string thumbaspect = appSettings["PlexThumbnailAspects"];
+                if (string.IsNullOrEmpty(thumbaspect))
+                {
+                    thumbaspect = "Default, 0.6667, IOS, 1.0, Android, 1.3333";
+                    UpdateSetting("PlexThumbnailAspects", thumbaspect);
+                }
 
-		public static string DatabaseType
+                return thumbaspect;
+            }
+            set
+            {
+                UpdateSetting("PlexThumbnailAspect", value);
+            }
+        }
+
+        public static string Culture
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+
+                string cult = appSettings["Culture"];
+                if (string.IsNullOrEmpty(cult))
+                {
+                    // default value
+                    cult = "en";
+                    UpdateSetting("Culture", cult);
+                }
+                return cult;
+            }
+            set
+            {
+                UpdateSetting("Culture", value);
+            }
+        }
+
+        #region Database
+
+        public static string DatabaseType
 		{
 			get
 			{
@@ -1184,7 +1226,7 @@ namespace JMMServer
 			}
 		}
 
-		public static DataSourceType SeriesDescriptionSource
+        public static DataSourceType SeriesDescriptionSource
 		{
 			get
 			{
@@ -1535,7 +1577,7 @@ namespace JMMServer
 			else
 				config.AppSettings.Settings.Add(key, value);
 
-			config.Save(ConfigurationSaveMode.Modified);
+			config.Save();
 			ConfigurationManager.RefreshSection("appSettings");
 		}
 

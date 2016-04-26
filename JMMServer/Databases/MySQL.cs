@@ -169,8 +169,10 @@ namespace JMMServer.Databases
                 UpdateSchema_041(versionNumber);
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
+                UpdateSchema_044(versionNumber);
+                UpdateSchema_045(versionNumber);
             }
-			catch (Exception ex)
+            catch (Exception ex)
 			{
 				logger.ErrorException("Error updating schema: " + ex.ToString(), ex);
 			}
@@ -1710,6 +1712,60 @@ namespace JMMServer.Databases
             cmds.Add("ALTER TABLE AnimeSeries ADD DefaultFolder text character set utf8");
 
             ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+        private static void UpdateSchema_044(int currentVersionNumber)
+        {
+            int thisVersion = 44;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE JMMUser ADD PlexUsers text character set utf8");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+
+        private static void UpdateSchema_045(int currentVersionNumber)
+        {
+            int thisVersion = 45;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `FilterType` int NULL ;");
+            cmds.Add("UPDATE GroupFilter SET FilterType = 1 ;");
+            cmds.Add("ALTER TABLE `GroupFilter` CHANGE COLUMN `FilterType` `FilterType` int NOT NULL ;");
+
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
 
             UpdateDatabaseVersion(thisVersion);
 

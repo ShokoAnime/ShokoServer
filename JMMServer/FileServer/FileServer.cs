@@ -20,6 +20,9 @@ namespace JMMServer.FileServer
         private static Logger logger = LogManager.GetCurrentClassLogger();
         private HttpListener _listener;
 
+        private const double WatchedThreshold=0.89; //89% Should be enough to not touch matroska offsets and give us some margin
+
+
         private void Run()
         {
 
@@ -199,13 +202,18 @@ namespace JMMServer.FileServer
                 
             try
             {
+
                 bool fname = false;
                 string[] dta = obj.Request.RawUrl.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-                if (dta.Length < 2)
+                if (dta.Length < 3)
                     return;
                 string cmd = dta[0].ToLower();
-                string arg = dta[1];
+                string user = dta[1];
+                string arg = dta[2];
                 string fullname;
+                int userid = 0;
+                int.TryParse(user, out userid);
+                VideoLocal loc=null;
                 if (cmd == "videolocal")
                 {
                     int sid = 0;
@@ -217,7 +225,7 @@ namespace JMMServer.FileServer
                         return;
                     }
                     VideoLocalRepository rep = new VideoLocalRepository();
-                    VideoLocal loc = rep.GetByID(sid);
+                    loc = rep.GetByID(sid);
                     if (loc == null)
                     {
                         obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
@@ -315,24 +323,35 @@ namespace JMMServer.FileServer
                             }
                         }
                     }
-
+                    SubStream outstream;
                     if (range)
                     {
                         obj.Response.StatusCode = (int) HttpStatusCode.PartialContent;
                         obj.Response.AddHeader("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
-                        org = new SubStream(org, start, end - start + 1);
+                        outstream = new SubStream(org, start, end - start + 1);
                         obj.Response.ContentLength64 = end - start + 1;
                     }
                     else
                     {
+                        outstream=new SubStream(org,0,totalsize);
                         obj.Response.ContentLength64 = totalsize;
                         obj.Response.StatusCode = (int) HttpStatusCode.OK;
                     }
-
+                    if ((userid != 0) && (loc != null))
+                    {
+                        outstream.CrossPosition = (long) ((double) totalsize*WatchedThreshold);
+                        outstream.CrossPositionCrossed += (a) =>
+                        {
+                            Task.Factory.StartNew(() =>
+                            {
+                                loc.ToggleWatchedStatus(true, userid);
+                            }, new CancellationToken(), TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                        };
+                    }
                     obj.Response.SendChunked = false;
-                    org.CopyTo(obj.Response.OutputStream);
+                    outstream.CopyTo(obj.Response.OutputStream);
                     obj.Response.OutputStream.Close();
-                    org.Close();
+                    outstream.Close();
                 }
                 else
                 {

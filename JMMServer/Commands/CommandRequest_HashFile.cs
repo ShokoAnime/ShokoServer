@@ -10,6 +10,9 @@ using JMMFileHelper;
 using System.Xml;
 using JMMServer.WebCache;
 using System.Threading;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
@@ -28,7 +31,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Hashing File: {0}", FileName);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_HashingFile, FileName);
 			}
 		}
 

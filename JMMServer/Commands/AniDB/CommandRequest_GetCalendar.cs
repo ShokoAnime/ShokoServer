@@ -7,6 +7,10 @@ using JMMServer.Entities;
 using System.Xml;
 using AniDBAPI.Commands;
 using AniDBAPI;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -24,7 +28,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Getting calendar info from UDP API");
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_GetCalendar);
 			}
 		}
 
@@ -79,7 +85,7 @@ namespace JMMServer.Commands
 					logger.Error("Could not get calendar from AniDB");
 					return;
 				}
-				foreach (Calendar cal in colCalendars.Calendars)
+				foreach (AniDBAPI.Calendar cal in colCalendars.Calendars)
 				{
 					AniDB_Anime anime = repAnime.GetByAnimeID(cal.AnimeID);
 					if (anime != null)

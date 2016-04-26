@@ -11,7 +11,7 @@ namespace JMMContracts.PlexContracts
 {
     [XmlType("MediaContainer")]
     [Serializable]
-    public class MediaContainer
+    public class MediaContainer : Video
     {
 
         [XmlElement(typeof(Video), ElementName = "Video")]
@@ -20,15 +20,6 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("viewGroup")]
         public string ViewGroup { get; set; }
-
-        [XmlAttribute("title1")]
-        public string Title1 { get; set; }
-
-        [XmlAttribute("art")]
-        public string Art { get; set; }
-
-        [XmlAttribute("title2")]
-        public string Title2 { get; set; }
 
         [XmlAttribute("viewMode")]
         public string ViewMode { get; set; }
@@ -81,9 +72,7 @@ namespace JMMContracts.PlexContracts
         [XmlIgnore]
         public DateTime AirDate { get; set; }
 
-        [XmlAttribute]
-        public int JMMEpisodeId { get; set; }
-
+       
         [XmlIgnore]
         public Contract_AnimeGroup Group { get; set; }
 
@@ -116,9 +105,14 @@ namespace JMMContracts.PlexContracts
         [XmlAttribute("parentThumb")]
         public string ParentThumb { get; set; }
 
-
         [XmlAttribute("grandparentThumb")]
         public string GrandparentThumb { get; set; }
+
+        [XmlAttribute("parentArt")]
+        public string ParentArt { get; set; }
+
+        [XmlAttribute("grandparentArt")]
+        public string GrandparentArt { get; set; }
 
         [XmlAttribute("ratingKey")]
         public string RatingKey { get; set; }
@@ -152,6 +146,12 @@ namespace JMMContracts.PlexContracts
         [XmlAttribute("title")]
         public string Title { get; set; }
 
+        [XmlAttribute("title1")]
+        public string Title1 { get; set; }
+
+        [XmlAttribute("title2")]
+        public string Title2 { get; set; }
+
         [XmlAttribute("parentTitle")]
         public string ParentTitle { get; set; }
 
@@ -177,11 +177,17 @@ namespace JMMContracts.PlexContracts
         [XmlAttribute("addedAt")]
         public string AddedAt { get; set; }
 
+        [XmlAttribute("lastViewedAt")]
+        public string LastViewedAt { get; set; }
+
         [XmlAttribute("originallyAvailableAt")]
         public string OriginallyAvailableAt { get; set; }
 
         [XmlAttribute("leafCount")]
         public string LeafCount { get; set; }
+
+        [XmlAttribute("childCount")]
+        public string ChildCount { get; set; }
 
         [XmlAttribute("viewedLeafCount")]
         public string ViewedLeafCount { get; set; }
@@ -230,7 +236,9 @@ namespace JMMContracts.PlexContracts
     {
         [XmlAttribute("tag")]
         public string Value { get; set; }
-        
+        [XmlAttribute("role")]
+        public string Role { get; set; }
+
     }
     [XmlType("Media")]
     [Serializable]

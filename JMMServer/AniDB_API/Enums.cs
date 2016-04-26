@@ -14,15 +14,15 @@ namespace AniDBAPI
 	}
 
 	public enum AniDBFileDeleteType
-	{
-		Delete = 0,
-		MarkDeleted = 1,
-        MarkExternalStorage = 2,
-        MarkUnknown = 3,
-        DeleteLocalOnly = 4
-	}
+    {
+        Delete = 0,
+        DeleteLocalOnly = 1,
+        MarkDeleted = 2,
+        MarkExternalStorage = 3,
+        MarkUnknown = 4
+    }
 
-	public enum enAniDBVoteType
+    public enum enAniDBVoteType
 	{
 		Anime = 1,
 		AnimeTemp = 2,

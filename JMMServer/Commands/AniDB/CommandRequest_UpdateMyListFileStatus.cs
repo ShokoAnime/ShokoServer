@@ -5,6 +5,10 @@ using System.Text;
 using JMMServer.Entities;
 using System.Xml;
 using JMMServer.Repositories;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
@@ -26,7 +30,9 @@ namespace JMMServer.Commands
 		{
 			get
 			{
-				return string.Format("Updating MyList info from UDP API for File: {0}", FullFileName);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+                return string.Format(JMMServer.Properties.Resources.Command_UpdateMyListInfo, FullFileName);
 			}
 		}
 

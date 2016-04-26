@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:JMMServer"
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="Manual"
-        Title="Admin Messages" Height="300" Width="500">
+        Title="{Resx ResxName=JMMServer.Properties.Resources, Key=Admin_AdminMessages}" Height="300" Width="500">
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>
@@ -47,7 +47,7 @@
                         <StackPanel Orientation="Horizontal"  HorizontalAlignment="Left" Margin="10,10,5,5" Grid.Column="1" Grid.Row="0" VerticalAlignment="Top">
 
                             <TextBlock Text="{Binding Path=MessageDateAsDate}" FontWeight="Bold" FontSize="14" Foreground="DarkBlue" VerticalAlignment="Center"/>
-                            <local:HyperLinkStandard VerticalAlignment="Center" DisplayText="More Information" URL="{Binding Path=MessageURL}" Margin="10,0,0,0"
+                            <local:HyperLinkStandard VerticalAlignment="Center" DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=Admin_MoreInfo}" URL="{Binding Path=MessageURL}" Margin="10,0,0,0"
                                                      Visibility="{Binding Path=HasMessageURL, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                         </StackPanel>
@@ -76,7 +76,7 @@
             <StackPanel Orientation="Horizontal"  Margin="0,0,0,5">
                 <Image Height="24" Width="24" Source="/Images/32_WebDatabase.png" Margin="0,0,5,0"/>
 
-                <TextBlock Margin="5,0,0,0" FontWeight="DemiBold" Text="Admin Messages" FontSize="20" VerticalAlignment="Center"/>
+                <TextBlock Margin="5,0,0,0" FontWeight="DemiBold" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Admin_AdminMessages}" FontSize="20" VerticalAlignment="Center"/>
                 
             </StackPanel>
         </Border>
