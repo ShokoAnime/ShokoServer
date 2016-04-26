@@ -351,6 +351,7 @@ namespace JMMServer
 			btnLogs.Click += new RoutedEventHandler(btnLogs_Click);
 			btnChooseVLCLocation.Click += new RoutedEventHandler(btnChooseVLCLocation_Click);
             btnJMMStartWithWindows.Click += new RoutedEventHandler(btnJMMStartWithWindows_Click);
+            btnUpdateAniDBLogin.Click += new RoutedEventHandler(btnUpdateAniDBLogin_Click);
 
 
             btnAllowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
@@ -581,6 +582,13 @@ namespace JMMServer
         void btnJMMStartWithWindows_Click(object sender, RoutedEventArgs e)
         {
             System.Diagnostics.Process.Start("http://jmediamanager.org/jmm-server/configuring-jmm-server/#jmm-start-with-windows");
+        }
+
+        void btnUpdateAniDBLogin_Click(object sender, RoutedEventArgs e)
+        {
+            InitialSetupForm frm = new InitialSetupForm();
+            frm.Owner = this;
+            frm.ShowDialog();
         }
 
         void cboLanguages_SelectionChanged(object sender, SelectionChangedEventArgs e)

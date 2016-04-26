@@ -1930,6 +1930,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Update AniDB Info.
+        /// </summary>
+        internal static string Settings_AniDB {
+            get {
+                return ResourceManager.GetString("Settings_AniDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Apply.
         /// </summary>
         internal static string Settings_Apply {

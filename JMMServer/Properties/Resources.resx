@@ -857,4 +857,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Command_SearchTvDB" xml:space="preserve">
     <value>Searching for anime on The TvDB: {0}</value>
   </data>
+  <data name="Settings_AniDB" xml:space="preserve">
+    <value>Update AniDB Info</value>
+  </data>
 </root>

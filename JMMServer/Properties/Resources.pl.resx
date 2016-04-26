@@ -808,4 +808,10 @@ Można mieć tylko jeden folder wymienione jako miejsce spadek.</value>
   <data name="Command_SearchTvDB" xml:space="preserve">
     <value>Szukając anime na The TvDB: {0}</value>
   </data>
+  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
+    <value>Pierwsze wydania grupy informacji z UDP API: {0}</value>
+  </data>
+  <data name="Settings_AniDB" xml:space="preserve">
+    <value>Aktualizacja AniDB Info</value>
+  </data>
 </root>
