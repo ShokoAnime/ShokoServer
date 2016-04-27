@@ -281,6 +281,14 @@ namespace JMMServer.Kodi
                     v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404.png");
                 v.Summary = contract.EpisodeOverview;
 
+                //total local files
+                try
+                {
+                    v.totalLocal = ep.GetAnimeSeries().GetAnimeEpisodesCountWithVideoLocal();
+                }
+                catch { }
+                //end total local files
+
                 //community support
 
                 //CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();

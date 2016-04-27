@@ -387,6 +387,7 @@ namespace JMMServer
                         Video v = KodiHelper.FromSerieWithPossibleReplacement(cserie, ser, userid);
                         v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
                         v.Group = basegrp;
+                        v.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
                         retGroups.Add(v);
                     }
                 }
@@ -639,6 +640,9 @@ namespace JMMServer
                                         }
                                         v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
                                         //proper naming end
+                                        List<AnimeSeries> sers = grp.GetAllSeries();
+                                        AnimeSeries ser = sers[0];
+                                        v.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
 
                                         retGroups.Add(v.Clone());
                                     }
@@ -698,6 +702,8 @@ namespace JMMServer
                                 }
                                 j.OriginalTitle = j.OriginalTitle.Substring(0, j.OriginalTitle.Length - 1);
                                 //proper naming end
+
+                                j.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
 
                                 //community support
 
