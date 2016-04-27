@@ -181,7 +181,7 @@ namespace JMMServer.Commands
                                 xrefEnt.FileName = Path.GetFileName(vidLocal.FullServerPath);
                                 xrefEnt.FileSize = vidLocal.FileSize;
                                 xrefEnt.CrossRefSource = (int)JMMServer.CrossRefSource.WebCache;
-                                xrefEnt.AnimeID = animeID;
+                                xrefEnt.AnimeID = xref.AnimeID;
                                 xrefEnt.EpisodeID = xref.EpisodeID;
                                 xrefEnt.Percentage = xref.Percentage;
                                 xrefEnt.EpisodeOrder = xref.EpisodeOrder;
