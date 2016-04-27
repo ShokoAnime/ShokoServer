@@ -814,4 +814,10 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Update AniDB Informationen </value>
   </data>
+  <data name="EnableKodi" xml:space="preserve">
+    <value>Aktivieren Sie Kodi</value>
+  </data>
+  <data name="EnablePlex" xml:space="preserve">
+    <value>Plex zu aktivieren</value>
+  </data>
 </root>

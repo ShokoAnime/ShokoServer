@@ -814,4 +814,10 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Actualizar información de AniDB</value>
   </data>
+  <data name="EnableKodi" xml:space="preserve">
+    <value>Activar Kodi</value>
+  </data>
+  <data name="EnablePlex" xml:space="preserve">
+    <value>Permiten Plex</value>
+  </data>
 </root>

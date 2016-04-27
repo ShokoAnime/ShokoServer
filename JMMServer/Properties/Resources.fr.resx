@@ -814,4 +814,10 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Mise à jour d'informations AniDB</value>
   </data>
+  <data name="EnableKodi" xml:space="preserve">
+    <value>Activer Kodi</value>
+  </data>
+  <data name="EnablePlex" xml:space="preserve">
+    <value>Activer Plex</value>
+  </data>
 </root>

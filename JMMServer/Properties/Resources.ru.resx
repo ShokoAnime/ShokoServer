@@ -814,4 +814,10 @@
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Обновление информации о AniDB</value>
   </data>
+  <data name="EnableKodi" xml:space="preserve">
+    <value>Включить Kodi</value>
+  </data>
+  <data name="EnablePlex" xml:space="preserve">
+    <value>Включить Plex</value>
+  </data>
 </root>

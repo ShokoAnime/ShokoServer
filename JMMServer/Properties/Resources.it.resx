@@ -814,4 +814,10 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Aggiornamento AniDB Info</value>
   </data>
+  <data name="EnableKodi" xml:space="preserve">
+    <value>Attiva Kodi</value>
+  </data>
+  <data name="EnablePlex" xml:space="preserve">
+    <value>Attiva Plex</value>
+  </data>
 </root>

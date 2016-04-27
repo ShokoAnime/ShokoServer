@@ -814,4 +814,10 @@ Można mieć tylko jeden folder wymienione jako miejsce spadek.</value>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Aktualizacja AniDB Info</value>
   </data>
+  <data name="EnableKodi" xml:space="preserve">
+    <value>Włącz Kodi</value>
+  </data>
+  <data name="EnablePlex" xml:space="preserve">
+    <value>Włącz Plex</value>
+  </data>
 </root>

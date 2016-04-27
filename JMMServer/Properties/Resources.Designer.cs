@@ -826,6 +826,24 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Enable Kodi.
+        /// </summary>
+        internal static string EnableKodi {
+            get {
+                return ResourceManager.GetString("EnableKodi", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enable Plex.
+        /// </summary>
+        internal static string EnablePlex {
+            get {
+                return ResourceManager.GetString("EnablePlex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Credit.
         /// </summary>
         internal static string EpisodeType_Credits {

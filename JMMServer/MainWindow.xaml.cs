@@ -288,8 +288,11 @@ namespace JMMServer
 			downloadImagesWorker.WorkerSupportsCancellation = true;
 
 			txtServerPort.Text = ServerSettings.JMMServerPort;
+            chkEnableKodi.IsChecked = ServerSettings.EnableKodi;
+            chkEnablePlex.IsChecked = ServerSettings.EnablePlex;
 
-			btnToolbarHelp.Click += new RoutedEventHandler(btnToolbarHelp_Click);
+
+            btnToolbarHelp.Click += new RoutedEventHandler(btnToolbarHelp_Click);
 			btnApplyServerPort.Click += new RoutedEventHandler(btnApplyServerPort_Click);
 			btnUpdateMediaInfo.Click += new RoutedEventHandler(btnUpdateMediaInfo_Click);
 
@@ -361,6 +364,9 @@ namespace JMMServer
 			btnGeneralClear.Click += new RoutedEventHandler(btnGeneralClear_Click);
 			btnImagesClear.Click += new RoutedEventHandler(btnImagesClear_Click);
 
+            chkEnableKodi.Click += ChkEnableKodi_Click;
+            chkEnablePlex.Click += ChkEnablePlex_Click;
+
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
@@ -369,6 +375,16 @@ namespace JMMServer
             cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
 
             InitCulture();
+        }
+
+        private void ChkEnablePlex_Click(object sender, RoutedEventArgs e)
+        {
+            ServerSettings.EnablePlex = chkEnablePlex.IsChecked.Value;
+        }
+
+        private void ChkEnableKodi_Click(object sender, RoutedEventArgs e)
+        {
+            ServerSettings.EnableKodi = chkEnableKodi.IsChecked.Value;
         }
 
         private void BtnUpdateTraktInfo_Click(object sender, RoutedEventArgs e)

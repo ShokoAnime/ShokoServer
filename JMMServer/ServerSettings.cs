@@ -1568,7 +1568,49 @@ namespace JMMServer
 			}
 		}
 
-		public static void UpdateSetting(string key, string value)
+        public static bool EnablePlex
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string basePath = appSettings["EnablePlex"];
+                if (!string.IsNullOrEmpty(basePath))
+                {
+                    bool val = true;
+                    bool.TryParse(basePath, out val);
+                    return val;
+                }
+                else return true;
+
+            }
+            set
+            {
+                UpdateSetting("EnablePlex", value.ToString());
+            }
+        }
+
+        public static bool EnableKodi
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string basePath = appSettings["EnableKodi"];
+                if (!string.IsNullOrEmpty(basePath))
+                {
+                    bool val = true;
+                    bool.TryParse(basePath, out val);
+                    return val;
+                }
+                else return true;
+
+            }
+            set
+            {
+                UpdateSetting("EnableKodi", value.ToString());
+            }
+        }
+
+        public static void UpdateSetting(string key, string value)
 		{
 			System.Configuration.Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
 

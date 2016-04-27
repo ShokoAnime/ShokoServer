@@ -814,4 +814,10 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Update AniDB Info</value>
   </data>
+  <data name="EnableKodi" xml:space="preserve">
+    <value>Enable Kodi</value>
+  </data>
+  <data name="EnablePlex" xml:space="preserve">
+    <value>Enable Plex</value>
+  </data>
 </root>
