@@ -814,4 +814,43 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Aggiornamento AniDB Info</value>
   </data>
+  <data name="EnableKodi" xml:space="preserve">
+    <value>Attiva Kodi</value>
+  </data>
+  <data name="EnablePlex" xml:space="preserve">
+    <value>Attiva Plex</value>
+  </data>
+  <data name="SeriesType_Sequel" xml:space="preserve">
+    <value>Sequel</value>
+  </data>
+  <data name="SeriesType_Prequel" xml:space="preserve">
+    <value>Prequel</value>
+  </data>
+  <data name="SeriesType_SameSetting" xml:space="preserve">
+    <value>Stessa impostazione</value>
+  </data>
+  <data name="SeriesType_AltSetting" xml:space="preserve">
+    <value>Impostazione alternativa</value>
+  </data>
+  <data name="SeriesType_AltVersion" xml:space="preserve">
+    <value>Versione alternativa</value>
+  </data>
+  <data name="SeriesType_MusicVideo" xml:space="preserve">
+    <value>Video musicale</value>
+  </data>
+  <data name="SeriesType_Character" xml:space="preserve">
+    <value>Carattere</value>
+  </data>
+  <data name="SeriesType_SideStory" xml:space="preserve">
+    <value>Side Story</value>
+  </data>
+  <data name="SeriesType_ParentStory" xml:space="preserve">
+    <value>Padre la storia</value>
+  </data>
+  <data name="SeriesType_Summary" xml:space="preserve">
+    <value>Riepilogo</value>
+  </data>
+  <data name="SeriesType_FullStory" xml:space="preserve">
+    <value>Full Story</value>
+  </data>
 </root>

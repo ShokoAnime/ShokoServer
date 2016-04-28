@@ -107,6 +107,8 @@ namespace JMMServer
         }
         public void UpdatePlexAnimeGroup(ISession session, AnimeGroup grp, List<AnimeSeries> allSeries)
 	    {
+            if (!ServerSettings.EnablePlex) return;
+
             JMMUserRepository repUser = new JMMUserRepository();
             AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
 	        foreach (JMMUser user in repUser.GetAll(session))
@@ -126,6 +128,8 @@ namespace JMMServer
 
         public void UpdateKodiAnimeGroup(ISession session, AnimeGroup grp, List<AnimeSeries> allSeries)
         {
+            if (!ServerSettings.EnableKodi) return;
+
             JMMUserRepository repUser = new JMMUserRepository();
             AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
             foreach (JMMUser user in repUser.GetAll(session))

@@ -814,4 +814,43 @@ Można mieć tylko jeden folder wymienione jako miejsce spadek.</value>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Aktualizacja AniDB Info</value>
   </data>
+  <data name="EnableKodi" xml:space="preserve">
+    <value>Włącz Kodi</value>
+  </data>
+  <data name="EnablePlex" xml:space="preserve">
+    <value>Włącz Plex</value>
+  </data>
+  <data name="SeriesType_Sequel" xml:space="preserve">
+    <value>Sequel gry</value>
+  </data>
+  <data name="SeriesType_Prequel" xml:space="preserve">
+    <value>Prequel</value>
+  </data>
+  <data name="SeriesType_SameSetting" xml:space="preserve">
+    <value>Samo ustawienie</value>
+  </data>
+  <data name="SeriesType_AltSetting" xml:space="preserve">
+    <value>Ustawienie</value>
+  </data>
+  <data name="SeriesType_AltVersion" xml:space="preserve">
+    <value>Alternatywna wersja</value>
+  </data>
+  <data name="SeriesType_MusicVideo" xml:space="preserve">
+    <value>Teledysk</value>
+  </data>
+  <data name="SeriesType_Character" xml:space="preserve">
+    <value>Charakter</value>
+  </data>
+  <data name="SeriesType_SideStory" xml:space="preserve">
+    <value>Historia strony</value>
+  </data>
+  <data name="SeriesType_ParentStory" xml:space="preserve">
+    <value>Historia rodziców</value>
+  </data>
+  <data name="SeriesType_Summary" xml:space="preserve">
+    <value>Krótki opis</value>
+  </data>
+  <data name="SeriesType_FullStory" xml:space="preserve">
+    <value>Pełna historia</value>
+  </data>
 </root>

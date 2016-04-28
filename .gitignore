@@ -201,3 +201,5 @@ hasher/Release_x64/Hasher.tlog/link.write.1.tlog
 JMMFileHelper/PlexMediaInfo/Convert.cs.bak
 JMMServer/FluentNHibernate.dll
 JMMServer.VC.opendb
+JMMServer.VC.db
+JMMServer.VC.VC.opendb

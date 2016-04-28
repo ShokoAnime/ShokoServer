@@ -814,4 +814,43 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Update AniDB Informationen </value>
   </data>
+  <data name="EnableKodi" xml:space="preserve">
+    <value>Aktivieren Sie Kodi</value>
+  </data>
+  <data name="EnablePlex" xml:space="preserve">
+    <value>Plex zu aktivieren</value>
+  </data>
+  <data name="SeriesType_Sequel" xml:space="preserve">
+    <value>Fortsetzung</value>
+  </data>
+  <data name="SeriesType_Prequel" xml:space="preserve">
+    <value>Vorgänger</value>
+  </data>
+  <data name="SeriesType_SameSetting" xml:space="preserve">
+    <value>Dieselbe Einstellung</value>
+  </data>
+  <data name="SeriesType_AltSetting" xml:space="preserve">
+    <value>Alternative Einstellung</value>
+  </data>
+  <data name="SeriesType_AltVersion" xml:space="preserve">
+    <value>Alternative Version</value>
+  </data>
+  <data name="SeriesType_MusicVideo" xml:space="preserve">
+    <value>Musikvideo</value>
+  </data>
+  <data name="SeriesType_Character" xml:space="preserve">
+    <value>Charakter</value>
+  </data>
+  <data name="SeriesType_SideStory" xml:space="preserve">
+    <value>Side Story</value>
+  </data>
+  <data name="SeriesType_ParentStory" xml:space="preserve">
+    <value>Übergeordnete Geschichte</value>
+  </data>
+  <data name="SeriesType_Summary" xml:space="preserve">
+    <value>Zusammenfassung</value>
+  </data>
+  <data name="SeriesType_FullStory" xml:space="preserve">
+    <value>Vollständiger Bericht</value>
+  </data>
 </root>

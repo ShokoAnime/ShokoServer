@@ -276,6 +276,19 @@
                             </StackPanel>
                         </Button>
 
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,10,2,2">
+                                <CheckBox Name="chkEnablePlex" Margin="0,0,6,0" VerticalAlignment="Center" IsChecked="True"/>
+                                <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=EnablePlex}" Margin="0,0,0,0"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,10,2,2">
+                                <CheckBox Name="chkEnableKodi" Margin="0,0,6,0" VerticalAlignment="Center" IsChecked="True"/>
+                                <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=EnableKodi}" Margin="0,0,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        
+
                     </StackPanel>
                 </TabItem>
                 <TabItem Header="MyAnime2 Migration" Visibility="Collapsed">
