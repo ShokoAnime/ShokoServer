@@ -971,7 +971,7 @@ namespace JMMServer
                 StartStreamingHost();
 
 				//  Load all stats
-				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
+				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingStats;
 				StatsCache.Instance.InitStats();
 
 				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;

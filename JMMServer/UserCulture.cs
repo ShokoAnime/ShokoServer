@@ -41,6 +41,12 @@ namespace JMMServer
             }
         }
 
+        /*
+
+        /// The following code causes errors with localization. 
+        /// Regardless of the langauge selected, it will show any language strings
+        /// in .CS files in the language Windows is in and not the selected language. 
+
         /// <summary>
         /// This will attempt to get the closest culture/lanaguage match
         /// For example if the user's UI Culture is "de-LU" (German - Luxembourg)
@@ -78,6 +84,8 @@ namespace JMMServer
 
             return "en";
         }
+
+        */
 
 
     }

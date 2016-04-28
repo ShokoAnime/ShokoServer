@@ -1687,6 +1687,105 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Alternative Setting.
+        /// </summary>
+        internal static string SeriesType_AltSetting {
+            get {
+                return ResourceManager.GetString("SeriesType_AltSetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Alternative Version.
+        /// </summary>
+        internal static string SeriesType_AltVersion {
+            get {
+                return ResourceManager.GetString("SeriesType_AltVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Character.
+        /// </summary>
+        internal static string SeriesType_Character {
+            get {
+                return ResourceManager.GetString("SeriesType_Character", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Full Story.
+        /// </summary>
+        internal static string SeriesType_FullStory {
+            get {
+                return ResourceManager.GetString("SeriesType_FullStory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Music Video.
+        /// </summary>
+        internal static string SeriesType_MusicVideo {
+            get {
+                return ResourceManager.GetString("SeriesType_MusicVideo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Parent Story.
+        /// </summary>
+        internal static string SeriesType_ParentStory {
+            get {
+                return ResourceManager.GetString("SeriesType_ParentStory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Prequel.
+        /// </summary>
+        internal static string SeriesType_Prequel {
+            get {
+                return ResourceManager.GetString("SeriesType_Prequel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Same Setting.
+        /// </summary>
+        internal static string SeriesType_SameSetting {
+            get {
+                return ResourceManager.GetString("SeriesType_SameSetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sequel.
+        /// </summary>
+        internal static string SeriesType_Sequel {
+            get {
+                return ResourceManager.GetString("SeriesType_Sequel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Side Story.
+        /// </summary>
+        internal static string SeriesType_SideStory {
+            get {
+                return ResourceManager.GetString("SeriesType_SideStory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Summary.
+        /// </summary>
+        internal static string SeriesType_Summary {
+            get {
+                return ResourceManager.GetString("SeriesType_Summary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Updating all files video media info added to queue..
         /// </summary>
         internal static string Serrver_VideoMediaUpdate {

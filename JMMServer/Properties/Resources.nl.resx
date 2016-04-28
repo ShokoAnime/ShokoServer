@@ -820,4 +820,37 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="EnablePlex" xml:space="preserve">
     <value>Inschakelen van Plex!</value>
   </data>
+  <data name="SeriesType_Sequel" xml:space="preserve">
+    <value>Vervolg</value>
+  </data>
+  <data name="SeriesType_Prequel" xml:space="preserve">
+    <value>Prequel</value>
+  </data>
+  <data name="SeriesType_SameSetting" xml:space="preserve">
+    <value>Dezelfde instelling</value>
+  </data>
+  <data name="SeriesType_AltSetting" xml:space="preserve">
+    <value>Alternatieve instelling</value>
+  </data>
+  <data name="SeriesType_AltVersion" xml:space="preserve">
+    <value>Alternatieve versie</value>
+  </data>
+  <data name="SeriesType_MusicVideo" xml:space="preserve">
+    <value>Muziek Video</value>
+  </data>
+  <data name="SeriesType_Character" xml:space="preserve">
+    <value>Teken</value>
+  </data>
+  <data name="SeriesType_SideStory" xml:space="preserve">
+    <value>Side Story</value>
+  </data>
+  <data name="SeriesType_ParentStory" xml:space="preserve">
+    <value>Ouder Story</value>
+  </data>
+  <data name="SeriesType_Summary" xml:space="preserve">
+    <value>Samenvatting</value>
+  </data>
+  <data name="SeriesType_FullStory" xml:space="preserve">
+    <value>Volledige verhaal</value>
+  </data>
 </root>

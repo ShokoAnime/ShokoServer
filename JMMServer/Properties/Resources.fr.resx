@@ -820,4 +820,37 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="EnablePlex" xml:space="preserve">
     <value>Activer Plex</value>
   </data>
+  <data name="SeriesType_Sequel" xml:space="preserve">
+    <value>Suite</value>
+  </data>
+  <data name="SeriesType_Prequel" xml:space="preserve">
+    <value>Préquelle</value>
+  </data>
+  <data name="SeriesType_SameSetting" xml:space="preserve">
+    <value>Même paramètre</value>
+  </data>
+  <data name="SeriesType_AltSetting" xml:space="preserve">
+    <value>Paramètre de remplacement</value>
+  </data>
+  <data name="SeriesType_AltVersion" xml:space="preserve">
+    <value>Version alternative</value>
+  </data>
+  <data name="SeriesType_MusicVideo" xml:space="preserve">
+    <value>Music Video</value>
+  </data>
+  <data name="SeriesType_Character" xml:space="preserve">
+    <value>Caractère</value>
+  </data>
+  <data name="SeriesType_SideStory" xml:space="preserve">
+    <value>Side Story</value>
+  </data>
+  <data name="SeriesType_ParentStory" xml:space="preserve">
+    <value>Histoire de parent</value>
+  </data>
+  <data name="SeriesType_Summary" xml:space="preserve">
+    <value>Résumé</value>
+  </data>
+  <data name="SeriesType_FullStory" xml:space="preserve">
+    <value>Lire l'article</value>
+  </data>
 </root>
