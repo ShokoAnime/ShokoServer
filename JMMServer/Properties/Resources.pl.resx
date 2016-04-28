@@ -118,10 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="JMMServer" xml:space="preserve">
-    <value>JMM serwera</value>
+    <value>Serwer JMM</value>
   </data>
   <data name="Actions_RunImport" xml:space="preserve">
-    <value>Uruchomić Import</value>
+    <value>Uruchom Import</value>
   </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Usuń brakujące pliki</value>
@@ -130,58 +130,58 @@
     <value>Synchronizacja listy</value>
   </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
-    <value>Synchronizacja Trakt kolekcja</value>
+    <value>Synchronizacja Trakt</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Synchronizacja głosów</value>
+    <value>Synchronizacja ocen</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Aktualizacja wszystkich serii AniDB Info</value>
   </data>
   <data name="Actions_UpdateTvDB" xml:space="preserve">
-    <value>Zaktualizować wszystkie informacje TvDB</value>
+    <value>Aktualizacja wszystkich informacji z TvDB</value>
   </data>
   <data name="Actions_UpdateTrakt" xml:space="preserve">
-    <value>Aktualizacja wszystkich informacji Trakt</value>
+    <value>Aktualizacja wszystkich informacji z Trakt</value>
   </data>
   <data name="Actions_UpdateAllStats" xml:space="preserve">
-    <value>Zaktualizować wszystkie statystyki</value>
+    <value>Aktualizacja wszystkich statystyk</value>
   </data>
   <data name="Actions_UpdateAllMediaInfo" xml:space="preserve">
-    <value>Aktualizacja wszystkich nośników informacji</value>
+    <value>Aktualizacja wszystkich informacji o mediach</value>
   </data>
   <data name="Actions_UploadCache" xml:space="preserve">
-    <value>Prześlij wszystkie Anime danych do pamięci podręcznej Azure</value>
+    <value>Prześlij wszystkie dane o Anime do pamięci podręcznej Azure</value>
   </data>
   <data name="Toolbar_Shutdown" xml:space="preserve">
-    <value>Zamknięcie</value>
+    <value>Wyłącz</value>
   </data>
   <data name="Toolbar_About" xml:space="preserve">
-    <value>O</value>
+    <value>O programie</value>
   </data>
   <data name="Toolbar_Logs" xml:space="preserve">
-    <value>Dzienniki</value>
+    <value>Dziennik zdarzeń</value>
   </data>
   <data name="Toolbar_Messages" xml:space="preserve">
     <value>Wiadomości</value>
   </data>
   <data name="Tab_Actions" xml:space="preserve">
-    <value>Działania</value>
+    <value>Akcje</value>
   </data>
   <data name="Tab_ImportFolders" xml:space="preserve">
-    <value>Importuj foldery</value>
+    <value>Import folderów</value>
   </data>
   <data name="Tab_Settings" xml:space="preserve">
     <value>Ustawienia</value>
   </data>
   <data name="Tab_Setup" xml:space="preserve">
-    <value>Ustawienia</value>
+    <value>Inicjalizacja</value>
   </data>
   <data name="Settings_Windows" xml:space="preserve">
-    <value>Start z systemu Windows</value>
+    <value>Autostart z systemem Windows</value>
   </data>
   <data name="Settings_Multiple" xml:space="preserve">
-    <value>Umożliwić wielu wystąpień</value>
+    <value>Zezwól na uruchomienie wielu instancji</value>
   </data>
   <data name="Settings_Minimize" xml:space="preserve">
     <value>Minimalizuj przy starcie</value>
@@ -190,10 +190,10 @@
     <value>Wybierz Folder</value>
   </data>
   <data name="Settings_ImagePath" xml:space="preserve">
-    <value>Ścieżka obrazu</value>
+    <value>Folderu z grafiką</value>
   </data>
   <data name="Settings_Apply" xml:space="preserve">
-    <value>Zastosowanie</value>
+    <value>Zastosuj</value>
   </data>
   <data name="Settings_ServerPort" xml:space="preserve">
     <value>Port serwera</value>
@@ -214,16 +214,16 @@
     <value>Nazwa bazy danych</value>
   </data>
   <data name="Setup_SaveStart" xml:space="preserve">
-    <value>Zapisać i uruchomić serwer</value>
+    <value>Zapisz i uruchom serwer</value>
   </data>
   <data name="SQLite" xml:space="preserve">
     <value>SQLite</value>
   </data>
   <data name="SQLServer" xml:space="preserve">
-    <value>SQL Server</value>
+    <value>Microsoft SQL Server</value>
   </data>
   <data name="MySQL" xml:space="preserve">
-    <value>MySQL</value>
+    <value>MySQL/MariaDB</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
     <value>http://jmediamanager.org/Setup/SqlServer/</value>
@@ -232,73 +232,73 @@
     <value>http://jmediamanager.org/Setup/MySQL/</value>
   </data>
   <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server jest przeznaczone dla użytkowników z dużą kolekcję, która przekracza ponad 200 serii, którzy również chcą szybko wydajności możliwe. Z trzech typów dostępne bazy danych SQL Server jest uważany za najtrudniejszy w tworzeniu, ale mogą być ustawienie z łatwością, jeśli ty następować po ten kierować, którą stworzyliśmy.</value>
+    <value>Microsoft SQL Server jest przeznaczony dla użytkowników posiadających dużą kolekcję, która przekracza ponad 200 serii. Z trzech dostępnych typów baz danych Microsoft SQL Server jest uważany za najtrudniejszy do uruchomienia, ale proces ten powinien być łatwiejszy, jeżeli korzystasz z przygotowanego przez nas poradnika.</value>
   </data>
   <data name="SQLite_Info" xml:space="preserve">
-    <value>Podczas gdy SQLite jest najprostszym trzy bazy danych typów do instalacji to jednym kliknięciem Instalatora. Jeśli kolekcja zawiera serii 200 lub więcej, będzie zacząć odczuwać wiele problemów, w tym wydłużają czas odpowiedzi i zawieszanie się programu, gdy JMM próbuje uzyskać dostęp do swojej kolekcji za pośrednictwem bazy danych SQLite. W odniesieniu do jak JMM używa bazy danych to po prostu nie jest przeznaczony dla dużych zbiorów. SQLite ma również trudności z wielu czynności, co wydłuża czas oczekiwania pomiędzy operacjami, które zwiększają swoje oczekiwania czas podczas uzyskiwania dostępu do swojej kolekcji.</value>
+    <value>Podczas gdy SQLite jest najprostszą z trzech dostępnych baz danych do instalacji, gdyż odbywa się poprzez jedno kliknięcie. Jeśli kolekcja zawiera 200 lub więcej serii możesz zacząć odczuwać spowolnienia w działaniu, w tym wydłużają czas odpowiedzi i zawieszanie się programu, gdy JMM próbuje uzyskać dostęp do bazy danych SQLite. Korzystanie z tego typu bazy danych nie jest zalecane w przypadku posiadania dużych kolekcji.</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Dowiedz się więcej o</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
-    <value>SQL Server można użyć sporo pamięci</value>
+    <value>Microsoft SQL Server można wykorzystywać dużo pamięci podręcznej</value>
   </data>
   <data name="Language_Switch" xml:space="preserve">
-    <value>Zmienić język</value>
+    <value>Zmień język</value>
   </data>
   <data name="Language_Info" xml:space="preserve">
-    <value>JMM serwer musi ponownie do zmiany języka, kliknij przycisk OK, aby ponownie uruchomić serwer JMM lub anulować przełącznik języka.</value>
+    <value>Aby zmienić język Serwer JMM musi zostać ponownie uruchomiony. Kliknij przycisk OK, aby ponownie uruchomić Serwer JMM.</value>
   </data>
   <data name="Images_Default" xml:space="preserve">
-    <value>Domyślnie</value>
+    <value>Domyślny</value>
   </data>
   <data name="Images_Custom" xml:space="preserve">
-    <value>Niestandardowe</value>
+    <value>Niestandardowy</value>
   </data>
   <data name="Setup_Refresh" xml:space="preserve">
     <value>Odśwież</value>
   </data>
   <data name="Hash_Clear" xml:space="preserve">
-    <value>Wyczyść wszystkie polecenia kolejce mieszania</value>
+    <value>Wyczyść kolejkę obliczania skrótów</value>
   </data>
   <data name="Hash_Running" xml:space="preserve">
     <value>Hasher - działa</value>
   </data>
   <data name="Hash_Paused" xml:space="preserve">
-    <value>Hasher - wstrzymane</value>
+    <value>Hasher - zatrzymany</value>
   </data>
   <data name="General_Clear" xml:space="preserve">
-    <value>Wyczyść wszystkie komendy kolejce</value>
+    <value>Wyczyść kolejkę poleceń</value>
   </data>
   <data name="General_Running" xml:space="preserve">
     <value>Ogólne - działa</value>
   </data>
   <data name="General_Paused" xml:space="preserve">
-    <value>Ogólne - wstrzymane</value>
+    <value>Ogólne - zatrzymane</value>
   </data>
   <data name="Images_Clear" xml:space="preserve">
-    <value>Wyczyść wszystkie polecenia Pobierz obraz kolejce</value>
+    <value>Wyczyść kolejkę pobierania grafiki</value>
   </data>
   <data name="Images_Running" xml:space="preserve">
-    <value>Zdjęcia - działa</value>
+    <value>Grafika - działa</value>
   </data>
   <data name="Images_Paused" xml:space="preserve">
-    <value>Zdjęcia - wstrzymane</value>
+    <value>Grafika - zatrzymana</value>
   </data>
   <data name="AniDB_Activity" xml:space="preserve">
-    <value>Działalność AniDB</value>
+    <value>Stan AniDB</value>
   </data>
   <data name="AniDB_Ban" xml:space="preserve">
-    <value>Wstrzymane z powodu bana od AniDB</value>
+    <value>Zatrzymane z powodu blokady konta AniDB</value>
   </data>
   <data name="WhatDoesThisMean" xml:space="preserve">
-    <value>Co to znaczy?</value>
+    <value>Co to oznacza?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
     <value>http://jmediamanager.org/FAQ/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
-    <value>JMM serwera jest już uruchomiony. Proszę sprawdzić twój system taca (zawiadomienie powierzchnia).</value>
+    <value>Serwer JMM jest już uruchomiony. Sprawdź czy serwer nie ukrywa się w obszarze powiadomień.</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Błąd</value>
@@ -307,13 +307,13 @@
     <value>Wypełnij wszystkie ustawienia</value>
   </data>
   <data name="Server_FailedToStart" xml:space="preserve">
-    <value>Nie udało się ustawić start: </value>
+    <value>Uruchomienie nie powiodło się: </value>
   </data>
   <data name="Server_Complete" xml:space="preserve">
-    <value>Kompletny!</value>
+    <value>Pomyślnie wczytano!</value>
   </data>
   <data name="Server_Cleaning" xml:space="preserve">
-    <value>Sprzątanie...</value>
+    <value>Czyszczenie...</value>
   </data>
   <data name="Server_Initializing" xml:space="preserve">
     <value>Inicjowanie...</value>
@@ -325,28 +325,28 @@
     <value>Proszę wybrać i skonfigurować bazę danych.</value>
   </data>
   <data name="Server_DatabaseFail" xml:space="preserve">
-    <value>Nie powiodło się. Proszę przejrzeć ustawienia bazy danych.</value>
+    <value>Uruchomienie nie powiodło się. Proszę przejrzeć ustawienia bazy danych.</value>
   </data>
   <data name="Server_InitializingSession" xml:space="preserve">
-    <value>Inicjowanie sesji fabryka...</value>
+    <value>Inicjowanie sesji 'Factory'...</value>
   </data>
   <data name="Server_InitializingHosts" xml:space="preserve">
-    <value>Inicjowanie gospodarze...</value>
+    <value>Inicjowanie hostów...</value>
   </data>
   <data name="Server_InitializingStats" xml:space="preserve">
-    <value>Inicjowanie statystyki...</value>
+    <value>Inicjowanie statysty...</value>
   </data>
   <data name="Server_InitializingQueue" xml:space="preserve">
-    <value>Podczas inicjowania kolejce procesory...</value>
+    <value>Inicjowanie kolejek...</value>
   </data>
   <data name="Server_InitializingFile" xml:space="preserve">
-    <value>Inicjowanie pliku obserwatorów...</value>
+    <value>Inicjowanie obserwatorów plików...</value>
   </data>
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
-    <value>Aktualizacja wszystkich plików wideo głoska bezdźwięczna informacji dodane do kolejki.</value>
+    <value>Aktualizacja wszystkich informacje o plików wideo dodanych do kolejki.</value>
   </data>
   <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Import jest już uruchomiony</value>
+    <value>Importowanie jest już uruchomiony</value>
   </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Podaj wartość</value>
@@ -355,10 +355,10 @@
     <value>Wprowadź wartość od 1 do 65535</value>
   </data>
   <data name="Server_ScanFolder" xml:space="preserve">
-    <value>Folderu skanowanie w wykonywaną</value>
+    <value>Trwa skanowanie folderu</value>
   </data>
   <data name="Success" xml:space="preserve">
-    <value>Sukces</value>
+    <value>Zakończono</value>
   </data>
   <data name="Server_AniDBInfoUpdate" xml:space="preserve">
     <value>Aktualizowanie wszystkich serii AniDB info dodane do kolejki.</value>
