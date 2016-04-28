@@ -812,7 +812,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
     <value>Pobieranie informacji o grupie z UDP API: {0}</value>
   </data>
   <data name="Settings_AniDB" xml:space="preserve">
-    <value>Aktualizacja AniDB Info</value>
+    <value>Ustawienia konta AniDB</value>
   </data>
   <data name="EnableKodi" xml:space="preserve">
     <value>Włącz obsługę Kodi</value>
