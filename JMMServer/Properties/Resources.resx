@@ -866,4 +866,37 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="EnablePlex" xml:space="preserve">
     <value>Enable Plex</value>
   </data>
+  <data name="SeriesType_Sequel" xml:space="preserve">
+    <value>Sequel</value>
+  </data>
+  <data name="SeriesType_Prequel" xml:space="preserve">
+    <value>Prequel</value>
+  </data>
+  <data name="SeriesType_SameSetting" xml:space="preserve">
+    <value>Same Setting</value>
+  </data>
+  <data name="SeriesType_AltSetting" xml:space="preserve">
+    <value>Alternative Setting</value>
+  </data>
+  <data name="SeriesType_AltVersion" xml:space="preserve">
+    <value>Alternative Version</value>
+  </data>
+  <data name="SeriesType_MusicVideo" xml:space="preserve">
+    <value>Music Video</value>
+  </data>
+  <data name="SeriesType_Character" xml:space="preserve">
+    <value>Character</value>
+  </data>
+  <data name="SeriesType_SideStory" xml:space="preserve">
+    <value>Side Story</value>
+  </data>
+  <data name="SeriesType_ParentStory" xml:space="preserve">
+    <value>Parent Story</value>
+  </data>
+  <data name="SeriesType_Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="SeriesType_FullStory" xml:space="preserve">
+    <value>Full Story</value>
+  </data>
 </root>

@@ -820,4 +820,37 @@
   <data name="EnablePlex" xml:space="preserve">
     <value>Включить Plex</value>
   </data>
+  <data name="SeriesType_Sequel" xml:space="preserve">
+    <value>Продолжение</value>
+  </data>
+  <data name="SeriesType_Prequel" xml:space="preserve">
+    <value>Приквел</value>
+  </data>
+  <data name="SeriesType_SameSetting" xml:space="preserve">
+    <value>Же настройки</value>
+  </data>
+  <data name="SeriesType_AltSetting" xml:space="preserve">
+    <value>Альтернативная настройка</value>
+  </data>
+  <data name="SeriesType_AltVersion" xml:space="preserve">
+    <value>Альтернативная версия</value>
+  </data>
+  <data name="SeriesType_MusicVideo" xml:space="preserve">
+    <value>Музыкальное видео</value>
+  </data>
+  <data name="SeriesType_Character" xml:space="preserve">
+    <value>Персонаж</value>
+  </data>
+  <data name="SeriesType_SideStory" xml:space="preserve">
+    <value>История</value>
+  </data>
+  <data name="SeriesType_ParentStory" xml:space="preserve">
+    <value>Родительский история</value>
+  </data>
+  <data name="SeriesType_Summary" xml:space="preserve">
+    <value>Резюме</value>
+  </data>
+  <data name="SeriesType_FullStory" xml:space="preserve">
+    <value>Полная история</value>
+  </data>
 </root>

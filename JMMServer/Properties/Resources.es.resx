@@ -820,4 +820,37 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="EnablePlex" xml:space="preserve">
     <value>Permiten Plex</value>
   </data>
+  <data name="SeriesType_Sequel" xml:space="preserve">
+    <value>Secuela de</value>
+  </data>
+  <data name="SeriesType_Prequel" xml:space="preserve">
+    <value>Precuela de</value>
+  </data>
+  <data name="SeriesType_SameSetting" xml:space="preserve">
+    <value>Misma configuración</value>
+  </data>
+  <data name="SeriesType_AltSetting" xml:space="preserve">
+    <value>Ambiente alternativo</value>
+  </data>
+  <data name="SeriesType_AltVersion" xml:space="preserve">
+    <value>Versión alternativa</value>
+  </data>
+  <data name="SeriesType_MusicVideo" xml:space="preserve">
+    <value>Vídeo de la música</value>
+  </data>
+  <data name="SeriesType_Character" xml:space="preserve">
+    <value>Carácter</value>
+  </data>
+  <data name="SeriesType_SideStory" xml:space="preserve">
+    <value>Side Story</value>
+  </data>
+  <data name="SeriesType_ParentStory" xml:space="preserve">
+    <value>Historia de los padres</value>
+  </data>
+  <data name="SeriesType_Summary" xml:space="preserve">
+    <value>Resumen</value>
+  </data>
+  <data name="SeriesType_FullStory" xml:space="preserve">
+    <value>Historia completa</value>
+  </data>
 </root>
