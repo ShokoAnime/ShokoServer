@@ -64,10 +64,6 @@ namespace JMMServer
 	public partial class MainWindow : Window
 	{
 
-
-
-
-
 		private System.Windows.Forms.NotifyIcon TippuTrayNotify;
 		private System.Windows.Forms.ContextMenuStrip ctxTrayMenu;
 		private bool isAppExiting = false;
@@ -117,13 +113,12 @@ namespace JMMServer
 		private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
 		private static BackgroundWorker workerSetupDB = new BackgroundWorker();
+        private static BackgroundWorker workerDownloadImages = new BackgroundWorker();
 
-		private static System.Timers.Timer autoUpdateTimer = null;
+        private static System.Timers.Timer autoUpdateTimer = null;
 		private static System.Timers.Timer autoUpdateTimerShort = null;
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12,0,0));
 		private static List<FileSystemWatcher> watcherVids = null;
-
-		BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
@@ -284,8 +279,8 @@ namespace JMMServer
             btnUpdateTraktInfo.Click += BtnUpdateTraktInfo_Click;
 
 			this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
-			downloadImagesWorker.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
-			downloadImagesWorker.WorkerSupportsCancellation = true;
+			workerDownloadImages.DoWork += new DoWorkEventHandler(downloadImagesWorker_DoWork);
+			workerDownloadImages.WorkerSupportsCancellation = true;
 
 			txtServerPort.Text = ServerSettings.JMMServerPort;
             chkEnableKodi.IsChecked = ServerSettings.EnableKodi;
@@ -1637,13 +1632,19 @@ namespace JMMServer
 			logger.Info(string.Format("Queued {0} anime updates", cnt)); 
 		}
 
-		private void DownloadAllImages()
+        void btnUpdateImages_Click(object sender, RoutedEventArgs e)
+        {
+            DownloadAllImages();
+            MessageBox.Show(JMMServer.Properties.Resources.Server_UpdateImages, JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void DownloadAllImages()
 		{
-			if (!downloadImagesWorker.IsBusy)
-				downloadImagesWorker.RunWorkerAsync();
+			if (!workerDownloadImages.IsBusy)
+				workerDownloadImages.RunWorkerAsync();
 		}
 
-		void downloadImagesWorker_DoWork(object sender, DoWorkEventArgs e)
+        void downloadImagesWorker_DoWork(object sender, DoWorkEventArgs e)
 		{
 			Importer.RunImport_GetImages();
 		}
@@ -2153,7 +2154,8 @@ namespace JMMServer
 				Importer.RunImport_NewFiles();
 				Importer.RunImport_IntegrityCheck();
 
-				// TODO drop folder
+                // TODO drop folder
+                Importer.RunImport_DropFolders();
 
 				// TvDB association checks
 				Importer.RunImport_ScanTvDB();
