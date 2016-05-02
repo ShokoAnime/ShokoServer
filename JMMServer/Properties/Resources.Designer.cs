@@ -169,6 +169,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Update All Images.
+        /// </summary>
+        internal static string Actions_UpdateImages {
+            get {
+                return ResourceManager.GetString("Actions_UpdateImages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Update All Trakt Info.
         /// </summary>
         internal static string Actions_UpdateTrakt {
@@ -2043,6 +2052,15 @@ namespace JMMServer.Properties {
         internal static string Server_TvDBInfoUpdate {
             get {
                 return ResourceManager.GetString("Server_TvDBInfoUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating all series images added to queue..
+        /// </summary>
+        internal static string Server_UpdateImages {
+            get {
+                return ResourceManager.GetString("Server_UpdateImages", resourceCulture);
             }
         }
         

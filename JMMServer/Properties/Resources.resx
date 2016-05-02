@@ -899,4 +899,10 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Full Story</value>
   </data>
+  <data name="Actions_UpdateImages" xml:space="preserve">
+    <value>Update All Images</value>
+  </data>
+  <data name="Server_UpdateImages" xml:space="preserve">
+    <value>Updating all series images added to queue.</value>
+  </data>
 </root>
