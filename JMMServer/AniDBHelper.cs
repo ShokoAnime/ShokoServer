@@ -938,6 +938,8 @@ namespace JMMServer
 							CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(animeID, true, false);
 							cr_anime.Save();
 						}
+                        if(anime.LatestEpisodeNumber > 0 && eps.Count > 0)
+                            anime.LatestEpisodeAirDate = eps[0].AirDateAsDate;
 
 						// update the missing episode stats on groups and children
 						AnimeSeries series = repSeries.GetByAnimeID(animeID);

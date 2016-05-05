@@ -171,6 +171,7 @@ namespace JMMServer.Databases
                 UpdateSchema_043(versionNumber);
                 UpdateSchema_044(versionNumber);
                 UpdateSchema_045(versionNumber);
+                UpdateSchema_046(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1771,6 +1772,24 @@ namespace JMMServer.Databases
 
         }
 
+        private static void UpdateSchema_046(int currentVersionNumber)
+        {
+            int thisVersion = 46;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE AniDB_Anime ADD LatestEpisodeAirDate datetime NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate datetime NULL");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+
         private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
@@ -2146,7 +2165,8 @@ namespace JMMServer.Databases
 				" `AllCinemaID` int NULL, " +
 				" `AnimeNfo` int NULL, " +
 				" `LatestEpisodeNumber` int NULL, " +
-				" PRIMARY KEY (`AniDB_AnimeID`) ) ; ");
+                " `LatestEpisodeAirDate` datetime NULL, " +
+                " PRIMARY KEY (`AniDB_AnimeID`) ) ; ");
 
 			cmds.Add("ALTER TABLE `AniDB_Anime` ADD UNIQUE INDEX `UIX_AniDB_Anime_AnimeID` (`AnimeID` ASC) ;");
 
@@ -2570,7 +2590,8 @@ namespace JMMServer.Databases
 				" `MissingEpisodeCountGroups` int NOT NULL, " +
 				" `OverrideDescription` int NOT NULL, " +
 				" `EpisodeAddedDate` datetime NULL, " +
-				" PRIMARY KEY (`AnimeGroupID`) ) ; ");
+                " `LatestEpisodeAirDate` datetime NULL, " +
+                " PRIMARY KEY (`AnimeGroupID`) ) ; ");
 
 			return cmds;
 		}

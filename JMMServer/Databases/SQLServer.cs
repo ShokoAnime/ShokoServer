@@ -183,6 +183,7 @@ namespace JMMServer.Databases
                 UpdateSchema_039(versionNumber);
                 UpdateSchema_040(versionNumber);
                 UpdateSchema_041(versionNumber);
+                UpdateSchema_042(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1456,6 +1457,24 @@ namespace JMMServer.Databases
 
         }
 
+        private static void UpdateSchema_042(int currentVersionNumber)
+        {
+            int thisVersion = 42;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE AniDB_Anime ADD LatestEpisodeAirDate [datetime] NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate [datetime] NULL");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+
         private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
@@ -1651,7 +1670,8 @@ namespace JMMServer.Databases
 				" AllCinemaID int NULL, " +
 				" AnimeNfo int NULL, " +
 				" [LatestEpisodeNumber] [int] NULL, " +
-				" CONSTRAINT [PK_AniDB_Anime] PRIMARY KEY CLUSTERED  " +
+                " [LatestEpisodeAirDate] [datetime] NULL, " +
+                " CONSTRAINT [PK_AniDB_Anime] PRIMARY KEY CLUSTERED  " +
 				" ( " +
 				" [AniDB_AnimeID] ASC " +
 				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
@@ -2164,7 +2184,8 @@ namespace JMMServer.Databases
 				" MissingEpisodeCountGroups int NOT NULL, " +
 				" OverrideDescription int NOT NULL, " +
 				" EpisodeAddedDate datetime NULL, " +
-				" CONSTRAINT [PK_AnimeGroup] PRIMARY KEY CLUSTERED  " +
+                " [LatestEpisodeAirDate] [datetime] NULL, " +
+                " CONSTRAINT [PK_AnimeGroup] PRIMARY KEY CLUSTERED  " +
 				" ( " +
 				" [AnimeGroupID] ASC " +
 				" )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +

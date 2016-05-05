@@ -37,7 +37,8 @@ namespace JMMServer.Mappings
 			Map(x => x.EpisodeCountSpecial).Not.Nullable();
 			Map(x => x.ImageEnabled).Not.Nullable();
 			Map(x => x.LatestEpisodeNumber);
-			Map(x => x.MainTitle).Not.Nullable();
+            Map(x => x.LatestEpisodeAirDate);
+            Map(x => x.MainTitle).Not.Nullable();
 			Map(x => x.Picname);
 			Map(x => x.Rating).Not.Nullable();
 			Map(x => x.Restricted).Not.Nullable();

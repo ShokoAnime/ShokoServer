@@ -24,7 +24,8 @@ namespace JMMServer.Entities
 		public DateTime DateTimeCreated { get; set; }
 		public string SortName { get; set; }
 		public DateTime? EpisodeAddedDate { get; set; }
-		public int MissingEpisodeCount { get; set; }
+        public DateTime? LatestEpisodeAirDate { get; set; }
+        public int MissingEpisodeCount { get; set; }
 		public int MissingEpisodeCountGroups { get; set; }
 		public int OverrideDescription { get; set; }
 		public int? DefaultAnimeSeriesID { get; set; }
@@ -262,6 +263,7 @@ namespace JMMServer.Entities
 			contract.Description = this.Description;
 			contract.SortName = this.SortName;
 			contract.EpisodeAddedDate = this.EpisodeAddedDate;
+            contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
 			contract.OverrideDescription = this.OverrideDescription;
 			contract.DateTimeUpdated = this.DateTimeUpdated;
 
@@ -385,10 +387,10 @@ namespace JMMServer.Entities
 				contract.Stat_AniDBRating = StatsCache.Instance.StatGroupAniDBRating[this.AnimeGroupID];
 			else contract.Stat_AniDBRating = 0;
 
-			//contract.AniDB_AirDate = this.AirDate;
-			//contract.AniDB_Year = animeRec.Year;
+            //contract.AniDB_AirDate = this.AirDate;
+            //contract.AniDB_Year = animeRec.Year;
 
-			return contract;
+            return contract;
 		}
 
 		public decimal AniDBRating
@@ -858,7 +860,24 @@ namespace JMMServer.Entities
 				AnimeGroupRepository repGrp = new AnimeGroupRepository();
 				repGrp.Save(this);
 			}
-
+            foreach (AnimeSeries ser in seriesList)
+            {
+                DateTime? time = ser.GetAnime().LatestEpisodeAirDate;
+                if (time.HasValue)
+                {
+                    if (LatestEpisodeAirDate.HasValue)
+                    {
+                        if (LatestEpisodeAirDate.Value < time)
+                        {
+                            LatestEpisodeAirDate = time;
+                        }
+                    }
+                    else
+                    {
+                        LatestEpisodeAirDate = time;
+                    }
+                }
+            }
 			
 		}
 

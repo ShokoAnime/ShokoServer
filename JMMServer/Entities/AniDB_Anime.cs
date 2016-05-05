@@ -25,7 +25,7 @@ namespace JMMServer.Entities
 		public int EpisodeCount { get; set; }
 		public DateTime? AirDate { get; set; }
 		public DateTime? EndDate { get; set; }
-		public string URL { get; set; }
+        public string URL { get; set; }
 		public string Picname { get; set; }
 		public int BeginYear { get; set; }
 		public int EndYear { get; set; }
@@ -53,7 +53,8 @@ namespace JMMServer.Entities
 		public int? AllCinemaID { get; set; }
 		public int? AnimeNfo { get; set; }
 		public int? LatestEpisodeNumber { get; set; }
-		public int DisableExternalLinksFlag { get; set; }
+        public DateTime? LatestEpisodeAirDate { get; set; }
+        public int DisableExternalLinksFlag { get; set; }
 
 		#endregion
 
@@ -1355,8 +1356,8 @@ namespace JMMServer.Entities
 			this.ImageEnabled = 1;
 			//this.KanjiName = animeInfo.KanjiName;
 			this.LatestEpisodeNumber = animeInfo.LatestEpisodeNumber;
-			//this.OtherName = animeInfo.OtherName;
-			this.Picname = animeInfo.Picname;
+            //this.OtherName = animeInfo.OtherName;
+            this.Picname = animeInfo.Picname;
 			this.Rating = animeInfo.Rating;
 			//this.relations
 			this.Restricted = animeInfo.Restricted;
@@ -1390,6 +1391,7 @@ namespace JMMServer.Entities
 			DateTime start = DateTime.Now;
 
 			CreateEpisodes(session, eps);
+
 			TimeSpan ts = DateTime.Now - start; logger.Trace(string.Format("CreateEpisodes in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
 
 			CreateTitles(session, titles);
@@ -1510,9 +1512,11 @@ namespace JMMServer.Entities
 				epNew.Populate(epraw);
 				epsToSave.Add(epNew);
 
-				// since the HTTP api doesn't return a count of the number of specials, we will calculate it here
-				if (epNew.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode)
-					this.EpisodeCountNormal++;
+                // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
+                if (epNew.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode)
+                {
+                    this.EpisodeCountNormal++;
+                }
 
 				if (epNew.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special)
 					this.EpisodeCountSpecial++;
@@ -1909,7 +1913,8 @@ namespace JMMServer.Entities
 			contract.EpisodeCountSpecial = this.EpisodeCountSpecial;
 			contract.ImageEnabled = this.ImageEnabled;
 			contract.LatestEpisodeNumber = this.LatestEpisodeNumber;
-			contract.MainTitle = this.MainTitle;
+            contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
+            contract.MainTitle = this.MainTitle;
 			contract.Picname = this.Picname;
 			contract.Rating = this.Rating;
 			contract.Restricted = this.Restricted;
