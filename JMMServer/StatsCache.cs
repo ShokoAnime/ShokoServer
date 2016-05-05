@@ -483,8 +483,6 @@ namespace JMMServer
 				VideoLocalRepository repVids = new VideoLocalRepository();
 				CrossRef_File_EpisodeRepository repXrefs = new CrossRef_File_EpisodeRepository();
 
-                Dictionary<int, DateTime?> tempLatestAirDateDict = new Dictionary<int, DateTime?>();
-
                 foreach (AnimeGroup grp in allgroups)
 				{
 					StatGroupTags[grp.AnimeGroupID] = grp.TagsString;
@@ -593,6 +591,7 @@ namespace JMMServer
                         DateTime? time = anime.LatestEpisodeAirDate;
                         if (time.HasValue)
                         {
+                            series.LatestEpisodeAirDate = time;
                             if (grp.LatestEpisodeAirDate.HasValue)
                             {
                                 if (grp.LatestEpisodeAirDate.Value < time)
@@ -609,6 +608,7 @@ namespace JMMServer
                                 session.SaveOrUpdate(grp);
                                 transaction.Commit();
                             }
+                            new AnimeSeriesRepository().Save(series, false);
                         
                             logger.Trace("Updating Latest Episode for: {0}", grp.AnimeGroupID);
                         }
@@ -1455,13 +1455,13 @@ namespace JMMServer
 
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan || gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
                         {
-                            if (!grp.LatestEpisodeAirDate.HasValue) return false;
-                            if (grp.LatestEpisodeAirDate.Value < filterDateEpisodeLatest) return false;
+                            if (!contractGroup.LatestEpisodeAirDate.HasValue) return false;
+                            if (contractGroup.LatestEpisodeAirDate.Value < filterDateEpisodeLatest) return false;
                         }
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
                         {
-                            if (!grp.LatestEpisodeAirDate.HasValue) return false;
-                            if (grp.LatestEpisodeAirDate.Value > filterDateEpisodeLatest) return false;
+                            if (!contractGroup.LatestEpisodeAirDate.HasValue) return false;
+                            if (contractGroup.LatestEpisodeAirDate.Value > filterDateEpisodeLatest) return false;
                         }
                         break;
 

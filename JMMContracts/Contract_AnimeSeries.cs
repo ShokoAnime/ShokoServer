@@ -22,7 +22,8 @@ namespace JMMContracts
 		public int WatchedCount { get; set; }
 		public int StoppedCount { get; set; }
 		public int LatestLocalEpisodeNumber { get; set; }
-		public string SeriesNameOverride { get; set; }
+        public DateTime? LatestEpisodeAirDate { get; set; }
+        public string SeriesNameOverride { get; set; }
 
         public string DefaultFolder { get; set; }
 

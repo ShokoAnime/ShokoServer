@@ -30,7 +30,8 @@ namespace JMMServer.Entities
 		public int MissingEpisodeCount { get; set; }
 		public int MissingEpisodeCountGroups { get; set; }
 		public int LatestLocalEpisodeNumber { get; set; }
-		public string SeriesNameOverride { get; set; }
+        public DateTime? LatestEpisodeAirDate { get; set; }
+        public string SeriesNameOverride { get; set; }
 
         public string DefaultFolder { get; set; }
 
@@ -430,7 +431,8 @@ namespace JMMServer.Entities
 			contract.DefaultAudioLanguage = this.DefaultAudioLanguage;
 			contract.DefaultSubtitleLanguage = this.DefaultSubtitleLanguage;
 			contract.LatestLocalEpisodeNumber = this.LatestLocalEpisodeNumber;
-			contract.EpisodeAddedDate = this.EpisodeAddedDate;
+            contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
+            contract.EpisodeAddedDate = this.EpisodeAddedDate;
 			contract.MissingEpisodeCount = this.MissingEpisodeCount;
 			contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
 			contract.SeriesNameOverride = this.SeriesNameOverride;
