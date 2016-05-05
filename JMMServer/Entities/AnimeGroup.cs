@@ -860,24 +860,6 @@ namespace JMMServer.Entities
 				AnimeGroupRepository repGrp = new AnimeGroupRepository();
 				repGrp.Save(this);
 			}
-            foreach (AnimeSeries ser in seriesList)
-            {
-                DateTime? time = ser.GetAnime().LatestEpisodeAirDate;
-                if (time.HasValue)
-                {
-                    if (LatestEpisodeAirDate.HasValue)
-                    {
-                        if (LatestEpisodeAirDate.Value < time)
-                        {
-                            LatestEpisodeAirDate = time;
-                        }
-                    }
-                    else
-                    {
-                        LatestEpisodeAirDate = time;
-                    }
-                }
-            }
 			
 		}
 

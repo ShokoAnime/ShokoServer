@@ -350,7 +350,7 @@ namespace JMMServer
 		AssignedMALInfo = 29,
 		EpisodeCount = 30,
         CustomTags = 31,
-        LastEpisodeAirDate = 32
+        LatestEpisodeAirDate = 32
 	}
 
 	public enum GroupFilterOperator

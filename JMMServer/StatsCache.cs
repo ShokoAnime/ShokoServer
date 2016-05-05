@@ -483,7 +483,7 @@ namespace JMMServer
 				VideoLocalRepository repVids = new VideoLocalRepository();
 				CrossRef_File_EpisodeRepository repXrefs = new CrossRef_File_EpisodeRepository();
 
-                
+                Dictionary<int, DateTime?> tempLatestAirDateDict = new Dictionary<int, DateTime?>();
 
                 foreach (AnimeGroup grp in allgroups)
 				{
@@ -516,8 +516,7 @@ namespace JMMServer
 					int seriesCount = 0;
 					int epCount = 0;
 
-
-					foreach (AnimeSeries series in grp.GetAllSeries(session))
+                    foreach (AnimeSeries series in grp.GetAllSeries(session))
 					{
 						seriesCount++;
 
@@ -548,7 +547,7 @@ namespace JMMServer
 						{
 							if (ep.EpisodeTypeEnum != AniDBAPI.enEpisodeType.Episode) continue;
 
-                            if ((!anime.LatestEpisodeNumber.HasValue || anime.LatestEpisodeNumber.Value < ep.AniDB_Episode.EpisodeNumber) && ep.AniDB_Episode.AirDateAsDate < DateTime.Now)
+                            if ((!anime.LatestEpisodeNumber.HasValue || anime.LatestEpisodeNumber.Value < ep.AniDB_Episode.EpisodeNumber) && ep.AniDB_Episode.AirDateAsDate <= DateTime.Now)
                             {
                                 anime.LatestEpisodeNumber = ep.AniDB_Episode.EpisodeNumber;
                                 anime.LatestEpisodeAirDate = ep.AniDB_Episode.AirDateAsDate;
@@ -585,11 +584,11 @@ namespace JMMServer
 							}
 						}
 
-						ts = DateTime.Now - start;
+                        new AniDB_AnimeRepository().Save(anime);
+
+                        ts = DateTime.Now - start;
 						logger.Trace("Updating cached stats for GROUP/Series - STEP 3 ({0}/{1}) in {2} ms",grp.GroupName, series.AnimeSeriesID, ts.TotalMilliseconds);
 						start = DateTime.Now;
-
-                        
 
                         DateTime? time = anime.LatestEpisodeAirDate;
                         if (time.HasValue)
@@ -605,6 +604,13 @@ namespace JMMServer
                             {
                                 grp.LatestEpisodeAirDate = time;
                             }
+                            using (var transaction = session.BeginTransaction())
+                            {
+                                session.SaveOrUpdate(grp);
+                                transaction.Commit();
+                            }
+                        
+                            logger.Trace("Updating Latest Episode for: {0}", grp.AnimeGroupID);
                         }
 
                         epCount = epCount + anime.EpisodeCountNormal;
@@ -1436,26 +1442,26 @@ namespace JMMServer
 						}
 						break;
 
-                    case GroupFilterConditionType.LastEpisodeAirDate:
-                        DateTime filterDateEpisodeLastAired;
+                    case GroupFilterConditionType.LatestEpisodeAirDate:
+                        DateTime filterDateEpisodeLatest;
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
                         {
                             int days = 0;
                             int.TryParse(gfc.ConditionParameter, out days);
-                            filterDateEpisodeLastAired = DateTime.Today.AddDays(0 - days);
+                            filterDateEpisodeLatest = DateTime.Today.AddDays(0 - days);
                         }
                         else
-                            filterDateEpisodeLastAired = GetDateFromString(gfc.ConditionParameter);
+                            filterDateEpisodeLatest = GetDateFromString(gfc.ConditionParameter);
 
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan || gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
                         {
                             if (!grp.LatestEpisodeAirDate.HasValue) return false;
-                            if (grp.LatestEpisodeAirDate.Value < filterDateEpisodeLastAired) return false;
+                            if (grp.LatestEpisodeAirDate.Value < filterDateEpisodeLatest) return false;
                         }
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
                         {
                             if (!grp.LatestEpisodeAirDate.HasValue) return false;
-                            if (grp.LatestEpisodeAirDate.Value > filterDateEpisodeLastAired) return false;
+                            if (grp.LatestEpisodeAirDate.Value > filterDateEpisodeLatest) return false;
                         }
                         break;
 
