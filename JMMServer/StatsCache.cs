@@ -582,7 +582,11 @@ namespace JMMServer
 							}
 						}
 
-                        new AniDB_AnimeRepository().Save(anime);
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            session.SaveOrUpdate(anime);
+                            transaction.Commit();
+                        }
 
                         ts = DateTime.Now - start;
 						logger.Trace("Updating cached stats for GROUP/Series - STEP 3 ({0}/{1}) in {2} ms",grp.GroupName, series.AnimeSeriesID, ts.TotalMilliseconds);
@@ -591,7 +595,6 @@ namespace JMMServer
                         DateTime? time = anime.LatestEpisodeAirDate;
                         if (time.HasValue)
                         {
-                            series.LatestEpisodeAirDate = time;
                             if (grp.LatestEpisodeAirDate.HasValue)
                             {
                                 if (grp.LatestEpisodeAirDate.Value < time)
@@ -608,7 +611,6 @@ namespace JMMServer
                                 session.SaveOrUpdate(grp);
                                 transaction.Commit();
                             }
-                            new AnimeSeriesRepository().Save(series, false);
                         
                             logger.Trace("Updating Latest Episode for: {0}", grp.AnimeGroupID);
                         }

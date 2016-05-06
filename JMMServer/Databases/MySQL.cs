@@ -2632,7 +2632,7 @@ namespace JMMServer.Databases
 				" `MissingEpisodeCountGroups` int NOT NULL, " +
 				" `LatestLocalEpisodeNumber` int NOT NULL, " +
 				" `EpisodeAddedDate` datetime NULL, " +
-				" PRIMARY KEY (`AnimeSeriesID`) ) ; ");
+                " PRIMARY KEY (`AnimeSeriesID`) ) ; ");
 
 			cmds.Add("ALTER TABLE `AnimeSeries` ADD UNIQUE INDEX `UIX_AnimeSeries_AniDB_ID` (`AniDB_ID` ASC) ;");
 
