@@ -432,10 +432,10 @@ namespace JMMServer
             StatsCache.Instance.InternalUpdateUsingGroup(groupid);
         }
 
-	    public void UpdateUsingGroup(int animeGroupID)
-	    {
+        public void UpdateUsingGroup(int animeGroupID)
+        {
             updates.Update(animeGroupID,null);
-	    }
+        }
         */
         public void UpdateUsingGroup(int animeGroupID)
         {
@@ -976,10 +976,10 @@ namespace JMMServer
                     List<AnimeSeries> seriesForGroup = new List<AnimeSeries>();
                     GetAnimeSeriesRecursive(ag, ref seriesForGroup, allSeries, allGroupsDict);
                     /*
-					if (ag.AnimeGroupID == 915)
-					{
-						Console.Write("");
-					}
+                    if (ag.AnimeGroupID == 915)
+                    {
+                        Console.Write("");
+                    }
 
                     */
                     DateTime? Stat_AirDate_Min = null;
@@ -1082,8 +1082,8 @@ namespace JMMServer
                                     Stat_SeriesCreatedDate = thisDate;
                             }
                             /*
-							if (series.AniDB_ID == 2369)
-								Debug.Write("Test");
+                            if (series.AniDB_ID == 2369)
+                                Debug.Write("Test");
                             */
                             // Note - only one series has to be finished airing to qualify
                             if (thisAnime.EndDate.HasValue && thisAnime.EndDate.Value < DateTime.Now)
@@ -1306,9 +1306,9 @@ namespace JMMServer
             }
 
             /*foreach (AnimeGroup childGroup in grp.ChildGroups)
-			{
-				GetAnimeSeriesRecursive(childGroup, ref seriesList, allSeries, allGroupsDict);
-			}*/
+            {
+                GetAnimeSeriesRecursive(childGroup, ref seriesList, allSeries, allGroupsDict);
+            }*/
         }
 
         public bool EvaluateGroupFilter(GroupFilter gf, AnimeGroup grp, JMMUser curUser, AnimeGroup_User userRec)
@@ -1398,9 +1398,9 @@ namespace JMMServer
                     case GroupFilterConditionType.CompletedSeries:
 
                         /*if (grp.IsComplete != grp.Stat_IsComplete)
-						{
-							Debug.Print("IsComplete DIFF  {0}", grp.GroupName);
-						}*/
+                        {
+                            Debug.Print("IsComplete DIFF  {0}", grp.GroupName);
+                        }*/
 
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && contractGroup.Stat_IsComplete == false) return false;
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.Stat_IsComplete == true) return false;
@@ -1743,21 +1743,21 @@ namespace JMMServer
         }
 
         /*private static void GetAnimeSeriesRecursive(int animeGroupID, ref List<AnimeSeries> seriesList, List<AnimeSeries> allSeries)
-		{
-			AnimeGroupRepository rep = new AnimeGroupRepository();
-			AnimeGroup grp = rep.GetByID(animeGroupID);
-			if (grp == null) return;
+        {
+            AnimeGroupRepository rep = new AnimeGroupRepository();
+            AnimeGroup grp = rep.GetByID(animeGroupID);
+            if (grp == null) return;
 
-			// get the series for this group
-			List<AnimeSeries> thisSeries = new List<AnimeSeries>();
-			foreach (AnimeSeries ser in allSeries)
-				if (ser.AnimeGroupID == animeGroupID) seriesList.Add(ser);
+            // get the series for this group
+            List<AnimeSeries> thisSeries = new List<AnimeSeries>();
+            foreach (AnimeSeries ser in allSeries)
+                if (ser.AnimeGroupID == animeGroupID) seriesList.Add(ser);
 
 
-			foreach (AnimeGroup childGroup in grp.ChildGroups)
-			{
-				GetAnimeSeriesRecursive(childGroup.AnimeGroupID, ref seriesList, allSeries);
-			}
-		}*/
+            foreach (AnimeGroup childGroup in grp.ChildGroups)
+            {
+                GetAnimeSeriesRecursive(childGroup.AnimeGroupID, ref seriesList, allSeries);
+            }
+        }*/
     }
 }
