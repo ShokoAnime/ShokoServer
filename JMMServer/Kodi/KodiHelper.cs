@@ -504,6 +504,11 @@ namespace JMMServer.Kodi
                 p.Thumb = poster != null ? poster.GenPoster() : ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404V.png");
                 if (fanart != null)
                     p.Art = fanart.GenArt();
+                if (!string.IsNullOrEmpty(anime.AllTags))
+                {
+                    p.Tags = new List<Tag> { new Tag { Value = anime.AllTags.Replace("|", ",") } };
+                }
+                p.Rating = (anime.Rating / 100F).ToString(CultureInfo.InvariantCulture);
             }
             p.LeafCount = (grp.UnwatchedEpisodeCount + grp.WatchedEpisodeCount).ToString();
             p.ViewedLeafCount = grp.WatchedEpisodeCount.ToString();

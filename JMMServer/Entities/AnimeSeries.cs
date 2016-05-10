@@ -108,7 +108,7 @@ namespace JMMServer.Entities
 	    {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return Convert.ToInt32(session.CreateQuery("Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AnimeSeriesID).UniqueResult());
+                return Convert.ToInt32(session.CreateQuery("Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AniDB_ID).UniqueResult());
 
             }
         }
@@ -117,15 +117,14 @@ namespace JMMServer.Entities
 	    {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return Convert.ToInt32(session.CreateQuery("Select count(distinct epi.EpisodeType) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AnimeSeriesID).UniqueResult());
+                return Convert.ToInt32(session.CreateQuery("Select count(distinct epi.EpisodeType) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AniDB_ID).UniqueResult());
             }
         }
         public int GetAnimeEpisodesCountWithVideoLocal()
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return Convert.ToInt32(session.CreateQuery("Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AnimeSeriesID).UniqueResult());
-
+                return Convert.ToInt32(session.CreateQuery("Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AniDB_ID).UniqueResult());
             }
         }
         #region TvDB

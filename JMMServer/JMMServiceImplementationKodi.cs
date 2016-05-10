@@ -639,6 +639,11 @@ namespace JMMServer
                                         }
                                         v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
                                         //proper naming end
+                                        if (!string.IsNullOrEmpty(anim.AllTags))
+                                        {
+                                            v.Tags = new List<Tag> { new Tag { Value = anim.AllTags.Replace("|", ",") } };
+                                        }
+                                        v.Rating = (anim.Rating / 100F).ToString(CultureInfo.InvariantCulture);
 
                                         retGroups.Add(v.Clone());
                                     }
@@ -698,6 +703,12 @@ namespace JMMServer
                                 }
                                 j.OriginalTitle = j.OriginalTitle.Substring(0, j.OriginalTitle.Length - 1);
                                 //proper naming end
+
+                                if (!string.IsNullOrEmpty(anim.AllTags))
+                                {
+                                    j.Tags = new List<Tag> { new Tag { Value = anim.AllTags.Replace("|", ",") } };
+                                }
+                                j.Rating = (anim.Rating / 100F).ToString(CultureInfo.InvariantCulture);
 
                                 //community support
 
