@@ -922,7 +922,7 @@ namespace JMMServer
                 c.CharName = x.CharName;
                 c.Description = x.CharDescription;
                 c.Picture = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/2/" + c.CharID);
-                c.SeiyuuName = "";
+                c.SeiyuuName = x.GetSeiyuu().SeiyuuName;
                 c.SeiyuuPic = "";
 
                 char_list.Add(c);
