@@ -605,12 +605,19 @@ namespace JMMServer
                 if (m != null)
                 {
                     float newratio = 0F;
-                    if (float.TryParse(Ratio, NumberStyles.Any, CultureInfo.CurrentCulture, out newratio))
+                    try
                     {
-                        using (Image im = Image.FromStream(m))
+                        if (float.TryParse(Ratio, NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"), out newratio))
                         {
-                            return ResizeToRatio(im, newratio);
+                            using (Image im = Image.FromStream(m))
+                            {
+                                return ResizeToRatio(im, newratio);
+                            }
                         }
+                    }
+                    catch(Exception e)
+                    {
+                        
                     }
                 }
             }
