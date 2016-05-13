@@ -57,7 +57,7 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find AniDB_Cover image: {0}", anime.PosterPath);
-						return null;
+                        return BlankImage();
 					}
 
 				case JMMImageType.AniDB_Character:
@@ -75,8 +75,8 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find AniDB_Character image: {0}", chr.PosterPath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				case JMMImageType.AniDB_Creator:
 
@@ -93,8 +93,8 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find AniDB_Creator image: {0}", creator.PosterPath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				case JMMImageType.TvDB_Cover:
 
@@ -110,8 +110,8 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find TvDB_Cover image: {0}", poster.FullImagePath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				case JMMImageType.TvDB_Banner:
 
@@ -127,8 +127,8 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.FullImagePath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				case JMMImageType.TvDB_Episode:
 
@@ -144,8 +144,8 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find TvDB_Episode image: {0}", ep.FullImagePath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				case JMMImageType.TvDB_FanArt:
 
@@ -161,8 +161,8 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullImagePath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				case JMMImageType.MovieDB_Poster:
 
@@ -182,8 +182,8 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.FullImagePath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				case JMMImageType.MovieDB_FanArt:
 
@@ -202,8 +202,8 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.FullImagePath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				case JMMImageType.Trakt_Fanart:
 
@@ -219,8 +219,8 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find Trakt_Fanart image: {0}", tFanart.FullImagePath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				case JMMImageType.Trakt_Poster:
 
@@ -236,8 +236,8 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find Trakt_Poster image: {0}", tPoster.FullImagePath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				case JMMImageType.Trakt_Episode:
 				case JMMImageType.Trakt_WatchedEpisode:
@@ -254,18 +254,28 @@ namespace JMMServer
 					else
 					{
 						logger.Trace("Could not find Trakt_Episode image: {0}", tEpisode.FullImagePath);
-						return null;
-					}
+                        return BlankImage();
+                    }
 
 				default:
 
-					return null;
-			}
+                    return BlankImage();
+            }
 
 
 
 			
 		}
+
+        public System.IO.Stream BlankImage()
+        {
+            byte[] dta = Resources.blank;
+            WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
+            MemoryStream ms = new MemoryStream(dta);
+            ms.Seek(0, SeekOrigin.Begin);
+            return ms;
+        }
+
         //mpiva WCF STREAMING IS CHUNKED SO IT DO NOT WORK FINE WITH PLEX, commented for now
         /*
 	    public System.IO.Stream GetStream(string cmd, string arg, string opt)
