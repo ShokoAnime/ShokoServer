@@ -907,7 +907,6 @@ namespace JMMServer
         //experiment
         private List<Character> GetCharactersFromAniDB( AniDB_Anime anidb_anime)
         {
-
             List<Character> char_list = new List<Character>();
             foreach (AniDB_Anime_Character achar in anidb_anime.GetAnimeCharacters())
             {
@@ -917,8 +916,8 @@ namespace JMMServer
                 c.CharName = x.CharName;
                 c.Description = x.CharDescription;
                 c.Picture = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/2/" + c.CharID);
-                c.SeiyuuName = "";
-                c.SeiyuuPic = "";
+                c.SeiyuuName = x.GetSeiyuu().SeiyuuName;
+                c.SeiyuuPic = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/3/" + x.GetSeiyuu().AniDB_SeiyuuID);
 
                 char_list.Add(c);
             }
