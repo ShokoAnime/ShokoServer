@@ -175,7 +175,7 @@ namespace JMMServer.Commands
 						else
 						{
                             foreach (JMMServer.Providers.Azure.CrossRef_File_Episode xref in xrefs)
-							{
+                            {
                                 CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode();
                                 xrefEnt.Hash = vidLocal.ED2KHash;
                                 xrefEnt.FileName = Path.GetFileName(vidLocal.FullServerPath);
@@ -186,11 +186,26 @@ namespace JMMServer.Commands
                                 xrefEnt.Percentage = xref.Percentage;
                                 xrefEnt.EpisodeOrder = xref.EpisodeOrder;
 
-                                crossRefs.Add(xrefEnt);
-								// in this case we need to save the cross refs manually as AniDB did not provide them
-                                repXrefFE.Save(xrefEnt);
-							}
-						}
+                                bool duplicate = false;
+
+                                foreach (CrossRef_File_Episode xrefcheck in crossRefs)
+                                {
+                                    if (xrefcheck.AnimeID == xrefEnt.AnimeID &&
+                                        xrefcheck.EpisodeID == xrefEnt.EpisodeID &&
+                                        xrefcheck.Hash == xrefEnt.Hash)
+                                        duplicate = true;
+
+                                }
+
+                                if (!duplicate)
+                                {
+                                    crossRefs.Add(xrefEnt);
+                                    // in this case we need to save the cross refs manually as AniDB did not provide them
+                                    repXrefFE.Save(xrefEnt);
+                                }
+
+                            }
+                        }
 					}
 					else
 					{
