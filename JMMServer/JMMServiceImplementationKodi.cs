@@ -916,8 +916,17 @@ namespace JMMServer
                 c.CharName = x.CharName;
                 c.Description = x.CharDescription;
                 c.Picture = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/2/" + c.CharID);
-                c.SeiyuuName = x.GetSeiyuu().SeiyuuName;
-                c.SeiyuuPic = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/3/" + x.GetSeiyuu().AniDB_SeiyuuID);
+                AniDB_Seiyuu seiyuu_tmp = x.GetSeiyuu();
+                if (seiyuu_tmp != null)
+                {
+                    c.SeiyuuName = seiyuu_tmp.SeiyuuName;
+                    c.SeiyuuPic = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/3/" + x.GetSeiyuu().AniDB_SeiyuuID);
+                }
+                else
+                {
+                    c.SeiyuuName = "";
+                    c.SeiyuuPic = "";
+                }
 
                 char_list.Add(c);
             }
