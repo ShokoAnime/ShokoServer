@@ -509,6 +509,7 @@ namespace JMMServer.Kodi
                     p.Tags = new List<Tag> { new Tag { Value = anime.AllTags.Replace("|", ",") } };
                 }
                 p.Rating = (anime.Rating / 100F).ToString(CultureInfo.InvariantCulture);
+                p.Year = "" + anime.BeginYear;
             }
             p.LeafCount = (grp.UnwatchedEpisodeCount + grp.WatchedEpisodeCount).ToString();
             p.ViewedLeafCount = grp.WatchedEpisodeCount.ToString();
