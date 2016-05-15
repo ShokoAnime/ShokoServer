@@ -90,5 +90,16 @@ namespace JMMServer.Entities
 				return false;
 			}
 		}
+
+        public void Valid()
+        {
+            if (!File.Exists(FullImagePath) || !File.Exists(FullThumbnailPath))
+            {
+                //clean leftovers
+                if (File.Exists(FullImagePath)) { File.Delete(FullImagePath); }
+                if (File.Exists(FullThumbnailPath)) { File.Delete(FullThumbnailPath); }
+
+            }
+        }
 	}
 }

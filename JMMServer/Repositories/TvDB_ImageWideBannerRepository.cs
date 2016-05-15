@@ -64,7 +64,22 @@ namespace JMMServer.Repositories
 				.Add(Restrictions.Eq("SeriesID", seriesID))
 				.List<TvDB_ImageWideBanner>();
 
-			return new List<TvDB_ImageWideBanner>(objs);
+            List<TvDB_ImageWideBanner> temp = (List<TvDB_ImageWideBanner>)objs;
+            List<TvDB_ImageWideBanner> results = new List<TvDB_ImageWideBanner>();
+            foreach (TvDB_ImageWideBanner pic in temp)
+            {
+                if (!System.IO.File.Exists(pic.FullImagePath))
+                {
+                    if (System.IO.File.Exists(pic.FullImagePath)) { System.IO.File.Delete(pic.FullImagePath); }
+                    Delete(pic.TvDB_ImageWideBannerID);
+                }
+                else
+                {
+                    results.Add(pic);
+                }
+            }
+
+            return new List<TvDB_ImageWideBanner>(results);
 		}
 
 		public List<TvDB_ImageWideBanner> GetAll()
