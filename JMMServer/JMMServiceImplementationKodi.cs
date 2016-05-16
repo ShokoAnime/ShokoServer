@@ -397,6 +397,16 @@ namespace JMMServer
                             }
                         }
                     }
+                    }
+                    foreach (AnimeSeries ser in grp.GetSeries())
+                    {
+                        Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(session, userid), true);
+                        Video v = KodiHelper.FromSerieWithPossibleReplacement(cserie, ser, userid);
+                        v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
+                        v.Group = basegrp;
+                        v.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
+                        retGroups.Add(v);
+                    }
                 }
                 ret.Childrens = retGroups.OrderBy(a => a.AirDate).ToList();
                 return ret.GetStream();
@@ -690,7 +700,7 @@ namespace JMMServer
                                     j.OriginalTitle = j.OriginalTitle.Substring(0, j.OriginalTitle.Length - 1);
                                     //proper naming end
 
-                                    //community support
+
 
                                     //CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
                                     //List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(anim.AnimeID);
@@ -893,7 +903,6 @@ namespace JMMServer
         //experiment
         private List<Character> GetCharactersFromAniDB( AniDB_Anime anidb_anime)
         {
-
             List<Character> char_list = new List<Character>();
             foreach (AniDB_Anime_Character achar in anidb_anime.GetAnimeCharacters())
             {
@@ -903,8 +912,17 @@ namespace JMMServer
                 c.CharName = x.CharName;
                 c.Description = x.CharDescription;
                 c.Picture = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/2/" + c.CharID);
-                c.SeiyuuName = "";
-                c.SeiyuuPic = "";
+                AniDB_Seiyuu seiyuu_tmp = x.GetSeiyuu();
+                if (seiyuu_tmp != null)
+                {
+                    c.SeiyuuName = seiyuu_tmp.SeiyuuName;
+                    c.SeiyuuPic = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/3/" + x.GetSeiyuu().AniDB_SeiyuuID);
+                }
+                else
+                {
+                    c.SeiyuuName = "";
+                    c.SeiyuuPic = "";
+                }
 
                 char_list.Add(c);
             }

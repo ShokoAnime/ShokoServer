@@ -126,6 +126,8 @@ namespace JMMServer.Kodi
             v.Year = o.Year;
             //v.TvDB = o.TvDB;
             //v.Trakt = o.Trakt;
+            v.JMMEpisodeId = o.JMMEpisodeId;
+            v.totalLocal = o.totalLocal;
             return v;
         }
 

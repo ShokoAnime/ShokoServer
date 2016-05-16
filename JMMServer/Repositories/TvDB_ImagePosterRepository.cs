@@ -75,7 +75,22 @@ namespace JMMServer.Repositories
 				.Add(Restrictions.Eq("SeriesID", seriesID))
 				.List<TvDB_ImagePoster>();
 
-			return new List<TvDB_ImagePoster>(objs);
+            List<TvDB_ImagePoster> temp = (List<TvDB_ImagePoster>)objs;
+            List<TvDB_ImagePoster> results = new List<TvDB_ImagePoster>();
+            foreach (TvDB_ImagePoster pic in temp)
+            {
+                if (!System.IO.File.Exists(pic.FullImagePath))
+                {
+                    if (System.IO.File.Exists(pic.FullImagePath)) { System.IO.File.Delete(pic.FullImagePath); }
+                    Delete(pic.TvDB_ImagePosterID);
+                }
+                else
+                {
+                    results.Add(pic);
+                }
+            }
+
+            return new List<TvDB_ImagePoster>(results);
 		}
 
 		public void Delete(int id)

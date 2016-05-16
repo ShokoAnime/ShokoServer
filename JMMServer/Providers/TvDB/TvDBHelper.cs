@@ -35,35 +35,36 @@ namespace JMMServer.Providers.TvDB
 		{
 			get { return @"http://www.thetvdb.com/api/Updates.php?type=none"; }
 		}
-
-		public string urlUpdatesList
-		{
-			get { return @"http://www.thetvdb.com/api/Updates.php?type=all&time={0}"; }
-		}
-
-		private string urlMirror = "http://thetvdb.com";
-		public string UrlMirror
-		{
-			get
-			{
-				Init();
-				return urlMirror;
-			}
-		}
-
-		public static string URLMirror
+        /*
+       public string urlUpdatesList
+       {
+           get { return @"http://www.thetvdb.com/api/Updates.php?type=all&time={0}"; }
+       }
+       */
+        private string urlMirror = "http://thetvdb.com";
+       /*
+        public string UrlMirror
+       {
+           get
+           {
+               Init();
+               return urlMirror;
+           }
+        }
+       */
+        public static string URLMirror
 		{
 			get
 			{
 				return "http://thetvdb.com"; // they have said now that this will never change
 			}
 		}
-
+        /*
 		public static string GetRootImagesPath()
         {
 			return ImageUtils.GetTvDBImagePath();
         }
-
+        */
         private string serverTime = "";
 
 
@@ -133,7 +134,7 @@ namespace JMMServer.Providers.TvDB
 				logger.ErrorException("Error in TVDBHelper.Init: " + ex.ToString(), ex);
             }
         }
-
+/*
 		public static bool ConfirmTvDBOnline()
 		{
 			TvDB_Series tvser = GetSeriesInfoOnline(73255);
@@ -142,7 +143,7 @@ namespace JMMServer.Providers.TvDB
 			else
 				return true;
 		}
-
+        */
 		public static TvDB_Series GetSeriesInfoOnline(int seriesID)
 		{
 			try
@@ -268,76 +269,76 @@ namespace JMMServer.Providers.TvDB
 			}
 			return docsInZip;
 		}
-		
-		public List<TvDB_ImageFanart> GetFanart(int seriesID, bool forceRefresh)
-		{
-			List<TvDB_ImageFanart> fanarts = new List<TvDB_ImageFanart>();
+        /*
+            public List<TvDB_ImageFanart> GetFanart(int seriesID, bool forceRefresh)
+            {
+                List<TvDB_ImageFanart> fanarts = new List<TvDB_ImageFanart>();
 
-			if (forceRefresh)
-			{
-				fanarts = GetFanartOnline(seriesID);
-			}
-			else
-			{
-				TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
-				fanarts = repFanart.GetBySeriesID(seriesID);
-				if (fanarts.Count == 0)
-					fanarts = GetFanartOnline(seriesID);
-			}
+                if (forceRefresh)
+                {
+                    fanarts = GetFanartOnline(seriesID);
+                }
+                else
+                {
+                    TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
+                    fanarts = repFanart.GetBySeriesID(seriesID);
+                    if (fanarts.Count == 0)
+                        fanarts = GetFanartOnline(seriesID);
+                }
 
-			return fanarts;
-		}
-		
-		public List<TvDB_ImageFanart> GetFanartOnline(int seriesID)
-		{
-			List<TvDB_ImageFanart> fanarts = new List<TvDB_ImageFanart>();
+                return fanarts;
+            }
 
-			XmlDocument doc = GetSeriesBannersOnline(seriesID);
-			List<object> banners = ParseBanners(seriesID, doc);
+            public List<TvDB_ImageFanart> GetFanartOnline(int seriesID)
+            {
+                List<TvDB_ImageFanart> fanarts = new List<TvDB_ImageFanart>();
 
-			foreach (object obj in banners)
-			{
-				if (obj.GetType() == typeof(TvDB_ImageFanart))
-					fanarts.Add((TvDB_ImageFanart)obj);
-			}
+                XmlDocument doc = GetSeriesBannersOnline(seriesID);
+                List<object> banners = ParseBanners(seriesID, doc);
 
-			return fanarts;
-		}
+                foreach (object obj in banners)
+                {
+                    if (obj.GetType() == typeof(TvDB_ImageFanart))
+                        fanarts.Add((TvDB_ImageFanart)obj);
+                }
 
-		public List<TvDB_ImageWideBanner> GetWideBannersOnline(int seriesID)
-		{
-			List<TvDB_ImageWideBanner> wideBanners = new List<TvDB_ImageWideBanner>();
+                return fanarts;
+            }
 
-			XmlDocument doc = GetSeriesBannersOnline(seriesID);
-			List<object> banners = ParseBanners(seriesID, doc);
+            public List<TvDB_ImageWideBanner> GetWideBannersOnline(int seriesID)
+            {
+                List<TvDB_ImageWideBanner> wideBanners = new List<TvDB_ImageWideBanner>();
 
-			foreach (object obj in banners)
-			{
-				if (obj.GetType() == typeof(TvDB_ImageWideBanner))
-					wideBanners.Add((TvDB_ImageWideBanner)obj);
-			}
+                XmlDocument doc = GetSeriesBannersOnline(seriesID);
+                List<object> banners = ParseBanners(seriesID, doc);
 
-			return wideBanners;
-		}
+                foreach (object obj in banners)
+                {
+                    if (obj.GetType() == typeof(TvDB_ImageWideBanner))
+                        wideBanners.Add((TvDB_ImageWideBanner)obj);
+                }
 
-		public List<TvDB_ImagePoster> GetPostersOnline(int seriesID)
-		{
-			//BaseConfig.MyAnimeLog.Write("Getting posters online: {0}", seriesID);
-			List<TvDB_ImagePoster> posters = new List<TvDB_ImagePoster>();
+                return wideBanners;
+            }
 
-			XmlDocument doc = GetSeriesBannersOnline(seriesID);
-			List<object> banners = ParseBanners(seriesID, doc);
+            public List<TvDB_ImagePoster> GetPostersOnline(int seriesID)
+            {
+                //BaseConfig.MyAnimeLog.Write("Getting posters online: {0}", seriesID);
+                List<TvDB_ImagePoster> posters = new List<TvDB_ImagePoster>();
 
-			foreach (object obj in banners)
-			{
-				if (obj.GetType() == typeof(TvDB_ImagePoster))
-					posters.Add((TvDB_ImagePoster)obj);
-			}
+                XmlDocument doc = GetSeriesBannersOnline(seriesID);
+                List<object> banners = ParseBanners(seriesID, doc);
 
-			return posters;
-		}
+                foreach (object obj in banners)
+                {
+                    if (obj.GetType() == typeof(TvDB_ImagePoster))
+                        posters.Add((TvDB_ImagePoster)obj);
+                }
 
-		public List<TvDBLanguage> GetLanguages()
+                return posters;
+            }
+             */
+        public List<TvDBLanguage> GetLanguages()
 		{
 			List<TvDBLanguage> languages = new List<TvDBLanguage>();
 
@@ -899,8 +900,8 @@ namespace JMMServer.Providers.TvDB
             CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(animeID, (int)aniEpType, aniEpNumber,
 				tvDBID, tvSeasonNumber, tvEpNumber);
 			req.Save();
-		}
-
+        }
+        /*
 		public static void DownloadAllEpisodes()
 		{
 			CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
@@ -914,8 +915,8 @@ namespace JMMServer.Providers.TvDB
 
 			DownloadAllEpisodes(tvDBIDs);
 		}
-
-		public static void DownloadAllEpisodes(List<int> tvDBIDs)
+       
+        public static void DownloadAllEpisodes(List<int> tvDBIDs)
 		{
 			foreach (int tvid in tvDBIDs)
 			{
@@ -923,8 +924,8 @@ namespace JMMServer.Providers.TvDB
 				cmd.Save();
 			}
 		}
-
-		public static void ScanForMatches()
+        */
+        public static void ScanForMatches()
 		{
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			List<AnimeSeries> allSeries = repSeries.GetAll();

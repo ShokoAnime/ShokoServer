@@ -351,7 +351,7 @@ namespace JMMServer
 				UpdateAnimeContract(session, animeID);
 			}
 		}
-
+        /*
 		public void UpdateAllAnimeContracts()
 		{
 			try
@@ -383,12 +383,12 @@ namespace JMMServer
 			}
 
 		}
-
-		/// <summary>
-		/// Use whenever a series is added to or removed from a group
-		/// </summary>
-		/// <param name="animeSeriesID"></param>
-		public void UpdateUsingSeries(int animeSeriesID)
+        */
+        /// <summary>
+        /// Use whenever a series is added to or removed from a group
+        /// </summary>
+        /// <param name="animeSeriesID"></param>
+        public void UpdateUsingSeries(int animeSeriesID)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
