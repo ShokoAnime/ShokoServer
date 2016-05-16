@@ -171,6 +171,7 @@ namespace JMMServer.Databases
                 UpdateSchema_043(versionNumber);
                 UpdateSchema_044(versionNumber);
                 UpdateSchema_045(versionNumber);
+                UpdateSchema_046(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1746,6 +1747,8 @@ namespace JMMServer.Databases
             cmds.Add("UPDATE GroupFilter SET FilterType = 1 ;");
             cmds.Add("ALTER TABLE `GroupFilter` CHANGE COLUMN `FilterType` `FilterType` int NOT NULL ;");
 
+            //Add Migration as SQL, since Groupfilters Cache is not init yet.
+            cmds.Add("UPDATE `GroupFilter` SET `FilterType` = 2 WHERE `GroupFilterName`='" + Constants.GroupFilterName.ContinueWatching + "'");
 
             using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
             {
@@ -1770,6 +1773,47 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
         }
+        private static void UpdateSchema_046(int currentVersionNumber)
+        {
+            int thisVersion = 46;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE `AniDB_Anime` ADD `ContractVersion` int NOT NULL DEFAULT 0, `ContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup` ADD `ContractVersion` int NOT NULL DEFAULT 0, `ContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `PlexContractVersion` int NOT NULL DEFAULT 0, `PlexContractString` mediumtext character set utf8 NULL, `KodiContractVersion` int NOT NULL DEFAULT 0, `KodiContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries` ADD `ContractVersion` int NOT NULL DEFAULT 0, `ContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `PlexContractVersion` int NOT NULL DEFAULT 0, `PlexContractString` mediumtext character set utf8 NULL, `KodiContractVersion` int NOT NULL DEFAULT 0, `KodiContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `GroupsIdsVersion` int NOT NULL DEFAULT 0, `GroupsIdsString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractVersion` int NOT NULL DEFAULT 0, `ContractString` mediumtext character set utf8 NULL");
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+
 
         private static void ExecuteSQLCommands(List<string> cmds)
 		{

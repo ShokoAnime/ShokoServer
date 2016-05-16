@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMContracts;
+using JMMServer.Plex;
+using JMMServer.Repositories;
+using Newtonsoft.Json;
 
 namespace JMMServer.Entities
 {
@@ -18,7 +22,87 @@ namespace JMMServer.Entities
 		public int WatchedCount { get; set; }
 		public int StoppedCount { get; set; }
 
-		public AnimeSeries_User()
+
+        public int PlexContractVersion { get; set; }
+        public string PlexContractString { get; set; }
+
+        public int KodiContractVersion { get; set; }
+        public string KodiContractString { get; set; }
+
+
+        public const int PLEXCONTRACT_VERSION = 1;
+        public const int KODICONTRACT_VERSION = 1;
+
+
+        private JMMContracts.PlexContracts.Video _plexcontract = null;
+        public virtual JMMContracts.PlexContracts.Video PlexContract
+        {
+            get
+            {
+                if ((_plexcontract == null) && PlexContractVersion == PLEXCONTRACT_VERSION)
+                {
+                    JMMContracts.PlexContracts.Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<JMMContracts.PlexContracts.Video>(PlexContractString);
+                    if (vids != null)
+                        _plexcontract = vids;
+                }
+                return _plexcontract;
+            }
+            set
+            {
+                _plexcontract = value;
+                if (value != null)
+                {
+                    PlexContractVersion = AnimeGroup_User.PLEXCONTRACT_VERSION;
+                    PlexContractString = Newtonsoft.Json.JsonConvert.SerializeObject(PlexContract, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
+                }
+            }
+        }
+
+
+        private JMMContracts.KodiContracts.Video _kodicontract = null;
+        public virtual JMMContracts.KodiContracts.Video KodiContract
+        {
+            get
+            {
+                if ((_kodicontract == null) && KodiContractVersion == KODICONTRACT_VERSION)
+                {
+                    JMMContracts.KodiContracts.Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<JMMContracts.KodiContracts.Video>(KodiContractString);
+                    if (vids != null)
+                        _kodicontract = vids;
+                }
+                return _kodicontract;
+            }
+            set
+            {
+                _kodicontract = value;
+                if (value != null)
+                {
+                    KodiContractVersion = AnimeGroup_User.KODICONTRACT_VERSION;
+                    KodiContractString = Newtonsoft.Json.JsonConvert.SerializeObject(KodiContract, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
+                }
+            }
+        }
+
+        public virtual Contract_AnimeSeries Contract
+        {
+            get
+            {
+                AnimeSeriesRepository repo = new AnimeSeriesRepository();
+                AnimeSeries agr = repo.GetByID(this.AnimeSeriesID);
+                if (agr == null)
+                    return null;
+                Contract_AnimeSeries contract = new Contract_AnimeSeries();
+                agr.Contract.CopyTo(contract);
+                contract.PlayedCount = PlayedCount;
+                contract.StoppedCount = StoppedCount;
+                contract.UnwatchedEpisodeCount = UnwatchedEpisodeCount;
+                contract.WatchedCount = WatchedCount;
+                contract.WatchedDate = WatchedDate;
+                contract.WatchedEpisodeCount = WatchedEpisodeCount;
+                return contract;
+            }
+        }
+        public AnimeSeries_User()
 		{
 		}
 
@@ -26,7 +110,6 @@ namespace JMMServer.Entities
 		{
 			JMMUserID = userID;
 			AnimeSeriesID = seriesID;
-
 			UnwatchedEpisodeCount = 0;
 			WatchedEpisodeCount = 0;
 			WatchedDate = null;

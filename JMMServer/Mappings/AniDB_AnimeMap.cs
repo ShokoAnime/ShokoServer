@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using FluentNHibernate.Mapping;
 using JMMServer.Entities;
+using NHibernate;
 
 namespace JMMServer.Mappings
 {
@@ -47,6 +48,8 @@ namespace JMMServer.Mappings
 			Map(x => x.URL).Not.Nullable();
 			Map(x => x.VoteCount).Not.Nullable();
 			Map(x => x.DisableExternalLinksFlag).Not.Nullable();
+            Map(x => x.ContractVersion).Not.Nullable();
+		    Map(x => x.ContractString).Nullable().CustomType("StringClob");
         }
-	}
+    }
 }

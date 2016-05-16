@@ -699,10 +699,10 @@ namespace JMMServer.Providers.Azure
                 uinfo.FileCount = repVids.GetTotalRecordCount();
 
                 AnimeEpisode_UserRepository repEps = new AnimeEpisode_UserRepository();
-                List<AnimeEpisode_User> recs = repEps.GetLastWatchedEpisode();
+                AnimeEpisode_User rec = repEps.GetLastWatchedEpisode();
                 uinfo.LastEpisodeWatched = 0;
-                if (recs.Count > 0)
-                    uinfo.LastEpisodeWatched = Utils.GetAniDBDateAsSeconds(recs[0].WatchedDate);
+                if (rec!=null)
+                    uinfo.LastEpisodeWatched = Utils.GetAniDBDateAsSeconds(rec.WatchedDate);
 
                 return uinfo;
             }

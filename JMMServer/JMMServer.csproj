@@ -213,6 +213,7 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="BiDictionary.cs" />
     <Compile Include="BitMaskHelper.cs" />
     <Compile Include="BlockingList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetEpisode.cs" />
@@ -625,7 +626,6 @@
     <Compile Include="Security\StringTools.cs" />
     <Compile Include="ServerSettings.cs" />
     <Compile Include="ServerState.cs" />
-    <Compile Include="StatsCache.cs" />
     <Compile Include="SubStream.cs" />
     <Compile Include="TimeUpdater.cs" />
     <Compile Include="UI\AboutForm.xaml.cs">

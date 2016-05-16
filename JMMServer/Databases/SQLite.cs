@@ -149,6 +149,7 @@ namespace JMMServer.Databases
                 UpdateSchema_041(versionNumber);
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
+                UpdateSchema_044(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1298,6 +1299,41 @@ namespace JMMServer.Databases
 
             List<string> cmds = new List<string>();
             cmds.Add("ALTER TABLE GroupFilter ADD FilterType int NOT NULL DEFAULT 1");
+            //Add Migration as SQL, since Groupfilters Cache is not init yet.
+            cmds.Add("UPDATE GroupFilter SET FilterType = 2 WHERE GroupFilterName='" + Constants.GroupFilterName.ContinueWatching + "'");
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+
+            // Now do the migratiuon
+            //DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
+        }
+        private static void UpdateSchema_044(int currentVersionNumber)
+        {
+            int thisVersion = 44;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT 0, ContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT 0, ContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT 0, PlexContractString text NULL, KodiContractVersion int NOT NULL DEFAULT 0, KodiContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractVersion int NOT NULL DEFAULT 0, ContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractVersion int NOT NULL DEFAULT 0, PlexContractString text NULL, KodiContractVersion int NOT NULL DEFAULT 0, KodiContractString text NULL");
+            cmds.Add("ALTER TABLE GroupFilter ADD GroupsIdsVersion int NOT NULL DEFAULT 0, GroupsIdsString text NULL");
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractVersion int NOT NULL DEFAULT 0, ContractString text NULL");
 
             foreach (string cmdTable in cmds)
             {
@@ -1313,6 +1349,7 @@ namespace JMMServer.Databases
             // Now do the migratiuon
             DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
         }
+        
 
         private static void ExecuteSQLCommands(List<string> cmds)
 		{

@@ -60,11 +60,10 @@ namespace JMMServer
                 {
                     GroupFilterRepository repGF = new GroupFilterRepository();
                     List<GroupFilter> allGfs = repGF.GetAll(session);
-                    Dictionary<int, HashSet<int>> gstats = StatsCache.Instance.StatUserGroupFilter[userid];
+
                     foreach (GroupFilter gg in allGfs.ToArray())
                     {
-                        if ((!StatsCache.Instance.StatUserGroupFilter.ContainsKey(userid)) ||
-                            (!StatsCache.Instance.StatUserGroupFilter[userid].ContainsKey(gg.GroupFilterID)))
+                        if (!gg.GroupsIds.ContainsKey(userid))
                         {
                             allGfs.Remove(gg);
                         }
@@ -72,7 +71,6 @@ namespace JMMServer
 
 
                     AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                    allGfs.Insert(0, new GroupFilter() {GroupFilterName = "All", GroupFilterID = -999});
                     foreach (GroupFilter gg in allGfs)
                     {
 
@@ -81,7 +79,7 @@ namespace JMMServer
                         pp.Key =  PlexHelper.ConstructFilterIdUrl(userid, gg.GroupFilterID);
                         pp.Title = gg.GroupFilterName;
                         HashSet<int> groups;
-                        groups = gg.GroupFilterID == -999 ? new HashSet<int>(repGroups.GetAllTopLevelGroups(session).Select(a => a.AnimeGroupID)) : gstats[gg.GroupFilterID];
+                        groups = gg.GroupsIds[userid];
                         if (groups.Count != 0)
                         {
                             bool repeat;
@@ -94,8 +92,8 @@ namespace JMMServer
                                 repeat = true;
                                 int grp = groups.ElementAt(rnd.Next(groups.Count));
                                 AnimeGroup ag = repGroups.GetByID(grp);
-                                List<AnimeSeries> sers = ag.GetSeries(session);
-                                if (sers.Count > 0)
+                                List<AnimeSeries> sers = ag?.GetSeries(session);
+                                if (sers?.Count > 0)
                                 {
                                     AnimeSeries ser = sers[rnd.Next(sers.Count)];
                                     AniDB_Anime anim = ser.GetAnime(session);
@@ -385,32 +383,34 @@ namespace JMMServer
                 AnimeSeries ser = repSeries.GetByAnimeID(anidb_anime.AnimeID);
                 if (ser != null)
                 {
-                    Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(user.JMMUserID), true);
-                    Video v = PlexHelper.FromSerieWithPossibleReplacement(cserie, ser, anidb_anime, user.JMMUserID);                    
-                    switch (anidb_anime.AnimeTypeEnum)
+                    Video v = ser.GetUserRecord(user.JMMUserID)?.PlexContract?.Clone();
+                    if (v != null)
                     {
-                        case enAnimeType.Movie:
-                            v.SourceTitle = "Anime Movies";
-                            break;
-                        case enAnimeType.OVA:
-                            v.SourceTitle = "Anime Ovas";
-                            break;
-                        case enAnimeType.Other:
-                            v.SourceTitle = "Anime Others";
-                            break;
-                        case enAnimeType.TVSeries:
-                            v.SourceTitle = "Anime Series";
-                            break;
-                        case enAnimeType.TVSpecial:
-                            v.SourceTitle = "Anime Specials";
-                            break;
-                        case enAnimeType.Web:
-                            v.SourceTitle = "Anime Web Clips";
-                            break;
+                        switch (anidb_anime.AnimeTypeEnum)
+                        {
+                            case enAnimeType.Movie:
+                                v.SourceTitle = "Anime Movies";
+                                break;
+                            case enAnimeType.OVA:
+                                v.SourceTitle = "Anime Ovas";
+                                break;
+                            case enAnimeType.Other:
+                                v.SourceTitle = "Anime Others";
+                                break;
+                            case enAnimeType.TVSeries:
+                                v.SourceTitle = "Anime Series";
+                                break;
+                            case enAnimeType.TVSpecial:
+                                v.SourceTitle = "Anime Specials";
+                                break;
+                            case enAnimeType.Web:
+                                v.SourceTitle = "Anime Web Clips";
+                                break;
 
+                        }
+
+                        ls.Add(v, info);
                     }
-                        
-                    ls.Add(v,info);
                     cnt++;
                     if (cnt == lim)
                         break;
@@ -424,7 +424,7 @@ namespace JMMServer
        
         public System.IO.Stream GetItemsFromGroup(int userid, string GroupId, HistoryInfo info)
         {
-            PlexObject ret=new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.Show,info,false));
+            PlexObject ret=new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.Season,info,false));
             if (!ret.Init())
                 return new MemoryStream();
             int groupID;
@@ -439,23 +439,29 @@ namespace JMMServer
                 AnimeGroup grp = repGroups.GetByID(groupID);
                 if (grp != null)
                 {
-                    Contract_AnimeGroup basegrp = grp.ToContract(grp.GetUserRecord(session, userid));
-                    List<AnimeSeries> sers2 = grp.GetSeries(session);
-                    foreach (AnimeGroup grpChild in grp.GetChildGroups())
+                    Contract_AnimeGroup basegrp = grp.GetUserRecord(userid)?.Contract;
+                    if (basegrp != null)
                     {
-                        Video v = StatsCache.Instance.StatPlexGroupsCache[userid][grpChild.AnimeGroupID];
-                        if (v != null)
+                        foreach (AnimeGroup grpChild in grp.GetChildGroups())
                         {
-                            retGroups.Add(v.Clone(),info);
+                            var v = grpChild.GetUserRecord(userid)?.PlexContract;
+                            if (v != null)
+                            {
+                                v.Type = "show";
+                                retGroups.Add(v, info);
+                            }
                         }
-                    }
-                    foreach (AnimeSeries ser in grp.GetSeries())
-                    {
-                        Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(session, userid), true);
-                        Video v = PlexHelper.FromSerieWithPossibleReplacement(cserie, ser, ser.GetAnime(), userid);
-                        v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
-                        v.Group = basegrp;
-                        retGroups.Add(v,info);
+                        foreach (AnimeSeries ser in grp.GetSeries())
+                        {
+                            var v = ser.GetUserRecord(userid)?.PlexContract?.Clone();
+                            if (v != null)
+                            {
+                                v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
+                                v.Group = basegrp;
+                                v.Type = "season";
+                                retGroups.Add(v, info);
+                            }
+                        }
                     }
                 }
                 ret.Childrens = PlexHelper.ConvertToDirectoryIfNotUnique(retGroups.OrderBy(a => a.AirDate).ToList());
@@ -592,7 +598,9 @@ namespace JMMServer
                 AniDB_Anime anime = ser.GetAnime();
                 if (anime == null)
                     return new MemoryStream();
-                Contract_AnimeSeries cseries = ser.ToContract(ser.GetUserRecord(userid), true);
+                Contract_AnimeSeries cseries = ser.GetUserRecord(userid)?.Contract;
+                if (cseries==null)
+                    return new MemoryStream();
                 ImageDetails fanart = anime.GetDefaultFanartDetailsNoBlanks(session);
 
                 //iOS Hack, since it uses the previous thumb, as overlay image on the episodes
@@ -683,7 +691,9 @@ namespace JMMServer
                     try
                     {
                         PlexHelper.PopulateVideo(v, current, ep, ser, cseries, anime, nv, JMMType.File, userid);
+                        v.Type = "episode";
                         vids.Add(v, info);
+                        
                         if (iosHack)
                         {
                             v.Art = v.Thumb;
@@ -726,56 +736,25 @@ namespace JMMServer
 
                     GroupFilter gf;
 
-                    if (groupFilterID == -999)
-                    {
-                        // all groups
-                        gf = new GroupFilter();
-                        gf.GroupFilterName = "All";
-                    }
-                    else
-                    {
-                        gf = repGF.GetByID(session, groupFilterID);
-                        if (gf == null) return new MemoryStream();
-                    }
+                    gf = repGF.GetByID(session, groupFilterID);
+                    if (gf == null) return new MemoryStream();
                     //Contract_GroupFilterExtended contract = gf.ToContractExtended(user);
 
                     AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                    List<AnimeGroup> allGrps = repGroups.GetAll(session);
-
-
-
-                    
-                    TimeSpan ts = DateTime.Now - start;
-                    string msg = string.Format("Got groups for filter DB: {0} - {1} in {2} ms", gf.GroupFilterName,
-                        allGrps.Count, ts.TotalMilliseconds);
-                    logger.Info(msg);
-                    start = DateTime.Now;
-
-
-
-                    if ((StatsCache.Instance.StatUserGroupFilter.ContainsKey(userid)) &&
-                        (StatsCache.Instance.StatUserGroupFilter[userid].ContainsKey(gf.GroupFilterID)))
+                    if (gf.GroupsIds.ContainsKey(userid))
                     {
-                        HashSet<int> groups = StatsCache.Instance.StatUserGroupFilter[userid][gf.GroupFilterID];
-
-                        foreach (AnimeGroup grp in allGrps)
+                        foreach (AnimeGroup grp in gf.GroupsIds[userid].Select(a=>repGroups.GetByID(a)).Where(a=>a!=null))
                         {
-                            if (groups.Contains(grp.AnimeGroupID))
+                            Video v = grp.GetUserRecord(userid)?.PlexContract;
+                            if (v != null)
                             {
-                                Video v = StatsCache.Instance.StatPlexGroupsCache[userid][grp.AnimeGroupID];
-                                if (v != null)
-                                {
-                                    v = v.Clone();
-
-                                    retGroups.Add(v, info);
-                                }
+                                v = v.Clone();
+                                v.Type = "show";
+                                retGroups.Add(v, info);
                             }
                         }
                     }
-                    ts = DateTime.Now - start;
-                    msg = string.Format("Got groups for filter EVAL: {0} - {1} in {2} ms", gf.GroupFilterName,
-                        retGroups.Count, ts.TotalMilliseconds);
-                    logger.Info(msg);
+
                     if ((groupFilterID == -999) || (gf.SortCriteriaList.Count == 0))
                     {
                         ret.Childrens = PlexHelper.ConvertToDirectoryIfNotUnique(retGroups.OrderBy(a => a.Group.SortName).ToList());
@@ -802,10 +781,6 @@ namespace JMMServer
                         }
                     }
                     ret.Childrens = PlexHelper.ConvertToDirectoryIfNotUnique(joints2);
-                    ts = DateTime.Now - start;
-                    msg = string.Format("Got groups final: {0} - {1} in {2} ms", gf.GroupFilterName,
-                        retGroups.Count, ts.TotalMilliseconds);
-                    logger.Info(msg);
                     return ret.GetStream();
 
                 }

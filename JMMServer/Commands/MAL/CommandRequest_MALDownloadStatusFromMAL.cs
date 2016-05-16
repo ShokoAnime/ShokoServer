@@ -61,6 +61,7 @@ namespace JMMServer.Commands.MAL
 				CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
 				AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
 				AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
+                AnimeSeriesRepository repSers=new AnimeSeriesRepository();
 
 				// find the anidb user
 				JMMUserRepository repUsers = new JMMUserRepository();
@@ -90,12 +91,13 @@ namespace JMMServer.Commands.MAL
 					int endEpNumber = GetUpperEpisodeLimit(allXrefs, xref);
 
 					List<AniDB_Episode> aniEps = repAniEps.GetByAnimeID(xref.AnimeID);
+				    AnimeSeries ser = repSers.GetByAnimeID(xref.AnimeID);
 					foreach (AniDB_Episode aniep in aniEps)
 					{
 						if (aniep.EpisodeType != xref.StartEpisodeType) continue;
 
-						AnimeEpisode ep = repEp.GetByAniDBEpisodeID(aniep.EpisodeID);
-						if (ep == null) continue;
+					    AnimeEpisode ep = repEp.GetByAniEpisodeIDAndSeriesID(aniep.EpisodeID, ser.AnimeSeriesID);
+						if (ep==null) continue;
 
 						int adjustedWatchedEps = malAnime.my_watched_episodes + xref.StartEpisodeNumber - 1;
 						int epNum = aniep.EpisodeNumber;

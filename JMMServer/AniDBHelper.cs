@@ -919,8 +919,12 @@ namespace JMMServer
 				// updated cached stats
 				// we don't do it in the save method as it would be too many unecessary updates
 				logger.Trace("Updating group stats by anime from GetReleaseGroupStatusUDP: {0}", animeID);
-				StatsCache.Instance.UpdateUsingAnime(animeID);
-				
+                
+
+				// StatsCache.Instance.UpdateUsingAnime(animeID); 
+				//Removed QueueUpdateStatus will Update Groups
+
+
 				if (getCmd.GrpStatusCollection.LatestEpisodeNumber > 0)
 				{
 					// update the anime with a record of the latest subbed episode
@@ -1151,21 +1155,24 @@ namespace JMMServer
 			// only if we have a series
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			AnimeSeries ser = repSeries.GetByAnimeID(session, animeID);
-			if (ser != null)
+            repAnime.Save(anime);
+            if (ser != null)
 			{
 				ser.CreateAnimeEpisodes(session);
-			}
+                repSeries.Save(ser,true,false);
+            }
 
             // update any files, that may have been linked
             /*CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
             repCrossRefs.GetByAnimeID(*/
 
-			// update cached stats
-			StatsCache.Instance.UpdateUsingAnime(session, anime.AnimeID);
-			StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
+            // update cached stats
 
-			// download character images
-			foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session))
+            //StatsCache.Instance.UpdateUsingAnime(session, anime.AnimeID);
+            //StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
+
+            // download character images
+            foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session))
 			{
 				AniDB_Character chr = animeChar.GetCharacter(session);
 				if (chr == null) continue;

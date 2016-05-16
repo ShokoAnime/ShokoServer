@@ -26,6 +26,8 @@ namespace JMMServer.Mappings
 			Map(x => x.MissingEpisodeCountGroups).Not.Nullable();
 			Map(x => x.SeriesNameOverride);
             Map(x => x.DefaultFolder);
+            Map(x => x.ContractVersion).Not.Nullable();
+            Map(x => x.ContractString).Nullable().CustomType("StringClob");
         }
 	}
 }

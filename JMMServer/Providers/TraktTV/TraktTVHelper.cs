@@ -397,7 +397,7 @@ namespace JMMServer.Providers.TraktTV
 
             repCrossRef.Save(xref);
 
-            StatsCache.Instance.UpdateUsingAnime(animeID);
+            AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed trakt association: {0}", animeID);
 
@@ -418,7 +418,7 @@ namespace JMMServer.Providers.TraktTV
 
             repCrossRef.Delete(xref.CrossRef_AniDB_TraktV2ID);
 
-            StatsCache.Instance.UpdateUsingAnime(animeID);
+            AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             if (ServerSettings.WebCache_Trakt_Send)
             {

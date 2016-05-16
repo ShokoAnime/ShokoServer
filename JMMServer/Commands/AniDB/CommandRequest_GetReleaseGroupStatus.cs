@@ -94,7 +94,7 @@ namespace JMMServer.Commands
 
 				GroupStatusCollection grpCol = JMMService.AnidbProcessor.GetReleaseGroupStatusUDP(AnimeID);
 
-				if (ServerSettings.AniDB_DownloadReleaseGroups)
+				if (ServerSettings.AniDB_DownloadReleaseGroups && grpCol!=null && grpCol.Groups!=null && grpCol.Groups.Count>0)
 				{
 					// save in bulk to improve performance
 					using (var session = JMMService.SessionFactory.OpenSession())

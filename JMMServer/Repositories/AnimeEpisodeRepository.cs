@@ -8,12 +8,43 @@ using BinaryNorthwest;
 using System.Collections;
 using JMMServer.Databases;
 using NHibernate;
+using NutzCode.InMemoryIndex;
 
 namespace JMMServer.Repositories
 {
 	public class AnimeEpisodeRepository
 	{
-		public void Save(AnimeEpisode obj)
+	    private static PocoCache<int, AnimeEpisode> Cache;
+	    private static PocoIndex<int, AnimeEpisode, int> Series;
+	    private static PocoIndex<int, AnimeEpisode, int> EpisodeIDs;
+	    private static PocoIndex<int, AnimeEpisode, int, int> SeriesEpisodeIds;
+
+        public static void InitCache()
+        {
+            string t = "AnimeEpisodes";
+            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            AnimeEpisodeRepository repo = new AnimeEpisodeRepository();
+            
+            Cache = new PocoCache<int, AnimeEpisode>(repo.InternalGetAll(),a=>a.AnimeEpisodeID);
+            Series=Cache.CreateIndex(a=>a.AnimeSeriesID);
+            EpisodeIDs=Cache.CreateIndex(a=>a.AniDB_EpisodeID);
+            SeriesEpisodeIds=Cache.CreateIndex(a=>a.AnimeSeriesID,a=>a.AniDB_EpisodeID);
+        }
+
+        private List<AnimeEpisode> InternalGetAll()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                var grps = session
+                    .CreateCriteria(typeof(AnimeEpisode))
+                    .List<AnimeEpisode>();
+
+                return new List<AnimeEpisode>(grps);
+            }
+        }
+
+
+        public void Save(AnimeEpisode obj)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -29,74 +60,51 @@ namespace JMMServer.Repositories
 				session.SaveOrUpdate(obj);
 				transaction.Commit();
 			}
-		}
+            Cache.Update(obj);
+        }
 
-		public AnimeEpisode GetByID(int id)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetByID(session, id);
-			}
+        public AnimeEpisode GetByID(int id)
+        {
+            return Cache.Get(id);
 		}
 
 		public AnimeEpisode GetByID(ISession session, int id)
 		{
-			return session.Get<AnimeEpisode>(id);
-		}
+            return GetByID(id);
+        }
 
-		public List<AnimeEpisode> GetBySeriesID(int seriesid)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetBySeriesID(session, seriesid);
-			}
+        public List<AnimeEpisode> GetBySeriesID(int seriesid)
+        {
+            return Series.GetMultiple(seriesid);
 		}
 
 		public List<AnimeEpisode> GetBySeriesID(ISession session, int seriesid)
 		{
-			var eps = session
-				.CreateCriteria(typeof(AnimeEpisode))
-				.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
-				.List<AnimeEpisode>();
+            return GetBySeriesID(seriesid);
+        }
 
-			return new List<AnimeEpisode>(eps);
+		public List<AnimeEpisode> GetByAniDBEpisodeID(int epid)
+		{
+            //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
+		    return EpisodeIDs.GetMultiple(epid);
 		}
 
-		public AnimeEpisode GetByAniDBEpisodeID(int epid)
+		public List<AnimeEpisode> GetByAniDBEpisodeID(ISession session, int epid)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetByAniDBEpisodeID(session, epid);
-			}
+            //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.        
+            return GetByAniDBEpisodeID(epid);
 		}
 
-		public AnimeEpisode GetByAniDBEpisodeID(ISession session, int epid)
+		public AnimeEpisode GetByAniEpisodeIDAndSeriesID(int epid, int seriesid)
 		{
-			AnimeEpisode obj = session
-				.CreateCriteria(typeof(AnimeEpisode))
-				.Add(Restrictions.Eq("AniDB_EpisodeID", epid))
-				.UniqueResult<AnimeEpisode>();
+            //This method should return only one AnimeEpisode
+		    return SeriesEpisodeIds.GetOne(seriesid, epid);
+        }
 
-			return obj;
-		}
-
-		public List<AnimeEpisode> GetByAniEpisodeIDAndSeriesID(int epid, int seriesid)
+        public AnimeEpisode GetByAniEpisodeIDAndSeriesID(ISession session, int epid, int seriesid)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetByAniEpisodeIDAndSeriesID(session, epid, seriesid);
-			}
-		}
-
-		public List<AnimeEpisode> GetByAniEpisodeIDAndSeriesID(ISession session, int epid, int seriesid)
-		{
-			var eps = session
-				.CreateCriteria(typeof(AnimeEpisode))
-				.Add(Restrictions.Eq("AniDB_EpisodeID", epid))
-				.Add(Restrictions.Eq("AnimeSeriesID", seriesid))
-				.List<AnimeEpisode>();
-
-			return new List<AnimeEpisode>(eps);
+            //This method should return only one AnimeEpisode
+            return GetByAniEpisodeIDAndSeriesID(epid, seriesid);
 		}
 
 		/// <summary>
@@ -109,11 +117,10 @@ namespace JMMServer.Repositories
 		/// <returns></returns>
 		public List<AnimeEpisode> GetByHash(ISession session, string hash)
 		{
-			var eps = session.CreateQuery("Select ae FROM AnimeEpisode as ae, CrossRef_File_Episode as xref WHERE ae.AniDB_EpisodeID = xref.EpisodeID AND xref.Hash= :Hash")
+			return session.CreateQuery("Select ae.AnimeEpisodeID FROM AnimeEpisode as ae, CrossRef_File_Episode as xref WHERE ae.AniDB_EpisodeID = xref.EpisodeID AND xref.Hash= :Hash")
 				.SetParameter("Hash", hash)
-				.List<AnimeEpisode>();
+				.List<int>().Select(GetByID).Where(a=>a!=null).ToList();
 
-			return new List<AnimeEpisode>(eps);
 		}
 
 		public List<AnimeEpisode> GetByHash(string hash)
@@ -155,7 +162,7 @@ namespace JMMServer.Repositories
 					foreach (object[] res in results)
 					{
 						int animeEpisodeID = int.Parse(res[0].ToString());
-						AnimeEpisode ep = session.Get<AnimeEpisode>(animeEpisodeID);
+						AnimeEpisode ep = GetByID(animeEpisodeID);
 						if (ep != null)
 							epList.Add(ep);
 					}
@@ -164,7 +171,7 @@ namespace JMMServer.Repositories
 				}
 				else
 				{
-					string sql = "FROM AnimeEpisode x WHERE x.AniDB_EpisodeID IN " +
+					string sql = "SELECT x.AnimeEpisodeID FROM AnimeEpisode x WHERE x.AniDB_EpisodeID IN " +
 						"(Select xref.EpisodeID FROM CrossRef_File_Episode xref WHERE xref.Hash IN " +
 						"(Select vl.Hash from VideoLocal vl ";
 
@@ -173,10 +180,7 @@ namespace JMMServer.Repositories
 
 					sql += ") GROUP BY xref.EpisodeID HAVING COUNT(xref.EpisodeID) > 1)";
 
-					var eps = session.CreateQuery(sql)
-						.List<AnimeEpisode>();
-
-					return new List<AnimeEpisode>(eps);
+					return session.CreateQuery(sql).List<int>().Select(GetByID).Where(a => a != null).ToList(); ;
 				}
 			}
 		}
@@ -185,28 +189,16 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				var eps = session.CreateQuery("FROM AnimeEpisode x WHERE x.AnimeEpisodeID NOT IN (SELECT AnimeEpisodeID FROM AnimeEpisode_User WHERE AnimeSeriesID = :AnimeSeriesID AND JMMUserID = :JMMUserID) AND x.AnimeSeriesID = :AnimeSeriesID")
+				return session.CreateQuery("SELECT x.AnimeEpisodeID FROM AnimeEpisode x WHERE x.AnimeEpisodeID NOT IN (SELECT AnimeEpisodeID FROM AnimeEpisode_User WHERE AnimeSeriesID = :AnimeSeriesID AND JMMUserID = :JMMUserID) AND x.AnimeSeriesID = :AnimeSeriesID")
 					.SetParameter("AnimeSeriesID", seriesid)
 					.SetParameter("JMMUserID", userid)
-					.List<AnimeEpisode>();
-
-				return new List<AnimeEpisode>(eps);
+					.List<int>().Select(GetByID).Where(a => a != null).ToList();
 			}
 		}
 
 		public List<AnimeEpisode> GetMostRecentlyAdded(int seriesID)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				var eps = session
-					.CreateCriteria(typeof(AnimeEpisode))
-					.Add(Restrictions.Eq("AnimeSeriesID", seriesID))
-					.AddOrder(Order.Desc("DateTimeCreated"))
-					.SetMaxResults(1)
-					.List<AnimeEpisode>();
-
-				return new List<AnimeEpisode>(eps);
-			}
+		    return GetBySeriesID(seriesID).OrderByDescending(a => a.DateTimeCreated).ToList();
 		}
 
 		public void Delete(int id)
@@ -227,6 +219,7 @@ namespace JMMServer.Repositories
 				{
 					if (cr != null)
 					{
+                        Cache.Remove(cr);
 						session.Delete(cr);
 						transaction.Commit();
 					}

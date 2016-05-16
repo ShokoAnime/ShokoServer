@@ -81,12 +81,12 @@ namespace JMMServer.Commands.AniDB
                         AnimeSeries ser = repSeries.GetByAnimeID(oldAnimeID);
                         if (ser != null)
                             ser.QueueUpdateStats();
-                        StatsCache.Instance.UpdateUsingAnime(oldAnimeID);
+                        //StatsCache.Instance.UpdateUsingAnime(oldAnimeID);
 
                         ser = repSeries.GetByAnimeID(epInfo.AnimeID);
                         if (ser != null)
                             ser.QueueUpdateStats();
-                        StatsCache.Instance.UpdateUsingAnime(epInfo.AnimeID);
+                        //StatsCache.Instance.UpdateUsingAnime(epInfo.AnimeID);
                     }
 				}
 				

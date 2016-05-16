@@ -8,6 +8,9 @@ using JMMContracts;
 using System.Xml.Serialization;
 using BinaryNorthwest;
 using System.IO;
+using FluentNHibernate.Utils;
+using JMMContracts.PlexContracts;
+using JMMServer.Plex;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -28,11 +31,42 @@ namespace JMMServer.Entities
 		public int MissingEpisodeCountGroups { get; set; }
 		public int OverrideDescription { get; set; }
 		public int? DefaultAnimeSeriesID { get; set; }
-		#endregion
 
-		private static Logger logger = LogManager.GetCurrentClassLogger();
+        public int ContractVersion { get; set; }
+        public string ContractString { get; set; }
 
-		public string GetPosterPathNoBlanks()
+
+        #endregion
+
+
+        public const int CONTRACT_VERSION = 1;
+
+
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
+
+        internal Contract_AnimeGroup _contract = null;
+        public virtual Contract_AnimeGroup Contract
+        {
+            get
+            {
+                if ((_contract == null) && (ContractVersion == CONTRACT_VERSION))
+                    _contract = Newtonsoft.Json.JsonConvert.DeserializeObject<Contract_AnimeGroup>(ContractString);
+                return _contract;
+            }
+            set
+            {
+                _contract = value;
+                if (value != null)
+                {
+                    ContractVersion = CONTRACT_VERSION;
+                    ContractString = Newtonsoft.Json.JsonConvert.SerializeObject(_contract);
+                }
+            }
+        }     
+
+        
+        public string GetPosterPathNoBlanks()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -219,8 +253,7 @@ namespace JMMServer.Entities
 		public static void RenameAllGroups()
 		{
 			AnimeGroupRepository repGroups = new AnimeGroupRepository();
-			List<AnimeGroup> groupsToSave = new List<AnimeGroup>();
-			foreach (AnimeGroup grp in repGroups.GetAll())
+			foreach (AnimeGroup grp in repGroups.GetAll().ToList())
 			{
 				// only rename the group if it has one direct child Anime Series
 				if (grp.GetSeries().Count == 1)
@@ -228,13 +261,10 @@ namespace JMMServer.Entities
 					string newTitle = grp.GetSeries()[0].GetAnime().PreferredTitle;
 					grp.GroupName = newTitle;
 					grp.SortName = newTitle;
-					groupsToSave.Add(grp);
-					repGroups.Save(grp);
+				    repGroups.Save(grp, false, false);
 				}
 			}
 
-			foreach (AnimeGroup grp in groupsToSave)
-				repGroups.Save(grp);
 		}
 
 		public List<AniDB_Anime> Anime
@@ -250,145 +280,6 @@ namespace JMMServer.Entities
 				}
 				return relAnime;
 			}
-		}
-
-		public Contract_AnimeGroup ToContract(AnimeGroup_User userRecord)
-		{
-			Contract_AnimeGroup contract = new Contract_AnimeGroup();
-			contract.AnimeGroupID = this.AnimeGroupID;
-			contract.AnimeGroupParentID = this.AnimeGroupParentID;
-			contract.DefaultAnimeSeriesID = this.DefaultAnimeSeriesID;
-			contract.GroupName = this.GroupName;
-			contract.Description = this.Description;
-			contract.SortName = this.SortName;
-			contract.EpisodeAddedDate = this.EpisodeAddedDate;
-			contract.OverrideDescription = this.OverrideDescription;
-			contract.DateTimeUpdated = this.DateTimeUpdated;
-
-			if (userRecord == null)
-			{
-				contract.IsFave = 0;
-				contract.UnwatchedEpisodeCount = 0;
-				contract.WatchedEpisodeCount = 0;
-				contract.WatchedDate = null;
-				contract.PlayedCount = 0;
-				contract.WatchedCount = 0;
-				contract.StoppedCount = 0;
-			}
-			else
-			{
-				contract.IsFave = userRecord.IsFave;
-				contract.UnwatchedEpisodeCount = userRecord.UnwatchedEpisodeCount;
-				contract.WatchedEpisodeCount = userRecord.WatchedEpisodeCount;
-				contract.WatchedDate = userRecord.WatchedDate;
-				contract.PlayedCount = userRecord.PlayedCount;
-				contract.WatchedCount = userRecord.WatchedCount;
-				contract.StoppedCount = userRecord.StoppedCount;
-			}
-
-			contract.MissingEpisodeCount = this.MissingEpisodeCount;
-			contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
-
-			if (StatsCache.Instance.StatGroupAudioLanguages.ContainsKey(this.AnimeGroupID))
-				contract.Stat_AudioLanguages = StatsCache.Instance.StatGroupAudioLanguages[this.AnimeGroupID];
-			else contract.Stat_AudioLanguages = "";
-
-			if (StatsCache.Instance.StatGroupSubtitleLanguages.ContainsKey(this.AnimeGroupID))
-				contract.Stat_SubtitleLanguages = StatsCache.Instance.StatGroupSubtitleLanguages[this.AnimeGroupID];
-			else contract.Stat_SubtitleLanguages = "";
-
-			if (StatsCache.Instance.StatGroupVideoQuality.ContainsKey(this.AnimeGroupID))
-				contract.Stat_AllVideoQuality = StatsCache.Instance.StatGroupVideoQuality[this.AnimeGroupID];
-			else contract.Stat_AllVideoQuality = "";
-
-			if (StatsCache.Instance.StatGroupVideoQualityEpisodes.ContainsKey(this.AnimeGroupID))
-				contract.Stat_AllVideoQuality_Episodes = StatsCache.Instance.StatGroupVideoQualityEpisodes[this.AnimeGroupID];
-			else contract.Stat_AllVideoQuality_Episodes = "";
-
-			if (StatsCache.Instance.StatGroupIsComplete.ContainsKey(this.AnimeGroupID))
-				contract.Stat_IsComplete = StatsCache.Instance.StatGroupIsComplete[this.AnimeGroupID];
-			else contract.Stat_IsComplete = false;
-
-			if (StatsCache.Instance.StatGroupHasTvDB.ContainsKey(this.AnimeGroupID))
-				contract.Stat_HasTvDBLink = StatsCache.Instance.StatGroupHasTvDB[this.AnimeGroupID];
-			else contract.Stat_HasTvDBLink = false;
-
-			if (StatsCache.Instance.StatGroupHasMAL.ContainsKey(this.AnimeGroupID))
-				contract.Stat_HasMALLink = StatsCache.Instance.StatGroupHasMAL[this.AnimeGroupID];
-			else contract.Stat_HasMALLink = false;
-
-			if (StatsCache.Instance.StatGroupHasMovieDB.ContainsKey(this.AnimeGroupID))
-				contract.Stat_HasMovieDBLink = StatsCache.Instance.StatGroupHasMovieDB[this.AnimeGroupID];
-			else contract.Stat_HasMovieDBLink = false;
-
-			if (StatsCache.Instance.StatGroupHasMovieDBOrTvDB.ContainsKey(this.AnimeGroupID))
-				contract.Stat_HasMovieDBOrTvDBLink = StatsCache.Instance.StatGroupHasMovieDBOrTvDB[this.AnimeGroupID];
-			else contract.Stat_HasMovieDBOrTvDBLink = false;
-
-			if (StatsCache.Instance.StatGroupIsFinishedAiring.ContainsKey(this.AnimeGroupID))
-				contract.Stat_HasFinishedAiring = StatsCache.Instance.StatGroupIsFinishedAiring[this.AnimeGroupID];
-			else contract.Stat_HasFinishedAiring = false;
-
-			if (StatsCache.Instance.StatGroupIsCurrentlyAiring.ContainsKey(this.AnimeGroupID))
-				contract.Stat_IsCurrentlyAiring = StatsCache.Instance.StatGroupIsCurrentlyAiring[this.AnimeGroupID];
-			else contract.Stat_IsCurrentlyAiring = false;
-
-			if (StatsCache.Instance.StatGroupAirDate_Max.ContainsKey(this.AnimeGroupID))
-				contract.Stat_AirDate_Max = StatsCache.Instance.StatGroupAirDate_Max[this.AnimeGroupID];
-			else contract.Stat_AirDate_Max = null;
-
-			if (StatsCache.Instance.StatGroupAirDate_Min.ContainsKey(this.AnimeGroupID))
-				contract.Stat_AirDate_Min = StatsCache.Instance.StatGroupAirDate_Min[this.AnimeGroupID];
-			else contract.Stat_AirDate_Min = null;
-
-			if (StatsCache.Instance.StatGroupTags.ContainsKey(this.AnimeGroupID))
-				contract.Stat_AllTags = StatsCache.Instance.StatGroupTags[this.AnimeGroupID];
-			else contract.Stat_AllTags = "";
-
-            if (StatsCache.Instance.StatGroupCustomTags.ContainsKey(this.AnimeGroupID))
-                contract.Stat_AllCustomTags = StatsCache.Instance.StatGroupCustomTags[this.AnimeGroupID];
-            else contract.Stat_AllCustomTags = "";
-
-			if (StatsCache.Instance.StatGroupEndDate.ContainsKey(this.AnimeGroupID))
-				contract.Stat_EndDate = StatsCache.Instance.StatGroupEndDate[this.AnimeGroupID];
-			else contract.Stat_EndDate = null;
-
-			if (StatsCache.Instance.StatGroupSeriesCreatedDate.ContainsKey(this.AnimeGroupID))
-				contract.Stat_SeriesCreatedDate = StatsCache.Instance.StatGroupSeriesCreatedDate[this.AnimeGroupID];
-			else contract.Stat_SeriesCreatedDate = null;
-
-			if (StatsCache.Instance.StatGroupTitles.ContainsKey(this.AnimeGroupID))
-				contract.Stat_AllTitles = StatsCache.Instance.StatGroupTitles[this.AnimeGroupID];
-			else contract.Stat_AllTitles = "";
-
-			if (StatsCache.Instance.StatGroupUserVoteOverall.ContainsKey(this.AnimeGroupID))
-				contract.Stat_UserVoteOverall = StatsCache.Instance.StatGroupUserVoteOverall[this.AnimeGroupID];
-			else contract.Stat_UserVoteOverall = null;
-
-			if (StatsCache.Instance.StatGroupUserVotePermanent.ContainsKey(this.AnimeGroupID))
-				contract.Stat_UserVotePermanent = StatsCache.Instance.StatGroupUserVotePermanent[this.AnimeGroupID];
-			else contract.Stat_UserVotePermanent = null;
-
-			if (StatsCache.Instance.StatGroupUserVoteTemporary.ContainsKey(this.AnimeGroupID))
-				contract.Stat_UserVoteTemporary = StatsCache.Instance.StatGroupUserVoteTemporary[this.AnimeGroupID];
-			else contract.Stat_UserVoteTemporary = null;
-
-			if (StatsCache.Instance.StatGroupSeriesCount.ContainsKey(this.AnimeGroupID))
-				contract.Stat_SeriesCount = StatsCache.Instance.StatGroupSeriesCount[this.AnimeGroupID];
-			else contract.Stat_SeriesCount = 0;
-
-			if (StatsCache.Instance.StatGroupEpisodeCount.ContainsKey(this.AnimeGroupID))
-				contract.Stat_EpisodeCount = StatsCache.Instance.StatGroupEpisodeCount[this.AnimeGroupID];
-			else contract.Stat_EpisodeCount = 0;
-
-			if (StatsCache.Instance.StatGroupAniDBRating.ContainsKey(this.AnimeGroupID))
-				contract.Stat_AniDBRating = StatsCache.Instance.StatGroupAniDBRating[this.AnimeGroupID];
-			else contract.Stat_AniDBRating = 0;
-
-			//contract.AniDB_AirDate = this.AirDate;
-			//contract.AniDB_Year = animeRec.Year;
-
-			return contract;
 		}
 
 		public decimal AniDBRating
@@ -798,7 +689,22 @@ namespace JMMServer.Entities
 			JMMUserRepository repUsers = new JMMUserRepository();
 			List<JMMUser> allUsers = repUsers.GetAll();
 
-			if (watchedStats)
+            if (missingEpsStats)
+            {
+                this.MissingEpisodeCount = 0;
+                this.MissingEpisodeCountGroups = 0;
+
+                foreach (AnimeSeries ser in seriesList)
+                {
+                    this.MissingEpisodeCount += ser.MissingEpisodeCount;
+                    this.MissingEpisodeCountGroups += ser.MissingEpisodeCountGroups;
+                }
+
+                AnimeGroupRepository repGrp = new AnimeGroupRepository();
+                repGrp.Save(this, true, false);
+            }
+
+            if (watchedStats)
 			{
 				foreach (JMMUser juser in allUsers)
 				{
@@ -843,26 +749,61 @@ namespace JMMServer.Entities
 					rep.Save(userRecord);
 				}
 			}
-
-			if (missingEpsStats)
-			{
-				this.MissingEpisodeCount = 0;
-				this.MissingEpisodeCountGroups = 0;
-
-				foreach (AnimeSeries ser in seriesList)
-				{
-					this.MissingEpisodeCount += ser.MissingEpisodeCount;
-					this.MissingEpisodeCountGroups += ser.MissingEpisodeCountGroups;
-				}
-
-				AnimeGroupRepository repGrp = new AnimeGroupRepository();
-				repGrp.Save(this);
-			}
-
-			
 		}
 
-		public static void GetAnimeGroupsRecursive(ISession session, int animeGroupID, ref List<AnimeGroup> groupList)
+        public void UpdateGroupFilters(JMMUser usr)
+        {
+            AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
+            JMMUserRepository repUser = new JMMUserRepository();
+            GroupFilterRepository repGrpFilter = new GroupFilterRepository();
+
+            if (AnimeGroupParentID.HasValue)
+                return;
+            List<JMMUser> users = new List<JMMUser>();
+            if (usr != null)
+                users.Add(usr);
+            else
+                users = repUser.GetAll();
+            foreach (JMMUser user in users)
+            {
+                AnimeGroup_User userRec = repUserGroups.GetByUserAndGroupID(user.JMMUserID, AnimeGroupID);
+                List<GroupFilter> gfs = repGrpFilter.GetAll();
+                foreach (GroupFilter gf in gfs)
+                {
+                    bool change = false;
+                    if (gf.EvaluateGroupFilter(this, user, userRec))
+                    {
+                        if (!gf.GroupsIds.ContainsKey(user.JMMUserID))
+                        {
+                            gf.GroupsIds[user.JMMUserID] = new HashSet<int>();
+                        }
+                        if (!gf.GroupsIds[user.JMMUserID].Contains(AnimeGroupID))
+                        {
+                            gf.GroupsIds[user.JMMUserID].Add(AnimeGroupID);
+                            change = true;
+                        }
+                    }
+                    else
+                    {
+                        if (gf.GroupsIds.ContainsKey(user.JMMUserID))
+                        {
+                            if (gf.GroupsIds[user.JMMUserID].Contains(AnimeGroupID))
+                            {
+                                gf.GroupsIds[user.JMMUserID].Remove(AnimeGroupID);
+                                change = true;
+                            }
+                        }
+                    }
+                    if (change)
+                        repGrpFilter.Save(gf, false, user);
+                }
+            }
+        }
+
+
+
+
+        public static void GetAnimeGroupsRecursive(ISession session, int animeGroupID, ref List<AnimeGroup> groupList)
 		{
 			AnimeGroupRepository rep = new AnimeGroupRepository();
 			AnimeGroup grp = rep.GetByID(session, animeGroupID);
@@ -900,8 +841,7 @@ namespace JMMServer.Entities
 				if (!AnimeGroupParentID.HasValue) return this;
 				AnimeGroupRepository repGroups = new AnimeGroupRepository();
 				AnimeGroup parentGroup = repGroups.GetByID(this.AnimeGroupParentID.Value);
-
-				while (parentGroup.AnimeGroupParentID.HasValue)
+				while (parentGroup!=null && parentGroup.AnimeGroupParentID.HasValue)
 				{
 					parentGroup = repGroups.GetByID(parentGroup.AnimeGroupParentID.Value);
 				}

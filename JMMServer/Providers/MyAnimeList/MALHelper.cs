@@ -274,8 +274,8 @@ namespace JMMServer.Providers.MyAnimeList
 				xref.CrossRefSource = (int)CrossRefSource.User;
 
 			repCrossRef.Save(xref);
+            AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-			StatsCache.Instance.UpdateUsingAnime(animeID);
 
 			logger.Trace("Changed MAL association: {0}", animeID);
 
@@ -294,9 +294,9 @@ namespace JMMServer.Providers.MyAnimeList
 
 			repCrossRef.Delete(xref.CrossRef_AniDB_MALID);
 
-			StatsCache.Instance.UpdateUsingAnime(animeID);
+            AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-			CommandRequest_WebCacheDeleteXRefAniDBMAL req = new CommandRequest_WebCacheDeleteXRefAniDBMAL(animeID, epType, epNumber);
+            CommandRequest_WebCacheDeleteXRefAniDBMAL req = new CommandRequest_WebCacheDeleteXRefAniDBMAL(animeID, epType, epNumber);
 			req.Save();
 		}
 

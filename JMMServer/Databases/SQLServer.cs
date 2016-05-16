@@ -183,6 +183,7 @@ namespace JMMServer.Databases
                 UpdateSchema_039(versionNumber);
                 UpdateSchema_040(versionNumber);
                 UpdateSchema_041(versionNumber);
+                UpdateSchema_042(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1436,6 +1437,9 @@ namespace JMMServer.Databases
             cmds.Add("UPDATE GroupFilter SET FilterType = 1");
             cmds.Add("ALTER TABLE GroupFilter ALTER COLUMN FilterType int NOT NULL");
 
+            //Add Migration as SQL, since Groupfilters Cache is not init yet.
+            cmds.Add("UPDATE GroupFilter SET FilterType = 2 WHERE GroupFilterName='"+ Constants.GroupFilterName.ContinueWatching+"'");
+
             using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
                 ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
             {
@@ -1452,10 +1456,44 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
             // Now do the migratiuon
-            DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
+            //DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
 
         }
+        private static void UpdateSchema_042(int currentVersionNumber)
+        {
+            int thisVersion = 42;
+            if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT(0), PlexContractString nvarchar(MAX) NULL, KodiContractVersion int NOT NULL DEFAULT(0), KodiContractString nvarchar(MAX) NULL");
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractVersion int NOT NULL DEFAULT(0), PlexContractString nvarchar(MAX) NULL, KodiContractVersion int NOT NULL DEFAULT(0), KodiContractString nvarchar(MAX) NULL");
+            cmds.Add("ALTER TABLE GroupFilter ADD GroupsIdsVersion int NOT NULL DEFAULT(0), GroupsIdsString nvarchar(MAX) NULL");
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL");
+
+
+            using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+                ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+
+        }
         private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,

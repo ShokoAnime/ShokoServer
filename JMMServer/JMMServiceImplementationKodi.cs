@@ -57,11 +57,10 @@ namespace JMMServer
 
                     GroupFilterRepository repGF = new GroupFilterRepository();
                     List<GroupFilter> allGfs = repGF.GetAll(session);
-                    Dictionary<int, HashSet<int>> gstats = StatsCache.Instance.StatUserGroupFilter[userid];
+                    
                     foreach (GroupFilter gg in allGfs.ToArray())
                     {
-                        if ((!StatsCache.Instance.StatUserGroupFilter.ContainsKey(userid)) ||
-                            (!StatsCache.Instance.StatUserGroupFilter[userid].ContainsKey(gg.GroupFilterID)))
+                        if (!gg.GroupsIds.ContainsKey(userid))
                         {
                             allGfs.Remove(gg);
                         }
@@ -69,7 +68,6 @@ namespace JMMServer
 
 
                     AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                    allGfs.Insert(0, new GroupFilter() {GroupFilterName = "All", GroupFilterID = -999});
                     foreach (GroupFilter gg in allGfs)
                     {
 
@@ -81,7 +79,7 @@ namespace JMMServer
                         pp.PrimaryExtraKey = pp.Key;
                         pp.Title = gg.GroupFilterName;
                         HashSet<int> groups;
-                        groups = gg.GroupFilterID == -999 ? new HashSet<int>(repGroups.GetAllTopLevelGroups(session).Select(a => a.AnimeGroupID)) : gstats[gg.GroupFilterID];
+                        groups = gg.GroupsIds[userid];
                         if (groups.Count != 0)
                         {
                             bool repeat;
@@ -94,8 +92,8 @@ namespace JMMServer
                                 repeat = true;
                                 int grp = groups.ElementAt(rnd.Next(groups.Count));
                                 AnimeGroup ag = repGroups.GetByID(grp);
-                                List<AnimeSeries> sers = ag.GetSeries(session);
-                                if (sers.Count > 0)
+                                List<AnimeSeries> sers = ag?.GetSeries(session);
+                                if (sers?.Count > 0)
                                 {
                                     AnimeSeries ser = sers[rnd.Next(sers.Count)];
                                     AniDB_Anime anim = ser.GetAnime(session);
@@ -297,54 +295,56 @@ namespace JMMServer
                 AnimeSeries ser = repSeries.GetByAnimeID(anidb_anime.AnimeID);
                 if (ser != null)
                 {
-                    Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(user.JMMUserID), true);
-                    Video v = KodiHelper.FromSerieWithPossibleReplacement(cserie, ser, user.JMMUserID);
-
-                    //proper naming 
-                    v.OriginalTitle = "";
-                    foreach (AniDB_Anime_Title title in anidb_anime.GetTitles())
+                    Video v = ser.GetUserRecord(user.JMMUserID)?.KodiContract?.Clone();
+                    if (v != null)
                     {
-                        if (title.TitleType == "official" || title.TitleType == "main")
+                        //proper naming 
+                        v.OriginalTitle = "";
+                        foreach (AniDB_Anime_Title title in anidb_anime.GetTitles())
                         {
-                            v.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                            if (title.TitleType == "official" || title.TitleType == "main")
+                            {
+                                v.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title +
+                                                   "|";
+                            }
                         }
+                        v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
+                        //proper naming end
+
+                        //experiment
+                        Characters c = new Characters();
+                        c.CharactersList = new List<Character>();
+                        c.CharactersList = GetCharactersFromAniDB(anidb_anime);
+                        v.CharactersList = new List<Characters>();
+                        v.CharactersList.Add(c);
+                        //experiment END
+
+                        switch (anidb_anime.AnimeTypeEnum)
+                        {
+                            case enAnimeType.Movie:
+                                v.SourceTitle = "Anime Movies";
+                                break;
+                            case enAnimeType.OVA:
+                                v.SourceTitle = "Anime Ovas";
+                                break;
+                            case enAnimeType.Other:
+                                v.SourceTitle = "Anime Others";
+                                break;
+                            case enAnimeType.TVSeries:
+                                v.SourceTitle = "Anime Series";
+                                break;
+                            case enAnimeType.TVSpecial:
+                                v.SourceTitle = "Anime Specials";
+                                break;
+                            case enAnimeType.Web:
+                                v.SourceTitle = "Anime Web Clips";
+                                break;
+
+                        }
+
+                        ls.Add(v);
+                        cnt++;
                     }
-                    v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
-                    //proper naming end
-
-                    //experiment
-                    Characters c = new Characters();
-                    c.CharactersList = new List<Character>();
-                    c.CharactersList = GetCharactersFromAniDB(anidb_anime);
-                    v.CharactersList = new List<Characters>();
-                    v.CharactersList.Add(c);
-                    //experiment END
-
-                    switch (anidb_anime.AnimeTypeEnum)
-                    {
-                        case enAnimeType.Movie:
-                            v.SourceTitle = "Anime Movies";
-                            break;
-                        case enAnimeType.OVA:
-                            v.SourceTitle = "Anime Ovas";
-                            break;
-                        case enAnimeType.Other:
-                            v.SourceTitle = "Anime Others";
-                            break;
-                        case enAnimeType.TVSeries:
-                            v.SourceTitle = "Anime Series";
-                            break;
-                        case enAnimeType.TVSpecial:
-                            v.SourceTitle = "Anime Specials";
-                            break;
-                        case enAnimeType.Web:
-                            v.SourceTitle = "Anime Web Clips";
-                            break;
-
-                    }
-                        
-                    ls.Add(v);
-                    cnt++;
                     if (cnt == lim)
                         break;
                 }
@@ -370,25 +370,43 @@ namespace JMMServer
                 AnimeGroup grp = repGroups.GetByID(groupID);
                 if (grp != null)
                 {
-                    Contract_AnimeGroup basegrp = grp.ToContract(grp.GetUserRecord(session, userid));
-                    ret.MediaContainer.Title1 = ret.MediaContainer.Title2 = basegrp.GroupName;
-                    List<AnimeSeries> sers2 = grp.GetSeries(session);
-                    ret.MediaContainer.Art = KodiHelper.GetRandomFanartFromSeries(sers2, session);
-                    foreach (AnimeGroup grpChild in grp.GetChildGroups())
+                    Contract_AnimeGroup basegrp = grp.GetUserRecord(userid)?.Contract;
+                    if (basegrp != null)
                     {
-                        Video v = StatsCache.Instance.StatKodiGroupsCache[userid][grpChild.AnimeGroupID];
-                        v.Type = "show";
-                        if (v != null)
-                            retGroups.Add(v.Clone());
+                        ret.MediaContainer.Title1 = ret.MediaContainer.Title2 = basegrp.GroupName;
+                        List<AnimeSeries> sers2 = grp.GetSeries(session);
+                        ret.MediaContainer.Art = KodiHelper.GetRandomFanartFromSeries(sers2, session);
+                        foreach (AnimeGroup grpChild in grp.GetChildGroups())
+                        {
+                            Video v = grpChild.GetUserRecord(userid)?.KodiContract;                            
+                            if (v != null)
+                            {
+                                v = v.Clone();
+                                v.Type = "show";
+                                retGroups.Add(v);
+                            }
+                        }
+                        foreach (AnimeSeries ser in grp.GetSeries())
+                        {
+                            Video v = ser.GetUserRecord(userid)?.KodiContract?.Clone();
+                            if (v != null)
+                            {
+                                v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
+                                v.Group = basegrp;
+                                retGroups.Add(v);
+                            }
+                        }
                     }
                     foreach (AnimeSeries ser in grp.GetSeries())
                     {
-                        Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(session, userid), true);
-                        Video v = KodiHelper.FromSerieWithPossibleReplacement(cserie, ser, userid);
-                        v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
-                        v.Group = basegrp;
-                        v.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
-                        retGroups.Add(v);
+                        Video v = ser.GetUserRecord(session, userid)?.KodiContract;
+                        if (v != null)
+                        {
+                            v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
+                            v.Group = basegrp;
+                            v.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
+                            retGroups.Add(v);
+                        }
                     }
                 }
                 ret.Childrens = retGroups.OrderBy(a => a.AirDate).ToList();
@@ -505,7 +523,9 @@ namespace JMMServer
                     }
                 }
                 List<Video> vids=new List<Video>();
-                Contract_AnimeSeries cseries = ser.ToContract(ser.GetUserRecord(userid), true);
+                Contract_AnimeSeries cseries = ser.GetUserRecord(userid)?.Contract;
+                if (cseries==null)
+                    return new MemoryStream();
                 Video nv = KodiHelper.FromSerie(cseries, userid);
                 KodiEpisodeType k = new KodiEpisodeType();
                 if (eptype.HasValue)
@@ -582,18 +602,8 @@ namespace JMMServer
                     GroupFilterRepository repGF = new GroupFilterRepository();
 
                     GroupFilter gf;
-
-                    if (groupFilterID == -999)
-                    {
-                        // all groups
-                        gf = new GroupFilter();
-                        gf.GroupFilterName = "All";
-                    }
-                    else
-                    {
-                        gf = repGF.GetByID(session, groupFilterID);
-                        if (gf == null) return new MemoryStream();
-                    }
+                    gf = repGF.GetByID(session, groupFilterID);
+                    if (gf == null) return new MemoryStream();
                     ret.MediaContainer.Title2 = ret.MediaContainer.Title1 = gf.GroupFilterName;
                     //Contract_GroupFilterExtended contract = gf.ToContractExtended(user);
 
@@ -611,45 +621,30 @@ namespace JMMServer
 
 
 
-                    if ((StatsCache.Instance.StatUserGroupFilter.ContainsKey(userid)) &&
-                        (StatsCache.Instance.StatUserGroupFilter[userid].ContainsKey(gf.GroupFilterID)))
+                    if (gf.GroupsIds.ContainsKey(userid))
                     {
-                        HashSet<int> groups = StatsCache.Instance.StatUserGroupFilter[userid][gf.GroupFilterID];
-                        var tas = StatsCache.Instance.StatKodiGroupsCache;
-                        foreach (AnimeGroup grp in allGrps)
+                        if (gf.GroupsIds.ContainsKey(userid))
                         {
-                            if (groups.Contains(grp.AnimeGroupID))
+                            foreach (AnimeGroup grp in gf.GroupsIds[userid].Select(a => repGroups.GetByID(a)).Where(a => a != null))
                             {
-                                try {
-                                    //if (grp.GroupName == "Rockman.EXE")
-                                    //{
-                                    //    int x = grp.MissingEpisodeCount;
-                                    //}
-                                    Video v = StatsCache.Instance.StatKodiGroupsCache[userid][grp.AnimeGroupID];
-                                    if (v != null)
-                                    {
-                                        //proper naming
-                                        AniDB_Anime anim = grp.Anime[0];
-                                        v.OriginalTitle = "";
-                                        foreach (AniDB_Anime_Title title in anim.GetTitles())
-                                        {
-                                            if (title.TitleType == "official" || title.TitleType == "main")
-                                            {
-                                                v.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
-                                            }
-                                        }
-                                        v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
-                                        //proper naming end
-                                        List<AnimeSeries> sers = grp.GetAllSeries();
-                                        AnimeSeries ser = sers[0];
-                                        v.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
-
-                                        retGroups.Add(v.Clone());
-                                    }
-                                }
-                                catch(Exception e)
+                                Video v = grp.GetUserRecord(userid)?.KodiContract;
+                                if (v != null)
                                 {
-                                    int x = retGroups.Count;
+                                    v = v.Clone();
+                                    v.Type = "show";
+                                    //proper naming
+                                    AniDB_Anime anim = grp.Anime[0];
+                                    v.OriginalTitle = "";
+                                    foreach (AniDB_Anime_Title title in anim.GetTitles())
+                                    {
+                                        if (title.TitleType == "official" || title.TitleType == "main")
+                                        {
+                                            v.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                                        }
+                                    }
+                                    v.OriginalTitle = v.OriginalTitle.Substring(0, v.OriginalTitle.Length - 1);
+                                    //proper naming end
+                                    retGroups.Add(v);
                                 }
                             }
                         }
@@ -681,57 +676,59 @@ namespace JMMServer
                                 AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
                                 AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                                 AnimeGroup ag = repGroups.GetByID(gr.AnimeGroupID);
-                                List<AnimeSeries> sers = ag.GetAllSeries();
-                                AnimeSeries ser = sers[0];
-                                AniDB_Anime anim = ser.GetAnime();
-
-                                j.CharactersList = new List<Characters>();
-                                Characters c = new Characters();
-                                c.CharactersList = GetCharactersFromAniDB(anim);
-                                j.CharactersList.Add(c);
-                                //experimentEND
-
-                                //proper naming 
-                                j.OriginalTitle = "";
-                                foreach (AniDB_Anime_Title title in anim.GetTitles())
+                                List<AnimeSeries> sers = ag?.GetAllSeries();
+                                if (sers?.Count > 0)
                                 {
-                                    if (title.TitleType == "official" || title.TitleType == "main")
+                                    AnimeSeries ser = sers[0];
+                                    AniDB_Anime anim = ser.GetAnime();
+
+                                    j.CharactersList = new List<Characters>();
+                                    Characters c = new Characters();
+                                    c.CharactersList = GetCharactersFromAniDB(anim);
+                                    j.CharactersList.Add(c);
+                                    //experimentEND
+
+                                    //proper naming 
+                                    j.OriginalTitle = "";
+                                    foreach (AniDB_Anime_Title title in anim.GetTitles())
                                     {
-                                        j.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" + title.Title + "|";
+                                        if (title.TitleType == "official" || title.TitleType == "main")
+                                        {
+                                            j.OriginalTitle += "{" + title.TitleType + ":" + title.Language + "}" +
+                                                               title.Title + "|";
+                                        }
                                     }
+                                    j.OriginalTitle = j.OriginalTitle.Substring(0, j.OriginalTitle.Length - 1);
+                                    //proper naming end
+
+
+
+                                    //CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+                                    //List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(anim.AnimeID);
+                                    //if (Trakt != null)
+                                    //{
+                                    //    if (Trakt.Count > 0)
+                                    //    {
+                                    //        j.Trakt = Trakt[0].TraktID;
+                                    //    }
+                                    //}
+
+                                    //CrossRef_AniDB_TvDBV2Repository repCrossRefV2 = new CrossRef_AniDB_TvDBV2Repository();
+                                    //List<CrossRef_AniDB_TvDBV2> TvDB = repCrossRefV2.GetByAnimeID(anim.AnimeID);
+                                    //if (TvDB != null)
+                                    //{
+                                    //    if (TvDB.Count > 0)
+                                    //    {
+                                    //        j.TvDB = TvDB[0].TvDBID.ToString();
+                                    //    }
+                                    //}
+
+                                    //community support END
+
+                                    joints2.Add(j);
+                                    retGroups.Remove(j);
+                                    break;
                                 }
-                                j.OriginalTitle = j.OriginalTitle.Substring(0, j.OriginalTitle.Length - 1);
-                                //proper naming end
-
-                                j.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
-
-                                //community support
-
-                                //CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-                                //List<CrossRef_AniDB_TraktV2> Trakt = repCrossRef.GetByAnimeID(anim.AnimeID);
-                                //if (Trakt != null)
-                                //{
-                                //    if (Trakt.Count > 0)
-                                //    {
-                                //        j.Trakt = Trakt[0].TraktID;
-                                //    }
-                                //}
-
-                                //CrossRef_AniDB_TvDBV2Repository repCrossRefV2 = new CrossRef_AniDB_TvDBV2Repository();
-                                //List<CrossRef_AniDB_TvDBV2> TvDB = repCrossRefV2.GetByAnimeID(anim.AnimeID);
-                                //if (TvDB != null)
-                                //{
-                                //    if (TvDB.Count > 0)
-                                //    {
-                                //        j.TvDB = TvDB[0].TvDBID.ToString();
-                                //    }
-                                //}
-
-                                //community support END
-
-                                joints2.Add(j);
-                                retGroups.Remove(j);
-                                break;
                             }
                         }
                     }

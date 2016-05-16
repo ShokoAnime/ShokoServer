@@ -159,7 +159,8 @@ namespace PlexMediaInfo
 
 	    ~MediaInfo()
 	    {
-    	    MediaInfo_Delete(Handle);
+            if (Handle!=IntPtr.Zero)
+        	    MediaInfo_Delete(Handle);
             if (moduleHandle == IntPtr.Zero)
             {
                 FreeLibrary(moduleHandle);
