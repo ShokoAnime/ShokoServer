@@ -397,15 +397,16 @@ namespace JMMServer
                             }
                         }
                     }
-                    }
                     foreach (AnimeSeries ser in grp.GetSeries())
                     {
-                        Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(session, userid), true);
-                        Video v = KodiHelper.FromSerieWithPossibleReplacement(cserie, ser, userid);
-                        v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
-                        v.Group = basegrp;
-                        v.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
-                        retGroups.Add(v);
+                        Video v = ser.GetUserRecord(session, userid)?.KodiContract;
+                        if (v != null)
+                        {
+                            v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
+                            v.Group = basegrp;
+                            v.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
+                            retGroups.Add(v);
+                        }
                     }
                 }
                 ret.Childrens = retGroups.OrderBy(a => a.AirDate).ToList();
