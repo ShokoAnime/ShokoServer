@@ -1174,26 +1174,21 @@ namespace JMMServer
 							}
 
 
-							List<AnimeEpisode> epAnimes = repEps.GetByAniDBEpisodeID(episodeID);
-							if (epAnimes.Count==0)
-								continue;
+							AnimeEpisode epAnime = repEps.GetByAniDBEpisodeID(episodeID);
                             CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
-						    foreach (AnimeEpisode epAnime in epAnimes)
+						    JMMServer.Entities.CrossRef_File_Episode xref = new JMMServer.Entities.CrossRef_File_Episode();
+
+						    try
 						    {
-						        JMMServer.Entities.CrossRef_File_Episode xref = new JMMServer.Entities.CrossRef_File_Episode();
-
-						        try
-						        {
-						            xref.PopulateManually(vid, epAnime);
-						        }
-						        catch (Exception ex)
-						        {
-						            string msg = string.Format("Error populating XREF: {0} - {1}", vid.ToStringDetailed(), ex.ToString());
-						            throw;
-						        }
-
-						        repXRefs.Save(xref);
+						        xref.PopulateManually(vid, epAnime);
 						    }
+						    catch (Exception ex)
+						    {
+						        string msg = string.Format("Error populating XREF: {0} - {1}", vid.ToStringDetailed(), ex.ToString());
+						        throw;
+						    }
+
+						    repXRefs.Save(xref);
 
 						    vid.RenameIfRequired();
 							vid.MoveFileIfRequired();

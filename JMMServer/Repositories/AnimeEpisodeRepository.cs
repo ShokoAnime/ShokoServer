@@ -17,7 +17,6 @@ namespace JMMServer.Repositories
 	    private static PocoCache<int, AnimeEpisode> Cache;
 	    private static PocoIndex<int, AnimeEpisode, int> Series;
 	    private static PocoIndex<int, AnimeEpisode, int> EpisodeIDs;
-	    private static PocoIndex<int, AnimeEpisode, int, int> SeriesEpisodeIds;
 
         public static void InitCache()
         {
@@ -28,7 +27,6 @@ namespace JMMServer.Repositories
             Cache = new PocoCache<int, AnimeEpisode>(repo.InternalGetAll(),a=>a.AnimeEpisodeID);
             Series=Cache.CreateIndex(a=>a.AnimeSeriesID);
             EpisodeIDs=Cache.CreateIndex(a=>a.AniDB_EpisodeID);
-            SeriesEpisodeIds=Cache.CreateIndex(a=>a.AnimeSeriesID,a=>a.AniDB_EpisodeID);
         }
 
         private List<AnimeEpisode> InternalGetAll()
@@ -83,29 +81,19 @@ namespace JMMServer.Repositories
             return GetBySeriesID(seriesid);
         }
 
-		public List<AnimeEpisode> GetByAniDBEpisodeID(int epid)
+		public AnimeEpisode GetByAniDBEpisodeID(int epid)
 		{
             //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
-		    return EpisodeIDs.GetMultiple(epid);
+		    return EpisodeIDs.GetOne(epid);
 		}
 
-		public List<AnimeEpisode> GetByAniDBEpisodeID(ISession session, int epid)
+		public AnimeEpisode GetByAniDBEpisodeID(ISession session, int epid)
 		{
             //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.        
             return GetByAniDBEpisodeID(epid);
 		}
 
-		public AnimeEpisode GetByAniEpisodeIDAndSeriesID(int epid, int seriesid)
-		{
-            //This method should return only one AnimeEpisode
-		    return SeriesEpisodeIds.GetOne(seriesid, epid);
-        }
 
-        public AnimeEpisode GetByAniEpisodeIDAndSeriesID(ISession session, int epid, int seriesid)
-		{
-            //This method should return only one AnimeEpisode
-            return GetByAniEpisodeIDAndSeriesID(epid, seriesid);
-		}
 
 		/// <summary>
 		/// Get all the AnimeEpisode records associate with an AniDB_File record

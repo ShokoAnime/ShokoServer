@@ -1138,29 +1138,22 @@ namespace JMMServer
 			}
 
 		}
+        public Contract_AnimeEpisode GetEpisodeByAniDBEpisodeID(int episodeID, int userID)
+        {
+            try
+            {
+                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+                AnimeEpisode ep = repEps.GetByAniDBEpisodeID(episodeID);
+                return ep?.GetUserRecord(userID)?.Contract;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
 
-		public Contract_AnimeEpisode GetEpisodeByAniDBEpisodeAndSerie(int episodeID, int animeid, int userID)
-		{
-			try
-			{
-                AnimeEpisodeRepository aeRepo=new AnimeEpisodeRepository();
-                AnimeEpisode_UserRepository rep = new AnimeEpisode_UserRepository();
-                AnimeSeriesRepository asRepo=new AnimeSeriesRepository();
-			    AnimeSeries series = asRepo.GetByAnimeID(animeid);
-			    if (series == null)
-			        return null;
-			    AnimeEpisode ep = aeRepo.GetByAniEpisodeIDAndSeriesID(episodeID, series.AnimeSeriesID);
-			    if (ep == null)
-			        return null;
-			    return rep.GetByUserIDAndEpisodeID(userID, ep.AnimeEpisodeID)?.Contract;
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException(ex.ToString(), ex);
-				return null;
-			}
+        }
 
-		}
 
 		public string RemoveAssociationOnFile(int videoLocalID, int aniDBEpisodeID)
 		{
@@ -1349,7 +1342,7 @@ namespace JMMServer
 
 					AniDB_Episode aniep = anieps[0];
 
-					AnimeEpisode ep = repEps.GetByAniEpisodeIDAndSeriesID(aniep.EpisodeID, ser.AnimeSeriesID);
+					AnimeEpisode ep = repEps.GetByAniDBEpisodeID(aniep.EpisodeID);
 					if (ep==null)
 						return "Could not find episode record";
 
@@ -1420,7 +1413,7 @@ namespace JMMServer
 
 					AniDB_Episode aniep = anieps[0];
 
-					AnimeEpisode ep = repEps.GetByAniEpisodeIDAndSeriesID(aniep.EpisodeID, ser.AnimeSeriesID);
+					AnimeEpisode ep = repEps.GetByAniDBEpisodeID(aniep.EpisodeID);
 					if (ep==null)
 						return "Could not find episode record";
 
@@ -5851,7 +5844,7 @@ namespace JMMServer
 				if (anieps.Count == 0) return null;
 
 				AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-				AnimeEpisode ep = repEps.GetByAniEpisodeIDAndSeriesID(anieps[0].EpisodeID,animeSeriesID);
+				AnimeEpisode ep = repEps.GetByAniDBEpisodeID(anieps[0].EpisodeID);
 			    return ep?.GetUserRecord(userID)?.Contract;
 
 			}

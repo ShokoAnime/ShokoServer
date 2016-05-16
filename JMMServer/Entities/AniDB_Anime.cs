@@ -1486,26 +1486,22 @@ namespace JMMServer.Entities
 
 				List<AniDB_Episode> existingEps = new List<AniDB_Episode>(tempEps);
                 AnimeSeriesRepository repSers = new AnimeSeriesRepository();
-			    AnimeSeries ser = repSers.GetByAnimeID(epraw.AnimeID);
-			    if (ser != null)
+			    // delete any old records
+			    foreach (AniDB_Episode epOld in existingEps)
 			    {
-			        // delete any old records
-			        foreach (AniDB_Episode epOld in existingEps)
+			        if (epOld.EpisodeID != epraw.EpisodeID)
 			        {
-			            if (epOld.EpisodeID != epraw.EpisodeID)
+			            // first delete any AnimeEpisode records that point to the new anidb episode
+			            AnimeEpisodeRepository repAnimeEps = new AnimeEpisodeRepository();
+			            AnimeEpisode aniep = repAnimeEps.GetByAniDBEpisodeID(session,epOld.EpisodeID);
+			            if (aniep != null)
 			            {
-			                // first delete any AnimeEpisode records that point to the new anidb episode
-			                AnimeEpisodeRepository repAnimeEps = new AnimeEpisodeRepository();
-			                AnimeEpisode aniep = repAnimeEps.GetByAniEpisodeIDAndSeriesID(session,epOld.EpisodeID,ser.AnimeSeriesID);
-			                if (aniep != null)
-			                {
-			                    //repAnimeEps.Delete(aniep.AnimeEpisodeID);
-			                    animeEpsToDelete.Add(aniep);
-			                }
-
-			                //repEps.Delete(epOld.AniDB_EpisodeID);
-			                aniDBEpsToDelete.Add(epOld);
+			                //repAnimeEps.Delete(aniep.AnimeEpisodeID);
+			                animeEpsToDelete.Add(aniep);
 			            }
+
+			            //repEps.Delete(epOld.AniDB_EpisodeID);
+			            aniDBEpsToDelete.Add(epOld);
 			        }
 			    }
 			}
