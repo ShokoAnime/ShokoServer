@@ -18,7 +18,10 @@ namespace JMMServer.Entities
 		public DateTime DateTimeUpdated { get; set; }
 		public DateTime DateTimeCreated { get; set; }
 
-		public enEpisodeType EpisodeTypeEnum
+
+
+
+        public enEpisodeType EpisodeTypeEnum
 		{
 			get
 			{
@@ -56,6 +59,7 @@ namespace JMMServer.Entities
 			return repEpUser.GetByUserIDAndEpisodeID(session, userID, this.AnimeEpisodeID);
 		}
 
+        /*
 		public Contract_AnimeEpisode ToContract(bool getFileCount, int userID, AnimeSeries_User seruser)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
@@ -63,7 +67,6 @@ namespace JMMServer.Entities
 				return ToContract(session, getFileCount, userID, seruser);
 			}
 		}
-
 		public Contract_AnimeEpisode ToContract(ISession session, bool getFileCount, int userID, AnimeSeries_User seruser)
 		{
 			Contract_AnimeEpisode contract = new Contract_AnimeEpisode();
@@ -225,11 +228,11 @@ namespace JMMServer.Entities
 
 			return contract;
 		}
-
-		/// <summary>
-		/// Gets the AnimeSeries this episode belongs to
-		/// </summary>
-		public AnimeSeries GetAnimeSeries()
+        */
+        /// <summary>
+        /// Gets the AnimeSeries this episode belongs to
+        /// </summary>
+        public AnimeSeries GetAnimeSeries()
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{

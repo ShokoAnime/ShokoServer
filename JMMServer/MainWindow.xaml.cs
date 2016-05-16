@@ -956,6 +956,8 @@ namespace JMMServer
 				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingSession;
 				ISessionFactory temp = JMMService.SessionFactory;
 
+
+
                 logger.Info("Initializing Hosts...");
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingHosts;
                 FileServer.FileServer.RegisterFirewallAndHttpUser(int.Parse(ServerSettings.JMMServerPort),int.Parse(ServerSettings.JMMServerFilePort));
@@ -970,9 +972,9 @@ namespace JMMServer
                 StartRESTHost();
                 StartStreamingHost();
 
-				//  Load all stats
-				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingStats;
-				StatsCache.Instance.InitStats();
+
+
+
 
 				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
 				JMMService.CmdProcessorGeneral.Init();
@@ -1162,36 +1164,38 @@ namespace JMMServer
 
 							// update stats
 							ser.EpisodeAddedDate = DateTime.Now;
-							repSeries.Save(ser);
+							repSeries.Save(ser,false,true);
 
 							AnimeGroupRepository repGroups = new AnimeGroupRepository();
 							foreach (AnimeGroup grp in ser.AllGroupsAbove)
 							{
 								grp.EpisodeAddedDate = DateTime.Now;
-								repGroups.Save(grp);
+								repGroups.Save(grp,false,false);
 							}
 
 
-							AnimeEpisode epAnime = repEps.GetByAniDBEpisodeID(episodeID);
-							if (epAnime == null)
+							List<AnimeEpisode> epAnimes = repEps.GetByAniDBEpisodeID(episodeID);
+							if (epAnimes.Count==0)
 								continue;
+                            CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
+						    foreach (AnimeEpisode epAnime in epAnimes)
+						    {
+						        JMMServer.Entities.CrossRef_File_Episode xref = new JMMServer.Entities.CrossRef_File_Episode();
 
-							CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
-                            JMMServer.Entities.CrossRef_File_Episode xref = new JMMServer.Entities.CrossRef_File_Episode();
+						        try
+						        {
+						            xref.PopulateManually(vid, epAnime);
+						        }
+						        catch (Exception ex)
+						        {
+						            string msg = string.Format("Error populating XREF: {0} - {1}", vid.ToStringDetailed(), ex.ToString());
+						            throw;
+						        }
 
-							try
-							{
-								xref.PopulateManually(vid, epAnime);
-							}
-							catch (Exception ex)
-							{
-								string msg = string.Format("Error populating XREF: {0} - {1}", vid.ToStringDetailed(), ex.ToString());
-								throw;
-							}
+						        repXRefs.Save(xref);
+						    }
 
-							repXRefs.Save(xref);
-
-							vid.RenameIfRequired();
+						    vid.RenameIfRequired();
 							vid.MoveFileIfRequired();
 
 							// update stats for groups and series

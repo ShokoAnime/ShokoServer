@@ -377,10 +377,13 @@ namespace JMMServer.Kodi
                 AnimeSeries series = eps[0].GetAnimeSeries();
                 if (series != null)
                 {
-                    Contract_AnimeSeries cseries = series.ToContract(series.GetUserRecord(userid), true);
-                    Video nv = FromSerie(cseries, userid);
-                    AniDB_Anime ani = series.GetAnime();
-                    return PopulateVideoEpisodeFromAnime(l,ani,nv);
+                    Contract_AnimeSeries cseries = series.GetUserRecord(userid)?.Contract;
+                    if (cseries != null)
+                    {
+                        Video nv = FromSerie(cseries, userid);
+                        AniDB_Anime ani = series.GetAnime();
+                        return PopulateVideoEpisodeFromAnime(l, ani, nv);
+                    }
                 }
                     
             }
@@ -431,28 +434,35 @@ namespace JMMServer.Kodi
         }
         public static Video VideoFromAnimeGroup(ISession session, AnimeGroup grp, int userid, List<AnimeSeries> allSeries)
         {
-            Contract_AnimeGroup cgrp = grp.ToContract(grp.GetUserRecord(session, userid));
-            if (StatsCache.Instance.StatGroupSeriesCount[grp.AnimeGroupID] == 1)
+            Contract_AnimeGroup cgrp = grp.GetUserRecord(session, userid)?.Contract;
+            if (cgrp!=null && cgrp.Stat_SeriesCount == 1)
             {
                 AnimeSeries ser = JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
                 if (ser != null)
                 {
-                    Contract_AnimeSeries cserie = ser.ToContract(ser.GetUserRecord(session, userid), true);
-                    Video v = FromSerieWithPossibleReplacement(cserie, ser, userid);
-                    v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
-                    v.Group = cgrp;
-                    return v;
+                    Contract_AnimeSeries cserie = ser.GetUserRecord(session, userid)?.Contract;
+                    if (cserie != null)
+                    {
+                        Video v = FromSerieWithPossibleReplacement(cserie, ser, userid);
+                        v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
+                        v.Group = cgrp;
+                        return v;
+                    }
                 }
             }
-            else
+            else if (cgrp!=null)
             {
                 AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value) : JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
                 if (ser != null)
                 {
-                    Video v = FromGroup(cgrp, ser.ToContract(ser.GetUserRecord(session, userid), true), userid);
-                    v.Group = cgrp;
-                    v.AirDate = cgrp.Stat_AirDate_Min.HasValue ? cgrp.Stat_AirDate_Min.Value : DateTime.MinValue;
-                    return v;
+                    Contract_AnimeSeries cserie = ser.GetUserRecord(session, userid)?.Contract;
+                    if (cserie != null)
+                    {
+                        Video v = FromGroup(cgrp, cserie, userid);
+                        v.Group = cgrp;
+                        v.AirDate = cgrp.Stat_AirDate_Min.HasValue ? cgrp.Stat_AirDate_Min.Value : DateTime.MinValue;
+                        return v;
+                    }
                 }
             }
             return null;

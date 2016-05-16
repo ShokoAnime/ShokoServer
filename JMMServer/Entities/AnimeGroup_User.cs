@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMContracts;
+using JMMServer.Plex;
+using JMMServer.Repositories;
+using Newtonsoft.Json;
 using NLog;
 
 namespace JMMServer.Entities
@@ -21,9 +25,90 @@ namespace JMMServer.Entities
 		public int PlayedCount { get; set; }
 		public int WatchedCount { get; set; }
 		public int StoppedCount { get; set; }
-		#endregion
 
-		public AnimeGroup_User()
+        public int PlexContractVersion { get; set; }
+        public string PlexContractString { get; set; }
+
+        public int KodiContractVersion { get; set; }
+        public string KodiContractString { get; set; }
+
+        #endregion
+
+        public const int PLEXCONTRACT_VERSION = 1;
+        public const int KODICONTRACT_VERSION = 1;
+
+
+        private JMMContracts.PlexContracts.Video _plexcontract = null;
+        public virtual JMMContracts.PlexContracts.Video PlexContract
+        {
+            get
+            {
+                if ((_plexcontract == null) && PlexContractVersion == PLEXCONTRACT_VERSION)
+                {
+                    JMMContracts.PlexContracts.Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<JMMContracts.PlexContracts.Video>(PlexContractString);
+                    if (vids != null)
+                        _plexcontract = vids;
+                }
+                return _plexcontract;
+            }
+            set
+            {
+                _plexcontract = value;
+                if (value != null)
+                {
+                    PlexContractVersion = AnimeGroup_User.PLEXCONTRACT_VERSION;
+                    PlexContractString = Newtonsoft.Json.JsonConvert.SerializeObject(PlexContract, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
+                }
+            }
+        }
+
+
+        private JMMContracts.KodiContracts.Video _kodicontract = null;
+        public virtual JMMContracts.KodiContracts.Video KodiContract
+        {
+            get
+            {
+                if ((_kodicontract == null) && KodiContractVersion == KODICONTRACT_VERSION)
+                {
+                    JMMContracts.KodiContracts.Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<JMMContracts.KodiContracts.Video>(KodiContractString);
+                    if (vids != null)
+                        _kodicontract = vids;
+                }
+                return _kodicontract;
+            }
+            set
+            {
+                _kodicontract = value;
+                if (value != null)
+                {
+                    KodiContractVersion = AnimeGroup_User.KODICONTRACT_VERSION;
+                    KodiContractString = Newtonsoft.Json.JsonConvert.SerializeObject(KodiContract, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
+                }
+            }
+        }
+
+        public virtual Contract_AnimeGroup Contract
+        {
+            get
+            {
+                AnimeGroupRepository repo=new AnimeGroupRepository();
+                AnimeGroup agr=repo.GetByID(this.AnimeGroupID);
+                if (agr == null)
+                    return null;
+                Contract_AnimeGroup contract = new Contract_AnimeGroup();
+                agr.Contract.CopyTo(contract);
+                contract.IsFave = IsFave;
+                contract.UnwatchedEpisodeCount = UnwatchedEpisodeCount;
+                contract.WatchedEpisodeCount = WatchedEpisodeCount;
+                contract.WatchedDate = WatchedDate;
+                contract.PlayedCount = PlayedCount;
+                contract.WatchedCount = WatchedCount;
+                contract.StoppedCount = StoppedCount;
+                return contract;
+            }
+        }
+
+        public AnimeGroup_User()
 		{
 		}
 
@@ -31,7 +116,6 @@ namespace JMMServer.Entities
 		{
 			JMMUserID = userID;
 			AnimeGroupID = groupID;
-
 			IsFave = 0;
 			UnwatchedEpisodeCount = 0;
 			WatchedEpisodeCount = 0;
@@ -43,28 +127,10 @@ namespace JMMServer.Entities
 
 		
 
-		public bool HasUnwatchedFiles
-		{
-			get
-			{
-				return UnwatchedEpisodeCount > 0;
-			}
-		}
+		public bool HasUnwatchedFiles => UnwatchedEpisodeCount > 0;
 
-		public bool AllFilesWatched
-		{
-			get
-			{
-				return UnwatchedEpisodeCount == 0;
-			}
-		}
+	    public bool AllFilesWatched => UnwatchedEpisodeCount == 0;
 
-		public bool AnyFilesWatched
-		{
-			get
-			{
-				return WatchedEpisodeCount > 0;
-			}
-		}
+	    public bool AnyFilesWatched => WatchedEpisodeCount > 0;
 	}
 }

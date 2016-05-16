@@ -843,9 +843,9 @@ namespace JMMServer.Providers.TvDB
 
 				repCrossRef.Save(xref);
 
-				StatsCache.Instance.UpdateUsingAnime(animeID);
+                AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-				logger.Trace("Changed tvdb association: {0}", animeID);
+                logger.Trace("Changed tvdb association: {0}", animeID);
 
 				if (!excludeFromWebCache)
 				{
@@ -880,9 +880,9 @@ namespace JMMServer.Providers.TvDB
 			xref.TvDBEpisodeID = tvDBID;
 			repCrossRef.Save(xref);
 
-			StatsCache.Instance.UpdateUsingAnime(animeID);
+            AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-			logger.Trace("Changed tvdb episode association: {0}", aniDBID);
+            logger.Trace("Changed tvdb episode association: {0}", aniDBID);
 		}
 
 		// Removes all TVDB information from a series, bringing it back to a blank state.
@@ -894,9 +894,9 @@ namespace JMMServer.Providers.TvDB
 			
 			repCrossRef.Delete(xref.CrossRef_AniDB_TvDBV2ID);
 
-			StatsCache.Instance.UpdateUsingAnime(animeID);
+            AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-			CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(animeID, (int)aniEpType, aniEpNumber,
+            CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(animeID, (int)aniEpType, aniEpNumber,
 				tvDBID, tvSeasonNumber, tvEpNumber);
 			req.Save();
 		}

@@ -53,7 +53,6 @@ namespace JMMContracts
 		public int Stat_SeriesCount { get; set; }
 		public int Stat_EpisodeCount { get; set; }
 		public decimal Stat_AniDBRating { get; set; }
-
 		public string ServerPosterPath { get; set; }
 
 		public Contract_AnimeSeries SeriesForNameOverride { get; set; }

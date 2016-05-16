@@ -626,7 +626,7 @@ namespace JMMContracts
 		Contract_AnimeEpisode GetPreviousEpisodeForUnwatched(int animeSeriesID, int userID);
 
 		[OperationContract]
-		Contract_AnimeEpisode GetEpisodeByAniDBEpisodeID(int episodeID, int userID);
+        Contract_AnimeEpisode GetEpisodeByAniDBEpisodeAndSerie(int episodeID, int animeid, int userID);
 
 		[OperationContract]
 		Contract_FileFfdshowPreset GetFFDPreset(int videoLocalID);

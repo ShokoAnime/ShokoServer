@@ -21,6 +21,9 @@ namespace JMMServer.Mappings
 			Map(x => x.StoppedCount).Not.Nullable();
 			Map(x => x.WatchedCount).Not.Nullable();
 			Map(x => x.WatchedDate);
+            Map(x => x.ContractVersion).Not.Nullable();
+            Map(x => x.ContractString).Nullable().CustomType("StringClob");
+
         }
-	}
+    }
 }
