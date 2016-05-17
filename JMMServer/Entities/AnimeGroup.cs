@@ -130,7 +130,50 @@ namespace JMMServer.Entities
 			return allPosters;
 		}
 
-		public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(int animeid)
+        public Contract_AnimeGroup GetUserContract(int userid)
+        {
+            Contract_AnimeGroup contract = new Contract_AnimeGroup();
+            Contract.CopyTo(contract);
+            AnimeGroup_User rr = GetUserRecord(userid);
+            if (rr != null)
+            {
+                contract.IsFave = rr.IsFave;
+                contract.UnwatchedEpisodeCount = rr.UnwatchedEpisodeCount;
+                contract.WatchedEpisodeCount = rr.WatchedEpisodeCount;
+                contract.WatchedDate = rr.WatchedDate;
+                contract.PlayedCount = rr.PlayedCount;
+                contract.WatchedCount = rr.WatchedCount;
+                contract.StoppedCount = rr.StoppedCount;
+            }
+            return contract;
+        }
+
+	    public JMMContracts.PlexContracts.Video GetPlexContract(int userid)
+	    {
+	        return GetOrCreateUserRecord(userid).PlexContract;
+	    }
+        public JMMContracts.KodiContracts.Video GetKodiContract(int userid)
+        {
+            return GetOrCreateUserRecord(userid).KodiContract;
+        }
+        private AnimeGroup_User GetOrCreateUserRecord(int userid)
+	    {
+            AnimeGroup_User rr = GetUserRecord(userid);
+	        if (rr != null)
+	            return rr;
+            rr= new AnimeGroup_User(userid, this.AnimeGroupID);
+            rr.WatchedCount = 0;
+            rr.UnwatchedEpisodeCount = 0;
+            rr.PlayedCount = 0;
+            rr.StoppedCount = 0;
+            rr.WatchedEpisodeCount = 0;
+            rr.WatchedDate = null;
+            AnimeGroup_UserRepository repo=new AnimeGroup_UserRepository();
+            repo.Save(rr);
+	        return rr;
+	    }
+
+        public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(int animeid)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{

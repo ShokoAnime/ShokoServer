@@ -29,7 +29,7 @@ namespace JMMServer.Entities
 
 
         internal Contract_AnimeEpisode _contract = null;
-        public virtual Contract_AnimeEpisode Contract
+        internal virtual Contract_AnimeEpisode Contract
         {
             get
             {

@@ -136,7 +136,9 @@ namespace JMMServer.Repositories
 		    return Cache.Values.ToList();
 		}
 
-		public void Delete(int id)
+
+
+        public void Delete(int id)
 		{
 		    AnimeGroup_User cr = null;
 		    using (var session = JMMService.SessionFactory.OpenSession())

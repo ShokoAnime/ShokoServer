@@ -324,6 +324,7 @@ namespace JMMServer.Repositories
             grp.Contract = contract;
         }
 
+
         public void Save(AnimeGroup grp, bool updategrpcontractstats, bool recursive)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

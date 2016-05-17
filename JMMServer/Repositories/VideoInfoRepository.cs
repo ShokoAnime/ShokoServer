@@ -41,14 +41,14 @@ namespace JMMServer.Repositories
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				// populate the database
-                Cache.Update(obj);
 				using (var transaction = session.BeginTransaction())
 				{
 					session.SaveOrUpdate(obj);
 					transaction.Commit();
 				}
-			}
-		}
+                Cache.Update(obj);
+            }
+        }
 
 		public VideoInfo GetByID(int id)
 		{

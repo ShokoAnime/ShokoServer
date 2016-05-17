@@ -67,7 +67,6 @@ namespace JMMServer.Repositories
 		    }
             obj.GroupsIdsString = Newtonsoft.Json.JsonConvert.SerializeObject(obj._groupsId.ToDictionary(a => a.Key, a => a.Value.ToList()));
             obj.GroupsIdsVersion = GroupFilter.GROUPFILTER_VERSION;
-            Cache.Update(obj);
             using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				// populate the database
@@ -77,9 +76,10 @@ namespace JMMServer.Repositories
 					transaction.Commit();
 				}
 			}
+            Cache.Update(obj);
 
-		}
-        
+        }
+
         public GroupFilter GetByID(int id)
         {
             return Cache.Get(id);

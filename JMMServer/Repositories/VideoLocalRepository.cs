@@ -239,7 +239,7 @@ namespace JMMServer.Repositories
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				return session.CreateQuery("Select vl.VideoLocalID FROM VideoLocal vl WHERE vl.Hash NOT IN (Select Hash FROM VideoInfo vi)")
-                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
+                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).OrderBy(a => a.DateTimeCreated).ToList();
 			}
 		}
 
@@ -248,7 +248,7 @@ namespace JMMServer.Repositories
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				return session.CreateQuery("Select vl.VideoLocalID FROM VideoLocal vl WHERE vl.Hash NOT IN (Select Hash FROM CrossRef_File_Episode xref) AND vl.IsIgnored = 0")
-                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
+                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).OrderBy(a=>a.DateTimeCreated).ToList();
 			}
 		}
 
@@ -258,7 +258,7 @@ namespace JMMServer.Repositories
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				return session.CreateQuery("Select vl.VideoLocalID FROM VideoLocal vl WHERE vl.Hash IN (Select Hash FROM CrossRef_File_Episode xref WHERE xref.CrossRefSource <> 1)")
-                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
+                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).OrderBy(a => a.DateTimeCreated).ToList();
 			}
 		}
 

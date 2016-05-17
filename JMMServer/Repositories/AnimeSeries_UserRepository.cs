@@ -83,8 +83,10 @@ namespace JMMServer.Repositories
             {
                 AnimeSeriesRepository repo = new AnimeSeriesRepository();
                 AnimeSeries ser = repo.GetByID(ugrp.AnimeSeriesID);
-                Contract_AnimeSeries con = ugrp.Contract;
-                if (ser == null || con==null)
+                if (ser == null)
+                    return;
+                Contract_AnimeSeries con = ser.GetUserContract(ugrp.JMMUserID);
+                if (con ==null)
                     return;
                 ugrp.PlexContract = PlexHelper.FromSerieWithPossibleReplacement(con,ser,ser.GetAnime(session),ugrp.JMMUserID);
                 ugrp.KodiContract = KodiHelper.FromSerieWithPossibleReplacement(con,ser,ugrp.JMMUserID);

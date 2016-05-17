@@ -39,7 +39,7 @@ namespace JMMServer.Entities
 
 
         private JMMContracts.PlexContracts.Video _plexcontract = null;
-        public virtual JMMContracts.PlexContracts.Video PlexContract
+        public JMMContracts.PlexContracts.Video PlexContract
         {
             get
             {
@@ -64,7 +64,7 @@ namespace JMMServer.Entities
 
 
         private JMMContracts.KodiContracts.Video _kodicontract = null;
-        public virtual JMMContracts.KodiContracts.Video KodiContract
+        public JMMContracts.KodiContracts.Video KodiContract
         {
             get
             {
@@ -87,26 +87,6 @@ namespace JMMServer.Entities
             }
         }
 
-        public virtual Contract_AnimeGroup Contract
-        {
-            get
-            {
-                AnimeGroupRepository repo=new AnimeGroupRepository();
-                AnimeGroup agr=repo.GetByID(this.AnimeGroupID);
-                if (agr == null)
-                    return null;
-                Contract_AnimeGroup contract = new Contract_AnimeGroup();
-                agr.Contract.CopyTo(contract);
-                contract.IsFave = IsFave;
-                contract.UnwatchedEpisodeCount = UnwatchedEpisodeCount;
-                contract.WatchedEpisodeCount = WatchedEpisodeCount;
-                contract.WatchedDate = WatchedDate;
-                contract.PlayedCount = PlayedCount;
-                contract.WatchedCount = WatchedCount;
-                contract.StoppedCount = StoppedCount;
-                return contract;
-            }
-        }
 
         public AnimeGroup_User()
 		{

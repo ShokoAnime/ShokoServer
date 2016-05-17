@@ -252,8 +252,48 @@ namespace JMMServer.Entities
 				return repCrossRef.GetByAnimeID(this.AniDB_ID);
 			}
 		}
-
-		public AnimeEpisode GetLastEpisodeWatched(int userID)
+        public Contract_AnimeSeries GetUserContract(int userid)
+        {
+            Contract_AnimeSeries contract = new Contract_AnimeSeries();
+            Contract.CopyTo(contract);
+            AnimeSeries_User rr = GetUserRecord(userid);
+            if (rr != null)
+            {
+                contract.UnwatchedEpisodeCount = rr.UnwatchedEpisodeCount;
+                contract.WatchedEpisodeCount = rr.WatchedEpisodeCount;
+                contract.WatchedDate = rr.WatchedDate;
+                contract.PlayedCount = rr.PlayedCount;
+                contract.WatchedCount = rr.WatchedCount;
+                contract.StoppedCount = rr.StoppedCount;
+                return contract;
+            }
+            return contract;
+        }
+        public JMMContracts.PlexContracts.Video GetPlexContract(int userid)
+        {
+            return GetOrCreateUserRecord(userid).PlexContract;
+        }
+        public JMMContracts.KodiContracts.Video GetKodiContract(int userid)
+        {
+            return GetOrCreateUserRecord(userid).KodiContract;
+        }
+        private AnimeSeries_User GetOrCreateUserRecord(int userid)
+        {
+            AnimeSeries_User rr = GetUserRecord(userid);
+            if (rr != null)
+                return rr;
+            rr = new AnimeSeries_User(userid, this.AnimeSeriesID);
+            rr.WatchedCount = 0;
+            rr.UnwatchedEpisodeCount = 0;
+            rr.PlayedCount = 0;
+            rr.StoppedCount = 0;
+            rr.WatchedEpisodeCount = 0;
+            rr.WatchedDate = null;
+            AnimeSeries_UserRepository repo = new AnimeSeries_UserRepository();
+            repo.Save(rr);
+            return rr;
+        }
+        public AnimeEpisode GetLastEpisodeWatched(int userID)
 		{
 			AnimeEpisode watchedep = null;
 			AnimeEpisode_User userRecordWatched = null;

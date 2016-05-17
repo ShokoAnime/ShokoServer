@@ -44,15 +44,15 @@ namespace JMMServer.Repositories
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-                Cache.Update(obj);
 				// populate the database
 				using (var transaction = session.BeginTransaction())
 				{
 					session.SaveOrUpdate(obj);
 					transaction.Commit();
 				}
-			}
-		}
+                Cache.Update(obj);
+            }
+        }
 
 		public VideoLocal_User GetByID(int id)
 		{

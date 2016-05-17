@@ -31,8 +31,8 @@ namespace JMMServer.Entities
 			contract.RelatedAnimeID = this.RelatedAnimeID;
 
 			contract.AniDB_Anime = anime?.Contract?.AniDBAnime;
-			contract.AnimeSeries = ser?.GetUserRecord(userID)?.Contract;            
-			return contract;
+			contract.AnimeSeries = ser?.GetUserContract(userID);
+            return contract;
 		}
 	}
 }

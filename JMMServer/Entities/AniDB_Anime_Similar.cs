@@ -44,7 +44,7 @@ namespace JMMServer.Entities
 			contract.Approval = this.Approval;
 			contract.Total = this.Total;
 		    contract.AniDB_Anime = anime?.Contract?.AniDBAnime;
-		    contract.AnimeSeries = ser?.GetUserRecord(userID)?.Contract;
+		    contract.AnimeSeries = ser?.GetUserContract(userID);
 			return contract;
 		}
 	}

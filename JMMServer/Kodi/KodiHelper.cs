@@ -385,7 +385,7 @@ namespace JMMServer.Kodi
                 AnimeSeries series = eps[0].GetAnimeSeries();
                 if (series != null)
                 {
-                    Contract_AnimeSeries cseries = series.GetUserRecord(userid)?.Contract;
+                    Contract_AnimeSeries cseries = series.GetUserContract(userid);
                     if (cseries != null)
                     {
                         Video nv = FromSerie(cseries, userid);
@@ -442,13 +442,13 @@ namespace JMMServer.Kodi
         }
         public static Video VideoFromAnimeGroup(ISession session, AnimeGroup grp, int userid, List<AnimeSeries> allSeries)
         {
-            Contract_AnimeGroup cgrp = grp.GetUserRecord(session, userid)?.Contract;
-            if (cgrp!=null && cgrp.Stat_SeriesCount == 1)
+            Contract_AnimeGroup cgrp = grp.GetUserContract(userid);
+            if (cgrp.Stat_SeriesCount == 1)
             {
                 AnimeSeries ser = JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
                 if (ser != null)
                 {
-                    Contract_AnimeSeries cserie = ser.GetUserRecord(session, userid)?.Contract;
+                    Contract_AnimeSeries cserie = ser.GetUserContract(userid);
                     if (cserie != null)
                     {
                         Video v = FromSerieWithPossibleReplacement(cserie, ser, userid);
@@ -458,12 +458,12 @@ namespace JMMServer.Kodi
                     }
                 }
             }
-            else if (cgrp!=null)
+            else 
             {
                 AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value) : JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
                 if (ser != null)
                 {
-                    Contract_AnimeSeries cserie = ser.GetUserRecord(session, userid)?.Contract;
+                    Contract_AnimeSeries cserie = ser.GetUserContract(userid);
                     if (cserie != null)
                     {
                         Video v = FromGroup(cgrp, cserie, userid);

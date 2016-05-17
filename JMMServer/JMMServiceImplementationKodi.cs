@@ -295,7 +295,7 @@ namespace JMMServer
                 AnimeSeries ser = repSeries.GetByAnimeID(anidb_anime.AnimeID);
                 if (ser != null)
                 {
-                    Video v = ser.GetUserRecord(user.JMMUserID)?.KodiContract?.Clone();
+                    Video v = ser.GetKodiContract(user.JMMUserID)?.Clone();
                     if (v != null)
                     {
                         //proper naming 
@@ -370,7 +370,7 @@ namespace JMMServer
                 AnimeGroup grp = repGroups.GetByID(groupID);
                 if (grp != null)
                 {
-                    Contract_AnimeGroup basegrp = grp.GetUserRecord(userid)?.Contract;
+                    Contract_AnimeGroup basegrp = grp.GetUserContract(userid);
                     if (basegrp != null)
                     {
                         ret.MediaContainer.Title1 = ret.MediaContainer.Title2 = basegrp.GroupName;
@@ -378,7 +378,7 @@ namespace JMMServer
                         ret.MediaContainer.Art = KodiHelper.GetRandomFanartFromSeries(sers2, session);
                         foreach (AnimeGroup grpChild in grp.GetChildGroups())
                         {
-                            Video v = grpChild.GetUserRecord(userid)?.KodiContract;                            
+                            Video v = grpChild.GetKodiContract(userid);
                             if (v != null)
                             {
                                 v = v.Clone();
@@ -388,7 +388,7 @@ namespace JMMServer
                         }
                         foreach (AnimeSeries ser in grp.GetSeries())
                         {
-                            Video v = ser.GetUserRecord(userid)?.KodiContract?.Clone();
+                            Video v = ser.GetKodiContract(userid)?.Clone();
                             if (v != null)
                             {
                                 v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
@@ -399,7 +399,7 @@ namespace JMMServer
                     }
                     foreach (AnimeSeries ser in grp.GetSeries())
                     {
-                        Video v = ser.GetUserRecord(session, userid)?.KodiContract;
+                        Video v = ser.GetKodiContract(userid)?.Clone();
                         if (v != null)
                         {
                             v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
@@ -523,7 +523,7 @@ namespace JMMServer
                     }
                 }
                 List<Video> vids=new List<Video>();
-                Contract_AnimeSeries cseries = ser.GetUserRecord(userid)?.Contract;
+                Contract_AnimeSeries cseries = ser.GetUserContract(userid);
                 if (cseries==null)
                     return new MemoryStream();
                 Video nv = KodiHelper.FromSerie(cseries, userid);
@@ -627,7 +627,7 @@ namespace JMMServer
                         {
                             foreach (AnimeGroup grp in gf.GroupsIds[userid].Select(a => repGroups.GetByID(a)).Where(a => a != null))
                             {
-                                Video v = grp.GetUserRecord(userid)?.KodiContract;
+                                Video v = grp.GetKodiContract(userid);
                                 if (v != null)
                                 {
                                     v = v.Clone();

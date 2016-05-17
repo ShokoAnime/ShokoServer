@@ -243,7 +243,7 @@ namespace JMMServer.Entities
             
             if (BaseCondition == (int)GroupFilterBaseCondition.Exclude) return false;
 
-            Contract_AnimeGroup contractGroup = userRec.Contract;
+            Contract_AnimeGroup contractGroup = grp.GetUserContract(curUser.JMMUserID);
 
             // now check other conditions
             foreach (GroupFilterCondition gfc in FilterConditions)

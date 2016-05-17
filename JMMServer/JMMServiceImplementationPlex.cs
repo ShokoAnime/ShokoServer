@@ -383,7 +383,7 @@ namespace JMMServer
                 AnimeSeries ser = repSeries.GetByAnimeID(anidb_anime.AnimeID);
                 if (ser != null)
                 {
-                    Video v = ser.GetUserRecord(user.JMMUserID)?.PlexContract?.Clone();
+                    Video v = ser.GetPlexContract(user.JMMUserID)?.Clone();
                     if (v != null)
                     {
                         switch (anidb_anime.AnimeTypeEnum)
@@ -437,30 +437,27 @@ namespace JMMServer
             {
                 AnimeGroupRepository repGroups = new AnimeGroupRepository();
                 AnimeGroup grp = repGroups.GetByID(groupID);
-                if (grp != null)
+                Contract_AnimeGroup basegrp = grp?.GetUserContract(userid);
+                if (basegrp != null)
                 {
-                    Contract_AnimeGroup basegrp = grp.GetUserRecord(userid)?.Contract;
-                    if (basegrp != null)
+                    foreach (AnimeGroup grpChild in grp.GetChildGroups())
                     {
-                        foreach (AnimeGroup grpChild in grp.GetChildGroups())
+                        var v = grpChild.GetPlexContract(userid);
+                        if (v != null)
                         {
-                            var v = grpChild.GetUserRecord(userid)?.PlexContract;
-                            if (v != null)
-                            {
-                                v.Type = "show";
-                                retGroups.Add(v, info);
-                            }
+                            v.Type = "show";
+                            retGroups.Add(v, info);
                         }
-                        foreach (AnimeSeries ser in grp.GetSeries())
+                    }
+                    foreach (AnimeSeries ser in grp.GetSeries())
+                    {
+                        var v = ser.GetPlexContract(userid)?.Clone();
+                        if (v != null)
                         {
-                            var v = ser.GetUserRecord(userid)?.PlexContract?.Clone();
-                            if (v != null)
-                            {
-                                v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
-                                v.Group = basegrp;
-                                v.Type = "season";
-                                retGroups.Add(v, info);
-                            }
+                            v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
+                            v.Group = basegrp;
+                            v.Type = "season";
+                            retGroups.Add(v, info);
                         }
                     }
                 }
@@ -598,7 +595,7 @@ namespace JMMServer
                 AniDB_Anime anime = ser.GetAnime();
                 if (anime == null)
                     return new MemoryStream();
-                Contract_AnimeSeries cseries = ser.GetUserRecord(userid)?.Contract;
+                Contract_AnimeSeries cseries = ser.GetUserContract(userid);
                 if (cseries==null)
                     return new MemoryStream();
                 ImageDetails fanart = anime.GetDefaultFanartDetailsNoBlanks(session);
@@ -745,7 +742,7 @@ namespace JMMServer
                     {
                         foreach (AnimeGroup grp in gf.GroupsIds[userid].Select(a=>repGroups.GetByID(a)).Where(a=>a!=null))
                         {
-                            Video v = grp.GetUserRecord(userid)?.PlexContract;
+                            Video v = grp.GetPlexContract(userid);
                             if (v != null)
                             {
                                 v = v.Clone();
