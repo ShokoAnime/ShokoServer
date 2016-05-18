@@ -75,9 +75,7 @@ namespace JMMServer
 
                         Random rnd = new Random(123456789);
                         Directory pp = new Directory();
-                        pp.Key = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                                        MainWindow.PathAddressKodi + "/GetMetadata/" + userid + "/" +
-                                        (int) JMMType.GroupFilter + "/" + gg.GroupFilterID);
+                        pp.Key = "" + (int)JMMType.GroupFilter + "/" + gg.GroupFilterID;
                         pp.PrimaryExtraKey = pp.Key;
                         pp.Title = gg.GroupFilterName;
                         HashSet<int> groups;
@@ -466,7 +464,7 @@ namespace JMMServer
                             v.Type = "season";
                             v.LeafCount = ee.Count.ToString();
                             v.ViewedLeafCount = "0";
-                            v.Key = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetMetadata/" + userid + "/" + (int)JMMType.Serie + "/" + ee.Type + "_" + ser.AnimeSeriesID);
+                            v.Key = "" + (int)JMMType.Serie + "/" + ee.Type + "_" + ser.AnimeSeriesID;
                             v.Thumb = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
                                 MainWindow.PathAddressKodi + "/GetSupportImage/" + ee.Image);
                             if ((ee.AnimeType==AnimeTypes.Movie) || (ee.AnimeType==AnimeTypes.OVA))
@@ -495,6 +493,19 @@ namespace JMMServer
                                 v.CharactersList = new List<Characters>();
                                 v.CharactersList.Add(ch);
                                 isCharacterSetup_ = true;
+                            }
+                            else
+                            {
+                                v.Tags = new List<Tag>();
+                                v.Genres = new List<Tag>();
+                                v.GrandparentKey = "";
+                                v.GrandparentRatingKey = "";
+                                v.GrandparentThumb = "";
+                                v.GrandparentTitle = "";
+                                v.ParentKey = "";
+                                v.ParentRatingKey = "";
+                                v.ParentThumb = "";
+                                v.ParentTitle = "";
                             }
                             //experimentEND
 
@@ -529,10 +540,6 @@ namespace JMMServer
                     try
                     {
                         KodiHelper.PopulateVideo(v, current, ep, ser, anime, nv, JMMType.File, userid);
-                        if (eptype.HasValue)
-                        {
-                            v.ParentTitle = k.Name;
-                        }
 
                         //experiment
                         if (!isCharacterSetup)
@@ -543,6 +550,23 @@ namespace JMMServer
                             v.CharactersList = new List<Characters>();
                             v.CharactersList.Add(c);
                             isCharacterSetup = true;
+                            if (eptype.HasValue)
+                            {
+                                v.ParentTitle = k.Name;
+                            }
+                        }
+                        else
+                        {
+                            v.Tags = new List<Tag>();
+                            v.Genres = new List<Tag>();
+                            v.GrandparentKey = "";
+                            v.GrandparentRatingKey = "";
+                            v.GrandparentThumb = "";
+                            v.GrandparentTitle = "";
+                            v.ParentKey = "";
+                            v.ParentRatingKey = "";
+                            v.ParentThumb = "";
+                            v.ParentTitle = "";
                         }
                         //experimentEND
 
@@ -915,12 +939,12 @@ namespace JMMServer
                 c.CharID = x.AniDB_CharacterID;
                 c.CharName = x.CharName;
                 c.Description = x.CharDescription;
-                c.Picture = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/2/" + c.CharID);
+                c.Picture = "2/" + c.CharID;
                 AniDB_Seiyuu seiyuu_tmp = x.GetSeiyuu();
                 if (seiyuu_tmp != null)
                 {
                     c.SeiyuuName = seiyuu_tmp.SeiyuuName;
-                    c.SeiyuuPic = KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/3/" + x.GetSeiyuu().AniDB_SeiyuuID);
+                    c.SeiyuuPic = "3/" + x.GetSeiyuu().AniDB_SeiyuuID;
                 }
                 else
                 {

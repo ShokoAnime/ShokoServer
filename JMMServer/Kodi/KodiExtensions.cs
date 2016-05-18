@@ -13,16 +13,14 @@ namespace JMMServer.Kodi
         {
             if (im == null)
                 return null;
-            return KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetThumb/" + (int)im.ImageType + "/" + im.ImageID + "/0.6667");
+            return "" + (int)im.ImageType + "/" + im.ImageID + "/0.6667";
         }
 
         public static string GenArt(this ImageDetails im)
         {
             if (im == null)
                 return null;
-            return KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetImage/" + (int)im.ImageType + "/" + im.ImageID);
+            return "" + (int)im.ImageType + "/" + im.ImageID;
         }
 
         public static string GenPoster(this Contract_AniDB_Anime_DefaultImage im)
@@ -30,8 +28,7 @@ namespace JMMServer.Kodi
             if (im == null)
                 return null;
 
-            return KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetThumb/" + im.ImageType + "/" + im.AnimeID + "/0.6667");
+            return "" + (int)im.ImageType + "/" + im.AnimeID + "/0.6667";
         }
 
         public static string GenArt(this Contract_AniDB_Anime_DefaultImage im)
@@ -39,8 +36,7 @@ namespace JMMServer.Kodi
             if (im == null)
                 return null;
 
-            return KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetImage/" + im.ImageType + "/" + im.AnimeID);
+            return "" + (int)im.ImageType + "/" + im.AnimeID;
         }
 
 

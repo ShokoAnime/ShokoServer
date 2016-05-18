@@ -14,6 +14,7 @@ using System.Diagnostics;
 using NHibernate.Criterion;
 using NHibernate;
 using BinaryNorthwest;
+using JMMContracts.KodiContracts;
 
 namespace JMMServer.Entities
 {
@@ -1938,7 +1939,31 @@ namespace JMMServer.Entities
 				if (defBanner != null) contract.DefaultImageWideBanner = defBanner.ToContract(session);
 			}
 
-			return contract;
+            contract.Characters = new List<Character>();
+            foreach (AniDB_Anime_Character achar in this.GetAnimeCharacters(session))
+            {
+                AniDB_Character x = achar.GetCharacter();
+                Character c = new Character();
+                c.CharID = x.AniDB_CharacterID;
+                c.CharName = x.CharName;
+                c.Description = x.CharDescription;
+                c.Picture = "2/" + c.CharID;
+                AniDB_Seiyuu seiyuu_tmp = x.GetSeiyuu();
+                if (seiyuu_tmp != null)
+                {
+                    c.SeiyuuName = seiyuu_tmp.SeiyuuName;
+                    c.SeiyuuPic = "3/" + x.GetSeiyuu().AniDB_SeiyuuID;
+                }
+                else
+                {
+                    c.SeiyuuName = "";
+                    c.SeiyuuPic = "";
+                }
+
+                contract.Characters.Add(c);
+            }
+
+            return contract;
 		}
 
 		public JMMServer.Providers.Azure.AnimeFull ToContractAzure()
