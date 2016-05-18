@@ -27,15 +27,15 @@
     </Window.Resources>
 
     <Window.CommandBindings>
-
+       
         <CommandBinding Command="{StaticResource ScanFolderCommand}" Executed="CommandBinding_ScanFolder" />
 
     </Window.CommandBindings>
 
     <Grid>
 
-
-
+        
+        
         <Grid.ColumnDefinitions>
 
         </Grid.ColumnDefinitions>
@@ -187,15 +187,6 @@
                             </StackPanel>
                         </Button>
 
-                        <!-- btnUpdateImages -->
-
-                        <Button HorizontalAlignment="Left" x:Name="btnUpdateImages" Margin="0,0,0,0" Style="{DynamicResource FlatButtonStyle}" Width="Auto" Click="btnUpdateImages_Click">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
-                                <Image Height="16" Width="16" Source="Images/32_import.png" Margin="0,0,5,0"/>
-                                <TextBlock VerticalAlignment="Center" Text="{Resx Key=Actions_UpdateImages, ResxName=JMMServer.Properties.Resources}" Margin="0,0,5,0"/>
-                            </StackPanel>
-                        </Button>
-
                     </StackPanel>
                 </TabItem>
 
@@ -206,7 +197,7 @@
 
                 <!-- Settings tab-->
                 <TabItem Header="{Resx ResxName=JMMServer.Properties.Resources, Key=Tab_Settings}" Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=ServerOnline, Converter={StaticResource BooleanToVisibilityConverter}}">
-
+                    
                     <StackPanel Orientation="Vertical">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5">
                             <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Settings_ServerPort}"  VerticalAlignment="Center"/>
@@ -280,7 +271,7 @@
 
                         <Button Margin="2,10,2,2" Style="{DynamicResource FlatButtonStyle}" Name="btnJMMStartWithWindows" HorizontalAlignment="Left" IsEnabled="True" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
-                                <!-- <Image Height="16" Width="16" Source="/Images/16_arrow45.png" Margin="0,0,5,0"/> -->
+                               <!-- <Image Height="16" Width="16" Source="/Images/16_arrow45.png" Margin="0,0,5,0"/> -->
                                 <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Settings_Windows}" Margin="0,0,5,0"/>
                             </StackPanel>
                         </Button>
@@ -296,7 +287,7 @@
                             </StackPanel>
                         </StackPanel>
 
-
+                        
 
                     </StackPanel>
                 </TabItem>
@@ -430,7 +421,7 @@
                         </Button>
 
                         <!-- SQL Server HELP -->
-
+                        
                         <Border Style="{DynamicResource ToolbarBorderControlStyle}" Background="FloralWhite" Margin="5,10,5,5" Padding="5" BorderThickness="1,1,1,1"
                                 Grid.Column="0" Grid.Row="7" Grid.ColumnSpan="3"
                                 Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=DatabaseIsSQLServer, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -521,7 +512,7 @@
                         </Border>
 
                     </Grid>
-
+                    
 
                 </TabItem>
 
@@ -620,7 +611,7 @@
                     <Image Height="16" Width="16" Source="/Images/16_server_hash.png" Margin="10,0,5,0"/>
                     <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Hash_Paused}" Margin="0,0,5,0"/>
                 </StackPanel>
-
+                
                 <TextBlock Grid.Column="3" Grid.Row="0" Margin="4,4,0,4" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=HasherQueueCount}"  VerticalAlignment="Center"/>
                 <TextBlock Grid.Column="4" Grid.Row="0" Margin="20,4,0,4" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=HasherQueueState}"  VerticalAlignment="Center"/>
 
@@ -649,8 +640,8 @@
                         <Image Height="16" Width="16" Source="/Images/Play.png" Margin="0,0,0,0"/>
                     </StackPanel>
                 </Button>
-
-
+                
+             
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Grid.Column="2" Grid.Row="1"
                             Visibility="{Binding Source={x:Static local:ServerInfo.Instance}, Path=GeneralQueueRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Image Height="16" Width="16" Source="/Images/16_server_connect.png" Margin="10,0,5,0"/>
@@ -708,11 +699,11 @@
                 <TextBlock Grid.Column="3" Grid.Row="2" Name="tbImagesQueueCount" Margin="4,4,0,4" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=ImagesQueueCount}"  VerticalAlignment="Center"/>
                 <TextBlock Grid.Column="4" Grid.Row="2" Margin="20,4,0,4" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=ImagesQueueState}"  VerticalAlignment="Center"/>
 
-
+                
 
             </Grid>
 
-
+            
         </Border>
 
         <Border Style="{DynamicResource ToolbarBorderControlStyle}" Grid.Row="3" Background="AliceBlue" Padding="5">
@@ -760,7 +751,7 @@
                     <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="{Binding Source={x:Static local:ServerInfo.Instance},Path=BanReason}"/>
                     <local:HyperLinkStandard VerticalAlignment="Center" Margin="10,0,0,0" DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=WhatDoesThisMean}" Grid.Column="1"
                                                                             URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_AniDBBan}"/>
-
+                   
                 </StackPanel>
 
             </StackPanel>
