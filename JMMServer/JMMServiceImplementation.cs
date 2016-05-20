@@ -8725,14 +8725,100 @@ namespace JMMServer
 
 					if (ServerSettings.AutoGroupSeries)
 					{
-						List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(ser.AniDB_ID);
+                        if (!ser.AnimeGroup.GroupName.Equals("AAA Migrating Groups AAA")) continue;
 
-						// only use if there is just one result
-						if (grps != null && grps.Count > 0 && !grps[0].GroupName.Equals("AAA Migrating Groups AAA"))
+                        List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(ser.AniDB_ID, true);
+
+						if (grps != null && grps.Count > 0)
 						{
-							ser.AnimeGroupID = grps[0].AnimeGroupID;
-							createNewGroup = false;
-						}
+                            int groupID = -1;
+                            foreach(AnimeGroup grp in grps)
+                            {
+                                if (grp.GroupName.Equals("AAA Migrating Groups AAA")) continue;
+                                if (groupID == -1) groupID = grp.AnimeGroupID;
+                                ser.AnimeGroupID = groupID;
+
+                                createNewGroup = false;
+
+                                if (groupID != grp.AnimeGroupID)
+                                {
+                                    AnimeSeries name = null;
+                                    Boolean hasCustomName = true;
+                                    if (grp.DefaultAnimeSeriesID.HasValue)
+                                    {
+                                        name = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
+                                        if (name == null)
+                                        {
+                                            grp.DefaultAnimeSeriesID = null;
+                                        } else
+                                        {
+                                            hasCustomName = false;
+                                        }
+                                    }
+                                    foreach (AnimeSeries series in grp.GetAllSeries())
+                                    {
+                                        if (series.AnimeGroupID == groupID) continue;
+                                        series.AnimeGroupID = groupID;
+                                        #region Naming
+                                        if (!grp.DefaultAnimeSeriesID.HasValue)
+                                        {
+                                            if (name == null)
+                                            {
+                                                name = series;
+                                            } else
+                                            {
+                                                if (series.AirDate < name.AirDate)
+                                                {
+                                                    name = series;
+                                                }
+                                            }
+
+                                            // Check all titles for custom naming, in case user changed language preferences
+                                            if (ser.SeriesNameOverride.Equals(grp.GroupName))
+                                            {
+                                                hasCustomName = false;
+                                            }
+                                            else
+                                            {
+                                                foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
+                                                {
+                                                    if (title.Title.Equals(grp.GroupName))
+                                                    {
+                                                        hasCustomName = false;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        repSeries.Save(series, false);
+                                    }
+                                    if (name != null)
+                                    {
+                                        string newTitle = name.GetAnime().PreferredTitle;
+                                        if (name.SeriesNameOverride != null && !name.SeriesNameOverride.Equals(""))
+                                            newTitle = name.SeriesNameOverride;
+                                        if (hasCustomName && (!grp.DefaultAnimeSeriesID.HasValue || name.AnimeSeriesID != grp.DefaultAnimeSeriesID.Value))
+                                            newTitle = grp.GroupName;
+                                        // reset tags, description, etc to new series
+                                        grp.Populate(name);
+                                        grp.GroupName = newTitle;
+                                        grp.SortName = newTitle;
+
+                                        repGroups.Save(grp);
+                                    }
+                                    #endregion
+                                }
+                                break;
+                            }
+                            foreach (AnimeGroup grp in grps)
+                            {
+                                if(grp.GetAllSeries().Count == 0)
+                                {
+                                    repGroups.Delete(grp.AnimeGroupID);
+                                }
+                            }
+                        }
 					}
 
 					if (createNewGroup)

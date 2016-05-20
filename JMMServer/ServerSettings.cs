@@ -1180,7 +1180,26 @@ namespace JMMServer
 			}
 		}
 
-		public static string LanguagePreference
+        public static string AutoGroupSeriesTypeExclusions
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string val = "same setting|alternative setting|character|other";
+                try
+                {
+                    val = appSettings["AutoGroupSeriesTypeExclusions"];
+                }
+                catch (Exception e) { }
+                return val;
+            }
+            set
+            {
+                UpdateSetting("AutoGroupSeriesTypeExclusions", value);
+            }
+        }
+
+        public static string LanguagePreference
 		{
 			get
 			{
