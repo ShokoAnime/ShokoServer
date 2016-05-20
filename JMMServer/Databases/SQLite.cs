@@ -1327,13 +1327,24 @@ namespace JMMServer.Databases
             myConn.Open();
 
             List<string> cmds = new List<string>();
-            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT 0, ContractString text NULL");
-            cmds.Add("ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT 0, ContractString text NULL");
-            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT 0, PlexContractString text NULL, KodiContractVersion int NOT NULL DEFAULT 0, KodiContractString text NULL");
-            cmds.Add("ALTER TABLE AnimeSeries ADD ContractVersion int NOT NULL DEFAULT 0, ContractString text NULL");
-            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractVersion int NOT NULL DEFAULT 0, PlexContractString text NULL, KodiContractVersion int NOT NULL DEFAULT 0, KodiContractString text NULL");
-            cmds.Add("ALTER TABLE GroupFilter ADD GroupsIdsVersion int NOT NULL DEFAULT 0, GroupsIdsString text NULL");
-            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractVersion int NOT NULL DEFAULT 0, ContractString text NULL");
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD KodiContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD KodiContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD KodiContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD KodiContractString text NULL");
+            cmds.Add("ALTER TABLE GroupFilter ADD GroupsIdsVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE GroupFilter ADD GroupsIdsString text NULL");
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractString text NULL");
 
             foreach (string cmdTable in cmds)
             {

@@ -1782,35 +1782,46 @@ namespace JMMServer.Databases
 
             List<string> cmds = new List<string>();
 
-            cmds.Add("ALTER TABLE `AniDB_Anime` ADD `ContractVersion` int NOT NULL DEFAULT 0, `ContractString` mediumtext character set utf8 NULL");
-            cmds.Add("ALTER TABLE `AnimeGroup` ADD `ContractVersion` int NOT NULL DEFAULT 0, `ContractString` mediumtext character set utf8 NULL");
-            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `PlexContractVersion` int NOT NULL DEFAULT 0, `PlexContractString` mediumtext character set utf8 NULL, `KodiContractVersion` int NOT NULL DEFAULT 0, `KodiContractString` mediumtext character set utf8 NULL");
-            cmds.Add("ALTER TABLE `AnimeSeries` ADD `ContractVersion` int NOT NULL DEFAULT 0, `ContractString` mediumtext character set utf8 NULL");
-            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `PlexContractVersion` int NOT NULL DEFAULT 0, `PlexContractString` mediumtext character set utf8 NULL, `KodiContractVersion` int NOT NULL DEFAULT 0, `KodiContractString` mediumtext character set utf8 NULL");
-            cmds.Add("ALTER TABLE `GroupFilter` ADD `GroupsIdsVersion` int NOT NULL DEFAULT 0, `GroupsIdsString` mediumtext character set utf8 NULL");
-            cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractVersion` int NOT NULL DEFAULT 0, `ContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AniDB_Anime` ADD `ContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AniDB_Anime` ADD `ContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup` ADD `ContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeGroup` ADD `ContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `PlexContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `PlexContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `KodiContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `KodiContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries` ADD `ContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeSeries` ADD `ContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `PlexContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `PlexContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `KodiContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `KodiContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `GroupsIdsVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `GroupsIdsString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractString` mediumtext character set utf8 NULL");
 
-            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+
+            try
             {
-                conn.Open();
-
-                foreach (string sql in cmds)
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
                 {
-                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    conn.Open();
+
+                    foreach (string sql in cmds)
                     {
-                        try
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
                         {
                             command.ExecuteNonQuery();
                         }
-                        catch (Exception ex)
-                        {
-                            logger.Error(sql + " - " + ex.Message);
-                        }
                     }
                 }
+                UpdateDatabaseVersion(thisVersion);
             }
-
-            UpdateDatabaseVersion(thisVersion);
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
 
         }
 
