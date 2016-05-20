@@ -13,6 +13,7 @@ namespace JMMServer.Plex
         Episode,
         Movie,
         File,
-        Season
+        Season,
+        None
     }
 }

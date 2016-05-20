@@ -9,7 +9,7 @@ using JMMContracts.PlexContracts;
 
 namespace JMMServer.Plex
 {
-    public class HistoryInfo 
+    public class Breadcrumbs 
     {
 
         public string Key { get; set; }
@@ -24,27 +24,70 @@ namespace JMMServer.Plex
         public string Art { get; set; }
         public string ParentArt { get; set; }
         public string GrandParentArt { get; set; }
+        public string Index { get; set; }
+        public string ParentIndex { get; set; }
 
         private static int counter = 0;
-        private static Dictionary<string, HistoryInfo> Cache=new Dictionary<string, HistoryInfo>(); //TODO CACHE EVICTION?
+        private static Dictionary<string, Breadcrumbs> Cache=new Dictionary<string, Breadcrumbs>(); //TODO CACHE EVICTION?
         
-        public HistoryInfo Update(Video v)
+        public Breadcrumbs Update(Video v, bool noart=false)
         {
-            HistoryInfo cache = new HistoryInfo();
+            Breadcrumbs cache = new Breadcrumbs();
             this.CopyTo(cache);
             cache.GrandParentKey = cache.ParentKey;
             cache.GrandParentTitle = cache.ParentTitle ?? "";
-            cache.GrandParentArt = cache.ParentArt;
-            cache.GrandParentThumb = cache.ParentThumb;
             cache.ParentKey = cache.Key;
             cache.ParentTitle = cache.Title ?? "";
-            cache.ParentArt = cache.Art;
-            cache.ParentThumb = cache.Thumb;
+            cache.ParentIndex = cache.Index;
+
             cache.Key = v.Key;
             cache.Title = v.Title ?? "";
-            cache.Art = v.Art;
-            cache.Thumb = v.Thumb;
+            cache.Index = v.Index;
+            if (!noart)
+            {
+                cache.GrandParentThumb = cache.ParentThumb;
+                cache.GrandParentArt = cache.ParentArt;
+                cache.ParentArt = cache.Art;
+                cache.ParentThumb = cache.Thumb;
+                cache.Art = v.Art;
+                cache.Thumb = v.Thumb;
+            }
             return cache;
+        }
+
+        public void UpdateKey(string md5)
+        {
+            if (Key.Contains("/GetMetadata/") && !Key.Contains(md5))
+                Key += "/" + md5;
+        }
+
+        public void FillInfo(Video m, bool noimage, bool addkey = true)
+        {
+            if (Key != null)
+            {
+                if ((addkey) && (Key.Contains("/GetMetadata/")))
+                {
+                    m.Key = PlexHelper.PlexProxy(Key + "/" + ToKey());
+                }
+                else
+                {
+
+                    m.Key = PlexHelper.PlexProxy(Key);
+                }
+            }
+            if (ParentKey != null)
+                m.ParentKey = PlexHelper.PlexProxy(ParentKey);
+            if (GrandParentKey != null)
+                m.GrandparentKey = PlexHelper.PlexProxy(GrandParentKey);
+            m.ParentTitle = ParentTitle ?? "";
+            m.GrandparentTitle = GrandParentTitle ?? "";
+            if (!noimage)
+            {
+                m.ParentArt = ParentArt;
+                m.GrandparentArt = GrandParentArt;
+                m.ParentThumb = ParentThumb;
+                m.GrandparentThumb = GrandParentThumb;
+            }
         }
 
         private string GenMd5()
@@ -61,6 +104,8 @@ namespace JMMServer.Plex
             bld.AppendLine(Art);
             bld.AppendLine(ParentArt);
             bld.AppendLine(GrandParentArt);
+            bld.AppendLine(Index);
+            bld.AppendLine(ParentIndex);
             using (MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider())
             {
                 return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(bld.ToString()))).Replace("-", string.Empty);
@@ -72,17 +117,22 @@ namespace JMMServer.Plex
             if (Cache.ContainsKey(md5))
                 return md5;
             counter++;
-            HistoryInfo cache = new HistoryInfo();
+            Breadcrumbs cache = new Breadcrumbs();
             this.CopyTo(cache);
             Cache.Add(md5,cache);
             return md5;
         }
 
-        public static HistoryInfo FromKey(string key)
+        public static Breadcrumbs FromKey(string key)
         {
             if (Cache.ContainsKey(key))
-                return Cache[key];
-            return new HistoryInfo();
+            {
+                Breadcrumbs n=new Breadcrumbs();
+                Cache[key].CopyTo(n);
+                n.UpdateKey(key);
+                return n;
+            }
+            return new Breadcrumbs();
         }
 
     }

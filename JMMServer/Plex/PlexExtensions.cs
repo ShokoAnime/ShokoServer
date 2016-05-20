@@ -28,7 +28,7 @@ namespace JMMServer.Plex
         {
             if ((im == null) || (im.ImageID==0))
                 return PlexHelper.ConstructSupportImageLinkTV(fallbackimage);
-            return PlexHelper.ConstructThumbLink((int) im.ImageType, im.ImageID);
+            return PlexHelper.ConstructTVThumbLink((int) im.ImageType, im.ImageID);
         }
         public static string GenPoster(this Contract_AniDB_Anime_DefaultImage im, string fallbackimage = "plex_404V.png")
         {
@@ -75,42 +75,14 @@ namespace JMMServer.Plex
             return h;
         }
 
-        private static string Proxyfy(HistoryInfo info)
-        {
-            string key = info.Key;
-            if (key.Contains("/GetMetadata/"))
-                return PlexHelper.PlexProxy(key + "/" + info.ToKey());
-            return PlexHelper.PlexProxy(key);
-        } 
-        public static void FillInfo(this Video m, HistoryInfo info)
-        {
-            if (info != null)
-            {
-                if (info.Key != null)
-                    m.Key = Proxyfy(info);
-                if (info.ParentKey != null)
-                    m.ParentKey = PlexHelper.PlexProxy(info.ParentKey);
-                if (info.GrandParentKey != null)
-                    m.GrandparentKey = PlexHelper.PlexProxy(info.GrandParentKey);
-                m.Title = info.Title ?? "";
-                m.ParentTitle = info.ParentTitle ?? "";
-                m.GrandparentTitle = info.GrandParentTitle ?? "";
-                m.Title1 = info.GrandParentTitle;
-                m.Title2 = info.ParentTitle;
-                m.Art = info.Art;
-                m.ParentArt = info.ParentArt;
-                m.GrandparentArt = info.GrandParentArt;
-                m.Thumb = info.Thumb;
-                m.ParentThumb = info.ParentThumb;
-                m.GrandparentThumb = info.GrandParentThumb;
-            }
-        }
+ 
 
 
-        public static void Add(this List<Video> l, Video m, HistoryInfo info)
+        public static void Add(this List<Video> l, Video m, Breadcrumbs info, bool noimage=false, bool noart=false)
         {
 
-            m.FillInfo(info.Update(m));
+            info.Update(m,noart).FillInfo(m, noimage, true);
+            /*
             if (m is Directory)
                 m.ParentThumb = m.GrandparentThumb = null;
             m.GrandparentTitle = m.ParentTitle ?? "";
@@ -118,19 +90,37 @@ namespace JMMServer.Plex
             m.Title1 = m.Title2="";
             if (m is Video)
                m.GrandparentKey = m.ParentKey;
-            m.ParentKey = null;
+            m.ParentKey = null;*/
             l.Add(m);
         }
-        public static void Add(this List<Directory> l, Directory m, HistoryInfo info, bool donotparentinfo = false)
+
+        public static void EppAdd(this List<Video> l, Video m, Breadcrumbs info, bool noimage = false)
         {
-            m.FillInfo(info.Update(m));
+            info.FillInfo(m,noimage,true);
+            m.Thumb = info.Thumb;
+            m.Art = info.Art;
+            m.Title = info.Title;
+            l.Add(m);
+        }
+        public static void EppAdd(this List<Directory> l, Directory m, Breadcrumbs info, bool noimage = false)
+        {
+            info.FillInfo(m, noimage, true);
+            m.Thumb = info.Thumb;
+            m.Art = info.Art;
+            m.Title = info.Title;
+            l.Add(m);
+        }
+        public static void Add(this List<Directory> l, Directory m, Breadcrumbs info, bool noimage = false)
+        {
+            info.Update(m).FillInfo(m, noimage, true);
+            /*
             m.ParentThumb = m.GrandparentThumb = null;
             m.GrandparentTitle = m.ParentTitle ?? "";
             m.ParentTitle = "";
             if (m is Video)
                 m.GrandparentKey = m.ParentKey;
             m.ParentKey = null;
-            m.Title1 = m.Title2 = "";
+            m.Title1 = m.Title2 = "";*/
             l.Add(m);
         }
         public static Video Clone(this Video o)

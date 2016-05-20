@@ -319,7 +319,7 @@
     <Compile Include="Kodi\KodiHelper.cs" />
     <Compile Include="Kodi\KodiObject.cs" />
     <Compile Include="Kodi\Utf8SringWriter.cs" />
-    <Compile Include="Plex\HistoryInfo.cs" />
+    <Compile Include="Plex\Breadcrumbs.cs" />
     <Compile Include="Plex\MediaContainerTypes.cs" />
     <Compile Include="Plex\PlexEpisodeType.cs" />
     <Compile Include="Plex\PlexExtensions.cs" />
@@ -661,6 +661,11 @@
     <Compile Include="Utilities\RenameFileHelper.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WatchedUnwatchedCount.cs" />
+    <Compile Include="WCFCompression\CompressedMessageEncoderFactory.cs" />
+    <Compile Include="WCFCompression\CompressedMessageEncodingBindingElement.cs" />
+    <Compile Include="WCFCompression\CompressionSelectionEndpointBehavior.cs" />
+    <Compile Include="WCFCompression\CompressionSelectionMessageInspector.cs" />
+    <Compile Include="WCFCompression\CompressionType.cs" />
     <Compile Include="WebCache\AniDB_FileRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_MALRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_OtherRequest.cs" />

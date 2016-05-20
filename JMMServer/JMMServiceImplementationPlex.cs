@@ -2,8 +2,12 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.ServiceModel;
 using System.ServiceModel.Web;
+using System.Text;
+using System.Web;
 using AniDBAPI;
 using BinaryNorthwest;
 using JMMContracts;
@@ -49,7 +53,7 @@ namespace JMMServer
             if (user==null)
                 return new MemoryStream();
             int userid = user.JMMUserID;
-            HistoryInfo info = new HistoryInfo { Key = PlexHelper.ConstructFiltersUrl(userid), Title = "Anime" };
+            Breadcrumbs info = new Breadcrumbs { Key = PlexHelper.ConstructFiltersUrl(userid), Title = "Anime" };
             PlexObject ret = new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.Show,info,false));
             if (!ret.Init())
                 return new MemoryStream();
@@ -145,6 +149,7 @@ namespace JMMServer
                     dirs = dirs.OrderBy(a => a.Title).ToList();
                 }
                 ret.Childrens = dirs;
+                ret.MediaContainer.Size = (int.Parse(ret.MediaContainer.Size) + 1).ToString(); //FIX to the added search item
                 return ret.GetStream();
             }
             catch (Exception ex)
@@ -160,14 +165,11 @@ namespace JMMServer
         {
             try
             {
-                HistoryInfo his = HistoryInfo.FromKey(historyinfo);
-                if (WebOperationContext.Current != null)
-                {
-                    his.Key = WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.ToString();
-                }
+                Breadcrumbs his = Breadcrumbs.FromKey(historyinfo);
                 int type;
                 int.TryParse(TypeId, out type);
                 JMMUser user = PlexHelper.GetJMMUser(UserId);
+
                 switch ((JMMType) type)
                 {
                     case JMMType.Group:
@@ -178,10 +180,14 @@ namespace JMMServer
                         return GetUnsort(user.JMMUserID, his);
                     case JMMType.Serie:
                         return GetItemsFromSerie(user.JMMUserID, Id, his);
+                    case JMMType.Episode:
+                        return GetFromEpisode(user.JMMUserID, Id, his);
                     case JMMType.File:
-                        return InternalGetFile(user.JMMUserID, Id, his);
+                        return GetFromFile(user.JMMUserID, Id, his);
                     case JMMType.Playlist:
                         return GetItemsFromPlaylist(user.JMMUserID, Id, his);
+                    case JMMType.FakeIosThumb:
+                        return FakeParentForIOSThumbnail(user.JMMUserID, Id);
                 }
                 return new MemoryStream();
             }
@@ -193,7 +199,7 @@ namespace JMMServer
 
         }
 
-        private System.IO.Stream GetItemsFromPlaylist(int userid, string id, HistoryInfo info)
+        private System.IO.Stream GetItemsFromPlaylist(int userid, string id, Breadcrumbs info)
         {
             var PlaylistID = -1;
             int.TryParse(id, out PlaylistID);
@@ -236,6 +242,7 @@ namespace JMMServer
             if (PlaylistID > 0)
             {
                 //iOS Hack, since it uses the previous thumb, as overlay image on the episodes
+                /*
                 bool iosHack = false;
                 if (WebOperationContext.Current != null && WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
                 {
@@ -243,7 +250,7 @@ namespace JMMServer
                     if (kh.Contains(" IOS"))
                         iosHack = true;
                 }
-
+                */
                 var playlist = playlistRepository.GetByID(PlaylistID);
                 var playlistItems = playlist.PlaylistItems.Split('|');
                 var vids = new List<Video>();
@@ -262,18 +269,18 @@ namespace JMMServer
                         var locals = ep.GetVideoLocals(session);
                         if ((locals == null) || (locals.Count == 0))
                             continue;
-                        var current = locals[0];
                         try
                         {
-                            PlexHelper.PopulateVideo(v, current, JMMType.File, userid);
+                            PlexHelper.PopulateVideo(v, locals, userid);
                             if (!string.IsNullOrEmpty(v.Duration))
                             {
                                 vids.Add(v, info);
+                                /*
                                 if (iosHack)
                                 {
                                     v.Art = v.Thumb;
                                     v.Thumb = ret.MediaContainer.ParentThumb;
-                                }
+                                }*/
                             }
                         }
                         catch (Exception e)
@@ -288,7 +295,7 @@ namespace JMMServer
             return new MemoryStream();
         }
 
-        private System.IO.Stream GetUnsort(int userid, HistoryInfo info)
+        private System.IO.Stream GetUnsort(int userid, Breadcrumbs info)
         {
             PlexObject ret=new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.Video,info, true));
             if (!ret.Init())
@@ -301,10 +308,13 @@ namespace JMMServer
                 Video m = new Video();
                 try
                 {
-                    PlexHelper.PopulateVideo(m, v, JMMType.File, userid);
-                    m.GrandparentKey = null;
+                    PlexHelper.PopulateVideo(m, new List<VideoLocal>() { v}, userid);
                     if (!string.IsNullOrEmpty(m.Duration))
                         dirs.Add(m,info);
+                    m.Thumb = PlexHelper.ConstructSupportImageLink("plex_404.png");
+                    m.ParentThumb = PlexHelper.ConstructSupportImageLink("plex_unsort.png");
+                    m.ParentKey = null;
+                    m.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, m.ParentThumb));
                 }
                 catch (Exception e)
                 {
@@ -319,26 +329,84 @@ namespace JMMServer
         public System.IO.Stream GetFile(string Id)
         {
             JMMUser user = PlexHelper.GetJMMUser("0");
-            return InternalGetFile(user.JMMUserID, Id, new HistoryInfo());
+            return GetFromFile(user.JMMUserID, Id, new Breadcrumbs());
         }
 
-        private System.IO.Stream InternalGetFile(int userid, string Id, HistoryInfo info)
+        private System.IO.Stream GetFromFile(int userid, string Id, Breadcrumbs info)
+        {
+                int id;
+                if (!int.TryParse(Id, out id))
+                    return new MemoryStream(Encoding.UTF8.GetBytes(" "));
+                VideoLocalRepository repVids = new VideoLocalRepository();
+                PlexObject ret = new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.File, info, true));
+                VideoLocal vi = repVids.GetByID(id);
+                if (vi == null)
+                    return new MemoryStream(Encoding.UTF8.GetBytes("  "));
+                List<Video> dirs = new List<Video>();
+                Video v2 = new Video();
+                PlexHelper.PopulateVideo(v2, new List<VideoLocal> {  vi}, userid);
+                dirs.EppAdd(v2, info, true);
+                v2.Thumb = PlexHelper.ConstructSupportImageLink("plex_404.png");
+                v2.ParentThumb = PlexHelper.ConstructSupportImageLink("plex_unsort.png");
+                v2.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, v2.ParentThumb));
+                v2.ParentKey = null;
+                ret.MediaContainer.Childrens = dirs;
+                return ret.GetStream();
+
+        }
+        private System.IO.Stream GetFromEpisode(int userid, string Id, Breadcrumbs info)
         {
             int id;
             if (!int.TryParse(Id, out id))
                 return new MemoryStream();
-            VideoLocalRepository repVids = new VideoLocalRepository();
-            PlexObject ret = new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.File,info,true));
-            VideoLocal vi = repVids.GetByID(id);
-            if (vi == null)
-                return new MemoryStream();
-            List<Video> dirs = new List<Video>();
-            Video v2 = new Video();
-            PlexHelper.PopulateVideo(v2, vi, JMMType.File, userid);
-            dirs.Add(v2,info);
-            ret.MediaContainer.Childrens = dirs;
-            return ret.GetStream();
+            PlexObject ret = new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.Episode, info, true));
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                List<Video> dirs = new List<Video>();
+                AnimeEpisodeRepository epRepo = new AnimeEpisodeRepository();
+                AnimeSeriesRepository serRepo = new AnimeSeriesRepository();
+                AnimeEpisode ep = epRepo.GetByID(session, id);
+                if (ep == null)
+                    return new MemoryStream();
+                Video v = new Video();
+                List<VideoLocal> locals = ep.GetVideoLocals(session);
+                if ((locals == null) || (locals.Count == 0))
+                    return new MemoryStream();
+                AniDB_Episode aep = ep.AniDB_Episode;
+                if (aep == null)
+                    return new MemoryStream();
+                AnimeSeries ser = serRepo.GetByID(session, ep.AnimeSeriesID);
+                if (ser == null)
+                    return new MemoryStream();
+                AniDB_Anime anime = ser.GetAnime(session);
+                if (anime == null)
+                    return new MemoryStream();
+                Contract_AnimeSeries con = ser.GetUserContract(userid);
+                if (con == null)
+                    return new MemoryStream();
+                try
+                {
+                    Video nv = new Video();
+                    PlexHelper.FillSerie(nv, ser, anime, con, userid);
+                    PlexHelper.PopulateVideo(v, locals, ep, ser.GetUserContract(userid), anime, nv, userid);
+                    v.Type = "episode";
+                    dirs.EppAdd(v, info,true);
+                    v.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, v.ParentThumb));
+                    v.ParentKey = null;
+                    ret.MediaContainer.Childrens = dirs;
+                    return ret.GetStream();
+                }
+                catch (Exception e)
+                {
+                    //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
+                }
+            }
+            return new MemoryStream();
         }
+
+
+
+
 
         public System.IO.Stream GetUsers()
         {
@@ -359,12 +427,14 @@ namespace JMMServer
             {
                 logger.ErrorException(ex.ToString(), ex);
             }
+
+
             return PlexHelper.GetStreamFromXmlObject(gfs);
         }
 
         public System.IO.Stream Search(string UserId, string limit, string query)
         {
-            HistoryInfo info = new HistoryInfo { Key = PlexHelper.ConstructSearchUrl(UserId,limit,query), Title = "Search for '"+query+"'" };
+            Breadcrumbs info = new Breadcrumbs { Key = PlexHelper.ConstructSearchUrl(UserId,limit,query), Title = "Search for '"+query+"'" };
 
             PlexObject ret =new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.Show,info,true));
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
@@ -417,14 +487,15 @@ namespace JMMServer
                 }
             }
             ret.MediaContainer.Childrens= PlexHelper.ConvertToDirectoryIfNotUnique(ls);
+           
             return ret.GetStream();
         }
 
 
        
-        public System.IO.Stream GetItemsFromGroup(int userid, string GroupId, HistoryInfo info)
+        public System.IO.Stream GetItemsFromGroup(int userid, string GroupId, Breadcrumbs info)
         {
-            PlexObject ret=new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.Season,info,false));
+            PlexObject ret=new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.Show,info,false));
             if (!ret.Init())
                 return new MemoryStream();
             int groupID;
@@ -456,7 +527,7 @@ namespace JMMServer
                         {
                             v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
                             v.Group = basegrp;
-                            v.Type = "season";
+                            v.Type = "show";
                             retGroups.Add(v, info);
                         }
                     }
@@ -561,8 +632,21 @@ namespace JMMServer
             }
         }
 
+        public System.IO.Stream FakeParentForIOSThumbnail(int userid, string url)
+        {
+            PlexObject ret = new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.None,null, true));
+            if (!ret.Init())
+                return new MemoryStream();
+            string rurl = PlexHelper.Base64DecodeUrl(url);
+            Directory v = new Directory() {Thumb = rurl, ParentThumb = rurl, GrandparentThumb = rurl};
+            ret.MediaContainer.Thumb = ret.MediaContainer.ParentThumb = ret.MediaContainer.GrandparentThumb = rurl;
+            List<Video> vids=new List<Video>();
+            vids.Add(v);
+            ret.Childrens = vids;
+            return ret.GetStream();
+        }
 
-        public System.IO.Stream GetItemsFromSerie(int userid, string SerieId,HistoryInfo info)
+        public System.IO.Stream GetItemsFromSerie(int userid, string SerieId,Breadcrumbs info)
         {
             PlexObject ret = null;
             enEpisodeType? eptype = null;
@@ -601,14 +685,15 @@ namespace JMMServer
                 ImageDetails fanart = anime.GetDefaultFanartDetailsNoBlanks(session);
 
                 //iOS Hack, since it uses the previous thumb, as overlay image on the episodes
-                bool iosHack = false;
+                //bool iosHack = false;
+                /*
                 if (WebOperationContext.Current != null && WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
                 {
                     string kh = WebOperationContext.Current.IncomingRequest.Headers.Get("X-Plex-Product").ToUpper();
                     if (kh.Contains(" IOS"))
                         iosHack = true;
                 }
-
+                */
                 List<AnimeEpisode> episodes = ser.GetAnimeEpisodes(session).Where(a => a.GetVideoLocals(session).Count > 0).ToList();
                 if (eptype.HasValue)
                 {
@@ -641,7 +726,7 @@ namespace JMMServer
                         sortCriteria.Add(new SortPropOrFieldAndDirection("Name", SortType.eString));
                         eps = Sorting.MultiSort(eps, sortCriteria);
                         List<Video> dirs= new List<Video>();
-                        bool converttoseason = true;
+                        //bool converttoseason = true;
 
                         foreach (PlexEpisodeType ee in  eps)
                         {
@@ -658,14 +743,15 @@ namespace JMMServer
                             {
                                 v = PlexHelper.MayReplaceVideo(v, ser, cseries, anime,  JMMType.File, userid, false);
                             }
-                            dirs.Add(v,info);
+                            dirs.Add(v,info,false,true);
+                            /*
                             if (iosHack)
                             {
                                 v.Thumb = ret.MediaContainer.ParentThumb;
                                 v.ParentThumb = ret.MediaContainer.GrandparentThumb;
                                 v.GrandparentThumb = ret.MediaContainer.GrandparentThumb;
                                 v.ParentKey = v.GrandparentKey;
-                            }
+                            }*/
                         }
                         ret.Childrens = dirs;
                         return ret.GetStream();
@@ -674,6 +760,10 @@ namespace JMMServer
                 List<Video> vids=new List<Video>();
                 Video nv = new Video();
                 PlexHelper.FillSerie(nv,ser,anime, cseries, userid);
+                if (eptype.HasValue)
+                {
+                    info.ParentKey = info.GrandParentKey;
+                }
                 foreach (AnimeEpisode ep in episodes)
                 {
 
@@ -684,18 +774,14 @@ namespace JMMServer
                     AniDB_Episode aep = ep.AniDB_Episode;
                     if (aep == null)
                         continue;
-                    VideoLocal current = locals[0];
                     try
                     {
-                        PlexHelper.PopulateVideo(v, current, ep, ser, cseries, anime, nv, JMMType.File, userid);
+                        PlexHelper.PopulateVideo(v,locals, ep, cseries, anime, nv, userid);
                         v.Type = "episode";
                         vids.Add(v, info);
-                        
-                        if (iosHack)
-                        {
-                            v.Art = v.Thumb;
-                            v.Thumb = ret.MediaContainer.ParentThumb;
-                        }
+                        v.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid,v.ParentThumb));
+                        v.ParentKey = null;
+
                     }
                     catch (Exception e)
                     {
@@ -712,7 +798,7 @@ namespace JMMServer
             }
         }
 
-        private System.IO.Stream GetGroupsFromFilter(int userid, string GroupFilterId, HistoryInfo info)
+        private System.IO.Stream GetGroupsFromFilter(int userid, string GroupFilterId, Breadcrumbs info)
         {
             PlexObject ret=new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.Show,info,false));
             if (!ret.Init())
@@ -788,6 +874,10 @@ namespace JMMServer
             }
             return new MemoryStream();
         }
+
     }
+
+
+
 
 }

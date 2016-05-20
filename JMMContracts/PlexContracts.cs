@@ -517,8 +517,8 @@ namespace JMMContracts.PlexContracts
         Serie,
         EpisodeType,
         Episode,
-        Movie,
         File,
-        Playlist
+        Playlist,
+        FakeIosThumb
     }
 }

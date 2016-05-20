@@ -57,6 +57,8 @@ namespace JMMContracts
 
 		public Contract_AnimeSeries SeriesForNameOverride { get; set; }
 
+
+
 		public int CompareTo(Contract_AnimeGroup obj)
 		{
 			return SortName.CompareTo(obj.SortName);
