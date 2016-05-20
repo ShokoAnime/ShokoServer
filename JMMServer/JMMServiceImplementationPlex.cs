@@ -350,6 +350,7 @@ namespace JMMServer
                 v2.ParentThumb = PlexHelper.ConstructSupportImageLink("plex_unsort.png");
                 v2.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, v2.ParentThumb));
                 v2.ParentKey = null;
+                v2.Key = ret.MediaContainer.Key;
                 ret.MediaContainer.Childrens = dirs;
                 return ret.GetStream();
 
@@ -393,6 +394,7 @@ namespace JMMServer
                     dirs.EppAdd(v, info,true);
                     v.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, v.ParentThumb));
                     v.ParentKey = null;
+                    v.Key = ret.MediaContainer.Key;
                     ret.MediaContainer.Childrens = dirs;
                     return ret.GetStream();
                 }
