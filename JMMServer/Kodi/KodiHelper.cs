@@ -281,6 +281,14 @@ namespace JMMServer.Kodi
                     v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404.png");
                 v.Summary = contract.EpisodeOverview;
 
+                //total local files
+                try
+                {
+                    v.totalLocal = ep.GetAnimeSeries().GetAnimeEpisodesCountWithVideoLocal();
+                }
+                catch { }
+                //end total local files
+
                 //community support
 
                 //CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
@@ -580,6 +588,7 @@ namespace JMMServer.Kodi
             }
             Contract_AniDB_Anime_DefaultImage poster = anime.DefaultImagePoster;
             Contract_AniDB_Anime_DefaultImage fanart = anime.DefaultImageFanart;
+
             p.Thumb = poster != null ? poster.GenPoster() : ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404V.png");
             if (fanart != null)
                 p.Art = fanart.GenArt();
