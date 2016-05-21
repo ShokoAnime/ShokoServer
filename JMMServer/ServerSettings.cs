@@ -1180,7 +1180,7 @@ namespace JMMServer
 			}
 		}
 
-        public static string AutoGroupSeriesTypeExclusions
+        public static string AutoGroupSeriesRelationExclusions
         {
             get
             {
@@ -1708,7 +1708,8 @@ namespace JMMServer
 			// Import settings
 			contract.VideoExtensions = ServerSettings.VideoExtensions;
 			contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
-			contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
+            contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
+            contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
 			contract.RunImportOnStart = ServerSettings.RunImportOnStart;
 			contract.ScanDropFoldersOnStart = ServerSettings.ScanDropFoldersOnStart;
 			contract.Hash_CRC32 = ServerSettings.Hash_CRC32;

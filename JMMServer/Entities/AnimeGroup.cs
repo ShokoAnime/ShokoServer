@@ -118,7 +118,7 @@ namespace JMMServer.Entities
 
         public static Boolean isRelationTypeInExclusions(string type)
         {
-            string[] list = ServerSettings.AutoGroupSeriesTypeExclusions.Split('|');
+            string[] list = ServerSettings.AutoGroupSeriesRelationExclusions.Split('|');
             foreach (string a in list)
             {
                 if (a.ToLowerInvariant().Equals(type.ToLowerInvariant())) return true;
