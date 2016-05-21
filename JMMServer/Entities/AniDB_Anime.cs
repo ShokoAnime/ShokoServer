@@ -2242,13 +2242,13 @@ namespace JMMServer.Entities
                                     }
                                 }
                                 // Check all titles for custom naming, in case user changed language preferences
-                                if (ser.SeriesNameOverride.Equals(grp.GroupName))
+                                if (series.SeriesNameOverride.Equals(grp.GroupName))
                                 {
                                     hasCustomName = false;
                                 }
                                 else
                                 {
-                                    foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
+                                    foreach (AniDB_Anime_Title title in series.GetAnime().GetTitles())
                                     {
                                         if (title.Title.Equals(grp.GroupName))
                                         {
