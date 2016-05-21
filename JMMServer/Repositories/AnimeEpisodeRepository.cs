@@ -7,6 +7,7 @@ using NHibernate.Criterion;
 using BinaryNorthwest;
 using System.Collections;
 using JMMServer.Databases;
+using JMMServer.Plex;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 
@@ -27,6 +28,21 @@ namespace JMMServer.Repositories
             Cache = new PocoCache<int, AnimeEpisode>(repo.InternalGetAll(),a=>a.AnimeEpisodeID);
             Series=Cache.CreateIndex(a=>a.AnimeSeriesID);
             EpisodeIDs=Cache.CreateIndex(a=>a.AniDB_EpisodeID);
+
+            int cnt = 0;
+            List<AnimeEpisode> grps = Cache.Values.Where(a => a.PlexContractVersion < AnimeEpisode.PLEXCONTRACT_VERSION).ToList();
+            int max = grps.Count;
+            foreach (AnimeEpisode g in grps)
+            {
+                repo.Save(g);
+                cnt++;
+                if (cnt % 10 == 0)
+                {
+                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " DbRegen - " + cnt + "/" + max);
+                }
+            }
+            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " DbRegen - " + max + "/" + max);
+
         }
 
         private List<AnimeEpisode> InternalGetAll()
@@ -41,6 +57,10 @@ namespace JMMServer.Repositories
             }
         }
 
+	    private void UpdatePlexContract(AnimeEpisode e)
+	    {
+	        e.PlexContract = PlexHelper.GenerateVideoFromAnimeEpisode(e);
+	    }
 
         public void Save(AnimeEpisode obj)
 		{
@@ -52,6 +72,7 @@ namespace JMMServer.Repositories
 
 		public void Save(ISession session, AnimeEpisode obj)
 		{
+            UpdatePlexContract(obj);
 			// populate the database
 			using (var transaction = session.BeginTransaction())
 			{

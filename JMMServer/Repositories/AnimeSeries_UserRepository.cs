@@ -88,7 +88,7 @@ namespace JMMServer.Repositories
                 Contract_AnimeSeries con = ser.GetUserContract(ugrp.JMMUserID);
                 if (con ==null)
                     return;
-                ugrp.PlexContract = PlexHelper.FromSerieWithPossibleReplacement(con,ser,ser.GetAnime(session),ugrp.JMMUserID);
+                ugrp.PlexContract = PlexHelper.GenerateFromSeries(con,ser,ser.GetAnime(session),ugrp.JMMUserID);
                 ugrp.KodiContract = KodiHelper.FromSerieWithPossibleReplacement(con,ser,ugrp.JMMUserID);
             }
         }

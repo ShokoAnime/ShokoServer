@@ -1212,7 +1212,7 @@ namespace JMMServer
 					return "Could not find video record";
 
 				vid.IsIgnored = isIgnored ? 1 : 0;
-				repVids.Save(vid);
+				repVids.Save(vid,false);
 
 				return "";
 
@@ -1235,7 +1235,7 @@ namespace JMMServer
 					return "Could not find video record";
 
 				vid.IsVariation = isVariation ? 1 : 0;
-				repVids.Save(vid);
+				repVids.Save(vid,false);
 
 				return "";
 
@@ -7171,18 +7171,9 @@ namespace JMMServer
 
 			try
 			{
-				AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
-				AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
-
-				List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(animeID);
-				if (animeChars == null || animeChars.Count == 0) return chars;
-
-				foreach (AniDB_Anime_Character animeChar in animeChars)
-				{
-					AniDB_Character chr = repChar.GetByCharID(animeChar.CharID);
-					if (chr != null)
-						chars.Add(chr.ToContract(animeChar));
-				}
+                AniDB_AnimeRepository animerepo = new AniDB_AnimeRepository();
+			    AniDB_Anime anime = animerepo.GetByAnimeID(animeID);
+			    return anime.GetCharactersContract();
 			}
 			catch (Exception ex)
 			{
@@ -8284,7 +8275,7 @@ namespace JMMServer
 								DataAccessHelper.GetShareAndPath(newFullName, repFolders.GetAll(), ref folderID, ref newPartialPath);
 
 								vid.FilePath = newPartialPath;
-								repVids.Save(vid);
+								repVids.Save(vid,true);
 							}
 						}
 						catch (Exception ex)

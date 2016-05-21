@@ -6,6 +6,7 @@ using JMMContracts;
 using JMMServer.Repositories;
 using JMMServer.Commands;
 using AniDBAPI;
+using Newtonsoft.Json;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -19,6 +20,37 @@ namespace JMMServer.Entities
 		public DateTime DateTimeCreated { get; set; }
 
 
+
+        public int PlexContractVersion { get; set; }
+        public string PlexContractString { get; set; }
+
+
+        public const int PLEXCONTRACT_VERSION = 2;
+
+
+        private JMMContracts.PlexContracts.Video _plexcontract = null;
+        internal virtual JMMContracts.PlexContracts.Video PlexContract
+        {
+            get
+            {
+                if ((_plexcontract == null) && PlexContractVersion == PLEXCONTRACT_VERSION)
+                {
+                    JMMContracts.PlexContracts.Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<JMMContracts.PlexContracts.Video>(PlexContractString);
+                    if (vids != null)
+                        _plexcontract = vids;
+                }
+                return _plexcontract;
+            }
+            set
+            {
+                _plexcontract = value;
+                if (value != null)
+                {
+                    PlexContractVersion = AnimeGroup_User.PLEXCONTRACT_VERSION;
+                    PlexContractString = Newtonsoft.Json.JsonConvert.SerializeObject(PlexContract, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
+                }
+            }
+        }
 
 
         public enEpisodeType EpisodeTypeEnum

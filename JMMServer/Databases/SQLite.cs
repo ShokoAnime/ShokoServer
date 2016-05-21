@@ -150,6 +150,7 @@ namespace JMMServer.Databases
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
                 UpdateSchema_044(versionNumber);
+                UpdateSchema_045(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1360,7 +1361,36 @@ namespace JMMServer.Databases
             // Now do the migratiuon
             DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
         }
-        
+        private static void UpdateSchema_045(int currentVersionNumber)
+        {
+            int thisVersion = 45;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractString text NULL");
+            cmds.Add("ALTER TABLE VideoLocal ADD MediaVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE Videolocal ADD MediaString text NULL");
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+
+
+        }
+
+           
 
         private static void ExecuteSQLCommands(List<string> cmds)
 		{

@@ -213,6 +213,7 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="ObjectExtensions.cs" />
     <Compile Include="PocoCache.cs" />
     <Compile Include="BitMaskHelper.cs" />
     <Compile Include="BlockingList.cs" />

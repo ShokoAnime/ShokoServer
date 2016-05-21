@@ -18,6 +18,8 @@ namespace JMMServer.Mappings
 			Map(x => x.AnimeSeriesID).Not.Nullable();
 			Map(x => x.DateTimeCreated).Not.Nullable();
 			Map(x => x.DateTimeUpdated).Not.Nullable();
+            Map(x => x.PlexContractVersion).Not.Nullable();
+            Map(x => x.PlexContractString).Nullable().CustomType("StringClob");
         }
 	}
 }

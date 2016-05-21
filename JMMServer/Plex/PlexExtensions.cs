@@ -138,7 +138,7 @@ namespace JMMServer.Plex
             v.ChapterSource = o.ChapterSource;
             v.ContentRating = o.ContentRating;
             v.Duration = o.Duration;
-            v.EpNumber = o.EpNumber;
+            v.EpisodeNumber = o.EpisodeNumber;
             v.EpisodeCount = o.EpisodeCount;
             v.ExtraType = o.ExtraType;
             if (o.Extras != null)

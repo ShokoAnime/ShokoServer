@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
@@ -261,26 +262,42 @@ namespace JMMServer
                 {
                     foreach (var item in playlistItems)
                     {
-                        var episodeID = -1;
-                        int.TryParse(item.Split(';')[1], out episodeID);
-                        if (episodeID < 0) return new MemoryStream();
-                        var ep = repo.GetByID(session, episodeID);
-                        var v = new Video();
-                        var locals = ep.GetVideoLocals(session);
-                        if ((locals == null) || (locals.Count == 0))
-                            continue;
                         try
                         {
-                            PlexHelper.PopulateVideo(v, locals, userid);
-                            if (!string.IsNullOrEmpty(v.Duration))
+                            var episodeID = -1;
+                            int.TryParse(item.Split(';')[1], out episodeID);
+                            if (episodeID < 0) return new MemoryStream();
+                            List<Video> dirs = new List<Video>();
+                            AnimeSeriesRepository serRepo = new AnimeSeriesRepository();
+                            AnimeEpisode e = repo.GetByID(session, episodeID);
+                            if (e == null)
+                                return new MemoryStream();
+                            KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep = new KeyValuePair<AnimeEpisode, Contract_AnimeEpisode>(e, e.GetUserContract(userid));
+                            if (ep.Value != null && ep.Value.LocalFileCount == 0)
+                                continue;
+                            AniDB_Episode aep = ep.Key.AniDB_Episode;
+                            if (aep == null)
+                                return new MemoryStream();
+                            AnimeSeries ser = serRepo.GetByID(session, ep.Key.AnimeSeriesID);
+                            if (ser == null)
+                                return new MemoryStream();
+                            AniDB_Anime anime = ser.GetAnime(session);
+                            if (anime == null)
+                                return new MemoryStream();
+                            Contract_AnimeSeries con = ser.GetUserContract(userid);
+                            if (con == null)
+                                return new MemoryStream();
+                            Video nv = new Video();
+                            PlexHelper.FillSerie(nv, ser, null, anime, con, userid);
+                            Video v = PlexHelper.VideoFromAnimeEpisode(con.CrossRefAniDBTvDBV2, ep, userid);
+                            if (v.Medias != null && v.Medias.Count > 0)
                             {
+                                PlexHelper.AddInformationFromMasterSeries(v, con, anime, nv);
+                                v.Type = "episode";
                                 vids.Add(v, info);
-                                /*
-                                if (iosHack)
-                                {
-                                    v.Art = v.Thumb;
-                                    v.Thumb = ret.MediaContainer.ParentThumb;
-                                }*/
+                                v.GrandparentKey =
+                                    PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, v.ParentThumb));
+                                v.ParentKey = null;
                             }
                         }
                         catch (Exception e)
@@ -305,12 +322,10 @@ namespace JMMServer
             List<VideoLocal> vids = repVids.GetVideosWithoutEpisode();
             foreach (VideoLocal v in vids.OrderByDescending(a => a.DateTimeCreated))
             {
-                Video m = new Video();
                 try
                 {
-                    PlexHelper.PopulateVideo(m, new List<VideoLocal>() { v}, userid);
-                    if (!string.IsNullOrEmpty(m.Duration))
-                        dirs.Add(m,info);
+                    Video m = PlexHelper.VideoFromVideoLocal(v, userid);
+                    dirs.Add(m,info);
                     m.Thumb = PlexHelper.ConstructSupportImageLink("plex_404.png");
                     m.ParentThumb = PlexHelper.ConstructSupportImageLink("plex_unsort.png");
                     m.ParentKey = null;
@@ -334,25 +349,22 @@ namespace JMMServer
 
         private System.IO.Stream GetFromFile(int userid, string Id, Breadcrumbs info)
         {
-                int id;
-                if (!int.TryParse(Id, out id))
-                    return new MemoryStream(Encoding.UTF8.GetBytes(" "));
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                PlexObject ret = new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.File, info, true));
-                VideoLocal vi = repVids.GetByID(id);
-                if (vi == null)
-                    return new MemoryStream(Encoding.UTF8.GetBytes("  "));
-                List<Video> dirs = new List<Video>();
-                Video v2 = new Video();
-                PlexHelper.PopulateVideo(v2, new List<VideoLocal> {  vi}, userid);
-                dirs.EppAdd(v2, info, true);
-                v2.Thumb = PlexHelper.ConstructSupportImageLink("plex_404.png");
-                v2.ParentThumb = PlexHelper.ConstructSupportImageLink("plex_unsort.png");
-                v2.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, v2.ParentThumb));
-                v2.ParentKey = null;
-                v2.Key = ret.MediaContainer.Key;
-                ret.MediaContainer.Childrens = dirs;
-                return ret.GetStream();
+            int id;
+            if (!int.TryParse(Id, out id))
+                return new MemoryStream(Encoding.UTF8.GetBytes(" "));
+            VideoLocalRepository repVids = new VideoLocalRepository();
+            PlexObject ret = new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.File, info, true));
+            VideoLocal vi = repVids.GetByID(id);
+            Video v2 = PlexHelper.VideoFromVideoLocal(vi, userid);
+            List<Video> dirs = new List<Video>();
+            dirs.EppAdd(v2, info, true);
+            v2.Thumb = PlexHelper.ConstructSupportImageLink("plex_404.png");
+            v2.ParentThumb = PlexHelper.ConstructSupportImageLink("plex_unsort.png");
+            v2.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, v2.ParentThumb));
+            v2.ParentKey = null;
+            v2.Key = ret.MediaContainer.Key;
+            ret.MediaContainer.Childrens = dirs;
+            return ret.GetStream();
 
         }
         private System.IO.Stream GetFromEpisode(int userid, string Id, Breadcrumbs info)
@@ -366,17 +378,17 @@ namespace JMMServer
                 List<Video> dirs = new List<Video>();
                 AnimeEpisodeRepository epRepo = new AnimeEpisodeRepository();
                 AnimeSeriesRepository serRepo = new AnimeSeriesRepository();
-                AnimeEpisode ep = epRepo.GetByID(session, id);
-                if (ep == null)
+
+                AnimeEpisode e = epRepo.GetByID(session, id);
+                if (e == null)
                     return new MemoryStream();
-                Video v = new Video();
-                List<VideoLocal> locals = ep.GetVideoLocals(session);
-                if ((locals == null) || (locals.Count == 0))
+                KeyValuePair<AnimeEpisode,Contract_AnimeEpisode> ep=new KeyValuePair<AnimeEpisode, Contract_AnimeEpisode>(e,e.GetUserContract(userid));
+                if (ep.Value!=null && ep.Value.LocalFileCount==0)
                     return new MemoryStream();
-                AniDB_Episode aep = ep.AniDB_Episode;
+                AniDB_Episode aep = ep.Key.AniDB_Episode;
                 if (aep == null)
                     return new MemoryStream();
-                AnimeSeries ser = serRepo.GetByID(session, ep.AnimeSeriesID);
+                AnimeSeries ser = serRepo.GetByID(session, ep.Key.AnimeSeriesID);
                 if (ser == null)
                     return new MemoryStream();
                 AniDB_Anime anime = ser.GetAnime(session);
@@ -388,17 +400,21 @@ namespace JMMServer
                 try
                 {
                     Video nv = new Video();
-                    PlexHelper.FillSerie(nv, ser, anime, con, userid);
-                    PlexHelper.PopulateVideo(v, locals, ep, ser.GetUserContract(userid), anime, nv, userid);
+                    PlexHelper.FillSerie(nv, ser, null, anime, con, userid);
+                    Video v = PlexHelper.VideoFromAnimeEpisode(con.CrossRefAniDBTvDBV2, ep, userid);
+                    PlexHelper.AddInformationFromMasterSeries(v,con,anime,nv);
                     v.Type = "episode";
-                    dirs.EppAdd(v, info,true);
-                    v.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, v.ParentThumb));
-                    v.ParentKey = null;
+                    if (v.Medias != null && v.Medias.Count > 0)
+                    {
+                        dirs.EppAdd(v, info, true);
+                        v.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, v.ParentThumb));
+                        v.ParentKey = null;
+                    }
                     v.Key = ret.MediaContainer.Key;
                     ret.MediaContainer.Childrens = dirs;
                     return ret.GetStream();
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
                     //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
                 }
@@ -696,7 +712,8 @@ namespace JMMServer
                         iosHack = true;
                 }
                 */
-                List<AnimeEpisode> episodes = ser.GetAnimeEpisodes(session).Where(a => a.GetVideoLocals(session).Count > 0).ToList();
+                Dictionary<AnimeEpisode,Contract_AnimeEpisode> episodes = ser.GetAnimeEpisodes(session).ToDictionary(a=>a,a=>a.GetUserContract(userid));
+                episodes=episodes.Where(a=>a.Value==null || a.Value.LocalFileCount>0).ToDictionary(a=>a.Key,a=>a.Value);
                 if (eptype.HasValue)
                 {
                     ret = new PlexObject(PlexHelper.NewMediaContainer(MediaContainerTypes.Episode, info, true));
@@ -704,7 +721,7 @@ namespace JMMServer
                         return new MemoryStream();
                     ret.MediaContainer.LeafCount = (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
                     ret.MediaContainer.ViewedLeafCount = cseries.WatchedEpisodeCount.ToString();
-                    episodes = episodes.Where(a => a.EpisodeTypeEnum == eptype.Value).ToList();
+                    episodes = episodes.Where(a => a.Key.EpisodeTypeEnum == eptype.Value).ToDictionary(a=>a.Key,a=>a.Value);
                 }
                 else
                 {
@@ -714,14 +731,14 @@ namespace JMMServer
 
                     ret.MediaContainer.LeafCount = (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
                     ret.MediaContainer.ViewedLeafCount = cseries.WatchedEpisodeCount.ToString();
-                    List<enEpisodeType> types = episodes.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
+                    List<enEpisodeType> types = episodes.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     if (types.Count > 1)
                     {
                         List<PlexEpisodeType> eps = new List<PlexEpisodeType>();
                         foreach (enEpisodeType ee in types)
                         {
                             PlexEpisodeType k2 = new PlexEpisodeType();
-                            PlexEpisodeType.EpisodeTypeTranslated(k2, ee, (AnimeTypes)anime.AnimeType, episodes.Count(a => a.EpisodeTypeEnum == ee));
+                            PlexEpisodeType.EpisodeTypeTranslated(k2, ee, (AnimeTypes)anime.AnimeType, episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
                             eps.Add(k2);
                         }
                         List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
@@ -746,14 +763,6 @@ namespace JMMServer
                                 v = PlexHelper.MayReplaceVideo(v, ser, cseries, anime,  JMMType.File, userid, false);
                             }
                             dirs.Add(v,info,false,true);
-                            /*
-                            if (iosHack)
-                            {
-                                v.Thumb = ret.MediaContainer.ParentThumb;
-                                v.ParentThumb = ret.MediaContainer.GrandparentThumb;
-                                v.GrandparentThumb = ret.MediaContainer.GrandparentThumb;
-                                v.ParentKey = v.GrandparentKey;
-                            }*/
                         }
                         ret.Childrens = dirs;
                         return ret.GetStream();
@@ -761,29 +770,26 @@ namespace JMMServer
                 }
                 List<Video> vids=new List<Video>();
                 Video nv = new Video();
-                PlexHelper.FillSerie(nv,ser,anime, cseries, userid);
+                PlexHelper.FillSerie(nv,ser,episodes, anime, cseries, userid);
                 if (eptype.HasValue)
                 {
                     info.ParentKey = info.GrandParentKey;
                 }
-                foreach (AnimeEpisode ep in episodes)
+                foreach (KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep in episodes)
                 {
 
-                    Video v = new Video();                   
-                    List<VideoLocal> locals = ep.GetVideoLocals(session);
-                    if ((locals == null) || (locals.Count == 0))
-                        continue;
-                    AniDB_Episode aep = ep.AniDB_Episode;
-                    if (aep == null)
-                        continue;
                     try
                     {
-                        PlexHelper.PopulateVideo(v,locals, ep, cseries, anime, nv, userid);
-                        v.Type = "episode";
-                        vids.Add(v, info);
-                        v.GrandparentKey = PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid,v.ParentThumb));
-                        v.ParentKey = null;
-
+                        Video v = PlexHelper.VideoFromAnimeEpisode(cseries.CrossRefAniDBTvDBV2, ep, userid);
+                        if (v.Medias != null && v.Medias.Count > 0)
+                        {
+                            PlexHelper.AddInformationFromMasterSeries(v,cseries, anime, nv);
+                            v.Type = "episode";
+                            vids.Add(v, info);
+                            v.GrandparentKey =
+                                PlexHelper.PlexProxy(PlexHelper.ConstructFakeIosThumb(userid, v.ParentThumb));
+                            v.ParentKey = null;
+                        }
                     }
                     catch (Exception e)
                     {
@@ -792,7 +798,7 @@ namespace JMMServer
                 }
 
                 List<SortPropOrFieldAndDirection> sortCriteria2 = new List<SortPropOrFieldAndDirection>();
-                sortCriteria2.Add(new SortPropOrFieldAndDirection("EpNumber", SortType.eInteger));
+                sortCriteria2.Add(new SortPropOrFieldAndDirection("EpisodeNumber", SortType.eInteger));
                 vids= Sorting.MultiSort(vids, sortCriteria2);
                 ret.Childrens = vids;
                 

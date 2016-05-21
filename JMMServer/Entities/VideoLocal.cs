@@ -33,7 +33,37 @@ namespace JMMServer.Entities
 		public DateTime DateTimeCreated { get; set; }
 		public int IsVariation { get; set; }
 
-		public string ToStringDetailed()
+        public int MediaVersion { get; set; }
+        public string MediaString { get; set; }
+
+
+        public const int MEDIA_VERSION = 1;
+
+
+        internal JMMContracts.PlexContracts.Media _media = null;
+        public virtual JMMContracts.PlexContracts.Media Media
+        {
+            get
+            {
+                if ((_media == null) && (MediaVersion == MEDIA_VERSION))
+                    _media = Newtonsoft.Json.JsonConvert.DeserializeObject<JMMContracts.PlexContracts.Media>(MediaString);
+                return _media;
+            }
+            set
+            {
+                _media = value;
+                if (value != null)
+                {
+                    MediaVersion = MEDIA_VERSION;
+                    MediaString = Newtonsoft.Json.JsonConvert.SerializeObject(_media);
+                }
+            }
+        }
+
+
+
+
+        public string ToStringDetailed()
 		{
 			StringBuilder sb = new StringBuilder("");
 			sb.Append(Environment.NewLine);
@@ -445,7 +475,7 @@ namespace JMMServer.Entities
 					DataAccessHelper.GetShareAndPath(newFullName, repFolders.GetAll(), ref folderID, ref newPartialPath);
 
 					this.FilePath = newPartialPath;
-					repVids.Save(this);
+					repVids.Save(this,true);
 				}
 			}
 			catch (Exception ex)
@@ -604,7 +634,7 @@ namespace JMMServer.Entities
                     this.ImportFolderID = newFolderID;
                     this.FilePath = newPartialPath;
                     VideoLocalRepository repVids = new VideoLocalRepository();
-                    repVids.Save(this);
+                    repVids.Save(this,true);
                 }
                 else
                 {
@@ -617,7 +647,7 @@ namespace JMMServer.Entities
                     this.ImportFolderID = newFolderID;
                     this.FilePath = newPartialPath;
                     VideoLocalRepository repVids = new VideoLocalRepository();
-                    repVids.Save(this);
+                    repVids.Save(this,true);
 
                     try
                     {

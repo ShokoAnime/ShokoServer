@@ -71,8 +71,10 @@ namespace JMMContracts.PlexContracts
     {
         [XmlIgnore]
         public DateTime AirDate { get; set; }
-
-       
+        [XmlIgnore]
+        public bool IsMovie { get; set; }
+        [XmlIgnore]
+        public int Id { get; set; }
         [XmlIgnore]
         public Contract_AnimeGroup Group { get; set; }
 
@@ -205,7 +207,7 @@ namespace JMMContracts.PlexContracts
         public string Season { get; set; }
 
         [XmlIgnore]
-        public int EpNumber { get; set; }
+        public int EpisodeNumber { get; set; }
 
         [XmlAttribute("viewCount")]
         public string ViewCount { get; set; }
@@ -229,6 +231,9 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("extraType")]
         public string ExtraType { get; set; }
+
+        [XmlIgnore] public int EpisodeType { get; set; }
+
     }
 
     [Serializable]
@@ -287,6 +292,7 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("optimizedForStreaming")]
         public string OptimizedForStreaming { get; set; }
+
     }
     [XmlType("Part")]
     public class Part
@@ -321,6 +327,8 @@ namespace JMMContracts.PlexContracts
         [XmlAttribute("optimizedForStreaming")]
         public string OptimizedForStreaming { get; set; }
 
+        [XmlIgnore]
+        public string Extension { get; set; }
 
         [XmlAttribute("has64bitOffsets")]
         public string Has64bitOffsets { get; set; }

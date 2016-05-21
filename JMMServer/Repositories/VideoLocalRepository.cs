@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Plex;
 using NHibernate.Criterion;
 using NHibernate;
 using NutzCode.InMemoryIndex;
@@ -27,6 +28,19 @@ namespace JMMServer.Repositories
             Paths=new PocoIndex<int, VideoLocal, string>(Cache,a=>a.FilePath);
             Ignored=new PocoIndex<int, VideoLocal, int>(Cache,a=>a.IsIgnored);
             ImportFolders=new PocoIndex<int, VideoLocal, int>(Cache,a=>a.ImportFolderID);
+            int cnt = 0;
+            List<VideoLocal> grps = Cache.Values.Where(a => a.MediaVersion< VideoLocal.MEDIA_VERSION).ToList();
+            int max = grps.Count;
+            foreach (VideoLocal g in grps)
+            {
+                repo.Save(g,false);
+                cnt++;
+                if (cnt % 10 == 0)
+                {
+                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " DbRegen - " + cnt + "/" + max);
+                }
+            }
+            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " DbRegen - " + max + "/" + max);
 
         }
 
@@ -42,8 +56,13 @@ namespace JMMServer.Repositories
             }
         }
 
-        public void Save(VideoLocal obj)
+	    private void UpdateMediaContracts(VideoLocal obj)
+	    {
+	        obj.Media = PlexHelper.GenerateMediaFromVideoLocal(obj);
+	    }
+        public void Save(VideoLocal obj, bool updateEpisodes)
 		{
+            UpdateMediaContracts(obj);
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				// populate the database
@@ -54,6 +73,14 @@ namespace JMMServer.Repositories
 				}
                 Cache.Update(obj);
 			}
+            if (updateEpisodes)
+            {
+                AnimeEpisodeRepository repo=new AnimeEpisodeRepository();
+                foreach (AnimeEpisode ep in obj.GetAnimeEpisodes())
+                {
+                    repo.Save(ep);
+                }
+            }
 		}
 
 		public VideoLocal GetByID(int id)

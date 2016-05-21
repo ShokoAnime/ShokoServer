@@ -62,7 +62,7 @@ namespace JMMServer.Entities
 
         public string ContractString { get; set; }
 
-	    public const int CONTRACT_VERSION = 1;
+	    public const int CONTRACT_VERSION = 2;
 
         #endregion
 
@@ -1945,9 +1945,34 @@ namespace JMMServer.Entities
             if (defPoster != null) contract.DefaultImagePoster = defPoster.ToContract(session);
             AniDB_Anime_DefaultImage defBanner = this.GetDefaultWideBanner(session);
             if (defBanner != null) contract.DefaultImageWideBanner = defBanner.ToContract(session);
+	        contract.Characters = GetCharactersContract();
             return contract;
         }
+        public List<Contract_AniDB_Character> GetCharactersContract()
+        {
+            List<Contract_AniDB_Character> chars = new List<Contract_AniDB_Character>();
 
+            try
+            {
+                AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
+                AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
+
+                List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(this.AniDB_AnimeID);
+                if (animeChars == null || animeChars.Count == 0) return chars;
+
+                foreach (AniDB_Anime_Character animeChar in animeChars)
+                {
+                    AniDB_Character chr = repChar.GetByCharID(animeChar.CharID);
+                    if (chr != null)
+                        chars.Add(chr.ToContract(animeChar));
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return chars;
+        }
         public void UpdateContractDetailed(ISession session)
         {
             AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();

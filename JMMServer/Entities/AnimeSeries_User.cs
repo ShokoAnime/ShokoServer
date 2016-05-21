@@ -30,8 +30,8 @@ namespace JMMServer.Entities
         public string KodiContractString { get; set; }
 
 
-        public const int PLEXCONTRACT_VERSION = 1;
-        public const int KODICONTRACT_VERSION = 1;
+        public const int PLEXCONTRACT_VERSION = 2;
+        public const int KODICONTRACT_VERSION = 2;
 
 
         private JMMContracts.PlexContracts.Video _plexcontract = null;

@@ -96,7 +96,7 @@ namespace JMMServer.Repositories
 	            if (grp == null)
 	                return;
                 List<AnimeSeries> series = grp.GetAllSeries(session);
-                ugrp.PlexContract = PlexHelper.VideoFromAnimeGroup(session, grp, ugrp.JMMUserID, series);
+                ugrp.PlexContract = PlexHelper.GenerateFromAnimeGroup(session, grp, ugrp.JMMUserID, series);
 	            ugrp.KodiContract = KodiHelper.VideoFromAnimeGroup(session, grp, ugrp.JMMUserID, series);
 	        }
 	    }
