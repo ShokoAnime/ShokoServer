@@ -899,4 +899,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Full Story</value>
   </data>
+  <data name="blank" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\blank.bin;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>

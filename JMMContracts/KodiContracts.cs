@@ -83,6 +83,9 @@ namespace JMMContracts.KodiContracts
         [XmlAttribute]
         public int JMMEpisodeId { get; set; }
 
+        [XmlAttribute]
+        public int totalLocal { get; set; }
+
         [XmlIgnore]
         public Contract_AnimeGroup Group { get; set; }
 
