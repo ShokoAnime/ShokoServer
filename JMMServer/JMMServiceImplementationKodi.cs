@@ -935,22 +935,7 @@ namespace JMMServer
             foreach (AniDB_Anime_Character achar in anidb_anime.GetAnimeCharacters())
             {
                 AniDB_Character x = achar.GetCharacter();
-                Character c = new Character();
-                c.CharID = x.AniDB_CharacterID;
-                c.CharName = x.CharName;
-                c.Description = x.CharDescription;
-                c.Picture = "2/" + c.CharID;
-                AniDB_Seiyuu seiyuu_tmp = x.GetSeiyuu();
-                if (seiyuu_tmp != null)
-                {
-                    c.SeiyuuName = seiyuu_tmp.SeiyuuName;
-                    c.SeiyuuPic = "3/" + x.GetSeiyuu().AniDB_SeiyuuID;
-                }
-                else
-                {
-                    c.SeiyuuName = "";
-                    c.SeiyuuPic = "";
-                }
+                Character c = x.toContractKodi();
 
                 char_list.Add(c);
             }

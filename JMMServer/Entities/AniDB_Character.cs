@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using AniDBAPI;
 using JMMContracts;
+using JMMContracts.KodiContracts;
 using JMMServer.Repositories;
 using System.IO;
 using JMMServer.ImageDownload;
@@ -143,6 +144,28 @@ namespace JMMServer.Entities
 
 			return contract;
 		}
+
+        public JMMContracts.KodiContracts.Character toContractKodi()
+        {
+            Character c = new Character();
+            c.CharID = this.CharID;
+            c.CharName = this.CharName;
+            c.Description = this.CharDescription;
+            c.Picture = "2/" + c.CharID;
+            AniDB_Seiyuu seiyuu_tmp = GetSeiyuu();
+            if (seiyuu_tmp != null)
+            {
+                c.SeiyuuName = seiyuu_tmp.SeiyuuName;
+                c.SeiyuuPic = "3/" + seiyuu_tmp.AniDB_SeiyuuID;
+            }
+            else
+            {
+                c.SeiyuuName = "";
+                c.SeiyuuPic = "";
+            }
+
+            return c;
+        }
 
 		public AniDB_Seiyuu GetSeiyuu()
 		{

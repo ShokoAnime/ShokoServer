@@ -1939,28 +1939,11 @@ namespace JMMServer.Entities
 				if (defBanner != null) contract.DefaultImageWideBanner = defBanner.ToContract(session);
 			}
 
-            contract.Characters = new List<Character>();
+            contract.Characters = new List<Contract_AniDB_Character>();
             foreach (AniDB_Anime_Character achar in this.GetAnimeCharacters(session))
             {
                 AniDB_Character x = achar.GetCharacter();
-                Character c = new Character();
-                c.CharID = x.AniDB_CharacterID;
-                c.CharName = x.CharName;
-                c.Description = x.CharDescription;
-                c.Picture = "2/" + c.CharID;
-                AniDB_Seiyuu seiyuu_tmp = x.GetSeiyuu();
-                if (seiyuu_tmp != null)
-                {
-                    c.SeiyuuName = seiyuu_tmp.SeiyuuName;
-                    c.SeiyuuPic = "3/" + x.GetSeiyuu().AniDB_SeiyuuID;
-                }
-                else
-                {
-                    c.SeiyuuName = "";
-                    c.SeiyuuPic = "";
-                }
-
-                contract.Characters.Add(c);
+                contract.Characters.Add(x.ToContract(achar));
             }
 
             return contract;
