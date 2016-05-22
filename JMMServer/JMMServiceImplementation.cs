@@ -8733,7 +8733,9 @@ namespace JMMServer
 						if (grps != null && grps.Count > 0)
 						{
                             int groupID = -1;
-                            foreach(AnimeGroup grp in grps)
+                            AnimeSeries name = null;
+                            Boolean hasCustomName = true;
+                            foreach (AnimeGroup grp in grps)
                             {
                                 if (grp.GroupName.Equals("AAA Migrating Groups AAA")) continue;
                                 if (groupID == -1) groupID = grp.AnimeGroupID;
@@ -8743,8 +8745,7 @@ namespace JMMServer
 
                                 if (groupID != grp.AnimeGroupID)
                                 {
-                                    AnimeSeries name = null;
-                                    Boolean hasCustomName = true;
+                                    
                                     if (grp.DefaultAnimeSeriesID.HasValue)
                                     {
                                         name = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
@@ -8794,23 +8795,23 @@ namespace JMMServer
                                         
                                         repSeries.Save(series, false);
                                     }
-                                    if (name != null)
-                                    {
-                                        string newTitle = name.GetAnime().PreferredTitle;
-                                        if (name.SeriesNameOverride != null && !name.SeriesNameOverride.Equals(""))
-                                            newTitle = name.SeriesNameOverride;
-                                        if (hasCustomName && (!grp.DefaultAnimeSeriesID.HasValue || name.AnimeSeriesID != grp.DefaultAnimeSeriesID.Value))
-                                            newTitle = grp.GroupName;
-                                        // reset tags, description, etc to new series
-                                        grp.Populate(name);
-                                        grp.GroupName = newTitle;
-                                        grp.SortName = newTitle;
-
-                                        repGroups.Save(grp);
-                                    }
-                                    #endregion
                                 }
-                                break;
+                                //after moving everything, rename and repopulate
+                                if (name != null)
+                                {
+                                    string newTitle = name.GetAnime().PreferredTitle;
+                                    if (name.SeriesNameOverride != null && !name.SeriesNameOverride.Equals(""))
+                                        newTitle = name.SeriesNameOverride;
+                                    if (hasCustomName && (!grp.DefaultAnimeSeriesID.HasValue || name.AnimeSeriesID != grp.DefaultAnimeSeriesID.Value))
+                                        newTitle = grp.GroupName;
+                                    // reset tags, description, etc to new series
+                                    grp.Populate(name);
+                                    grp.GroupName = newTitle;
+                                    grp.SortName = newTitle;
+
+                                    repGroups.Save(grp);
+                                }
+                                #endregion
                             }
                             foreach (AnimeGroup grp in grps)
                             {
