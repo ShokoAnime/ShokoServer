@@ -371,7 +371,7 @@ namespace JMMServer
 			//automaticUpdater.MenuItem = mnuCheckForUpdates;
 
 			ServerState.Instance.LoadSettings();
-            workerFileEvents.RunWorkerAsync();
+
 
             cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
 
@@ -900,6 +900,12 @@ namespace JMMServer
 			if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL") cboDatabaseType.SelectedIndex = 2;
 		}
 
+	    public void StartFileWorker()
+	    {
+            if (!workerFileEvents.IsBusy)
+                workerFileEvents.RunWorkerAsync();
+            
+        }
 		void workerSetupDB_DoWork(object sender, DoWorkEventArgs e)
 		{
 
@@ -973,14 +979,16 @@ namespace JMMServer
                 StartRESTHost();
                 StartStreamingHost();
 
+   
 
 
 
-
-				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
+                ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
 				JMMService.CmdProcessorGeneral.Init();
 				JMMService.CmdProcessorHasher.Init();
 				JMMService.CmdProcessorImages.Init();
+                
+               
 
 				// timer for automatic updates
 				autoUpdateTimer = new System.Timers.Timer();
@@ -997,7 +1005,10 @@ namespace JMMServer
 				autoUpdateTimerShort.Start();
 
 				ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingFile;
-				StartWatchingFiles();
+
+                StartFileWorker();
+
+                StartWatchingFiles();
 
 				DownloadAllImages();
 
