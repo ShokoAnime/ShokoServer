@@ -1188,14 +1188,14 @@ namespace JMMServer
                 string val = "same setting|alternative setting|character|other";
                 try
                 {
-                    val = appSettings["AutoGroupSeriesTypeExclusions"];
+                    val = appSettings["AutoGroupSeriesRelationExclusions"];
                 }
                 catch (Exception e) { }
                 return val;
             }
             set
             {
-                UpdateSetting("AutoGroupSeriesTypeExclusions", value);
+                UpdateSetting("AutoGroupSeriesRelationExclusions", value);
             }
         }
 
@@ -1890,7 +1890,8 @@ namespace JMMServer
 			logger.Info("Trakt_SyncFrequency: {0}", Trakt_SyncFrequency);
 
 			logger.Info("AutoGroupSeries: {0}", AutoGroupSeries);
-			logger.Info("LanguagePreference: {0}", LanguagePreference);
+            logger.Info("AutoGroupSeriesRelationExclusions: {0}", AutoGroupSeriesRelationExclusions);
+            logger.Info("LanguagePreference: {0}", LanguagePreference);
 			logger.Info("LanguageUseSynonyms: {0}", LanguageUseSynonyms);
 			logger.Info("EpisodeTitleSource: {0}", EpisodeTitleSource);
 			logger.Info("SeriesDescriptionSource: {0}", SeriesDescriptionSource);
