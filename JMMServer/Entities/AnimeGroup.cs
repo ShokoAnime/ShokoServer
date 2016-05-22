@@ -324,7 +324,7 @@ namespace JMMServer.Entities
                 {
                     #region Naming
                     AnimeSeries series = null;
-                    Boolean hasCustomName = true;
+                    bool hasCustomName = true;
                     if (grp.DefaultAnimeSeriesID.HasValue)
                     {
                         series = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
