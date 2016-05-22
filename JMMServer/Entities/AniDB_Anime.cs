@@ -2220,17 +2220,21 @@ namespace JMMServer.Entities
                 List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(session, ser.AniDB_ID, true);
 
                 // only use if there is just one result
+
+                // we are moving all to a single group, and then naming it, so keep outside loop
+                Boolean hasCustomName = true;
+                AnimeSeries name = null;
                 if (grps != null && grps.Count > 0)
                 {
+                    int groupID = -1;
                     foreach (AnimeGroup grp in grps)
                     {
                         if (grp.GroupName.Equals("AAA Migrating Groups AAA")) continue;
                         if (ser.AnimeGroupID == grp.AnimeGroupID) continue;
-                        ser.AnimeGroupID = grp.AnimeGroupID;
+                        if (groupID == -1) groupID = grp.AnimeGroupID;
+                        ser.AnimeGroupID = groupID;
 
                         #region Naming
-                        Boolean hasCustomName = true;
-                        AnimeSeries name = null;
                         if (grp.DefaultAnimeSeriesID.HasValue)
                         {
                             name = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
@@ -2244,8 +2248,8 @@ namespace JMMServer.Entities
                         }
                         foreach (AnimeSeries series in grp.GetAllSeries())
                         {
-                            if (series.AnimeGroupID == grp.AnimeGroupID) continue;
-                            series.AnimeGroupID = grp.AnimeGroupID;
+                            if (series.AnimeGroupID == groupID) continue;
+                            series.AnimeGroupID = groupID;
                             repSeries.Save(series, false);
 
                             if (!grp.DefaultAnimeSeriesID.HasValue)
@@ -2279,25 +2283,25 @@ namespace JMMServer.Entities
                                 }
                             }
                         }
+                    }
                         if (name != null)
                         {
+                        AnimeGroup newGroup = repGroups.GetByID(groupID);
                             string newTitle = name.GetAnime().PreferredTitle;
                             if (name.SeriesNameOverride != null && !name.SeriesNameOverride.Equals(""))
                                 newTitle = name.SeriesNameOverride;
-                            if (hasCustomName && (!grp.DefaultAnimeSeriesID.HasValue || name.AnimeSeriesID != grp.DefaultAnimeSeriesID.Value))
-                                newTitle = grp.GroupName;
+                        if (hasCustomName && (!newGroup.DefaultAnimeSeriesID.HasValue || name.AnimeSeriesID != newGroup.DefaultAnimeSeriesID.Value))
+                            newTitle = newGroup.GroupName;
                             // reset tags, description, etc to new series
-                            grp.Populate(name);
-                            grp.GroupName = newTitle;
-                            grp.SortName = newTitle;
+                        newGroup.Populate(name);
+                        newGroup.GroupName = newTitle;
+                        newGroup.SortName = newTitle;
 
-                            repGroups.Save(grp);
+                        repGroups.Save(newGroup);
                         }
                         #endregion
 
-                    createNewGroup = false;
-                        break;
-                    }
+                        createNewGroup = false;
                     foreach (AnimeGroup group in grps)
                     {
                         if (group.GetAllSeries().Count == 0) repGroups.Delete(group.AnimeGroupID);
