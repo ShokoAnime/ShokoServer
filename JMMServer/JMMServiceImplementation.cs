@@ -3239,7 +3239,8 @@ namespace JMMServer
 				ServerSettings.VideoExtensions = contractIn.VideoExtensions;
 				ServerSettings.Import_UseExistingFileWatchedStatus = contractIn.Import_UseExistingFileWatchedStatus;
 				ServerSettings.AutoGroupSeries = contractIn.AutoGroupSeries;
-				ServerSettings.RunImportOnStart = contractIn.RunImportOnStart;
+                ServerSettings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
+                ServerSettings.RunImportOnStart = contractIn.RunImportOnStart;
 				ServerSettings.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
 				ServerSettings.Hash_CRC32 = contractIn.Hash_CRC32;
 				ServerSettings.Hash_MD5 = contractIn.Hash_MD5;
