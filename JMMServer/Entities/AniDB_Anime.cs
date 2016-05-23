@@ -2229,11 +2229,8 @@ namespace JMMServer.Entities
                         }
                         foreach (AnimeSeries series in grp.GetAllSeries())
                         {
-                            if (series.AnimeGroupID != groupID)
-                            {
-                            series.AnimeGroupID = groupID;
-                            repSeries.Save(series, false);
-                            }
+                                series.AnimeGroupID = groupID;
+                            repSeries.Save(series, true);
 
                             if (!grp.DefaultAnimeSeriesID.HasValue)
                             {
@@ -2283,6 +2280,7 @@ namespace JMMServer.Entities
                         newGroup.SortName = newTitle;
 
                         repGroups.Save(newGroup);
+                        StatsCache.Instance.UpdateUsingGroup(newGroup.AnimeGroupID);
                     }
                     #endregion
 

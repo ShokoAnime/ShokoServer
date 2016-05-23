@@ -172,8 +172,8 @@ namespace JMMServer.Entities
                     if (grp != null)
                     {
                         if(!grps.Contains(grp)) grps.Add(grp);
+                    }
                 }
-            }
             }
 
             return grps;
@@ -298,8 +298,8 @@ namespace JMMServer.Entities
                                 continue;
                             }
                             if (ser.AirDate < series.AirDate) series = ser;
-                }
-            }
+                        }
+                    }
                     if(series != null)
                     {
                         string newTitle = series.GetAnime().PreferredTitle;
@@ -312,8 +312,9 @@ namespace JMMServer.Entities
                         grp.GroupName = newTitle;
                         grp.SortName = newTitle;
 
-                repGroups.Save(grp);
-        }
+                        repGroups.Save(grp);
+                        StatsCache.Instance.UpdateUsingGroup(grp.AnimeGroupID);
+                    }
                     #endregion
                 }
             }
