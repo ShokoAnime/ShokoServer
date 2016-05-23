@@ -16,7 +16,7 @@ namespace JMMServer.Mappings
 
 			Map(x => x.Anime_GroupName).Not.Nullable();
 			Map(x => x.Anime_GroupNameShort).Not.Nullable();
-			//Map(x => x.AnimeID).Not.Nullable();
+			Map(x => x.AnimeID).Not.Nullable();
 			Map(x => x.CRC).Not.Nullable();
 			Map(x => x.DateTimeUpdated).Not.Nullable();
 			Map(x => x.Episode_Rating).Not.Nullable();
