@@ -7,7 +7,7 @@ using NHibernate.Criterion;
 using BinaryNorthwest;
 using System.Collections;
 using JMMServer.Databases;
-using JMMServer.Plex;
+using JMMServer.PlexAndKodi;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 
@@ -59,7 +59,7 @@ namespace JMMServer.Repositories
 
 	    private void UpdatePlexContract(AnimeEpisode e)
 	    {
-	        e.PlexContract = PlexHelper.GenerateVideoFromAnimeEpisode(e);
+	        e.PlexContract = Helper.GenerateVideoFromAnimeEpisode(e);
 	    }
 
         public void Save(AnimeEpisode obj)

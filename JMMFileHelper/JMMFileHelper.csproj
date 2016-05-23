@@ -69,19 +69,14 @@
     <Compile Include="Crc32.cs" />
     <Compile Include="FileHashHelper.cs" />
     <Compile Include="Hasher.cs" />
-    <Compile Include="KodiMediaInfo\Convert.cs" />
-    <Compile Include="KodiMediaInfo\MediaInfoDLL.cs" />
     <Compile Include="MD4Managed.cs" />
-    <Compile Include="PlexMediaInfo\Convert.cs" />
-    <Compile Include="PlexMediaInfo\MediaInfoDLL.cs" />
+    <Compile Include="MediaInfo\Convert.cs" />
+    <Compile Include="MediaInfo\MediaInfoDLL.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MediaInfoReader.cs" />
-    <Compile Include="Subtitles\IKodiSubtitles.cs" />
     <Compile Include="Subtitles\ISubtitles.cs" />
     <Compile Include="Subtitles\SubtitleHelper.cs" />
-    <Compile Include="Subtitles\KodiTextSubtitles.cs" />
     <Compile Include="Subtitles\TextSubtitles.cs" />
-    <Compile Include="Subtitles\KodiVobSubSubtitles.cs" />
     <Compile Include="Subtitles\VobSubSubtitles.cs" />
   </ItemGroup>
   <ItemGroup>

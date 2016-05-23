@@ -5,8 +5,7 @@ using System.Text;
 using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.Entities;
-using JMMServer.Kodi;
-using JMMServer.Plex;
+
 using Newtonsoft.Json;
 using NHibernate.Criterion;
 using NLog;

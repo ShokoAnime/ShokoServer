@@ -5,8 +5,7 @@ using System.Text;
 using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.Entities;
-using JMMServer.Kodi;
-using JMMServer.Plex;
+using JMMServer.PlexAndKodi;
 using NHibernate.Criterion;
 using NLog;
 using NHibernate;
@@ -33,7 +32,7 @@ namespace JMMServer.Repositories
             Series=Cache.CreateIndex(a=>a.AnimeSeriesID);
             UsersSeries=Cache.CreateIndex(a=>a.JMMUserID,a=>a.AnimeSeriesID);
             int cnt = 0;
-            List<AnimeSeries_User> sers = Cache.Values.Where(a => a.PlexContractVersion < AnimeGroup_User.PLEXCONTRACT_VERSION || a.KodiContractVersion < AnimeGroup_User.KODICONTRACT_VERSION).ToList();
+            List<AnimeSeries_User> sers = Cache.Values.Where(a => a.PlexContractVersion < AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
             int max = sers.Count;
             foreach (AnimeSeries_User g in sers)
             {
@@ -88,8 +87,7 @@ namespace JMMServer.Repositories
                 Contract_AnimeSeries con = ser.GetUserContract(ugrp.JMMUserID);
                 if (con ==null)
                     return;
-                ugrp.PlexContract = PlexHelper.GenerateFromSeries(con,ser,ser.GetAnime(session),ugrp.JMMUserID);
-                ugrp.KodiContract = KodiHelper.FromSerieWithPossibleReplacement(con,ser,ugrp.JMMUserID);
+                ugrp.PlexContract = Helper.GenerateFromSeries(con,ser,ser.GetAnime(session),ugrp.JMMUserID);
             }
         }
 

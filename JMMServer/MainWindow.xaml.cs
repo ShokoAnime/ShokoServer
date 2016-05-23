@@ -16,7 +16,6 @@ using System.IO;
 using JMMFileHelper;
 using System.ServiceModel;
 using System.ServiceModel.Description;
-using JMMContracts;
 using JMMServer.WebCache;
 using System.ComponentModel;
 using System.ServiceModel.Channels;
@@ -55,6 +54,9 @@ using System.Xml.Serialization;
 using System.Windows.Controls;
 using System.Globalization;
 using Infralution.Localization.Wpf;
+using JMMContracts;
+using JMMServer.PlexAndKodi;
+using JMMServer.PlexAndKodi.Kodi;
 using JMMServer.WCFCompression;
 
 namespace JMMServer
@@ -2400,7 +2402,7 @@ namespace JMMServer
 
 	    private static void StartPlexHost()
 	    {
-	        hostPlex = new WebServiceHost(typeof (JMMServiceImplementationPlex), baseAddressPlex);
+	        hostPlex = new WebServiceHost(typeof (CommonImplementation), baseAddressPlex);
 	        AddCompressableEndpoint(hostPlex,typeof (IJMMServerPlex), new WebHttpBinding());       
 	        ServiceDebugBehavior stp = hostPlex.Description.Behaviors.Find<ServiceDebugBehavior>();
 	        stp.HttpHelpPageEnabled = false;
@@ -2436,7 +2438,7 @@ namespace JMMServer
         }
         private static void StartKodiHost()
         {
-            hostKodi = new WebServiceHost(typeof(JMMServiceImplementationKodi), baseAddressKodi);
+            hostKodi = new WebServiceHost(typeof(KodiImplementation), baseAddressKodi);
             AddCompressableEndpoint(hostKodi, typeof(IJMMServerKodi), new WebHttpBinding());
             ServiceDebugBehavior stp = hostKodi.Description.Behaviors.Find<ServiceDebugBehavior>();
             stp.HttpHelpPageEnabled = false;

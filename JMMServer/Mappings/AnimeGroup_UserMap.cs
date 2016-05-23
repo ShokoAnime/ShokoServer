@@ -25,8 +25,7 @@ namespace JMMServer.Mappings
 			Map(x => x.WatchedEpisodeCount);
             Map(x => x.PlexContractVersion).Not.Nullable();
             Map(x => x.PlexContractString).Nullable().CustomType("StringClob");
-            Map(x => x.KodiContractVersion).Not.Nullable();
-            Map(x => x.KodiContractString).Nullable().CustomType("StringClob");
+
         }
 	}
 }

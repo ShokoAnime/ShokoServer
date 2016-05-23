@@ -173,6 +173,7 @@ namespace JMMServer.Databases
                 UpdateSchema_045(versionNumber);
                 UpdateSchema_046(versionNumber);
                 UpdateSchema_047(versionNumber);
+                UpdateSchema_048(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1802,7 +1803,7 @@ namespace JMMServer.Databases
             cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractVersion` int NOT NULL DEFAULT 0");
             cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractString` mediumtext character set utf8 NULL");
 
-
+    
             try
             {
                 using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
@@ -1863,7 +1864,42 @@ namespace JMMServer.Databases
             }
 
         }
+        private static void UpdateSchema_048(int currentVersionNumber)
+        {
+            int thisVersion = 48;
+            if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE `AnimeSeries_User` DROP COLUMN `KodiContractVersion`");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` DROP COLUMN `KodiContractString`");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` DROP COLUMN `KodiContractVersion`");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` DROP COLUMN `KodiContractString`");
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+
+        }
         private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

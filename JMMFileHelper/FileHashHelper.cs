@@ -34,15 +34,11 @@ namespace JMMFileHelper
 
         public static MediaInfoResult GetMediaInfo(string fileName, bool forceRefresh)
         {
-            return GetMediaInfo(fileName, forceRefresh, false);
+            MediaInfoResult vidInfo = new MediaInfoResult();
+            MediaInfoReader.ReadMediaInfo(fileName, forceRefresh, ref vidInfo);
+            return vidInfo;
         }
 
-        public static MediaInfoResult GetMediaInfo(string fileName, bool forceRefresh, bool useKodi)
-        {
-            MediaInfoResult vidInfo = new MediaInfoResult();
-			MediaInfoReader.ReadMediaInfo(fileName, forceRefresh, ref vidInfo, useKodi);
-			return vidInfo;
-		}
 
 		
 

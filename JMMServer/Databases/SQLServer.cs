@@ -185,6 +185,7 @@ namespace JMMServer.Databases
                 UpdateSchema_041(versionNumber);
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
+                UpdateSchema_044(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1506,6 +1507,38 @@ namespace JMMServer.Databases
 
             cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractVersion int NOT NULL DEFAULT(0), PlexContractString nvarchar(MAX) NULL");
             cmds.Add("ALTER TABLE VideoLocal ADD MediaVersion int NOT NULL DEFAULT(0), MediaString nvarchar(MAX) NULL");
+
+            using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+                ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+
+        }
+        private static void UpdateSchema_044(int currentVersionNumber)
+        {
+            int thisVersion = 44;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractVersion");
+            cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractString");
+            cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractVersion");
+            cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractString");
+
 
             using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
                 ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))

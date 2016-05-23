@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Databases;
 using JMMServer.Entities;
-using JMMServer.Plex;
+using JMMServer.PlexAndKodi;
 using NHibernate.Criterion;
 using NHibernate;
 using NutzCode.InMemoryIndex;
@@ -58,7 +58,7 @@ namespace JMMServer.Repositories
 
 	    private void UpdateMediaContracts(VideoLocal obj)
 	    {
-	        obj.Media = PlexHelper.GenerateMediaFromVideoLocal(obj);
+	        obj.Media = Helper.GenerateMediaFromVideoLocal(obj);
 	    }
         public void Save(VideoLocal obj, bool updateEpisodes)
 		{

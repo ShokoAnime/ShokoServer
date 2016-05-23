@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using FluentNHibernate.Utils;
-using JMMContracts.PlexContracts;
+using JMMContracts;
+using JMMContracts.PlexAndKodi;
 
-namespace JMMServer.Plex
+namespace JMMServer.PlexAndKodi
 {
     public class Breadcrumbs 
     {
@@ -27,13 +25,11 @@ namespace JMMServer.Plex
         public string Index { get; set; }
         public string ParentIndex { get; set; }
 
-        private static int counter = 0;
         private static Dictionary<string, Breadcrumbs> Cache=new Dictionary<string, Breadcrumbs>(); //TODO CACHE EVICTION?
         
         public Breadcrumbs Update(Video v, bool noart=false)
         {
-            Breadcrumbs cache = new Breadcrumbs();
-            this.CopyTo(cache);
+            Breadcrumbs cache = (Breadcrumbs)this.DeepCopy();
             cache.GrandParentKey = cache.ParentKey;
             cache.GrandParentTitle = cache.ParentTitle ?? "";
             cache.ParentKey = cache.Key;
@@ -61,24 +57,19 @@ namespace JMMServer.Plex
                 Key += "/" + md5;
         }
 
-        public void FillInfo(Video m, bool noimage, bool addkey = true)
+        public void FillInfo(IProvider prov, Video m, bool noimage, bool addkey = true)
         {
             if (Key != null)
             {
                 if ((addkey) && (Key.Contains("/GetMetadata/")))
-                {
-                    m.Key = PlexHelper.PlexProxy(Key + "/" + ToKey());
-                }
+                    m.Key = prov.Proxyfy(Key + "/" + ToKey());
                 else
-                {
-
-                    m.Key = PlexHelper.PlexProxy(Key);
-                }
+                    m.Key = prov.Proxyfy(Key);
             }
             if (ParentKey != null)
-                m.ParentKey = PlexHelper.PlexProxy(ParentKey);
+                m.ParentKey = prov.Proxyfy(ParentKey);
             if (GrandParentKey != null)
-                m.GrandparentKey = PlexHelper.PlexProxy(GrandParentKey);
+                m.GrandparentKey = prov.Proxyfy(GrandParentKey);
             m.ParentTitle = ParentTitle ?? "";
             m.GrandparentTitle = GrandParentTitle ?? "";
             if (!noimage)
@@ -116,9 +107,7 @@ namespace JMMServer.Plex
             string md5 = GenMd5();
             if (Cache.ContainsKey(md5))
                 return md5;
-            counter++;
-            Breadcrumbs cache = new Breadcrumbs();
-            this.CopyTo(cache);
+            Breadcrumbs cache = (Breadcrumbs)this.DeepCopy();
             Cache.Add(md5,cache);
             return md5;
         }
@@ -127,8 +116,7 @@ namespace JMMServer.Plex
         {
             if (Cache.ContainsKey(key))
             {
-                Breadcrumbs n=new Breadcrumbs();
-                Cache[key].CopyTo(n);
+                Breadcrumbs n= (Breadcrumbs)Cache[key].DeepCopy();
                 n.UpdateKey(key);
                 return n;
             }

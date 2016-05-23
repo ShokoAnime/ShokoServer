@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using JMMContracts;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using NLog;
@@ -13,6 +12,7 @@ using System.ServiceModel.Web;
 using JMMServer.ImageDownload;
 using BinaryNorthwest;
 using AniDBAPI;
+using JMMContracts;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TvDB;
 using JMMServer.Providers.TraktTV.Contracts;

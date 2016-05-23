@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
+using JMMContracts;
 using JMMServer.Repositories;
 using NHibernate;
-using JMMContracts;
 
 namespace JMMServer.Entities
 {

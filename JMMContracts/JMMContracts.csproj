@@ -184,8 +184,7 @@
     <Compile Include="MetroContract_Anime_Summary.cs" />
     <Compile Include="MetroContract_CommunityLinks.cs" />
     <Compile Include="MetroContract_Shout.cs" />
-    <Compile Include="KodiContracts.cs" />
-    <Compile Include="PlexContracts.cs" />
+    <Compile Include="PlexAndKodi\PlexAndKodiContracts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

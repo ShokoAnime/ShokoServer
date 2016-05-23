@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using NLog;
 using JMMServer.Repositories;
-using JMMContracts;
 using System.Xml.Serialization;
 using BinaryNorthwest;
 using System.IO;
 using FluentNHibernate.Utils;
-using JMMContracts.PlexContracts;
-using JMMServer.Plex;
+using JMMContracts;
+using JMMContracts.PlexAndKodi;
+using JMMServer.PlexAndKodi;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -132,8 +132,7 @@ namespace JMMServer.Entities
 
         public Contract_AnimeGroup GetUserContract(int userid)
         {
-            Contract_AnimeGroup contract = new Contract_AnimeGroup();
-            Contract.CopyTo(contract);
+            Contract_AnimeGroup contract = (Contract_AnimeGroup)Contract.DeepCopy();
             AnimeGroup_User rr = GetUserRecord(userid);
             if (rr != null)
             {
@@ -148,14 +147,11 @@ namespace JMMServer.Entities
             return contract;
         }
 
-	    public JMMContracts.PlexContracts.Video GetPlexContract(int userid)
+	    public Video GetPlexContract(int userid)
 	    {
 	        return GetOrCreateUserRecord(userid).PlexContract;
 	    }
-        public JMMContracts.KodiContracts.Video GetKodiContract(int userid)
-        {
-            return GetOrCreateUserRecord(userid).KodiContract;
-        }
+
         private AnimeGroup_User GetOrCreateUserRecord(int userid)
 	    {
             AnimeGroup_User rr = GetUserRecord(userid);
