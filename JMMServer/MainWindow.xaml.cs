@@ -57,6 +57,7 @@ using Infralution.Localization.Wpf;
 using JMMContracts;
 using JMMServer.PlexAndKodi;
 using JMMServer.PlexAndKodi.Kodi;
+using JMMServer.PlexAndKodi.Plex;
 using JMMServer.WCFCompression;
 
 namespace JMMServer
@@ -2402,7 +2403,7 @@ namespace JMMServer
 
 	    private static void StartPlexHost()
 	    {
-	        hostPlex = new WebServiceHost(typeof (CommonImplementation), baseAddressPlex);
+	        hostPlex = new WebServiceHost(typeof (PlexImplementation), baseAddressPlex);
 	        AddCompressableEndpoint(hostPlex,typeof (IJMMServerPlex), new WebHttpBinding());       
 	        ServiceDebugBehavior stp = hostPlex.Description.Behaviors.Find<ServiceDebugBehavior>();
 	        stp.HttpHelpPageEnabled = false;

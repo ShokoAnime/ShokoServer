@@ -27,6 +27,8 @@ namespace JMMServer.Entities
 
         public const int GROUPFILTER_VERSION = 1;
 
+	    private Contract_GroupFilter VirtualContract = null;
+
         internal Dictionary<int, HashSet<int>> _groupsId =new Dictionary<int, HashSet<int>>();
 
         public virtual Dictionary<int, HashSet<int>> GroupsIds
@@ -58,7 +60,9 @@ namespace JMMServer.Entities
 		{
 			get
 			{
-				GroupFilterConditionRepository repConds = new GroupFilterConditionRepository();
+			    if (VirtualContract != null)
+			        return VirtualContract.FilterConditions.Select(a => new GroupFilterCondition { ConditionOperator = a.ConditionOperator, ConditionType = a.ConditionType,ConditionParameter = a.ConditionParameter,GroupFilterID = a.GroupFilterID ?? 0}).ToList();
+            	GroupFilterConditionRepository repConds = new GroupFilterConditionRepository();
 				return repConds.GetByGroupFilterID(this.GroupFilterID);
 			}
 		}
@@ -126,7 +130,7 @@ namespace JMMServer.Entities
             contract.FilterConditions = new List<Contract_GroupFilterCondition>();
 			foreach (GroupFilterCondition gfc in GetFilterConditions(session))
 				contract.FilterConditions.Add(gfc.ToContract());
-
+		    contract.Groups = this.GroupsIds.ToDictionary(a => a.Key, a => new HashSet<int>(a.Value.ToList()));
 			return contract;
 		}
 
@@ -213,6 +217,45 @@ namespace JMMServer.Entities
             if (change)
                 repGrpFilter.Save(this, true, null);
         }
+
+	    public static Contract_GroupFilter EvaluateVirtualContract(Contract_GroupFilter gfc)
+	    {
+            //Convert Contract_GroupFilter into a Virtual GroupFilter
+	        GroupFilter gf = new GroupFilter {VirtualContract = gfc, GroupFilterName=gfc.GroupFilterName,ApplyToSeries = gfc.ApplyToSeries,SortingCriteria = gfc.SortingCriteria};
+            AnimeGroupRepository grepo=new AnimeGroupRepository();
+            AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
+            JMMUserRepository repUsers=new JMMUserRepository();
+	        List<JMMUser> users = repUsers.GetAll();
+            foreach (AnimeGroup grp in grepo.GetAllTopLevelGroups())
+	        {
+	            foreach (JMMUser user in users)
+	            {
+	                AnimeGroup_User userRec = repUserGroups.GetByUserAndGroupID(user.JMMUserID, grp.AnimeGroupID);
+	                if (gf.EvaluateGroupFilter(grp, user, userRec))
+	                {
+	                    if (!gf.GroupsIds.ContainsKey(user.JMMUserID))
+	                    {
+	                        gf.GroupsIds[user.JMMUserID] = new HashSet<int>();
+	                    }
+	                    if (!gf.GroupsIds[user.JMMUserID].Contains(grp.AnimeGroupID))
+	                    {
+	                        gf.GroupsIds[user.JMMUserID].Add(grp.AnimeGroupID);
+	                    }
+	                }
+	                else
+	                {
+	                    if (gf.GroupsIds.ContainsKey(user.JMMUserID))
+	                    {
+	                        if (gf.GroupsIds[user.JMMUserID].Contains(grp.AnimeGroupID))
+	                        {
+	                            gf.GroupsIds[user.JMMUserID].Remove(grp.AnimeGroupID);
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	        return gf.ToContract();
+	    }
 
         public bool EvaluateGroupFilter(AnimeGroup grp, JMMUser curUser, AnimeGroup_User userRec)
         {

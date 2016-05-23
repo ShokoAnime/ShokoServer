@@ -363,7 +363,21 @@ namespace JMMServer
 
 		}
 
-		public List<Contract_Playlist> GetAllPlaylists()
+	    public Contract_GroupFilter EvaluateGroupFilter(Contract_GroupFilter contract)
+	    {
+            try
+            {
+                return GroupFilter.EvaluateVirtualContract(contract);            
+            }
+            catch (Exception ex)
+			{
+
+                logger.ErrorException(ex.ToString(), ex);
+				return new Contract_GroupFilter();
+			}
+	    }
+
+	    public List<Contract_Playlist> GetAllPlaylists()
 		{
 			List<Contract_Playlist> pls = new List<Contract_Playlist>();
 			try

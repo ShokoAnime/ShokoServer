@@ -13,9 +13,8 @@ namespace JMMContracts
 		public int BaseCondition { get; set; }
 		public string SortingCriteria { get; set; }
 		public int? Locked { get; set; }
-
         public int FilterType { get; set; }
-
         public List<Contract_GroupFilterCondition> FilterConditions { get; set; }
+        public Dictionary<int,HashSet<int>> Groups { get; set; } 
 	}
 }
