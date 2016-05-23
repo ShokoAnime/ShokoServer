@@ -80,16 +80,14 @@ namespace JMMServer.Entities
 
 		public AnimeEpisode_User GetUserRecord(int userID)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetUserRecord(session, userID);
-			}
-		}
+            AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
+            return repEpUser.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
+        }
 
-		public AnimeEpisode_User GetUserRecord(ISession session, int userID)
+        public AnimeEpisode_User GetUserRecord(ISession session, int userID)
 		{
 			AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
-			return repEpUser.GetByUserIDAndEpisodeID(session, userID, this.AnimeEpisodeID);
+			return repEpUser.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
 		}
 
         

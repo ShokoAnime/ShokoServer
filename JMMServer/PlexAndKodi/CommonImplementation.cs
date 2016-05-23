@@ -50,7 +50,7 @@ namespace JMMServer.PlexAndKodi
                 return new MemoryStream();
             int userid = user.JMMUserID;
             
-            Breadcrumbs info = prov.UserBreadCrumbs ? new Breadcrumbs { Key = prov.ConstructFiltersUrl(userid), Title = "Anime" } : null;
+            BreadCrumbs info = prov.UseBreadCrumbs ? new BreadCrumbs { Key = prov.ConstructFiltersUrl(userid), Title = "Anime" } : null;
             PlexObject ret = new PlexObject(prov.NewMediaContainer(MediaContainerTypes.Show, "Anime",false,false, info));
             if (!ret.Init())
                 return new MemoryStream();
@@ -162,7 +162,7 @@ namespace JMMServer.PlexAndKodi
             try
             {
 
-                Breadcrumbs his = prov.UserBreadCrumbs ? Breadcrumbs.FromKey(historyinfo) : null;
+                BreadCrumbs his = prov.UseBreadCrumbs ? BreadCrumbs.FromKey(historyinfo) : null;
                 int type;
                 int.TryParse(TypeId, out type);
                 JMMUser user = Helper.GetJMMUser(UserId);
@@ -196,7 +196,7 @@ namespace JMMServer.PlexAndKodi
 
         }
 
-        private System.IO.Stream GetItemsFromPlaylist(IProvider prov, int userid, string id, Breadcrumbs info)
+        private System.IO.Stream GetItemsFromPlaylist(IProvider prov, int userid, string id, BreadCrumbs info)
         {
             var PlaylistID = -1;
             int.TryParse(id, out PlaylistID);
@@ -261,24 +261,16 @@ namespace JMMServer.PlexAndKodi
                             KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep = new KeyValuePair<AnimeEpisode, Contract_AnimeEpisode>(e, e.GetUserContract(userid));
                             if (ep.Value != null && ep.Value.LocalFileCount == 0)
                                 continue;
-                            AniDB_Episode aep = ep.Key.AniDB_Episode;
-                            if (aep == null)
-                                return new MemoryStream();
                             AnimeSeries ser = serRepo.GetByID(session, ep.Key.AnimeSeriesID);
                             if (ser == null)
-                                return new MemoryStream();
-                            AniDB_Anime anime = ser.GetAnime(session);
-                            if (anime == null)
                                 return new MemoryStream();
                             Contract_AnimeSeries con = ser.GetUserContract(userid);
                             if (con == null)
                                 return new MemoryStream();
-                            Video nv = new Video();
-                            Helper.FillSerie(nv, ser, null, anime, con, userid);
                             Video v = Helper.VideoFromAnimeEpisode(prov, con.CrossRefAniDBTvDBV2, ep, userid);
                             if (v.Medias != null && v.Medias.Count > 0)
                             {
-                                Helper.AddInformationFromMasterSeries(v, con, anime, nv);
+                                Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid));
                                 v.Type = "episode";
                                 vids.Add(prov, v, info);
                                 if (prov.ConstructFakeIosParent)
@@ -298,7 +290,7 @@ namespace JMMServer.PlexAndKodi
             return new MemoryStream();
         }
 
-        private System.IO.Stream GetUnsort(IProvider prov, int userid, Breadcrumbs info)
+        private System.IO.Stream GetUnsort(IProvider prov, int userid, BreadCrumbs info)
         {
             PlexObject ret=new PlexObject(prov.NewMediaContainer(MediaContainerTypes.Video, "Unsort", true,true, info));
             if (!ret.Init())
@@ -329,7 +321,7 @@ namespace JMMServer.PlexAndKodi
         }
 
 
-        private System.IO.Stream GetFromFile(IProvider prov, int userid, string Id, Breadcrumbs info)
+        private System.IO.Stream GetFromFile(IProvider prov, int userid, string Id, BreadCrumbs info)
         {
             int id;
             if (!int.TryParse(Id, out id))
@@ -345,13 +337,13 @@ namespace JMMServer.PlexAndKodi
             if (prov.ConstructFakeIosParent)
                v2.GrandparentKey = prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v2.ParentThumb));
             v2.ParentKey = null;
-            if (prov.UserBreadCrumbs)
+            if (prov.UseBreadCrumbs)
                v2.Key = ret.MediaContainer.Key;
             ret.MediaContainer.Childrens = dirs;
             return ret.GetStream(prov);
 
         }
-        private System.IO.Stream GetFromEpisode(IProvider prov, int userid, string Id, Breadcrumbs info)
+        private System.IO.Stream GetFromEpisode(IProvider prov, int userid, string Id, BreadCrumbs info)
         {
             int id;
             if (!int.TryParse(Id, out id))
@@ -376,17 +368,13 @@ namespace JMMServer.PlexAndKodi
                 if (ser == null)
                     return new MemoryStream();
                 AniDB_Anime anime = ser.GetAnime(session);
-                if (anime == null)
-                    return new MemoryStream();
                 Contract_AnimeSeries con = ser.GetUserContract(userid);
                 if (con == null)
                     return new MemoryStream();
                 try
                 {
-                    Video nv = new Video();
-                    Helper.FillSerie(nv, ser, null, anime, con, userid);
                     Video v = Helper.VideoFromAnimeEpisode(prov, con.CrossRefAniDBTvDBV2, ep, userid);
-                    Helper.AddInformationFromMasterSeries(v,con,anime,nv);
+                    Helper.AddInformationFromMasterSeries(v,con, ser.GetPlexContract(userid));
                     v.Type = "episode";
                     if (v.Medias != null && v.Medias.Count > 0)
                     {
@@ -395,7 +383,7 @@ namespace JMMServer.PlexAndKodi
                             v.GrandparentKey = prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb));
                         v.ParentKey = null;
                     }
-                    if (prov.UserBreadCrumbs)
+                    if (prov.UseBreadCrumbs)
                         v.Key = ret.MediaContainer.Key;
                     ret.MediaContainer.Childrens = dirs;
                     return ret.GetStream(prov);
@@ -438,7 +426,7 @@ namespace JMMServer.PlexAndKodi
 
         public System.IO.Stream Search(IProvider prov, string UserId, string limit, string query, bool searchTag)
         {
-            Breadcrumbs info = prov.UserBreadCrumbs ? new Breadcrumbs { Key = prov.ConstructSearchUrl(UserId,limit,query,searchTag), Title = "Search for '"+query+"'" } : null;
+            BreadCrumbs info = prov.UseBreadCrumbs ? new BreadCrumbs { Key = prov.ConstructSearchUrl(UserId,limit,query,searchTag), Title = "Search for '"+query+"'" } : null;
 
             PlexObject ret =new PlexObject(prov.NewMediaContainer(MediaContainerTypes.Show, "Search for '" + query + "'",true,true,info));
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
@@ -496,7 +484,7 @@ namespace JMMServer.PlexAndKodi
 
 
        
-        public System.IO.Stream GetItemsFromGroup(IProvider prov, int userid, string GroupId, Breadcrumbs info)
+        public System.IO.Stream GetItemsFromGroup(IProvider prov, int userid, string GroupId, BreadCrumbs info)
         {
             int groupID;
             int.TryParse(GroupId, out groupID);
@@ -791,7 +779,7 @@ namespace JMMServer.PlexAndKodi
             return ret.GetStream(prov);
         }
 
-        public System.IO.Stream GetItemsFromSerie(IProvider prov, int userid, string SerieId, Breadcrumbs info)
+        public System.IO.Stream GetItemsFromSerie(IProvider prov, int userid, string SerieId, BreadCrumbs info)
         {
             PlexObject ret = null;
             enEpisodeType? eptype = null;
@@ -821,13 +809,12 @@ namespace JMMServer.PlexAndKodi
                 AnimeSeries ser = repSeries.GetByID(session, serieID);
                 if (ser == null)
                     return new MemoryStream();
-                AniDB_Anime anime = ser.GetAnime();
-                if (anime == null)
-                    return new MemoryStream();
                 Contract_AnimeSeries cseries = ser.GetUserContract(userid);
                 if (cseries==null)
                     return new MemoryStream();
-                ImageDetails fanart = anime.GetDefaultFanartDetailsNoBlanks(session);
+                Video nv = ser.GetPlexContract(userid);
+
+       
                 Dictionary<AnimeEpisode,Contract_AnimeEpisode> episodes = ser.GetAnimeEpisodes(session).ToDictionary(a=>a,a=>a.GetUserContract(userid));
                 episodes=episodes.Where(a=>a.Value==null || a.Value.LocalFileCount>0).ToDictionary(a=>a.Key,a=>a.Value);
                 if (eptype.HasValue)
@@ -854,7 +841,7 @@ namespace JMMServer.PlexAndKodi
                         foreach (enEpisodeType ee in types)
                         {
                             PlexEpisodeType k2 = new PlexEpisodeType();
-                            PlexEpisodeType.EpisodeTypeTranslated(k2, ee, (AnimeTypes)anime.AnimeType, episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
+                            PlexEpisodeType.EpisodeTypeTranslated(k2, ee, (AnimeTypes)cseries.AniDBAnime.AnimeType, episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
                             eps.Add(k2);
                         }
                         List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
@@ -866,8 +853,7 @@ namespace JMMServer.PlexAndKodi
                         foreach (PlexEpisodeType ee in  eps)
                         {
                             Video v = new Directory();
-                            if (fanart != null)
-                                v.Art = fanart.GenArt();
+                            v.Art = nv.Art;
                             v.Title = ee.Name;
                             v.LeafCount = ee.Count.ToString();
                             v.ChildCount = v.LeafCount;
@@ -876,7 +862,7 @@ namespace JMMServer.PlexAndKodi
                             v.Thumb = Helper.ConstructSupportImageLink(ee.Image);
                             if ((ee.AnimeType==AnimeTypes.Movie) || (ee.AnimeType==AnimeTypes.OVA))
                             {
-                                v = Helper.MayReplaceVideo(v, ser, cseries, anime,  JMMType.File, userid, false);
+                                v = Helper.MayReplaceVideo(v, ser, cseries, userid, false,nv);
                             }
                             dirs.Add(prov,v,info,false,true);
                         }
@@ -885,8 +871,6 @@ namespace JMMServer.PlexAndKodi
                     }
                 }
                 List<Video> vids=new List<Video>();
-                Video nv = new Video();
-                Helper.FillSerie(nv,ser,episodes, anime, cseries, userid);
                 if (eptype.HasValue)
                 {
                     info.ParentKey = info.GrandParentKey;
@@ -899,7 +883,7 @@ namespace JMMServer.PlexAndKodi
                         Video v = Helper.VideoFromAnimeEpisode(prov, cseries.CrossRefAniDBTvDBV2, ep, userid);
                         if (v.Medias != null && v.Medias.Count > 0)
                         {
-                            Helper.AddInformationFromMasterSeries(v,cseries, anime, nv);
+                            Helper.AddInformationFromMasterSeries(v,cseries, nv);
                             v.Type = "episode";
                             vids.Add(prov, v, info);
                             if (prov.ConstructFakeIosParent)
@@ -921,7 +905,7 @@ namespace JMMServer.PlexAndKodi
             }
         }
 
-        private System.IO.Stream GetGroupsFromFilter(IProvider prov, int userid, string GroupFilterId, Breadcrumbs info)
+        private System.IO.Stream GetGroupsFromFilter(IProvider prov, int userid, string GroupFilterId, BreadCrumbs info)
         {
             //List<Joint> retGroups = new List<Joint>();
             try

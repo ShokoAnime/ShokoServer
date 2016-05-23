@@ -130,7 +130,7 @@ namespace JMMServer.PlexAndKodi
 
 
 
-        public static JMMUser GetUser(string UserId)
+        public static JMMUser GetUser(string userid)
         {
 
             JMMUserRepository repUsers = new JMMUserRepository();
@@ -142,7 +142,7 @@ namespace JMMServer.PlexAndKodi
                     string[] users = n.PlexUsers.Split(',');
                     foreach (string m in users)
                     {
-                        if (m.Trim().ToLower() == UserId.ToLower())
+                        if (m.Trim().ToLower() == userid.ToLower())
                             return n;
                     }
                 }
@@ -150,12 +150,12 @@ namespace JMMServer.PlexAndKodi
             return allusers.FirstOrDefault(a => a.IsAdmin == 1) ?? allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
         }
 
-        public static JMMUser GetJMMUser(string UserId)
+        public static JMMUser GetJMMUser(string userid)
         {
             JMMUserRepository repUsers = new JMMUserRepository();
             List<JMMUser> allusers = repUsers.GetAll();
             int id = 0;
-            int.TryParse(UserId, out id);
+            int.TryParse(userid, out id);
             return allusers.FirstOrDefault(a => a.JMMUserID == id) ??
                    allusers.FirstOrDefault(a => a.IsAdmin == 1) ??
                    allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
@@ -444,46 +444,41 @@ namespace JMMServer.PlexAndKodi
             return m;
         }
 
-        public static void AddInformationFromMasterSeries(Video v, Contract_AnimeSeries cserie, AniDB_Anime ani, Video nv)
+        public static void AddInformationFromMasterSeries(Video v, Contract_AnimeSeries cserie, Video nv)
         {
             bool ret = false;
-            if (ani != null)
+            v.Art = nv.Art;
+            v.ParentThumb = v.GrandparentThumb = nv.Thumb;
+            if (cserie.AniDBAnime.Restricted > 0)
+                v.ContentRating = "R";
+            if (cserie.AniDBAnime.AnimeType == (int)enAnimeType.Movie)
             {
-                v.Art = ani.GetDefaultFanartDetailsNoBlanks().GenArt();
-                v.ParentThumb = v.GrandparentThumb = ani.GetDefaultPosterDetailsNoBlanks().GenArt();
-                if (ani.Restricted > 0)
-                    v.ContentRating = "R";
-                if (ani.AnimeTypeEnum == enAnimeType.Movie)
+                v.Type = "movie";
+                if (v.Title.StartsWith("Complete Movie"))
                 {
+                    v.Title = nv.Title;
+                    v.Summary = nv.Summary;
+                    v.Index = null;
+                    ret = true;
+                }
+                else if (v.Title.StartsWith("Part "))
+                {
+                    v.Title = nv.Title + " - " + v.Title;
+                    v.Summary = nv.Summary;
+                }
+                v.Thumb = nv.Thumb;
+            }
+            else if (cserie.AniDBAnime.AnimeType == (int)enAnimeType.OVA)
+            {
+                if (v.Title == "OVA")
+                {
+                    v.Title = nv.Title;
                     v.Type = "movie";
-                    if (v.Title.StartsWith("Complete Movie"))
-                    {
-                        v.Title = nv.Title;
-                        v.Summary = nv.Summary;
-                        v.Index = null;
-                        ret = true;
-                    }
-                    else if (v.Title.StartsWith("Part "))
-                    {
-                        v.Title = nv.Title + " - " + v.Title;
-                        v.Summary = nv.Summary;
-                    }
                     v.Thumb = nv.Thumb;
+                    v.Summary = nv.Summary;
+                    v.Index = null;
+                    ret = true;
                 }
-                else if (ani.AnimeTypeEnum == enAnimeType.OVA)
-                {
-                    if (v.Title == "OVA")
-                    {
-                        v.Title = nv.Title;
-                        v.Type = "movie";
-                        v.Thumb = nv.Thumb;
-                        v.Summary = nv.Summary;
-                        v.Index = null;
-                        ret = true;
-                    }
-                }
-               // else
-                 //   v.ParentTitle = nv.Title;
             }
             if (string.IsNullOrEmpty(v.Art))
                 v.Art = nv.Art;
@@ -575,10 +570,10 @@ namespace JMMServer.PlexAndKodi
             return ks;         
         }
 
-        public static Video MayReplaceVideo(Video v1, AnimeSeries ser, Contract_AnimeSeries cserie, AniDB_Anime anime, JMMType type, int userid, bool all=true)
+        public static Video MayReplaceVideo(Video v1, AnimeSeries ser, Contract_AnimeSeries cserie, int userid, bool all=true, Video serie=null)
         {
             int epcount = all ? ser.GetAnimeEpisodesCountWithVideoLocal() :  ser.GetAnimeEpisodesNormalCountWithVideoLocal();
-            if ((epcount == 1) && (anime.AnimeTypeEnum==enAnimeType.OVA || anime.AnimeTypeEnum==enAnimeType.Movie))
+            if ((epcount == 1) && (cserie.AniDBAnime.AnimeType==(int)enAnimeType.OVA || cserie.AniDBAnime.AnimeType == (int)enAnimeType.Movie))
             {
                 try
                 {
@@ -586,8 +581,8 @@ namespace JMMServer.PlexAndKodi
                     Video v2 = episodes[0].PlexContract;
                     if (v2.IsMovie)
                     {
-                        AddInformationFromMasterSeries(v2, cserie, anime, v1);
-                        v2.Thumb = anime.GetDefaultPosterDetailsNoBlanks().GenPoster();
+                        AddInformationFromMasterSeries(v2, cserie, serie ?? v1);
+                        v2.Thumb = (serie ?? v1).Thumb;
                         return v2;
                     }
                 }
@@ -600,7 +595,7 @@ namespace JMMServer.PlexAndKodi
         }
 
 
-        internal static Video FromGroup(Contract_AnimeGroup grp, Contract_AnimeSeries ser, int userid, int subgrpcnt)
+        private static Video FromGroup(Contract_AnimeGroup grp, Contract_AnimeSeries ser, int userid, int subgrpcnt)
         {
             Directory p = new Directory();
             p.Id = grp.AnimeGroupID;
@@ -632,12 +627,12 @@ namespace JMMServer.PlexAndKodi
                 v.Type = "show";
             else if ((cserie.AniDBAnime.AnimeType == (int)enAnimeType.Movie) || (cserie.AniDBAnime.AnimeType == (int)enAnimeType.OVA))
             {
-                v =MayReplaceVideo(v, ser, cserie, ser.GetAnime(), JMMType.File, userid);
+                v =MayReplaceVideo(v, ser, cserie, userid);
             }
             return v;
         }
 
-        public static string SummaryFromAnimeContract(Contract_AnimeSeries c)
+        private static string SummaryFromAnimeContract(Contract_AnimeSeries c)
         {
             string s = c.AniDBAnime.Description;
             if (string.IsNullOrEmpty(s) && c.MovieDB_Movie != null)
@@ -648,7 +643,7 @@ namespace JMMServer.PlexAndKodi
         }
 
          
-        public static void FillSerie(Video p ,AnimeSeries aser, Dictionary<AnimeEpisode, Contract_AnimeEpisode> eps, AniDB_Anime anidb, Contract_AnimeSeries ser, int userid)
+        private static void FillSerie(Video p ,AnimeSeries aser, Dictionary<AnimeEpisode, Contract_AnimeEpisode> eps, AniDB_Anime anidb, Contract_AnimeSeries ser, int userid)
         {
             using (ISession session = JMMService.SessionFactory.OpenSession())
             {

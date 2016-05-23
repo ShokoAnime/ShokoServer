@@ -11,9 +11,9 @@ namespace JMMServer.PlexAndKodi.Kodi
     {
         public const string MediaTagVersion = "1420942002";
 
-        public string Serviceddress => MainWindow.PathAddressKodi;
+        public string ServiceAddress => MainWindow.PathAddressKodi;
         public int ServicePort => int.Parse(ServerSettings.JMMServerPort);
-        public bool UserBreadCrumbs => false;
+        public bool UseBreadCrumbs => false;
         public bool AddExtraItemForSearchButtonInGroupFilters => false;
         public bool ConstructFakeIosParent => false;
 
@@ -23,7 +23,7 @@ namespace JMMServer.PlexAndKodi.Kodi
         }
 
 
-        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title=null, bool allowsync = true, bool nocache = true, Breadcrumbs info = null)
+        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title=null, bool allowsync = true, bool nocache = true, BreadCrumbs info = null)
         { 
 
             MediaContainer m = new MediaContainer();

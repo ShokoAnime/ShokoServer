@@ -15,51 +15,51 @@ namespace JMMServer.PlexAndKodi
 
         public static string ConstructUnsortUrl(this IProvider prov, int userid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupUnsort + "/0/");
+            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupUnsort + "/0/");
         }
         public static string ConstructGroupIdUrl(this IProvider prov, int userid, int gid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Group + "/" + gid);
+            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Group + "/" + gid);
         }
         public static string ConstructSerieIdUrl(this IProvider prov, int userid, string sid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Serie + "/" + sid);
+            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Serie + "/" + sid);
         }
 
         public static string ContructVideoUrl(this IProvider prov, int userid, int vid, JMMType type)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/GetMetadata/" + userid + "/" + (int)type + "/" + vid);
+            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)type + "/" + vid);
         }
         public static string ConstructFilterIdUrl(this IProvider prov, int userid, int gfid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupFilter + "/" + gfid);
+            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupFilter + "/" + gfid);
         }
 
         public static string ConstructFakeIosThumb(this IProvider prov, int userid, string url)
         {
             string r = Helper.Base64EncodeUrl(url);
-            return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/GetMetadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
+            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
 
         }
         public static string ConstructFiltersUrl(this IProvider prov, int userid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/GetFilters/" + userid);
+            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetFilters/" + userid);
         }
         public static string ConstructSearchUrl(this IProvider prov, string userid, string limit, string query, bool searchTag)
         {
             if (searchTag)
-                return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/SearchTag/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query));
-            return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query));
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/SearchTag/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query));
+            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query));
 
         }
         public static string ConstructPlaylistUrl(this IProvider prov, int userid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/0");
+            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/0");
         }
 
         public static string ConstructPlaylistIdUrl(this IProvider prov, int userid, int pid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.Serviceddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/" + pid);
+            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/" + pid);
         }
 
 
@@ -122,13 +122,13 @@ namespace JMMServer.PlexAndKodi
  
 
 
-        public static void Add(this List<Video> l, IProvider prov, Video m, Breadcrumbs info, bool noimage=false, bool noart=false)
+        public static void Add(this List<Video> l, IProvider prov, Video m, BreadCrumbs info, bool noimage=false, bool noart=false)
         {
             info?.Update(m,noart).FillInfo(prov,m, noimage, true);
             l.Add(m);
         }
 
-        public static void EppAdd(this List<Video> l, IProvider prov, Video m, Breadcrumbs info, bool noimage = false)
+        public static void EppAdd(this List<Video> l, IProvider prov, Video m, BreadCrumbs info, bool noimage = false)
         {
             if (info != null)
             {
@@ -139,7 +139,7 @@ namespace JMMServer.PlexAndKodi
             }
             l.Add(m);
         }
-        public static void EppAdd(this List<Directory> l, IProvider prov, Directory m, Breadcrumbs info, bool noimage = false)
+        public static void EppAdd(this List<Directory> l, IProvider prov, Directory m, BreadCrumbs info, bool noimage = false)
         {
             if (info != null)
             {
@@ -150,7 +150,7 @@ namespace JMMServer.PlexAndKodi
             }
             l.Add(m);
         }
-        public static void Add(this List<Directory> l, IProvider prov, Directory m, Breadcrumbs info, bool noimage = false)
+        public static void Add(this List<Directory> l, IProvider prov, Directory m, BreadCrumbs info, bool noimage = false)
         {
             info?.Update(m).FillInfo(prov, m, noimage, true);
             l.Add(m);

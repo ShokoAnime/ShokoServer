@@ -12,7 +12,7 @@ namespace JMMServer.PlexAndKodi.Plex
     {
         public const string MediaTagVersion = "1461344894";
 
-        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title, bool allowsync = true, bool nocache = true, Breadcrumbs info = null)
+        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title, bool allowsync = true, bool nocache = true, BreadCrumbs info = null)
         {
             MediaContainer m = new MediaContainer();
             m.AllowSync = allowsync ? "1" : "0";
@@ -54,9 +54,9 @@ namespace JMMServer.PlexAndKodi.Plex
 
 
 
-        public string Serviceddress => MainWindow.PathAddressPlex;
+        public string ServiceAddress => MainWindow.PathAddressPlex;
         public int ServicePort => int.Parse(ServerSettings.JMMServerPort);
-        public bool UserBreadCrumbs => true;
+        public bool UseBreadCrumbs => true;
         public bool AddExtraItemForSearchButtonInGroupFilters => true;
         public bool ConstructFakeIosParent => true;
         public string Proxyfy(string url)

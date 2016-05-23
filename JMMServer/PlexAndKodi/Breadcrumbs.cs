@@ -7,7 +7,7 @@ using JMMContracts.PlexAndKodi;
 
 namespace JMMServer.PlexAndKodi
 {
-    public class Breadcrumbs 
+    public class BreadCrumbs 
     {
 
         public string Key { get; set; }
@@ -25,11 +25,11 @@ namespace JMMServer.PlexAndKodi
         public string Index { get; set; }
         public string ParentIndex { get; set; }
 
-        private static Dictionary<string, Breadcrumbs> Cache=new Dictionary<string, Breadcrumbs>(); //TODO CACHE EVICTION?
+        private static Dictionary<string, BreadCrumbs> Cache=new Dictionary<string, BreadCrumbs>(); //TODO CACHE EVICTION?
         
-        public Breadcrumbs Update(Video v, bool noart=false)
+        public BreadCrumbs Update(Video v, bool noart=false)
         {
-            Breadcrumbs cache = (Breadcrumbs)this.DeepCopy();
+            BreadCrumbs cache = (BreadCrumbs)this.DeepCopy();
             cache.GrandParentKey = cache.ParentKey;
             cache.GrandParentTitle = cache.ParentTitle ?? "";
             cache.ParentKey = cache.Key;
@@ -107,20 +107,20 @@ namespace JMMServer.PlexAndKodi
             string md5 = GenMd5();
             if (Cache.ContainsKey(md5))
                 return md5;
-            Breadcrumbs cache = (Breadcrumbs)this.DeepCopy();
+            BreadCrumbs cache = (BreadCrumbs)this.DeepCopy();
             Cache.Add(md5,cache);
             return md5;
         }
 
-        public static Breadcrumbs FromKey(string key)
+        public static BreadCrumbs FromKey(string key)
         {
             if (Cache.ContainsKey(key))
             {
-                Breadcrumbs n= (Breadcrumbs)Cache[key].DeepCopy();
+                BreadCrumbs n= (BreadCrumbs)Cache[key].DeepCopy();
                 n.UpdateKey(key);
                 return n;
             }
-            return new Breadcrumbs();
+            return new BreadCrumbs();
         }
 
     }
