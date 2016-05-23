@@ -149,6 +149,7 @@ namespace JMMServer.Databases
                 UpdateSchema_041(versionNumber);
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
+                UpdateSchema_044(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1314,6 +1315,22 @@ namespace JMMServer.Databases
             DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
         }
 
+        private static void UpdateSchema_044(int currentVersionNumber)
+        {
+            int thisVersion = 44;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE AniDB_Anime ADD LatestEpisodeAirDate timestamp NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate timestamp NULL");
+
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+        }
+
         private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
@@ -1485,7 +1502,8 @@ namespace JMMServer.Databases
 				" AllCinemaID int NULL, " +
 				" AnimeNfo int NULL, " +
 				" LatestEpisodeNumber int NULL " +
-				" );");
+                " LatestEpisodeAirDate timestamp NULL " +
+                " );");
 
 			cmds.Add("CREATE UNIQUE INDEX [UIX_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);");
 
@@ -1877,7 +1895,8 @@ namespace JMMServer.Databases
 				" MissingEpisodeCountGroups int NOT NULL, " +
 				" OverrideDescription int NOT NULL, " +
 				" EpisodeAddedDate timestamp NULL " +
-				" ); ");
+                " LatestEpisodeAirDate timestamp NULL " +
+                " ); ");
 
 			return cmds;
 		}
