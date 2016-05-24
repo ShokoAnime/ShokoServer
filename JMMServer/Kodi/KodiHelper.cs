@@ -16,6 +16,7 @@ using JMMServer.ImageDownload;
 using JMMServer.Repositories;
 using NHibernate;
 using Directory = JMMContracts.KodiContracts.Directory;
+using System.Text.RegularExpressions;
 
 // ReSharper disable FunctionComplexityOverflow
 namespace JMMServer.Kodi
@@ -161,7 +162,7 @@ namespace JMMServer.Kodi
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available";
             l.Title = Path.GetFileNameWithoutExtension(v.FilePath);
-            l.Key = l.PrimaryExtraKey = ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetMetadata/0/" + (int)type + "/" + v.VideoLocalID);
+            l.Key = l.PrimaryExtraKey = "" + (int)type + "/" + v.VideoLocalID;
             l.AddedAt = v.DateTimeCreated.Year.ToString("0000") + "-" + v.DateTimeCreated.Month.ToString("00") + "-" + v.DateTimeCreated.Day.ToString("00") + " " + v.DateTimeCreated.Hour.ToString("00") + ":" + v.DateTimeCreated.Minute.ToString("00") + ":" + v.DateTimeCreated.Millisecond.ToString("00");
             l.UpdatedAt = v.DateTimeUpdated.Year.ToString("0000") + "-" + v.DateTimeUpdated.Month.ToString("00") + "-" + v.DateTimeUpdated.Day.ToString("00") + " " + v.DateTimeUpdated.Hour.ToString("00") + ":" + v.DateTimeUpdated.Minute.ToString("00") + ":" + v.DateTimeUpdated.Millisecond.ToString("00");
             l.OriginallyAvailableAt = v.DateTimeCreated.Year.ToString("0000") + "-" + v.DateTimeCreated.Month.ToString("00") + "-" + v.DateTimeCreated.Day.ToString("00");
@@ -221,7 +222,7 @@ namespace JMMServer.Kodi
 
                     p.File = v.FullServerPath;
                     string ff = Path.GetExtension(v.FullServerPath);
-                    p.Key = ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/0/"+v.VideoLocalID + "/file" + ff,KodiObject.IsExternalRequest);
+                    p.Key = "" + v.VideoLocalID + "/file" + ff;
                     p.Accessible = "1";
                     p.Exists = "1";
                     bool vid = false;
@@ -276,7 +277,7 @@ namespace JMMServer.Kodi
                 MetroContract_Anime_Episode contract = new MetroContract_Anime_Episode();
                 JMMServiceImplementationMetro.SetTvDBInfo(aep.AnimeID, aep, ref contract);
                 if (contract.ImageID != 0)
-                    v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/" + contract.ImageType+ "/" + contract.ImageID);
+                    v.Thumb = "" + contract.ImageType + "/" + contract.ImageID;
                 else
                     v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404.png");
                 v.Summary = contract.EpisodeOverview;
@@ -496,11 +497,13 @@ namespace JMMServer.Kodi
         internal static Directory FromGroup(Contract_AnimeGroup grp, Contract_AnimeSeries ser, int userid)
         {
             Directory p = new Directory();
-            p.Key = ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                        MainWindow.PathAddressKodi + "/GetMetadata/" + userid + "/" + (int)JMMType.Group + "/" +
-                        grp.AnimeGroupID.ToString());
+            p.Key = (int)JMMType.Group + "/" + grp.AnimeGroupID.ToString();
             p.Title = grp.GroupName;
             p.Summary = grp.Description;
+
+            p.Summary = Regex.Replace(p.Summary, "http://anidb.net/[a-z]{1,3}[0-9]{1,7}[ ]", "");
+            p.Summary = Regex.Replace(p.Summary, "(\\[|\\])", "");
+
             p.Type = "show";
             p.AirDate = grp.Stat_AirDate_Min.HasValue ? grp.Stat_AirDate_Min.Value : DateTime.MinValue;
             Contract_AniDBAnime anime = ser.AniDBAnime;
@@ -542,9 +545,7 @@ namespace JMMServer.Kodi
 
             Contract_AniDBAnime anime = ser.AniDBAnime;
 
-            p.Key = ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                        MainWindow.PathAddressKodi + "/GetMetadata/" + userid + "/" + (int)JMMType.Serie + "/" +
-                        ser.AnimeSeriesID);
+            p.Key = "" + (int)JMMType.Serie + "/" + ser.AnimeSeriesID;
 
             if (ser.AniDBAnime.Restricted>0)
                 p.ContentRating = "R";
@@ -558,6 +559,10 @@ namespace JMMServer.Kodi
             {
                 p.Summary = ser.TvDB_Series[0].Overview;
             }
+
+            p.Summary = Regex.Replace(p.Summary, "http://anidb.net/[a-z]{1,3}[0-9]{1,7}[ ]", "");
+            p.Summary = Regex.Replace(p.Summary, "(\\[|\\])", "");
+
             p.Type = "season";
             p.AirDate = DateTime.MinValue;
 
