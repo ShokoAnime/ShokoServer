@@ -54,6 +54,7 @@ namespace JMMServer.Entities
 		public int? AllCinemaID { get; set; }
 		public int? AnimeNfo { get; set; }
 		public int? LatestEpisodeNumber { get; set; }
+        public DateTime? LatestEpisodeAirDate { get; set; }
 		public int DisableExternalLinksFlag { get; set; }
 
 		#endregion
@@ -1391,6 +1392,7 @@ namespace JMMServer.Entities
 			DateTime start = DateTime.Now;
 
 			CreateEpisodes(session, eps);
+
 			TimeSpan ts = DateTime.Now - start; logger.Trace(string.Format("CreateEpisodes in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
 
 			CreateTitles(session, titles);
@@ -1513,7 +1515,9 @@ namespace JMMServer.Entities
 
 				// since the HTTP api doesn't return a count of the number of specials, we will calculate it here
 				if (epNew.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode)
+                {
 					this.EpisodeCountNormal++;
+                }
 
 				if (epNew.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special)
 					this.EpisodeCountSpecial++;
@@ -1910,6 +1914,7 @@ namespace JMMServer.Entities
 			contract.EpisodeCountSpecial = this.EpisodeCountSpecial;
 			contract.ImageEnabled = this.ImageEnabled;
 			contract.LatestEpisodeNumber = this.LatestEpisodeNumber;
+            contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
 			contract.MainTitle = this.MainTitle;
 			contract.Picname = this.Picname;
 			contract.Rating = this.Rating;
@@ -1946,7 +1951,7 @@ namespace JMMServer.Entities
                 contract.Characters.Add(x.ToContract(achar));
             }
 
-            return contract;
+			return contract;
 		}
 
 		public JMMServer.Providers.Azure.AnimeFull ToContractAzure()
@@ -2256,7 +2261,7 @@ namespace JMMServer.Entities
                     continue;
                 }
 				AniDB_Anime relAnime = repAnime.GetByAnimeID(session, rel.RelatedAnimeID);
-				if (relAnime!= null && !relListIDs.Contains(relAnime.AnimeID))
+                if (relAnime != null && !relListIDs.Contains(relAnime.AnimeID))
 				{
 					relList.Add(relAnime);
 					relListIDs.Add(relAnime.AnimeID);

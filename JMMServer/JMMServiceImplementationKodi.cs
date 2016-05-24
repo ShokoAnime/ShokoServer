@@ -667,6 +667,12 @@ namespace JMMServer
                                         List<AnimeSeries> sers = grp.GetAllSeries();
                                         AnimeSeries ser = sers[0];
                                         v.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
+                                        if (!string.IsNullOrEmpty(anim.AllTags))
+                                        {
+                                            v.Tags = new List<Tag> { new Tag { Value = anim.AllTags.Replace("|", ",") } };
+                                        }
+                                        v.Rating = (anim.Rating / 100F).ToString(CultureInfo.InvariantCulture);
+                                        v.Year = "" + anim.BeginYear;
 
                                         retGroups.Add(v.Clone());
                                     }
@@ -728,6 +734,13 @@ namespace JMMServer
                                 //proper naming end
 
                                 j.totalLocal = ser.GetAnimeEpisodesCountWithVideoLocal();
+
+                                if (!string.IsNullOrEmpty(anim.AllTags))
+                                {
+                                    j.Tags = new List<Tag> { new Tag { Value = anim.AllTags.Replace("|", ",") } };
+                                }
+                                j.Rating = (anim.Rating / 100F).ToString(CultureInfo.InvariantCulture);
+                                j.Year = "" + anim.BeginYear;
 
                                 //community support
 
