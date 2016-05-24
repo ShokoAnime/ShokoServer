@@ -313,7 +313,7 @@ namespace JMMServer.Entities
                         grp.SortName = newTitle;
 
                         repGroups.Save(grp);
-                        StatsCache.Instance.UpdateUsingGroup(grp.AnimeGroupID);
+                        grp.UpdateStats(false,false);
                     }
                     #endregion
                 }
@@ -578,7 +578,17 @@ namespace JMMServer.Entities
         {
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
             List<AnimeSeries> seriesList = repSeries.GetByGroupID(this.AnimeGroupID);
-
+            // Make everything that relies on GetSeries[0] have the proper result
+            seriesList.OrderBy(a => a.AirDate);
+            if (DefaultAnimeSeriesID.HasValue)
+            {
+                AnimeSeries series = repSeries.GetByID(DefaultAnimeSeriesID.Value);
+                if(series != null)
+                {
+                    seriesList.Remove(series);
+                    seriesList.Insert(0, series);
+                }
+            }
             return seriesList;
         }
 
