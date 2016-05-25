@@ -132,6 +132,8 @@ namespace JMMServer.Entities
 
         public Contract_AnimeGroup GetUserContract(int userid)
         {
+            if (Contract == null)
+                return new Contract_AnimeGroup();
             Contract_AnimeGroup contract = (Contract_AnimeGroup)Contract.DeepCopy();
             AnimeGroup_User rr = GetUserRecord(userid);
             if (rr != null)
@@ -146,6 +148,7 @@ namespace JMMServer.Entities
             }
             return contract;
         }
+
 
 	    public Video GetPlexContract(int userid)
 	    {

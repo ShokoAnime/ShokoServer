@@ -509,7 +509,7 @@ namespace JMMServer.Entities
             // get AniDB data
             if (animeRec != null)
             {
-                contract.AniDBAnime = (Contract_AniDBAnime) animeRec.Contract.DeepCopy();
+                contract.AniDBAnime = (Contract_AniDBAnime) animeRec.Contract.AniDBAnime.DeepCopy();
                 contract.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToContract();
                 if (contract.AniDBAnime.DefaultImagePoster == null)
                 {

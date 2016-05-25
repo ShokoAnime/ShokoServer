@@ -263,7 +263,7 @@ namespace JMMServer.Entities
             if (grp.AnimeGroupParentID.HasValue) return false;
 
             // make sure the user has not filtered this out
-            if (!curUser.AllowedGroup(grp, userRec)) return false;
+            if (!curUser.AllowedGroup(grp, curUser)) return false;
 
             // first check for anime groups which are included exluded every time
             foreach (GroupFilterCondition gfc in FilterConditions)

@@ -4,6 +4,8 @@ using System.Xml.Serialization;
 
 namespace JMMContracts.PlexAndKodi
 {
+
+
     [XmlType("MediaContainer")]
     [Serializable]
     public class MediaContainer : Video
@@ -89,36 +91,12 @@ namespace JMMContracts.PlexAndKodi
         public DateTime AirDate { get; set; }
         [XmlIgnore]
         public bool IsMovie { get; set; }
-
         [XmlAttribute("GenericId")]
         public int Id { get; set; }
         [XmlAttribute("AnimeType")]
         public AnimeTypes AnimeType { get; set; }
 
-
-        [XmlIgnore]
-        public Contract_AnimeGroup Group { get; set; }
-
-        [XmlElement("Media")]
-        public List<Media> Medias { get; set; }
-
-        [XmlElement("Role")]
-        public List<RoleTag> Roles { get; set; }
-
-        [XmlElement("AnimeTitle")]
-        public List<AnimeTitle> Titles { get; set; }
-
-        [XmlElement("Extras")]
-        public Extras Extras { get; set; }
         
-        [XmlElement("Related")]
-        public List<Hub> Related { get; set; }
-
-        [XmlElement("Tag")]
-        public List<Tag> Tags { get; set; }
-
-        [XmlElement("Genre")]
-        public List<Tag> Genres { get; set; }
 
         [XmlAttribute("art")]
         public string Art { get; set; }
@@ -230,8 +208,6 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("season")]
         public string Season { get; set; }
 
-        [XmlIgnore]
-        public int EpisodeNumber { get; set; }
 
         [XmlAttribute("viewCount")]
         public string ViewCount { get; set; }
@@ -256,7 +232,37 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("extraType")]
         public string ExtraType { get; set; }
 
-        [XmlIgnore] public int EpisodeType { get; set; }
+
+        [XmlAttribute]
+        public int EpisodeType { get; set; }
+        [XmlAttribute]
+        public int EpisodeNumber { get; set; }
+
+
+
+        [XmlIgnore]
+        public Contract_AnimeGroup Group { get; set; }
+
+        [XmlElement("Media")]
+        public List<Media> Medias { get; set; }
+
+        [XmlElement("Role")]
+        public List<RoleTag> Roles { get; set; }
+
+        [XmlElement("Extras")]
+        public Extras Extras { get; set; }
+
+        [XmlElement("Related")]
+        public List<Hub> Related { get; set; }
+
+        [XmlElement("Tag")]
+        public List<Tag> Tags { get; set; }
+
+        [XmlElement("Genre")]
+        public List<Tag> Genres { get; set; }
+
+        [XmlElement("AnimeTitle")]
+        public List<AnimeTitle> Titles { get; set; }
 
     }
 
@@ -327,7 +333,6 @@ namespace JMMContracts.PlexAndKodi
 
         [XmlAttribute("width")]
         public string Width { get; set; }
-
 
         [XmlAttribute("bitrate")]
         public string Bitrate { get; set; }

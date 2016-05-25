@@ -209,7 +209,7 @@ namespace JMMServer.PlexAndKodi
 
         public static void AddLinksToAnimeEpisodeVideo(IProvider prov, Video v, int userid)
         {
-            if (v.Id!=0)
+            if (v.AnimeType==JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode)
                 v.Key = prov.ContructVideoUrl(userid, v.Id, JMMType.Episode);
             else if (v.Medias!=null && v.Medias.Count>0)
                 v.Key= prov.ContructVideoUrl(userid, int.Parse(v.Medias[0].Id), JMMType.File);
@@ -265,9 +265,10 @@ namespace JMMServer.PlexAndKodi
             return l;
         }
 
+
         public static Video VideoFromAnimeEpisode(IProvider prov, List<Contract_CrossRef_AniDB_TvDBV2> cross,  KeyValuePair<AnimeEpisode,Contract_AnimeEpisode> e, int userid)
         {
-            Video v = (Video) e.Key.PlexContract?.Clone();
+            Video v = (Video) e.Key.PlexContract?.Clone<Video>();
             if (v?.Thumb != null)
                 v.Thumb = ReplaceSchemeHost(v.Thumb);
             if (v!=null && (v.Medias == null || v.Medias.Count == 0))
@@ -283,7 +284,7 @@ namespace JMMServer.PlexAndKodi
                     }
                     erepo.Save(e.Key);
                 }
-                v = (Video) e.Key.PlexContract?.Clone();
+                v = (Video) e.Key.PlexContract?.Clone<Video>();
             }
             if (e.Value != null)
             {
@@ -563,7 +564,11 @@ namespace JMMServer.PlexAndKodi
             List<Video> ks=new List<Video>();
             foreach (Video n1 in n)
             {
-                Directory m = (Directory) n1.DeepCopy();
+                Video m;
+                if (n1 is Directory)
+                    m = n1;
+                else
+                    m = n1.Clone<Directory>();
                 m.ParentThumb = m.GrandparentThumb = null;
                 ks.Add(m);
             }

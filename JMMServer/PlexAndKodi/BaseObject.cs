@@ -63,18 +63,22 @@ namespace JMMServer.PlexAndKodi
                 MediaContainer.ViewGroup = null;
                 MediaContainer.ViewMode = null;
             }
-            if (WebOperationContext.Current != null && WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
+            bool removeandroid = false;
+
+            if (WebOperationContext.Current != null &&
+                WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
             {
                 //Fix for android hang, if the type is populated
                 string kh = WebOperationContext.Current.IncomingRequest.Headers.Get("X-Plex-Product").ToUpper();
                 if (kh.Contains("ANDROID"))
-                {
-                    MediaContainer.Childrens.ForEach(a =>
-                    {
-                        a.Type = null;
-                    });
-                }
+                    removeandroid = true;
             }
+            MediaContainer.Childrens.ForEach(a =>
+            {
+                a.Group = null;
+                if (removeandroid)
+                    a.Type = null;
+            });
             return prov.GetStreamFromXmlObject(MediaContainer);
         }
         public PlexObject(MediaContainer m)

@@ -38,7 +38,7 @@ namespace JMMContracts
         System.IO.Stream ToggleWatchedStatusOnEpisode(string userid, string episodeid, string watchedstatus);
 
         [OperationContract]
-        [WebGet(UriTemplate = "Vote/{userid}/{objectidid}/{votevalue}/{votetype}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
+        [WebGet(UriTemplate = "Vote/{userid}/{objectid}/{votevalue}/{votetype}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
         System.IO.Stream VoteAnime(string userid, string objectid, string votevalue, string votetype);
     }
 }

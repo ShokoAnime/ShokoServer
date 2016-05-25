@@ -1534,8 +1534,20 @@ namespace JMMServer.Databases
 
             List<string> cmds = new List<string>();
 
+            cmds.Add("DECLARE @tableName VARCHAR(MAX) = 'AnimeGroup_User'\r\n" +
+                     "DECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\n" +
+                     "DECLARE @ConstraintName nvarchar(200)\r\n" +
+                     "SELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\n" +
+                     "IF @ConstraintName IS NOT NULL\r\n" +
+                     "EXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)");
             cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractVersion");
             cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractString");
+            cmds.Add("DECLARE @tableName VARCHAR(MAX) = 'AnimeSeries_User'\r\n" +
+         "DECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\n" +
+         "DECLARE @ConstraintName nvarchar(200)\r\n" +
+         "SELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\n" +
+         "IF @ConstraintName IS NOT NULL\r\n" +
+         "EXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)");
             cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractVersion");
             cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractString");
 

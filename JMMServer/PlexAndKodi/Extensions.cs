@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Reflection;
+using FluentNHibernate.Utils;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.ImageDownload;
@@ -35,9 +37,9 @@ namespace JMMServer.PlexAndKodi
             return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupFilter + "/" + gfid);
         }
 
-        public static string ConstructFakeIosThumb(this IProvider prov, int userid, string url)
+        public static string ConstructFakeIosThumb(this IProvider prov, int userid, string thumburl, string arturl)
         {
-            string r = Helper.Base64EncodeUrl(url);
+            string r = Helper.Base64EncodeUrl(thumburl+"|"+arturl);
             return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
 
         }
@@ -97,6 +99,17 @@ namespace JMMServer.PlexAndKodi
             return Helper.ConstructImageLink((int)im.ImageType, im.AnimeID);
         }
 
+        public static void RandomizeArt(this MediaContainer m, List<Video> vids)
+        {
+            foreach (Video v in vids.Randomize(123456789))
+            {
+                if (v.Art != null)
+                {
+                    m.Art = Helper.ReplaceSchemeHost(v.Art);
+                    break;
+                }
+            }
+        }
         public static string ToPlexDate(this DateTime dt)
         {
             return dt.Year.ToString("0000") + "-" + dt.Month.ToString("00") + "-" + dt.Day.ToString("00");
@@ -107,29 +120,34 @@ namespace JMMServer.PlexAndKodi
         {
             return ((long) (v.Subtract(new DateTime(1970, 1, 1))).TotalSeconds).ToString(CultureInfo.InvariantCulture);
         }
-        public static Hub Clone(this Hub o)
+        
+        public static void GenerateKey(this Video v, IProvider prov, int userid)
         {
-            Hub h = new Hub();
-            h.HubIdentifier = o.HubIdentifier;
-            h.Key = Helper.ReplaceSchemeHost(o.Key);
-            h.More = o.More;
-            h.Size = o.Size;
-            h.Title = o.Title;
-            h.Type = o.Type;
-            return h;
+            switch (v.AnimeType)
+            {
+                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroup:
+                    v.Key = prov.ConstructGroupIdUrl(userid, v.Id);
+                    break;
+                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeSerie:
+                    v.Key = prov.ConstructSerieIdUrl(userid, v.Id.ToString());
+                    break;
+                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode:
+                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeFile:
+                    Helper.AddLinksToAnimeEpisodeVideo(prov, v, userid);
+                    break;
+            }
         }
-
- 
-
 
         public static void Add(this List<Video> l, IProvider prov, Video m, BreadCrumbs info, bool noimage=false, bool noart=false)
         {
+            m.ReplaceSchemeHost();
             info?.Update(m,noart).FillInfo(prov,m, noimage, true);
             l.Add(m);
         }
 
         public static void EppAdd(this List<Video> l, IProvider prov, Video m, BreadCrumbs info, bool noimage = false)
         {
+            m.ReplaceSchemeHost();
             if (info != null)
             {
                 info.FillInfo(prov, m, noimage, true);
@@ -141,6 +159,7 @@ namespace JMMServer.PlexAndKodi
         }
         public static void EppAdd(this List<Directory> l, IProvider prov, Directory m, BreadCrumbs info, bool noimage = false)
         {
+            m.ReplaceSchemeHost();
             if (info != null)
             {
                 info.FillInfo(prov, m, noimage, true);
@@ -152,81 +171,40 @@ namespace JMMServer.PlexAndKodi
         }
         public static void Add(this List<Directory> l, IProvider prov, Directory m, BreadCrumbs info, bool noimage = false)
         {
+            m.ReplaceSchemeHost();
             info?.Update(m).FillInfo(prov, m, noimage, true);
             l.Add(m);
         }
-        public static Video Clone(this Video o)
+        public static void ShallowCopyTo(this object s, object d)
         {
-            Video v;
-            if (o is Directory)
-                v = new Directory();
-            else
-                v = new Video();
-            v.AddedAt = o.AddedAt;
-            v.AirDate = o.AirDate;
-            v.Art = Helper.ReplaceSchemeHost(o.Art);
-            v.ParentArt= Helper.ReplaceSchemeHost(o.ParentArt);
-            v.GrandparentArt = Helper.ReplaceSchemeHost(o.GrandparentArt);
-            v.ChapterSource = o.ChapterSource;
-            v.ContentRating = o.ContentRating;
-            v.Duration = o.Duration;
-            v.EpisodeNumber = o.EpisodeNumber;
-            v.EpisodeCount = o.EpisodeCount;
-            v.ExtraType = o.ExtraType;
-            if (o.Extras != null)
+            foreach (PropertyInfo pis in s.GetType().GetProperties())
             {
-                v.Extras = new Extras();
-                v.Extras.Size = o.Extras.Size;
-                if (o.Extras.Videos != null)
+                foreach (PropertyInfo pid in d.GetType().GetProperties())
                 {
-                    v.Extras.Videos = new List<Video>();
-                    o.Extras.Videos.ForEach(a => v.Extras.Videos.Add(a.Clone()));
+                    if (pid.Name == pis.Name)
+                        (pid.GetSetMethod()).Invoke(d, new[] { pis.GetGetMethod().Invoke(s, null) });
                 }
-            }
-            v.Genres = o.Genres;
-            v.GrandparentKey = o.GrandparentKey;
-            v.GrandparentRatingKey = o.GrandparentRatingKey;
-            v.GrandparentTitle = o.GrandparentTitle;
-            v.Group = o.Group;
-            v.Guid = o.Guid;
-            v.Index = o.Index;
-            v.Key = Helper.ReplaceSchemeHost(o.Key);
-            v.LeafCount = o.LeafCount;
-            v.Medias = o.Medias;
-            v.OriginalTitle = o.OriginalTitle;
-            v.OriginallyAvailableAt = o.OriginallyAvailableAt;
-            v.ParentIndex = o.ParentIndex;
-            v.ParentKey = o.ParentKey;
-            v.ParentRatingKey = o.ParentRatingKey;
-            v.ParentTitle = o.ParentTitle;
-            v.PrimaryExtraKey = o.PrimaryExtraKey;
-            v.Rating = o.Rating;
-            v.RatingKey = o.RatingKey;
-            if (o.Related != null)
-            {
-                v.Related = new List<Hub>();
-                o.Related.ForEach(a => v.Related.Add(a.Clone()));
-            }
-            v.Roles = o.Roles;
-            v.Season = o.Season;
-            v.SourceTitle = o.SourceTitle;
-            v.Summary = o.Summary;
-            v.Tagline = o.Tagline;
-            v.Tags = o.Tags;
-            v.Thumb = Helper.ReplaceSchemeHost(o.Thumb);
-            v.ParentThumb = Helper.ReplaceSchemeHost(o.ParentThumb);
-            v.GrandparentThumb = Helper.ReplaceSchemeHost(o.GrandparentThumb);
-            v.Title = o.Title;
-            v.Type = o.Type;
-            v.UpdatedAt = o.UpdatedAt;
-            v.Url = Helper.ReplaceSchemeHost(o.Url);
-            v.ViewCount = o.ViewCount;
-            v.ViewOffset = o.ViewOffset;
-            v.ViewedLeafCount = o.ViewedLeafCount;
-            v.Year = o.Year;
-            return v;
+            };
         }
 
+        public static void ReplaceSchemeHost(this Video o)
+        {
+            o.Url = Helper.ReplaceSchemeHost(o.Url);
+            o.Thumb = Helper.ReplaceSchemeHost(o.Thumb);
+            o.ParentThumb = Helper.ReplaceSchemeHost(o.ParentThumb);
+            o.GrandparentThumb = Helper.ReplaceSchemeHost(o.GrandparentThumb);
+            o.Art = Helper.ReplaceSchemeHost(o.Art);
+            o.ParentArt = Helper.ReplaceSchemeHost(o.ParentArt);
+            o.GrandparentArt = Helper.ReplaceSchemeHost(o.GrandparentArt);
 
+        }
+        public static T Clone<T>(this Video o) where T : Video, new()
+        {
+            T v=new T();
+            o.ShallowCopyTo(v);
+            v.ReplaceSchemeHost();
+            return v;
+        }
     }
+
 }
