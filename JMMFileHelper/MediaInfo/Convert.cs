@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using JMMContracts.KodiContracts;
+using JMMContracts;
+using JMMContracts.PlexAndKodi;
 using JMMFileHelper;
 using NLog;
-using Stream = JMMContracts.KodiContracts.Stream;
+using Stream = JMMContracts.PlexAndKodi.Stream;
 
 
-namespace KodiMediaInfo
+namespace PlexMediaInfo
 {
     // ReSharper disable CompareOfFloatsByEqualityOperator
 
@@ -269,15 +270,9 @@ namespace KodiMediaInfo
                     s.Forced = "1";
             }
             s.PA = m.GetFloat(StreamKind.Video, num, "PixelAspectRatio");
-            try
-            {
-                string sp2 = m.Get(StreamKind.Video, num, "PixelAspectRatio_Original");
-                float SP2 = 0;
-                if (!string.IsNullOrEmpty(sp2))
-                    SP2 = System.Convert.ToSingle(sp2);
-                    s.PA = SP2;
-            }
-            catch { }
+            string sp2 = m.Get(StreamKind.Video, num, "PixelAspectRatio_Original");
+            if (!string.IsNullOrEmpty(sp2))
+                s.PA = System.Convert.ToSingle(sp2);
             if ((s.PA != 1.0) && (!string.IsNullOrEmpty(s.Width)))
             {
                 float width = int.Parse(s.Width);

@@ -219,6 +219,9 @@ namespace JMMContracts
 		[OperationContract]
 		List<Contract_GroupFilter> GetAllGroupFilters();
 
+	    [OperationContract]
+	    Contract_GroupFilter EvaluateGroupFilter(Contract_GroupFilter contract);
+
 		[OperationContract]
 		Contract_GroupFilter_SaveResponse SaveGroupFilter(Contract_GroupFilter contract);
 

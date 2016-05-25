@@ -185,6 +185,8 @@ namespace JMMServer.Databases
                 UpdateSchema_041(versionNumber);
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
+                UpdateSchema_044(versionNumber);
+                UpdateSchema_045(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1516,6 +1518,86 @@ namespace JMMServer.Databases
                     using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
                     {
                         command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+
+        }
+        private static void UpdateSchema_044(int currentVersionNumber)
+        {
+            int thisVersion = 44;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("DECLARE @tableName VARCHAR(MAX) = 'AnimeGroup_User'\r\n" +
+                     "DECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\n" +
+                     "DECLARE @ConstraintName nvarchar(200)\r\n" +
+                     "SELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\n" +
+                     "IF @ConstraintName IS NOT NULL\r\n" +
+                     "EXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)");
+            cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractVersion");
+            cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractString");
+            cmds.Add("DECLARE @tableName VARCHAR(MAX) = 'AnimeSeries_User'\r\n" +
+         "DECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\n" +
+         "DECLARE @ConstraintName nvarchar(200)\r\n" +
+         "SELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\n" +
+         "IF @ConstraintName IS NOT NULL\r\n" +
+         "EXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)");
+            cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractVersion");
+            cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractString");
+
+
+            using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+                ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+
+        }
+        private static void UpdateSchema_045(int currentVersionNumber)
+        {
+            int thisVersion = 45;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate [datetime] NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate [datetime] NULL");
+
+            using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+                ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception e)
+                        {
+                            
+                        }
                     }
                 }
             }

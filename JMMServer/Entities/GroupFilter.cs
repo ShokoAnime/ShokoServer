@@ -27,6 +27,8 @@ namespace JMMServer.Entities
 
         public const int GROUPFILTER_VERSION = 1;
 
+	    private Contract_GroupFilter VirtualContract = null;
+
         internal Dictionary<int, HashSet<int>> _groupsId =new Dictionary<int, HashSet<int>>();
 
         public virtual Dictionary<int, HashSet<int>> GroupsIds
@@ -58,7 +60,9 @@ namespace JMMServer.Entities
 		{
 			get
 			{
-				GroupFilterConditionRepository repConds = new GroupFilterConditionRepository();
+			    if (VirtualContract != null)
+			        return VirtualContract.FilterConditions.Select(a => new GroupFilterCondition { ConditionOperator = a.ConditionOperator, ConditionType = a.ConditionType,ConditionParameter = a.ConditionParameter,GroupFilterID = a.GroupFilterID ?? 0}).ToList();
+            	GroupFilterConditionRepository repConds = new GroupFilterConditionRepository();
 				return repConds.GetByGroupFilterID(this.GroupFilterID);
 			}
 		}
@@ -126,7 +130,7 @@ namespace JMMServer.Entities
             contract.FilterConditions = new List<Contract_GroupFilterCondition>();
 			foreach (GroupFilterCondition gfc in GetFilterConditions(session))
 				contract.FilterConditions.Add(gfc.ToContract());
-
+		    contract.Groups = this.GroupsIds.ToDictionary(a => a.Key, a => new HashSet<int>(a.Value.ToList()));
 			return contract;
 		}
 
@@ -214,13 +218,52 @@ namespace JMMServer.Entities
                 repGrpFilter.Save(this, true, null);
         }
 
+	    public static Contract_GroupFilter EvaluateVirtualContract(Contract_GroupFilter gfc)
+	    {
+            //Convert Contract_GroupFilter into a Virtual GroupFilter
+	        GroupFilter gf = new GroupFilter {VirtualContract = gfc, GroupFilterName=gfc.GroupFilterName,ApplyToSeries = gfc.ApplyToSeries,SortingCriteria = gfc.SortingCriteria};
+            AnimeGroupRepository grepo=new AnimeGroupRepository();
+            AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
+            JMMUserRepository repUsers=new JMMUserRepository();
+	        List<JMMUser> users = repUsers.GetAll();
+            foreach (AnimeGroup grp in grepo.GetAllTopLevelGroups())
+	        {
+	            foreach (JMMUser user in users)
+	            {
+	                AnimeGroup_User userRec = repUserGroups.GetByUserAndGroupID(user.JMMUserID, grp.AnimeGroupID);
+	                if (gf.EvaluateGroupFilter(grp, user, userRec))
+	                {
+	                    if (!gf.GroupsIds.ContainsKey(user.JMMUserID))
+	                    {
+	                        gf.GroupsIds[user.JMMUserID] = new HashSet<int>();
+	                    }
+	                    if (!gf.GroupsIds[user.JMMUserID].Contains(grp.AnimeGroupID))
+	                    {
+	                        gf.GroupsIds[user.JMMUserID].Add(grp.AnimeGroupID);
+	                    }
+	                }
+	                else
+	                {
+	                    if (gf.GroupsIds.ContainsKey(user.JMMUserID))
+	                    {
+	                        if (gf.GroupsIds[user.JMMUserID].Contains(grp.AnimeGroupID))
+	                        {
+	                            gf.GroupsIds[user.JMMUserID].Remove(grp.AnimeGroupID);
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	        return gf.ToContract();
+	    }
+
         public bool EvaluateGroupFilter(AnimeGroup grp, JMMUser curUser, AnimeGroup_User userRec)
         {
             // sub groups don't count
             if (grp.AnimeGroupParentID.HasValue) return false;
 
             // make sure the user has not filtered this out
-            if (!curUser.AllowedGroup(grp, userRec)) return false;
+            if (!curUser.AllowedGroup(grp, curUser)) return false;
 
             // first check for anime groups which are included exluded every time
             foreach (GroupFilterCondition gfc in FilterConditions)
@@ -341,7 +384,28 @@ namespace JMMServer.Entities
                             if (contractGroup.Stat_AirDate_Min.Value > filterDate) return false;
                         }
                         break;
+                    case GroupFilterConditionType.LatestEpisodeAirDate:
+                        DateTime filterDateEpisodeLastAired;
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+                        {
+                            int days = 0;
+                            int.TryParse(gfc.ConditionParameter, out days);
+                            filterDateEpisodeLastAired = DateTime.Today.AddDays(0 - days);
+                        }
+                        else
+                            filterDateEpisodeLastAired = GetDateFromString(gfc.ConditionParameter);
 
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan || gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+                        {
+                            if (!grp.LatestEpisodeAirDate.HasValue) return false;
+                            if (grp.LatestEpisodeAirDate.Value < filterDateEpisodeLastAired) return false;
+                        }
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+                        {
+                            if (!grp.LatestEpisodeAirDate.HasValue) return false;
+                            if (grp.LatestEpisodeAirDate.Value > filterDateEpisodeLastAired) return false;
+                        }
+                        break;
                     case GroupFilterConditionType.SeriesCreatedDate:
                         DateTime filterDateSeries;
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)

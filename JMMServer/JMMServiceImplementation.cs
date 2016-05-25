@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using JMMContracts;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using NLog;
@@ -22,10 +21,11 @@ using JMMServer.Providers.MyAnimeList;
 using JMMServer.Commands.MAL;
 using System.Diagnostics;
 using System.Collections;
+using JMMContracts;
 using JMMServer.Databases;
 using NHibernate;
 using JMMServer.Commands.AniDB;
-using JMMServer.Plex;
+using JMMServer.PlexAndKodi;
 using JMMServer.Providers.TraktTV.Contracts;
 
 namespace JMMServer
@@ -205,8 +205,7 @@ namespace JMMServer
                         List<Contract_AnimeGroup> nGroups=new List<Contract_AnimeGroup>();
 				        foreach (Contract_AnimeGroup cag in retGroups)
 				        {
-                            Contract_AnimeGroup ng = new Contract_AnimeGroup();
-                            cag.CopyTo(ng);
+				            Contract_AnimeGroup ng = (Contract_AnimeGroup) cag.DeepCopy();
 				            if (cag.Stat_SeriesCount == 1)
 				            {
 				                if (cag.DefaultAnimeSeriesID.HasValue)
@@ -364,7 +363,21 @@ namespace JMMServer
 
 		}
 
-		public List<Contract_Playlist> GetAllPlaylists()
+	    public Contract_GroupFilter EvaluateGroupFilter(Contract_GroupFilter contract)
+	    {
+            try
+            {
+                return GroupFilter.EvaluateVirtualContract(contract);            
+            }
+            catch (Exception ex)
+			{
+
+                logger.ErrorException(ex.ToString(), ex);
+				return new Contract_GroupFilter();
+			}
+	    }
+
+	    public List<Contract_Playlist> GetAllPlaylists()
 		{
 			List<Contract_Playlist> pls = new List<Contract_Playlist>();
 			try

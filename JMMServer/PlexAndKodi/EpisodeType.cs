@@ -1,6 +1,6 @@
 ﻿using AniDBAPI;
 
-namespace JMMServer.Plex
+namespace JMMServer.PlexAndKodi
 {
     public class PlexEpisodeType
     {

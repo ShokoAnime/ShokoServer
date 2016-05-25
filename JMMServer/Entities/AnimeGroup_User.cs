@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using JMMContracts;
-using JMMServer.Plex;
+using JMMContracts.PlexAndKodi;
 using JMMServer.Repositories;
 using Newtonsoft.Json;
 using NLog;
@@ -29,23 +29,19 @@ namespace JMMServer.Entities
         public int PlexContractVersion { get; set; }
         public string PlexContractString { get; set; }
 
-        public int KodiContractVersion { get; set; }
-        public string KodiContractString { get; set; }
-
         #endregion
 
-        public const int PLEXCONTRACT_VERSION = 2;
-        public const int KODICONTRACT_VERSION = 2;
+        public const int PLEXCONTRACT_VERSION = 3;
 
 
-        private JMMContracts.PlexContracts.Video _plexcontract = null;
-        public JMMContracts.PlexContracts.Video PlexContract
+        private Video _plexcontract = null;
+        public Video PlexContract
         {
             get
             {
                 if ((_plexcontract == null) && PlexContractVersion == PLEXCONTRACT_VERSION)
                 {
-                    JMMContracts.PlexContracts.Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<JMMContracts.PlexContracts.Video>(PlexContractString);
+                    Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<Video>(PlexContractString);
                     if (vids != null)
                         _plexcontract = vids;
                 }
@@ -62,30 +58,6 @@ namespace JMMServer.Entities
             }
         }
 
-
-        private JMMContracts.KodiContracts.Video _kodicontract = null;
-        public JMMContracts.KodiContracts.Video KodiContract
-        {
-            get
-            {
-                if ((_kodicontract == null) && KodiContractVersion == KODICONTRACT_VERSION)
-                {
-                    JMMContracts.KodiContracts.Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<JMMContracts.KodiContracts.Video>(KodiContractString);
-                    if (vids != null)
-                        _kodicontract = vids;
-                }
-                return _kodicontract;
-            }
-            set
-            {
-                _kodicontract = value;
-                if (value != null)
-                {
-                    KodiContractVersion = AnimeGroup_User.KODICONTRACT_VERSION;
-                    KodiContractString = Newtonsoft.Json.JsonConvert.SerializeObject(KodiContract, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
-                }
-            }
-        }
 
 
         public AnimeGroup_User()

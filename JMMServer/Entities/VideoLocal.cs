@@ -12,6 +12,8 @@ using BinaryNorthwest;
 using JMMServer.Commands.MAL;
 using NHibernate;
 using System.Threading;
+using JMMContracts.PlexAndKodi;
+using Directory = System.IO.Directory;
 
 namespace JMMServer.Entities
 {
@@ -40,13 +42,13 @@ namespace JMMServer.Entities
         public const int MEDIA_VERSION = 1;
 
 
-        internal JMMContracts.PlexContracts.Media _media = null;
-        public virtual JMMContracts.PlexContracts.Media Media
+        internal Media _media = null;
+        public virtual Media Media
         {
             get
             {
                 if ((_media == null) && (MediaVersion == MEDIA_VERSION))
-                    _media = Newtonsoft.Json.JsonConvert.DeserializeObject<JMMContracts.PlexContracts.Media>(MediaString);
+                    _media = Newtonsoft.Json.JsonConvert.DeserializeObject<Media>(MediaString);
                 return _media;
             }
             set
@@ -537,7 +539,7 @@ namespace JMMServer.Entities
 
                 if (destFolder == null) return;
 
-                if (!Directory.Exists(destFolder.ImportFolderLocation)) return;
+                if (!System.IO.Directory.Exists(destFolder.ImportFolderLocation)) return;
 
                 // keep the original drop folder for later (take a copy, not a reference)
                 ImportFolder dropFolder = this.ImportFolder;

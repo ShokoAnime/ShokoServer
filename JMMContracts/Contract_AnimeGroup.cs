@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMContracts;
 
 namespace JMMContracts
 {
@@ -21,6 +22,7 @@ namespace JMMContracts
 		public string SortName { get; set; }
 		public DateTime? WatchedDate { get; set; }
 		public DateTime? EpisodeAddedDate { get; set; }
+        public DateTime? LatestEpisodeAirDate { get; set; }
 		public int PlayedCount { get; set; }
 		public int WatchedCount { get; set; }
 		public int StoppedCount { get; set; }

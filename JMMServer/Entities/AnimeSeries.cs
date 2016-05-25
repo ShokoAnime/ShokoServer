@@ -7,13 +7,14 @@ using System.Threading.Tasks;
 using System.Windows.Documents;
 using AniDBAPI;
 using FluentNHibernate.Utils;
+using JMMContracts;
+using JMMContracts.PlexAndKodi;
 using JMMServer.ImageDownload;
 using NLog;
 using JMMServer.Repositories;
-using JMMContracts;
 using NHibernate;
 using JMMServer.Commands;
-using JMMServer.Plex;
+using JMMServer.PlexAndKodi;
 using NHibernate.Criterion;
 
 namespace JMMServer.Entities
@@ -29,7 +30,8 @@ namespace JMMServer.Entities
 		public string DefaultAudioLanguage { get; set; }
 		public string DefaultSubtitleLanguage { get; set; }
 		public DateTime? EpisodeAddedDate { get; set; }
-		public int MissingEpisodeCount { get; set; }
+        public DateTime? LatestEpisodeAirDate { get; set; }
+        public int MissingEpisodeCount { get; set; }
 		public int MissingEpisodeCountGroups { get; set; }
 		public int LatestLocalEpisodeNumber { get; set; }
 		public string SeriesNameOverride { get; set; }
@@ -41,7 +43,7 @@ namespace JMMServer.Entities
 
         #endregion
 
-	    public const int CONTRACT_VERSION = 1;
+	    public const int CONTRACT_VERSION = 2;
 
 
         private Contract_AnimeSeries _contract=null;
@@ -254,8 +256,7 @@ namespace JMMServer.Entities
 		}
         public Contract_AnimeSeries GetUserContract(int userid)
         {
-            Contract_AnimeSeries contract = new Contract_AnimeSeries();
-            Contract.CopyTo(contract);
+            Contract_AnimeSeries contract = (Contract_AnimeSeries) Contract.DeepCopy();
             AnimeSeries_User rr = GetUserRecord(userid);
             if (rr != null)
             {
@@ -269,14 +270,11 @@ namespace JMMServer.Entities
             }
             return contract;
         }
-        public JMMContracts.PlexContracts.Video GetPlexContract(int userid)
+        public Video GetPlexContract(int userid)
         {
             return GetOrCreateUserRecord(userid).PlexContract;
         }
-        public JMMContracts.KodiContracts.Video GetKodiContract(int userid)
-        {
-            return GetOrCreateUserRecord(userid).KodiContract;
-        }
+
         private AnimeSeries_User GetOrCreateUserRecord(int userid)
         {
             AnimeSeries_User rr = GetUserRecord(userid);
@@ -476,6 +474,7 @@ namespace JMMServer.Entities
             contract.DefaultAudioLanguage = this.DefaultAudioLanguage;
             contract.DefaultSubtitleLanguage = this.DefaultSubtitleLanguage;
             contract.LatestLocalEpisodeNumber = this.LatestLocalEpisodeNumber;
+	        contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
             contract.EpisodeAddedDate = this.EpisodeAddedDate;
             contract.MissingEpisodeCount = this.MissingEpisodeCount;
             contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
@@ -512,8 +511,7 @@ namespace JMMServer.Entities
             // get AniDB data
             if (animeRec != null)
             {
-                contract.AniDBAnime = new Contract_AniDBAnime();
-                animeRec.Contract.AniDBAnime.CopyTo(contract.AniDBAnime);
+                contract.AniDBAnime = (Contract_AniDBAnime) animeRec.Contract.AniDBAnime.DeepCopy();
                 contract.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToContract();
                 if (contract.AniDBAnime.DefaultImagePoster == null)
                 {
@@ -1033,6 +1031,7 @@ namespace JMMServer.Entities
 	            }
 
 	            int latestLocalEpNumber = 0;
+	            DateTime lastEpAirDate = DateTime.MinValue;
 	            EpisodeList epReleasedList = new EpisodeList(animeType);
 	            EpisodeList epGroupReleasedList = new EpisodeList(animeType);
 
@@ -1057,10 +1056,25 @@ namespace JMMServer.Entities
 
 
 	                AniDB_Episode aniEp = ep.AniDB_Episode;
-	                int thisEpNum = aniEp.EpisodeNumber;
+
+
+
+
+
+
+                    int thisEpNum = aniEp.EpisodeNumber;
 
 	                if (thisEpNum > latestLocalEpNumber && vids.Count > 0)
+	                {
 	                    latestLocalEpNumber = thisEpNum;
+	                }
+	                DateTime? airdate = ep.AniDB_Episode.AirDateAsDate;
+
+                    if (airdate.HasValue)
+                    {
+                        if (lastEpAirDate < airdate.Value) 
+                            lastEpAirDate = airdate.Value;
+                    }
 
 	                // does this episode have a file released 
 	                // does this episode have a file released by the group the user is collecting
@@ -1098,6 +1112,8 @@ namespace JMMServer.Entities
 	            }
 
 	            this.LatestLocalEpisodeNumber = latestLocalEpNumber;
+                if (lastEpAirDate!=DateTime.MinValue)
+    	            this.LatestEpisodeAirDate = lastEpAirDate;
 	        }
 
 	        ts = DateTime.Now - start;

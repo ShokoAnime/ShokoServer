@@ -13,7 +13,6 @@ namespace JMMServer.Mappings
         {
 			Not.LazyLoad();
             Id(x => x.AnimeSeries_UserID);
-
 			Map(x => x.JMMUserID).Not.Nullable();
 			Map(x => x.AnimeSeriesID).Not.Nullable();
 			Map(x => x.PlayedCount).Not.Nullable();
@@ -24,8 +23,7 @@ namespace JMMServer.Mappings
 			Map(x => x.WatchedEpisodeCount).Not.Nullable();
             Map(x => x.PlexContractVersion).Not.Nullable();
             Map(x => x.PlexContractString).Nullable().CustomType("StringClob");
-            Map(x => x.KodiContractVersion).Not.Nullable();
-            Map(x => x.KodiContractString).Nullable().CustomType("StringClob");
+
         }
 	}
 }

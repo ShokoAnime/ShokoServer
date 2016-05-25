@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using JMMContracts;
 using JMMServer.Repositories;
 using JMMServer.Commands;
 using AniDBAPI;
+using JMMContracts;
+using JMMContracts.PlexAndKodi;
 using Newtonsoft.Json;
 using NHibernate;
 
@@ -25,17 +26,17 @@ namespace JMMServer.Entities
         public string PlexContractString { get; set; }
 
 
-        public const int PLEXCONTRACT_VERSION = 2;
+        public const int PLEXCONTRACT_VERSION = 3;
 
 
-        private JMMContracts.PlexContracts.Video _plexcontract = null;
-        internal virtual JMMContracts.PlexContracts.Video PlexContract
+        private Video _plexcontract = null;
+        internal virtual Video PlexContract
         {
             get
             {
                 if ((_plexcontract == null) && PlexContractVersion == PLEXCONTRACT_VERSION)
                 {
-                    JMMContracts.PlexContracts.Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<JMMContracts.PlexContracts.Video>(PlexContractString);
+                    Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<Video>(PlexContractString);
                     if (vids != null)
                         _plexcontract = vids;
                 }
@@ -79,188 +80,17 @@ namespace JMMServer.Entities
 
 		public AnimeEpisode_User GetUserRecord(int userID)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetUserRecord(session, userID);
-			}
-		}
+            AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
+            return repEpUser.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
+        }
 
-		public AnimeEpisode_User GetUserRecord(ISession session, int userID)
+        public AnimeEpisode_User GetUserRecord(ISession session, int userID)
 		{
 			AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
-			return repEpUser.GetByUserIDAndEpisodeID(session, userID, this.AnimeEpisodeID);
+			return repEpUser.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
 		}
 
-        /*
-		public Contract_AnimeEpisode ToContract(bool getFileCount, int userID, AnimeSeries_User seruser)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return ToContract(session, getFileCount, userID, seruser);
-			}
-		}
-		public Contract_AnimeEpisode ToContract(ISession session, bool getFileCount, int userID, AnimeSeries_User seruser)
-		{
-			Contract_AnimeEpisode contract = new Contract_AnimeEpisode();
-			contract.AniDB_EpisodeID = this.AniDB_EpisodeID;
-			contract.AnimeEpisodeID = this.AnimeEpisodeID;
-			contract.AnimeSeriesID = this.AnimeSeriesID;
-			contract.DateTimeUpdated = this.DateTimeUpdated;
-
-			AnimeEpisode_User epuser = this.GetUserRecord(session, userID);
-
-			if (epuser == null)
-			{
-				contract.IsWatched = 0;
-				contract.PlayedCount = 0;
-				contract.StoppedCount = 0;
-				contract.WatchedCount = 0;
-				contract.WatchedDate = null;
-			}
-			else
-			{
-				contract.IsWatched = epuser.WatchedCount > 0 ? 1 : 0;
-				contract.PlayedCount = epuser.PlayedCount;
-				contract.StoppedCount = epuser.StoppedCount;
-				contract.WatchedCount = epuser.WatchedCount;
-				contract.WatchedDate = epuser.WatchedDate;
-			}
-
-			if (seruser == null)
-				contract.UnwatchedEpCountSeries = 0;
-			else
-				contract.UnwatchedEpCountSeries = seruser.UnwatchedEpisodeCount;
-
-			AniDB_Episode aniEp = this.AniDB_Episode;
-			contract.AniDB_AirDate = aniEp.AirDateAsDate;
-			contract.AniDB_EnglishName = aniEp.EnglishName;
-			contract.AniDB_LengthSeconds = aniEp.LengthSeconds;
-			contract.AniDB_Rating = aniEp.Rating;
-			contract.AniDB_RomajiName = aniEp.RomajiName;
-			contract.AniDB_Votes = aniEp.Votes;
-
-			contract.EpisodeNumber = aniEp.EpisodeNumber;
-			contract.EpisodeNameRomaji = aniEp.RomajiName;
-			contract.EpisodeNameEnglish = aniEp.EnglishName;
-			contract.EpisodeType = aniEp.EpisodeType;
-
-
-			// find the number of files we actually have for this episode
-			if (getFileCount)
-				contract.LocalFileCount = this.GetVideoLocals(session).Count;
-
-			contract.ReleaseGroups = new List<Contract_AniDBReleaseGroup>();
-
-
-
-			return contract;
-		}
-
-		public Contract_AnimeEpisode ToContract(int userID)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return ToContract(session, userID);
-			}
-		}
-
-		public Contract_AnimeEpisode ToContract(ISession session, int userID)
-		{
-			return ToContract(session, true, userID, null);
-		}
-
-		public Contract_AnimeEpisode ToContract(AniDB_Episode aniEp, List<VideoLocal> epVids, AnimeEpisode_User epuser, AnimeSeries_User seruser)
-		{
-			Contract_AnimeEpisode contract = new Contract_AnimeEpisode();
-			contract.AniDB_EpisodeID = this.AniDB_EpisodeID;
-			contract.AnimeEpisodeID = this.AnimeEpisodeID;
-			contract.AnimeSeriesID = this.AnimeSeriesID;
-			contract.DateTimeUpdated = this.DateTimeUpdated;
-
-			if (epuser == null)
-			{
-				contract.IsWatched = 0;
-				contract.PlayedCount = 0;
-				contract.StoppedCount = 0;
-				contract.WatchedCount = 0;
-				contract.WatchedDate = null;
-			}
-			else
-			{
-				contract.IsWatched = epuser.WatchedCount > 0 ? 1 : 0;
-				contract.PlayedCount = epuser.PlayedCount;
-				contract.StoppedCount = epuser.StoppedCount;
-				contract.WatchedCount = epuser.WatchedCount;
-				contract.WatchedDate = epuser.WatchedDate;
-			}
-
-			if (seruser == null)
-				contract.UnwatchedEpCountSeries = 0;
-			else
-				contract.UnwatchedEpCountSeries = seruser.UnwatchedEpisodeCount;
-			
-			contract.AniDB_AirDate = aniEp.AirDateAsDate;
-			contract.AniDB_EnglishName = aniEp.EnglishName;
-			contract.AniDB_LengthSeconds = aniEp.LengthSeconds;
-			contract.AniDB_Rating = aniEp.Rating;
-			contract.AniDB_RomajiName = aniEp.RomajiName;
-			contract.AniDB_Votes = aniEp.Votes;
-
-			contract.EpisodeNumber = aniEp.EpisodeNumber;
-			contract.EpisodeNameRomaji = aniEp.RomajiName;
-			contract.EpisodeNameEnglish = aniEp.EnglishName;
-			contract.EpisodeType = aniEp.EpisodeType;
-
-
-			// find the number of files we actually have for this episode
-			//contract.LocalFileCount = VideoLocals.Count;
-			contract.LocalFileCount = epVids.Count;
-
-			contract.ReleaseGroups = new List<Contract_AniDBReleaseGroup>(); 
-
-
-
-			return contract;
-		}
-
-		public Contract_AnimeEpisode ToContractOld(AniDB_Episode aniEp)
-		{
-			Contract_AnimeEpisode contract = new Contract_AnimeEpisode();
-			contract.AniDB_EpisodeID = this.AniDB_EpisodeID;
-			contract.AnimeEpisodeID = this.AnimeEpisodeID;
-			contract.AnimeSeriesID = this.AnimeSeriesID;
-			contract.DateTimeUpdated = this.DateTimeUpdated;
-			//contract.IsWatched = this.IsWatched;
-			//contract.PlayedCount = this.PlayedCount;
-			//contract.StoppedCount = this.StoppedCount;
-			//contract.WatchedCount = this.WatchedCount;
-			//contract.WatchedDate = this.WatchedDate;
-
-
-
-			contract.AniDB_AirDate = aniEp.AirDateAsDate;
-			contract.AniDB_EnglishName = aniEp.EnglishName;
-			contract.AniDB_LengthSeconds = aniEp.LengthSeconds;
-			contract.AniDB_Rating = aniEp.Rating;
-			contract.AniDB_RomajiName = aniEp.RomajiName;
-			contract.AniDB_Votes = aniEp.Votes;
-
-			contract.EpisodeNumber = aniEp.EpisodeNumber;
-			contract.EpisodeNameRomaji = aniEp.RomajiName;
-			contract.EpisodeNameEnglish = aniEp.EnglishName;
-			contract.EpisodeType = aniEp.EpisodeType;
-
-
-			// find the number of files we actually have for this episode
-			contract.LocalFileCount = GetVideoLocals().Count;
-
-			contract.ReleaseGroups = new List<Contract_AniDBReleaseGroup>();
-
-
-
-			return contract;
-		}
-        */
+        
         /// <summary>
         /// Gets the AnimeSeries this episode belongs to
         /// </summary>

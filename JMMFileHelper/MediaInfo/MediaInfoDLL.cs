@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 
 #pragma warning disable 1591 // Disable XML documentation warnings
 
-namespace KodiMediaInfo
+namespace PlexMediaInfo
 {
 	public enum StreamKind
 	{
@@ -159,7 +159,8 @@ namespace KodiMediaInfo
 
 	    ~MediaInfo()
 	    {
-    	    MediaInfo_Delete(Handle);
+            if (Handle!=IntPtr.Zero)
+        	    MediaInfo_Delete(Handle);
             if (moduleHandle == IntPtr.Zero)
             {
                 FreeLibrary(moduleHandle);

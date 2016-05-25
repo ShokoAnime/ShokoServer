@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using NLog;
 using JMMServer.Repositories;
-using JMMContracts;
 using System.Xml.Serialization;
 using BinaryNorthwest;
 using System.IO;
 using FluentNHibernate.Utils;
-using JMMContracts.PlexContracts;
-using JMMServer.Plex;
+using JMMContracts;
+using JMMContracts.PlexAndKodi;
+using JMMServer.PlexAndKodi;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -27,6 +27,7 @@ namespace JMMServer.Entities
 		public DateTime DateTimeCreated { get; set; }
 		public string SortName { get; set; }
 		public DateTime? EpisodeAddedDate { get; set; }
+		public DateTime? LatestEpisodeAirDate { get; set; }
 		public int MissingEpisodeCount { get; set; }
 		public int MissingEpisodeCountGroups { get; set; }
 		public int OverrideDescription { get; set; }
@@ -132,8 +133,9 @@ namespace JMMServer.Entities
 
         public Contract_AnimeGroup GetUserContract(int userid)
         {
-            Contract_AnimeGroup contract = new Contract_AnimeGroup();
-            Contract.CopyTo(contract);
+            if (Contract == null)
+                return new Contract_AnimeGroup();
+            Contract_AnimeGroup contract = (Contract_AnimeGroup)Contract.DeepCopy();
             AnimeGroup_User rr = GetUserRecord(userid);
             if (rr != null)
             {
@@ -148,14 +150,12 @@ namespace JMMServer.Entities
             return contract;
         }
 
-	    public JMMContracts.PlexContracts.Video GetPlexContract(int userid)
+
+	    public Video GetPlexContract(int userid)
 	    {
 	        return GetOrCreateUserRecord(userid).PlexContract;
 	    }
-        public JMMContracts.KodiContracts.Video GetKodiContract(int userid)
-        {
-            return GetOrCreateUserRecord(userid).KodiContract;
-        }
+
         private AnimeGroup_User GetOrCreateUserRecord(int userid)
 	    {
             AnimeGroup_User rr = GetUserRecord(userid);
@@ -741,6 +741,11 @@ namespace JMMServer.Entities
                 {
                     this.MissingEpisodeCount += ser.MissingEpisodeCount;
                     this.MissingEpisodeCountGroups += ser.MissingEpisodeCountGroups;
+                    if (ser.LatestEpisodeAirDate.HasValue)
+                    {
+                        if ((LatestEpisodeAirDate.HasValue && ser.LatestEpisodeAirDate.Value>LatestEpisodeAirDate.Value) || (!LatestEpisodeAirDate.HasValue))
+                            LatestEpisodeAirDate = ser.LatestEpisodeAirDate;
+                    }
                 }
 
                 AnimeGroupRepository repGrp = new AnimeGroupRepository();

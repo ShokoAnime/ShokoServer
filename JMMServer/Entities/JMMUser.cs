@@ -88,22 +88,31 @@ namespace JMMServer.Entities
 			return true;
 		}
 
-		public bool AllowedGroup(AnimeGroup grp, AnimeGroup_User userRec)
+		public bool AllowedGroup(AnimeGroup grp, JMMUser user)
 		{
-			if (string.IsNullOrEmpty(HideCategories)) return true;
+		    try
+		    {
+                if (string.IsNullOrEmpty(HideCategories)) return true;
 
-			string[] cats = HideCategories.ToLower().Split(',');
-			string[] animeCats = grp.GetUserContract(userRec.JMMUserID).Stat_AllTags.ToLower().Split('|');
-			foreach (string cat in cats)
-			{
-				if (!string.IsNullOrEmpty(cat.Trim()) && animeCats.Contains(cat.Trim()))
-				{
-					return false;
-				}
-			}
+                string[] cats = HideCategories.ToLower().Split(',');
+                string[] animeCats = ((grp.GetUserContract(user.JMMUserID).Stat_AllTags) ?? "").ToLower().Split('|');
+                foreach (string cat in cats)
+                {
+                    if (!string.IsNullOrEmpty(cat.Trim()) && animeCats.Contains(cat.Trim()))
+                    {
+                        return false;
+                    }
+                }
 
-			return true;
-		}
+                return true;
+
+            }
+		    catch (Exception e)
+    	    {
+	            return false;
+		    }
+        }
+
 
 
         public void UpdateGroupFilters()

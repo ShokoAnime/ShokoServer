@@ -22,7 +22,8 @@ namespace JMMServer.Mappings
 			Map(x => x.DefaultSubtitleLanguage);
 			Map(x => x.LatestLocalEpisodeNumber).Not.Nullable();
 			Map(x => x.EpisodeAddedDate);
-			Map(x => x.MissingEpisodeCount).Not.Nullable();
+            Map(x => x.LatestEpisodeAirDate);
+            Map(x => x.MissingEpisodeCount).Not.Nullable();
 			Map(x => x.MissingEpisodeCountGroups).Not.Nullable();
 			Map(x => x.SeriesNameOverride);
             Map(x => x.DefaultFolder);

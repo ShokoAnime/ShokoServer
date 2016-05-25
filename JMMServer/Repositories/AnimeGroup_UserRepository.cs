@@ -2,8 +2,7 @@
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
-using JMMServer.Kodi;
-using JMMServer.Plex;
+using JMMServer.PlexAndKodi;
 using NLog;
 using NHibernate;
 using NutzCode.InMemoryIndex;
@@ -31,7 +30,7 @@ namespace JMMServer.Repositories
             UsersGroups = Cache.CreateIndex(a => a.JMMUserID,a => a.AnimeGroupID);
 
             int cnt = 0;
-            List<AnimeGroup_User> grps = Cache.Values.Where(a => a.PlexContractVersion < AnimeGroup_User.PLEXCONTRACT_VERSION || a.KodiContractVersion < AnimeGroup_User.KODICONTRACT_VERSION).ToList();
+            List<AnimeGroup_User> grps = Cache.Values.Where(a => a.PlexContractVersion < AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
             int max = grps.Count;
             foreach (AnimeGroup_User g in grps)
             {
@@ -96,8 +95,7 @@ namespace JMMServer.Repositories
 	            if (grp == null)
 	                return;
                 List<AnimeSeries> series = grp.GetAllSeries(session);
-                ugrp.PlexContract = PlexHelper.GenerateFromAnimeGroup(session, grp, ugrp.JMMUserID, series);
-	            ugrp.KodiContract = KodiHelper.VideoFromAnimeGroup(session, grp, ugrp.JMMUserID, series);
+                ugrp.PlexContract = Helper.GenerateFromAnimeGroup(session, grp, ugrp.JMMUserID, series);
 	        }
 	    }
 
