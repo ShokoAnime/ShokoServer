@@ -741,6 +741,11 @@ namespace JMMServer.Entities
                 {
                     this.MissingEpisodeCount += ser.MissingEpisodeCount;
                     this.MissingEpisodeCountGroups += ser.MissingEpisodeCountGroups;
+                    if (ser.LatestEpisodeAirDate.HasValue)
+                    {
+                        if ((LatestEpisodeAirDate.HasValue && ser.LatestEpisodeAirDate.Value>LatestEpisodeAirDate.Value) || (!LatestEpisodeAirDate.HasValue))
+                            LatestEpisodeAirDate = ser.LatestEpisodeAirDate;
+                    }
                 }
 
                 AnimeGroupRepository repGrp = new AnimeGroupRepository();

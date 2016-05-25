@@ -186,6 +186,7 @@ namespace JMMServer.Databases
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
                 UpdateSchema_044(versionNumber);
+                UpdateSchema_045(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1561,6 +1562,42 @@ namespace JMMServer.Databases
                     using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
                     {
                         command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+
+
+        }
+        private static void UpdateSchema_045(int currentVersionNumber)
+        {
+            int thisVersion = 45;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate [datetime] NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate [datetime] NULL");
+
+            using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
+                ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception e)
+                        {
+                            
+                        }
                     }
                 }
             }

@@ -384,7 +384,28 @@ namespace JMMServer.Entities
                             if (contractGroup.Stat_AirDate_Min.Value > filterDate) return false;
                         }
                         break;
+                    case GroupFilterConditionType.LatestEpisodeAirDate:
+                        DateTime filterDateEpisodeLastAired;
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+                        {
+                            int days = 0;
+                            int.TryParse(gfc.ConditionParameter, out days);
+                            filterDateEpisodeLastAired = DateTime.Today.AddDays(0 - days);
+                        }
+                        else
+                            filterDateEpisodeLastAired = GetDateFromString(gfc.ConditionParameter);
 
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.GreaterThan || gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)
+                        {
+                            if (!grp.LatestEpisodeAirDate.HasValue) return false;
+                            if (grp.LatestEpisodeAirDate.Value < filterDateEpisodeLastAired) return false;
+                        }
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.LessThan)
+                        {
+                            if (!grp.LatestEpisodeAirDate.HasValue) return false;
+                            if (grp.LatestEpisodeAirDate.Value > filterDateEpisodeLastAired) return false;
+                        }
+                        break;
                     case GroupFilterConditionType.SeriesCreatedDate:
                         DateTime filterDateSeries;
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.LastXDays)

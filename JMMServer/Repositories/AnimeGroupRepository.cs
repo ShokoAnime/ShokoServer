@@ -132,10 +132,13 @@ namespace JMMServer.Repositories
                     // Also look at languages
                     Dictionary<string, int> vidQualEpCounts = new Dictionary<string, int>();
                     // video quality, count of episodes
-
+                    AniDB_Anime anime = serie.GetAnime(session);
+                    bool shouldsaveanime = false;
                     foreach (AnimeEpisode ep in serie.GetAnimeEpisodes(session))
                     {
                         if (ep.EpisodeTypeEnum != AniDBAPI.enEpisodeType.Episode) continue;
+
+
 
 
                         List<VideoLocal> epVids = new List<VideoLocal>();
@@ -169,7 +172,6 @@ namespace JMMServer.Repositories
                             }
                         }
                     }
-                    AniDB_Anime anime = serie.GetAnime(session);
                     epCount = epCount + anime.EpisodeCountNormal;
 
                     foreach (KeyValuePair<string, int> kvp in vidQualEpCounts)
@@ -320,6 +322,7 @@ namespace JMMServer.Repositories
                 contract.Stat_AniDBRating = grp.AniDBRating;
                 contract.Stat_AudioLanguages = Stat_AudioLanguages;
                 contract.Stat_SubtitleLanguages = Stat_SubtitleLanguages;
+                contract.LatestEpisodeAirDate = grp.LatestEpisodeAirDate;
             }
             grp.Contract = contract;
         }
