@@ -245,7 +245,7 @@ namespace JMMServer.Commands
 					}
 				}
 
-				repVidLocal.Save(vlocal);
+				repVidLocal.Save(vlocal,true);
 
 				// also save the filename to hash record
 				// replace the existing records just in case it was corrupt

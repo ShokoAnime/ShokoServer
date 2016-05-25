@@ -12,7 +12,7 @@ namespace JMMServer
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public Stream Download(string fileName)
+		public System.IO.Stream Download(string fileName)
 		{
 			try
 			{

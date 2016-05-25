@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using JMMContracts;
+using JMMServer.Repositories;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -87,21 +88,74 @@ namespace JMMServer.Entities
 			return true;
 		}
 
-		public bool AllowedGroup(AnimeGroup grp, AnimeGroup_User userRec)
+		public bool AllowedGroup(AnimeGroup grp, JMMUser user)
 		{
-			if (string.IsNullOrEmpty(HideCategories)) return true;
+		    try
+		    {
+                if (string.IsNullOrEmpty(HideCategories)) return true;
 
-			string[] cats = HideCategories.ToLower().Split(',');
-			string[] animeCats = grp.ToContract(userRec).Stat_AllTags.ToLower().Split('|');
-			foreach (string cat in cats)
-			{
-				if (!string.IsNullOrEmpty(cat.Trim()) && animeCats.Contains(cat.Trim()))
-				{
-					return false;
-				}
-			}
+                string[] cats = HideCategories.ToLower().Split(',');
+                string[] animeCats = ((grp.GetUserContract(user.JMMUserID).Stat_AllTags) ?? "").ToLower().Split('|');
+                foreach (string cat in cats)
+                {
+                    if (!string.IsNullOrEmpty(cat.Trim()) && animeCats.Contains(cat.Trim()))
+                    {
+                        return false;
+                    }
+                }
 
-			return true;
-		}
-	}
+                return true;
+
+            }
+		    catch (Exception e)
+    	    {
+	            return false;
+		    }
+        }
+
+
+
+        public void UpdateGroupFilters()
+        {
+            AnimeGroupRepository repGroups = new AnimeGroupRepository();
+            AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
+            GroupFilterRepository repGrpFilter = new GroupFilterRepository();
+            List<GroupFilter> gfs = repGrpFilter.GetAll();
+            List<AnimeGroup> allGrps = repGroups.GetAllTopLevelGroups(); // No Need of subgroups
+            foreach (GroupFilter gf in gfs)
+            {
+
+                bool change = false;
+                foreach (AnimeGroup grp in allGrps)
+                {
+                    AnimeGroup_User userRec = repUserGroups.GetByUserAndGroupID(JMMUserID, grp.AnimeGroupID);
+                    if (gf.EvaluateGroupFilter(grp, this, userRec))
+                    {
+                        if (!gf.GroupsIds.ContainsKey(JMMUserID))
+                        {
+                            gf.GroupsIds[JMMUserID] = new HashSet<int>();
+                        }
+                        if (!gf.GroupsIds[JMMUserID].Contains(grp.AnimeGroupID))
+                        {
+                            gf.GroupsIds[JMMUserID].Add(grp.AnimeGroupID);
+                            change = true;
+                        }
+                    }
+                    else
+                    {
+                        if (gf.GroupsIds.ContainsKey(JMMUserID))
+                        {
+                            if (gf.GroupsIds[JMMUserID].Contains(grp.AnimeGroupID))
+                            {
+                                gf.GroupsIds[JMMUserID].Remove(grp.AnimeGroupID);
+                                change = true;
+                            }
+                        }
+                    }
+                    if (change)
+                        repGrpFilter.Save(gf, false, this);
+                }
+            }
+        }
+    }
 }

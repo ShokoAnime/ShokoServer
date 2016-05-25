@@ -58,7 +58,7 @@ namespace JMMServer
 
         public override void Flush()
         {
-            throw new System.NotImplementedException();
+            throw new System.NotSupportedException();
         }
 
         public override long Length
@@ -69,7 +69,7 @@ namespace JMMServer
         public override long Position
         {
             get { return _pos; }
-            set { throw new System.NotImplementedException(); }
+            set { throw new System.NotSupportedException(); }
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -94,17 +94,17 @@ namespace JMMServer
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new System.NotImplementedException();
+            throw new System.NotSupportedException();
         }
 
         public override void SetLength(long value)
         {
-            throw new System.NotImplementedException();
+            throw new System.NotSupportedException();
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new System.NotImplementedException();
+            throw new System.NotSupportedException();
         }
     }
 }

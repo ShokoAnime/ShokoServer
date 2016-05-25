@@ -9,13 +9,13 @@ using JMMServer.Providers.TvDB;
 using JMMServer.WebCache;
 using JMMServer.Providers.TraktTV;
 using NHibernate;
-using JMMContracts;
 using AniDBAPI;
 using JMMServer.Providers.TraktTV.Contracts;
 using System.Collections.Specialized;
 using System.Threading;
 using System.Globalization;
 using System.Configuration;
+using JMMContracts;
 
 namespace JMMServer.Commands
 {

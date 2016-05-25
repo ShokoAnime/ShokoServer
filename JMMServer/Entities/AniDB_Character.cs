@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using AniDBAPI;
-using JMMContracts;
 using JMMServer.Repositories;
 using System.IO;
+using JMMContracts;
 using JMMServer.ImageDownload;
 using NHibernate;
 

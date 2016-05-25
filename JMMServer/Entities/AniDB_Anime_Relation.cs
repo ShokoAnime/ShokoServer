@@ -30,15 +30,9 @@ namespace JMMServer.Entities
 			contract.RelationType = this.RelationType;
 			contract.RelatedAnimeID = this.RelatedAnimeID;
 
-			contract.AniDB_Anime = null;
-			if (anime != null)
-				contract.AniDB_Anime = anime.ToContract();
-
-			contract.AnimeSeries = null;
-			if (ser != null)
-				contract.AnimeSeries = ser.ToContract(ser.GetUserRecord(userID));
-
-			return contract;
+			contract.AniDB_Anime = anime?.Contract?.AniDBAnime;
+			contract.AnimeSeries = ser?.GetUserContract(userID);
+            return contract;
 		}
 	}
 }

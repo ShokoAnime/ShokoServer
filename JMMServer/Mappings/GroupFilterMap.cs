@@ -20,6 +20,9 @@ namespace JMMServer.Mappings
 			Map(x => x.SortingCriteria);
 			Map(x => x.Locked);
             Map(x => x.FilterType);
+            Map(x => x.GroupsIdsVersion).Not.Nullable();
+            Map(x => x.GroupsIdsString).Nullable().CustomType("StringClob");
+
         }
-	}
+    }
 }

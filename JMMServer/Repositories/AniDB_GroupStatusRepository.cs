@@ -95,7 +95,7 @@ namespace JMMServer.Repositories
 			if (animeID > 0)
 			{
 				logger.Trace("Updating group stats by anime from AniDB_GroupStatusRepository.Delete: {0}", animeID);
-				StatsCache.Instance.UpdateUsingAnime(animeID);
+                AniDB_Anime.UpdateStatsByAnimeID(animeID);
 			}
 		}
 	}

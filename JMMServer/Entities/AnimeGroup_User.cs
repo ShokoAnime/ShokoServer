@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMContracts;
+using JMMContracts.PlexAndKodi;
+using JMMServer.Repositories;
+using Newtonsoft.Json;
 using NLog;
 
 namespace JMMServer.Entities
@@ -21,9 +25,42 @@ namespace JMMServer.Entities
 		public int PlayedCount { get; set; }
 		public int WatchedCount { get; set; }
 		public int StoppedCount { get; set; }
-		#endregion
 
-		public AnimeGroup_User()
+        public int PlexContractVersion { get; set; }
+        public string PlexContractString { get; set; }
+
+        #endregion
+
+        public const int PLEXCONTRACT_VERSION = 3;
+
+
+        private Video _plexcontract = null;
+        public Video PlexContract
+        {
+            get
+            {
+                if ((_plexcontract == null) && PlexContractVersion == PLEXCONTRACT_VERSION)
+                {
+                    Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<Video>(PlexContractString);
+                    if (vids != null)
+                        _plexcontract = vids;
+                }
+                return _plexcontract;
+            }
+            set
+            {
+                _plexcontract = value;
+                if (value != null)
+                {
+                    PlexContractVersion = AnimeGroup_User.PLEXCONTRACT_VERSION;
+                    PlexContractString = Newtonsoft.Json.JsonConvert.SerializeObject(PlexContract, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
+                }
+            }
+        }
+
+
+
+        public AnimeGroup_User()
 		{
 		}
 
@@ -31,7 +68,6 @@ namespace JMMServer.Entities
 		{
 			JMMUserID = userID;
 			AnimeGroupID = groupID;
-
 			IsFave = 0;
 			UnwatchedEpisodeCount = 0;
 			WatchedEpisodeCount = 0;
@@ -43,28 +79,10 @@ namespace JMMServer.Entities
 
 		
 
-		public bool HasUnwatchedFiles
-		{
-			get
-			{
-				return UnwatchedEpisodeCount > 0;
-			}
-		}
+		public bool HasUnwatchedFiles => UnwatchedEpisodeCount > 0;
 
-		public bool AllFilesWatched
-		{
-			get
-			{
-				return UnwatchedEpisodeCount == 0;
-			}
-		}
+	    public bool AllFilesWatched => UnwatchedEpisodeCount == 0;
 
-		public bool AnyFilesWatched
-		{
-			get
-			{
-				return WatchedEpisodeCount > 0;
-			}
-		}
+	    public bool AnyFilesWatched => WatchedEpisodeCount > 0;
 	}
 }

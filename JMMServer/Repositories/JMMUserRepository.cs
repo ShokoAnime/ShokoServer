@@ -13,7 +13,7 @@ namespace JMMServer.Repositories
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public void Save(JMMUser obj)
+		public void Save(JMMUser obj, bool updateGroupFilters)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -24,8 +24,11 @@ namespace JMMServer.Repositories
 					transaction.Commit();
 				}
 			}
-            logger.Trace("Updating group filter stats by user from JMMUserRepository.Save: {0}", obj.JMMUserID);
-            StatsCache.Instance.UpdateGroupFilterUsingUser(obj.JMMUserID);
+		    if (updateGroupFilters)
+		    {
+		        logger.Trace("Updating group filter stats by user from JMMUserRepository.Save: {0}", obj.JMMUserID);
+                obj.UpdateGroupFilters();
+		    }
 		}
 
 		public JMMUser GetByID(int id)

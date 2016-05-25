@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using JMMContracts.PlexContracts;
+using JMMContracts;
+using JMMContracts.PlexAndKodi;
 
 namespace JMMFileHelper.Subtitles
 {

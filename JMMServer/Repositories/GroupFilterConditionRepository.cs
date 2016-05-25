@@ -26,10 +26,16 @@ namespace JMMServer.Repositories
 				}
 			}
 
-            logger.Trace("Updating group filter stats by groupfilter condition from GroupFilterConditionRepository.Save: {0}", obj.GroupFilterID);
-            StatsCache.Instance.UpdateGroupFilterUsingGroupFilter(obj.GroupFilterID);
+            logger.Trace("Updating group filter stats by groupfilter condition from GroupFilterConditionRepository.Save: {0}", obj.GroupFilterID);            
 		}
 
+	    private void UpdateGroupFilter(int groupfilterid)
+	    {
+	        GroupFilterRepository repo=new GroupFilterRepository();
+	        GroupFilter gf=repo.GetByID(groupfilterid);
+            if (gf!=null)
+                gf.UpdateGroupFilterUser(null);
+	    }
 		public GroupFilterCondition GetByID(int id)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
@@ -99,7 +105,7 @@ namespace JMMServer.Repositories
             if (cr!=null)
             {
                 logger.Trace("Updating group filter stats by groupfilter condition from GroupFilterConditionRepository.Delete: {0}", cr.GroupFilterID);
-                StatsCache.Instance.UpdateGroupFilterUsingGroupFilter(cr.GroupFilterID);
+                UpdateGroupFilter(cr.GroupFilterID);
             }
 		}
 	}
