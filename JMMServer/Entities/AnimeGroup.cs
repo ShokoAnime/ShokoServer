@@ -40,7 +40,7 @@ namespace JMMServer.Entities
         #endregion
 
 
-        public const int CONTRACT_VERSION = 1;
+	    public const int CONTRACT_VERSION = 2;
 
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
