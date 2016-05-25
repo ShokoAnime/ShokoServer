@@ -70,6 +70,7 @@ namespace JMMServer.Repositories
             contract.DefaultAnimeSeriesID = grp.DefaultAnimeSeriesID;
             contract.GroupName = grp.GroupName;
             contract.Description = grp.Description;
+            contract.LatestEpisodeAirDate = grp.LatestEpisodeAirDate;
             contract.SortName = grp.SortName;
             contract.EpisodeAddedDate = grp.EpisodeAddedDate;
             contract.OverrideDescription = grp.OverrideDescription;

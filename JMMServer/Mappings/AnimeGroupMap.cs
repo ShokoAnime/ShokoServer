@@ -24,6 +24,7 @@ namespace JMMServer.Mappings
 			Map(x => x.OverrideDescription).Not.Nullable();
 			Map(x => x.SortName);
 			Map(x => x.EpisodeAddedDate);
+            Map(x => x.LatestEpisodeAirDate);
 			Map(x => x.MissingEpisodeCount).Not.Nullable();
 			Map(x => x.MissingEpisodeCountGroups).Not.Nullable();
             Map(x => x.ContractVersion).Not.Nullable();

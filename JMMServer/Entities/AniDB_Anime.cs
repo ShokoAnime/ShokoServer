@@ -55,6 +55,7 @@ namespace JMMServer.Entities
 		public int? ANNID { get; set; }
 		public int? AllCinemaID { get; set; }
 		public int? AnimeNfo { get; set; }
+		public DateTime? LatestEpisodeAirDate { get; set; }
 		public int? LatestEpisodeNumber { get; set; }
 		public int DisableExternalLinksFlag { get; set; }
 
@@ -1928,6 +1929,7 @@ namespace JMMServer.Entities
             contract.EpisodeCountSpecial = this.EpisodeCountSpecial;
             contract.ImageEnabled = this.ImageEnabled;
             contract.LatestEpisodeNumber = this.LatestEpisodeNumber;
+            contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;		
             contract.MainTitle = this.MainTitle;
             contract.Picname = this.Picname;
             contract.Rating = this.Rating;

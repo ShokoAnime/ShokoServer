@@ -27,6 +27,7 @@ namespace JMMServer.Entities
 		public DateTime DateTimeCreated { get; set; }
 		public string SortName { get; set; }
 		public DateTime? EpisodeAddedDate { get; set; }
+		public DateTime? LatestEpisodeAirDate { get; set; }
 		public int MissingEpisodeCount { get; set; }
 		public int MissingEpisodeCountGroups { get; set; }
 		public int OverrideDescription { get; set; }

@@ -152,6 +152,7 @@ namespace JMMServer.Databases
                 UpdateSchema_044(versionNumber);
                 UpdateSchema_045(versionNumber);
                 UpdateSchema_046(versionNumber);
+		UpdateSchema_047(versionNumber);
             }
             catch (Exception ex)
 			{
@@ -1420,7 +1421,31 @@ namespace JMMServer.Databases
 
         }
 
+        private static void UpdateSchema_047(int currentVersionNumber)
+        {
+            int thisVersion = 47;
+            if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE AniDB_Anime ADD LatestEpisodeAirDate timestamp NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate timestamp NULL");
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+try
+{
+sqCommand.ExecuteNonQuery();
+}
+catch (Exception e) //This might fall on mixed branches
+                {}
+            }
+            ExecuteSQLCommands(cmds);
+
+            UpdateDatabaseVersion(thisVersion);
+        }
         private static void ExecuteSQLCommands(List<string> cmds)
 		{
 			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
