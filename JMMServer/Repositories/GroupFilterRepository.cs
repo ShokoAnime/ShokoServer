@@ -25,7 +25,6 @@ namespace JMMServer.Repositories
 
             GroupFilterRepository repo =new GroupFilterRepository();
 	        List<GroupFilter> filters = repo.InternalGetAll();
-	        filters.Add(new GroupFilter {GroupFilterID = -999, GroupFilterName = "All"});
 	        Cache = new PocoCache<int, GroupFilter>(filters, a => a.GroupFilterID);
 	        foreach (GroupFilter g in Cache.Values.ToList())
 	        {
