@@ -350,7 +350,9 @@ namespace JMMServer
         AssignedMALInfo = 29,
         EpisodeCount = 30,
         CustomTags = 31,
-        LatestEpisodeAirDate = 32
+        LatestEpisodeAirDate = 32,
+        Tag=33,
+        Year=34
     }
 
     public enum GroupFilterOperator
@@ -368,10 +370,15 @@ namespace JMMServer
         NotInAllEpisodes = 11
     }
 
+    [Flags]
     public enum GroupFilterType
     {
         UserDefined = 1,
-        ContinueWatching = 2
+        ContinueWatching = 2,
+        All = 4,
+        Directory = 8,
+        Tag = 16,
+        Year = 32,
     }
 
     public enum GroupFilterSorting
@@ -387,7 +394,8 @@ namespace JMMServer
         MissingEpisodeCount = 9,
         UserRating = 10,
         AniDBRating = 11,
-        SortName = 12
+        SortName = 12,
+        GroupFilterName = 13,
     }
 
     public enum GroupFilterSortDirection
