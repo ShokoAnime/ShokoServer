@@ -541,7 +541,6 @@ namespace JMMServer.PlexAndKodi
                     {
                         Video v = GenerateFromSeries(cserie, ser, ser.GetAnime(session), userid);
                         v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
-                        v.UpdatedAt = ser.LatestEpisodeAirDate.HasValue ? ser.LatestEpisodeAirDate.Value.ToUnixTime() : null;
                         v.Group = cgrp;
                         return v;
                     }
@@ -554,7 +553,6 @@ namespace JMMServer.PlexAndKodi
                 Video v = FromGroup(cgrp, cserie, userid,subgrpcnt);
                 v.Group = cgrp;
                 v.AirDate = cgrp.Stat_AirDate_Min.HasValue ? cgrp.Stat_AirDate_Min.Value : DateTime.MinValue;
-                v.UpdatedAt = cgrp.LatestEpisodeAirDate.HasValue ? cgrp.LatestEpisodeAirDate.Value.ToUnixTime() : null;
                 return v;
             }
             return null;
