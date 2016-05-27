@@ -59,7 +59,7 @@ namespace JMMServer.WCFCompression
             {
                 MemoryStream memoryStream = new MemoryStream();
 
-                using (Stream stream = ctype == CompressionType.Gzip ? (Stream)new GZipOutputStream(memoryStream) : (Stream)new DeflaterOutputStream(memoryStream))
+                using (Stream stream = ctype == CompressionType.Gzip ? (Stream)new GZipStream(memoryStream, CompressionMode.Compress, true) : (Stream)new DeflateStream(memoryStream,CompressionMode.Compress,true))
                 {
                     stream.Write(buffer.Array, buffer.Offset, buffer.Count);
                 }
@@ -85,7 +85,7 @@ namespace JMMServer.WCFCompression
                 int totalRead = 0;
                 int blockSize = 1024;
                 byte[] tempBuffer = bufferManager.TakeBuffer(blockSize);
-                using (Stream gzStream = ctype == CompressionType.Gzip ? (Stream)new GZipInputStream(memoryStream) : (Stream)new InflaterInputStream(memoryStream))
+                using (Stream gzStream = ctype == CompressionType.Gzip ? (Stream)new GZipStream(memoryStream,CompressionMode.Decompress) : (Stream)new DeflateStream(memoryStream,CompressionMode.Decompress))
                 {
                     while (true)
                     {
