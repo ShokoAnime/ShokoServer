@@ -79,6 +79,8 @@ namespace JMMServer.PlexAndKodi
                         Directory pp = new Directory { Type="show" };
                         pp.Key =  prov.ConstructFilterIdUrl(userid, gg.GroupFilterID);
                         pp.Title = gg.GroupFilterName;
+                        pp.Id = gg.GroupFilterID;
+                        pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroupFilter;
                         HashSet<int> groups = gg.GroupsIds[userid];
                         if (groups.Count != 0)
                         {
@@ -105,6 +107,7 @@ namespace JMMServer.PlexAndKodi
                         Directory pp = new Directory() { Type = "show" };
                         pp.Key = prov.ConstructUnsortUrl(userid);
                         pp.Title = "Unsort";
+                        pp.AnimeType=JMMContracts.PlexAndKodi.AnimeTypes.AnimeUnsort;
                         pp.Thumb = Helper.ConstructSupportImageLink("plex_unsort.png");
                         pp.LeafCount = vids.Count.ToString();
                         pp.ViewedLeafCount = "0";
@@ -117,6 +120,7 @@ namespace JMMServer.PlexAndKodi
                         Directory pp = new Directory() { Type="show" };
                         pp.Key = prov.ConstructPlaylistUrl(userid);
                         pp.Title = "Playlists";
+                        pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist;                        
                         pp.Thumb = Helper.ConstructSupportImageLink("plex_playlists.png");
                         pp.LeafCount = playlists.Count.ToString();
                         pp.ViewedLeafCount = "0";
@@ -196,6 +200,8 @@ namespace JMMServer.PlexAndKodi
                         var dir = new Directory();
                         dir.Key= prov.ConstructPlaylistIdUrl(userid, playlist.PlaylistID);
                         dir.Title = playlist.PlaylistName;
+                        dir.Id = playlist.PlaylistID;
+                        dir.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist;
                         var episodeID = -1;
                         if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                         {
