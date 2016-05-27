@@ -65,7 +65,10 @@ namespace JMMContracts.PlexAndKodi
         AnimeGroup,
         AnimeSerie,
         AnimeEpisode,
-        AnimeFile
+        AnimeFile,
+        AnimeGroupFilter,
+        AnimePlaylist,
+        AnimeUnsort
     }
 
     [Serializable]
