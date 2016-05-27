@@ -2590,6 +2590,7 @@ namespace JMMServer
 				ServerSettings.VideoExtensions = contractIn.VideoExtensions;
 				ServerSettings.Import_UseExistingFileWatchedStatus = contractIn.Import_UseExistingFileWatchedStatus;
 				ServerSettings.AutoGroupSeries = contractIn.AutoGroupSeries;
+				ServerSettings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
 				ServerSettings.RunImportOnStart = contractIn.RunImportOnStart;
 				ServerSettings.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
 				ServerSettings.Hash_CRC32 = contractIn.Hash_CRC32;
@@ -7957,13 +7958,105 @@ namespace JMMServer
 
 					if (ServerSettings.AutoGroupSeries)
 					{
-						List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(ser.AniDB_ID);
+						if (!ser.AnimeGroup.GroupName.Equals("AAA Migrating Groups AAA")) continue;
 
-						// only use if there is just one result
-						if (grps != null && grps.Count > 0 && !grps[0].GroupName.Equals("AAA Migrating Groups AAA"))
+						List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(ser.AniDB_ID, true);
+
+						if (grps != null && grps.Count > 0)
 						{
-							ser.AnimeGroupID = grps[0].AnimeGroupID;
-							createNewGroup = false;
+							int groupID = -1;
+							AnimeSeries name = null;
+							string customGroupName = null;
+							foreach (AnimeGroup grp in grps.ToList())
+							{
+								if (grp.GroupName.Equals("AAA Migrating Groups AAA")) continue;
+								if (groupID == -1) groupID = grp.AnimeGroupID;
+								ser.AnimeGroupID = groupID;
+								bool groupHasCustomName = true;
+
+								createNewGroup = false;
+
+								if (groupID != grp.AnimeGroupID)
+								{
+
+									if (grp.DefaultAnimeSeriesID.HasValue)
+									{
+										name = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
+										if (name == null)
+										{
+											grp.DefaultAnimeSeriesID = null; //TODO this do nothing, only in memory is not saved
+										}
+										else
+										{
+											groupHasCustomName = false;
+										}
+									}
+									foreach (AnimeSeries series in grp.GetAllSeries())
+									{
+										if (series.AnimeGroupID == groupID) continue;
+										series.AnimeGroupID = groupID;
+										#region Naming
+										if (!grp.DefaultAnimeSeriesID.HasValue)
+										{
+											if (name == null)
+											{
+												name = series;
+											}
+											else
+											{
+												if (series.AirDate < name.AirDate)
+												{
+													name = series;
+												}
+											}
+
+											// Check all titles for custom naming, in case user changed language preferences
+											if (ser.SeriesNameOverride.Equals(grp.GroupName))
+											{
+												groupHasCustomName = false;
+											}
+											else
+											{
+												foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
+												{
+													if (title.Title.Equals(grp.GroupName))
+													{
+														groupHasCustomName = false;
+														break;
+													}
+												}
+											}
+										}
+
+										repSeries.Save(series, false);
+									}
+								}
+
+								if (groupHasCustomName) customGroupName = grp.GroupName;
+							}
+
+							//after moving everything, rename and repopulate
+							if (name != null)
+							{
+								AnimeGroup grp = repGroups.GetByID(groupID);
+								string newTitle = name.GetAnime().PreferredTitle;
+								if (name.SeriesNameOverride != null && !name.SeriesNameOverride.Equals(""))
+									newTitle = name.SeriesNameOverride;
+								if (customGroupName != null) newTitle = customGroupName;
+								// reset tags, description, etc to new series
+								grp.Populate(name);
+								grp.GroupName = newTitle;
+								grp.SortName = newTitle;
+								repGroups.Save(grp,true,false);
+							}
+							#endregion
+							foreach (AnimeGroup grp in grps)
+							{
+								if (grp.GetAllSeries().Count == 0)
+								{
+									repGroups.Delete(grp.AnimeGroupID);
+								}
+							}
 						}
 					}
 

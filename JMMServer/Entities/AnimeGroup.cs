@@ -172,16 +172,24 @@ namespace JMMServer.Entities
             repo.Save(rr);
 	        return rr;
 	    }
-
-        public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(int animeid)
+		public static bool IsRelationTypeInExclusions(string type)
+		{
+			string[] list = ServerSettings.AutoGroupSeriesRelationExclusions.Split('|');
+			foreach (string a in list)
+			{
+				if (a.ToLowerInvariant().Equals(type.ToLowerInvariant())) return true;
+			}
+			return false;
+		}
+		public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(int animeid, bool forceRecursive = false)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return GetRelatedGroupsFromAnimeID(session, animeid);
+				return GetRelatedGroupsFromAnimeID(session, animeid, forceRecursive);
 			}
 		}
 
-		public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(ISession session, int animeid)
+		public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(ISession session, int animeid, bool forceRecursive = false)
 		{
 			AniDB_AnimeRepository repAniAnime = new AniDB_AnimeRepository();
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
@@ -194,13 +202,13 @@ namespace JMMServer.Entities
 
 			// first check for groups which are directly related
 			List<AniDB_Anime_Relation> relations = anime.GetRelatedAnime(session);
+			//TODO REMOVE sort, missing RelationCompare relations.Sort(RelationCompare);
 			foreach (AniDB_Anime_Relation rel in relations)
 			{
 
                 string relationtype = rel.RelationType.ToLower();
-                if ((relationtype == "same setting") || (relationtype == "alternative setting") ||
-                    (relationtype == "character") || (relationtype == "other"))
-                {
+				if (IsRelationTypeInExclusions(relationtype))
+				{
                     //Filter these relations these will fix messes, like Gundam , Clamp, etc.
                     continue;
                 }
@@ -213,7 +221,7 @@ namespace JMMServer.Entities
 					if (grp != null) grps.Add(grp);
 				}
 			}
-			if (grps.Count > 0) return grps;
+			if (!forceRecursive && grps.Count > 0) return grps;
 
 			// if nothing found check by all related anime
 			List<AniDB_Anime> relatedAnime = anime.GetAllRelatedAnime(session);
@@ -224,7 +232,10 @@ namespace JMMServer.Entities
 				if (ser != null)
 				{
 					AnimeGroup grp = repGroups.GetByID(session, ser.AnimeGroupID);
-					if (grp != null) grps.Add(grp);
+					if (grp != null)
+					{
+						if (!grps.Contains(grp)) grps.Add(grp);
+					}
 				}
 			}
 
@@ -298,17 +309,81 @@ namespace JMMServer.Entities
 			AnimeGroupRepository repGroups = new AnimeGroupRepository();
 			foreach (AnimeGroup grp in repGroups.GetAll().ToList())
 			{
+				List<AnimeSeries> list = grp.GetSeries();
+
 				// only rename the group if it has one direct child Anime Series
-				if (grp.GetSeries().Count == 1)
+				if (list.Count == 1)
 				{
-					string newTitle = grp.GetSeries()[0].GetAnime().PreferredTitle;
+					string newTitle = list[0].GetAnime().PreferredTitle;
 					grp.GroupName = newTitle;
 					grp.SortName = newTitle;
-				    repGroups.Save(grp, false, false);
+					repGroups.Save(grp,true,false);
+				}
+				else if (list.Count > 1)
+				{
+					#region Naming
+					AnimeSeries series = null;
+					bool hasCustomName = true;
+					if (grp.DefaultAnimeSeriesID.HasValue)
+					{
+						series = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
+						if (series == null)
+						{
+							grp.DefaultAnimeSeriesID = null;
+						}
+						else
+						{
+							hasCustomName = false;
+						}
+					}
+
+					if (!grp.DefaultAnimeSeriesID.HasValue)
+					{
+						foreach (AnimeSeries ser in list)
+						{
+							if (ser == null) continue;
+							if (series == null)
+							{
+								// Check all titles for custom naming, in case user changed language preferences
+								if (ser.SeriesNameOverride.Equals(grp.GroupName))
+								{
+									hasCustomName = false;
+								}
+								else
+								{
+									foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
+									{
+										if (title.Title.Equals(grp.GroupName))
+										{
+											hasCustomName = false;
+											break;
+										}
+									}
+								}
+								series = ser;
+								continue;
+							}
+							if (ser.AirDate < series.AirDate) series = ser;
+						}
+					}
+					if (series != null)
+					{
+						string newTitle = series.GetAnime().PreferredTitle;
+						if (series.SeriesNameOverride != null && !series.SeriesNameOverride.Equals(""))
+							newTitle = series.SeriesNameOverride;
+						if (hasCustomName && (!grp.DefaultAnimeSeriesID.HasValue || series.AnimeSeriesID != grp.DefaultAnimeSeriesID.Value))
+							newTitle = grp.GroupName;
+						// reset tags, description, etc to new series
+						grp.Populate(series);
+						grp.GroupName = newTitle;
+						grp.SortName = newTitle;
+						repGroups.Save(grp,true,false);
+					}
+					#endregion
 				}
 			}
-
 		}
+
 
 		public List<AniDB_Anime> Anime
 		{
@@ -429,7 +504,17 @@ namespace JMMServer.Entities
 		{
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			List<AnimeSeries> seriesList = repSeries.GetByGroupID(this.AnimeGroupID);
-
+			// Make everything that relies on GetSeries[0] have the proper result
+			seriesList.OrderBy(a => a.AirDate ?? DateTime.MinValue); //FIX this might be null
+			if (DefaultAnimeSeriesID.HasValue)
+			{
+				AnimeSeries series = repSeries.GetByID(DefaultAnimeSeriesID.Value);
+				if (series != null)
+				{
+					seriesList.Remove(series);
+					seriesList.Insert(0, series);
+				}
+			}
 			return seriesList;
 		}
 

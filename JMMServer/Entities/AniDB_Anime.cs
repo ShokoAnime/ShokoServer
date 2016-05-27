@@ -2217,13 +2217,97 @@ namespace JMMServer.Entities
 
 			if (ServerSettings.AutoGroupSeries)
 			{
-				List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(session, ser.AniDB_ID);
+				List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(session, ser.AniDB_ID, true);
 
 				// only use if there is just one result
+
+				// we are moving all to a single group, and then naming it, so keep outside loop
+				AnimeSeries name = null;
+				string customGroupName = null;
 				if (grps != null && grps.Count > 0)
 				{
-					ser.AnimeGroupID = grps[0].AnimeGroupID;
+					int groupID = -1;
+					foreach (AnimeGroup grp in grps.ToList()) //FIX repSeries.Save(series, true) Groups might change the enumeration
+					{
+						bool groupHasCustomName = true;
+						if (grp.GroupName.Equals("AAA Migrating Groups AAA")) continue;
+						if (groupID == -1) groupID = grp.AnimeGroupID;
+						ser.AnimeGroupID = groupID;
+						if (name == null) name = ser;
+
+						#region Naming
+						if (grp.DefaultAnimeSeriesID.HasValue)
+						{
+							name = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
+							if (name == null)
+							{
+								grp.DefaultAnimeSeriesID = null; //TODO what this means, its not saved back to AnimeGroup
+							}
+							else
+							{
+								groupHasCustomName = false;
+							}
+						}
+						foreach (AnimeSeries series in grp.GetAllSeries())
+						{
+							series.AnimeGroupID = groupID;
+							repSeries.Save(series, true);
+
+							if (!grp.DefaultAnimeSeriesID.HasValue)
+							{
+								if (name == null)
+								{
+									name = series;
+								}
+								else
+								{
+									if (series.AirDate < name.AirDate)
+									{
+										name = series;
+									}
+								}
+								// Check all titles for custom naming, in case user changed language preferences
+								if (series.SeriesNameOverride.Equals(grp.GroupName))
+								{
+									groupHasCustomName = false;
+								}
+								else
+								{
+									foreach (AniDB_Anime_Title title in series.GetAnime().GetTitles())
+									{
+										if (title.Title.Equals(grp.GroupName))
+										{
+											groupHasCustomName = false;
+											break;
+										}
+									}
+								}
+							}
+						}
+
+						if (groupHasCustomName)
+							customGroupName = grp.GroupName;
+					}
+					if (name != null)
+					{
+						AnimeGroup newGroup = repGroups.GetByID(groupID);
+						string newTitle = name.GetAnime().PreferredTitle;
+						if (name.SeriesNameOverride != null && !name.SeriesNameOverride.Equals(""))
+							newTitle = name.SeriesNameOverride;
+						if (customGroupName != null) newTitle = customGroupName;
+						// reset tags, description, etc to new series
+						newGroup.Populate(name);
+						newGroup.GroupName = newTitle;
+						newGroup.SortName = newTitle;
+						repGroups.Save(newGroup,true,false);
+					}
+					#endregion
+
 					createNewGroup = false;
+					foreach (AnimeGroup group in grps)
+					{
+						if (group.GetAllSeries().Count == 0) repGroups.Delete(group.AnimeGroupID);
+					}
 				}
 			}
 
@@ -2261,9 +2345,8 @@ namespace JMMServer.Entities
 			foreach (AniDB_Anime_Relation rel in anime.GetRelatedAnime(session))
 			{
                 string relationtype = rel.RelationType.ToLower();
-                if ((relationtype == "same setting") || (relationtype == "alternative setting") ||
-                    (relationtype == "character") || (relationtype == "other"))
-                {
+				if (AnimeGroup.IsRelationTypeInExclusions(relationtype))
+				{
                     //Filter these relations these will fix messes, like Gundam , Clamp, etc.
                     continue;
                 }

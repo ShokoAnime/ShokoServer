@@ -1179,7 +1179,24 @@ namespace JMMServer
 				UpdateSetting("AutoGroupSeries", value.ToString());
 			}
 		}
-
+		public static string AutoGroupSeriesRelationExclusions
+		{
+			get
+			{
+				NameValueCollection appSettings = ConfigurationManager.AppSettings;
+				string val = "same setting|alternative setting|character|other";
+				try
+				{
+					val = appSettings["AutoGroupSeriesRelationExclusions"];
+				}
+				catch (Exception e) { }
+				return val;
+			}
+			set
+			{
+				UpdateSetting("AutoGroupSeriesRelationExclusions", value);
+			}
+		}
 		public static string LanguagePreference
 		{
 			get
@@ -1689,6 +1706,7 @@ namespace JMMServer
 			// Import settings
 			contract.VideoExtensions = ServerSettings.VideoExtensions;
 			contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
+			contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
 			contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
 			contract.RunImportOnStart = ServerSettings.RunImportOnStart;
 			contract.ScanDropFoldersOnStart = ServerSettings.ScanDropFoldersOnStart;
@@ -1870,6 +1888,7 @@ namespace JMMServer
 			logger.Info("Trakt_SyncFrequency: {0}", Trakt_SyncFrequency);
 
 			logger.Info("AutoGroupSeries: {0}", AutoGroupSeries);
+			logger.Info("AutoGroupSeriesRelationExclusions: {0}", AutoGroupSeriesRelationExclusions);
 			logger.Info("LanguagePreference: {0}", LanguagePreference);
 			logger.Info("LanguageUseSynonyms: {0}", LanguageUseSynonyms);
 			logger.Info("EpisodeTitleSource: {0}", EpisodeTitleSource);
