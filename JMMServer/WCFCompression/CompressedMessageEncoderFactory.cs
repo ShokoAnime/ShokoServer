@@ -59,25 +59,21 @@ namespace JMMServer.WCFCompression
             {
                 MemoryStream memoryStream = new MemoryStream();
 
-                using (Stream stream = ctype == CompressionType.Gzip ? (Stream)new GZipStream(memoryStream, CompressionMode.Compress, true) : (Stream)new DeflateStream(memoryStream,CompressionMode.Compress,true))
+                using (Stream stream = ctype == CompressionType.Gzip ? (Stream)new GZipStream(memoryStream, CompressionLevel.Optimal, true) : (Stream)new DeflateStream(memoryStream,CompressionMode.Compress,true))
                 {
                     stream.Write(buffer.Array, buffer.Offset, buffer.Count);
                 }
-
-                byte[] compressedBytes = memoryStream.ToArray();
-                int totalLength = messageOffset + compressedBytes.Length;
-                byte[] bufferedBytes = bufferManager.TakeBuffer(totalLength);
-
-                Array.Copy(compressedBytes, 0, bufferedBytes, messageOffset, compressedBytes.Length);
-
+				byte[] compressedBytes = memoryStream.ToArray();
+				byte[] bufferedBytes = bufferManager.TakeBuffer(compressedBytes.Length + messageOffset);
+				Array.Copy(compressedBytes, 0, bufferedBytes, messageOffset, compressedBytes.Length);
                 bufferManager.ReturnBuffer(buffer.Array);
-                ArraySegment<byte> byteArray = new ArraySegment<byte>(bufferedBytes, messageOffset, bufferedBytes.Length - messageOffset);
-
+                ArraySegment<byte> byteArray = new ArraySegment<byte>(bufferedBytes, messageOffset, compressedBytes.Length);
                 return byteArray;
             }
 
-            //Helper method to decompress an array of bytes
-            static ArraySegment<byte> DecompressBuffer(ArraySegment<byte> buffer, BufferManager bufferManager, CompressionType ctype)
+
+			//Helper method to decompress an array of bytes
+			static ArraySegment<byte> DecompressBuffer(ArraySegment<byte> buffer, BufferManager bufferManager, CompressionType ctype)
             {
                 
                 MemoryStream memoryStream = new MemoryStream(buffer.Array, buffer.Offset, buffer.Count);
@@ -141,10 +137,10 @@ namespace JMMServer.WCFCompression
                     {
                         // Need to compress the message
                         buffer = CompressBuffer(buffer, bufferManager, messageOffset,CompressionType.Gzip);
-                    }
+					}
+
 
                 }
-
                 return buffer;
             }
 

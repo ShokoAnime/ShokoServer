@@ -51,7 +51,7 @@ namespace JMMServer.WCFCompression
                     resp = (HttpResponseMessageProperty)respObj;
                 }
                 resp.Headers[HttpResponseHeader.ContentEncoding] = "gzip";
-            }
+			}
         }
     }
 }
