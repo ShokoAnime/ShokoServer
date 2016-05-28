@@ -175,19 +175,8 @@ namespace JMMServer.PlexAndKodi
             info?.Update(m).FillInfo(prov, m, noimage, true);
             l.Add(m);
         }
-        public static void ShallowCopyTo(this object s, object d)
-        {
-            foreach (PropertyInfo pis in s.GetType().GetProperties())
-            {
-                foreach (PropertyInfo pid in d.GetType().GetProperties())
-                {
-                    if (pid.Name == pis.Name)
-                        (pid.GetSetMethod()).Invoke(d, new[] { pis.GetGetMethod().Invoke(s, null) });
-                }
-            };
-        }
 
-        public static void ReplaceSchemeHost(this Video o)
+	    public static void ReplaceSchemeHost(this Video o)
         {
             o.Url = Helper.ReplaceSchemeHost(o.Url);
             o.Thumb = Helper.ReplaceSchemeHost(o.Thumb);

@@ -1906,11 +1906,11 @@ namespace JMMServer.Entities
 	    {
             Contract_AniDBAnime contract = new Contract_AniDBAnime();
             contract.AirDate = this.AirDate;
-            contract.AllCategories = this.AllCategories;
+            contract.AllCategories = new HashSet<string>(this.AllCategories.ToLowerInvariant().Split(new char[] { '|'},StringSplitOptions.RemoveEmptyEntries).Select(a=>a.Trim()).Where(a=>!string.IsNullOrEmpty(a)));
             contract.AllCinemaID = this.AllCinemaID;
-            contract.AllTags = this.AllTags;
-            contract.AllTitles = this.AllTitles;
-            contract.AnimeID = this.AnimeID;
+            contract.AllTags = new HashSet<string>(this.AllCategories.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim()).Where(a => !string.IsNullOrEmpty(a)));
+			contract.AllTitles = new HashSet<string>(this.AllTitles.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim()).Where(a => !string.IsNullOrEmpty(a)));
+			contract.AnimeID = this.AnimeID;
             contract.AnimeNfo = this.AnimeNfo;
             contract.AnimePlanetID = this.AnimePlanetID;
             contract.AnimeType = this.AnimeType;
@@ -2034,8 +2034,8 @@ namespace JMMServer.Entities
                 contract.UserVote = this.UserVote.ToContract();
 
             AdhocRepository repAdHoc = new AdhocRepository();
-            List<string> audioLanguages = new List<string>();
-            List<string> subtitleLanguages = new List<string>();
+            HashSet<string> audioLanguages = new HashSet<string>();
+            HashSet<string> subtitleLanguages = new HashSet<string>();
 
             //logger.Trace(" XXXX 06");
 
@@ -2065,35 +2065,25 @@ namespace JMMServer.Entities
 
             //logger.Trace(" XXXX 08");
 
-            contract.Stat_AudioLanguages = "";
-            foreach (string audioLan in audioLanguages)
-            {
-                if (contract.Stat_AudioLanguages.Length > 0) contract.Stat_AudioLanguages += ",";
-                contract.Stat_AudioLanguages += audioLan;
-            }
+	        contract.Stat_AudioLanguages = audioLanguages;
 
             //logger.Trace(" XXXX 09");
 
-            contract.Stat_SubtitleLanguages = "";
-            foreach (string subLan in subtitleLanguages)
-            {
-                if (contract.Stat_SubtitleLanguages.Length > 0) contract.Stat_SubtitleLanguages += ",";
-                contract.Stat_SubtitleLanguages += subLan;
-            }
+	        contract.Stat_SubtitleLanguages = subtitleLanguages;
 
             //logger.Trace(" XXXX 10");
             contract.Stat_AllVideoQuality = repAdHoc.GetAllVideoQualityForAnime(session, this.AnimeID);
 
-            contract.Stat_AllVideoQuality_Episodes = "";
             AnimeVideoQualityStat stat = repAdHoc.GetEpisodeVideoQualityStatsForAnime(session, this.AnimeID);
-            if (stat != null && stat.VideoQualityEpisodeCount.Count > 0)
+			contract.Stat_AllVideoQuality_Episodes=new HashSet<string>();
+
+			if (stat != null && stat.VideoQualityEpisodeCount.Count > 0)
             {
                 foreach (KeyValuePair<string, int> kvp in stat.VideoQualityEpisodeCount)
                 {
                     if (kvp.Value >= EpisodeCountNormal)
                     {
-                        if (contract.Stat_AllVideoQuality_Episodes.Length > 0) contract.Stat_AllVideoQuality_Episodes += ",";
-                        contract.Stat_AllVideoQuality_Episodes += kvp.Key;
+	                    contract.Stat_AllVideoQuality_Episodes.Add(kvp.Key);
                     }
                 }
             }

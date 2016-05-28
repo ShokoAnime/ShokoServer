@@ -126,10 +126,7 @@ namespace JMMServer
 
 			try
 			{
-				JMMUser user = repUsers.AuthenticateUser(username, password);
-				if (user == null) return null;
-
-				return user.ToContract();
+				return repUsers.AuthenticateUser(username, password)?.Contract;
 
 			}
 			catch (Exception ex)
@@ -144,20 +141,15 @@ namespace JMMServer
 			JMMUserRepository repUsers = new JMMUserRepository();
 
 			// get all the users
-			List<Contract_JMMUser> userList = new List<Contract_JMMUser>();
-
 			try
 			{
-				List<JMMUser> users = repUsers.GetAll();
-				foreach (JMMUser user in users)
-					userList.Add(user.ToContract());
-
+				return repUsers.GetAll().Select(a => a.Contract).ToList();
 			}
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
 			}
-			return userList;
+			return new List<Contract_JMMUser>();
 		}
 
 		public List<Contract_AnimeGroup> GetAllGroups(int userID)

@@ -11,10 +11,10 @@ namespace JMMContracts
         public List<Contract_CustomTag> CustomTags { get; set; }
 		public Contract_AniDBVote UserVote { get; set; }
 
-		public string Stat_AllVideoQuality { get; set; }
-		public string Stat_AllVideoQuality_Episodes { get; set; }
-		public string Stat_AudioLanguages { get; set; }
-		public string Stat_SubtitleLanguages { get; set; }
+		public HashSet<string> Stat_AllVideoQuality { get; set; }
+		public HashSet<string> Stat_AllVideoQuality_Episodes { get; set; }
+		public HashSet<string> Stat_AudioLanguages { get; set; }
+		public HashSet<string> Stat_SubtitleLanguages { get; set; }
 
 	}
 }

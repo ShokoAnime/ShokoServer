@@ -6574,20 +6574,9 @@ namespace JMMServer
 				List<AniDB_Anime> animes = repAnime.GetForDate(DateTime.Today.AddDays(0 - numberOfDays), DateTime.Today.AddDays(numberOfDays));
 				foreach (AniDB_Anime anime in animes)
 				{
-					bool useAnime = true;
-
-					string[] cats = user.HideCategories.ToLower().Split(',');
-					string[] animeCats = anime.AllCategories.ToLower().Split('|');
-					foreach (string cat in cats)
-					{
-						if (!string.IsNullOrEmpty(cat) && animeCats.Contains(cat))
-						{
-							useAnime = false;
-							break;
-						}
-					}
-
-					if (useAnime)
+					if (anime?.Contract?.AniDBAnime==null)
+						continue;
+					if (!user.Contract.HideCategories.FindInEnumerable(anime.Contract.AniDBAnime.AllTags))
 						animeList.Add(anime.Contract.AniDBAnime);
 				}
 
@@ -6619,20 +6608,9 @@ namespace JMMServer
 				List<AniDB_Anime> animes = repAnime.GetForDate(startDate, endDate);
 				foreach (AniDB_Anime anime in animes)
 				{
-					bool useAnime = true;
-
-					string[] cats = user.HideCategories.ToLower().Split(',');
-					string[] animeCats = anime.AllCategories.ToLower().Split('|');
-					foreach (string cat in cats)
-					{
-						if (!string.IsNullOrEmpty(cat) && animeCats.Contains(cat))
-						{
-							useAnime = false;
-							break;
-						}
-					}
-
-					if (useAnime)
+					if (anime?.Contract?.AniDBAnime == null)
+						continue;
+					if (!user.Contract.HideCategories.FindInEnumerable(anime.Contract.AniDBAnime.AllTags))
 						animeList.Add(anime.Contract.AniDBAnime);
 				}
 
@@ -6672,23 +6650,16 @@ namespace JMMServer
 
 		public List<Contract_JMMUser> GetAllUsers()
 		{
-			JMMUserRepository repUsers = new JMMUserRepository();
-
-			// get all the users
-			List<Contract_JMMUser> userList = new List<Contract_JMMUser>();
-
 			try
-			{
-				List<JMMUser> users = repUsers.GetAll();
-				foreach (JMMUser user in users)
-					userList.Add(user.ToContract());
-
+			{ 
+				JMMUserRepository repUsers = new JMMUserRepository();
+				return repUsers.GetAll().Select(a => a.Contract).ToList();
 			}
 			catch (Exception ex)
 			{
 				logger.ErrorException(ex.ToString(), ex);
+				return new List<Contract_JMMUser>();
 			}
-			return userList;
 		}
 
 		public Contract_JMMUser AuthenticateUser(string username, string password)
@@ -6697,11 +6668,7 @@ namespace JMMServer
 
 			try
 			{
-				JMMUser user = repUsers.AuthenticateUser(username, password);
-				if (user == null) return null;
-
-				return user.ToContract();
-
+				return repUsers.AuthenticateUser(username, password)?.Contract;
 			}
 			catch (Exception ex)
 			{
@@ -6755,13 +6722,13 @@ namespace JMMServer
 				if (existingUser && jmmUser.IsAniDBUser != user.IsAniDBUser)
 					updateStats = true;
 
-				jmmUser.HideCategories = user.HideCategories;
+				jmmUser.HideCategories = string.Join(",",user.HideCategories);
 				jmmUser.IsAniDBUser = user.IsAniDBUser;
 				jmmUser.IsTraktUser = user.IsTraktUser;
 				jmmUser.IsAdmin = user.IsAdmin;
 				jmmUser.Username = user.Username;
 				jmmUser.CanEditServerSettings = user.CanEditServerSettings;
-			    jmmUser.PlexUsers = user.PlexUsers;
+			    jmmUser.PlexUsers = string.Join(",",user.PlexUsers);
 				if (string.IsNullOrEmpty(user.Password))
 					jmmUser.Password = "";
 
@@ -8557,3 +8524,4 @@ namespace JMMServer
 
 	
 }
+

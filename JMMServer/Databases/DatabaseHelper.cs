@@ -185,8 +185,8 @@ namespace JMMServer.Databases
             AnimeSeries_UserRepository.InitCache();
             AnimeGroupRepository.InitCache();
             AnimeGroup_UserRepository.InitCache();
-	        GroupFilterRepository.CreateFakeAllFilter();
-
+	        GroupFilterRepository.InitCacheSecondPart();
+			
 	    }
         //TO be translated
         public static string InitCacheTitle = "Database Cache - Caching  - {0}{1}...";
