@@ -16,9 +16,9 @@ namespace JMMContracts
 		public int AnimeType { get; set; }
 		public string MainTitle { get; set; }
 		public string FormattedTitle { get; set; }
-		public string AllTitles { get; set; }
-		public string AllCategories { get; set; }
-		public string AllTags { get; set; }
+		public HashSet<string> AllTitles { get; set; }
+		public HashSet<string> AllCategories { get; set; }
+		public HashSet<string> AllTags { get; set; }
 		public string Description { get; set; }
 		public int EpisodeCountNormal { get; set; }
 		public int EpisodeCountSpecial { get; set; }

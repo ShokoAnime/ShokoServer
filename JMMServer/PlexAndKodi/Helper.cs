@@ -137,15 +137,10 @@ namespace JMMServer.PlexAndKodi
             List <JMMUser> allusers=repUsers.GetAll();
             foreach (JMMUser n in allusers)
             {
-                if (!string.IsNullOrEmpty(n.PlexUsers))
-                {
-                    string[] users = n.PlexUsers.Split(',');
-                    foreach (string m in users)
-                    {
-                        if (m.Trim().ToLower() == userid.ToLower())
-                            return n;
-                    }
-                }
+				if (userid.FindIn(n?.Contract?.PlexUsers))
+	            {
+		            return n;
+	            }
             }
             return allusers.FirstOrDefault(a => a.IsAdmin == 1) ?? allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
         }
@@ -664,10 +659,10 @@ namespace JMMServer.PlexAndKodi
                 p.Type = "show";
                 p.AirDate = DateTime.MinValue;
                 TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
-                if (!string.IsNullOrEmpty(anime.AllTags))
+                if (anime.AllTags.Count>0)
                 {
                     p.Genres = new List<Tag>();
-                    anime.AllTags.Split('|').ToList().ForEach(a => p.Genres.Add(new Tag {Value = textInfo.ToTitleCase(a.Trim())}));
+                    anime.AllTags.ToList().ForEach(a => p.Genres.Add(new Tag {Value = textInfo.ToTitleCase(a.Trim())}));
                 }
                 //p.OriginalTitle
                 if (anime.AirDate.HasValue)

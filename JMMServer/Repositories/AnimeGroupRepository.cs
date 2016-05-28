@@ -95,9 +95,9 @@ namespace JMMServer.Repositories
                 bool isComplete = false;
                 bool hasFinishedAiring = false;
                 bool isCurrentlyAiring = false;
-                string videoQualityEpisodes = "";
-                List<string> audioLanguages = new List<string>();
-                List<string> subtitleLanguages = new List<string>();
+                HashSet<string> videoQualityEpisodes = new HashSet<string>();
+                HashSet<string> audioLanguages = new HashSet<string>();
+                HashSet<string> subtitleLanguages = new HashSet<string>();
                 bool hasTvDB = true;
                 bool hasMAL = true;
                 bool hasMovieDB = true;
@@ -176,15 +176,13 @@ namespace JMMServer.Repositories
 
                     foreach (KeyValuePair<string, int> kvp in vidQualEpCounts)
                     {
-                        int index = videoQualityEpisodes.IndexOf(kvp.Key, 0,
-                            StringComparison.InvariantCultureIgnoreCase);
-                        if (index > -1) continue; // don't add if we already have it
-
-                        if (anime.EpisodeCountNormal == kvp.Value)
-                        {
-                            if (videoQualityEpisodes.Length > 0) videoQualityEpisodes += ",";
-                            videoQualityEpisodes += kvp.Key;
-                        }
+	                    if (!videoQualityEpisodes.Contains(kvp.Key))
+	                    {
+		                    if (anime.EpisodeCountNormal == kvp.Value)
+		                    {
+			                    videoQualityEpisodes.Add(kvp.Key);
+		                    }
+	                    }
 
                     }
                     // audio languages
@@ -284,25 +282,12 @@ namespace JMMServer.Repositories
                         hasMovieDBOrTvDB = false;
                 }
 
-
-                string Stat_AudioLanguages = "";
-                foreach (string audioLan in audioLanguages)
-                {
-                    if (Stat_AudioLanguages.Length > 0) Stat_AudioLanguages += ",";
-                    Stat_AudioLanguages += audioLan;
-                }
-
-                string Stat_SubtitleLanguages = "";
-                foreach (string subLan in subtitleLanguages)
-                {
-                    if (Stat_SubtitleLanguages.Length > 0) Stat_SubtitleLanguages += ",";
-                    Stat_SubtitleLanguages += subLan;
-                }
-                contract.Stat_AllTags = grp.TagsString;
-                contract.Stat_AllCustomTags = grp.CustomTagsString;
-                contract.Stat_AllTitles = grp.TitlesString;
-                contract.Stat_AllVideoQuality = grp.VideoQualityString;
-                contract.Stat_IsComplete = isComplete;
+	            contract.Stat_AllTags = new HashSet<string>(grp.Tags.Select(a => a.TagName).Distinct());
+	            contract.Stat_AllCustomTags = new HashSet<string>(grp.CustomTags.Select(a => a.TagName).Distinct());
+				contract.Stat_AllTitles = new HashSet<string>(grp.Titles.Select(a=>a.Title).Distinct());
+                contract.Stat_AnimeTypes = new HashSet<string>(series.Select(a=>a.Contract?.AniDBAnime).Where(a=>a!=null).Select(a=>a.AnimeType.ToString()).Distinct());
+	            contract.Stat_AllVideoQuality = grp.VideoQualities;
+				contract.Stat_IsComplete = isComplete;
                 contract.Stat_HasFinishedAiring = hasFinishedAiring;
                 contract.Stat_IsCurrentlyAiring = isCurrentlyAiring;
                 contract.Stat_HasTvDBLink = hasTvDB;
@@ -320,9 +305,9 @@ namespace JMMServer.Repositories
                 contract.Stat_UserVotePermanent = grp.UserVotePermanent;
                 contract.Stat_UserVoteTemporary = grp.UserVoteTemporary;
                 contract.Stat_AniDBRating = grp.AniDBRating;
-                contract.Stat_AudioLanguages = Stat_AudioLanguages;
-                contract.Stat_SubtitleLanguages = Stat_SubtitleLanguages;
-                contract.LatestEpisodeAirDate = grp.LatestEpisodeAirDate;
+	            contract.Stat_AudioLanguages = audioLanguages;
+	            contract.Stat_SubtitleLanguages = subtitleLanguages;
+				contract.LatestEpisodeAirDate = grp.LatestEpisodeAirDate;
             }
             grp.Contract = contract;
         }
@@ -354,6 +339,7 @@ namespace JMMServer.Repositories
 						transaction.Commit();
 					}
 				}
+				GroupFilterRepository.CreateOrVerifyLockedFilters(); //This call will create extra years of tags if the Group have a new year or tag
 				Cache.Update(grp);
             }
         }

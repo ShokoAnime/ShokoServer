@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMContracts;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
 using NHibernate;
+using NutzCode.InMemoryIndex;
 
 namespace JMMServer.Repositories
 {
@@ -13,8 +16,46 @@ namespace JMMServer.Repositories
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
+		private static PocoCache<int, JMMUser> Cache;
+
+		public static void InitCache()
+		{
+			string t = "Users";
+			ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+			JMMUserRepository repo = new JMMUserRepository();
+			Cache = new PocoCache<int, JMMUser>(repo.InternalGetAll(), a => a.JMMUserID);
+
+		}
+
+		public static void GenerateContract(JMMUser user)
+		{
+			Contract_JMMUser contract = new Contract_JMMUser();
+			contract.JMMUserID = user.JMMUserID;
+			contract.Username = user.Username;
+			contract.Password = user.Password;
+			contract.IsAdmin = user.IsAdmin;
+			contract.IsAniDBUser = user.IsAniDBUser;
+			contract.IsTraktUser = user.IsTraktUser;
+			contract.HideCategories = new HashSet<string>(user.HideCategories.ToLowerInvariant().Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim()).Where(a => !string.IsNullOrEmpty(a)));
+			contract.CanEditServerSettings = user.CanEditServerSettings;
+			contract.PlexUsers = new HashSet<string>(user.PlexUsers.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim()).Where(a => !string.IsNullOrEmpty(a)));
+			user.Contract = contract;
+		}
+		private List<JMMUser> InternalGetAll()
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				var objs = session
+					.CreateCriteria(typeof(JMMUser))
+					.List<JMMUser>();
+
+				return new List<JMMUser>(objs);
+			}
+		}
+
 		public void Save(JMMUser obj, bool updateGroupFilters)
 		{
+			GenerateContract(obj);
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				// populate the database
@@ -24,7 +65,8 @@ namespace JMMServer.Repositories
 					transaction.Commit();
 				}
 			}
-		    if (updateGroupFilters)
+			Cache.Update(obj);
+			if (updateGroupFilters)
 		    {
 		        logger.Trace("Updating group filter stats by user from JMMUserRepository.Save: {0}", obj.JMMUserID);
                 obj.UpdateGroupFilters();
@@ -33,86 +75,43 @@ namespace JMMServer.Repositories
 
 		public JMMUser GetByID(int id)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetByID(session, id);
-			}
+			return Cache.Get(id);
 		}
 
 		public JMMUser GetByID(ISession session, int id)
 		{
-			return session.Get<JMMUser>(id);
+			return Cache.Get(id);
 		}
 
 		public List<JMMUser> GetAll()
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetAll(session);
-			}
+			return Cache.Values.ToList();
 		}
 
 		public List<JMMUser> GetAll(ISession session)
 		{
-			var objs = session
-				.CreateCriteria(typeof(JMMUser))
-				.List<JMMUser>();
-
-			return new List<JMMUser>(objs);
+			return Cache.Values.ToList();
 		}
 
 		public List<JMMUser> GetAniDBUsers()
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				var objs = session
-					.CreateCriteria(typeof(JMMUser))
-					.Add(Restrictions.Eq("IsAniDBUser", 1))
-					.List<JMMUser>();
-
-				return new List<JMMUser>(objs);
-			}
+			return Cache.Values.Where(a=>a.IsAniDBUser==1).ToList();
 		}
 
 		public List<JMMUser> GetTraktUsers()
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				var objs = session
-					.CreateCriteria(typeof(JMMUser))
-					.Add(Restrictions.Eq("IsTraktUser", 1))
-					.List<JMMUser>();
-
-				return new List<JMMUser>(objs);
-			}
+			return Cache.Values.Where(a => a.IsTraktUser == 1).ToList();
 		}
 
 		public JMMUser AuthenticateUser(string userName, string password)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				string hashedPassword = Digest.Hash(password);
-				JMMUser cr = session
-					.CreateCriteria(typeof(JMMUser))
-					.Add(Restrictions.Eq("Username", userName))
-					.Add(Restrictions.Eq("Password", hashedPassword))
-					.UniqueResult<JMMUser>();
-				return cr;
-			}
+			string hashedPassword = Digest.Hash(password);
+			return Cache.Values.FirstOrDefault(a => a.Username == userName && a.Password == hashedPassword);
 		}
 
         public long GetTotalRecordCount()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var count = session
-                    .CreateCriteria(typeof(JMMUser))
-                    .SetProjection(Projections.Count(Projections.Id())
-                )
-                .UniqueResult<int>();
-
-                return count;
-            }
+	        return Cache.Keys.Count;
         }
 
 
@@ -127,6 +126,7 @@ namespace JMMServer.Repositories
 					JMMUser cr = GetByID(id);
 					if (cr != null)
 					{
+						Cache.Remove(cr);
 						session.Delete(cr);
 						transaction.Commit();
 					}

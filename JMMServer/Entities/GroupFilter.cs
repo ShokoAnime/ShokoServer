@@ -20,6 +20,7 @@ namespace JMMServer.Entities
         public int FilterType { get; set; }
 
         public int? ParentGroupFilterID { get; set; }
+        public int? IsVisibleInClients { get; set; }
 
         public int GroupsIdsVersion { get; set; }
         public string GroupsIdsString { get; set; }
@@ -32,115 +33,7 @@ namespace JMMServer.Entities
         internal Dictionary<int, HashSet<int>> _groupsId =new Dictionary<int, HashSet<int>>();
 
 
-	    public static void CreateOrVerifyLockedFilters()
-	    {
-            GroupFilterRepository repFilters = new GroupFilterRepository();
-            GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
-
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-
-                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
-                //Continue Watching
-                // check if it already exists
-                if (lockedGFs != null && !lockedGFs.Any(a => a.FilterType == (int) GroupFilterType.ContinueWatching))
-                {
-                    //Fixing Filter
-                    foreach (GroupFilter gfTemp in lockedGFs)
-                    {
-                        if (
-                            gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching,
-                                StringComparison.InvariantCultureIgnoreCase) &&
-                            gfTemp.FilterType != (int) GroupFilterType.ContinueWatching)
-                        {
-                            gfTemp.FilterType = (int) GroupFilterType.ContinueWatching;
-                            repFilters.Save(gfTemp, true, null);
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    GroupFilter gf = new GroupFilter();
-                    gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
-                    gf.Locked = 1;
-                    gf.SortingCriteria = "4;2"; // by last watched episode desc
-                    gf.ApplyToSeries = 0;
-                    gf.BaseCondition = 1; // all
-                    gf.FilterType = (int)GroupFilterType.ContinueWatching;
-                    repFilters.Save(gf, false, null); //Get ID
-
-                    GroupFilterCondition gfc = new GroupFilterCondition();
-                    gfc.ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes;
-                    gfc.ConditionOperator = (int)GroupFilterOperator.Include;
-                    gfc.ConditionParameter = "";
-                    gfc.GroupFilterID = gf.GroupFilterID;
-                    repGFC.Save(gfc);
-
-                    gfc = new GroupFilterCondition();
-                    gfc.ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes;
-                    gfc.ConditionOperator = (int)GroupFilterOperator.Include;
-                    gfc.ConditionParameter = "";
-                    gfc.GroupFilterID = gf.GroupFilterID;
-                    repGFC.Save(gfc);
-                    //Re Save to recalc Group Filter
-                    repFilters.Save(gf, true, null);
-                }
-                //Create All filter
-                GroupFilter allfilter = lockedGFs.FirstOrDefault(a => a.FilterType == (int) GroupFilterType.All);
-                if (allfilter == null)
-                {
-                    GroupFilter gf = new GroupFilter { GroupFilterName = "All", Locked = 1, FilterType = (int)GroupFilterType.All, BaseCondition = 1, SortingCriteria = "5;1" };
-                    repFilters.Save(gf, true, null);
-                }
-                GroupFilter tagsdirec = lockedGFs.FirstOrDefault(a => a.FilterType == (int)(GroupFilterType.Directory|GroupFilterType.Tag));
-                if (tagsdirec == null)
-                {
-                    tagsdirec = new GroupFilter { GroupFilterName = "Tags", FilterType = (int)(GroupFilterType.Directory | GroupFilterType.Tag), BaseCondition = 1, Locked =1, SortingCriteria = "13;1" };
-                    repFilters.Save(tagsdirec, true, null);
-                }
-                GroupFilter yearsdirec = lockedGFs.FirstOrDefault(a => a.FilterType == (int)(GroupFilterType.Directory | GroupFilterType.Year));
-                if (yearsdirec == null)
-                {
-                    yearsdirec = new GroupFilter { GroupFilterName = "Years", FilterType = (int)(GroupFilterType.Directory | GroupFilterType.Year), BaseCondition = 1, Locked=1,SortingCriteria = "13;1" };
-                    repFilters.Save(yearsdirec, true, null);
-                }
-                AniDB_TagRepository tagsrepo=new AniDB_TagRepository();
-                AnimeGroupRepository grouprepo=new AnimeGroupRepository()
-                List<string> alltags=tagsrepo.GetAll(session).Select(a=>a.TagName).ToList();
-                List<string> notin=alltags.Where(a=>!lockedGFs.Any(b=>b.FilterType==(int)GroupFilterType.Tag && b.GroupFilterName==a)).ToList();
-                foreach (string s in notin)
-                {
-                    GroupFilter yf=new GroupFilter {  ParentGroupFilterID = tagsdirec.GroupFilterID, GroupFilterName = s, BaseCondition = 1, Locked = 1, SortingCriteria = "5;1",FilterType = (int)GroupFilterType.Tag };
-                    repFilters.Save(yf,false,null); //Get ID
-                    GroupFilterCondition gfc = new GroupFilterCondition();
-                    gfc.ConditionType = (int)GroupFilterConditionType.Tag;
-                    gfc.ConditionOperator = (int)GroupFilterOperator.Include;
-                    gfc.ConditionParameter = s;
-                    gfc.GroupFilterID = yf.GroupFilterID;
-                    repGFC.Save(gfc);
-                    repFilters.Save(yf, true, null); 
-                }
-                List<Contract_AnimeGroup> grps = grouprepo.GetAll().Select(a=>a.Contract).Where(a=>a!=null).ToList();
-                DateTime maxtime = grps.Where(a => a.Stat_AirDate_Max.HasValue).Max(a => a.Stat_AirDate_Max.Value);
-                DateTime mintime = grps.Where(a => a.Stat_AirDate_Min.HasValue).Min(a => a.Stat_AirDate_Min.Value);
-                List<string> allyears=Enumerable.Range(mintime.Year, maxtime.Year - mintime.Year + 1).Select(a=>a.ToString()).ToList();
-                notin = allyears.Where(a => !lockedGFs.Any(b => b.FilterType == (int)GroupFilterType.Year && b.GroupFilterName == a)).ToList();
-                foreach (string s in notin)
-                {
-                    GroupFilter yf = new GroupFilter { ParentGroupFilterID = yearsdirec.GroupFilterID, GroupFilterName = s, BaseCondition = 1, Locked = 1, SortingCriteria = "5;1", FilterType = (int)GroupFilterType.Year };
-                    repFilters.Save(yf, false, null); //Get ID
-                    GroupFilterCondition gfc = new GroupFilterCondition();
-                    gfc.ConditionType = (int)GroupFilterConditionType.Year;
-                    gfc.ConditionOperator = (int)GroupFilterOperator.Include;
-                    gfc.ConditionParameter = s;
-                    gfc.GroupFilterID = yf.GroupFilterID;
-                    repGFC.Save(gfc);
-                    repFilters.Save(yf, true, null);
-                }
-            }
-
-        }
+	    
 
 
         public virtual Dictionary<int, HashSet<int>> GroupsIds
@@ -214,11 +107,7 @@ namespace JMMServer.Entities
 			}
 		}
 
-		public List<GroupFilterCondition> GetFilterConditions(ISession session)
-		{
-			GroupFilterConditionRepository repConds = new GroupFilterConditionRepository();
-			return repConds.GetByGroupFilterID(session, this.GroupFilterID);
-		}
+
 
 		public Contract_GroupFilter ToContract()
 		{
@@ -240,7 +129,7 @@ namespace JMMServer.Entities
             contract.FilterType = this.FilterType;
 
             contract.FilterConditions = new List<Contract_GroupFilterCondition>();
-			foreach (GroupFilterCondition gfc in GetFilterConditions(session))
+			foreach (GroupFilterCondition gfc in FilterConditions)
 				contract.FilterConditions.Add(gfc.ToContract());
 		    contract.Groups = this.GroupsIds.ToDictionary(a => a.Key, a => new HashSet<int>(a.Value.ToList()));
 			return contract;
@@ -333,7 +222,13 @@ namespace JMMServer.Entities
 	    public static Contract_GroupFilter EvaluateVirtualContract(Contract_GroupFilter gfc)
 	    {
             //Convert Contract_GroupFilter into a Virtual GroupFilter
-	        GroupFilter gf = new GroupFilter {VirtualContract = gfc, GroupFilterName=gfc.GroupFilterName,ApplyToSeries = gfc.ApplyToSeries,SortingCriteria = gfc.SortingCriteria};
+	        GroupFilter gf = new GroupFilter
+	        {
+	            VirtualContract = gfc,
+                GroupFilterName =gfc.GroupFilterName,
+                ApplyToSeries = gfc.ApplyToSeries,
+                SortingCriteria = gfc.SortingCriteria
+	        };
             AnimeGroupRepository grepo=new AnimeGroupRepository();
             AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
             JMMUserRepository repUsers=new JMMUserRepository();
@@ -369,13 +264,17 @@ namespace JMMServer.Entities
 	        return gf.ToContract();
 	    }
 
-        public bool EvaluateGroupFilter(AnimeGroup grp, JMMUser curUser, AnimeGroup_User userRec)
+
+		public bool EvaluateGroupFilter(AnimeGroup grp, JMMUser curUser, AnimeGroup_User userRec)
         {
+            //Directories don't count
+            if ((this.FilterType & (int) GroupFilterType.Directory) == (int)GroupFilterType.Directory)
+                return false;
             // sub groups don't count
             if (grp.AnimeGroupParentID.HasValue) return false;
 
             // make sure the user has not filtered this out
-            if (!curUser.AllowedGroup(grp, curUser)) return false;
+            if (!curUser.AllowedGroup(grp)) return false;
 
             // first check for anime groups which are included exluded every time
             foreach (GroupFilterCondition gfc in FilterConditions)
@@ -386,11 +285,9 @@ namespace JMMServer.Entities
                 int.TryParse(gfc.ConditionParameter, out groupID);
                 if (groupID == 0) break;
 
-                if (gfc.ConditionOperatorEnum == GroupFilterOperator.Equals)
-                    if (groupID == grp.AnimeGroupID) return true;
 
-                if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotEquals)
-                    if (groupID == grp.AnimeGroupID) return false;
+                if (gfc.ConditionOperatorEnum == GroupFilterOperator.Equals && groupID == grp.AnimeGroupID) return true;
+                if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotEquals && groupID == grp.AnimeGroupID) return false;
             }
 
             NumberStyles style = NumberStyles.Number;
@@ -399,7 +296,6 @@ namespace JMMServer.Entities
             if (BaseCondition == (int)GroupFilterBaseCondition.Exclude) return false;
 
             Contract_AnimeGroup contractGroup = grp.GetUserContract(curUser.JMMUserID);
-
             // now check other conditions
             foreach (GroupFilterCondition gfc in FilterConditions)
             {
@@ -419,6 +315,17 @@ namespace JMMServer.Entities
                     case GroupFilterConditionType.MissingEpisodesCollecting:
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && grp.HasMissingEpisodesGroups == false) return false;
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && grp.HasMissingEpisodesGroups == true) return false;
+                        break;
+                    case GroupFilterConditionType.Tag:
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && !contractGroup.Stat_AllTags.Contains(gfc.ConditionParameter)) return false;
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && contractGroup.Stat_AllTags.Contains(gfc.ConditionParameter)) return false;
+                        break;
+                    case GroupFilterConditionType.Year:
+                        if (!contractGroup.Stat_AirDate_Min.HasValue)
+                            return false;
+                        string year = contractGroup.Stat_AirDate_Min.Value.Year.ToString();
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && year!=gfc.ConditionParameter) return false;
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && year==gfc.ConditionParameter) return false;
                         break;
 
                     case GroupFilterConditionType.HasWatchedEpisodes:
@@ -622,155 +529,53 @@ namespace JMMServer.Entities
 
                     case GroupFilterConditionType.Category:
 
-                        string filterParm = gfc.ConditionParameter.Trim();
-
-                        string[] cats = filterParm.Split(',');
-                        bool foundCat = false;
-                        int index = 0;
-                        foreach (string cat in cats)
-                        {
-                            if (cat.Trim().Length == 0) continue;
-                            if (cat.Trim() == ",") continue;
-
-                            index = contractGroup.Stat_AllTags.IndexOf(cat.Trim(), 0, StringComparison.InvariantCultureIgnoreCase);
-                            if (index > -1)
-                            {
-                                foundCat = true;
-                                break;
-                            }
-                        }
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In)
-                            if (!foundCat) return false;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn)
-                            if (foundCat) return false;
+                        List<string> cats = gfc.ConditionParameter.Trim().Split(new char[] { ','},StringSplitOptions.RemoveEmptyEntries).Select(a=>a.ToLowerInvariant()).ToList();
+                        bool foundCat = cats.FindInEnumerable(contractGroup.Stat_AllTags);
+                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && (!foundCat)) return false;
+                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && (foundCat)) return false;
                         break;
 
                     case GroupFilterConditionType.CustomTags:
 
-                        filterParm = gfc.ConditionParameter.Trim();
-
-                        string[] tags = filterParm.Split(',');
-                        bool foundTag = false;
-                        index = 0;
-                        foreach (string tag in tags)
-                        {
-                            if (tag.Trim().Length == 0) continue;
-                            if (tag.Trim() == ",") continue;
-
-                            index = contractGroup.Stat_AllCustomTags.IndexOf(tag.Trim(), 0, StringComparison.InvariantCultureIgnoreCase);
-                            if (index > -1)
-                            {
-                                foundTag = true;
-                                break;
-                            }
-                        }
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In)
-                            if (!foundTag) return false;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn)
-                            if (foundTag) return false;
+                        List<string> ctags = gfc.ConditionParameter.Trim().Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.ToLowerInvariant()).ToList();
+                        bool foundTag = ctags.FindInEnumerable(contractGroup.Stat_AllCustomTags);
+                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && (!foundTag)) return false;
+                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && (foundTag)) return false;
                         break;
 
                     case GroupFilterConditionType.AnimeType:
 
-                        filterParm = gfc.ConditionParameter.Trim();
-                        List<string> grpTypeList = grp.AnimeTypesList;
-
-                        string[] atypes = filterParm.Split(',');
-                        bool foundAnimeType = false;
-                        index = 0;
-                        foreach (string atype in atypes)
-                        {
-                            if (atype.Trim().Length == 0) continue;
-                            if (atype.Trim() == ",") continue;
-
-                            foreach (string thisAType in grpTypeList)
-                            {
-                                if (string.Equals(thisAType, atype, StringComparison.InvariantCultureIgnoreCase))
-                                {
-                                    foundAnimeType = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In)
-                            if (!foundAnimeType) return false;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn)
-                            if (foundAnimeType) return false;
+                        List<string> ctypes = gfc.ConditionParameter.Trim().Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.ToLowerInvariant()).ToList();
+                        bool foundAnimeType = ctypes.FindInEnumerable(contractGroup.Stat_AnimeTypes);
+                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && (!foundAnimeType)) return false;
+                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn) && (foundAnimeType)) return false;
                         break;
-
-
 
                     case GroupFilterConditionType.VideoQuality:
 
-                        filterParm = gfc.ConditionParameter.Trim();
+						List<string> vqs = gfc.ConditionParameter.Trim().Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.ToLowerInvariant()).ToList();
+						bool foundVid = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality);
+						bool foundVidAllEps = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality_Episodes);
 
-                        string[] vidQuals = filterParm.Split(',');
-                        bool foundVid = false;
-                        bool foundVidAllEps = false;
-                        index = 0;
-                        foreach (string vidq in vidQuals)
-                        {
-                            if (vidq.Trim().Length == 0) continue;
-                            if (vidq.Trim() == ",") continue;
-
-                            index = contractGroup.Stat_AllVideoQuality.IndexOf(vidq, 0, StringComparison.InvariantCultureIgnoreCase);
-                            if (index > -1) foundVid = true;
-
-                            index = contractGroup.Stat_AllVideoQuality_Episodes.IndexOf(vidq, 0, StringComparison.InvariantCultureIgnoreCase);
-                            if (index > -1) foundVidAllEps = true;
-
-                        }
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In)
-                            if (!foundVid) return false;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn)
-                            if (foundVid) return false;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.InAllEpisodes)
-                            if (!foundVidAllEps) return false;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotInAllEpisodes)
-                            if (foundVidAllEps) return false;
-
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundVid) return false;
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundVid) return false;
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.InAllEpisodes && !foundVidAllEps) return false;
+                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotInAllEpisodes && foundVidAllEps) return false;
                         break;
 
                     case GroupFilterConditionType.AudioLanguage:
-                    case GroupFilterConditionType.SubtitleLanguage:
+						List<string> als = gfc.ConditionParameter.Trim().Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.ToLowerInvariant()).ToList();
+						bool foundLang = als.FindInEnumerable(contractGroup.Stat_AudioLanguages);
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundLang) return false;
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundLang) return false;
+		                break;
 
-                        filterParm = gfc.ConditionParameter.Trim();
-
-                        string[] languages = filterParm.Split(',');
-                        bool foundLan = false;
-                        index = 0;
-                        foreach (string lanName in languages)
-                        {
-                            if (lanName.Trim().Length == 0) continue;
-                            if (lanName.Trim() == ",") continue;
-
-                            if (gfc.ConditionTypeEnum == GroupFilterConditionType.AudioLanguage)
-                                index = contractGroup.Stat_AudioLanguages.IndexOf(lanName, 0, StringComparison.InvariantCultureIgnoreCase);
-
-                            if (gfc.ConditionTypeEnum == GroupFilterConditionType.SubtitleLanguage)
-                                index = contractGroup.Stat_SubtitleLanguages.IndexOf(lanName, 0, StringComparison.InvariantCultureIgnoreCase);
-
-                            if (index > -1) foundLan = true;
-
-                        }
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.In)
-                            if (!foundLan) return false;
-
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn)
-                            if (foundLan) return false;
-
-                        break;
+					case GroupFilterConditionType.SubtitleLanguage:
+						List<string> ass = gfc.ConditionParameter.Trim().Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.ToLowerInvariant()).ToList();
+						bool foundSub = ass.FindInEnumerable(contractGroup.Stat_AudioLanguages);
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundSub) return false;
+						if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn && foundSub) return false;
+						break;
                 }
             }
 

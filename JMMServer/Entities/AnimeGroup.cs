@@ -286,7 +286,7 @@ namespace JMMServer.Entities
 				return MissingEpisodeCountGroups > 0;
 			}
 		}
-
+        /*
 		public List<string> AnimeTypesList
 		{
 			get
@@ -300,7 +300,7 @@ namespace JMMServer.Entities
 				return atypeList;
 			}
 		}
-
+        */
 		/// <summary>
 		/// Renames all Anime groups based on the user's language preferences
 		/// </summary>
@@ -545,7 +545,7 @@ namespace JMMServer.Entities
 
 			return seriesList;
 		}
-
+		/*
 		public string TagsString
 		{
 			get
@@ -559,7 +559,7 @@ namespace JMMServer.Entities
 				return temp;
 			}
 		}
-
+		*/
 		public List<AniDB_Tag> Tags
 		{
 			get
@@ -599,7 +599,7 @@ namespace JMMServer.Entities
 				return tags;
 			}
 		}
-
+		/*
         public string CustomTagsString
         {
             get
@@ -615,7 +615,7 @@ namespace JMMServer.Entities
                 return temp;
             }
         }
-
+		*/
         public List<CustomTag> CustomTags
         {
             get
@@ -671,7 +671,7 @@ namespace JMMServer.Entities
 				return animeTitles;
 			}
 		}
-
+		/*
 		public string TitlesString
 		{
 			get
@@ -685,8 +685,8 @@ namespace JMMServer.Entities
 				return temp;
 			}
 		}
-
-		public string VideoQualityString
+		*/
+		public HashSet<string> VideoQualities
 		{
 			get
 			{

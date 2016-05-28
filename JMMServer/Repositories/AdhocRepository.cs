@@ -46,9 +46,9 @@ namespace JMMServer.Repositories
 		/// Get's all the video quality settings (comma separated) that apply to each group
 		/// </summary>
 		/// <returns></returns>
-		public Dictionary<int, string> GetAllVideoQualityByGroup()
+		public Dictionary<int, HashSet<string>> GetAllVideoQualityByGroup()
 		{
-			Dictionary<int, string> allVidQuality = new Dictionary<int, string>();
+			Dictionary<int, HashSet<string>> allVidQuality = new Dictionary<int, HashSet<string>>();
 
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -71,15 +71,16 @@ namespace JMMServer.Repositories
 					{
 						int groupID = int.Parse(rdr[0].ToString());
 						string vidQual = rdr[1].ToString().Trim();
-
-						if (!allVidQuality.ContainsKey(groupID))
-							allVidQuality[groupID] = "";
-
-						if (allVidQuality[groupID].Length > 0)
-							allVidQuality[groupID] += ",";
-
-						allVidQuality[groupID] += vidQual;
-					}
+						HashSet<string> vids;
+						if (allVidQuality.ContainsKey(groupID))
+							vids = allVidQuality[groupID];
+						else
+						{
+							vids=new HashSet<string>();
+							allVidQuality.Add(groupID, vids);
+						}
+						if (!vids.Contains(vidQual))
+							vids.Add(vidQual);					}
 				}
 			}
 
@@ -90,9 +91,9 @@ namespace JMMServer.Repositories
 		/// Get's all the video quality settings (comma separated) that apply to each group
 		/// </summary>
 		/// <returns></returns>
-		public Dictionary<int, string> GetAllVideoQualityByAnime()
+		public Dictionary<int, HashSet<string>> GetAllVideoQualityByAnime()
 		{
-			Dictionary<int, string> allVidQuality = new Dictionary<int, string>();
+			Dictionary<int, HashSet<string>> allVidQuality = new Dictionary<int, HashSet<string>>();
 
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -115,14 +116,16 @@ namespace JMMServer.Repositories
 					{
 						int groupID = int.Parse(rdr[0].ToString());
 						string vidQual = rdr[2].ToString().Trim();
-
-						if (!allVidQuality.ContainsKey(groupID))
-							allVidQuality[groupID] = "";
-
-						if (allVidQuality[groupID].Length > 0)
-							allVidQuality[groupID] += ",";
-
-						allVidQuality[groupID] += vidQual;
+						HashSet<string> vids;
+						if (allVidQuality.ContainsKey(groupID))
+							vids = allVidQuality[groupID];
+						else
+						{
+							vids = new HashSet<string>();
+							allVidQuality.Add(groupID, vids);
+						}
+						if (!vids.Contains(vidQual))
+							vids.Add(vidQual);
 					}
 				}
 			}
@@ -130,10 +133,10 @@ namespace JMMServer.Repositories
 			return allVidQuality;
 		}
 
-		public string GetAllVideoQualityForGroup(int animeGroupID)
+		public HashSet<string> GetAllVideoQualityForGroup(int animeGroupID)
 		{
-			string vidQuals = "";
-
+			HashSet<string> vidQuals=new HashSet<string>();
+			
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				System.Data.IDbCommand command = session.Connection.CreateCommand();
@@ -153,19 +156,17 @@ namespace JMMServer.Repositories
 					while (rdr.Read())
 					{
 						string vidQual = rdr[0].ToString().Trim();
-
-						if (vidQuals.Length > 0)
-							vidQuals += ",";
-
-						vidQuals += vidQual;
+						if (!vidQuals.Contains(vidQual))
+						{
+							vidQuals.Add(vidQual);
+						}
 					}
 				}
+				return vidQuals;
 			}
-
-			return vidQuals;
 		}
 
-		public string GetAllVideoQualityForAnime(int animeID)
+		public HashSet<string> GetAllVideoQualityForAnime(int animeID)
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
@@ -173,9 +174,9 @@ namespace JMMServer.Repositories
 			}
 		}
 
-		public string GetAllVideoQualityForAnime(ISession session, int animeID)
+		public HashSet<string> GetAllVideoQualityForAnime(ISession session, int animeID)
 		{
-			string vidQuals = "";
+			HashSet<string> vidQuals = new HashSet<string>();
 
 			System.Data.IDbCommand command = session.Connection.CreateCommand();
 			command.CommandText = "SELECT anifile.File_Source ";
@@ -194,14 +195,12 @@ namespace JMMServer.Repositories
 				while (rdr.Read())
 				{
 					string vidQual = rdr[0].ToString().Trim();
-
-					if (vidQuals.Length > 0)
-						vidQuals += ",";
-
-					vidQuals += vidQual;
+					if (!vidQuals.Contains(vidQual))
+					{
+						vidQuals.Add(vidQual);
+					}
 				}
 			}
-
 			return vidQuals;
 		}
 
@@ -239,12 +238,12 @@ namespace JMMServer.Repositories
 					string mainTitle = rdr[1].ToString().Trim();
 					string vidQual = rdr[2].ToString().Trim();
 					int epNumber = int.Parse(rdr[3].ToString());
-
+					/*
 					if (animeID == 7656)
 					{
 						Debug.Print("");
 					}
-
+					*/
 					if (!dictStats.ContainsKey(animeID))
 					{
 						AnimeVideoQualityStat stat = new AnimeVideoQualityStat();
