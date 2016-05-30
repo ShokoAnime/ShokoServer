@@ -373,9 +373,9 @@ namespace JMMServer.Databases
 			logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
 
-			DatabaseHelper.FixDuplicateTvDBLinks();
-			DatabaseHelper.FixDuplicateTraktLinks();
-			
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTvDBLinks);
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTraktLinks);
+
 
 			List<string> cmds = new List<string>();
 
@@ -407,9 +407,6 @@ namespace JMMServer.Databases
 			if (currentVersionNumber >= thisVersion) return;
 
 			logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-			DatabaseHelper.FixDuplicateTvDBLinks();
-			DatabaseHelper.FixDuplicateTraktLinks();
 
 			List<string> cmds = new List<string>();
 
@@ -1133,7 +1130,7 @@ namespace JMMServer.Databases
 			UpdateDatabaseVersion(thisVersion);
 
 			// Now do the migratiuon
-			DatabaseHelper.MigrateTvDBLinks_V1_to_V2();
+			DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTvDBLinks_V1_to_V2);
 		}
 
 		private static void UpdateSchema_028(int currentVersionNumber)
@@ -1211,11 +1208,11 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            // Now do the migratiuon
-            DatabaseHelper.MigrateTraktLinks_V1_to_V2();
-        }
+			// Now do the migratiuon
+			DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTraktLinks_V1_to_V2);
+		}
 
-        private static void UpdateSchema_031(int currentVersionNumber)
+		private static void UpdateSchema_031(int currentVersionNumber)
         {
             int thisVersion = 31;
             if (currentVersionNumber >= thisVersion) return;
@@ -1265,11 +1262,12 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            // Now do the migratiuon
-            DatabaseHelper.RemoveOldMovieDBImageRecords();
-        }
+			// Now do the migration
+			DatabaseFixes.Fixes.Add(DatabaseFixes.RemoveOldMovieDBImageRecords);
 
-        private static void UpdateSchema_033(int currentVersionNumber)
+		}
+
+		private static void UpdateSchema_033(int currentVersionNumber)
         {
             int thisVersion = 33;
             if (currentVersionNumber >= thisVersion) return;
@@ -1344,11 +1342,12 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            // Now do the migration
-            DatabaseHelper.PopulateTagWeight();
-        }
+			// Now do the migration
+			DatabaseFixes.Fixes.Add(DatabaseFixes.PopulateTagWeight);
 
-        private static void UpdateSchema_036(int currentVersionNumber)
+		}
+
+		private static void UpdateSchema_036(int currentVersionNumber)
         {
             int thisVersion = 36;
             if (currentVersionNumber >= thisVersion) return;
@@ -1371,10 +1370,10 @@ namespace JMMServer.Databases
 
             logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-            // Now do the migration
-            DatabaseHelper.FixHashes();
+			// Now do the migration
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixHashes);
 
-            UpdateDatabaseVersion(thisVersion);
+			UpdateDatabaseVersion(thisVersion);
         }
 
         private static void UpdateSchema_038(int currentVersionNumber)
@@ -1440,9 +1439,6 @@ namespace JMMServer.Databases
             cmds.Add("UPDATE GroupFilter SET FilterType = 1");
             cmds.Add("ALTER TABLE GroupFilter ALTER COLUMN FilterType int NOT NULL");
 
-            //Add Migration as SQL, since Groupfilters Cache is not init yet.
-            cmds.Add("UPDATE GroupFilter SET FilterType = 2 WHERE GroupFilterName='"+ Constants.GroupFilterName.ContinueWatching+"'");
-
             using (SqlConnection tmpConn = new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}", ServerSettings.DatabaseServer,
                 ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
             {
@@ -1458,11 +1454,10 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            // Now do the migratiuon
-            //DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
-
-        }
-        private static void UpdateSchema_042(int currentVersionNumber)
+			// Now do the migration
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixContinueWatchingGroupFilter_20160406);
+		}
+		private static void UpdateSchema_042(int currentVersionNumber)
         {
             int thisVersion = 42;
             if (currentVersionNumber >= thisVersion) return;

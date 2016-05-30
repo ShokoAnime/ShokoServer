@@ -1,4 +1,5 @@
 ﻿using System;
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,6 +17,7 @@ namespace JMMServer.Databases
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 		public const string DefaultDBName = @"JMMServer.db3";
+
 
 		public static string GetDatabasePath()
 		{
@@ -83,8 +85,8 @@ namespace JMMServer.Databases
 					rowList.Add(values);
 				}
 
-				myConn.Close();
 				reader.Close();
+				myConn.Close();
 			}
 			catch (Exception ex)
 			{
@@ -293,8 +295,9 @@ namespace JMMServer.Databases
 
 			logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-			DatabaseHelper.FixDuplicateTvDBLinks();
-			DatabaseHelper.FixDuplicateTraktLinks();
+
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTvDBLinks);
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTraktLinks);
 
 			SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
 			myConn.Open();
@@ -1029,7 +1032,7 @@ namespace JMMServer.Databases
 			UpdateDatabaseVersion(thisVersion);
 
 			// Now do the migratiuon
-			DatabaseHelper.MigrateTvDBLinks_V1_to_V2();
+			DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTvDBLinks_V1_to_V2);
 		}
 
 		private static void UpdateSchema_030(int currentVersionNumber)
@@ -1098,12 +1101,12 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            // Now do the migratiuon
-            DatabaseHelper.MigrateTraktLinks_V1_to_V2();
-        }
+			// Now do the migratiuon
+			DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTraktLinks_V1_to_V2);
+		}
 
 
-        private static void UpdateSchema_033(int currentVersionNumber)
+		private static void UpdateSchema_033(int currentVersionNumber)
         {
             int thisVersion = 33;
             if (currentVersionNumber >= thisVersion) return;
@@ -1148,11 +1151,12 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            // Now do the migration
-            DatabaseHelper.RemoveOldMovieDBImageRecords();
-        }
+			// Now do the migration
+			DatabaseFixes.Fixes.Add(DatabaseFixes.RemoveOldMovieDBImageRecords);
 
-        private static void UpdateSchema_035(int currentVersionNumber)
+		}
+
+		private static void UpdateSchema_035(int currentVersionNumber)
         {
             int thisVersion = 35;
             if (currentVersionNumber >= thisVersion) return;
@@ -1216,10 +1220,11 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            DatabaseHelper.PopulateTagWeight();
-        }
+			DatabaseFixes.Fixes.Add(DatabaseFixes.PopulateTagWeight);
 
-        private static void UpdateSchema_038(int currentVersionNumber)
+		}
+
+		private static void UpdateSchema_038(int currentVersionNumber)
         {
             int thisVersion = 38;
             if (currentVersionNumber >= thisVersion) return;
@@ -1241,9 +1246,11 @@ namespace JMMServer.Databases
 
             logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-            DatabaseHelper.FixHashes();
+			// Now do the migration
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixHashes);
 
-            UpdateDatabaseVersion(thisVersion);
+
+			UpdateDatabaseVersion(thisVersion);
         }
 
         private static void UpdateSchema_040(int currentVersionNumber)
@@ -1316,9 +1323,9 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            // Now do the migratiuon
-            //DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
-        }
+			// Now do the migration
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixContinueWatchingGroupFilter_20160406);
+		}
         private static void UpdateSchema_044(int currentVersionNumber)
         {
             int thisVersion = 44;
@@ -1361,7 +1368,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
             // Now do the migratiuon
-            DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
+
         }
         private static void UpdateSchema_045(int currentVersionNumber)
         {
@@ -1402,11 +1409,14 @@ namespace JMMServer.Databases
             myConn.Open();
 
             List<string> cmds = new List<string>();
-            cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractVersion");
+			DropColumns(myConn, "AnimeGroup_User",new List<string> { "KodiContractVersion", "KodiContractString" });
+			DropColumns(myConn, "AnimeSeries_User", new List<string> { "KodiContractVersion", "KodiContractString" });
+
+/*			cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractVersion");
             cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractString");
             cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractVersion");
             cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractString");
-
+			*/
             foreach (string cmdTable in cmds)
             {
                 SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
@@ -1420,8 +1430,37 @@ namespace JMMServer.Databases
 
 
         }
+		//WE NEED TO DROP SOME SQL LITE COLUMNS...
 
-        private static void UpdateSchema_047(int currentVersionNumber)
+		private static void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove)
+		{
+			List<string> updatedTableColumns = GetTableColumns(tableName);
+			colsToRemove.ForEach(a => updatedTableColumns.Remove(a));
+			String columnsSeperated = string.Join(",", updatedTableColumns);
+			List<string> cmds = new List<string>();
+
+			cmds.Add("ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;");
+			cmds.Add("CREATE TABLE " + tableName + " AS SELECT " + columnsSeperated + " FROM " + tableName + "_old;");
+			cmds.Add("DROP TABLE " + tableName + "_old;");
+			foreach (string cmdTable in cmds)
+			{
+				SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+				sqCommand.Connection = db;
+				sqCommand.ExecuteNonQuery();
+			}
+		}
+		private static List<string> GetTableColumns(string tableName)
+		{
+			string cmd = "pragma table_info(" + tableName + ");";
+			List<string> columns=new List<string>();
+			foreach (object o in GetData(cmd))
+			{
+				object[] oo = (object[])o;
+				columns.Add((string)oo[1]);
+			}
+			return columns;
+		}
+		private static void UpdateSchema_047(int currentVersionNumber)
         {
             int thisVersion = 47;
             if (currentVersionNumber >= thisVersion) return;

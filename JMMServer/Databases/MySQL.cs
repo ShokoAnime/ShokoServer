@@ -386,8 +386,9 @@ namespace JMMServer.Databases
 
 			logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-			DatabaseHelper.FixDuplicateTvDBLinks();
-			DatabaseHelper.FixDuplicateTraktLinks();
+
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTvDBLinks);
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTraktLinks);
 
 			List<string> cmds = new List<string>();
 
@@ -427,8 +428,7 @@ namespace JMMServer.Databases
 
 			logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-			DatabaseHelper.FixDuplicateTvDBLinks();
-			DatabaseHelper.FixDuplicateTraktLinks();
+
 
 			List<string> cmds = new List<string>();
 
@@ -1363,7 +1363,7 @@ namespace JMMServer.Databases
 			UpdateDatabaseVersion(thisVersion);
 
 			// Now do the migratiuon
-			DatabaseHelper.MigrateTvDBLinks_V1_to_V2();
+			DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTvDBLinks_V1_to_V2);
 		}
 
 		private static void UpdateSchema_030(int currentVersionNumber)
@@ -1444,8 +1444,8 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            // Now do the migratiuon
-            DatabaseHelper.MigrateTraktLinks_V1_to_V2();
+			// Now do the migratiuon
+			DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTraktLinks_V1_to_V2);
         }
 
         private static void UpdateSchema_033(int currentVersionNumber)
@@ -1502,8 +1502,8 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            // Now do the migratiuon
-            DatabaseHelper.RemoveOldMovieDBImageRecords();
+			// Now do the migration
+			DatabaseFixes.Fixes.Add(DatabaseFixes.RemoveOldMovieDBImageRecords);
         }
 
         private static void UpdateSchema_035(int currentVersionNumber)
@@ -1657,7 +1657,7 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            DatabaseHelper.PopulateTagWeight();
+			DatabaseFixes.Fixes.Add(DatabaseFixes.PopulateTagWeight);
         }
 
         private static void UpdateSchema_040(int currentVersionNumber)
@@ -1684,7 +1684,8 @@ namespace JMMServer.Databases
 
             logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-            DatabaseHelper.FixHashes();
+			// Now do the migration
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixHashes);
 
             UpdateDatabaseVersion(thisVersion);
         }
@@ -1750,9 +1751,6 @@ namespace JMMServer.Databases
             cmds.Add("UPDATE GroupFilter SET FilterType = 1 ;");
             cmds.Add("ALTER TABLE `GroupFilter` CHANGE COLUMN `FilterType` `FilterType` int NOT NULL ;");
 
-            //Add Migration as SQL, since Groupfilters Cache is not init yet.
-            cmds.Add("UPDATE `GroupFilter` SET `FilterType` = 2 WHERE `GroupFilterName`='" + Constants.GroupFilterName.ContinueWatching + "'");
-
             using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
             {
                 conn.Open();
@@ -1775,8 +1773,10 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-        }
-        private static void UpdateSchema_046(int currentVersionNumber)
+			DatabaseFixes.Fixes.Add(DatabaseFixes.FixContinueWatchingGroupFilter_20160406);
+
+		}
+		private static void UpdateSchema_046(int currentVersionNumber)
         {
             int thisVersion = 46;
             if (currentVersionNumber >= thisVersion) return;
