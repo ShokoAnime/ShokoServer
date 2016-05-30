@@ -440,15 +440,8 @@ namespace PlexMediaInfo
             MediaInfo mi = new MediaInfo();
             if (mi == null)
                 return null;
-            try
-            {
-                if (!File.Exists(filename))
-                    return null;
-            }
-            catch (Exception)
-            {
+            if (!File.Exists(filename))
                 return null;
-            }
             try
             {
                 mi.Open(filename);
