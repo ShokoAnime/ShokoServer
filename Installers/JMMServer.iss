@@ -32,45 +32,10 @@ Name: "desktopicon"; Components: main; Description: "{cm:CreateDesktopIcon}"; Gr
 Name: "quicklaunchicon"; Components: main; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
 
 [Files]
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.exe"; Components: main; DestDir: "{app}"; Flags: ignoreversion 
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Antlr3.Runtime.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Castle.Core.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\FluentNHibernate.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\FluentNHibernate.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\HibernatingRhinos.Profiler.Appender.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\ICSharpCode.SharpZipLib.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Iesi.Collections.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Iesi.Collections.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMContracts.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMContracts.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMFileHelper.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMFileHelper.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.vshost.exe"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.vshost.exe.manifest"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.ConnectionInfo.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.Management.Sdk.Sfc.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.Smo.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.SqlEnum.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\MySql.Data.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.ByteCode.Castle.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.ByteCode.Castle.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NLog.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Remotion.Data.Linq.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\System.Data.SQLite.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\TMDbLib.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\TMDbLib.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\RestSharp.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Newtonsoft.Json.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\Config\JMMServer.exe.Config"; Components: main; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\hasher.dll"; Components: main; DestDir: "{app}\x64"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\MediaInfo.dll"; Components: main; DestDir: "{app}\x64"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\SQLite.Interop.dll"; Components: main; DestDir: "{app}\x64"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\hasher.dll"; Components: main; DestDir: "{app}\x86"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\MediaInfo.dll"; Components: main; DestDir: "{app}\x86"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\SQLite.Interop.dll"; Components: main; DestDir: "{app}\x86"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\*"; Excludes: "JMMServer.exe.Config"; Components: main; DestDir: "{app}"; Flags: ignoreversion 
+Source: "..\JMMServer\bin\Release\JMMServer.exe.Config"; Components: main; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
+Source: "..\JMMServer\bin\Release\x64\*"; Components: main; DestDir: "{app}\x64"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\x86\*"; Components: main; DestDir: "{app}\x86"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
@@ -81,8 +46,26 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\JMM Server"; Compo
 
 [Run]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; StatusMsg: "Open exception on firewall..."; Flags: runhidden; Components:firewall;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerImage user=everyone"; StatusMsg: "Registering WCF Service.."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerBinary user=everyone"; StatusMsg: "Registering WCF Service.."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetro user=everyone"; StatusMsg: "Registering WCF Service.."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetroImage user=everyone"; StatusMsg: "Registering WCF Service.."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerPlex user=everyone"; StatusMsg: "Registering WCF Service.."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerKodi user=everyone"; StatusMsg: "Registering WCF Service.."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerREST user=everyone"; StatusMsg: "Registering WCF Service.."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming user=everyone"; StatusMsg: "Registering WCF Service.."; Flags: runhidden; Components:main;
 Filename: "{app}\JMMServer.exe"; Description: "{cm:LaunchProgram,JMM Server}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport=8111"; StatusMsg: "Open exception on firewall..."; Flags: runhidden; Components:firewall;
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport=8111"; StatusMsg: "Closing exception on firewall..."; Flags: runhidden; Components:firewall;
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerImage"; StatusMsg: "Unregistering WCF Service..."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerBinary"; StatusMsg: "Unregistering WCF Service..."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerMetro"; StatusMsg: "Unregistering WCF Service..."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerMetroImage"; StatusMsg: "Unregistering WCF Service..."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerPlex"; StatusMsg: "Unregistering WCF Service..."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerKodi"; StatusMsg: "Unregistering WCF Service..."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerREST"; StatusMsg: "Unregistering WCF Service..."; Flags: runhidden; Components:main;
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerStreaming"; StatusMsg: "Unregistering WCF Service..."; Flags: runhidden; Components:main;
 
+[Dirs]
+Name: "{app}"; Permissions: users-full
