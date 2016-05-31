@@ -93,6 +93,106 @@ namespace JMMServer
 			return d[n, m];
 		}
 
+        /// <summary>
+        /// Setup system with needed network settings for JMMServer operation. Will invoke an escalation prompt to user. If changing port numbers please give new and old port.
+        /// </summary>
+        /// <param name="oldPort">The port JMMServer was set to run on.</param>
+        /// <param name="Port">The port JMMServer will be running on.</param>
+        /// <param name="FilePort">The port JMMServer will use for files.</param>
+        /// <param name="oldFilePort">The port JMMServer was set to use for files.</param>
+        public static bool SetNetworkRequirements(string Port = null, string FilePort = null, string oldPort=null, string oldFilePort=null)
+        {
+            string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "NetworkConfig.bat");
+            int exitCode = -1;
+            Process proc = new Process();
+
+            proc.StartInfo.FileName = "cmd.exe";
+            proc.StartInfo.Arguments = string.Format(@"/c {0}", BatchFile);
+            proc.StartInfo.Verb = "runas";
+            proc.StartInfo.CreateNoWindow = true;
+            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            proc.StartInfo.UseShellExecute = true;
+
+            try
+            {
+                StreamWriter BatchFileStream = new StreamWriter(BatchFile);
+
+#region Cleanup Default Ports
+                if(ServerSettings.JMMServerPort != 8111.ToString())
+                {
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerImage", 8111));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerBinary", 8111));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerMetro", 8111));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerMetroImage", 8111));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerPlex", 8111));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerKodi", 8111));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerREST", 8111));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerStreaming", 8111));
+                    BatchFileStream.WriteLine(string.Format(@"netsh advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport={0}", 8111));
+                }
+
+                if(ServerSettings.JMMServerFilePort != 8112.ToString())
+                {
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMFilePort", 8112));
+                    BatchFileStream.WriteLine(string.Format(@"netsh advfirewall firewall delete rule name=""JMM Server - File Port"" protocol=TCP localport={0}", 8112));
+                }
+                #endregion
+
+                if (!string.IsNullOrEmpty(Port))
+                {
+                    BatchFileStream.WriteLine(string.Format(@"netsh advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport={0}", Port));
+                    BatchFileStream.WriteLine(string.Format(@"netsh advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport={0}", oldPort));
+
+                    BatchFileStream.WriteLine(string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerImage user=everyone", Port));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerBinary user=everyone", Port));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerMetro user=everyone", Port));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerMetroImage user=everyone", Port));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerPlex user=everyone", Port));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerKodi user=everyone", Port));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerREST user=everyone", Port));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerStreaming user=everyone", Port));
+                }
+                if(!string.IsNullOrEmpty(FilePort))
+                {
+                    BatchFileStream.WriteLine(string.Format(@"netsh advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport={0}", FilePort));
+                    BatchFileStream.WriteLine(string.Format(@"netsh advfirewall firewall delete rule name=""JMM Server - File Port"" protocol=TCP localport={0}", oldFilePort));
+
+                    BatchFileStream.WriteLine(string.Format(@"netsh http add urlacl url=http://+:{0}/JMMFilePort user=everyone", FilePort));
+                }
+
+                if (!string.IsNullOrEmpty(oldPort))
+                {
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerImage", oldPort));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerBinary", oldPort));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerMetro", oldPort));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerMetroImage", oldPort));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerPlex", oldPort));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerKodi", oldPort));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerREST", oldPort));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerStreaming", oldPort));
+                }
+                if(!string.IsNullOrEmpty(oldFilePort))
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMFilePort", oldFilePort));
+
+                BatchFileStream.Close();
+
+                proc.Start();
+                proc.WaitForExit();
+                exitCode = proc.ExitCode;
+                proc.Close();
+                File.Delete(BatchFile);
+            }
+            catch(Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return false;
+            }
+
+            logger.Info("Network requirements set.");
+
+            return true;
+        }
+
 		// Function to display parent function
 		public static string GetParentMethodName()
 		{

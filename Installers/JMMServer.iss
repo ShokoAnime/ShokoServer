@@ -43,6 +43,7 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\JMM Server"; Filen
 
 [Run]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerImage user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerBinary user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetro user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
@@ -51,10 +52,12 @@ Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMS
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerKodi user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerREST user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8112/JMMFilePort user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
 Filename: "{app}\JMMServer.exe"; Flags: nowait postinstall skipifsilent; Description: "{cm:LaunchProgram,JMM Server}"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - File Port"" protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerBinary"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerMetro"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
@@ -63,6 +66,7 @@ Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/J
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerKodi"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerREST"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerStreaming"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8112/JMMFilePort"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 
 [Dirs]
 Name: "{app}"; Permissions: users-full
