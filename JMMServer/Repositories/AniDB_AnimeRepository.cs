@@ -24,15 +24,26 @@ namespace JMMServer.Repositories
 		{
 
             obj.UpdateContractDetailed(session);
+			bool repeatupdate = obj.AnimeID == 0;
+
             // populate the database
             using (var transaction = session.BeginTransaction())
 			{
 				session.SaveOrUpdate(obj);
 				transaction.Commit();
 			}
+			if (repeatupdate)
+			{
+				obj.UpdateContractDetailed(session);
+				using (var transaction = session.BeginTransaction())
+				{
+					session.SaveOrUpdate(obj);
+					transaction.Commit();
+				}
+			}
 		}
 
-	    public static void InitCache()
+		public static void InitCache()
 	    {
 	        string t = "AniDB_Anime";
 	        ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);

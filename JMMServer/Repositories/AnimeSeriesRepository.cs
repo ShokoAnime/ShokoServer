@@ -84,7 +84,7 @@ namespace JMMServer.Repositories
 				}
 			}
             obj.UpdateContract(onlyupdatestats);
-
+			bool repeatupdate = (obj.AnimeSeriesID == 0);
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				// populate the database
@@ -92,6 +92,15 @@ namespace JMMServer.Repositories
 				{
 					session.SaveOrUpdate(obj);
 					transaction.Commit();
+				}
+				if (repeatupdate)
+				{
+					obj.UpdateContract(onlyupdatestats);
+					using (var transaction = session.BeginTransaction())
+					{
+						session.SaveOrUpdate(obj);
+						transaction.Commit();
+					}
 				}
 			}
             Cache.Update(obj);

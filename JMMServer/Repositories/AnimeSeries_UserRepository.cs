@@ -62,7 +62,7 @@ namespace JMMServer.Repositories
 
         public void Save(AnimeSeries_User obj)
 		{
-            UpdatePlexKodiContracts(obj);
+            UpdatePlexKodiContracts(obj);			
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				// populate the database

@@ -1179,7 +1179,7 @@ namespace JMMServer
 
 							// update stats
 							ser.EpisodeAddedDate = DateTime.Now;
-							repSeries.Save(ser,false,true);
+							repSeries.Save(ser,false,false);
 
 							AnimeGroupRepository repGroups = new AnimeGroupRepository();
 							foreach (AnimeGroup grp in ser.AllGroupsAbove)

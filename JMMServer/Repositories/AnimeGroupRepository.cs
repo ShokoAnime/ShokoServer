@@ -327,13 +327,14 @@ namespace JMMServer.Repositories
             grp.Contract = contract;
         }
 
-
+	
         public void Save(AnimeGroup grp, bool updategrpcontractstats, bool recursive)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 UpdateContract(session, grp, updategrpcontractstats);
-                if (grp.AnimeGroupParentID.HasValue && recursive)
+	            bool repeatUpdate = grp.AnimeGroupID == 0;
+				if (grp.AnimeGroupParentID.HasValue && recursive)
                 {
                     //TODO Introduced possible BUG, if a circular GroupParent is created, this will run infinite
                     AnimeGroup pgroup = GetByID(session, grp.AnimeGroupParentID.Value);
@@ -344,7 +345,16 @@ namespace JMMServer.Repositories
                     session.SaveOrUpdate(grp);
                     transaction.Commit();
                 }
-                Cache.Update(grp);
+	            if (repeatUpdate)
+	            {
+					UpdateContract(session, grp, updategrpcontractstats);
+					using (var transaction = session.BeginTransaction())
+					{
+						session.SaveOrUpdate(grp);
+						transaction.Commit();
+					}
+				}
+				Cache.Update(grp);
             }
         }
 

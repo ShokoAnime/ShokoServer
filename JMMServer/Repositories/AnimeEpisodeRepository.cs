@@ -73,11 +73,22 @@ namespace JMMServer.Repositories
 		public void Save(ISession session, AnimeEpisode obj)
 		{
             UpdatePlexContract(obj);
+			bool repeatupdate = (obj.AnimeEpisodeID == 0);
+
 			// populate the database
 			using (var transaction = session.BeginTransaction())
 			{
 				session.SaveOrUpdate(obj);
 				transaction.Commit();
+			}
+			if (repeatupdate)
+			{
+				UpdatePlexContract(obj);
+				using (var transaction = session.BeginTransaction())
+				{
+					session.SaveOrUpdate(obj);
+					transaction.Commit();
+				}
 			}
             Cache.Update(obj);
         }

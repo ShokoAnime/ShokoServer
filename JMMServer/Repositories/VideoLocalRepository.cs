@@ -63,6 +63,8 @@ namespace JMMServer.Repositories
         public void Save(VideoLocal obj, bool updateEpisodes)
 		{
             UpdateMediaContracts(obj);
+	        bool repeatupdate = obj.VideoLocalID == 0;
+
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				// populate the database
@@ -70,6 +72,15 @@ namespace JMMServer.Repositories
 				{
 					session.SaveOrUpdate(obj);
 					transaction.Commit();
+				}
+				if (repeatupdate)
+				{
+					UpdateMediaContracts(obj);
+					using (var transaction = session.BeginTransaction())
+					{
+						session.SaveOrUpdate(obj);
+						transaction.Commit();
+					}
 				}
                 Cache.Update(obj);
 			}

@@ -1129,7 +1129,7 @@ namespace JMMServer.Entities
 	                grp.UpdateStats(watchedStats, missingEpsStats);
 	            }
 	        }
-            rep.Save(this,false,true);
+            rep.Save(this,false,false);
             /*
             ts = DateTime.Now - start;
 	        logger.Trace("Updated GROUPS ABOVE stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
