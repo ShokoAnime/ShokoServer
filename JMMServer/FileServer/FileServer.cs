@@ -30,8 +30,15 @@ namespace JMMServer.FileServer
             Task.Factory.StartNew(() => {
                 while (_listener.IsListening)
                 {
-                    HttpListenerContext ctx = _listener.GetContext(); 
-                    new Thread(() =>Process(ctx)).Start(); 
+                    try
+                    {
+                        HttpListenerContext ctx = _listener.GetContext();
+                        new Thread(() => Process(ctx)).Start();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.ErrorException(ex.ToString(), ex);
+                    }
                 } 
                 }); 
 
@@ -63,30 +70,6 @@ namespace JMMServer.FileServer
             });
              */
 
-        }
-
-        private static void RunNetSh(string parameter)
-        {
-            ProcessStartInfo psi = new ProcessStartInfo("netsh", parameter);
-
-            psi.Verb = "runas";
-            psi.RedirectStandardOutput = false;
-            psi.CreateNoWindow = true;
-            psi.WindowStyle = ProcessWindowStyle.Hidden;
-            psi.UseShellExecute = false;
-            System.Diagnostics.Process.Start(psi);
-        }
-
-        public static void RegisterFirewallAndHttpUser(int jmmport, int jmmfileport)
-        {
-            string everyone = new System.Security.Principal.SecurityIdentifier("S-1-1-0").Translate(typeof(System.Security.Principal.NTAccount)).ToString();
-            
-            //RunNetSh(@"http delete urlacl url=http://*:"+jmmfileport+"/ user=\\" + everyone);
-            RunNetSh(@"http add urlacl url=http://*:" + jmmfileport + "/ user=\\" + everyone);
-            RunNetSh("advfirewall firewall delete rule name=\"JMM Server - Client Port\"");
-            RunNetSh("advfirewall firewall delete rule name=\"JMM Server - File Port\"");
-            RunNetSh("advfirewall firewall add rule name=\"JMM Server - Client Port\" dir=in action=allow protocol=TCP localport=" + jmmport);
-            RunNetSh("advfirewall firewall add rule name=\"JMM Server - File Port\" dir=in action=allow protocol=TCP localport=" + jmmfileport);
         }
 
         public static bool UPnPJMMFilePort(int jmmfileport)
