@@ -30,7 +30,7 @@ namespace JMMServer.Repositories
             AniDBIds=Cache.CreateIndex(a=>a.AniDB_ID);
             Groups=Cache.CreateIndex(a=>a.AnimeGroupID);
             int cnt = 0;
-	        List<AnimeSeries> sers = Cache.Values.Where(a => a.ContractVersion < AnimeSeries.CONTRACT_VERSION).ToList();
+	        List<AnimeSeries> sers = Cache.Values.Where(a => a.ContractVersion < AnimeSeries.CONTRACT_VERSION || a.Contract?.AniDBAnime == null).ToList();
             int max = sers.Count;
             foreach (AnimeSeries s in sers)
 	        {

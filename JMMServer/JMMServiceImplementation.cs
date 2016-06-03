@@ -1996,7 +1996,7 @@ namespace JMMServer
 			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 			try
 			{
-			    return repSeries.GetAll().Select(a => a.Contract).ToList();
+			    return repSeries.GetAll().Select(a => a.GetUserContract(userID)).ToList();
 			}
 			catch (Exception ex)
 			{
