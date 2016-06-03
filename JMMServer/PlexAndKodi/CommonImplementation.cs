@@ -413,6 +413,13 @@ namespace JMMServer.PlexAndKodi
             return prov.GetStreamFromXmlObject(gfs);
         }
 
+        public System.IO.Stream GetVersion(IProvider prov)
+        {
+            Version version = System.Reflection.Assembly.GetEntryAssembly().GetName().Version;
+
+            return prov.GetStreamFromXmlObject(version.ToString());
+        }
+
         public System.IO.Stream Search(IProvider prov, string UserId, string limit, string query, bool searchTag)
         {
             BreadCrumbs info = prov.UseBreadCrumbs ? new BreadCrumbs { Key = prov.ConstructSearchUrl(UserId,limit,query,searchTag), Title = "Search for '"+query+"'" } : null;
