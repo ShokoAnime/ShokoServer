@@ -126,8 +126,19 @@ namespace JMMServer.Commands
                             }
                         }
                     }
-
-					StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
+                    AnimeSeriesRepository repo=new AnimeSeriesRepository();
+                    AniDB_AnimeRepository animerepo=new AniDB_AnimeRepository();
+				    AniDB_Anime anime = animerepo.GetByAnimeID(aniFile.AnimeID);
+				    if (anime != null)
+				    {
+                        using (var session = JMMService.SessionFactory.OpenSession())
+                        {
+                            anime.UpdateContractDetailed(session);
+                        }
+                    }
+                    AnimeSeries series = repo.GetByAnimeID(aniFile.AnimeID);
+                    series.UpdateStats(false,true,true);
+//					StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
 				}
 				
 			}

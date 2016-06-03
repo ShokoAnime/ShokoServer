@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMContracts;
+using JMMContracts.PlexAndKodi;
+using JMMServer.Repositories;
+using Newtonsoft.Json;
 
 namespace JMMServer.Entities
 {
@@ -18,7 +22,41 @@ namespace JMMServer.Entities
 		public int WatchedCount { get; set; }
 		public int StoppedCount { get; set; }
 
-		public AnimeSeries_User()
+
+        public int PlexContractVersion { get; set; }
+        public string PlexContractString { get; set; }
+
+        public const int PLEXCONTRACT_VERSION = 3;
+
+
+        private Video _plexcontract = null;
+        internal virtual Video PlexContract
+        {
+            get
+            {
+                if ((_plexcontract == null) && PlexContractVersion == PLEXCONTRACT_VERSION)
+                {
+                    Video vids = Newtonsoft.Json.JsonConvert.DeserializeObject<Video>(PlexContractString);
+                    if (vids != null)
+                        _plexcontract = vids;
+                }
+                return _plexcontract;
+            }
+            set
+            {
+                _plexcontract = value;
+                if (value != null)
+                {
+                    PlexContractVersion = AnimeGroup_User.PLEXCONTRACT_VERSION;
+                    PlexContractString = Newtonsoft.Json.JsonConvert.SerializeObject(PlexContract, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
+                }
+            }
+        }
+
+
+
+
+        public AnimeSeries_User()
 		{
 		}
 
@@ -26,7 +64,6 @@ namespace JMMServer.Entities
 		{
 			JMMUserID = userID;
 			AnimeSeriesID = seriesID;
-
 			UnwatchedEpisodeCount = 0;
 			WatchedEpisodeCount = 0;
 			WatchedDate = null;

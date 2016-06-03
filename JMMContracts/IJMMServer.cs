@@ -219,6 +219,9 @@ namespace JMMContracts
 		[OperationContract]
 		List<Contract_GroupFilter> GetAllGroupFilters();
 
+	    [OperationContract]
+	    Contract_GroupFilter EvaluateGroupFilter(Contract_GroupFilter contract);
+
 		[OperationContract]
 		Contract_GroupFilter_SaveResponse SaveGroupFilter(Contract_GroupFilter contract);
 
@@ -625,8 +628,8 @@ namespace JMMContracts
 		[OperationContract]
 		Contract_AnimeEpisode GetPreviousEpisodeForUnwatched(int animeSeriesID, int userID);
 
-		[OperationContract]
-		Contract_AnimeEpisode GetEpisodeByAniDBEpisodeID(int episodeID, int userID);
+	    [OperationContract]
+	    Contract_AnimeEpisode GetEpisodeByAniDBEpisodeID(int episodeID, int userID);
 
 		[OperationContract]
 		Contract_FileFfdshowPreset GetFFDPreset(int videoLocalID);

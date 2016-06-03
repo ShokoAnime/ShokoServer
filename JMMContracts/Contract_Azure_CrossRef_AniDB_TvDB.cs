@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace JMMContracts
+﻿namespace JMMContracts
 {
 	public class Contract_Azure_CrossRef_AniDB_TvDB
 	{

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using JMMContracts;
 using JMMServer.Repositories;
 using JMMServer.Entities;
 using NLog;
@@ -13,6 +12,7 @@ using System.ServiceModel.Web;
 using JMMServer.ImageDownload;
 using BinaryNorthwest;
 using AniDBAPI;
+using JMMContracts;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TvDB;
 using JMMServer.Providers.TraktTV.Contracts;
@@ -165,35 +165,12 @@ namespace JMMServer
 			List<Contract_AnimeGroup> grps = new List<Contract_AnimeGroup>();
 			try
 			{
-				using (var session = JMMService.SessionFactory.OpenSession())
+				AnimeGroupRepository repGroups = new AnimeGroupRepository();
+				foreach (AnimeGroup ag in repGroups.GetAll())
 				{
-					AnimeGroupRepository repGroups = new AnimeGroupRepository();
-					AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
-
-					List<AnimeGroup> allGrps = repGroups.GetAll(session);
-
-					// user records
-					AnimeGroup_UserRepository repGroupUser = new AnimeGroup_UserRepository();
-					List<AnimeGroup_User> userRecordList = repGroupUser.GetByUserID(session, userID);
-					Dictionary<int, AnimeGroup_User> dictUserRecords = new Dictionary<int, AnimeGroup_User>();
-					foreach (AnimeGroup_User grpUser in userRecordList)
-						dictUserRecords[grpUser.AnimeGroupID] = grpUser;
-
-					foreach (AnimeGroup ag in allGrps)
-					{
-						AnimeGroup_User userRec = null;
-						if (dictUserRecords.ContainsKey(ag.AnimeGroupID))
-							userRec = dictUserRecords[ag.AnimeGroupID];
-
-						// calculate stats
-						Contract_AnimeGroup contract = ag.ToContract(userRec);
-						contract.ServerPosterPath = ag.GetPosterPathNoBlanks(session);
-						grps.Add(contract);
-					}
-
-					grps.Sort();
+					grps.Add(ag.GetUserContract(userID));
 				}
-
+				grps.Sort();
 			}
 			catch (Exception ex)
 			{
@@ -244,7 +221,7 @@ namespace JMMServer
 						List<AnimeEpisode> eps = vids[0].GetAnimeEpisodes(session);
 						if (eps.Count == 0) continue;
 
-						Contract_AnimeEpisode epContract = eps[0].ToContract(session, jmmuserID);
+						Contract_AnimeEpisode epContract = eps[0].GetUserContract(jmmuserID);
 						if (epContract != null)
 						{
 							retEps.Add(epContract);
@@ -308,7 +285,7 @@ namespace JMMServer
 						List<AnimeEpisode> eps = vids[0].GetAnimeEpisodes(session);
 						if (eps.Count == 0) continue;
 
-						Contract_AnimeEpisode epContract = eps[0].ToContract(session, jmmuserID);
+					    Contract_AnimeEpisode epContract = eps[0].GetUserContract(jmmuserID);
 						if (epContract != null)
 						{
 							AniDB_Anime anidb_anime = ser.GetAnime(session);
@@ -442,7 +419,7 @@ namespace JMMServer
                 {
 
                     GroupFilterRepository repGF = new GroupFilterRepository();
-
+                    AnimeGroup_UserRepository repGU = new AnimeGroup_UserRepository();
                     JMMUserRepository repUsers = new JMMUserRepository();
                     JMMUser user = repUsers.GetByID(session, jmmuserID);
                     if (user == null) return retAnime;
@@ -462,85 +439,57 @@ namespace JMMServer
                             }
                         }
                     }
-
-                    if (gf == null) return retAnime;
-
-                    // Get all the groups 
-                    // it is more efficient to just get the full list of groups and then filter them later
+                    if ((gf == null) || (!gf.GroupsIds.ContainsKey(jmmuserID)))
+                        return retAnime;
                     AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                    List<AnimeGroup> allGrps = repGroups.GetAll(session);
-
-                    // get all the user records
-                    AnimeGroup_UserRepository repUserRecords = new AnimeGroup_UserRepository();
-                    List<AnimeGroup_User> userRecords = repUserRecords.GetByUserID(session, jmmuserID);
-                    Dictionary<int, AnimeGroup_User> dictUserRecords = new Dictionary<int, AnimeGroup_User>();
-                    foreach (AnimeGroup_User userRec in userRecords)
-                        dictUserRecords[userRec.AnimeGroupID] = userRec;
-
-                    // get all the groups in this filter for this user
-                    HashSet<int> groups = StatsCache.Instance.StatUserGroupFilter[user.JMMUserID][gf.GroupFilterID];
-
-                    List<Contract_AnimeGroup> comboGroups = new List<Contract_AnimeGroup>();
-                    foreach (AnimeGroup grp in allGrps)
-                    {
-                        if (groups.Contains(grp.AnimeGroupID))
-                        {
-                            AnimeGroup_User userRec = null;
-                            if (dictUserRecords.ContainsKey(grp.AnimeGroupID)) userRec = dictUserRecords[grp.AnimeGroupID];
-
-                            Contract_AnimeGroup rec = grp.ToContract(userRec);
-                            comboGroups.Add(rec);
-                        }
-                    }
+                    List<Contract_AnimeGroup> comboGroups = gf.GroupsIds[jmmuserID].Select(a => repGroups.GetByID(a)).Where(a => a != null).Select(a => a.GetUserContract(jmmuserID)).ToList();
 
                     // apply sorting
                     List<SortPropOrFieldAndDirection> sortCriteria = GroupFilterHelper.GetSortDescriptions(gf);
                     comboGroups = Sorting.MultiSort<Contract_AnimeGroup>(comboGroups, sortCriteria);
 
-                    if ((StatsCache.Instance.StatUserGroupFilter.ContainsKey(user.JMMUserID)) && (StatsCache.Instance.StatUserGroupFilter[user.JMMUserID].ContainsKey(gf.GroupFilterID)))
+                    AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                    foreach (Contract_AnimeGroup grp in comboGroups)
                     {
-                        AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                        foreach (Contract_AnimeGroup grp in comboGroups)
+                        JMMServiceImplementation imp = new JMMServiceImplementation();
+                        foreach (AnimeSeries ser in repSeries.GetByGroupID(session, grp.AnimeGroupID))
                         {
-                            JMMServiceImplementation imp = new JMMServiceImplementation();
-                            foreach (AnimeSeries ser in repSeries.GetByGroupID(session, grp.AnimeGroupID))
+                            if (!user.AllowedSeries(ser)) continue;
+
+                            AnimeSeries_User serUser = ser.GetUserRecord(session, jmmuserID);
+
+                            Contract_AnimeEpisode ep = imp.GetNextUnwatchedEpisode(session, ser.AnimeSeriesID, jmmuserID);
+                            if (ep != null)
                             {
-                                if (!user.AllowedSeries(ser)) continue;
+                                AniDB_Anime anidb_anime = ser.GetAnime(session);
 
-                                AnimeSeries_User serUser = ser.GetUserRecord(session, jmmuserID);
+                                MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
+                                summ.AnimeID = ser.AniDB_ID;
+                                summ.AnimeName = ser.GetSeriesName(session);
+                                summ.AnimeSeriesID = ser.AnimeSeriesID;
+                                summ.BeginYear = anidb_anime.BeginYear;
+                                summ.EndYear = anidb_anime.EndYear;
+                                //summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
 
-                                Contract_AnimeEpisode ep = imp.GetNextUnwatchedEpisode(session, ser.AnimeSeriesID, jmmuserID);
-                                if (ep != null)
-                                {
-                                    AniDB_Anime anidb_anime = ser.GetAnime(session);
+                                if (serUser != null)
+                                    summ.UnwatchedEpisodeCount = serUser.UnwatchedEpisodeCount;
+                                else
+                                    summ.UnwatchedEpisodeCount = 0;
 
-                                    MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
-                                    summ.AnimeID = ser.AniDB_ID;
-                                    summ.AnimeName = ser.GetSeriesName(session);
-                                    summ.AnimeSeriesID = ser.AnimeSeriesID;
-                                    summ.BeginYear = anidb_anime.BeginYear;
-                                    summ.EndYear = anidb_anime.EndYear;
-                                    //summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
+                                ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
+                                summ.ImageType = (int)imgDet.ImageType;
+                                summ.ImageID = imgDet.ImageID;
 
-                                    if (serUser != null)
-                                        summ.UnwatchedEpisodeCount = serUser.UnwatchedEpisodeCount;
-                                    else
-                                        summ.UnwatchedEpisodeCount = 0;
-
-                                    ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
-                                    summ.ImageType = (int)imgDet.ImageType;
-                                    summ.ImageID = imgDet.ImageID;
-
-                                    retAnime.Add(summ);
+                                retAnime.Add(summ);
 
                                     
-                                    // Lets only return the specified amount
-                                    if (retAnime.Count == maxRecords) return retAnime;
-                                }
-                                else
-                                    logger.Info(string.Format("GetAnimeContinueWatching:Skipping Anime - no episodes: {0}", ser.AniDB_ID));
+                                // Lets only return the specified amount
+                                if (retAnime.Count == maxRecords) return retAnime;
                             }
+                            else
+                                logger.Info(string.Format("GetAnimeContinueWatching:Skipping Anime - no episodes: {0}", ser.AniDB_ID));
                         }
+
                     }
                 }
             }
@@ -777,11 +726,13 @@ namespace JMMServer
 								if (anidbep.EpisodeType == (int)enEpisodeType.Episode || anidbep.EpisodeType == (int)enEpisodeType.Special)
 								{
 									AnimeEpisode_User userRecord = null;
-									if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
-										userRecord = dictEpUsers[ep.AnimeEpisodeID];
-
-									Contract_AnimeEpisode epContract = ep.ToContract(anidbep, new List<VideoLocal>(), userRecord, serUserRec);
-									candidateEps.Add(epContract);
+								    if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
+								    {
+								        userRecord = dictEpUsers[ep.AnimeEpisodeID];
+								        Contract_AnimeEpisode epContract = userRecord.Contract;
+                                        if (epContract!=null)
+                                            candidateEps.Add(epContract);
+								    }
 								}
 							}
 						}
@@ -1424,8 +1375,8 @@ namespace JMMServer
 				// refresh from db
 				ep = repEps.GetByID(animeEpisodeID);
 
-				response.AnimeEpisode = ep.ToContract(userID);
-
+				response.AnimeEpisode = ep.GetUserContract(userID);
+                
 				return response;
 			}
 			catch (Exception ex)

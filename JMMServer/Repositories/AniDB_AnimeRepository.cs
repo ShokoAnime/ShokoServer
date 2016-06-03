@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMServer.Databases;
 using NHibernateTest;
 using JMMServer.Entities;
 using NHibernate.Criterion;
@@ -22,13 +23,50 @@ namespace JMMServer.Repositories
 		public void Save(ISession session, AniDB_Anime obj)
 		{
 
-			// populate the database
-			using (var transaction = session.BeginTransaction())
+            obj.UpdateContractDetailed(session);
+			bool repeatupdate = obj.AnimeID == 0;
+
+            // populate the database
+            using (var transaction = session.BeginTransaction())
 			{
 				session.SaveOrUpdate(obj);
 				transaction.Commit();
 			}
+			if (repeatupdate)
+			{
+				obj.UpdateContractDetailed(session);
+				using (var transaction = session.BeginTransaction())
+				{
+					session.SaveOrUpdate(obj);
+					transaction.Commit();
+				}
+			}
 		}
+
+		public static void InitCache()
+	    {
+	        string t = "AniDB_Anime";
+	        ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            
+            AniDB_AnimeRepository repo = new AniDB_AnimeRepository();
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                List<AniDB_Anime> ls =
+                    repo.GetAll(session).Where(a => a.ContractVersion < AniDB_Anime.CONTRACT_VERSION).ToList();
+                int max = ls.Count;
+                int cnt = 0;
+                foreach (AniDB_Anime a in ls)
+                {
+                    repo.Save(session, a);
+                    cnt++;
+                    if (cnt%10==0)
+                    {
+                        ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " DbRegen - "+cnt+"/"+max);
+                    }
+                }
+                ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " DbRegen - " + max + "/" + max);
+            }
+        }
 
 		public AniDB_Anime GetByID(int id)
 		{

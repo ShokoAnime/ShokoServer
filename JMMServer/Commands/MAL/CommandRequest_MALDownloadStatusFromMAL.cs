@@ -94,8 +94,8 @@ namespace JMMServer.Commands.MAL
 					{
 						if (aniep.EpisodeType != xref.StartEpisodeType) continue;
 
-						AnimeEpisode ep = repEp.GetByAniDBEpisodeID(aniep.EpisodeID);
-						if (ep == null) continue;
+					    AnimeEpisode ep = repEp.GetByAniDBEpisodeID(aniep.EpisodeID);
+						if (ep==null) continue;
 
 						int adjustedWatchedEps = malAnime.my_watched_episodes + xref.StartEpisodeNumber - 1;
 						int epNum = aniep.EpisodeNumber;

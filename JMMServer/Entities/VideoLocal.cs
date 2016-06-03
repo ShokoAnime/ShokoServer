@@ -12,6 +12,8 @@ using BinaryNorthwest;
 using JMMServer.Commands.MAL;
 using NHibernate;
 using System.Threading;
+using JMMContracts.PlexAndKodi;
+using Directory = System.IO.Directory;
 
 namespace JMMServer.Entities
 {
@@ -33,7 +35,37 @@ namespace JMMServer.Entities
 		public DateTime DateTimeCreated { get; set; }
 		public int IsVariation { get; set; }
 
-		public string ToStringDetailed()
+        public int MediaVersion { get; set; }
+        public string MediaString { get; set; }
+
+
+        public const int MEDIA_VERSION = 1;
+
+
+        internal Media _media = null;
+        public virtual Media Media
+        {
+            get
+            {
+                if ((_media == null) && (MediaVersion == MEDIA_VERSION))
+                    _media = Newtonsoft.Json.JsonConvert.DeserializeObject<Media>(MediaString);
+                return _media;
+            }
+            set
+            {
+                _media = value;
+                if (value != null)
+                {
+                    MediaVersion = MEDIA_VERSION;
+                    MediaString = Newtonsoft.Json.JsonConvert.SerializeObject(_media);
+                }
+            }
+        }
+
+
+
+
+        public string ToStringDetailed()
 		{
 			StringBuilder sb = new StringBuilder("");
 			sb.Append(Environment.NewLine);
@@ -271,7 +303,8 @@ namespace JMMServer.Entities
 			AnimeSeries ser = null;
 			// get all files associated with this episode
 			List<CrossRef_File_Episode> xrefs = repCross.GetByHash(this.Hash);
-			if (watched)
+            Dictionary<int, AnimeSeries> toUpdateSeries=new Dictionary<int, AnimeSeries>();
+            if (watched)
 			{
 				// find the total watched percentage
 				// eg one file can have a % = 100
@@ -279,54 +312,55 @@ namespace JMMServer.Entities
 
 				foreach (CrossRef_File_Episode xref in xrefs)
 				{
-					// get the episode for this file
-					AnimeEpisode ep = repEpisodes.GetByAniDBEpisodeID(xref.EpisodeID);
-					if (ep == null) continue;
+					// get the episodes for this file, may be more than one (One Piece x Toriko)
+                    AnimeEpisode ep=repEpisodes.GetByAniDBEpisodeID(xref.EpisodeID);
+				    // get all the files for this episode
+				    int epPercentWatched = 0;
+				    foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
+				    {
+				        VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
+				        if (vidUser != null)
+				        {
+				            // if not null means it is watched
+				            epPercentWatched += filexref.Percentage;
+				        }
 
-					// get all the files for this episode
-					int epPercentWatched = 0;
-					foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
-					{
-						VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
-						if (vidUser != null)
-						{
-							// if not null means it is watched
-							epPercentWatched += filexref.Percentage;
-						}
+				        if (epPercentWatched > 95) break;
+				    }
 
-						if (epPercentWatched > 95) break;
-					}
+				    if (epPercentWatched > 95)
+				    {
+				        ser = ep.GetAnimeSeries();
+                        if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
+                            toUpdateSeries.Add(ser.AnimeSeriesID,ser);
+				        if (user.IsAniDBUser == 0)
+				            ep.SaveWatchedStatus(true, userID, watchedDate, updateWatchedDate);
+				        else
+				        {
+				            // if the user is AniDB user we also want to update any other AniDB
+				            // users to keep them in sync
+				            foreach (JMMUser juser in aniDBUsers)
+				            {
+				                if (juser.IsAniDBUser == 1)
+				                    ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
+				            }
+				        }
 
-					if (epPercentWatched > 95)
-					{
-						ser = ep.GetAnimeSeries();
+				        if (syncTrakt && ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+				        {
+				            CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
+				                new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Add);
+				            cmdSyncTrakt.Save();
+				        }
 
-						if (user.IsAniDBUser == 0)
-							ep.SaveWatchedStatus(true, userID, watchedDate, updateWatchedDate);
-						else
-						{
-							// if the user is AniDB user we also want to update any other AniDB
-							// users to keep them in sync
-							foreach (JMMUser juser in aniDBUsers)
-							{
-								if (juser.IsAniDBUser == 1)
-									ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
-							}
-						}
-
-                        if (syncTrakt && ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-						{
-							CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
-                                new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Add);
-							cmdSyncTrakt.Save();
-						}
-
-						if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) && !string.IsNullOrEmpty(ServerSettings.MAL_Password))
-						{
-							CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
-							cmdMAL.Save();
-						}
-					}
+				        if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
+				            !string.IsNullOrEmpty(ServerSettings.MAL_Password))
+				        {
+				            CommandRequest_MALUpdatedWatchedStatus cmdMAL =
+				                new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
+				            cmdMAL.Save();
+				        }
+				    }
 				}
 
 				
@@ -334,59 +368,62 @@ namespace JMMServer.Entities
 			else
 			{
 				// if setting a file to unwatched only set the episode unwatched, if ALL the files are unwatched
-				foreach (CrossRef_File_Episode xrefEp in xrefs)
-				{
-					AnimeEpisode ep = repEpisodes.GetByAniDBEpisodeID(xrefEp.EpisodeID);
-					if (ep == null) continue;
-					ser = ep.GetAnimeSeries();
+			    foreach (CrossRef_File_Episode xrefEp in xrefs)
+			    {
+			        // get the episodes for this file, may be more than one (One Piece x Toriko)
+			        AnimeEpisode ep = repEpisodes.GetByAniDBEpisodeID(xrefEp.EpisodeID);
+			        ser = ep.GetAnimeSeries();
+                    if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
+                        toUpdateSeries.Add(ser.AnimeSeriesID, ser);
+                    // get all the files for this episode
+                    int epPercentWatched = 0;
+			        foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
+			        {
+			            VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
+			            if (vidUser != null)
+			                epPercentWatched += filexref.Percentage;
 
-					// get all the files for this episode
-					int epPercentWatched = 0;
-					foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
-					{
-						VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
-						if (vidUser != null)
-							epPercentWatched += filexref.Percentage;
+			            if (epPercentWatched > 95) break;
+			        }
 
-						if (epPercentWatched > 95) break;
-					}
+			        if (epPercentWatched < 95)
+			        {
+			            if (user.IsAniDBUser == 0)
+			                ep.SaveWatchedStatus(false, userID, watchedDate, true);
+			            else
+			            {
+			                // if the user is AniDB user we also want to update any other AniDB
+			                // users to keep them in sync
+			                foreach (JMMUser juser in aniDBUsers)
+			                {
+			                    if (juser.IsAniDBUser == 1)
+			                        ep.SaveWatchedStatus(false, juser.JMMUserID, watchedDate, true);
+			                }
+			            }
 
-					if (epPercentWatched < 95)
-					{
-						if (user.IsAniDBUser == 0)
-							ep.SaveWatchedStatus(false, userID, watchedDate, true);
-						else
-						{
-							// if the user is AniDB user we also want to update any other AniDB
-							// users to keep them in sync
-							foreach (JMMUser juser in aniDBUsers)
-							{
-								if (juser.IsAniDBUser == 1)
-									ep.SaveWatchedStatus(false, juser.JMMUserID, watchedDate, true);
-							}
-						}
-
-                        if (syncTrakt && ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                        {
-                            CommandRequest_TraktHistoryEpisode cmdSyncTrakt = new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Remove);
-                            cmdSyncTrakt.Save();
-                        }
-					}
-				}
-
-				if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) && !string.IsNullOrEmpty(ServerSettings.MAL_Password))
-				{
-					CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
-					cmdMAL.Save();
-				}
+			            if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
+			                !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+			            {
+			                CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
+			                    new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Remove);
+			                cmdSyncTrakt.Save();
+			            }
+			        }
+			    }
+                if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) && !string.IsNullOrEmpty(ServerSettings.MAL_Password))
+                {
+                    CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
+                    cmdMAL.Save();
+                }
 			}
 			
 
 			// update stats for groups and series
-			if (ser != null && updateStats)
+			if (toUpdateSeries.Count>0 && updateStats)
 			{
+                foreach(AnimeSeries s in toUpdateSeries.Values)
 				// update all the groups above this series in the heirarchy
-				ser.UpdateStats(true, true, true);
+				s.UpdateStats(true, true, true);
 				//ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
 			}
 
@@ -440,7 +477,7 @@ namespace JMMServer.Entities
 					DataAccessHelper.GetShareAndPath(newFullName, repFolders.GetAll(), ref folderID, ref newPartialPath);
 
 					this.FilePath = newPartialPath;
-					repVids.Save(this);
+					repVids.Save(this,true);
 				}
 			}
 			catch (Exception ex)
@@ -502,7 +539,7 @@ namespace JMMServer.Entities
 
                 if (destFolder == null) return;
 
-                if (!Directory.Exists(destFolder.ImportFolderLocation)) return;
+                if (!System.IO.Directory.Exists(destFolder.ImportFolderLocation)) return;
 
                 // keep the original drop folder for later (take a copy, not a reference)
                 ImportFolder dropFolder = this.ImportFolder;
@@ -599,7 +636,7 @@ namespace JMMServer.Entities
                     this.ImportFolderID = newFolderID;
                     this.FilePath = newPartialPath;
                     VideoLocalRepository repVids = new VideoLocalRepository();
-                    repVids.Save(this);
+                    repVids.Save(this,true);
                 }
                 else
                 {
@@ -612,7 +649,7 @@ namespace JMMServer.Entities
                     this.ImportFolderID = newFolderID;
                     this.FilePath = newPartialPath;
                     VideoLocalRepository repVids = new VideoLocalRepository();
-                    repVids.Save(this);
+                    repVids.Save(this,true);
 
                     try
                     {

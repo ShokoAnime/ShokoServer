@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
+using JMMContracts;
 using JMMServer.Repositories;
 using NHibernate;
-using JMMContracts;
 
 namespace JMMServer.Entities
 {
@@ -106,9 +106,9 @@ namespace JMMServer.Entities
 		{
 			// check if there is an existing episode for this EpisodeID
 			AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-			List<AnimeEpisode> existingEps = repEps.GetByAniEpisodeIDAndSeriesID(session, EpisodeID, animeSeriesID);
+			AnimeEpisode existingEp = repEps.GetByAniDBEpisodeID(session, EpisodeID);
 
-			if (existingEps.Count == 0)
+			if (existingEp==null)
 			{
 				AnimeEpisode animeEp = new AnimeEpisode();
 				animeEp.Populate(this);

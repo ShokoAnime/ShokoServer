@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
 using NHibernate;
+using NutzCode.InMemoryIndex;
 
 namespace JMMServer.Repositories
 {
@@ -13,16 +15,60 @@ namespace JMMServer.Repositories
 	{
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public void Save(AnimeSeries obj)
+	    private static PocoCache<int, AnimeSeries> Cache;
+	    private static PocoIndex<int, AnimeSeries, int> AniDBIds;
+	    private static PocoIndex<int, AnimeSeries, int> Groups;
+        
+
+	    public static void InitCache()
+	    {
+            string t = "AnimeSeries";
+            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+
+            AnimeSeriesRepository repo = new AnimeSeriesRepository();
+            Cache = new PocoCache<int, AnimeSeries>(repo.InternalGetAll(),a=>a.AnimeSeriesID);
+            AniDBIds=Cache.CreateIndex(a=>a.AniDB_ID);
+            Groups=Cache.CreateIndex(a=>a.AnimeGroupID);
+            int cnt = 0;
+	        List<AnimeSeries> sers = Cache.Values.Where(a => a.ContractVersion < AnimeSeries.CONTRACT_VERSION || a.Contract?.AniDBAnime == null).ToList();
+            int max = sers.Count;
+            foreach (AnimeSeries s in sers)
+	        {
+	            repo.Save(s,false, false);
+                cnt++;
+                if (cnt % 10 == 0)
+                {
+                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " DbRegen - " + cnt + "/" + max);
+                }
+            }
+            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " DbRegen - " + max + "/" + max);
+        }
+       
+        private List<AnimeSeries> InternalGetAll()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                var series = session
+                    .CreateCriteria(typeof(AnimeSeries))
+                    .List<AnimeSeries>();
+
+                return new List<AnimeSeries>(series);
+            }
+        }
+
+
+
+        public void Save(AnimeSeries obj, bool onlyupdatestats)
 		{
-			Save(obj, true);
+			Save(obj, true, onlyupdatestats);
 		}
 
-		public void Save(AnimeSeries obj, bool updateStats)
+		public void Save(AnimeSeries obj, bool updateGroups, bool onlyupdatestats)
 		{
 			bool updateStatsCache = false;
 			AnimeGroup oldGroup = null;
-			if (obj.AnimeSeriesID == 0) updateStatsCache = true; // a new series
+            AnimeGroupRepository repGroups = new AnimeGroupRepository();
+            if (obj.AnimeSeriesID == 0) updateStatsCache = true; // a new series
 			else
 			{
 				// get the old version from the DB
@@ -32,14 +78,13 @@ namespace JMMServer.Repositories
 					// means we are moving series to a different group
 					if (oldSeries.AnimeGroupID != obj.AnimeGroupID)
 					{
-						AnimeGroupRepository repGroups = new AnimeGroupRepository();
 						oldGroup = repGroups.GetByID(oldSeries.AnimeGroupID);
 						updateStatsCache = true;
 					}
 				}
 			}
-
-
+            obj.UpdateContract(onlyupdatestats);
+			bool repeatupdate = (obj.AnimeSeriesID == 0);
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
 				// populate the database
@@ -48,122 +93,90 @@ namespace JMMServer.Repositories
 					session.SaveOrUpdate(obj);
 					transaction.Commit();
 				}
+				if (repeatupdate)
+				{
+					obj.UpdateContract(onlyupdatestats);
+					using (var transaction = session.BeginTransaction())
+					{
+						session.SaveOrUpdate(obj);
+						transaction.Commit();
+					}
+				}
 			}
-
-			if (updateStats)
+            Cache.Update(obj);
+			if (updateGroups)
 			{
 				if (updateStatsCache)
 				{
 					logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
-					StatsCache.Instance.UpdateUsingSeries(obj.AnimeSeriesID);
+				    AnimeGroup grp = repGroups.GetByID(obj.AnimeGroupID);
+                    if (grp!=null)
+                        repGroups.Save(grp,true,true);
 				}
 
 				if (oldGroup != null)
 				{
-					logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}", oldGroup.AnimeGroupID);
-					StatsCache.Instance.UpdateUsingGroup(oldGroup.AnimeGroupID);
+                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}", oldGroup.AnimeGroupID);
+                    repGroups.Save(oldGroup,true,true);
 				}
 			}
 		}
 
 		public AnimeSeries GetByID(int id)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetByID(session, id);
-			}
+		    return Cache.Get(id);
 		}
 
-		public AnimeSeries GetByID(ISession session, int id)
+        public AnimeSeries GetByID(ISession session, int id)
 		{
-			return session.Get<AnimeSeries>(id);
+            return GetByID(id);
 		}
 
 		public AnimeSeries GetByAnimeID(int id)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetByAnimeID(session, id);
-			}
+		    return AniDBIds.GetOne(id);
 		}
 
 		public AnimeSeries GetByAnimeID(ISession session, int id)
 		{
-			AnimeSeries cr = session
-				.CreateCriteria(typeof(AnimeSeries))
-				.Add(Restrictions.Eq("AniDB_ID", id))
-				.UniqueResult<AnimeSeries>();
-			return cr;
+            return GetByAnimeID(id);
 		}
 
 		public List<AnimeSeries> GetAll()
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetAll(session);
-			}
+		    return Cache.Values.ToList();
 		}
 
 		public List<AnimeSeries> GetAll(ISession session)
 		{
-			var series = session
-				.CreateCriteria(typeof(AnimeSeries))
-				.List<AnimeSeries>();
-
-			return new List<AnimeSeries>(series);
+		    return GetAll();
 		}
 
 		public List<AnimeSeries> GetByGroupID(int groupid)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetByGroupID(session, groupid);
-			}
+		    return Groups.GetMultiple(groupid);
 		}
 
 		public List<AnimeSeries> GetByGroupID(ISession session, int groupid)
 		{
-			var series = session
-				.CreateCriteria(typeof(AnimeSeries))
-				.Add(Restrictions.Eq("AnimeGroupID", groupid))
-				.List<AnimeSeries>();
-
-			return new List<AnimeSeries>(series);
+            return GetByGroupID(groupid);
 		}
 
 		
 
 		public List<AnimeSeries> GetWithMissingEpisodes()
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				var series = session
-					.CreateCriteria(typeof(AnimeSeries))
-					.Add(Restrictions.Gt("MissingEpisodeCountGroups", 0))
-					.AddOrder(Order.Desc("EpisodeAddedDate"))
-					.List<AnimeSeries>();
-
-				return new List<AnimeSeries>(series);
-			}
+            return Cache.Values.Where(a=>a.MissingEpisodeCountGroups>0).OrderByDescending(a=>a.EpisodeAddedDate).ToList();
 		}
 
 		public List<AnimeSeries> GetMostRecentlyAdded(int maxResults)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return GetMostRecentlyAdded(session, maxResults);
-			}
+		    return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
 		}
 
 		public List<AnimeSeries> GetMostRecentlyAdded(ISession session, int maxResults)
 		{
-			var sers = session
-				.CreateCriteria(typeof(AnimeSeries))
-				.AddOrder(Order.Desc("DateTimeCreated"))
-				.SetMaxResults(maxResults + 15)
-				.List<AnimeSeries>();
-
-			return new List<AnimeSeries>(sers);
+            return GetMostRecentlyAdded(maxResults);
 		}
 
 		public void Delete(int id)
@@ -177,17 +190,20 @@ namespace JMMServer.Repositories
 					AnimeSeries cr = GetByID(id);
 					if (cr != null)
 					{
-						oldGroupID = cr.AnimeGroupID;
+                        Cache.Remove(cr);
+                        oldGroupID = cr.AnimeGroupID;
 						session.Delete(cr);
 						transaction.Commit();
 					}
 				}
 			}
-
 			if (oldGroupID > 0)
 			{
 				logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}", oldGroupID);
-				StatsCache.Instance.UpdateUsingGroup(oldGroupID);
+                AnimeGroupRepository repGroups = new AnimeGroupRepository();
+                AnimeGroup oldGroup = repGroups.GetByID(oldGroupID);
+                if (oldGroup!=null)
+                   repGroups.Save(oldGroup,true,true);
 			}
 		}
 	}

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using AniDBAPI;
-using JMMContracts;
 using System.IO;
+using JMMContracts;
 using JMMServer.ImageDownload;
 
 namespace JMMServer.Entities
