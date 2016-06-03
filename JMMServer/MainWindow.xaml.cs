@@ -970,7 +970,6 @@ namespace JMMServer
 
                 logger.Info("Initializing Hosts...");
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingHosts;
-                FileServer.FileServer.RegisterFirewallAndHttpUser(int.Parse(ServerSettings.JMMServerPort),int.Parse(ServerSettings.JMMServerFilePort));
 				SetupAniDBProcessor();
 				StartImageHost();
 				StartBinaryHost();
@@ -1298,8 +1297,6 @@ namespace JMMServer
 
 			try
 			{
-				ServerSettings.JMMServerPort = port.ToString();
-
 				this.Cursor = Cursors.Wait;
 
 				JMMService.CmdProcessorGeneral.Paused = true;
@@ -1307,7 +1304,13 @@ namespace JMMServer
 				JMMService.CmdProcessorImages.Paused = true;
 
 				StopHost();
-				StartBinaryHost();
+
+                if (Utils.SetNetworkRequirements(Port: port.ToString(), oldPort: ServerSettings.JMMServerPort))
+                    ServerSettings.JMMServerPort = port.ToString();
+                else
+                    txtServerPort.Text = ServerSettings.JMMServerPort;
+
+                StartBinaryHost();
 				StartImageHost();
 				StartImageHostMetro();
 			    StartPlexHost();
