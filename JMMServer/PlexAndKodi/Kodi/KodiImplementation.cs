@@ -24,6 +24,11 @@ namespace JMMServer.PlexAndKodi.Kodi
             return _impl.GetMetadata(_prov, userid, typeid, id, null);
         }
 
+        public Stream GetVersion()
+        {
+            return _impl.GetVersion(_prov);
+        }
+
         public Stream GetUsers()
         {
             return _impl.GetUsers(_prov);

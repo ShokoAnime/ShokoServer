@@ -47,5 +47,9 @@ namespace JMMContracts
         [OperationContract]
         [WebGet(UriTemplate = "TraktScrobble/{animeid}/{type}/{progress}/{status}", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
         System.IO.Stream TraktScrobble(string animeid, string type, string progress, string status);
+
+        [OperationContract]
+        [WebGet(UriTemplate = "GetVersion", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
+        System.IO.Stream GetVersion();
     }
 }
