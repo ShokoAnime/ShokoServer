@@ -996,6 +996,7 @@
     <Resource Include="Images\Flags\nl.gif" />
     <Resource Include="Images\Flags\no.gif" />
     <Resource Include="Images\Flags\pl.gif" />
+    <Resource Include="Images\Flags\pt.gif" />
     <Resource Include="Images\Flags\ro.gif" />
     <Resource Include="Images\Flags\ru.gif" />
     <Resource Include="Images\Flags\se.gif" />
