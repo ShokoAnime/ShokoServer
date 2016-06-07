@@ -1,61 +1,61 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
 
 namespace JMMServer.WebCache
 {
-	[Serializable]
-	[XmlRoot("DeleteCrossRef_AniDB_MALRequest")]
-	public class DeleteCrossRef_AniDB_MALRequest : XMLBase
-	{
-		protected string username = "";
-		public string Username
-		{
-			get { return username; }
-			set { username = value; }
-		}
+    [Serializable]
+    [XmlRoot("DeleteCrossRef_AniDB_MALRequest")]
+    public class DeleteCrossRef_AniDB_MALRequest : XMLBase
+    {
+        protected int animeID;
 
-		protected int animeID = 0;
-		public int AnimeID
-		{
-			get { return animeID; }
-			set { animeID = value; }
-		}
+        protected int startEpisodeNumber;
 
-		protected int startEpisodeType = 0;
-		public int StartEpisodeType
-		{
-			get { return startEpisodeType; }
-			set { startEpisodeType = value; }
-		}
+        protected int startEpisodeType;
+        protected string username = "";
 
-		protected int startEpisodeNumber = 0;
-		public int StartEpisodeNumber
-		{
-			get { return startEpisodeNumber; }
-			set { startEpisodeNumber = value; }
-		}
+        // default constructor
+        public DeleteCrossRef_AniDB_MALRequest()
+        {
+        }
 
-		// default constructor
-		public DeleteCrossRef_AniDB_MALRequest()
-		{
-		}
+        // default constructor
+        public DeleteCrossRef_AniDB_MALRequest(int animeID, int epType, int epNumber)
+        {
+            AnimeID = animeID;
+            StartEpisodeType = epType;
+            StartEpisodeNumber = epNumber;
 
-		// default constructor
-		public DeleteCrossRef_AniDB_MALRequest(int animeID, int epType, int epNumber)
-		{
-			this.AnimeID = animeID;
-			this.StartEpisodeType = epType;
-			this.StartEpisodeNumber = epNumber;
+            var username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
 
-			string username = ServerSettings.AniDB_Username;
-			if (ServerSettings.WebCache_Anonymous)
-				username = Constants.AnonWebCacheUsername;
+            Username = username;
+        }
 
-			this.Username = username;
-		}
-	}
+        public string Username
+        {
+            get { return username; }
+            set { username = value; }
+        }
+
+        public int AnimeID
+        {
+            get { return animeID; }
+            set { animeID = value; }
+        }
+
+        public int StartEpisodeType
+        {
+            get { return startEpisodeType; }
+            set { startEpisodeType = value; }
+        }
+
+        public int StartEpisodeNumber
+        {
+            get { return startEpisodeNumber; }
+            set { startEpisodeNumber = value; }
+        }
+    }
 }

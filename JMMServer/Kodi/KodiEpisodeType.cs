@@ -15,7 +15,7 @@ namespace JMMServer.Kodi
             tp.Type = (int)epType;
             tp.Count = cnt;
             tp.AnimeType = an;
-            bool plural = cnt > 1;
+            var plural = cnt > 1;
             switch (epType)
             {
                 case enEpisodeType.Credits:

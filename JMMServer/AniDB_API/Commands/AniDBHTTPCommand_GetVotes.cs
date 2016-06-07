@@ -1,84 +1,61 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using AniDBAPI.Commands;
+﻿using System.Collections.Generic;
 using AniDBAPI;
+using AniDBAPI.Commands;
 using JMMServer.AniDB_API.Raws;
-using System.Xml;
 
 namespace JMMServer.AniDB_API.Commands
 {
-	public class AniDBHTTPCommand_GetVotes : AniDBHTTPCommand, IAniDBHTTPCommand
-	{
-		private List<Raw_AniDB_Vote_HTTP> myVotes = new List<Raw_AniDB_Vote_HTTP>();
-		public List<Raw_AniDB_Vote_HTTP> MyVotes
-		{
-			get { return myVotes; }
-			set { myVotes = value; }
-		}
+    public class AniDBHTTPCommand_GetVotes : AniDBHTTPCommand, IAniDBHTTPCommand
+    {
+        private string xmlResult = "";
 
-		private string username = "";
-		public string Username
-		{
-			get { return username; }
-			set { username = value; }
-		}
+        public AniDBHTTPCommand_GetVotes()
+        {
+            commandType = enAniDBCommandType.GetVotesHTTP;
+        }
 
-		private string password = "";
-		public string Password
-		{
-			get { return password; }
-			set { password = value; }
-		}
+        public List<Raw_AniDB_Vote_HTTP> MyVotes { get; set; } = new List<Raw_AniDB_Vote_HTTP>();
 
-		private string xmlResult = "";
-		public string XmlResult
-		{
-			get { return xmlResult; }
-			set { xmlResult = value; }
-		}
+        public string Username { get; set; } = "";
 
-		public string GetKey()
-		{
-			return "AniDBHTTPCommand_GetVotes";
-		}
+        public string Password { get; set; } = "";
 
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.GettingVotesHTTP;
-		}
+        public string XmlResult
+        {
+            get { return xmlResult; }
+            set { xmlResult = value; }
+        }
 
-		public virtual enHelperActivityType Process()
-		{
+        public string GetKey()
+        {
+            return "AniDBHTTPCommand_GetVotes";
+        }
 
-			XmlDocument docAnime = AniDBHTTPHelper.GetVotesXMLFromAPI(username, password, ref xmlResult);
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.GettingVotesHTTP;
+        }
 
-			if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
+        public virtual enHelperActivityType Process()
+        {
+            var docAnime = AniDBHTTPHelper.GetVotesXMLFromAPI(Username, Password, ref xmlResult);
 
-			//APIUtils.WriteToLog("AniDBHTTPCommand_GetFullAnime: " + xmlResult);
-			if (docAnime != null)
-			{
+            if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
 
-				myVotes = AniDBHTTPHelper.ProcessVotes(docAnime);
-				return enHelperActivityType.GotVotesHTTP;
-			}
-			else
-			{
-				return enHelperActivityType.NoSuchAnime;
-			}
-		}
+            //APIUtils.WriteToLog("AniDBHTTPCommand_GetFullAnime: " + xmlResult);
+            if (docAnime != null)
+            {
+                MyVotes = AniDBHTTPHelper.ProcessVotes(docAnime);
+                return enHelperActivityType.GotVotesHTTP;
+            }
+            return enHelperActivityType.NoSuchAnime;
+        }
 
-		public AniDBHTTPCommand_GetVotes()
-		{
-			commandType = enAniDBCommandType.GetVotesHTTP;
-		}
-
-		public void Init(string uname, string pword)
-		{
-			this.username = uname;
-			this.password = pword;
-			commandID = "VOTES";
-		}
-	}
+        public void Init(string uname, string pword)
+        {
+            Username = uname;
+            Password = pword;
+            commandID = "VOTES";
+        }
+    }
 }

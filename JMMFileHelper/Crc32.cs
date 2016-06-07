@@ -1,17 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 
 namespace JMMFileHelper
 {
-	public class Crc32 : HashAlgorithm
-	{
+    public class Crc32 : HashAlgorithm
+    {
+        public const uint DefaultSeed = 0xffffffff;
 
-		public const uint DefaultSeed = 0xffffffff;
-
-		readonly static uint[] CrcTable = new uint[] {
+        private static readonly uint[] CrcTable =
+        {
             0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419,
             0x706AF48F, 0xE963A535, 0x9E6495A3, 0x0EDB8832, 0x79DCB8A4,
             0xE0D5E91E, 0x97D2D988, 0x09B64C2B, 0x7EB17CBD, 0xE7B82D07,
@@ -66,45 +62,48 @@ namespace JMMFileHelper
             0x2D02EF8D
         };
 
-		uint crcValue;
+        private uint crcValue;
 
-		public override void Initialize()
-		{
-			crcValue = 0;
-		}
+        public uint CrcValue
+        {
+            get { return (uint)((HashValue[0] << 24) | (HashValue[1] << 16) | (HashValue[2] << 8) | HashValue[3]); }
+        }
 
-		protected override void HashCore(byte[] buffer, int start, int length)
-		{
-			crcValue ^= DefaultSeed;
+        public override int HashSize
+        {
+            get { return 32; }
+        }
 
-			unchecked
-			{
-				while (--length >= 0)
-				{
-					crcValue = CrcTable[(crcValue ^ buffer[start++]) & 0xFF] ^ (crcValue >> 8);
-				}
-			}
+        public override void Initialize()
+        {
+            crcValue = 0;
+        }
 
-			crcValue ^= DefaultSeed;
-		}
-		protected override byte[] HashFinal()
-		{
-			HashValue = new[] { (byte)((crcValue >> 24) & 0xff), 
-                                      (byte)((crcValue >> 16) & 0xff), 
-                                      (byte)((crcValue >> 8) & 0xff), 
-                                      (byte)(crcValue & 0xff) };
-			return HashValue;
-		}
-		public uint CrcValue
-		{
-			get
-			{
-				return (uint)((HashValue[0] << 24) | (HashValue[1] << 16) | (HashValue[2] << 8) | HashValue[3]);
-			}
-		}
-		public override int HashSize
-		{
-			get { return 32; }
-		}
-	}
+        protected override void HashCore(byte[] buffer, int start, int length)
+        {
+            crcValue ^= DefaultSeed;
+
+            unchecked
+            {
+                while (--length >= 0)
+                {
+                    crcValue = CrcTable[(crcValue ^ buffer[start++]) & 0xFF] ^ (crcValue >> 8);
+                }
+            }
+
+            crcValue ^= DefaultSeed;
+        }
+
+        protected override byte[] HashFinal()
+        {
+            HashValue = new[]
+            {
+                (byte) ((crcValue >> 24) & 0xff),
+                (byte) ((crcValue >> 16) & 0xff),
+                (byte) ((crcValue >> 8) & 0xff),
+                (byte) (crcValue & 0xff)
+            };
+            return HashValue;
+        }
+    }
 }

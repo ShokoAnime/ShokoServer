@@ -1,76 +1,65 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Net;
+using System.Text;
 using JMMServer.AniDB_API.Raws;
 
 namespace AniDBAPI.Commands
 {
-	public class AniDBCommand_GetMyListStats : AniDBUDPCommand, IAniDBUDPCommand
-	{
-		
-		public string GetKey()
-		{
-			return "AniDBCommand_GetMyListStats";
-		}
+    public class AniDBCommand_GetMyListStats : AniDBUDPCommand, IAniDBUDPCommand
+    {
+        public AniDBCommand_GetMyListStats()
+        {
+            commandType = enAniDBCommandType.GetMyListStats;
+        }
 
-		private Raw_AniDB_MyListStats myListStats = null;
-		public Raw_AniDB_MyListStats MyListStats
-		{
-			get { return myListStats; }
-			set { myListStats = value; }
-		}
+        public Raw_AniDB_MyListStats MyListStats { get; set; }
 
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.GettingMyListStats;
-		}
+        public string GetKey()
+        {
+            return "AniDBCommand_GetMyListStats";
+        }
 
-		public virtual enHelperActivityType Process(ref Socket soUDP,
-			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-		{
-			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.GettingMyListStats;
+        }
 
-			// handle 555 BANNED and 598 - UNKNOWN COMMAND
-			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-			if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+        public virtual enHelperActivityType Process(ref Socket soUDP,
+            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+        {
+            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-			if (errorOccurred) return enHelperActivityType.NoSuchMyListFile;
+            // handle 555 BANNED and 598 - UNKNOWN COMMAND
+            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
 
-
-			// Process Response
-			string sMsgType = socketResponse.Substring(0, 3);
+            if (errorOccurred) return enHelperActivityType.NoSuchMyListFile;
 
 
-			switch (sMsgType)
-			{
-				case "222":
-					{
-						myListStats = new Raw_AniDB_MyListStats(socketResponse);
-						return enHelperActivityType.GotMyListStats;
+            // Process Response
+            var sMsgType = socketResponse.Substring(0, 3);
 
-					}
-				case "501":
-					{
-						return enHelperActivityType.LoginRequired;
-					}
-			}
 
-			return enHelperActivityType.NoSuchMyListFile;
+            switch (sMsgType)
+            {
+                case "222":
+                    {
+                        MyListStats = new Raw_AniDB_MyListStats(socketResponse);
+                        return enHelperActivityType.GotMyListStats;
+                    }
+                case "501":
+                    {
+                        return enHelperActivityType.LoginRequired;
+                    }
+            }
 
-		}
+            return enHelperActivityType.NoSuchMyListFile;
+        }
 
-		public AniDBCommand_GetMyListStats()
-		{
-			commandType = enAniDBCommandType.GetMyListStats;
-		}
-
-		public void Init()
-		{
-			commandText = "MYLISTSTATS ";
-			commandID = "AniDBCommand_GetMyListStats";
-		}
-	}
+        public void Init()
+        {
+            commandText = "MYLISTSTATS ";
+            commandID = "AniDBCommand_GetMyListStats";
+        }
+    }
 }

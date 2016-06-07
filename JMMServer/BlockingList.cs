@@ -1,98 +1,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 
 namespace JMMServer
 {
     public class BlockingList<T> : IEnumerable<T>
     {
-        private List<T> _list;
         private readonly object _syncRoot;
-        private int _count = 0;
-        private int _size = 0;
-
-        public int Count
-        {
-            get { return _count; }
-        }
-
-        public void Add(T data)
-        {
-            Add(data, Timeout.Infinite);
-        }
-
-        public void Add(T data, int millisecondsTimeout)
-        {
-            if (data == null) throw new ArgumentNullException("data");
-
-            lock (_syncRoot)
-            {
-                while (_count == _size)
-                {
-                    try
-                    {
-                        // Monitor exited with exception.
-                        // Could be owner thread of monitor
-                        // object was terminated or timeout
-                        // on wait. Pulse any/all waiting
-                        // threads to ensure we don't get
-                        // any "live locked" producers.
-                        if (!Monitor.Wait(_syncRoot, millisecondsTimeout))
-                            throw new System.Exception("Timeout on blockinglist add");
-                    }
-                    catch
-                    {
-                        Monitor.PulseAll(_syncRoot);
-                        throw;
-                    }
-                }
-
-                _list.Add(data);
-                _count++;
-                if (_count == 1)
-                    // could have blocking Dequeue thread(s).
-                    Monitor.PulseAll(_syncRoot);
-            }
-        }
-
-        public void Remove(T data)
-        {
-            _count--;
-            lock (_list) _list.Remove(data);
-        }
-
-        public T GetNextItem()
-        {
-            return GetNextItem(Timeout.Infinite);
-        }
-
-        public T GetNextItem(int millisecondsTimeout)
-        {
-            lock (_syncRoot)
-            {
-                while (_count == 0)
-                {
-                    try
-                    {
-                        if (!Monitor.Wait(_syncRoot, millisecondsTimeout))
-							throw new System.Exception("Timeout on blockinglist GetNextItem");
-                    }
-                    catch
-                    {
-                        Monitor.PulseAll(_syncRoot);
-                        throw;
-                    }
-                }
-
-                if (_count == (_size - 1))
-                    // could have blocking Enqueue thread(s).
-                    Monitor.PulseAll(_syncRoot);
-
-                return _list[0];
-            }
-        }
+        private readonly List<T> _list;
+        private readonly int _size;
 
         public BlockingList(int size)
         {
@@ -110,10 +27,7 @@ namespace JMMServer
             _list = new List<T>();
         }
 
-        public bool Contains(T data)
-        {
-            lock (_list) return _list.Contains(data);
-        }
+        public int Count { get; private set; }
 
         IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
@@ -123,6 +37,87 @@ namespace JMMServer
         IEnumerator IEnumerable.GetEnumerator()
         {
             return ((IEnumerable<T>)this).GetEnumerator();
+        }
+
+        public void Add(T data)
+        {
+            Add(data, Timeout.Infinite);
+        }
+
+        public void Add(T data, int millisecondsTimeout)
+        {
+            if (data == null) throw new ArgumentNullException("data");
+
+            lock (_syncRoot)
+            {
+                while (Count == _size)
+                {
+                    try
+                    {
+                        // Monitor exited with exception.
+                        // Could be owner thread of monitor
+                        // object was terminated or timeout
+                        // on wait. Pulse any/all waiting
+                        // threads to ensure we don't get
+                        // any "live locked" producers.
+                        if (!Monitor.Wait(_syncRoot, millisecondsTimeout))
+                            throw new Exception("Timeout on blockinglist add");
+                    }
+                    catch
+                    {
+                        Monitor.PulseAll(_syncRoot);
+                        throw;
+                    }
+                }
+
+                _list.Add(data);
+                Count++;
+                if (Count == 1)
+                    // could have blocking Dequeue thread(s).
+                    Monitor.PulseAll(_syncRoot);
+            }
+        }
+
+        public void Remove(T data)
+        {
+            Count--;
+            lock (_list) _list.Remove(data);
+        }
+
+        public T GetNextItem()
+        {
+            return GetNextItem(Timeout.Infinite);
+        }
+
+        public T GetNextItem(int millisecondsTimeout)
+        {
+            lock (_syncRoot)
+            {
+                while (Count == 0)
+                {
+                    try
+                    {
+                        if (!Monitor.Wait(_syncRoot, millisecondsTimeout))
+                            throw new Exception("Timeout on blockinglist GetNextItem");
+                    }
+                    catch
+                    {
+                        Monitor.PulseAll(_syncRoot);
+                        throw;
+                    }
+                }
+
+                if (Count == _size - 1)
+                    // could have blocking Enqueue thread(s).
+                    Monitor.PulseAll(_syncRoot);
+
+                return _list[0];
+            }
+        }
+
+        public bool Contains(T data)
+        {
+            lock (_list) return _list.Contains(data);
         }
     }
 }

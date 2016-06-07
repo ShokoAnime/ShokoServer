@@ -1,132 +1,113 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.IO;
+using System.Reflection;
 using System.Xml;
 using JMMServer;
-using System.IO;
 
 namespace AniDBAPI.Commands
 {
-	public class AniDBHTTPCommand_GetMyList : AniDBHTTPCommand, IAniDBHTTPCommand
-	{
-		private List<Raw_AniDB_MyListFile> myListItems = new List<Raw_AniDB_MyListFile>();
-		public List<Raw_AniDB_MyListFile> MyListItems
-		{
-			get { return myListItems; }
-			set { myListItems = value; }
-		}
+    public class AniDBHTTPCommand_GetMyList : AniDBHTTPCommand, IAniDBHTTPCommand
+    {
+        private string xmlResult = "";
 
-		private string username = "";
-		public string Username
-		{
-			get { return username; }
-			set { username = value; }
-		}
+        public AniDBHTTPCommand_GetMyList()
+        {
+            commandType = enAniDBCommandType.GetMyListHTTP;
+        }
 
-		private string password = "";
-		public string Password
-		{
-			get { return password; }
-			set { password = value; }
-		}
+        public List<Raw_AniDB_MyListFile> MyListItems { get; set; } = new List<Raw_AniDB_MyListFile>();
 
-		private string xmlResult = "";
-		public string XmlResult
-		{
-			get { return xmlResult; }
-			set { xmlResult = value; }
-		}
+        public string Username { get; set; } = "";
 
-		public string GetKey()
-		{
-			return "AniDBHTTPCommand_GetMyList";
-		}
+        public string Password { get; set; } = "";
 
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.GettingMyListHTTP;
-		}
+        public string XmlResult
+        {
+            get { return xmlResult; }
+            set { xmlResult = value; }
+        }
 
-		private void WriteAnimeMyListToFile(string xml)
-		{
-			string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-			string filePath = Path.Combine(appPath, "MyList");
+        public string GetKey()
+        {
+            return "AniDBHTTPCommand_GetMyList";
+        }
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.GettingMyListHTTP;
+        }
 
-			//string fileName = string.Format("MyList_{0}_{1}.xml", DateTime.Now.ToString("yyyyMMdd"), DateTime.Now.ToString("HHmmss"));
-			string fileName = string.Format("MyList.xml");
-			string fileNameWithPath = Path.Combine(filePath, fileName);
+        public virtual enHelperActivityType Process()
+        {
+            JMMService.LastAniDBMessage = DateTime.Now;
+            JMMService.LastAniDBHTTPMessage = DateTime.Now;
 
-			StreamWriter sw;
-			sw = File.CreateText(fileNameWithPath);
-			sw.Write(xml);
-			sw.Close();
-		}
+            var docAnime = AniDBHTTPHelper.GetMyListXMLFromAPI(Username, Password, ref xmlResult);
+            //XmlDocument docAnime = LoadAnimeMyListFromFile();
+            //APIUtils.WriteToLog("AniDBHTTPCommand_GetFullAnime: " + xmlResult);
 
-		private XmlDocument LoadAnimeMyListFromFile()
-		{
-			string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-			string filePath = Path.Combine(appPath, "MyList");
+            if (xmlResult.Trim().Length > 0)
+                WriteAnimeMyListToFile(xmlResult);
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
 
-			string fileName = string.Format("MyList.xml");
-			string fileNameWithPath = Path.Combine(filePath, fileName);
+            if (docAnime != null)
+            {
+                MyListItems = AniDBHTTPHelper.ProcessMyList(docAnime);
+                return enHelperActivityType.GotMyListHTTP;
+            }
+            return enHelperActivityType.NoSuchAnime;
+        }
 
-			XmlDocument docAnime = null;
-			if (File.Exists(fileNameWithPath))
-			{
-				StreamReader re = File.OpenText(fileNameWithPath);
-				string rawXML = re.ReadToEnd();
-				re.Close();
+        private void WriteAnimeMyListToFile(string xml)
+        {
+            var appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var filePath = Path.Combine(appPath, "MyList");
 
-				docAnime = new XmlDocument();
-				docAnime.LoadXml(rawXML);
-			}
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return docAnime;
-		}
+            //string fileName = string.Format("MyList_{0}_{1}.xml", DateTime.Now.ToString("yyyyMMdd"), DateTime.Now.ToString("HHmmss"));
+            var fileName = "MyList.xml";
+            var fileNameWithPath = Path.Combine(filePath, fileName);
 
-		public virtual enHelperActivityType Process()
-		{
-			JMMService.LastAniDBMessage = DateTime.Now;
-			JMMService.LastAniDBHTTPMessage = DateTime.Now;
+            StreamWriter sw;
+            sw = File.CreateText(fileNameWithPath);
+            sw.Write(xml);
+            sw.Close();
+        }
 
-			XmlDocument docAnime = AniDBHTTPHelper.GetMyListXMLFromAPI(username, password, ref xmlResult);
-			//XmlDocument docAnime = LoadAnimeMyListFromFile();
-			//APIUtils.WriteToLog("AniDBHTTPCommand_GetFullAnime: " + xmlResult);
+        private XmlDocument LoadAnimeMyListFromFile()
+        {
+            var appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var filePath = Path.Combine(appPath, "MyList");
 
-			if (xmlResult.Trim().Length > 0)
-				WriteAnimeMyListToFile(xmlResult);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
+            var fileName = "MyList.xml";
+            var fileNameWithPath = Path.Combine(filePath, fileName);
 
-			if (docAnime != null)
-			{
+            XmlDocument docAnime = null;
+            if (File.Exists(fileNameWithPath))
+            {
+                var re = File.OpenText(fileNameWithPath);
+                var rawXML = re.ReadToEnd();
+                re.Close();
 
-				myListItems = AniDBHTTPHelper.ProcessMyList(docAnime);
-				return enHelperActivityType.GotMyListHTTP;
-			}
-			else
-			{
-				return enHelperActivityType.NoSuchAnime;
-			}
-		}
+                docAnime = new XmlDocument();
+                docAnime.LoadXml(rawXML);
+            }
 
-		public AniDBHTTPCommand_GetMyList()
-		{
-			commandType = enAniDBCommandType.GetMyListHTTP;
-		}
+            return docAnime;
+        }
 
-		public void Init(string uname, string pword)
-		{
-			this.username = uname;
-			this.password = pword;
-			commandID = "MYLIST";
-		}
-	}
+        public void Init(string uname, string pword)
+        {
+            Username = uname;
+            Password = pword;
+            commandID = "MYLIST";
+        }
+    }
 }

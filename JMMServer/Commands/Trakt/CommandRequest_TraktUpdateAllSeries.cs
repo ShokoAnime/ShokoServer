@@ -1,135 +1,131 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using JMMServer.Entities;
-using System.Xml;
-using JMMServer.Repositories;
-using JMMServer.Providers.TraktTV;
-using System.Collections.Specialized;
-using System.Threading;
 using System.Globalization;
-using System.Configuration;
+using System.Threading;
+using System.Xml;
+using JMMServer.Entities;
+using JMMServer.Properties;
+using JMMServer.Providers.TraktTV;
+using JMMServer.Repositories;
 
 namespace JMMServer.Commands
 {
-	[Serializable]
-	public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation, ICommandRequest
-	{
-		public bool ForceRefresh { get; set; }
+    [Serializable]
+    public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation, ICommandRequest
+    {
+        public CommandRequest_TraktUpdateAllSeries()
+        {
+        }
+
+        public CommandRequest_TraktUpdateAllSeries(bool forced)
+        {
+            CommandType = (int)CommandRequestType.Trakt_UpdateAllSeries;
+            Priority = (int)DefaultPriority;
+
+            GenerateCommandID();
+        }
+
+        public bool ForceRefresh { get; set; }
 
 
-		public CommandRequestPriority DefaultPriority
-		{
-			get { return CommandRequestPriority.Priority9; }
-		}
+        public CommandRequestPriority DefaultPriority
+        {
+            get { return CommandRequestPriority.Priority9; }
+        }
 
-		public string PrettyDescription
-		{
-			get
-			{
+        public string PrettyDescription
+        {
+            get
+            {
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                return string.Format(JMMServer.Properties.Resources.Command_UpdateTrakt);
-			}
-		}
+                return string.Format(Resources.Command_UpdateTrakt);
+            }
+        }
 
-		public CommandRequest_TraktUpdateAllSeries()
-		{
-		}
+        public override void ProcessCommand()
+        {
+            logger.Info("Processing CommandRequest_TraktUpdateAllSeries");
 
-		public CommandRequest_TraktUpdateAllSeries(bool forced)
-		{
-			this.CommandType = (int)CommandRequestType.Trakt_UpdateAllSeries;
-			this.Priority = (int)DefaultPriority;
+            try
+            {
+                var repSched = new ScheduledUpdateRepository();
+                var sched = repSched.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate);
+                if (sched == null)
+                {
+                    sched = new ScheduledUpdate();
+                    sched.UpdateType = (int)ScheduledUpdateType.TraktUpdate;
+                    sched.UpdateDetails = "";
+                }
+                else
+                {
+                    var freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
 
-			GenerateCommandID();
-		}
+                    // if we have run this in the last xxx hours then exit
+                    var tsLastRun = DateTime.Now - sched.LastUpdate;
+                    if (tsLastRun.TotalHours < freqHours)
+                    {
+                        if (!ForceRefresh) return;
+                    }
+                }
+                sched.LastUpdate = DateTime.Now;
+                repSched.Save(sched);
 
-		public override void ProcessCommand()
-		{
-			logger.Info("Processing CommandRequest_TraktUpdateAllSeries");
+                // update all info
+                TraktTVHelper.UpdateAllInfo();
 
-			try
-			{
-				ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-				ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate);
-				if (sched == null)
-				{
-					sched = new ScheduledUpdate();
-					sched.UpdateType = (int)ScheduledUpdateType.TraktUpdate;
-					sched.UpdateDetails = "";
-				}
-				else
-				{
-					int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
+                // scan for new matches
+                TraktTVHelper.ScanForMatches();
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error processing CommandRequest_TraktUpdateAllSeries: {0}", ex.ToString());
+            }
+        }
 
-					// if we have run this in the last xxx hours then exit
-					TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-					if (tsLastRun.TotalHours < freqHours)
-					{
-						if (!ForceRefresh) return;
-					}
-				}
-				sched.LastUpdate = DateTime.Now;
-				repSched.Save(sched);
+        public override bool LoadFromDBCommand(CommandRequest cq)
+        {
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
-				// update all info
-				TraktTVHelper.UpdateAllInfo();
+            // read xml to get parameters
+            if (CommandDetails.Trim().Length > 0)
+            {
+                var docCreator = new XmlDocument();
+                docCreator.LoadXml(CommandDetails);
 
-				// scan for new matches
-				TraktTVHelper.ScanForMatches();
-			}
-			catch (Exception ex)
-			{
-				logger.Error("Error processing CommandRequest_TraktUpdateAllSeries: {0}", ex.ToString());
-				return;
-			}
-		}
+                // populate the fields
+                ForceRefresh =
+                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_TraktUpdateAllSeries", "ForceRefresh"));
+            }
 
-		/// <summary>
-		/// This should generate a unique key for a command
-		/// It will be used to check whether the command has already been queued before adding it
-		/// </summary>
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_TraktUpdateAllSeries");
-		}
+            return true;
+        }
 
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
+        /// <summary>
+        ///     This should generate a unique key for a command
+        ///     It will be used to check whether the command has already been queued before adding it
+        /// </summary>
+        public override void GenerateCommandID()
+        {
+            CommandID = "CommandRequest_TraktUpdateAllSeries";
+        }
 
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
 
-				// populate the fields
-				this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_TraktUpdateAllSeries", "ForceRefresh"));
-			}
+            var cq = new CommandRequest();
+            cq.CommandID = CommandID;
+            cq.CommandType = CommandType;
+            cq.Priority = Priority;
+            cq.CommandDetails = ToXML();
+            cq.DateTimeUpdated = DateTime.Now;
 
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
-		}
-	}
+            return cq;
+        }
+    }
 }

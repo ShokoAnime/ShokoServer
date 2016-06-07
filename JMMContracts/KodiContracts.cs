@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.IO;
-using System.Linq;
-using System.Text;
 using System.Xml.Serialization;
-using JMMContracts.KodiContracts;
 
 namespace JMMContracts.KodiContracts
 {
@@ -15,7 +10,6 @@ namespace JMMContracts.KodiContracts
     {
         [XmlElement(typeof(Video), ElementName = "Video")]
         [XmlElement(typeof(Directory), ElementName = "Directory")]
-       
         public List<Video> Childrens { get; set; }
 
         [XmlAttribute("viewGroup")]
@@ -56,7 +50,7 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("nocache")]
         public string NoCache { get; set; }
-        
+
         [XmlAttribute("offset")]
         public string Offset { get; set; }
 
@@ -71,7 +65,9 @@ namespace JMMContracts.KodiContracts
     }
 
     [XmlRoot(ElementName = "Directory")]
-    public class Directory : Video { }
+    public class Directory : Video
+    {
+    }
 
     [XmlType("Video")]
     [Serializable]
@@ -97,7 +93,7 @@ namespace JMMContracts.KodiContracts
 
         [XmlElement("Extras")]
         public Extras Extras { get; set; }
-        
+
         [XmlElement("Related")]
         public List<Hub> Related { get; set; }
 
@@ -230,6 +226,7 @@ namespace JMMContracts.KodiContracts
         //experiment
         [XmlElement("Characters")]
         public List<Characters> CharactersList { get; set; }
+
         //experiment end
     }
 
@@ -238,7 +235,6 @@ namespace JMMContracts.KodiContracts
     {
         [XmlAttribute("tag")]
         public string Value { get; set; }
-        
     }
 
     [XmlType("Media")]
@@ -296,7 +292,7 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("exists")]
         public string Exists { get; set; }
-        
+
         [XmlElement("Stream")]
         public List<Stream> Streams { get; set; }
 
@@ -329,6 +325,9 @@ namespace JMMContracts.KodiContracts
     [XmlType("Stream")]
     public class Stream
     {
+        [XmlIgnore]
+        public int idx;
+
         [XmlAttribute("title")]
         public string Title { get; set; }
 
@@ -359,8 +358,10 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("scanType")]
         public string ScanType { get; set; }
+
         [XmlAttribute("refFrames")]
         public string RefFrames { get; set; }
+
         [XmlAttribute("profile")]
         public string Profile { get; set; }
 
@@ -375,7 +376,7 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("frameRateMode")]
         public string FrameRateMode { get; set; }
-        
+
         [XmlAttribute("file")]
         public string File { get; set; }
 
@@ -402,9 +403,6 @@ namespace JMMContracts.KodiContracts
         [XmlAttribute("index")]
         public string Index { get; set; }
 
-        [XmlIgnore]
-        public int idx;
-
         [XmlAttribute("codec")]
         public string Codec { get; set; }
 
@@ -425,6 +423,7 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("samplingRate")]
         public string SamplingRate { get; set; }
+
         [XmlAttribute("languageCode")]
         public string LanguageCode { get; set; }
 
@@ -445,6 +444,7 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("format")]
         public string Format { get; set; }
+
         [XmlAttribute("default")]
         public string Default { get; set; }
 
@@ -506,8 +506,6 @@ namespace JMMContracts.KodiContracts
 
         [XmlAttribute("more")]
         public string More { get; set; }
-
-
     }
 
     //experiment
@@ -539,6 +537,7 @@ namespace JMMContracts.KodiContracts
         [XmlAttribute("seiyuupic")]
         public string SeiyuuPic { get; set; }
     }
+
     //experimentEND
 
     //better respond than void with blank page

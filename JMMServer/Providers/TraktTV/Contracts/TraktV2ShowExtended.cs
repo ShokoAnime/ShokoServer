@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.Serialization;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
@@ -73,17 +68,14 @@ namespace JMMServer.Providers.TraktTV.Contracts
         [DataMember(Name = "images")]
         public TraktV2ImagesExtended images { get; set; }
 
+        public string ShowURL
+        {
+            get { return string.Format(TraktURIs.WebsiteShow, ids.slug); }
+        }
+
         public override string ToString()
         {
             return string.Format("{0} ({1})", title, year);
-        }
-
-        public string ShowURL
-        {
-            get
-            {
-                return string.Format(TraktURIs.WebsiteShow, ids.slug);
-            }
         }
     }
 }

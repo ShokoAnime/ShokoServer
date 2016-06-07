@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using JMMContracts;
+﻿using JMMContracts;
 
 namespace JMMServer.Entities
 {
@@ -16,7 +11,7 @@ namespace JMMServer.Entities
 
         public Contract_CrossRef_CustomTag ToContract()
         {
-            Contract_CrossRef_CustomTag ctag = new Contract_CrossRef_CustomTag();
+            var ctag = new Contract_CrossRef_CustomTag();
 
             ctag.CrossRef_CustomTagID = CrossRef_CustomTagID;
             ctag.CustomTagID = CustomTagID;

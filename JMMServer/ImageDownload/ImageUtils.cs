@@ -1,198 +1,195 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
+﻿using System.IO;
+using System.Reflection;
 
 namespace JMMServer.ImageDownload
 {
-	public class ImageUtils
-	{
-		public static string GetBaseImagesPath()
-		{
-			bool overrideFolder = false;
-			if (!ServerSettings.BaseImagesPathIsDefault)
-			{
-				if (!string.IsNullOrEmpty(ServerSettings.BaseImagesPath))
-				{
-					if (Directory.Exists(ServerSettings.BaseImagesPath)) overrideFolder = true;
-				}
-			}
+    public class ImageUtils
+    {
+        public static string GetBaseImagesPath()
+        {
+            var overrideFolder = false;
+            if (!ServerSettings.BaseImagesPathIsDefault)
+            {
+                if (!string.IsNullOrEmpty(ServerSettings.BaseImagesPath))
+                {
+                    if (Directory.Exists(ServerSettings.BaseImagesPath)) overrideFolder = true;
+                }
+            }
 
-			string filePath = "";
-			if (overrideFolder)
-				filePath = ServerSettings.BaseImagesPath;
-			else
-			{
-				string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-				filePath = Path.Combine(appPath, "Images");
-			}
+            var filePath = "";
+            if (overrideFolder)
+                filePath = ServerSettings.BaseImagesPath;
+            else
+            {
+                var appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                filePath = Path.Combine(appPath, "Images");
+            }
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetBaseAniDBImagesPath()
-		{
-			string filePath = Path.Combine(GetBaseImagesPath(), "AniDB");
+        public static string GetBaseAniDBImagesPath()
+        {
+            var filePath = Path.Combine(GetBaseImagesPath(), "AniDB");
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetBaseAniDBCharacterImagesPath()
-		{
-			string filePath = Path.Combine(GetBaseImagesPath(), "AniDB_Char");
+        public static string GetBaseAniDBCharacterImagesPath()
+        {
+            var filePath = Path.Combine(GetBaseImagesPath(), "AniDB_Char");
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetBaseAniDBCreatorImagesPath()
-		{
-			string filePath = Path.Combine(GetBaseImagesPath(), "AniDB_Creator");
+        public static string GetBaseAniDBCreatorImagesPath()
+        {
+            var filePath = Path.Combine(GetBaseImagesPath(), "AniDB_Creator");
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetBaseTvDBImagesPath()
-		{
-			string filePath = Path.Combine(GetBaseImagesPath(), "TvDB");
+        public static string GetBaseTvDBImagesPath()
+        {
+            var filePath = Path.Combine(GetBaseImagesPath(), "TvDB");
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetBaseMovieDBImagesPath()
-		{
-			string filePath = Path.Combine(GetBaseImagesPath(), "MovieDB");
+        public static string GetBaseMovieDBImagesPath()
+        {
+            var filePath = Path.Combine(GetBaseImagesPath(), "MovieDB");
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetBaseTraktImagesPath()
-		{
-			string filePath = Path.Combine(GetBaseImagesPath(), "Trakt");
+        public static string GetBaseTraktImagesPath()
+        {
+            var filePath = Path.Combine(GetBaseImagesPath(), "Trakt");
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetImagesTempFolder()
-		{
-			string filePath = Path.Combine(GetBaseImagesPath(), "_Temp_");
+        public static string GetImagesTempFolder()
+        {
+            var filePath = Path.Combine(GetBaseImagesPath(), "_Temp_");
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetAniDBCharacterImagePath(int charID)
-		{
-			string subFolder = "";
-			string sid = charID.ToString();
-			if (sid.Length == 1)
-				subFolder = sid;
-			else
-				subFolder = sid.Substring(0, 2);
+        public static string GetAniDBCharacterImagePath(int charID)
+        {
+            var subFolder = "";
+            var sid = charID.ToString();
+            if (sid.Length == 1)
+                subFolder = sid;
+            else
+                subFolder = sid.Substring(0, 2);
 
-			string filePath = Path.Combine(GetBaseAniDBCharacterImagesPath(), subFolder);
+            var filePath = Path.Combine(GetBaseAniDBCharacterImagesPath(), subFolder);
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetAniDBCreatorImagePath(int creatorID)
-		{
-			string subFolder = "";
-			string sid = creatorID.ToString();
-			if (sid.Length == 1)
-				subFolder = sid;
-			else
-				subFolder = sid.Substring(0, 2);
+        public static string GetAniDBCreatorImagePath(int creatorID)
+        {
+            var subFolder = "";
+            var sid = creatorID.ToString();
+            if (sid.Length == 1)
+                subFolder = sid;
+            else
+                subFolder = sid.Substring(0, 2);
 
-			string filePath = Path.Combine(GetBaseAniDBCreatorImagesPath(), subFolder);
+            var filePath = Path.Combine(GetBaseAniDBCreatorImagesPath(), subFolder);
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetAniDBImagePath(int animeID)
-		{
-			string subFolder = "";
-			string sid = animeID.ToString();
-			if (sid.Length == 1)
-				subFolder = sid;
-			else
-				subFolder = sid.Substring(0, 2);
+        public static string GetAniDBImagePath(int animeID)
+        {
+            var subFolder = "";
+            var sid = animeID.ToString();
+            if (sid.Length == 1)
+                subFolder = sid;
+            else
+                subFolder = sid.Substring(0, 2);
 
-			string filePath = Path.Combine(GetBaseAniDBImagesPath(), subFolder);
+            var filePath = Path.Combine(GetBaseAniDBImagesPath(), subFolder);
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetTvDBImagePath()
-		{
-			string filePath = GetBaseTvDBImagesPath();
+        public static string GetTvDBImagePath()
+        {
+            var filePath = GetBaseTvDBImagesPath();
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetMovieDBImagePath()
-		{
-			string filePath = GetBaseMovieDBImagesPath();
+        public static string GetMovieDBImagePath()
+        {
+            var filePath = GetBaseMovieDBImagesPath();
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetTraktImagePath()
-		{
-			string filePath = GetBaseTraktImagesPath();
+        public static string GetTraktImagePath()
+        {
+            var filePath = GetBaseTraktImagesPath();
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
+            return filePath;
+        }
 
-		public static string GetTraktImagePath_Avatars()
-		{
-			string filePath = Path.Combine(GetTraktImagePath(), "Avatars");
+        public static string GetTraktImagePath_Avatars()
+        {
+            var filePath = Path.Combine(GetTraktImagePath(), "Avatars");
 
-			if (!Directory.Exists(filePath))
-				Directory.CreateDirectory(filePath);
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
 
-			return filePath;
-		}
-	}
+            return filePath;
+        }
+    }
 }

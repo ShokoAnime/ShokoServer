@@ -1,227 +1,247 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
 using JMMServer.Entities;
 
 namespace JMMServer.WebCache
 {
-	[Serializable]
-	[XmlRoot("AniDB_FileRequest")]
-	public class AniDB_FileRequest : XMLBase
-	{
-		protected int fileID = 0;
-		public int FileID
-		{
-			get { return fileID; }
-			set { fileID = value; }
-		}
+    [Serializable]
+    [XmlRoot("AniDB_FileRequest")]
+    public class AniDB_FileRequest : XMLBase
+    {
+        protected string anime_GroupName = "";
 
-		protected string hash = "";
-		public string Hash
-		{
-			get { return hash; }
-			set { hash = value; }
-		}
+        protected string anime_GroupNameShort = "";
 
-		protected int animeID = 0;
-		public int AnimeID
-		{
-			get { return animeID; }
-			set { animeID = value; }
-		}
+        protected int animeID;
 
-		protected int groupID = 0;
-		public int GroupID
-		{
-			get { return groupID; }
-			set { groupID = value; }
-		}
+        protected string cRC = "";
 
-		protected string file_Source = "";
-		public string File_Source
-		{
-			get { return file_Source; }
-			set { file_Source = value; }
-		}
+        protected int episode_Rating;
 
-		protected string file_AudioCodec = "";
-		public string File_AudioCodec
-		{
-			get { return file_AudioCodec; }
-			set { file_AudioCodec = value; }
-		}
+        protected int episode_Votes;
 
-		protected string file_VideoCodec = "";
-		public string File_VideoCodec
-		{
-			get { return file_VideoCodec; }
-			set { file_VideoCodec = value; }
-		}
+        protected string episodesPercentRAW = "";
 
-		protected string file_VideoResolution = "";
-		public string File_VideoResolution
-		{
-			get { return file_VideoResolution; }
-			set { file_VideoResolution = value; }
-		}
+        protected string episodesRAW = "";
 
-		protected string file_FileExtension = "";
-		public string File_FileExtension
-		{
-			get { return file_FileExtension; }
-			set { file_FileExtension = value; }
-		}
+        protected string file_AudioCodec = "";
 
-		protected int file_LengthSeconds = 0;
-		public int File_LengthSeconds
-		{
-			get { return file_LengthSeconds; }
-			set { file_LengthSeconds = value; }
-		}
+        protected string file_Description = "";
 
-		protected string file_Description = "";
-		public string File_Description
-		{
-			get { return file_Description; }
-			set { file_Description = value; }
-		}
+        protected string file_FileExtension = "";
 
-		protected int file_ReleaseDate = 0;
-		public int File_ReleaseDate
-		{
-			get { return file_ReleaseDate; }
-			set { file_ReleaseDate = value; }
-		}
+        protected int file_LengthSeconds;
 
-		protected string anime_GroupName = "";
-		public string Anime_GroupName
-		{
-			get { return anime_GroupName; }
-			set { anime_GroupName = value; }
-		}
+        protected int file_ReleaseDate;
 
-		protected string anime_GroupNameShort = "";
-		public string Anime_GroupNameShort
-		{
-			get { return anime_GroupNameShort; }
-			set { anime_GroupNameShort = value; }
-		}
+        protected string file_Source = "";
 
-		protected int episode_Rating = 0;
-		public int Episode_Rating
-		{
-			get { return episode_Rating; }
-			set { episode_Rating = value; }
-		}
+        protected string file_VideoCodec = "";
 
-		protected int episode_Votes = 0;
-		public int Episode_Votes
-		{
-			get { return episode_Votes; }
-			set { episode_Votes = value; }
-		}
+        protected string file_VideoResolution = "";
+        protected int fileID;
 
-		protected string cRC = "";
-		public string CRC
-		{
-			get { return cRC; }
-			set { cRC = value; }
-		}
+        protected string fileName = "";
 
-		protected string mD5 = "";
-		public string MD5
-		{
-			get { return mD5; }
-			set { mD5 = value; }
-		}
+        protected long fileSize;
 
-		protected string sHA1 = "";
-		public string SHA1
-		{
-			get { return sHA1; }
-			set { sHA1 = value; }
-		}
+        protected int groupID;
 
-		protected string fileName = "";
-		public string FileName
-		{
-			get { return fileName; }
-			set { fileName = value; }
-		}
+        protected string hash = "";
 
-		protected long fileSize = 0;
-		public long FileSize
-		{
-			get { return fileSize; }
-			set { fileSize = value; }
-		}
+        protected string languagesRAW = "";
 
-		protected string subtitlesRAW = "";
-		public string SubtitlesRAW
-		{
-			get { return subtitlesRAW; }
-			set { subtitlesRAW = value; }
-		}
+        protected string mD5 = "";
 
-		protected string languagesRAW = "";
-		public string LanguagesRAW
-		{
-			get { return languagesRAW; }
-			set { languagesRAW = value; }
-		}
+        protected string sHA1 = "";
 
-		protected string episodesRAW = "";
-		public string EpisodesRAW
-		{
-			get { return episodesRAW; }
-			set { episodesRAW = value; }
-		}
+        protected string subtitlesRAW = "";
 
-		protected string episodesPercentRAW = "";
-		public string EpisodesPercentRAW
-		{
-			get { return episodesPercentRAW; }
-			set { episodesPercentRAW = value; }
-		}
+        // default constructor
+        public AniDB_FileRequest()
+        {
+        }
 
-		// default constructor
-		public AniDB_FileRequest()
-		{
-		}
+        // default constructor
+        public AniDB_FileRequest(AniDB_File data)
+        {
+            Anime_GroupName = data.Anime_GroupName;
+            Anime_GroupNameShort = data.Anime_GroupNameShort;
+            AnimeID = data.AnimeID;
+            CRC = data.CRC;
+            Episode_Rating = data.Episode_Rating;
+            Episode_Votes = data.Episode_Votes;
+            File_AudioCodec = data.File_AudioCodec;
+            File_Description = data.File_Description;
+            File_FileExtension = data.File_FileExtension;
+            File_LengthSeconds = data.File_LengthSeconds;
+            File_ReleaseDate = data.File_ReleaseDate;
+            File_Source = data.File_Source;
+            File_VideoCodec = data.File_VideoCodec;
+            File_VideoResolution = data.File_VideoResolution;
+            FileID = data.FileID;
+            FileName = data.FileName;
+            FileSize = data.FileSize;
+            GroupID = data.GroupID;
+            Hash = data.Hash;
+            MD5 = data.MD5;
+            SHA1 = data.SHA1;
 
-		// default constructor
-		public AniDB_FileRequest(AniDB_File data)
-		{
-			this.Anime_GroupName = data.Anime_GroupName;
-			this.Anime_GroupNameShort = data.Anime_GroupNameShort;
-			this.AnimeID = data.AnimeID;
-			this.CRC = data.CRC;
-			this.Episode_Rating = data.Episode_Rating;
-			this.Episode_Votes = data.Episode_Votes;
-			this.File_AudioCodec = data.File_AudioCodec;
-			this.File_Description = data.File_Description;
-			this.File_FileExtension = data.File_FileExtension;
-			this.File_LengthSeconds = data.File_LengthSeconds;
-			this.File_ReleaseDate = data.File_ReleaseDate;
-			this.File_Source = data.File_Source;
-			this.File_VideoCodec = data.File_VideoCodec;
-			this.File_VideoResolution = data.File_VideoResolution;
-			this.FileID = data.FileID;
-			this.FileName = data.FileName;
-			this.FileSize = data.FileSize;
-			this.GroupID = data.GroupID;
-			this.Hash = data.Hash;
-			this.MD5 = data.MD5;
-			this.SHA1 = data.SHA1;
+            SubtitlesRAW = data.SubtitlesRAWForWebCache;
+            LanguagesRAW = data.LanguagesRAWForWebCache;
+            EpisodesRAW = data.EpisodesRAWForWebCache;
+            EpisodesPercentRAW = data.EpisodesPercentRAWForWebCache;
+        }
 
-			this.SubtitlesRAW = data.SubtitlesRAWForWebCache;
-			this.LanguagesRAW = data.LanguagesRAWForWebCache;
-			this.EpisodesRAW = data.EpisodesRAWForWebCache;
-			this.EpisodesPercentRAW = data.EpisodesPercentRAWForWebCache;
-			
-		}
-	}
+        public int FileID
+        {
+            get { return fileID; }
+            set { fileID = value; }
+        }
+
+        public string Hash
+        {
+            get { return hash; }
+            set { hash = value; }
+        }
+
+        public int AnimeID
+        {
+            get { return animeID; }
+            set { animeID = value; }
+        }
+
+        public int GroupID
+        {
+            get { return groupID; }
+            set { groupID = value; }
+        }
+
+        public string File_Source
+        {
+            get { return file_Source; }
+            set { file_Source = value; }
+        }
+
+        public string File_AudioCodec
+        {
+            get { return file_AudioCodec; }
+            set { file_AudioCodec = value; }
+        }
+
+        public string File_VideoCodec
+        {
+            get { return file_VideoCodec; }
+            set { file_VideoCodec = value; }
+        }
+
+        public string File_VideoResolution
+        {
+            get { return file_VideoResolution; }
+            set { file_VideoResolution = value; }
+        }
+
+        public string File_FileExtension
+        {
+            get { return file_FileExtension; }
+            set { file_FileExtension = value; }
+        }
+
+        public int File_LengthSeconds
+        {
+            get { return file_LengthSeconds; }
+            set { file_LengthSeconds = value; }
+        }
+
+        public string File_Description
+        {
+            get { return file_Description; }
+            set { file_Description = value; }
+        }
+
+        public int File_ReleaseDate
+        {
+            get { return file_ReleaseDate; }
+            set { file_ReleaseDate = value; }
+        }
+
+        public string Anime_GroupName
+        {
+            get { return anime_GroupName; }
+            set { anime_GroupName = value; }
+        }
+
+        public string Anime_GroupNameShort
+        {
+            get { return anime_GroupNameShort; }
+            set { anime_GroupNameShort = value; }
+        }
+
+        public int Episode_Rating
+        {
+            get { return episode_Rating; }
+            set { episode_Rating = value; }
+        }
+
+        public int Episode_Votes
+        {
+            get { return episode_Votes; }
+            set { episode_Votes = value; }
+        }
+
+        public string CRC
+        {
+            get { return cRC; }
+            set { cRC = value; }
+        }
+
+        public string MD5
+        {
+            get { return mD5; }
+            set { mD5 = value; }
+        }
+
+        public string SHA1
+        {
+            get { return sHA1; }
+            set { sHA1 = value; }
+        }
+
+        public string FileName
+        {
+            get { return fileName; }
+            set { fileName = value; }
+        }
+
+        public long FileSize
+        {
+            get { return fileSize; }
+            set { fileSize = value; }
+        }
+
+        public string SubtitlesRAW
+        {
+            get { return subtitlesRAW; }
+            set { subtitlesRAW = value; }
+        }
+
+        public string LanguagesRAW
+        {
+            get { return languagesRAW; }
+            set { languagesRAW = value; }
+        }
+
+        public string EpisodesRAW
+        {
+            get { return episodesRAW; }
+            set { episodesRAW = value; }
+        }
+
+        public string EpisodesPercentRAW
+        {
+            get { return episodesPercentRAW; }
+            set { episodesPercentRAW = value; }
+        }
+    }
 }

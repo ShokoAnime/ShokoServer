@@ -1,108 +1,85 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Net;
+using System.Text;
 
 namespace AniDBAPI.Commands
 {
-	public class AniDBCommand_GetCreatorInfo : AniDBUDPCommand, IAniDBUDPCommand
-	{
-		private int creatorID = 0;
-		public int CreatorID
-		{
-			get { return creatorID; }
-			set { creatorID = value; }
-		}
+    public class AniDBCommand_GetCreatorInfo : AniDBUDPCommand, IAniDBUDPCommand
+    {
+        public AniDBCommand_GetCreatorInfo()
+        {
+            commandType = enAniDBCommandType.GetCreatorInfo;
+        }
 
-		public string GetKey()
-		{
-			return "AniDBCommand_GetCreatorInfo" + CreatorID.ToString();
-		}
+        public int CreatorID { get; set; }
 
-		private Raw_AniDB_Creator creatorInfo = null;
-		public Raw_AniDB_Creator CreatorInfo
-		{
-			get { return creatorInfo; }
-			set { creatorInfo = value; }
-		}
+        public Raw_AniDB_Creator CreatorInfo { get; set; }
 
-		private bool forceRefresh = false;
-		public bool ForceRefresh
-		{
-			get { return forceRefresh; }
-			set { forceRefresh = value; }
-		}
+        public bool ForceRefresh { get; set; }
 
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.GettingCreatorInfo;
-		}
+        public string GetKey()
+        {
+            return "AniDBCommand_GetCreatorInfo" + CreatorID;
+        }
 
-		public virtual enHelperActivityType Process(ref Socket soUDP,
-			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-		{
-			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.GettingCreatorInfo;
+        }
 
-			// handle 555 BANNED and 598 - UNKNOWN COMMAND
-			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-			if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+        public virtual enHelperActivityType Process(ref Socket soUDP,
+            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+        {
+            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-			if (errorOccurred) return enHelperActivityType.NoSuchCreator;
+            // handle 555 BANNED and 598 - UNKNOWN COMMAND
+            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
 
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCreatorInfo.Process: Response: {0}", socketResponse);
+            if (errorOccurred) return enHelperActivityType.NoSuchCreator;
 
-			// Process Response
-			string sMsgType = socketResponse.Substring(0, 3);
+            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCreatorInfo.Process: Response: {0}", socketResponse);
+
+            // Process Response
+            var sMsgType = socketResponse.Substring(0, 3);
 
 
-			switch (sMsgType)
-			{
-				case "245":
-					{
-						// 245 CREATOR
-						// the first 11 characters should be "245 CREATOR"
-						// the rest of the information should be the data list
+            switch (sMsgType)
+            {
+                case "245":
+                    {
+                        // 245 CREATOR
+                        // the first 11 characters should be "245 CREATOR"
+                        // the rest of the information should be the data list
 
-						creatorInfo = new Raw_AniDB_Creator(socketResponse);
-						return enHelperActivityType.GotCreatorInfo;
-
-
-						// 245 CREATOR 200|?????|Suwabe Jun`ichi|1|17015.jpg||http://www.haikyo.or.jp/PROFILE/man/11470.html|Junichi_Suwabe|%E8%AB%8F%E8%A8%AA%E9%83%A8%E9%A0%86%E4%B8%80|1236300570
-
-					}
-				case "345":
-					{
-						return enHelperActivityType.NoSuchCreator;
-					}
-				case "501":
-					{
-						return enHelperActivityType.LoginRequired;
-					}
-			}
-
-			return enHelperActivityType.NoSuchCreator;
-
-		}
+                        CreatorInfo = new Raw_AniDB_Creator(socketResponse);
+                        return enHelperActivityType.GotCreatorInfo;
 
 
+                        // 245 CREATOR 200|?????|Suwabe Jun`ichi|1|17015.jpg||http://www.haikyo.or.jp/PROFILE/man/11470.html|Junichi_Suwabe|%E8%AB%8F%E8%A8%AA%E9%83%A8%E9%A0%86%E4%B8%80|1236300570
+                    }
+                case "345":
+                    {
+                        return enHelperActivityType.NoSuchCreator;
+                    }
+                case "501":
+                    {
+                        return enHelperActivityType.LoginRequired;
+                    }
+            }
 
-		public AniDBCommand_GetCreatorInfo()
-		{
-			commandType = enAniDBCommandType.GetCreatorInfo;
-		}
+            return enHelperActivityType.NoSuchCreator;
+        }
 
-		public void Init(int creaID, bool force)
-		{
+        public void Init(int creaID, bool force)
+        {
+            CreatorID = creaID;
+            ForceRefresh = force;
+            commandText = "CREATOR creatorid=" + CreatorID;
 
-			this.creatorID = creaID;
-			this.forceRefresh = force;
-			commandText = "CREATOR creatorid=" + creatorID.ToString();
+            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCreatorInfo.Process: Request: {0}", commandText);
 
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCreatorInfo.Process: Request: {0}", commandText);
-
-			commandID = creatorID.ToString();
-		}
-	}
+            commandID = CreatorID.ToString();
+        }
+    }
 }

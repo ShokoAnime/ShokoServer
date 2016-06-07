@@ -1,49 +1,42 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Xml;
 
 namespace AniDBAPI
 {
-	[Serializable]
-	public class Raw_AniDB_Anime_Title : XMLBase
-	{
-		#region Properties
+    [Serializable]
+    public class Raw_AniDB_Anime_Title : XMLBase
+    {
+        public void ProcessFromHTTPResult(XmlNode node, int anid)
+        {
+            AnimeID = anid;
+            TitleType = "";
+            Language = "";
+            Title = "";
 
-		public int AnimeID { get; set; }
-		public string TitleType { get; set; }
-		public string Language { get; set; }
-		public string Title { get; set; }
+            TitleType = AniDBHTTPHelper.TryGetAttribute(node, "type");
+            Language = AniDBHTTPHelper.TryGetAttribute(node, "xml:lang");
+            Title = node.InnerText.Trim();
 
-		#endregion
+            // Title Types
+            // -------------
+            // main
+            // official
+            // syn / SYNONYM / SYNONYMs
+            // short
 
-		public Raw_AniDB_Anime_Title()
-		{
-		}
+            // Common Languages
+            // en = english
+            // x-jat = romaji
+            // ja = kanji
+        }
 
-		public void ProcessFromHTTPResult(XmlNode node, int anid)
-		{
-			this.AnimeID = anid;
-			this.TitleType = "";
-			this.Language = "";
-			this.Title = "";
+        #region Properties
 
-			this.TitleType = AniDBHTTPHelper.TryGetAttribute(node, "type");
-			this.Language = AniDBHTTPHelper.TryGetAttribute(node, "xml:lang");
-			this.Title = node.InnerText.Trim();
+        public int AnimeID { get; set; }
+        public string TitleType { get; set; }
+        public string Language { get; set; }
+        public string Title { get; set; }
 
-			// Title Types
-			// -------------
-			// main
-			// official
-			// syn / SYNONYM / SYNONYMs
-			// short
-
-			// Common Languages
-			// en = english
-			// x-jat = romaji
-			// ja = kanji
-		}
-	}
+        #endregion
+    }
 }

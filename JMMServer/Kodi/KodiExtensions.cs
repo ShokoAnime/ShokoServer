@@ -2,13 +2,13 @@
 using JMMContracts;
 using JMMContracts.KodiContracts;
 using JMMServer.ImageDownload;
+
 // ReSharper disable FunctionComplexityOverflow
+
 namespace JMMServer.Kodi
 {
     public static class KodiExtensions
     {
-
-
         public static string GenPoster(this ImageDetails im)
         {
             if (im == null)
@@ -46,7 +46,7 @@ namespace JMMServer.Kodi
 
         public static Hub Clone(this Hub o)
         {
-            Hub h = new Hub();
+            var h = new Hub();
             h.HubIdentifier = o.HubIdentifier;
             h.Key = KodiHelper.ReplaceSchemeHost(o.Key);
             h.More = o.More;
@@ -130,7 +130,5 @@ namespace JMMServer.Kodi
             v.totalLocal = o.totalLocal;
             return v;
         }
-
-
     }
 }

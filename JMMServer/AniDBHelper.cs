@@ -1,61 +1,60 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Globalization;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using NLog;
-using AniDBAPI;
+using System.Text;
 using System.Threading;
-using JMMServer.Entities;
-using JMMServer.Repositories;
-using System.IO;
+using System.Timers;
+using AniDBAPI;
 using AniDBAPI.Commands;
 using JMMServer.Commands;
-using JMMServer.WebCache;
 using JMMServer.Commands.Azure;
+using JMMServer.Entities;
+using JMMServer.Properties;
+using JMMServer.Repositories;
 using NHibernate;
-using System.Collections.Specialized;
-using System.Configuration;
-using System.Globalization;
+using NLog;
+using Timer = System.Timers.Timer;
 
 namespace JMMServer
 {
     public class AniDBHelper
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
-        // we use this lock to make don't try and access AniDB too much (UDP and HTTP)
-        private object lockAniDBConnections = new object();
-
-        private IPEndPoint localIpEndPoint = null;
-        private IPEndPoint remoteIpEndPoint = null;
-        private Socket soUdp = null;
-        private string curSessionID = string.Empty;
-
-        private bool networkAvailable = true;
-
-        private string userName = string.Empty;
-        private string password = string.Empty;
-        private string serverName = string.Empty;
-        private string serverPort = string.Empty;
-        private string clientPort = string.Empty;
-        private Encoding encoding;
-
-        System.Timers.Timer logoutTimer = null;
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public static int AniDBDelay = 2500;
         public static int AniDBDelay_Short = 1250;
 
-        private DateTime? banTime = null;
-        public DateTime? BanTime
-        {
-            get { return banTime; }
-            set { banTime = value; }
+        private string banOrigin = "";
 
-        }
+        private string clientPort = string.Empty;
+        private string curSessionID = string.Empty;
+        private Encoding encoding;
 
-        private bool isBanned = false;
+        private bool isBanned;
+
+        private bool isInvalidSession;
+
+        private IPEndPoint localIpEndPoint;
+
+        // we use this lock to make don't try and access AniDB too much (UDP and HTTP)
+        private readonly object lockAniDBConnections = new object();
+
+        private Timer logoutTimer;
+
+        private bool networkAvailable = true;
+        private string password = string.Empty;
+        private IPEndPoint remoteIpEndPoint;
+        private string serverName = string.Empty;
+        private string serverPort = string.Empty;
+        private Socket soUdp;
+
+        private string userName = string.Empty;
+
+        public DateTime? BanTime { get; set; }
+
         public bool IsBanned
         {
             get { return isBanned; }
@@ -74,10 +73,8 @@ namespace JMMServer
                 else
                     ServerInfo.Instance.BanReason = "";
             }
-
         }
 
-        private string banOrigin = "";
         public string BanOrigin
         {
             get { return banOrigin; }
@@ -86,10 +83,8 @@ namespace JMMServer
                 banOrigin = value;
                 ServerInfo.Instance.BanOrigin = value;
             }
-
         }
 
-        private bool isInvalidSession = false;
         public bool IsInvalidSession
         {
             get { return isInvalidSession; }
@@ -98,52 +93,18 @@ namespace JMMServer
             {
                 isInvalidSession = value;
                 ServerInfo.Instance.IsInvalidSession = isInvalidSession;
-
             }
-
         }
 
-        private bool isLoggedOn = false;
-        public bool IsLoggedOn
-        {
-            get { return isLoggedOn; }
-            set { isLoggedOn = value; }
+        public bool IsLoggedOn { get; set; }
 
-        }
+        public bool WaitingOnResponse { get; set; }
 
-        private bool waitingOnResponse = false;
-        public bool WaitingOnResponse
-        {
-            get { return waitingOnResponse; }
-            set { waitingOnResponse = value; }
-        }
+        public DateTime? WaitingOnResponseTime { get; set; }
 
-        private DateTime? waitingOnResponseTime = null;
-        public DateTime? WaitingOnResponseTime
-        {
-            get { return waitingOnResponseTime; }
-            set { waitingOnResponseTime = value; }
+        public int? ExtendPauseSecs { get; set; }
 
-        }
-
-        private int? extendPauseSecs = null;
-        public int? ExtendPauseSecs
-        {
-            get { return extendPauseSecs; }
-            set { extendPauseSecs = value; }
-
-        }
-
-        private string extendPauseReason = "";
-        public string ExtendPauseReason
-        {
-            get { return extendPauseReason; }
-            set { extendPauseReason = value; }
-        }
-
-        public AniDBHelper()
-        {
-        }
+        public string ExtendPauseReason { get; set; } = "";
 
         public void ExtendPause(int secsToPause, string pauseReason)
         {
@@ -151,7 +112,7 @@ namespace JMMServer
 
             ExtendPauseSecs = secsToPause;
             ExtendPauseReason = pauseReason;
-            ServerInfo.Instance.ExtendedPauseString = string.Format(JMMServer.Properties.Resources.AniDB_Paused, secsToPause, pauseReason);
+            ServerInfo.Instance.ExtendedPauseString = string.Format(Resources.AniDB_Paused, secsToPause, pauseReason);
             ServerInfo.Instance.HasExtendedPause = true;
         }
 
@@ -173,13 +134,13 @@ namespace JMMServer
             this.serverPort = serverPort;
             this.clientPort = clientPort;
 
-            this.isLoggedOn = false;
+            IsLoggedOn = false;
 
             if (!BindToLocalPort()) networkAvailable = false;
             if (!BindToRemotePort()) networkAvailable = false;
 
-            logoutTimer = new System.Timers.Timer();
-            logoutTimer.Elapsed += new System.Timers.ElapsedEventHandler(logoutTimer_Elapsed);
+            logoutTimer = new Timer();
+            logoutTimer.Elapsed += logoutTimer_Elapsed;
             logoutTimer.Interval = 5000; // Set the Interval to 5 seconds.
             logoutTimer.Enabled = true;
             logoutTimer.AutoReset = true;
@@ -204,13 +165,13 @@ namespace JMMServer
             soUdp.Close();
         }
 
-        void logoutTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        private void logoutTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            TimeSpan tsAniDBUDPTemp = DateTime.Now - JMMService.LastAniDBUDPMessage;
+            var tsAniDBUDPTemp = DateTime.Now - JMMService.LastAniDBUDPMessage;
             if (ExtendPauseSecs.HasValue && tsAniDBUDPTemp.TotalSeconds >= ExtendPauseSecs.Value)
                 ResetExtendPause();
 
-            if (!isLoggedOn) return;
+            if (!IsLoggedOn) return;
 
             // don't ping when anidb is taking a long time to respond
             if (WaitingOnResponse)
@@ -221,31 +182,35 @@ namespace JMMServer
                     {
                         Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                        TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
-                        ServerInfo.Instance.WaitingOnResponseAniDBUDPString = string.Format(JMMServer.Properties.Resources.AniDB_ResponseWaitSeconds, ts.TotalSeconds);
+                        var ts = DateTime.Now - WaitingOnResponseTime.Value;
+                        ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
+                            string.Format(Resources.AniDB_ResponseWaitSeconds, ts.TotalSeconds);
                     }
                 }
-                catch { }
+                catch
+                {
+                }
                 return;
             }
 
             lock (lockAniDBConnections)
             {
-                TimeSpan tsAniDBNonPing = DateTime.Now - JMMService.LastAniDBMessageNonPing;
-                TimeSpan tsPing = DateTime.Now - JMMService.LastAniDBPing;
-                TimeSpan tsAniDBUDP = DateTime.Now - JMMService.LastAniDBUDPMessage;
+                var tsAniDBNonPing = DateTime.Now - JMMService.LastAniDBMessageNonPing;
+                var tsPing = DateTime.Now - JMMService.LastAniDBPing;
+                var tsAniDBUDP = DateTime.Now - JMMService.LastAniDBUDPMessage;
 
                 // if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
-                if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency && tsPing.TotalSeconds >= Constants.PingFrequency && !IsBanned && !ExtendPauseSecs.HasValue)
+                if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency && tsPing.TotalSeconds >= Constants.PingFrequency &&
+                    !IsBanned && !ExtendPauseSecs.HasValue)
                 {
-                    AniDBCommand_Ping ping = new AniDBCommand_Ping();
+                    var ping = new AniDBCommand_Ping();
                     ping.Init();
                     ping.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
                 }
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                string msg = string.Format(JMMServer.Properties.Resources.AniDB_LastMessage, tsAniDBUDP.TotalSeconds);
+                var msg = string.Format(Resources.AniDB_LastMessage, tsAniDBUDP.TotalSeconds);
 
                 if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
                 {
@@ -256,7 +221,7 @@ namespace JMMServer
 
         private void Pause(AniDBPause pauseType)
         {
-            int pauseDuration = AniDBDelay;
+            var pauseDuration = AniDBDelay;
             if (pauseType == AniDBPause.Short) pauseDuration = AniDBDelay_Short;
 
             if (ExtendPauseSecs.HasValue) pauseDuration = ExtendPauseSecs.Value * 1000;
@@ -278,10 +243,10 @@ namespace JMMServer
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
             if (isWaiting)
-                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.AniDB_ResponseWait;
+                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Resources.AniDB_ResponseWait;
             else
 
-                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.Command_Idle;
+                ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Resources.Command_Idle;
 
             if (isWaiting)
                 WaitingOnResponseTime = DateTime.Now;
@@ -297,18 +262,18 @@ namespace JMMServer
         public bool Login()
         {
             // check if we are already logged in
-            if (isLoggedOn) return true;
+            if (IsLoggedOn) return true;
 
             if (!ValidAniDBCredentials()) return false;
 
-            AniDBCommand_Login login = new AniDBCommand_Login();
+            var login = new AniDBCommand_Login();
             login.Init(userName, password);
 
-            string msg = login.commandText.Replace(userName, "******");
+            var msg = login.commandText.Replace(userName, "******");
             msg = msg.Replace(password, "******");
             logger.Trace("udp command: {0}", msg);
             SetWaitingOnResponse(true);
-            enHelperActivityType ev = login.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+            var ev = login.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
             SetWaitingOnResponse(false);
 
             if (login.errorOccurred)
@@ -327,30 +292,25 @@ namespace JMMServer
                 // this will exit the thread
                 return false;
             }
-            else
-            {
-                curSessionID = login.SessionID;
-                encoding = login.Encoding;
-                this.isLoggedOn = true;
-                this.IsInvalidSession = false;
-                return true;
-            }
-
-
+            curSessionID = login.SessionID;
+            encoding = login.Encoding;
+            IsLoggedOn = true;
+            IsInvalidSession = false;
+            return true;
         }
 
         public void ForceLogout()
         {
-            if (isLoggedOn)
+            if (IsLoggedOn)
             {
-                AniDBCommand_Logout logout = new AniDBCommand_Logout();
+                var logout = new AniDBCommand_Logout();
                 logout.Init();
                 //logger.Info("udp command: {0}", logout.commandText);
                 SetWaitingOnResponse(true);
                 logout.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
                 //logger.Info("socketResponse: {0}", logout.socketResponse);
-                isLoggedOn = false;
+                IsLoggedOn = false;
             }
         }
 
@@ -358,7 +318,7 @@ namespace JMMServer
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchEpisode;
+            var ev = enHelperActivityType.NoSuchEpisode;
             AniDBCommand_GetEpisodeInfo getInfoCmd = null;
 
             lock (lockAniDBConnections)
@@ -393,7 +353,7 @@ namespace JMMServer
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchFile;
+            var ev = enHelperActivityType.NoSuchFile;
             AniDBCommand_GetFileInfo getInfoCmd = null;
 
             lock (lockAniDBConnections)
@@ -415,10 +375,9 @@ namespace JMMServer
 
                     if (ServerSettings.AniDB_DownloadReleaseGroups)
                     {
-                        CommandRequest_GetReleaseGroup cmdRelgrp = new CommandRequest_GetReleaseGroup(getInfoCmd.fileInfo.GroupID, false);
+                        var cmdRelgrp = new CommandRequest_GetReleaseGroup(getInfoCmd.fileInfo.GroupID, false);
                         cmdRelgrp.Save();
                     }
-
 
 
                     return getInfoCmd.fileInfo;
@@ -443,10 +402,11 @@ namespace JMMServer
             {
                 Pause();
 
-                AniDBCommand_GetMyListFileInfo cmdGetFileStatus = new AniDBCommand_GetMyListFileInfo();
+                var cmdGetFileStatus = new AniDBCommand_GetMyListFileInfo();
                 cmdGetFileStatus.Init(aniDBFileID);
                 SetWaitingOnResponse(true);
-                enHelperActivityType ev = cmdGetFileStatus.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                var ev = cmdGetFileStatus.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
         }
@@ -459,16 +419,17 @@ namespace JMMServer
             {
                 Pause();
 
-                AniDBCommand_GetMyListStats cmdGetMylistStats = new AniDBCommand_GetMyListStats();
+                var cmdGetMylistStats = new AniDBCommand_GetMyListStats();
                 cmdGetMylistStats.Init();
                 SetWaitingOnResponse(true);
-                enHelperActivityType ev = cmdGetMylistStats.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                var ev = cmdGetMylistStats.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
                 if (ev == enHelperActivityType.GotMyListStats && cmdGetMylistStats.MyListStats != null)
                 {
-                    AniDB_MylistStatsRepository repStats = new AniDB_MylistStatsRepository();
+                    var repStats = new AniDB_MylistStatsRepository();
                     AniDB_MylistStats stat = null;
-                    List<AniDB_MylistStats> allStats = repStats.GetAll();
+                    var allStats = repStats.GetAll();
                     if (allStats.Count == 0)
                         stat = new AniDB_MylistStats();
                     else
@@ -491,10 +452,11 @@ namespace JMMServer
             {
                 Pause();
 
-                AniDBCommand_GetUpdated cmdUpdated = new AniDBCommand_GetUpdated();
+                var cmdUpdated = new AniDBCommand_GetUpdated();
                 cmdUpdated.Init(startTime.ToString());
                 SetWaitingOnResponse(true);
-                enHelperActivityType ev = cmdUpdated.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                var ev = cmdUpdated.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
 
                 if (ev == enHelperActivityType.GotUpdated && cmdUpdated != null && cmdUpdated.RecordCount > 0)
@@ -507,7 +469,6 @@ namespace JMMServer
             }
 
             return false;
-
         }
 
         public void UpdateMyListFileStatus(IHash fileDataLocal, bool watched, DateTime? watchedDate)
@@ -520,24 +481,27 @@ namespace JMMServer
             {
                 Pause();
 
-                AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
+                var cmdUpdateFile = new AniDBCommand_UpdateFile();
                 cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, true, null);
                 SetWaitingOnResponse(true);
-                enHelperActivityType ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                var ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
                 if (ev == enHelperActivityType.NoSuchMyListFile && watched)
                 {
                     // the file is not actually on the user list, so let's add it
                     // we do this by issueing the same command without the edit flag
                     cmdUpdateFile = new AniDBCommand_UpdateFile();
-                    cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, false, ServerSettings.AniDB_MyList_StorageState);
-                    ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                    cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, false,
+                        ServerSettings.AniDB_MyList_StorageState);
+                    ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                        new UnicodeEncoding(true, false));
                 }
             }
         }
 
         /// <summary>
-        /// This is for generic files (manually linked)
+        ///     This is for generic files (manually linked)
         /// </summary>
         /// <param name="animeID"></param>
         /// <param name="episodeNumber"></param>
@@ -552,10 +516,11 @@ namespace JMMServer
             {
                 Pause();
 
-                AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
+                var cmdUpdateFile = new AniDBCommand_UpdateFile();
                 cmdUpdateFile.Init(animeID, episodeNumber, watched, true);
                 SetWaitingOnResponse(true);
-                enHelperActivityType ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                var ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
                 if (ev == enHelperActivityType.NoSuchMyListFile && watched)
                 {
@@ -563,8 +528,8 @@ namespace JMMServer
                     // we do this by issueing the same command without the edit flag
                     cmdUpdateFile = new AniDBCommand_UpdateFile();
                     cmdUpdateFile.Init(animeID, episodeNumber, watched, false);
-                    ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
-
+                    ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                        new UnicodeEncoding(true, false));
                 }
             }
         }
@@ -575,7 +540,7 @@ namespace JMMServer
 
             if (!Login()) return false;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+            var ev = enHelperActivityType.NoSuchMyListFile;
             AniDBCommand_AddFile cmdAddFile = null;
 
             lock (lockAniDBConnections)
@@ -594,7 +559,6 @@ namespace JMMServer
             {
                 watchedDate = cmdAddFile.WatchedDate;
                 return cmdAddFile.ReturnIsWatched;
-
             }
 
             return false;
@@ -606,7 +570,7 @@ namespace JMMServer
 
             if (!Login()) return false;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+            var ev = enHelperActivityType.NoSuchMyListFile;
             AniDBCommand_AddFile cmdAddFile = null;
 
             lock (lockAniDBConnections)
@@ -625,7 +589,6 @@ namespace JMMServer
             {
                 watchedDate = cmdAddFile.WatchedDate;
                 return cmdAddFile.ReturnIsWatched;
-
             }
 
             return false;
@@ -635,7 +598,7 @@ namespace JMMServer
         {
             if (!Login()) return false;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+            var ev = enHelperActivityType.NoSuchMyListFile;
             AniDBCommand_MarkFileAsExternal cmdMarkFileExternal = null;
 
             lock (lockAniDBConnections)
@@ -645,7 +608,8 @@ namespace JMMServer
                 cmdMarkFileExternal = new AniDBCommand_MarkFileAsExternal();
                 cmdMarkFileExternal.Init(Hash, FileSize);
                 SetWaitingOnResponse(true);
-                ev = cmdMarkFileExternal.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = cmdMarkFileExternal.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -656,7 +620,7 @@ namespace JMMServer
         {
             if (!Login()) return false;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+            var ev = enHelperActivityType.NoSuchMyListFile;
             AniDBCommand_MarkFileAsUnknown cmdMarkFileUnknown = null;
 
             lock (lockAniDBConnections)
@@ -666,7 +630,8 @@ namespace JMMServer
                 cmdMarkFileUnknown = new AniDBCommand_MarkFileAsUnknown();
                 cmdMarkFileUnknown.Init(Hash, FileSize);
                 SetWaitingOnResponse(true);
-                ev = cmdMarkFileUnknown.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
+                ev = cmdMarkFileUnknown.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
             }
 
@@ -677,7 +642,7 @@ namespace JMMServer
         {
             if (!Login()) return false;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+            var ev = enHelperActivityType.NoSuchMyListFile;
             AniDBCommand_MarkFileAsDeleted cmdDelFile = null;
 
             lock (lockAniDBConnections)
@@ -700,7 +665,7 @@ namespace JMMServer
 
             if (!Login()) return false;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+            var ev = enHelperActivityType.NoSuchMyListFile;
             AniDBCommand_DeleteFile cmdDelFile = null;
 
             lock (lockAniDBConnections)
@@ -723,7 +688,7 @@ namespace JMMServer
 
             if (!Login()) return false;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchMyListFile;
+            var ev = enHelperActivityType.NoSuchMyListFile;
             AniDBCommand_DeleteFile cmdDelFile = null;
 
             lock (lockAniDBConnections)
@@ -742,10 +707,10 @@ namespace JMMServer
 
         public AniDB_Anime GetAnimeInfoUDP(int animeID, bool forceRefresh)
         {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+            var repAnime = new AniDB_AnimeRepository();
             AniDB_Anime anime = null;
 
-            bool skip = true;
+            var skip = true;
             if (forceRefresh)
                 skip = false;
             else
@@ -760,12 +725,11 @@ namespace JMMServer
                     anime = repAnime.GetByAnimeID(animeID);
 
                 return anime;
-
             }
 
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchAnime;
+            var ev = enHelperActivityType.NoSuchAnime;
             AniDBCommand_GetAnimeInfo getAnimeCmd = null;
 
             lock (lockAniDBConnections)
@@ -795,7 +759,7 @@ namespace JMMServer
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchChar;
+            var ev = enHelperActivityType.NoSuchChar;
             AniDBCommand_GetCharacterInfo getCharCmd = null;
             lock (lockAniDBConnections)
             {
@@ -811,7 +775,7 @@ namespace JMMServer
             AniDB_Character chr = null;
             if (ev == enHelperActivityType.GotCharInfo && getCharCmd.CharInfo != null)
             {
-                AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
+                var repChar = new AniDB_CharacterRepository();
                 chr = repChar.GetByCharID(charID);
                 if (chr == null) chr = new AniDB_Character();
 
@@ -856,7 +820,7 @@ namespace JMMServer
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchGroup;
+            var ev = enHelperActivityType.NoSuchGroup;
             AniDBCommand_GetGroup getCmd = null;
             lock (lockAniDBConnections)
             {
@@ -869,7 +833,7 @@ namespace JMMServer
                 SetWaitingOnResponse(false);
             }
 
-            AniDB_ReleaseGroupRepository repRelGrp = new AniDB_ReleaseGroupRepository();
+            var repRelGrp = new AniDB_ReleaseGroupRepository();
             AniDB_ReleaseGroup relGroup = null;
             if (ev == enHelperActivityType.GotGroup && getCmd.Group != null)
             {
@@ -887,7 +851,7 @@ namespace JMMServer
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchCreator;
+            var ev = enHelperActivityType.NoSuchCreator;
             AniDBCommand_GetGroupStatus getCmd = null;
             lock (lockAniDBConnections)
             {
@@ -903,17 +867,17 @@ namespace JMMServer
             if (ev == enHelperActivityType.GotGroupStatus && getCmd.GrpStatusCollection != null)
             {
                 // delete existing records
-                AniDB_GroupStatusRepository repGrpStat = new AniDB_GroupStatusRepository();
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_EpisodeRepository repAniEp = new AniDB_EpisodeRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                var repGrpStat = new AniDB_GroupStatusRepository();
+                var repAnime = new AniDB_AnimeRepository();
+                var repAniEp = new AniDB_EpisodeRepository();
+                var repSeries = new AnimeSeriesRepository();
 
                 repGrpStat.DeleteForAnime(animeID);
 
                 // save the records
-                foreach (Raw_AniDB_GroupStatus raw in getCmd.GrpStatusCollection.Groups)
+                foreach (var raw in getCmd.GrpStatusCollection.Groups)
                 {
-                    AniDB_GroupStatus grpstat = new AniDB_GroupStatus(raw);
+                    var grpstat = new AniDB_GroupStatus(raw);
                     repGrpStat.Save(grpstat);
                 }
 
@@ -925,7 +889,7 @@ namespace JMMServer
                 if (getCmd.GrpStatusCollection.LatestEpisodeNumber > 0)
                 {
                     // update the anime with a record of the latest subbed episode
-                    AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                    var anime = repAnime.GetByAnimeID(animeID);
                     if (anime != null)
                     {
                         anime.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
@@ -933,21 +897,21 @@ namespace JMMServer
 
                         // check if we have this episode in the database
                         // if not get it now by updating the anime record
-                        List<AniDB_Episode> eps = repAniEp.GetByAnimeIDAndEpisodeNumber(animeID, getCmd.GrpStatusCollection.LatestEpisodeNumber);
+                        var eps = repAniEp.GetByAnimeIDAndEpisodeNumber(animeID,
+                            getCmd.GrpStatusCollection.LatestEpisodeNumber);
                         if (eps.Count == 0)
                         {
-                            CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                            var cr_anime = new CommandRequest_GetAnimeHTTP(animeID, true, false);
                             cr_anime.Save();
                         }
 
                         // update the missing episode stats on groups and children
-                        AnimeSeries series = repSeries.GetByAnimeID(animeID);
+                        var series = repSeries.GetByAnimeID(animeID);
                         if (series != null)
                         {
                             series.QueueUpdateStats();
                             //series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
                         }
-
                     }
                 }
             }
@@ -959,7 +923,7 @@ namespace JMMServer
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.CalendarEmpty;
+            var ev = enHelperActivityType.CalendarEmpty;
             AniDBCommand_GetCalendar cmd = null;
             lock (lockAniDBConnections)
             {
@@ -982,7 +946,7 @@ namespace JMMServer
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchReview;
+            var ev = enHelperActivityType.NoSuchReview;
             AniDBCommand_GetReview cmd = null;
 
             lock (lockAniDBConnections)
@@ -999,7 +963,7 @@ namespace JMMServer
             AniDB_Review review = null;
             if (ev == enHelperActivityType.GotReview && cmd.ReviewInfo != null)
             {
-                AniDB_ReviewRepository repReview = new AniDB_ReviewRepository();
+                var repReview = new AniDB_ReviewRepository();
                 review = repReview.GetByReviewID(reviewID);
                 if (review == null) review = new AniDB_Review();
 
@@ -1014,10 +978,10 @@ namespace JMMServer
         {
             if (!Login()) return false;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchVote;
+            var ev = enHelperActivityType.NoSuchVote;
             AniDBCommand_Vote cmdVote = null;
 
-            AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
+            var repVotes = new AniDB_VoteRepository();
 
             lock (lockAniDBConnections)
             {
@@ -1030,14 +994,15 @@ namespace JMMServer
                 SetWaitingOnResponse(false);
                 if (ev == enHelperActivityType.Voted || ev == enHelperActivityType.VoteUpdated)
                 {
-                    List<AniDB_Vote> dbVotes = repVotes.GetByEntity(cmdVote.EntityID);
+                    var dbVotes = repVotes.GetByEntity(cmdVote.EntityID);
                     AniDB_Vote thisVote = null;
-                    foreach (AniDB_Vote dbVote in dbVotes)
+                    foreach (var dbVote in dbVotes)
                     {
                         // we can only have anime permanent or anime temp but not both
                         if (cmdVote.VoteType == enAniDBVoteType.Anime || cmdVote.VoteType == enAniDBVoteType.AnimeTemp)
                         {
-                            if (dbVote.VoteType == (int)enAniDBVoteType.Anime || dbVote.VoteType == (int)enAniDBVoteType.AnimeTemp)
+                            if (dbVote.VoteType == (int)enAniDBVoteType.Anime ||
+                                dbVote.VoteType == (int)enAniDBVoteType.AnimeTemp)
                             {
                                 thisVote = dbVote;
                             }
@@ -1085,10 +1050,10 @@ namespace JMMServer
         {
             //if (!Login()) return null;
 
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+            var repAnime = new AniDB_AnimeRepository();
             AniDB_Anime anime = null;
 
-            bool skip = true;
+            var skip = true;
             if (forceRefresh)
                 skip = false;
             else
@@ -1103,7 +1068,6 @@ namespace JMMServer
                     anime = repAnime.GetByAnimeID(session, animeID);
 
                 return anime;
-
             }
 
             AniDBHTTPCommand_GetFullAnime getAnimeCmd = null;
@@ -1123,18 +1087,18 @@ namespace JMMServer
 
                 if (forceRefresh)
                 {
-                    CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
+                    var cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
                     cmdAzure.Save(session);
                 }
-
             }
 
             return anime;
         }
 
-        private AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations, AniDBHTTPCommand_GetFullAnime getAnimeCmd)
+        private AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
+            AniDBHTTPCommand_GetFullAnime getAnimeCmd)
         {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+            var repAnime = new AniDB_AnimeRepository();
             AniDB_Anime anime = null;
 
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
@@ -1142,16 +1106,18 @@ namespace JMMServer
             anime = repAnime.GetByAnimeID(session, animeID);
             if (anime == null)
                 anime = new AniDB_Anime();
-            anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Categories, getAnimeCmd.Tags,
-                getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations, downloadRelations);
+            anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
+                getAnimeCmd.Categories, getAnimeCmd.Tags,
+                getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
+                downloadRelations);
 
             // Request an image download
-            CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID, JMMImageType.AniDB_Cover, false);
+            var cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID, JMMImageType.AniDB_Cover, false);
             cmd.Save(session);
             // create AnimeEpisode records for all episodes in this anime
             // only if we have a series
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            AnimeSeries ser = repSeries.GetByAnimeID(session, animeID);
+            var repSeries = new AnimeSeriesRepository();
+            var ser = repSeries.GetByAnimeID(session, animeID);
             if (ser != null)
             {
                 ser.CreateAnimeEpisodes(session);
@@ -1166,34 +1132,36 @@ namespace JMMServer
             StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
 
             // download character images
-            foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session))
+            foreach (var animeChar in anime.GetAnimeCharacters(session))
             {
-                AniDB_Character chr = animeChar.GetCharacter(session);
+                var chr = animeChar.GetCharacter(session);
                 if (chr == null) continue;
 
                 if (ServerSettings.AniDB_DownloadCharacters)
                 {
                     if (!string.IsNullOrEmpty(chr.PosterPath) && !File.Exists(chr.PosterPath))
                     {
-                        logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName, chr.CharID, chr.PosterPath);
-                        cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character, false);
+                        logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName,
+                            chr.CharID, chr.PosterPath);
+                        cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character,
+                            false);
                         cmd.Save();
                     }
                 }
 
                 if (ServerSettings.AniDB_DownloadCreators)
                 {
-                    AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
+                    var seiyuu = chr.GetSeiyuu(session);
                     if (seiyuu == null || string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
 
                     if (!File.Exists(seiyuu.PosterPath))
                     {
-                        logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle, seiyuu.SeiyuuName, seiyuu.SeiyuuID, seiyuu.PosterPath);
+                        logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle,
+                            seiyuu.SeiyuuName, seiyuu.SeiyuuID, seiyuu.PosterPath);
                         cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
                         cmd.Save();
                     }
                 }
-
             }
 
             return anime;
@@ -1213,15 +1181,14 @@ namespace JMMServer
             if (getAnimeCmd.Anime != null)
             {
                 anime = SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd);
-
             }
             return anime;
         }
 
         public bool ValidAniDBCredentials()
         {
-            if (string.IsNullOrEmpty(this.userName) || string.IsNullOrEmpty(this.password) || string.IsNullOrEmpty(this.serverName)
-                || string.IsNullOrEmpty(this.serverPort) || string.IsNullOrEmpty(this.clientPort))
+            if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(serverName)
+                || string.IsNullOrEmpty(serverPort) || string.IsNullOrEmpty(clientPort))
             {
                 //OnAniDBStatusEvent(new AniDBStatusEventArgs(enHelperActivityType.OtherError, "ERROR: Please enter valid AniDB credentials via Configuration first"));
                 return false;
@@ -1237,7 +1204,7 @@ namespace JMMServer
             localIpEndPoint = null;
 
             // Dont send Expect 100 requests. These requests arnt always supported by remote internet devices, in which case can cause failure.
-            System.Net.ServicePointManager.Expect100Continue = false;
+            ServicePointManager.Expect100Continue = false;
 
             IPHostEntry localHostEntry;
             localHostEntry = Dns.GetHostEntry(Dns.GetHostName());
@@ -1250,7 +1217,8 @@ namespace JMMServer
             soUdp.Bind(localIpEndPoint);
             soUdp.ReceiveTimeout = 30000; // 30 seconds
 
-            logger.Info("BindToLocalPort: Bound to local address: {0} - Port: {1} ({2})", localIpEndPoint.ToString(), clientPort, localIpEndPoint.AddressFamily);
+            logger.Info("BindToLocalPort: Bound to local address: {0} - Port: {1} ({2})", localIpEndPoint.ToString(),
+                clientPort, localIpEndPoint.AddressFamily);
 
             return true;
         }
@@ -1263,21 +1231,19 @@ namespace JMMServer
 
             try
             {
-                IPHostEntry remoteHostEntry = Dns.GetHostEntry(serverName);
+                var remoteHostEntry = Dns.GetHostEntry(serverName);
                 remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], Convert.ToInt32(serverPort));
 
-                logger.Info("BindToRemotePort: Bound to remote address: " + remoteIpEndPoint.Address.ToString() + " : " +
-                    remoteIpEndPoint.Port.ToString());
+                logger.Info("BindToRemotePort: Bound to remote address: " + remoteIpEndPoint.Address + " : " +
+                            remoteIpEndPoint.Port);
 
                 return true;
             }
             catch (Exception ex)
             {
-                logger.ErrorException(string.Format("Could not bind to remote port: {0}", ex.ToString()), ex);
+                logger.ErrorException(string.Format("Could not bind to remote port: {0}", ex), ex);
                 return false;
             }
-
-
         }
     }
 }

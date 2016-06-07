@@ -1,121 +1,124 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.ComponentModel;
 using JMMContracts;
-using System.ComponentModel;
 
 namespace JMMServer.Entities
 {
-	public class ImportFolder : INotifyPropertyChanged
-	{
-		public int ImportFolderID { get; private set; }
-		public int ImportFolderType { get; set; }
-		public string ImportFolderName { get; set; }
-		public string ImportFolderLocation { get; set; }
+    public class ImportFolder : INotifyPropertyChanged
+    {
+        private bool folderIsDropDestination = true;
 
-		private int isWatched = 0;
-		public int IsWatched
-		{
-			get { return isWatched; }
-			set
-			{
-				isWatched = value;
-				NotifyPropertyChanged("IsWatched");
-				FolderIsWatched = IsWatched == 1;
-			}
-		}
+        private bool folderIsDropSource = true;
 
-		private Boolean folderIsWatched = true;
-		public Boolean FolderIsWatched
-		{
-			get { return folderIsWatched; }
-			set
-			{
-				folderIsWatched = value;
-				NotifyPropertyChanged("FolderIsWatched");
-			}
-		}
+        private bool folderIsWatched = true;
 
-		public override string ToString()
-		{
-			return string.Format("{0} - {1} ({2})", ImportFolderName, ImportFolderLocation, ImportFolderID);
-		}
+        private int isDropDestination;
 
-		public ImportFolder()
-		{
-			FolderIsDropSource = IsDropSource == 1;
-			FolderIsDropDestination = IsDropDestination == 1;
-		}
+        private int isDropSource;
 
-		public event PropertyChangedEventHandler PropertyChanged;
-		private void NotifyPropertyChanged(String propertyName)
-		{
-			if (PropertyChanged != null)
-			{
-				var args = new PropertyChangedEventArgs(propertyName);
-				PropertyChanged(this, args);
-			}
-		}
+        private int isWatched;
 
-		private Boolean folderIsDropSource = true;
-		public Boolean FolderIsDropSource
-		{
-			get { return folderIsDropSource; }
-			set
-			{
-				folderIsDropSource = value;
-				NotifyPropertyChanged("FolderIsDropSource");
-			}
-		}
+        public ImportFolder()
+        {
+            FolderIsDropSource = IsDropSource == 1;
+            FolderIsDropDestination = IsDropDestination == 1;
+        }
 
-		private Boolean folderIsDropDestination = true;
-		public Boolean FolderIsDropDestination
-		{
-			get { return folderIsDropDestination; }
-			set
-			{
-				folderIsDropDestination = value;
-				NotifyPropertyChanged("FolderIsDropDestination");
-			}
-		}
+        public int ImportFolderID { get; private set; }
+        public int ImportFolderType { get; set; }
+        public string ImportFolderName { get; set; }
+        public string ImportFolderLocation { get; set; }
 
-		private int isDropSource = 0;
-		public int IsDropSource
-		{
-			get { return isDropSource; }
-			set
-			{
-				isDropSource = value;
-				NotifyPropertyChanged("IsDropSource");
-				FolderIsDropSource = IsDropSource == 1;
-			}
-		}
+        public int IsWatched
+        {
+            get { return isWatched; }
+            set
+            {
+                isWatched = value;
+                NotifyPropertyChanged("IsWatched");
+                FolderIsWatched = IsWatched == 1;
+            }
+        }
 
-		private int isDropDestination = 0;
-		public int IsDropDestination
-		{
-			get { return isDropDestination; }
-			set
-			{
-				isDropDestination = value;
-				NotifyPropertyChanged("IsDropDestination");
-				FolderIsDropDestination = IsDropDestination == 1;
-			}
-		}
+        public bool FolderIsWatched
+        {
+            get { return folderIsWatched; }
+            set
+            {
+                folderIsWatched = value;
+                NotifyPropertyChanged("FolderIsWatched");
+            }
+        }
 
-		public Contract_ImportFolder ToContract()
-		{
-			Contract_ImportFolder contract = new Contract_ImportFolder();
-			contract.ImportFolderID = this.ImportFolderID;
-			contract.ImportFolderType = this.ImportFolderType;
-			contract.ImportFolderLocation = this.ImportFolderLocation;
-			contract.ImportFolderName = this.ImportFolderName;
-			contract.IsDropSource = this.IsDropSource;
-			contract.IsDropDestination = this.IsDropDestination;
-			contract.IsWatched = this.IsWatched;
+        public bool FolderIsDropSource
+        {
+            get { return folderIsDropSource; }
+            set
+            {
+                folderIsDropSource = value;
+                NotifyPropertyChanged("FolderIsDropSource");
+            }
+        }
 
-			return contract;
-		}
-	}
+        public bool FolderIsDropDestination
+        {
+            get { return folderIsDropDestination; }
+            set
+            {
+                folderIsDropDestination = value;
+                NotifyPropertyChanged("FolderIsDropDestination");
+            }
+        }
+
+        public int IsDropSource
+        {
+            get { return isDropSource; }
+            set
+            {
+                isDropSource = value;
+                NotifyPropertyChanged("IsDropSource");
+                FolderIsDropSource = IsDropSource == 1;
+            }
+        }
+
+        public int IsDropDestination
+        {
+            get { return isDropDestination; }
+            set
+            {
+                isDropDestination = value;
+                NotifyPropertyChanged("IsDropDestination");
+                FolderIsDropDestination = IsDropDestination == 1;
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public override string ToString()
+        {
+            return string.Format("{0} - {1} ({2})", ImportFolderName, ImportFolderLocation, ImportFolderID);
+        }
+
+        private void NotifyPropertyChanged(string propertyName)
+        {
+            if (PropertyChanged != null)
+            {
+                var args = new PropertyChangedEventArgs(propertyName);
+                PropertyChanged(this, args);
+            }
+        }
+
+        public Contract_ImportFolder ToContract()
+        {
+            var contract = new Contract_ImportFolder();
+            contract.ImportFolderID = ImportFolderID;
+            contract.ImportFolderType = ImportFolderType;
+            contract.ImportFolderLocation = ImportFolderLocation;
+            contract.ImportFolderName = ImportFolderName;
+            contract.IsDropSource = IsDropSource;
+            contract.IsDropDestination = IsDropDestination;
+            contract.IsWatched = IsWatched;
+
+            return contract;
+        }
+    }
 }

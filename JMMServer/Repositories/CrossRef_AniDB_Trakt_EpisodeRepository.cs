@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -36,7 +32,7 @@ namespace JMMServer.Repositories
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                CrossRef_AniDB_Trakt_Episode cr = session
+                var cr = session
                     .CreateCriteria(typeof(CrossRef_AniDB_Trakt_Episode))
                     .Add(Restrictions.Eq("AniDBEpisodeID", id))
                     .UniqueResult<CrossRef_AniDB_Trakt_Episode>();
@@ -81,7 +77,7 @@ namespace JMMServer.Repositories
                 // populate the database
                 using (var transaction = session.BeginTransaction())
                 {
-                    CrossRef_AniDB_Trakt_Episode cr = GetByID(id);
+                    var cr = GetByID(id);
                     if (cr != null)
                     {
                         session.Delete(cr);

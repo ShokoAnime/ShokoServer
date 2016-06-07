@@ -1,55 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Xml;
-using NLog;
-using System.IO;
-using JMMServer.ImageDownload;
+﻿using System.IO;
 using JMMContracts;
+using JMMServer.ImageDownload;
+using NLog;
 
 namespace JMMServer.Entities
 {
-	public class Trakt_ImagePoster
-	{
-		private static Logger logger = LogManager.GetCurrentClassLogger();
+    public class Trakt_ImagePoster
+    {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public int Trakt_ImagePosterID { get; private set; }
-		public int Trakt_ShowID { get; set; }
-		public int Season { get; set; }
-		public string ImageURL { get; set; }
-		public int Enabled { get; set; }
+        public int Trakt_ImagePosterID { get; private set; }
+        public int Trakt_ShowID { get; set; }
+        public int Season { get; set; }
+        public string ImageURL { get; set; }
+        public int Enabled { get; set; }
 
-		public string FullImagePath
-		{
-			get
-			{
-				// typical url
-				// http://vicmackey.trakt.tv/images/seasons/3228-1.jpg
-				// http://vicmackey.trakt.tv/images/posters/1130.jpg
+        public string FullImagePath
+        {
+            get
+            {
+                // typical url
+                // http://vicmackey.trakt.tv/images/seasons/3228-1.jpg
+                // http://vicmackey.trakt.tv/images/posters/1130.jpg
 
-				if (string.IsNullOrEmpty(ImageURL)) return "";
+                if (string.IsNullOrEmpty(ImageURL)) return "";
 
-				int pos = ImageURL.IndexOf(@"images/");
-				if (pos <= 0) return "";
+                var pos = ImageURL.IndexOf(@"images/");
+                if (pos <= 0) return "";
 
-				string relativePath = ImageURL.Substring(pos + 7, ImageURL.Length - pos - 7);
-				relativePath = relativePath.Replace("/", @"\");
+                var relativePath = ImageURL.Substring(pos + 7, ImageURL.Length - pos - 7);
+                relativePath = relativePath.Replace("/", @"\");
 
-				return Path.Combine(ImageUtils.GetTraktImagePath(), relativePath);
-			}
-		}
+                return Path.Combine(ImageUtils.GetTraktImagePath(), relativePath);
+            }
+        }
 
-		public Contract_Trakt_ImagePoster ToContract()
-		{
-			Contract_Trakt_ImagePoster contract = new Contract_Trakt_ImagePoster();
-			contract.Trakt_ImagePosterID = this.Trakt_ImagePosterID;
-			contract.Trakt_ShowID = this.Trakt_ShowID;
-			contract.Season = this.Season;
-			contract.ImageURL = this.ImageURL;
-			contract.Enabled = this.Enabled;
+        public Contract_Trakt_ImagePoster ToContract()
+        {
+            var contract = new Contract_Trakt_ImagePoster();
+            contract.Trakt_ImagePosterID = Trakt_ImagePosterID;
+            contract.Trakt_ShowID = Trakt_ShowID;
+            contract.Season = Season;
+            contract.ImageURL = ImageURL;
+            contract.Enabled = Enabled;
 
-			return contract;
-		}
-	}
+            return contract;
+        }
+    }
 }

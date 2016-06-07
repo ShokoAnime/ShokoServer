@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.Serialization;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
@@ -19,10 +14,6 @@ namespace JMMServer.Providers.TraktTV.Contracts
         [DataMember(Name = "spoiler")]
         public bool spoiler { get; set; }
 
-        public TraktV2CommentShowPost()
-        {
-        }
-
         public void Init(string shoutText, bool isSpoiler, string traktSlug)
         {
             comment = shoutText;
@@ -31,6 +22,5 @@ namespace JMMServer.Providers.TraktTV.Contracts
             show.ids = new TraktV2ShowIdsPost();
             show.ids.slug = traktSlug;
         }
-
     }
 }

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.Serialization;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
@@ -32,12 +27,10 @@ namespace JMMServer.Providers.TraktTV.Contracts
         {
             get
             {
-                int traktID = 0;
+                var traktID = 0;
                 if (int.TryParse(trakt, out traktID))
                     return traktID;
-                else
-                    return null;
-
+                return null;
             }
         }
     }

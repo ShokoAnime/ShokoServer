@@ -1,123 +1,124 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using JMMServer.Repositories;
-using JMMServer.Entities;
-using JMMServer.WebCache;
 using System.Xml;
+using JMMServer.Entities;
 using JMMServer.Providers.Azure;
-
 
 namespace JMMServer.Commands
 {
-	public class CommandRequest_WebCacheDeleteXRefAniDBTvDB : CommandRequestImplementation, ICommandRequest
-	{
-		public int AnimeID { get; set; }
-		public int AniDBStartEpisodeType { get; set; }
-		public int AniDBStartEpisodeNumber { get; set; }
-		public int TvDBID { get; set; }
-		public int TvDBSeasonNumber { get; set; }
-		public int TvDBStartEpisodeNumber { get; set; }
+    public class CommandRequest_WebCacheDeleteXRefAniDBTvDB : CommandRequestImplementation, ICommandRequest
+    {
+        public CommandRequest_WebCacheDeleteXRefAniDBTvDB()
+        {
+        }
 
-		public CommandRequestPriority DefaultPriority
-		{
-			get { return CommandRequestPriority.Priority9; }
-		}
+        public CommandRequest_WebCacheDeleteXRefAniDBTvDB(int animeID, int aniDBStartEpisodeType,
+            int aniDBStartEpisodeNumber, int tvDBID,
+            int tvDBSeasonNumber, int tvDBStartEpisodeNumber)
+        {
+            AnimeID = animeID;
+            AniDBStartEpisodeType = aniDBStartEpisodeType;
+            AniDBStartEpisodeNumber = aniDBStartEpisodeNumber;
+            TvDBID = tvDBID;
+            TvDBSeasonNumber = tvDBSeasonNumber;
+            TvDBStartEpisodeNumber = tvDBStartEpisodeNumber;
+            CommandType = (int)CommandRequestType.WebCache_DeleteXRefAniDBTvDB;
+            Priority = (int)DefaultPriority;
 
-		public string PrettyDescription
-		{
-			get
-			{
-				return string.Format("Deleting cross ref for Anidb to TvDB from web cache: {0}", AnimeID);
-			}
-		}
+            GenerateCommandID();
+        }
 
-		public CommandRequest_WebCacheDeleteXRefAniDBTvDB()
-		{
-		}
+        public int AnimeID { get; set; }
+        public int AniDBStartEpisodeType { get; set; }
+        public int AniDBStartEpisodeNumber { get; set; }
+        public int TvDBID { get; set; }
+        public int TvDBSeasonNumber { get; set; }
+        public int TvDBStartEpisodeNumber { get; set; }
 
-		public CommandRequest_WebCacheDeleteXRefAniDBTvDB(int animeID, int aniDBStartEpisodeType, int aniDBStartEpisodeNumber, int tvDBID,
-			int tvDBSeasonNumber, int tvDBStartEpisodeNumber)
-		{
-			this.AnimeID = animeID;
-			this.AniDBStartEpisodeType = aniDBStartEpisodeType;
-			this.AniDBStartEpisodeNumber = aniDBStartEpisodeNumber;
-			this.TvDBID = tvDBID;
-			this.TvDBSeasonNumber = tvDBSeasonNumber;
-			this.TvDBStartEpisodeNumber = tvDBStartEpisodeNumber;
-			this.CommandType = (int)CommandRequestType.WebCache_DeleteXRefAniDBTvDB;
-			this.Priority = (int)DefaultPriority;
+        public CommandRequestPriority DefaultPriority
+        {
+            get { return CommandRequestPriority.Priority9; }
+        }
 
-			GenerateCommandID();
-		}
+        public string PrettyDescription
+        {
+            get { return string.Format("Deleting cross ref for Anidb to TvDB from web cache: {0}", AnimeID); }
+        }
 
-		public override void ProcessCommand()
-		{
-			
-			try
-			{
-				AzureWebAPI.Delete_CrossRefAniDBTvDB(AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber);
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error processing CommandRequest_WebCacheDeleteXRefAniDBTvDB: {0}" + ex.ToString(), ex);
-				return;
-			}
-		}
+        public override void ProcessCommand()
+        {
+            try
+            {
+                AzureWebAPI.Delete_CrossRefAniDBTvDB(AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID,
+                    TvDBSeasonNumber, TvDBStartEpisodeNumber);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error processing CommandRequest_WebCacheDeleteXRefAniDBTvDB: {0}" + ex, ex);
+            }
+        }
 
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_WebCacheDeleteXRefAniDBTvDB{0}", AnimeID);
-		}
+        public override bool LoadFromDBCommand(CommandRequest cq)
+        {
+            try
+            {
+                CommandID = cq.CommandID;
+                CommandRequestID = cq.CommandRequestID;
+                CommandType = cq.CommandType;
+                Priority = cq.Priority;
+                CommandDetails = cq.CommandDetails;
+                DateTimeUpdated = cq.DateTimeUpdated;
 
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			try
-			{
-				this.CommandID = cq.CommandID;
-				this.CommandRequestID = cq.CommandRequestID;
-				this.CommandType = cq.CommandType;
-				this.Priority = cq.Priority;
-				this.CommandDetails = cq.CommandDetails;
-				this.DateTimeUpdated = cq.DateTimeUpdated;
+                // read xml to get parameters
+                if (CommandDetails.Trim().Length > 0)
+                {
+                    var docCreator = new XmlDocument();
+                    docCreator.LoadXml(CommandDetails);
 
-				// read xml to get parameters
-				if (this.CommandDetails.Trim().Length > 0)
-				{
-					XmlDocument docCreator = new XmlDocument();
-					docCreator.LoadXml(this.CommandDetails);
+                    // populate the fields
+                    AnimeID =
+                        int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "AnimeID"));
+                    AniDBStartEpisodeType =
+                        int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB",
+                            "AniDBStartEpisodeType"));
+                    AniDBStartEpisodeNumber =
+                        int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB",
+                            "AniDBStartEpisodeNumber"));
+                    TvDBID =
+                        int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "TvDBID"));
+                    TvDBSeasonNumber =
+                        int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB",
+                            "TvDBSeasonNumber"));
+                    TvDBStartEpisodeNumber =
+                        int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB",
+                            "TvDBStartEpisodeNumber"));
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException("Error processing CommandRequest_WebCacheDeleteXRefAniDBTvDB: {0}" + ex, ex);
+                return true;
+            }
 
-					// populate the fields
-					this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "AnimeID"));
-					this.AniDBStartEpisodeType = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "AniDBStartEpisodeType"));
-					this.AniDBStartEpisodeNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "AniDBStartEpisodeNumber"));
-					this.TvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "TvDBID"));
-					this.TvDBSeasonNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "TvDBSeasonNumber"));
-					this.TvDBStartEpisodeNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBTvDB", "TvDBStartEpisodeNumber"));
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.ErrorException("Error processing CommandRequest_WebCacheDeleteXRefAniDBTvDB: {0}" + ex.ToString(), ex);
-				return true;
-			}
+            return true;
+        }
 
-			return true;
-		}
+        public override void GenerateCommandID()
+        {
+            CommandID = string.Format("CommandRequest_WebCacheDeleteXRefAniDBTvDB{0}", AnimeID);
+        }
 
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
 
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
+            var cq = new CommandRequest();
+            cq.CommandID = CommandID;
+            cq.CommandType = CommandType;
+            cq.Priority = Priority;
+            cq.CommandDetails = ToXML();
+            cq.DateTimeUpdated = DateTime.Now;
 
-			return cq;
-		}
-	}
+            return cq;
+        }
+    }
 }

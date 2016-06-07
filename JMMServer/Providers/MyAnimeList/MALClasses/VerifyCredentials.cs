@@ -8,7 +8,6 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-using System.Xml.Serialization;
 
 // 
 // Ce code source a été automatiquement généré par xsd, Version=2.0.50727.3038.
@@ -20,30 +19,37 @@ using System.Xml.Serialization;
 [System.SerializableAttribute()]
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
-[System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
-[System.Xml.Serialization.XmlRootAttribute(Namespace="", IsNullable=false)]
-public partial class user {
-    
+[System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
+[System.Xml.Serialization.XmlRootAttribute(Namespace = "", IsNullable = false)]
+public partial class user
+{
+
     private int idField;
-    
+
     private string usernameField;
-    
+
     /// <remarks/>
-    public int id {
-        get {
+    public int id
+    {
+        get
+        {
             return this.idField;
         }
-        set {
+        set
+        {
             this.idField = value;
         }
     }
-    
+
     /// <remarks/>
-    public string username {
-        get {
+    public string username
+    {
+        get
+        {
             return this.usernameField;
         }
-        set {
+        set
+        {
             this.usernameField = value;
         }
     }

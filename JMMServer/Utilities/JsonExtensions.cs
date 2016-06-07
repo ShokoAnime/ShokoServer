@@ -1,21 +1,19 @@
-﻿using Newtonsoft.Json;
-using NLog;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
+using NLog;
 
 namespace JMMServer.Utilities
 {
     public static class JsonExtensions
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         /// <summary>
-        /// Creates a list based on a JSON Array
+        ///     Creates a list based on a JSON Array
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="jsonArray"></param>
@@ -24,7 +22,6 @@ namespace JMMServer.Utilities
         {
             if (string.IsNullOrEmpty(jsonArray)) return new List<T>();
 
-            
 
             try
             {
@@ -45,10 +42,7 @@ namespace JMMServer.Utilities
                 {
                     return new List<T>();
                 }
-                else
-                {
-                    return result;
-                }
+                return result;
 
                 /*using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(jsonArray)))
                 {
@@ -67,13 +61,13 @@ namespace JMMServer.Utilities
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in Serialization: " + ex.ToString(), ex);
+                logger.ErrorException("Error in Serialization: " + ex, ex);
                 return new List<T>();
             }
         }
 
         /// <summary>
-        /// Creates an object from JSON
+        ///     Creates an object from JSON
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="json"></param>
@@ -100,7 +94,7 @@ namespace JMMServer.Utilities
         }
 
         /// <summary>
-        /// Turns an object into JSON
+        ///     Turns an object into JSON
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>

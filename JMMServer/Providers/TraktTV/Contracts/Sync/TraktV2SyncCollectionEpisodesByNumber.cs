@@ -1,21 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
     [DataContract]
     public class TraktV2SyncCollectionEpisodesByNumber
     {
-        [DataMember(Name = "shows")]
-        public List<TraktV2ShowCollectedPostByNumber> shows { get; set; }
-
         public TraktV2SyncCollectionEpisodesByNumber()
         {
-
         }
 
         public TraktV2SyncCollectionEpisodesByNumber(string slug, int season, int episodeNumber, DateTime collectedDate)
@@ -33,13 +26,16 @@ namespace JMMServer.Providers.TraktTV.Contracts
             shows[0].seasons[0].episodes[0].collected_at = collectedDate.ToUniversalTime().ToString("s") + "Z";
         }
 
+        [DataMember(Name = "shows")]
+        public List<TraktV2ShowCollectedPostByNumber> shows { get; set; }
+
         public void AddEpisode(string slug, int season, int episodeNumber, DateTime collectedDate)
         {
             if (shows == null)
                 shows = new List<TraktV2ShowCollectedPostByNumber>();
 
             TraktV2ShowCollectedPostByNumber thisShow = null;
-            foreach (TraktV2ShowCollectedPostByNumber shw in shows)
+            foreach (var shw in shows)
             {
                 if (shw.ids.slug.Equals(slug, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -63,7 +59,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
             }
 
             TaktV2SeasonCollectedPostByNumber thisSeason = null;
-            foreach (TaktV2SeasonCollectedPostByNumber sea in thisShow.seasons)
+            foreach (var sea in thisShow.seasons)
             {
                 if (sea.number == season)
                 {
@@ -80,7 +76,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
             }
 
             TraktV2EpisodeCollectedPostByNumber thisEp = null;
-            foreach (TraktV2EpisodeCollectedPostByNumber ep in thisSeason.episodes)
+            foreach (var ep in thisSeason.episodes)
             {
                 if (ep.number == episodeNumber)
                 {
@@ -111,8 +107,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
         {
             if (ids != null)
                 return string.Format("{0}", ids.slug);
-            else
-                return "";
+            return "";
         }
     }
 

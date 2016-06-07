@@ -1,128 +1,122 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Globalization;
+using System.Threading;
 using System.Xml;
 using JMMServer.Entities;
+using JMMServer.Properties;
 using JMMServer.Repositories;
-using JMMServer.Providers.Azure;
-using System.Collections.Specialized;
-using System.Configuration;
-using System.Threading;
-using System.Globalization;
 
 namespace JMMServer.Commands
 {
-	[Serializable]
-	public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation, ICommandRequest
-	{
-		public int AnimeID { get; set; }
-		public bool ForceRefresh { get; set; }
-		public bool DownloadRelations { get; set; }
+    [Serializable]
+    public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation, ICommandRequest
+    {
+        public CommandRequest_GetAnimeHTTP()
+        {
+        }
 
-		public CommandRequestPriority DefaultPriority 
-		{
-			get { return CommandRequestPriority.Priority2; }
-		}
+        public CommandRequest_GetAnimeHTTP(int animeid, bool forced, bool downloadRelations)
+        {
+            AnimeID = animeid;
+            DownloadRelations = downloadRelations;
+            ForceRefresh = forced;
+            CommandType = (int)CommandRequestType.AniDB_GetAnimeHTTP;
+            Priority = (int)DefaultPriority;
 
-		public string PrettyDescription
-		{
-			get
-			{
+            GenerateCommandID();
+        }
+
+        public int AnimeID { get; set; }
+        public bool ForceRefresh { get; set; }
+        public bool DownloadRelations { get; set; }
+
+        public CommandRequestPriority DefaultPriority
+        {
+            get { return CommandRequestPriority.Priority2; }
+        }
+
+        public string PrettyDescription
+        {
+            get
+            {
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                return string.Format(JMMServer.Properties.Resources.Command_AnimeInfo, AnimeID);
-			}
-		}
+                return string.Format(Resources.Command_AnimeInfo, AnimeID);
+            }
+        }
 
-		public CommandRequest_GetAnimeHTTP()
-		{
-		}
+        public override void ProcessCommand()
+        {
+            logger.Info("Processing CommandRequest_GetAnimeHTTP: {0}", AnimeID);
 
-		public CommandRequest_GetAnimeHTTP(int animeid, bool forced, bool downloadRelations)
-		{
-			this.AnimeID = animeid;
-			this.DownloadRelations = downloadRelations;
-			this.ForceRefresh = forced;
-			this.CommandType = (int)CommandRequestType.AniDB_GetAnimeHTTP;
-			this.Priority = (int)DefaultPriority;
+            try
+            {
+                var repAnime = new AniDB_AnimeRepository();
+                var anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
 
-			GenerateCommandID();
-		}
+                // NOTE - related anime are downloaded when the relations are created
 
-		public override void ProcessCommand()
-		{
-			logger.Info("Processing CommandRequest_GetAnimeHTTP: {0}", AnimeID);
-
-			try
-			{
-				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				AniDB_Anime anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
-				
-				// NOTE - related anime are downloaded when the relations are created
-				
-				// download group status info for this anime
-				// the group status will also help us determine missing episodes for a series
+                // download group status info for this anime
+                // the group status will also help us determine missing episodes for a series
 
 
-				// download reviews
-				if (ServerSettings.AniDB_DownloadReviews)
-				{
-					CommandRequest_GetReviews cmd = new CommandRequest_GetReviews(AnimeID, ForceRefresh);
-					cmd.Save();
-				}
+                // download reviews
+                if (ServerSettings.AniDB_DownloadReviews)
+                {
+                    var cmd = new CommandRequest_GetReviews(AnimeID, ForceRefresh);
+                    cmd.Save();
+                }
 
-				// Request an image download
+                // Request an image download
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error processing CommandRequest_GetAnimeHTTP: {0} - {1}", AnimeID, ex.ToString());
+            }
+        }
 
-			}
-			catch (Exception ex)
-			{
-				logger.Error("Error processing CommandRequest_GetAnimeHTTP: {0} - {1}", AnimeID, ex.ToString());
-				return;
-			}
-		}
+        public override bool LoadFromDBCommand(CommandRequest cq)
+        {
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_GetAnimeHTTP_{0}", this.AnimeID);
-		}
+            // read xml to get parameters
+            if (CommandDetails.Trim().Length > 0)
+            {
+                var docCreator = new XmlDocument();
+                docCreator.LoadXml(CommandDetails);
 
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
+                // populate the fields
+                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "AnimeID"));
+                DownloadRelations =
+                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "DownloadRelations"));
+                ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "ForceRefresh"));
+            }
 
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
+            return true;
+        }
 
-				// populate the fields
-				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "AnimeID"));
-				this.DownloadRelations = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "DownloadRelations"));
-				this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "ForceRefresh"));
-			}
+        public override void GenerateCommandID()
+        {
+            CommandID = string.Format("CommandRequest_GetAnimeHTTP_{0}", AnimeID);
+        }
 
-			return true;
-		}
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
 
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
+            var cq = new CommandRequest();
+            cq.CommandID = CommandID;
+            cq.CommandType = CommandType;
+            cq.Priority = Priority;
+            cq.CommandDetails = ToXML();
+            cq.DateTimeUpdated = DateTime.Now;
 
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
-		}
-	}
+            return cq;
+        }
+    }
 }

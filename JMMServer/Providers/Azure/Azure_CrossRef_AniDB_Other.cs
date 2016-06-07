@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using JMMContracts;
+﻿using JMMContracts;
 
 namespace JMMServer.Providers.Azure
 {
@@ -18,15 +13,11 @@ namespace JMMServer.Providers.Azure
         public int IsAdminApproved { get; set; }
         public long DateSubmitted { get; set; }
 
-        public CrossRef_AniDB_Other()
-		{
-		}
-
         public Contract_CrossRef_AniDB_OtherResult ToContract()
         {
-            Contract_CrossRef_AniDB_OtherResult contract = new Contract_CrossRef_AniDB_OtherResult();
-            contract.AnimeID = this.AnimeID;
-            contract.CrossRefID = this.CrossRefID;
+            var contract = new Contract_CrossRef_AniDB_OtherResult();
+            contract.AnimeID = AnimeID;
+            contract.CrossRefID = CrossRefID;
             return contract;
         }
     }

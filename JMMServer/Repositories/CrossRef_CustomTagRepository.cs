@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using JMMServer.Entities;
-using NHibernate.Criterion;
 using NHibernate;
+using NHibernate.Criterion;
 
 namespace JMMServer.Repositories
 {
@@ -39,7 +36,8 @@ namespace JMMServer.Repositories
                     .CreateCriteria(typeof(CrossRef_CustomTag))
                     .List<CrossRef_CustomTag>();
 
-                return new List<CrossRef_CustomTag>(objs); ;
+                return new List<CrossRef_CustomTag>(objs);
+                ;
             }
         }
 
@@ -102,7 +100,7 @@ namespace JMMServer.Repositories
                 // populate the database
                 using (var transaction = session.BeginTransaction())
                 {
-                    CrossRef_CustomTag cr = GetByID(id);
+                    var cr = GetByID(id);
                     if (cr != null)
                     {
                         session.Delete(cr);

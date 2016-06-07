@@ -1,15 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.Serialization;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
     [DataContract]
     public class TraktAuthPIN
     {
+        public TraktAuthPIN()
+        {
+            GrantType = "authorization_code";
+            RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
+            ClientID = TraktConstants.ClientID;
+            ClientSecret = TraktConstants.ClientSecret;
+        }
+
         [DataMember(Name = "code")]
         public string PINCode { get; set; }
 
@@ -24,13 +27,5 @@ namespace JMMServer.Providers.TraktTV.Contracts
 
         [DataMember(Name = "redirect_uri")]
         public string RedirectURI { get; set; }
-
-        public TraktAuthPIN()
-        {
-            GrantType = "authorization_code";
-            RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-            ClientID = TraktConstants.ClientID;
-            ClientSecret = TraktConstants.ClientSecret;
-        }
     }
 }

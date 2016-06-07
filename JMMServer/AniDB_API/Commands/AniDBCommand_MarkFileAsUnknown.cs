@@ -6,8 +6,13 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_MarkFileAsUnknown : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public bool ReturnIsWatched = false;
         public string Hash = "";
+        public bool ReturnIsWatched = false;
+
+        public AniDBCommand_MarkFileAsUnknown()
+        {
+            commandType = enAniDBCommandType.MarkFileUnknown;
+        }
 
         public string GetKey()
         {
@@ -30,7 +35,7 @@ namespace AniDBAPI.Commands
 
             if (errorOccurred) return enHelperActivityType.NoSuchFile;
 
-            string sMsgType = socketResponse.Substring(0, 3);
+            var sMsgType = socketResponse.Substring(0, 3);
             switch (sMsgType)
             {
                 case "210":
@@ -50,15 +55,9 @@ namespace AniDBAPI.Commands
                     {
                         return enHelperActivityType.LoginRequired;
                     }
-
             }
 
             return enHelperActivityType.FileDoesNotExist;
-        }
-
-        public AniDBCommand_MarkFileAsUnknown()
-        {
-            commandType = enAniDBCommandType.MarkFileUnknown;
         }
 
         public void Init(string hash, long fileSize)

@@ -1,125 +1,118 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using JMMServer.Repositories;
-using JMMServer.Entities;
-using System.Xml;
-using System.Collections.Specialized;
-using System.Threading;
 using System.Globalization;
-using System.Configuration;
+using System.Threading;
+using System.Xml;
+using JMMServer.Entities;
+using JMMServer.Properties;
+using JMMServer.Repositories;
 
 namespace JMMServer.Commands
 {
-	[Serializable]
-	public class CommandRequest_GetReviews : CommandRequestImplementation, ICommandRequest
-	{
-		public int AnimeID { get; set; }
-		public bool ForceRefresh { get; set; }
+    [Serializable]
+    public class CommandRequest_GetReviews : CommandRequestImplementation, ICommandRequest
+    {
+        public CommandRequest_GetReviews()
+        {
+        }
 
-		public CommandRequestPriority DefaultPriority 
-		{
-			get { return CommandRequestPriority.Priority9; }
-		}
+        public CommandRequest_GetReviews(int animeid, bool forced)
+        {
+            AnimeID = animeid;
+            ForceRefresh = forced;
+            CommandType = (int)CommandRequestType.AniDB_GetReviews;
+            Priority = (int)DefaultPriority;
 
-		public string PrettyDescription
-		{
-			get
-			{
+            GenerateCommandID();
+        }
+
+        public int AnimeID { get; set; }
+        public bool ForceRefresh { get; set; }
+
+        public CommandRequestPriority DefaultPriority
+        {
+            get { return CommandRequestPriority.Priority9; }
+        }
+
+        public string PrettyDescription
+        {
+            get
+            {
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                return string.Format(JMMServer.Properties.Resources.Command_GetReviewInfo, AnimeID);
-			}
-		}
+                return string.Format(Resources.Command_GetReviewInfo, AnimeID);
+            }
+        }
 
-		public CommandRequest_GetReviews()
-		{
-		}
+        public override void ProcessCommand()
+        {
+            logger.Info("Processing CommandRequest_GetReviews: {0}", AnimeID);
 
-		public CommandRequest_GetReviews(int animeid, bool forced)
-		{
-			this.AnimeID = animeid;
-			this.ForceRefresh = forced;
-			this.CommandType = (int)CommandRequestType.AniDB_GetReviews;
-			this.Priority = (int)DefaultPriority;
+            try
+            {
+                return;
 
-			GenerateCommandID();
-		}
+                // we will always assume that an anime was downloaded via http first
+                var repAnime = new AniDB_AnimeRepository();
+                var anime = repAnime.GetByAnimeID(AnimeID);
 
-		public override void ProcessCommand()
-		{
-			logger.Info("Processing CommandRequest_GetReviews: {0}", AnimeID);
+                if (anime != null)
+                {
+                    // reviews count will be 0 when the anime is only downloaded via HTTP
+                    if (ForceRefresh || anime.AnimeReviews.Count == 0)
+                        anime = JMMService.AnidbProcessor.GetAnimeInfoUDP(AnimeID, true);
 
-			try
-			{
-				return;
+                    foreach (var animeRev in anime.AnimeReviews)
+                    {
+                        JMMService.AnidbProcessor.GetReviewUDP(animeRev.ReviewID);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error processing CommandRequest_GetReviews: {0} - {1}", AnimeID, ex.ToString());
+            }
+        }
 
-				// we will always assume that an anime was downloaded via http first
-				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
+        public override bool LoadFromDBCommand(CommandRequest cq)
+        {
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
-				if (anime != null)
-				{
-					// reviews count will be 0 when the anime is only downloaded via HTTP
-					if (ForceRefresh || anime.AnimeReviews.Count == 0)
-						anime = JMMService.AnidbProcessor.GetAnimeInfoUDP(AnimeID, true);
+            // read xml to get parameters
+            if (CommandDetails.Trim().Length > 0)
+            {
+                var docCreator = new XmlDocument();
+                docCreator.LoadXml(CommandDetails);
 
-					foreach (AniDB_Anime_Review animeRev in anime.AnimeReviews)
-					{
-						JMMService.AnidbProcessor.GetReviewUDP(animeRev.ReviewID);
-					}
-					
-				}
+                // populate the fields
+                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReviews", "AnimeID"));
+                ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetReviews", "ForceRefresh"));
+            }
 
-			}
-			catch (Exception ex)
-			{
-				logger.Error("Error processing CommandRequest_GetReviews: {0} - {1}", AnimeID, ex.ToString());
-				return;
-			}
-		}
+            return true;
+        }
 
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_GetReviews_{0}", this.AnimeID);
-		}
+        public override void GenerateCommandID()
+        {
+            CommandID = string.Format("CommandRequest_GetReviews_{0}", AnimeID);
+        }
 
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
 
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
+            var cq = new CommandRequest();
+            cq.CommandID = CommandID;
+            cq.CommandType = CommandType;
+            cq.Priority = Priority;
+            cq.CommandDetails = ToXML();
+            cq.DateTimeUpdated = DateTime.Now;
 
-				// populate the fields
-				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReviews", "AnimeID"));
-				this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetReviews", "ForceRefresh"));
-			}
-
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
-		}
-	}
+            return cq;
+        }
+    }
 }

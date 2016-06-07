@@ -1,138 +1,133 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using JMMServer.Repositories;
-using JMMServer.Entities;
-using JMMServer.Providers.Azure;
-using System.Xml;
-using System.IO;
-using System.Collections.Specialized;
-using System.Threading;
 using System.Globalization;
-using System.Configuration;
-
+using System.IO;
+using System.Reflection;
+using System.Threading;
+using System.Xml;
+using JMMServer.Entities;
+using JMMServer.Properties;
+using JMMServer.Providers.Azure;
+using JMMServer.Repositories;
 
 namespace JMMServer.Commands.Azure
 {
-	public class CommandRequest_Azure_SendAnimeXML : CommandRequestImplementation, ICommandRequest
-	{
-		public int AnimeID { get; set; }
+    public class CommandRequest_Azure_SendAnimeXML : CommandRequestImplementation, ICommandRequest
+    {
+        public CommandRequest_Azure_SendAnimeXML()
+        {
+        }
 
-		public CommandRequestPriority DefaultPriority
-		{
-			get { return CommandRequestPriority.Priority10; }
-		}
+        public CommandRequest_Azure_SendAnimeXML(int animeID)
+        {
+            AnimeID = animeID;
+            CommandType = (int)CommandRequestType.Azure_SendAnimeXML;
+            Priority = (int)DefaultPriority;
 
-		public string PrettyDescription
-		{
-			get
-			{
+            GenerateCommandID();
+        }
+
+        public int AnimeID { get; set; }
+
+        public CommandRequestPriority DefaultPriority
+        {
+            get { return CommandRequestPriority.Priority10; }
+        }
+
+        public string PrettyDescription
+        {
+            get
+            {
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                return string.Format(JMMServer.Properties.Resources.Command_SendAnimeAzure, AnimeID);
-			}
-		}
+                return string.Format(Resources.Command_SendAnimeAzure, AnimeID);
+            }
+        }
 
-		public CommandRequest_Azure_SendAnimeXML()
-		{
-		}
+        public override void ProcessCommand()
+        {
+            try
+            {
+                var process =
+                    ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
+                    ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase);
 
-		public CommandRequest_Azure_SendAnimeXML(int animeID)
-		{
-			this.AnimeID = animeID;
-			this.CommandType = (int)CommandRequestType.Azure_SendAnimeXML;
-			this.Priority = (int)DefaultPriority;
+                if (!process) return;
 
-			GenerateCommandID();
-		}
+                var rep = new AniDB_AnimeRepository();
+                var anime = rep.GetByAnimeID(AnimeID);
+                if (anime == null) return;
 
-		public override void ProcessCommand()
-		{
-			
-			try
-			{
-				bool process = (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-					ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase));
+                var appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                var filePath = Path.Combine(appPath, "Anime_HTTP");
 
-				if (!process) return;
+                if (!Directory.Exists(filePath))
+                    Directory.CreateDirectory(filePath);
 
-				AniDB_AnimeRepository rep = new AniDB_AnimeRepository();
-				AniDB_Anime anime = rep.GetByAnimeID(AnimeID);
-				if (anime == null) return;
+                var fileName = string.Format("AnimeDoc_{0}.xml", AnimeID);
+                var fileNameWithPath = Path.Combine(filePath, fileName);
 
-				string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-				string filePath = Path.Combine(appPath, "Anime_HTTP");
+                var rawXML = "";
+                if (File.Exists(fileNameWithPath))
+                {
+                    var re = File.OpenText(fileNameWithPath);
+                    rawXML = re.ReadToEnd();
+                    re.Close();
+                }
 
-				if (!Directory.Exists(filePath))
-					Directory.CreateDirectory(filePath);
+                var xml = new AnimeXML();
+                xml.AnimeID = AnimeID;
+                xml.AnimeName = anime.MainTitle;
+                xml.DateDownloaded = 0;
+                xml.Username = ServerSettings.AniDB_Username;
+                xml.XMLContent = rawXML;
 
-				string fileName = string.Format("AnimeDoc_{0}.xml", AnimeID);
-				string fileNameWithPath = Path.Combine(filePath, fileName);
+                AzureWebAPI.Send_AnimeXML(xml);
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error processing CommandRequest_Azure_SendAnimeXML: {0} - {1}", AnimeID, ex.ToString());
+            }
+        }
 
-				string rawXML = "";
-				if (File.Exists(fileNameWithPath))
-				{
-					StreamReader re = File.OpenText(fileNameWithPath);
-					rawXML = re.ReadToEnd();
-					re.Close();
-				}
+        public override bool LoadFromDBCommand(CommandRequest cq)
+        {
+            CommandID = cq.CommandID;
+            CommandRequestID = cq.CommandRequestID;
+            CommandType = cq.CommandType;
+            Priority = cq.Priority;
+            CommandDetails = cq.CommandDetails;
+            DateTimeUpdated = cq.DateTimeUpdated;
 
-				AnimeXML xml = new AnimeXML();
-				xml.AnimeID = AnimeID;
-				xml.AnimeName = anime.MainTitle;
-				xml.DateDownloaded = 0;
-				xml.Username = ServerSettings.AniDB_Username;
-				xml.XMLContent = rawXML;
+            // read xml to get parameters
+            if (CommandDetails.Trim().Length > 0)
+            {
+                var docCreator = new XmlDocument();
+                docCreator.LoadXml(CommandDetails);
 
-				AzureWebAPI.Send_AnimeXML(xml);
-			}
-			catch (Exception ex)
-			{
-				logger.Error("Error processing CommandRequest_Azure_SendAnimeXML: {0} - {1}", AnimeID, ex.ToString());
-				return;
-			}
-		}
+                // populate the fields
+                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeXML", "AnimeID"));
+            }
 
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_Azure_SendAnimeXML_{0}", this.AnimeID);
-		}
+            return true;
+        }
 
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
+        public override void GenerateCommandID()
+        {
+            CommandID = string.Format("CommandRequest_Azure_SendAnimeXML_{0}", AnimeID);
+        }
 
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
 
-				// populate the fields
-				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_Azure_SendAnimeXML", "AnimeID"));
-			}
+            var cq = new CommandRequest();
+            cq.CommandID = CommandID;
+            cq.CommandType = CommandType;
+            cq.Priority = Priority;
+            cq.CommandDetails = ToXML();
+            cq.DateTimeUpdated = DateTime.Now;
 
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
-		}
-	}
+            return cq;
+        }
+    }
 }

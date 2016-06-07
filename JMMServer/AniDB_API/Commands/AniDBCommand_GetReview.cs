@@ -1,95 +1,82 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Net;
+using System.Text;
 
 namespace AniDBAPI.Commands
 {
-	public class AniDBCommand_GetReview : AniDBUDPCommand, IAniDBUDPCommand
-	{
-		private int reviewID;
-		public int ReviewID
-		{
-			get { return reviewID; }
-			set { reviewID = value; }
-		}
-		private string reviewText = "";
-		public string ReviewText
-		{
-			get { return reviewText; }
-			set { reviewText = value; }
-		}
+    public class AniDBCommand_GetReview : AniDBUDPCommand, IAniDBUDPCommand
+    {
+        public Raw_AniDB_Review ReviewInfo;
 
-		public Raw_AniDB_Review ReviewInfo = null;
-		public string GetKey()
-		{
-			return "AniDBCommand_GetReview" + ReviewID.ToString();
-		}
+        public AniDBCommand_GetReview()
+        {
+            commandType = enAniDBCommandType.GetReview;
+        }
 
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.GettingReview;
-		}
+        public int ReviewID { get; set; }
 
-		public virtual enHelperActivityType Process(ref Socket soUDP,
-			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-		{
-			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+        public string ReviewText { get; set; } = "";
 
-			// handle 555 BANNED and 598 - UNKNOWN COMMAND
-			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-			if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+        public string GetKey()
+        {
+            return "AniDBCommand_GetReview" + ReviewID;
+        }
 
-			if (errorOccurred) return enHelperActivityType.NoSuchReview;
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.GettingReview;
+        }
 
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetAnimeDescription.Process: Response: {0}", socketResponse);
+        public virtual enHelperActivityType Process(ref Socket soUDP,
+            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+        {
+            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-			// Process Response
-			string sMsgType = socketResponse.Substring(0, 3);
+            // handle 555 BANNED and 598 - UNKNOWN COMMAND
+            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+
+            if (errorOccurred) return enHelperActivityType.NoSuchReview;
+
+            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetAnimeDescription.Process: Response: {0}", socketResponse);
+
+            // Process Response
+            var sMsgType = socketResponse.Substring(0, 3);
 
 
-			switch (sMsgType)
-			{
-				case "234":
-					{
-						// 234 REVIEW 
-						// the first 10 characters should be "240 REVIEW"
-						// the rest of the information should be the data list
+            switch (sMsgType)
+            {
+                case "234":
+                    {
+                        // 234 REVIEW 
+                        // the first 10 characters should be "240 REVIEW"
+                        // the rest of the information should be the data list
 
-						ReviewInfo = new Raw_AniDB_Review(socketResponse);
-						return enHelperActivityType.GotReview;
+                        ReviewInfo = new Raw_AniDB_Review(socketResponse);
+                        return enHelperActivityType.GotReview;
+                    }
+                case "334":
+                    {
+                        return enHelperActivityType.NoSuchReview;
+                    }
+                case "501":
+                    {
+                        return enHelperActivityType.LoginRequired;
+                    }
+            }
 
-					}
-				case "334":
-					{
-						return enHelperActivityType.NoSuchReview;
-					}
-				case "501":
-					{
-						return enHelperActivityType.LoginRequired;
-					}
-			}
+            return enHelperActivityType.NoSuchReview;
+        }
 
-			return enHelperActivityType.NoSuchReview;
+        public void Init(int revID)
+        {
+            ReviewID = revID;
+            commandText = "REVIEW rid=" + revID;
+            commandText += "&part=0";
 
-		}
+            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetReview.Process: Request: {0}", commandText);
 
-		public AniDBCommand_GetReview()
-		{
-			commandType = enAniDBCommandType.GetReview;
-		}
-
-		public void Init(int revID)
-		{
-			this.reviewID = revID;
-			commandText = "REVIEW rid=" + revID.ToString();
-			commandText += "&part=0";
-
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetReview.Process: Request: {0}", commandText);
-
-			commandID = revID.ToString();
-		}
-	}
+            commandID = revID.ToString();
+        }
+    }
 }

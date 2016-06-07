@@ -1,107 +1,85 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Net;
+using System.Text;
 
 namespace AniDBAPI.Commands
 {
-	public class AniDBCommand_GetCharacterInfo : AniDBUDPCommand, IAniDBUDPCommand
-	{
-		private int charID = 0;
-		public int CharID
-		{
-			get { return charID; }
-			set { charID = value; }
-		}
+    public class AniDBCommand_GetCharacterInfo : AniDBUDPCommand, IAniDBUDPCommand
+    {
+        public AniDBCommand_GetCharacterInfo()
+        {
+            commandType = enAniDBCommandType.GetCharInfo;
+        }
 
-		private Raw_AniDB_Character charInfo = null;
-		public Raw_AniDB_Character CharInfo
-		{
-			get { return charInfo; }
-			set { charInfo = value; }
-		}
+        public int CharID { get; set; }
 
-		private bool forceRefresh = false;
-		public bool ForceRefresh
-		{
-			get { return forceRefresh; }
-			set { forceRefresh = value; }
-		}
+        public Raw_AniDB_Character CharInfo { get; set; }
 
-		public string GetKey()
-		{
-			return "AniDBCommand_GetCharacterInfo" + CharID.ToString();
-		}
+        public bool ForceRefresh { get; set; }
 
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.GettingCharInfo;
-		}
+        public string GetKey()
+        {
+            return "AniDBCommand_GetCharacterInfo" + CharID;
+        }
 
-		public virtual enHelperActivityType Process(ref Socket soUDP,
-			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-		{
-			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.GettingCharInfo;
+        }
 
-			// handle 555 BANNED and 598 - UNKNOWN COMMAND
-			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-			if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+        public virtual enHelperActivityType Process(ref Socket soUDP,
+            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+        {
+            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-			if (errorOccurred) return enHelperActivityType.NoSuchChar;
+            // handle 555 BANNED and 598 - UNKNOWN COMMAND
+            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
 
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCharacterInfo.Process: Response: {0}", socketResponse);
+            if (errorOccurred) return enHelperActivityType.NoSuchChar;
 
-			// Process Response
-			string sMsgType = socketResponse.Substring(0, 3);
+            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCharacterInfo.Process: Response: {0}", socketResponse);
+
+            // Process Response
+            var sMsgType = socketResponse.Substring(0, 3);
 
 
-			switch (sMsgType)
-			{
-				case "235":
-					{
-						// 235 CHARACTER INFO
-						// the first 11 characters should be "235 CHARACTER"
-						// the rest of the information should be the data list
+            switch (sMsgType)
+            {
+                case "235":
+                    {
+                        // 235 CHARACTER INFO
+                        // the first 11 characters should be "235 CHARACTER"
+                        // the rest of the information should be the data list
 
-						charInfo = new Raw_AniDB_Character(socketResponse);
-						return enHelperActivityType.GotCharInfo;
-
-
-						// Response: 235 CHARACTER 99297|6267|25|539|5|01|The Girl Returns|Shoujo Kikan|????|1238976000
-					}
-				case "335":
-					{
-						return enHelperActivityType.NoSuchChar;
-					}
-				case "501":
-					{
-						return enHelperActivityType.LoginRequired;
-					}
-			}
-
-			return enHelperActivityType.NoSuchChar;
-
-		}
+                        CharInfo = new Raw_AniDB_Character(socketResponse);
+                        return enHelperActivityType.GotCharInfo;
 
 
+                        // Response: 235 CHARACTER 99297|6267|25|539|5|01|The Girl Returns|Shoujo Kikan|????|1238976000
+                    }
+                case "335":
+                    {
+                        return enHelperActivityType.NoSuchChar;
+                    }
+                case "501":
+                    {
+                        return enHelperActivityType.LoginRequired;
+                    }
+            }
 
-		public AniDBCommand_GetCharacterInfo()
-		{
-			commandType = enAniDBCommandType.GetCharInfo;
-		}
+            return enHelperActivityType.NoSuchChar;
+        }
 
-		public void Init(int charID, bool force)
-		{
+        public void Init(int charID, bool force)
+        {
+            CharID = charID;
+            ForceRefresh = force;
+            commandText = "CHARACTER charid=" + charID;
 
-			this.charID = charID;
-			this.forceRefresh = force;
-			commandText = "CHARACTER charid=" + charID.ToString();
+            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCharacterInfo.Process: Request: {0}", commandText);
 
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCharacterInfo.Process: Request: {0}", commandText);
-
-			commandID = charID.ToString();
-		}
-	}
+            commandID = charID.ToString();
+        }
+    }
 }

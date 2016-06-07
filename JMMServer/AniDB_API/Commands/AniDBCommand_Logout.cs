@@ -1,42 +1,38 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace AniDBAPI.Commands
 {
-	public class AniDBCommand_Logout : AniDBUDPCommand, IAniDBUDPCommand
-	{
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.LoggingOut;
-		}
+    public class AniDBCommand_Logout : AniDBUDPCommand, IAniDBUDPCommand
+    {
+        public AniDBCommand_Logout()
+        {
+            commandType = enAniDBCommandType.Logout;
+            commandID = "";
+        }
 
-		public string GetKey()
-		{
-			return "Logout";
-		}
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.LoggingOut;
+        }
 
-		public virtual enHelperActivityType Process(ref Socket soUDP,
-			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-		{
-			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+        public string GetKey()
+        {
+            return "Logout";
+        }
 
-			return enHelperActivityType.LoggedOut;
-		}
+        public virtual enHelperActivityType Process(ref Socket soUDP,
+            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+        {
+            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-		public AniDBCommand_Logout()
-		{
-			commandType = enAniDBCommandType.Logout;
-			commandID = "";
-		}
+            return enHelperActivityType.LoggedOut;
+        }
 
-		public void Init()
-		{
-			commandText = "LOGOUT ";
-
-		}
-	}
+        public void Init()
+        {
+            commandText = "LOGOUT ";
+        }
+    }
 }

@@ -1,94 +1,75 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace AniDBAPI.Commands
 {
-	public class AniDBCommand_GetAnimeInfo : AniDBUDPCommand, IAniDBUDPCommand
-	{
-		private Raw_AniDB_Anime animeInfo = null; //AniDB_Anime
-		public Raw_AniDB_Anime AnimeInfo
-		{
-			get { return animeInfo; }
-			set { animeInfo = value; }
-		}
+    public class AniDBCommand_GetAnimeInfo : AniDBUDPCommand, IAniDBUDPCommand
+    {
+        public AniDBCommand_GetAnimeInfo()
+        {
+            commandType = enAniDBCommandType.GetAnimeInfo;
+        }
 
-		private int animeID;
-		public int AnimeID
-		{
-			get { return animeID; }
-			set { animeID = value; }
-		}
+        public Raw_AniDB_Anime AnimeInfo { get; set; }
 
-		private bool forceRefresh = false;
-		public bool ForceRefresh
-		{
-			get { return forceRefresh; }
-			set { forceRefresh = value; }
-		}
+        public int AnimeID { get; set; }
 
-		public string GetKey()
-		{
-			return "AniDBCommand_GetAnimeInfo_" + AnimeID.ToString();
-		}
+        public bool ForceRefresh { get; set; }
 
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.GettingAnimeInfo;
-		}
+        public string GetKey()
+        {
+            return "AniDBCommand_GetAnimeInfo_" + AnimeID;
+        }
 
-		public virtual enHelperActivityType Process(ref Socket soUDP,
-			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-		{
-			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.GettingAnimeInfo;
+        }
 
-			// handle 555 BANNED and 598 - UNKNOWN COMMAND
-			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-			if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+        public virtual enHelperActivityType Process(ref Socket soUDP,
+            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+        {
+            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-			if (errorOccurred) return enHelperActivityType.NoSuchAnime;
+            // handle 555 BANNED and 598 - UNKNOWN COMMAND
+            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
 
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetAnimeInfo.Process: Response: {0}", socketResponse);
+            if (errorOccurred) return enHelperActivityType.NoSuchAnime;
 
-			// Process Response
-			string sMsgType = socketResponse.Substring(0, 3);
+            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetAnimeInfo.Process: Response: {0}", socketResponse);
+
+            // Process Response
+            var sMsgType = socketResponse.Substring(0, 3);
 
 
-			switch (sMsgType)
-			{
-				case "230":
-					{
-						// 230 FILE INFO
-						// the first 9 characters should be "230 ANIME "
-						// the rest of the information should be the data list
-						animeInfo = new Raw_AniDB_Anime(socketResponse);
-						return enHelperActivityType.GotAnimeInfo;
-					}
-				case "330":
-					{
-						return enHelperActivityType.NoSuchAnime;
-					}
-				case "501":
-					{
-						return enHelperActivityType.LoginRequired;
-					}
-			}
+            switch (sMsgType)
+            {
+                case "230":
+                    {
+                        // 230 FILE INFO
+                        // the first 9 characters should be "230 ANIME "
+                        // the rest of the information should be the data list
+                        AnimeInfo = new Raw_AniDB_Anime(socketResponse);
+                        return enHelperActivityType.GotAnimeInfo;
+                    }
+                case "330":
+                    {
+                        return enHelperActivityType.NoSuchAnime;
+                    }
+                case "501":
+                    {
+                        return enHelperActivityType.LoginRequired;
+                    }
+            }
 
-			return enHelperActivityType.FileDoesNotExist;
+            return enHelperActivityType.FileDoesNotExist;
+        }
 
-		}
-
-		public AniDBCommand_GetAnimeInfo()
-		{
-			commandType = enAniDBCommandType.GetAnimeInfo;
-		}
-
-		public void Init(int animeID, bool force)
-		{
-			/*
+        public void Init(int animeID, bool force)
+        {
+            /*
 			// 1 			int4	aid
 			// 2 			int4	episodes
 			// 4 			int4	normal ep count 
@@ -115,26 +96,29 @@ namespace AniDBAPI.Commands
             commandID = animeID.ToString();
 			*/
 
-			this.animeID = animeID;
-			this.forceRefresh = force;
+            AnimeID = animeID;
+            ForceRefresh = force;
 
 
-			//v0.3
-			int aByte1 = 191; // amask - byte1
-			int aByte2 = 252; // amask - byte2 old 188 new 252 Added Kanji Name
-			int aByte3 = 255; // amask - byte3
-			int aByte4 = 255; // amask - byte4 old 252 new 255 Added Award List and 18+ Restricted
-			int aByte5 = 241; // amask - byte5 old 0 new 241 (Added AnimePlanetID/ANN ID/AllCinema ID/AnimeNfo ID/LastUpdate
-			int aByte6 = 136; // amask - byte6
+            //v0.3
+            var aByte1 = 191; // amask - byte1
+            var aByte2 = 252; // amask - byte2 old 188 new 252 Added Kanji Name
+            var aByte3 = 255; // amask - byte3
+            var aByte4 = 255; // amask - byte4 old 252 new 255 Added Award List and 18+ Restricted
+            var aByte5 = 241;
+            // amask - byte5 old 0 new 241 (Added AnimePlanetID/ANN ID/AllCinema ID/AnimeNfo ID/LastUpdate
+            var aByte6 = 136; // amask - byte6
 
 
-			commandID = animeID.ToString();
+            commandID = animeID.ToString();
 
-			commandText = "ANIME aid=" + animeID.ToString();
-			commandText += string.Format("&amask={0}{1}{2}{3}{4}{5}", aByte1.ToString("X").PadLeft(2, '0'), aByte2.ToString("X").PadLeft(2, '0'),
-				aByte3.ToString("X").PadLeft(2, '0'), aByte4.ToString("X").PadLeft(2, '0'), aByte5.ToString("X").PadLeft(2, '0'), aByte6.ToString("X").PadLeft(2, '0'));
+            commandText = "ANIME aid=" + animeID;
+            commandText += string.Format("&amask={0}{1}{2}{3}{4}{5}", aByte1.ToString("X").PadLeft(2, '0'),
+                aByte2.ToString("X").PadLeft(2, '0'),
+                aByte3.ToString("X").PadLeft(2, '0'), aByte4.ToString("X").PadLeft(2, '0'),
+                aByte5.ToString("X").PadLeft(2, '0'), aByte6.ToString("X").PadLeft(2, '0'));
 
-			//BaseConfig.MyAnimeLog.Write(commandText);
-		}
-	}
+            //BaseConfig.MyAnimeLog.Write(commandText);
+        }
+    }
 }

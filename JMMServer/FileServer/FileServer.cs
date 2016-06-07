@@ -1,10 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JMMFileHelper.Subtitles;
@@ -17,30 +16,43 @@ namespace JMMServer.FileServer
 {
     public class FileServer
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-        private HttpListener _listener;
+        private const double WatchedThreshold = 0.89;
+        //89% Should be enough to not touch matroska offsets and give us some margin
 
-        private const double WatchedThreshold=0.89; //89% Should be enough to not touch matroska offsets and give us some margin
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private static IPAddress CachedAddress;
+        private static DateTime LastChange = DateTime.MinValue;
+        private static bool IPThreadLock;
+        private static bool IPFirstTime;
+        private readonly HttpListener _listener;
+
+        public FileServer(int port, int maxthreads = 100)
+        {
+            _listener = new HttpListener();
+            _listener.Prefixes.Add(string.Format(@"http://*:{0}/", port));
+            _listener.Start();
+        }
+
+        public static bool UPnPPortAvailable { get; private set; }
 
 
         private void Run()
         {
-
-
-            Task.Factory.StartNew(() => {
+            Task.Factory.StartNew(() =>
+            {
                 while (_listener.IsListening)
                 {
                     try
                     {
-                        HttpListenerContext ctx = _listener.GetContext();
+                        var ctx = _listener.GetContext();
                         new Thread(() => Process(ctx)).Start();
                     }
                     catch (Exception ex)
                     {
                         logger.ErrorException(ex.ToString(), ex);
                     }
-                } 
-                }); 
+                }
+            });
 
             /*
             ThreadPool.QueueUserWorkItem((o) =>
@@ -69,12 +81,10 @@ namespace JMMServer.FileServer
                 catch { } // suppress any exceptions
             });
              */
-
         }
 
         public static bool UPnPJMMFilePort(int jmmfileport)
         {
-
             try
             {
                 if (NAT.Discover())
@@ -93,11 +103,6 @@ namespace JMMServer.FileServer
             return UPnPPortAvailable;
         }
 
-        public static bool UPnPPortAvailable { get; private set; }
-        private static IPAddress CachedAddress;
-        private static DateTime LastChange = DateTime.MinValue;
-        private static bool IPThreadLock;
-        private static bool IPFirstTime;
         public static IPAddress GetExternalAddress()
         {
             try
@@ -113,7 +118,7 @@ namespace JMMServer.FileServer
                     {
                         IPThreadLock = true;
                         LastChange = DateTime.Now.AddMinutes(2);
-                        ThreadPool.QueueUserWorkItem((a) =>
+                        ThreadPool.QueueUserWorkItem(a =>
                         {
                             CachedAddress = NAT.GetExternalIP();
                             IPThreadLock = false;
@@ -130,13 +135,14 @@ namespace JMMServer.FileServer
 
         public static string Base64DecodeUrl(string base64EncodedData)
         {
-            var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData.Replace("-", "+").Replace("_", "/").Replace(",", "="));
-            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+            var base64EncodedBytes =
+                Convert.FromBase64String(base64EncodedData.Replace("-", "+").Replace("_", "/").Replace(",", "="));
+            return Encoding.UTF8.GetString(base64EncodedBytes);
         }
 
         private static string GetMime(string fullname)
         {
-            string ext = Path.GetExtension(fullname).Replace(".", string.Empty).ToLower();
+            var ext = Path.GetExtension(fullname).Replace(".", string.Empty).ToLower();
             switch (ext)
             {
                 case "png":
@@ -171,35 +177,26 @@ namespace JMMServer.FileServer
             return "application/octet-stream";
         }
 
-        public FileServer(int port, int maxthreads=100)
-        {
-            _listener=new HttpListener();
-            _listener.Prefixes.Add(String.Format(@"http://*:{0}/", port));
-            _listener.Start();
-
-        }
-
-        private void Process(System.Net.HttpListenerContext obj)
+        private void Process(HttpListenerContext obj)
         {
             Stream org = null;
-                
+
             try
             {
-
-                bool fname = false;
-                string[] dta = obj.Request.RawUrl.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                var fname = false;
+                var dta = obj.Request.RawUrl.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
                 if (dta.Length < 3)
                     return;
-                string cmd = dta[0].ToLower();
-                string user = dta[1];
-                string arg = dta[2];
+                var cmd = dta[0].ToLower();
+                var user = dta[1];
+                var arg = dta[2];
                 string fullname;
-                int userid = 0;
+                var userid = 0;
                 int.TryParse(user, out userid);
-                VideoLocal loc=null;
+                VideoLocal loc = null;
                 if (cmd == "videolocal")
                 {
-                    int sid = 0;
+                    var sid = 0;
                     int.TryParse(arg, out sid);
                     if (sid == 0)
                     {
@@ -207,21 +204,19 @@ namespace JMMServer.FileServer
                         obj.Response.StatusDescription = "Stream Id missing.";
                         return;
                     }
-                    VideoLocalRepository rep = new VideoLocalRepository();
+                    var rep = new VideoLocalRepository();
                     loc = rep.GetByID(sid);
                     if (loc == null)
                     {
                         obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
                         obj.Response.StatusDescription = "Stream Id not found.";
                         return;
-
                     }
                     fullname = loc.FullServerPath;
                 }
                 else if (cmd == "file")
                 {
                     fullname = Base64DecodeUrl(arg);
-
                 }
                 else
                 {
@@ -230,7 +225,7 @@ namespace JMMServer.FileServer
                     return;
                 }
 
-                bool range = false;
+                var range = false;
 
                 try
                 {
@@ -240,7 +235,6 @@ namespace JMMServer.FileServer
                         obj.Response.StatusDescription = "File '" + fullname + "' not found.";
                         return;
                     }
-
                 }
                 catch (Exception)
                 {
@@ -270,18 +264,18 @@ namespace JMMServer.FileServer
                 if (obj.Request.HttpMethod != "HEAD")
                 {
                     org = new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    long totalsize = org.Length;
+                    var totalsize = org.Length;
                     long start = 0;
                     long end = 0;
                     if (!string.IsNullOrEmpty(rangevalue))
                     {
                         range = true;
-                        string[] split = rangevalue.Split('-');
+                        var split = rangevalue.Split('-');
                         if (split.Length == 2)
                         {
                             if (string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
                             {
-                                long e = long.Parse(split[1]);
+                                var e = long.Parse(split[1]);
                                 start = totalsize - e;
                                 end = totalsize - 1;
                             }
@@ -309,27 +303,26 @@ namespace JMMServer.FileServer
                     SubStream outstream;
                     if (range)
                     {
-                        obj.Response.StatusCode = (int) HttpStatusCode.PartialContent;
+                        obj.Response.StatusCode = (int)HttpStatusCode.PartialContent;
                         obj.Response.AddHeader("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
                         outstream = new SubStream(org, start, end - start + 1);
                         obj.Response.ContentLength64 = end - start + 1;
                     }
                     else
                     {
-                        outstream=new SubStream(org,0,totalsize);
+                        outstream = new SubStream(org, 0, totalsize);
                         obj.Response.ContentLength64 = totalsize;
-                        obj.Response.StatusCode = (int) HttpStatusCode.OK;
+                        obj.Response.StatusCode = (int)HttpStatusCode.OK;
                     }
                     if ((userid != 0) && (loc != null))
                     {
-                        outstream.CrossPosition = (long) ((double) totalsize*WatchedThreshold);
-                        outstream.CrossPositionCrossed += (a) =>
-                        {
-                            Task.Factory.StartNew(() =>
+                        outstream.CrossPosition = (long)(totalsize * WatchedThreshold);
+                        outstream.CrossPositionCrossed +=
+                            a =>
                             {
-                                loc.ToggleWatchedStatus(true, userid);
-                            }, new CancellationToken(), TaskCreationOptions.LongRunning, TaskScheduler.Default);
-                        };
+                                Task.Factory.StartNew(() => { loc.ToggleWatchedStatus(true, userid); },
+                                    new CancellationToken(), TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                            };
                     }
                     obj.Response.SendChunked = false;
                     outstream.CopyTo(obj.Response.OutputStream);
@@ -357,7 +350,7 @@ namespace JMMServer.FileServer
                 if (org != null)
                     org.Close();
                 if ((obj != null) && (obj.Response != null) && (obj.Response.OutputStream != null))
-                    obj.Response.OutputStream.Close();                
+                    obj.Response.OutputStream.Close();
             }
         }
 
