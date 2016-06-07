@@ -36,6 +36,7 @@ namespace JMMServer
                 userLanguages.Add(new UserCulture("it", "Italiano (MT)", @"Images/Flags/it.gif"));
                 userLanguages.Add(new UserCulture("nl", "Nederlands (MT)", @"Images/Flags/nl.gif"));
                 userLanguages.Add(new UserCulture("pl", "Polskie (MT)", @"Images/Flags/pl.gif"));
+                userLanguages.Add(new UserCulture("pt", "Português (MT)", @"Images/Flags/pt.gif"));
                 userLanguages.Add(new UserCulture("ru", "Pусский (MT)", @"Images/Flags/ru.gif"));
 
                 return userLanguages;
