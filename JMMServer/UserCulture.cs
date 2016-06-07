@@ -29,13 +29,15 @@ namespace JMMServer
                 List<UserCulture> userLanguages = new List<UserCulture>();
 
                 userLanguages.Add(new UserCulture("en", "English (US)", @"Images/Flags/us.gif"));
-                userLanguages.Add(new UserCulture("nl", "Dutch (Machine Translated)", @"Images/Flags/nl.gif"));
-                userLanguages.Add(new UserCulture("fr", "French (Machine Translated)", @"Images/Flags/fr.gif"));
-                userLanguages.Add(new UserCulture("de", "German (Machine Translated)", @"Images/Flags/de_germany.gif"));
-                userLanguages.Add(new UserCulture("it", "Italian (Machine Translated)", @"Images/Flags/it.gif"));
-                userLanguages.Add(new UserCulture("pl", "Polish (Machine Translated)", @"Images/Flags/pl.gif"));
-                userLanguages.Add(new UserCulture("ru", "Russian (Machine Translated)", @"Images/Flags/ru.gif"));
-                userLanguages.Add(new UserCulture("es", "Spanish (Machine Translated)", @"Images/Flags/es.gif"));
+                userLanguages.Add(new UserCulture("en-gb", "English (UK)", @"Images/Flags/uk_unitedkingdom.gif"));
+                userLanguages.Add(new UserCulture("de", "Deutsche (MT)", @"Images/Flags/de_germany.gif"));
+                userLanguages.Add(new UserCulture("es", "Español (MT)", @"Images/Flags/es.gif"));
+                userLanguages.Add(new UserCulture("fr", "Français (MT)", @"Images/Flags/fr.gif"));
+                userLanguages.Add(new UserCulture("it", "Italiano (MT)", @"Images/Flags/it.gif"));
+                userLanguages.Add(new UserCulture("nl", "Nederlands (MT)", @"Images/Flags/nl.gif"));
+                userLanguages.Add(new UserCulture("pl", "Polskie (MT)", @"Images/Flags/pl.gif"));
+                userLanguages.Add(new UserCulture("pt", "Português (MT)", @"Images/Flags/pt.gif"));
+                userLanguages.Add(new UserCulture("ru", "Pусский (MT)", @"Images/Flags/ru.gif"));
 
                 return userLanguages;
             }
