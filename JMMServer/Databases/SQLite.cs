@@ -1500,7 +1500,7 @@ namespace JMMServer.Databases
                      " ANNID int NULL, " +
                      " AllCinemaID int NULL, " +
                      " AnimeNfo int NULL, " +
-                     " LatestEpisodeNumber int NULL " +
+                     " LatestEpisodeNumber int NULL, " +
                      " LatestEpisodeAirDate timestamp NULL " +
                      " );");
 
@@ -1901,7 +1901,7 @@ namespace JMMServer.Databases
                      " MissingEpisodeCount int NOT NULL, " +
                      " MissingEpisodeCountGroups int NOT NULL, " +
                      " OverrideDescription int NOT NULL, " +
-                     " EpisodeAddedDate timestamp NULL " +
+                     " EpisodeAddedDate timestamp NULL, " +
                      " LatestEpisodeAirDate timestamp NULL " +
                      " ); ");
 
