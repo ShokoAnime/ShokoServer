@@ -1675,11 +1675,10 @@ namespace JMMServer
 
 			if (string.IsNullOrEmpty(newFileName)) return string.Empty;
 
-			// finally add back the extension
-			
+            // finally add back the extension
 
-			return string.Format("{0}{1}", newFileName, Path.GetExtension(vid.FullServerPath));
-		}
+            return string.Format("{0}{1}", newFileName.Replace("`", "'"), Path.GetExtension(vid.FullServerPath));
+        }
 
 		private static void PerformActionOnFileName(ref string newFileName, string action, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime, VideoInfo vi)
 		{
