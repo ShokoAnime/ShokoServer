@@ -419,6 +419,10 @@
     <Compile Include="Providers\JMMAutoUpdates\Update.cs" />
     <Compile Include="Providers\JMMAutoUpdates\Updates.cs" />
     <Compile Include="Providers\JMMAutoUpdates\Versions.cs" />
+    <Compile Include="Providers\JSONHelper.cs" />
+    <Compile Include="Providers\MovieDB\MovieDBHelper.cs" />
+    <Compile Include="Providers\MovieDB\MovieDB_Image_Result.cs" />
+    <Compile Include="Providers\MovieDB\MovieDB_Movie_Result.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
@@ -467,11 +471,15 @@
     <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2WatchedEpisode.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2WatchedSeason.cs" />
     <Compile Include="Providers\TraktTV\TraktConstants.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVHelper.cs" />
     <Compile Include="Providers\TraktTV\TraktURIs.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktV2RefreshToken.cs" />
     <Compile Include="Providers\TraktTV\Contracts\TraktDetailsContainer.cs" />
     <Compile Include="Providers\TraktTV\Contracts\TraktSummaryContainer.cs" />
     <Compile Include="Providers\TvDB\TvDBDetails.cs" />
+    <Compile Include="Providers\TvDB\TvDBHelper.cs" />
+    <Compile Include="Providers\TvDB\TvDBLanguage.cs" />
+    <Compile Include="Providers\TvDB\TVDBSeriesSearchResult.cs" />
     <Compile Include="Providers\TvDB\TvDBSummary.cs" />
     <Compile Include="Repositories\AniDB_MylistStatsRepository.cs" />
     <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
@@ -619,14 +627,6 @@
     <Compile Include="MultiSortLib\SortSearchCriteria.cs" />
     <Compile Include="MultiSortLib\ValueComparison.cs" />
     <Compile Include="NamingLanguage.cs" />
-    <Compile Include="Repositories\Providers\JSONHelper.cs" />
-    <Compile Include="Repositories\Providers\MovieDB\MovieDBHelper.cs" />
-    <Compile Include="Repositories\Providers\MovieDB\MovieDB_Image_Result.cs" />
-    <Compile Include="Repositories\Providers\MovieDB\MovieDB_Movie_Result.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\TraktTVHelper.cs" />
-    <Compile Include="Repositories\Providers\TvDB\TvDBHelper.cs" />
-    <Compile Include="Repositories\Providers\TvDB\TVDBSeriesSearchResult.cs" />
-    <Compile Include="Repositories\Providers\TvDB\TvDBLanguage.cs" />
     <Compile Include="Repositories\AdhocRepository.cs" />
     <Compile Include="Repositories\AniDB_AnimeRepository.cs" />
     <Compile Include="Repositories\AniDB_Anime_CharacterRepository.cs" />
@@ -850,15 +850,6 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <AppDesigner Include="Properties\" />
-    <None Include="Repositories\Providers\MyAnimeList\XMLSchema\AnimeList.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Repositories\Providers\MyAnimeList\XMLSchema\SearchResult.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Repositories\Providers\MyAnimeList\XMLSchema\VerifyCredentials.xsd">
-      <SubType>Designer</SubType>
-    </None>
     <None Include="Resources\plex_404.bin" />
     <None Include="Resources\plex_404V.bin" />
     <None Include="Resources\plex_credits.bin" />
@@ -942,12 +933,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\16_folder_find.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Repositories\Providers\MyAnimeList\sample\AnimeList.xml" />
-    <Resource Include="Repositories\Providers\MyAnimeList\sample\AnimeValues.xml" />
-    <Resource Include="Repositories\Providers\MyAnimeList\sample\SearchResult.xml" />
-    <Resource Include="Repositories\Providers\MyAnimeList\sample\VerifyCredentials.xml" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_new.png" />
