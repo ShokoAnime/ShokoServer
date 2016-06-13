@@ -354,85 +354,125 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Repositories\Providers\Azure\Azure_AdminMessage.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_AnimeIDTitle.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_AnimeLink.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_AnimeXML.cs" />
-    <Compile Include="Repositories\Providers\Azure\AzureWebAPI.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_AnimeCharacter.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_AnimeDetail.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_AnimeFull.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_AnimeShout.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_CrossRef_AniDB_MAL.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_CrossRef_AniDB_Other.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_CrossRef_AniDB_OtherInput.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_CrossRef_AniDB_TraktInput.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_CrossRef_AniDB_TvDB.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_CrossRef_AniDB_TvDBInput.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_CrossRef_AniDB_Trakt.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_CrossRef_AniDB_MALInput.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_CrossRef_File_Episode.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_CrossRef_File_EpisodeInput.cs" />
-    <Compile Include="Repositories\Providers\Azure\Azure_UserInfo.cs" />
-    <Compile Include="Repositories\Providers\JMMAutoUpdates\JMMAutoUpdatesHelper.cs" />
-    <Compile Include="Repositories\Providers\JMMAutoUpdates\JMMVersions.cs" />
-    <Compile Include="Repositories\Providers\JMMAutoUpdates\Update.cs" />
-    <Compile Include="Repositories\Providers\JMMAutoUpdates\Updates.cs" />
-    <Compile Include="Repositories\Providers\JMMAutoUpdates\Versions.cs" />
-    <Compile Include="Repositories\Providers\MyAnimeList\MALClasses\AnimeList.cs" />
-    <Compile Include="Repositories\Providers\MyAnimeList\MALClasses\SearchResult.cs" />
-    <Compile Include="Repositories\Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
-    <Compile Include="Repositories\Providers\MyAnimeList\MALHelper.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2SyncCollectionEpisodesByNumber.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2SyncWatchedEpisodesByNumber.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Temp.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Auth\TraktAuthPIN.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Auth\TraktAuthToken.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Airs.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Banner.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Clearart.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2CollectedEpisode.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2CollectedSeason.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Comment.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2CommentShowPost.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Episode.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2EpisodeIds.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2EpisodeImage.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2EpisodePost.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2EpisodeScreenshot.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Fanart.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Follower.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Ids.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Images.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2ImagesExtended.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Logo.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Movie.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Poster.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Search\TraktV2SearchShowResult.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Search\TraktV2SearchTvDBIDShowResult.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2ScrobbleEpisode.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2ScrobbleMovie.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Season.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2SeasonIds.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Show.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2ShowCollectedResult.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2ShowExtended.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2ShowIdsPost.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2ShowPost.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2ShowWatchedResult.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2SyncCollectionEpisodes.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2Thumb.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2User.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktV2UserEpisodeHistory.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2WatchedEpisode.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Sync\TraktV2WatchedSeason.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\TraktConstants.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\TraktURIs.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\Auth\TraktV2RefreshToken.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktDetailsContainer.cs" />
-    <Compile Include="Repositories\Providers\TraktTV\Contracts\TraktSummaryContainer.cs" />
-    <Compile Include="Repositories\Providers\TvDB\TvDBDetails.cs" />
-    <Compile Include="Repositories\Providers\TvDB\TvDBSummary.cs" />
+    <Compile Include="Properties\Resources.en-GB.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.en-GB.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.es.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.es.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.fr.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.fr.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.it.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.it.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.nl.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.nl.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.pl.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.pl.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.pt.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.pt.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.ru.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.ru.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Providers\Azure\Azure_AdminMessage.cs" />
+    <Compile Include="Providers\Azure\Azure_AnimeIDTitle.cs" />
+    <Compile Include="Providers\Azure\Azure_AnimeLink.cs" />
+    <Compile Include="Providers\Azure\Azure_AnimeXML.cs" />
+    <Compile Include="Providers\Azure\AzureWebAPI.cs" />
+    <Compile Include="Providers\Azure\Azure_AnimeCharacter.cs" />
+    <Compile Include="Providers\Azure\Azure_AnimeDetail.cs" />
+    <Compile Include="Providers\Azure\Azure_AnimeFull.cs" />
+    <Compile Include="Providers\Azure\Azure_AnimeShout.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_MAL.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_Other.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_OtherInput.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TraktInput.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDB.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_TvDBInput.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_Trakt.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_AniDB_MALInput.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_File_Episode.cs" />
+    <Compile Include="Providers\Azure\Azure_CrossRef_File_EpisodeInput.cs" />
+    <Compile Include="Providers\Azure\Azure_UserInfo.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\JMMAutoUpdatesHelper.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\JMMVersions.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\Update.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\Updates.cs" />
+    <Compile Include="Providers\JMMAutoUpdates\Versions.cs" />
+    <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
+    <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
+    <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
+    <Compile Include="Providers\MyAnimeList\MALHelper.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncCollectionEpisodesByNumber.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncWatchedEpisodesByNumber.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Temp.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthPIN.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthToken.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Airs.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Banner.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Clearart.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2CollectedEpisode.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2CollectedSeason.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Comment.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2CommentShowPost.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Episode.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2EpisodeIds.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2EpisodeImage.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2EpisodePost.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2EpisodeScreenshot.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Fanart.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Follower.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Ids.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Images.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2ImagesExtended.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Logo.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Movie.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Poster.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Search\TraktV2SearchShowResult.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Search\TraktV2SearchTvDBIDShowResult.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2ScrobbleEpisode.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2ScrobbleMovie.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Season.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2SeasonIds.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Show.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowCollectedResult.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2ShowExtended.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowIdsPost.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowPost.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowWatchedResult.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncCollectionEpisodes.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2Thumb.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2User.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktV2UserEpisodeHistory.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2WatchedEpisode.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2WatchedSeason.cs" />
+    <Compile Include="Providers\TraktTV\TraktConstants.cs" />
+    <Compile Include="Providers\TraktTV\TraktURIs.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktV2RefreshToken.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktDetailsContainer.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\TraktSummaryContainer.cs" />
+    <Compile Include="Providers\TvDB\TvDBDetails.cs" />
+    <Compile Include="Providers\TvDB\TvDBSummary.cs" />
     <Compile Include="Repositories\AniDB_MylistStatsRepository.cs" />
     <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
@@ -755,18 +795,46 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="Properties\Resources.de.resx" />
-    <EmbeddedResource Include="Properties\Resources.en-GB.resx" />
-    <EmbeddedResource Include="Properties\Resources.es.resx" />
-    <EmbeddedResource Include="Properties\Resources.fr.resx" />
-    <EmbeddedResource Include="Properties\Resources.it.resx" />
-    <EmbeddedResource Include="Properties\Resources.nl.resx" />
-    <EmbeddedResource Include="Properties\Resources.pl.resx" />
+    <EmbeddedResource Include="Properties\Resources.de.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.de.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.en-GB.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.en-GB.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.es.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.es.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.fr.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.fr.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.it.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.it.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.nl.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.nl.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.pl.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.pl.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.pt.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.pt.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="Properties\Resources.ru.resx" />
+    <EmbeddedResource Include="Properties\Resources.ru.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.ru.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>
@@ -951,6 +1019,7 @@
     <Resource Include="Images\Flags\nl.gif" />
     <Resource Include="Images\Flags\no.gif" />
     <Resource Include="Images\Flags\pl.gif" />
+    <Resource Include="Images\Flags\pt.gif" />
     <Resource Include="Images\Flags\ro.gif" />
     <Resource Include="Images\Flags\ru.gif" />
     <Resource Include="Images\Flags\se.gif" />

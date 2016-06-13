@@ -309,8 +309,7 @@ namespace JMMServer
                 bool lessThanEqual = false;
 
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
-                    ref lessThan,
-                    ref lessThanEqual);
+                    ref lessThan, ref lessThanEqual);
 
                 if (aniFile == null) return false;
 
@@ -379,8 +378,7 @@ namespace JMMServer
                 bool lessThanEqual = false;
 
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
-                    ref lessThan,
-                    ref lessThanEqual);
+                    ref lessThan, ref lessThanEqual);
 
                 int testBitDepth = 0;
                 int.TryParse(test, out testBitDepth);
@@ -450,8 +448,7 @@ namespace JMMServer
                 bool lessThanEqual = false;
 
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
-                    ref lessThan,
-                    ref lessThanEqual);
+                    ref lessThan, ref lessThanEqual);
 
                 if (vi == null) return false;
 
@@ -528,8 +525,7 @@ namespace JMMServer
                 bool lessThanEqual = false;
 
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
-                    ref lessThan,
-                    ref lessThanEqual);
+                    ref lessThan, ref lessThanEqual);
 
                 if (vi == null) return false;
 
@@ -798,8 +794,7 @@ namespace JMMServer
                 bool lessThanEqual = false;
 
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
-                    ref lessThan,
-                    ref lessThanEqual);
+                    ref lessThan, ref lessThanEqual);
 
                 int testYear = 0;
                 int.TryParse(test, out testYear);
@@ -866,8 +861,7 @@ namespace JMMServer
                 bool lessThanEqual = false;
 
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
-                    ref lessThan,
-                    ref lessThanEqual);
+                    ref lessThan, ref lessThanEqual);
 
                 int testEpNumber = 0;
                 int.TryParse(test, out testEpNumber);
@@ -1041,8 +1035,7 @@ namespace JMMServer
                 bool lessThanEqual = false;
 
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
-                    ref lessThan,
-                    ref lessThanEqual);
+                    ref lessThan, ref lessThanEqual);
 
                 int epCount = 0;
                 int.TryParse(test, out epCount);
@@ -1125,8 +1118,7 @@ namespace JMMServer
                 // Test if Anime ID exists
 
                 string tagAnimeID = Constants.FileRenameTag.AnimeID.Substring(1,
-                    Constants.FileRenameTag.AnimeID.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.AnimeID.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeID, StringComparison.InvariantCultureIgnoreCase))
                 {
                     // manually linked files won't have an anime id
@@ -1149,8 +1141,7 @@ namespace JMMServer
                 // Test if Group ID exists
 
                 string tagGroupID = Constants.FileRenameTag.GroupID.Substring(1,
-                    Constants.FileRenameTag.GroupID.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.GroupID.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagGroupID, StringComparison.InvariantCultureIgnoreCase))
                 {
                     // manually linked files won't have an group id
@@ -1247,8 +1238,7 @@ namespace JMMServer
 
                 // Test if Group Short Name exists - yes it always does
                 string tagED2KUpper = Constants.FileRenameTag.ED2KUpper.Substring(1,
-                    Constants.FileRenameTag.ED2KUpper.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.ED2KUpper.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagED2KUpper, StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (notCondition) return false;
@@ -1261,8 +1251,7 @@ namespace JMMServer
 
                 // Test if Group Short Name exists - yes it always does
                 string tagED2KLower = Constants.FileRenameTag.ED2KLower.Substring(1,
-                    Constants.FileRenameTag.ED2KLower.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.ED2KLower.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagED2KLower, StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (notCondition) return false;
@@ -1445,8 +1434,7 @@ namespace JMMServer
 
                 // Test if Group Short Name exists - yes it always does
                 string tagCRCLower = Constants.FileRenameTag.CRCLower.Substring(1,
-                    Constants.FileRenameTag.CRCLower.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.CRCLower.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagCRCLower, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string crc = vid.CRC32;
@@ -1471,8 +1459,7 @@ namespace JMMServer
 
                 // Test if Group Short Name exists - yes it always does
                 string tagCRCUpper = Constants.FileRenameTag.CRCUpper.Substring(1,
-                    Constants.FileRenameTag.CRCUpper.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.CRCUpper.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagCRCUpper, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string crc = vid.CRC32;
@@ -1536,8 +1523,7 @@ namespace JMMServer
                 #region Test if Video resolution exists
 
                 string tagVidRes = Constants.FileRenameTag.Resolution.Substring(1,
-                    Constants.FileRenameTag.Resolution.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.Resolution.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagVidRes, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string vidRes = "";
@@ -1564,8 +1550,7 @@ namespace JMMServer
                 #region Test file has a video codec defined
 
                 string tagVideoCodec = Constants.FileRenameTag.VideoCodec.Substring(1,
-                    Constants.FileRenameTag.VideoCodec.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.VideoCodec.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagVideoCodec, StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (aniFile == null || string.IsNullOrEmpty(aniFile.File_VideoCodec))
@@ -1585,8 +1570,7 @@ namespace JMMServer
                 #region Test file has an audio codec defined
 
                 string tagAudioCodec = Constants.FileRenameTag.AudioCodec.Substring(1,
-                    Constants.FileRenameTag.AudioCodec.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.AudioCodec.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAudioCodec, StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (aniFile == null || string.IsNullOrEmpty(aniFile.File_AudioCodec))
@@ -1636,8 +1620,7 @@ namespace JMMServer
                 #region Test if censored
 
                 string tagCensored = Constants.FileRenameTag.Censored.Substring(1,
-                    Constants.FileRenameTag.Censored.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.Censored.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagCensored, StringComparison.InvariantCultureIgnoreCase))
                 {
                     bool isCensored = false;
@@ -1661,8 +1644,7 @@ namespace JMMServer
                 #region Test if Deprecated
 
                 string tagDeprecated = Constants.FileRenameTag.Deprecated.Substring(1,
-                    Constants.FileRenameTag.Deprecated.Length - 1);
-                // remove % at the front
+                    Constants.FileRenameTag.Deprecated.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagDeprecated, StringComparison.InvariantCultureIgnoreCase))
                 {
                     bool isDeprecated = false;
@@ -1823,13 +1805,11 @@ namespace JMMServer
 
             // finally add back the extension
 
-
-            return string.Format("{0}{1}", newFileName, Path.GetExtension(vid.FullServerPath));
+            return string.Format("{0}{1}", newFileName.Replace("`", "'"), Path.GetExtension(vid.FullServerPath));
         }
 
         private static void PerformActionOnFileName(ref string newFileName, string action, VideoLocal vid,
-            AniDB_File aniFile,
-            List<AniDB_Episode> episodes, AniDB_Anime anime, VideoInfo vi)
+            AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime, VideoInfo vi)
         {
             // find the first test
             int posStart = action.IndexOf(" ");
@@ -2319,7 +2299,7 @@ namespace JMMServer
                         {
                             foundAND = true;
                             string thisLineRemainder = line.Substring(posStart + 1, line.Length - posStart - 1).Trim();
-                            // remove any spacing
+                                // remove any spacing
                             //char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
                             char thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
 
@@ -2348,7 +2328,7 @@ namespace JMMServer
                             {
                                 string thisLineRemainder =
                                     line.Substring(posStart + 1, line.Length - posStart - 1).Trim();
-                                // remove any spacing
+                                    // remove any spacing
                                 //char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
                                 char thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
 
