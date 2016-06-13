@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace JMMServer.Providers.TraktTV
+﻿namespace JMMServer.Providers.TraktTV
 {
     public static class TraktConstants
     {
@@ -14,7 +8,7 @@ namespace JMMServer.Providers.TraktTV
         public const string ClientID = "a20707fa9666bea4acd86bc6ea2123bd6ffdbe996b4927cfdba96f4d3fca3042";
         public const string ClientSecret = "7ef5eec766070fa0b34a4a4a2fea2ad0ddbe9bb1bc1e8eb621551c52fb288739";
         public const string BaseAPIURL = @"https://api-v2launch.trakt.tv";
-        public const string BaseWebsiteURL = @"https://trakt.tv"; 
+        public const string BaseWebsiteURL = @"https://trakt.tv";
         public const string PINAuth = BaseWebsiteURL + @"/pin/5309";
 
         // Staging

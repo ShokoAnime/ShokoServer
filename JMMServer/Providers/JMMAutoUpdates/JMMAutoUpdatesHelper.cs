@@ -1,12 +1,7 @@
-﻿using NLog;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
+using NLog;
 
 namespace JMMServer.Providers.JMMAutoUpdates
 {
@@ -19,10 +14,10 @@ namespace JMMServer.Providers.JMMAutoUpdates
             string[] numbers = version.Split('.');
             if (numbers.Length != 4) return 0;
 
-            return (int.Parse(numbers[3]) * 100) +
-                (int.Parse(numbers[2]) * 100 * 100) +
-                (int.Parse(numbers[1]) * 100 * 100 * 100) +
-                (int.Parse(numbers[0]) * 100 * 100 * 100 * 100);
+            return int.Parse(numbers[3])*100 +
+                   int.Parse(numbers[2])*100*100 +
+                   int.Parse(numbers[1])*100*100*100 +
+                   int.Parse(numbers[0])*100*100*100*100;
         }
 
         public static Providers.JMMAutoUpdates.JMMVersions GetLatestVersionInfo()
@@ -34,11 +29,11 @@ namespace JMMServer.Providers.JMMAutoUpdates
                 string xml = AniDBAPI.APIUtils.DownloadWebPage(uri);
 
                 XmlSerializer x = new XmlSerializer(typeof(Providers.JMMAutoUpdates.JMMVersions));
-                Providers.JMMAutoUpdates.JMMVersions myTest = (Providers.JMMAutoUpdates.JMMVersions)x.Deserialize(new StringReader(xml));
+                Providers.JMMAutoUpdates.JMMVersions myTest =
+                    (Providers.JMMAutoUpdates.JMMVersions) x.Deserialize(new StringReader(xml));
                 ServerState.Instance.ApplicationVersionLatest = myTest.versions.ServerVersionFriendly;
 
                 return myTest;
-
             }
             catch (Exception ex)
             {
@@ -47,5 +42,4 @@ namespace JMMServer.Providers.JMMAutoUpdates
             }
         }
     }
-
 }

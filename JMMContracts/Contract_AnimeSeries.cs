@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace JMMContracts
 {
@@ -36,6 +34,5 @@ namespace JMMContracts
         public List<Contract_TvDB_Series> TvDB_Series { get; set; }
         public Contract_MovieDB_Movie MovieDB_Movie { get; set; }
         public Contract_AnimeGroup TopLevelGroup { get; set; }
-
     }
 }

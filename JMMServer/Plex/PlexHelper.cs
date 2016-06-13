@@ -19,15 +19,16 @@ using NHibernate;
 using Directory = JMMContracts.PlexContracts.Directory;
 
 // ReSharper disable FunctionComplexityOverflow
+
 namespace JMMServer.Plex
 {
     public static class PlexHelper
     {
-    
         public const string MediaTagVersion = "1454470850";
 
 
-        public static MediaContainer NewMediaContainer(MediaContainerTypes type, HistoryInfo info=null, bool allowsync=true, bool nocache = true)
+        public static MediaContainer NewMediaContainer(MediaContainerTypes type, HistoryInfo info = null,
+            bool allowsync = true, bool nocache = true)
         {
             MediaContainer m = new MediaContainer();
             m.AllowSync = allowsync ? "1" : "0";
@@ -47,8 +48,8 @@ namespace JMMServer.Plex
                 case MediaContainerTypes.Show:
                     m.ViewGroup = "show";
                     m.ViewMode = "65592";
-                
-                   break;
+
+                    break;
                 case MediaContainerTypes.Episode:
                     m.ViewGroup = "episode";
                     m.ViewMode = "65592";
@@ -70,72 +71,98 @@ namespace JMMServer.Plex
 
         public static string ConstructUnsortUrl(int userid)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupUnsort + "/0/");
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int) JMMType.GroupUnsort + "/0/");
         }
+
         public static string ConstructGroupIdUrl(int userid, int gid)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int)JMMType.Group + "/"+gid);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int) JMMType.Group + "/" + gid);
         }
+
         public static string ConstructSerieIdUrl(int userid, string sid)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int)JMMType.Serie + "/" + sid);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int) JMMType.Serie + "/" + sid);
         }
-               
+
         public static string ContructVideoLocalIdUrl(int userid, int vid, JMMType type)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int)type + "/" + vid);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int) type + "/" + vid);
         }
+
         public static string ConstructFilterIdUrl(int userid, int gfid)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupFilter + "/" + gfid);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int) JMMType.GroupFilter + "/" + gfid);
         }
+
         public static string ConstructFiltersUrl(int userid)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressPlex + "/GetFilters/" + userid);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressPlex + "/GetFilters/" + userid);
         }
-        public static string ConstructSearchUrl(string userid,string limit, string query)
+
+        public static string ConstructSearchUrl(string userid, string limit, string query)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressPlex + "/Search/" + WebUtility.UrlEncode(userid) +"/"+limit+"/"+WebUtility.UrlEncode(query));
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressPlex + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" +
+                WebUtility.UrlEncode(query));
         }
+
         public static string ConstructPlaylistUrl(int userid)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/0");
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int) JMMType.Playlist + "/0");
         }
 
         public static string ConstructPlaylistIdUrl(int userid, int pid)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressPlex + "/GetMetadata/"+userid+"/" + (int)JMMType.Playlist + "/" +pid);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressPlex + "/GetMetadata/" + userid + "/" + (int) JMMType.Playlist + "/" + pid);
         }
 
         public static string ConstructVideoLocalStream(int userid, int vid, string extension)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + vid+ "/file" + extension, PlexObject.IsExternalRequest);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort),
+                "videolocal/" + userid + "/" + vid + "/file" + extension, PlexObject.IsExternalRequest);
         }
 
         public static string ConstructFileStream(int userid, string file)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + userid + "/" + Base64EncodeUrl(file), PlexObject.IsExternalRequest);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + userid + "/" + Base64EncodeUrl(file),
+                PlexObject.IsExternalRequest);
         }
 
         public static string ConstructImageLink(int type, int id)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/" + type + "/" + id);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressREST + "/GetImage/" + type + "/" + id);
         }
+
         public static string ConstructSupportImageLink(string name)
         {
             double relation = GetRelation();
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetSupportImage/"+name+ "/" + relation);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressREST + "/GetSupportImage/" + name + "/" + relation);
         }
+
         public static string ConstructSupportImageLinkTV(string name)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressPlex + "/GetSupportImage/" + name);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressPlex + "/GetSupportImage/" + name);
         }
+
         public static string ConstructThumbLink(int type, int id)
         {
             double relation = GetRelation();
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/"+relation);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/" + relation);
         }
-        public static Dictionary<string,double> _relations=new Dictionary<string, double>();
+
+        public static Dictionary<string, double> _relations = new Dictionary<string, double>();
 
         private static double GetRelation()
         {
@@ -154,10 +181,11 @@ namespace JMMServer.Plex
                     _relations.Add("DEFAULT", 0.666667D);
                 }
             }
-            if (WebOperationContext.Current != null && WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
+            if (WebOperationContext.Current != null &&
+                WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
             {
                 string kh = WebOperationContext.Current.IncomingRequest.Headers.Get("X-Plex-Product").ToUpper();
-                foreach (string n in _relations.Keys.Where(a=>a!="DEFAULT"))
+                foreach (string n in _relations.Keys.Where(a => a != "DEFAULT"))
                 {
                     if (kh.Contains(n))
                         return _relations[n];
@@ -165,32 +193,37 @@ namespace JMMServer.Plex
             }
             return _relations["DEFAULT"];
         }
+
         public static string Base64EncodeUrl(string plainText)
         {
             var plainTextBytes = Encoding.UTF8.GetBytes(plainText);
             return Convert.ToBase64String(plainTextBytes).Replace("+", "-").Replace("/", "_").Replace("=", ",");
         }
+
         public static string ToHex(string ka)
         {
             byte[] ba = Encoding.UTF8.GetBytes(ka);
-            StringBuilder hex = new StringBuilder(ba.Length * 2);
+            StringBuilder hex = new StringBuilder(ba.Length*2);
             foreach (byte b in ba)
                 hex.AppendFormat("{0:x2}", b);
             return hex.ToString();
         }
+
         public static string FromHex(string hex)
         {
-            byte[] raw = new byte[hex.Length / 2];
+            byte[] raw = new byte[hex.Length/2];
             for (int i = 0; i < raw.Length; i++)
             {
-                raw[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+                raw[i] = Convert.ToByte(hex.Substring(i*2, 2), 16);
             }
             return Encoding.UTF8.GetString(raw);
         }
+
         public static string PlexProxy(string url)
         {
             return "/video/jmm/proxy/" + ToHex(url);
         }
+
         public static System.IO.Stream GetStreamFromXmlObject<T>(T obj)
         {
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(T));
@@ -205,12 +238,11 @@ namespace JMMServer.Plex
             }
             xmlSerializer.Serialize(textWriter, obj, ns);
             return new MemoryStream(Encoding.UTF8.GetBytes(textWriter.ToString()));
-
         }
 
         private static T XmlDeserializeFromString<T>(string objectData)
         {
-            return (T)XmlDeserializeFromString(objectData, typeof(T));
+            return (T) XmlDeserializeFromString(objectData, typeof(T));
         }
 
         private static object XmlDeserializeFromString(string objectData, Type type)
@@ -227,12 +259,10 @@ namespace JMMServer.Plex
         }
 
 
-
         public static JMMUser GetUser(string UserId)
         {
-
             JMMUserRepository repUsers = new JMMUserRepository();
-            List <JMMUser> allusers=repUsers.GetAll();
+            List<JMMUser> allusers = repUsers.GetAll();
             foreach (JMMUser n in allusers)
             {
                 if (!string.IsNullOrEmpty(n.PlexUsers))
@@ -245,7 +275,8 @@ namespace JMMServer.Plex
                     }
                 }
             }
-            return allusers.FirstOrDefault(a => a.IsAdmin == 1) ?? allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
+            return allusers.FirstOrDefault(a => a.IsAdmin == 1) ??
+                   allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
         }
 
         public static JMMUser GetJMMUser(string UserId)
@@ -278,7 +309,7 @@ namespace JMMServer.Plex
                    path;
         }
 
-        public static string ReplaceSchemeHost(string str, bool externalip=false)
+        public static string ReplaceSchemeHost(string str, bool externalip = false)
         {
             if (str == null)
                 return null;
@@ -291,10 +322,10 @@ namespace JMMServer.Plex
                 if (ip != null)
                     host = ip.ToString();
             }
-            return str.Replace("{SCHEME}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme).Replace("{HOST}", host);
+            return
+                str.Replace("{SCHEME}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme)
+                    .Replace("{HOST}", host);
         }
-
-
 
 
         private static void PopulateVideoEpisodeFromVideoLocal(Video l, VideoLocal v, JMMType type, int userid)
@@ -306,7 +337,7 @@ namespace JMMServer.Plex
             l.AddedAt = v.DateTimeCreated.ToUnixTime();
             l.UpdatedAt = v.DateTimeUpdated.ToUnixTime();
             l.OriginallyAvailableAt = v.DateTimeCreated.ToPlexDate();
-            l.Year = v.DateTimeCreated.Year.ToString();     
+            l.Year = v.DateTimeCreated.Year.ToString();
             VideoInfo info = v.VideoInfo;
 
             Media m = null;
@@ -339,12 +370,10 @@ namespace JMMServer.Plex
                     repo.Save(info);
                     m = XmlDeserializeFromString<Media>(info.FullInfo);
                 }
-
             }
             l.Medias = new List<Media>();
             if (m != null)
             {
-
                 m.Id = null;
                 List<JMMContracts.PlexContracts.Stream> subs = SubtitleHelper.GetSubtitleStreams(v.FullServerPath);
                 if (subs.Count > 0)
@@ -367,16 +396,16 @@ namespace JMMServer.Plex
                     bool txt = false;
                     foreach (JMMContracts.PlexContracts.Stream ss in p.Streams.ToArray())
                     {
-                        if ((ss.StreamType == "1") && (!vid))
+                        if ((ss.StreamType == "1") && !vid)
                         {
                             vid = true;
                         }
-                        if ((ss.StreamType == "2") && (!aud))
+                        if ((ss.StreamType == "2") && !aud)
                         {
                             aud = true;
                             ss.Selected = "1";
                         }
-                        if ((ss.StreamType == "3") && (!txt))
+                        if ((ss.StreamType == "3") && !txt)
                         {
                             txt = true;
                             ss.Selected = "1";
@@ -398,7 +427,7 @@ namespace JMMServer.Plex
                 v.Index = aep.EpisodeNumber.ToString();
                 v.Title = aep.EnglishName;
                 v.OriginalTitle = aep.RomajiName;
-                v.Rating = (float.Parse(aep.Rating, CultureInfo.InvariantCulture)).ToString(CultureInfo.InvariantCulture);
+                v.Rating = float.Parse(aep.Rating, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
                 if (aep.AirDateAsDate.HasValue)
                 {
                     v.Year = aep.AirDateAsDate.Value.Year.ToString();
@@ -416,11 +445,11 @@ namespace JMMServer.Plex
                 v.Thumb = contract.GenPoster();
                 v.Summary = contract.EpisodeOverview;
             }
-
         }
 
 
-        private static bool PopulateVideoEpisodeFromAnime(Video v, AnimeEpisode ep, AnimeSeries ser, Contract_AnimeSeries cserie, AniDB_Anime ani, Video nv)
+        private static bool PopulateVideoEpisodeFromAnime(Video v, AnimeEpisode ep, AnimeSeries ser,
+            Contract_AnimeSeries cserie, AniDB_Anime ani, Video nv)
         {
             bool ret = false;
 //            v.ParentTitle = "Season 1";
@@ -441,8 +470,8 @@ namespace JMMServer.Plex
                             a.AniDBStartEpisodeNumber <= ep.AniDB_Episode.EpisodeNumber);
                 if (c2 != null)
                 {
-                  //  v.ParentTitle = "Season " + c2.TvDBSeasonNumber;
-                    if (c2.TvDBSeasonNumber>0)
+                    //  v.ParentTitle = "Season " + c2.TvDBSeasonNumber;
+                    if (c2.TvDBSeasonNumber > 0)
                         v.ParentIndex = c2.TvDBSeasonNumber.ToString();
                 }
             }
@@ -481,8 +510,8 @@ namespace JMMServer.Plex
                         ret = true;
                     }
                 }
-               // else
-                 //   v.ParentTitle = nv.Title;
+                // else
+                //   v.ParentTitle = nv.Title;
             }
             if (string.IsNullOrEmpty(v.Art))
                 v.Art = nv.Art;
@@ -497,41 +526,42 @@ namespace JMMServer.Plex
             v.Index = ep.AniDB_Episode.EpisodeNumber.ToString();
             return ret;
         }
+
         public static bool PopulateVideo(Video l, VideoLocal v, JMMType type, int userid)
         {
-
-            PopulateVideoEpisodeFromVideoLocal(l,v,type,userid);
+            PopulateVideoEpisodeFromVideoLocal(l, v, type, userid);
             List<AnimeEpisode> eps = v.GetAnimeEpisodes();
             if (eps.Count > 0)
             {
-                PopulateVideoEpisodeFromAnimeEpisode(l,eps[0],userid);
+                PopulateVideoEpisodeFromAnimeEpisode(l, eps[0], userid);
                 AnimeSeries series = eps[0].GetAnimeSeries();
                 if (series != null)
                 {
                     AniDB_Anime ani = series.GetAnime();
                     Contract_AnimeSeries cseries = series.ToContract(series.GetUserRecord(userid), true);
-                    Video nv=new Video();
+                    Video nv = new Video();
                     FillSerie(nv, series, ani, cseries, userid);
-                    return PopulateVideoEpisodeFromAnime(l,eps[0],series,cseries, ani,nv);
+                    return PopulateVideoEpisodeFromAnime(l, eps[0], series, cseries, ani, nv);
                 }
-                    
             }
             return false;
         }
-        public static bool PopulateVideo(Video l, VideoLocal v, AnimeEpisode ep,  AnimeSeries series , Contract_AnimeSeries cseries, AniDB_Anime ani, Video nv, JMMType type, int userid)
-        {
 
-            PopulateVideoEpisodeFromVideoLocal(l, v, type,userid);
-            if (ep!=null)
+        public static bool PopulateVideo(Video l, VideoLocal v, AnimeEpisode ep, AnimeSeries series,
+            Contract_AnimeSeries cseries, AniDB_Anime ani, Video nv, JMMType type, int userid)
+        {
+            PopulateVideoEpisodeFromVideoLocal(l, v, type, userid);
+            if (ep != null)
             {
                 PopulateVideoEpisodeFromAnimeEpisode(l, ep, userid);
                 if (series != null)
                 {
-                    return PopulateVideoEpisodeFromAnime(l,ep,series,cseries, ani, nv);
+                    return PopulateVideoEpisodeFromAnime(l, ep, series, cseries, ani, nv);
                 }
             }
             return false;
         }
+
         public static IEnumerable<T> Randomize<T>(this IEnumerable<T> source, int seed)
         {
             Random rnd = new Random(seed);
@@ -552,6 +582,7 @@ namespace JMMServer.Plex
             }
             return null;
         }
+
         public static string GetRandomFanartFromVideoList(List<Video> videos)
         {
             foreach (Video v in videos.Randomize(123456789))
@@ -561,7 +592,9 @@ namespace JMMServer.Plex
             }
             return null;
         }
-        public static Video VideoFromAnimeGroup(ISession session, AnimeGroup grp, int userid, List<AnimeSeries> allSeries)
+
+        public static Video VideoFromAnimeGroup(ISession session, AnimeGroup grp, int userid,
+            List<AnimeSeries> allSeries)
         {
             Contract_AnimeGroup cgrp = grp.ToContract(grp.GetUserRecord(session, userid));
             if (StatsCache.Instance.StatGroupSeriesCount[grp.AnimeGroupID] == 1)
@@ -578,7 +611,9 @@ namespace JMMServer.Plex
             }
             else
             {
-                AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value) : JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
+                AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue
+                    ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value)
+                    : JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
                 if (ser != null)
                 {
                     Video v = FromGroup(cgrp, ser.ToContract(ser.GetUserRecord(session, userid), true), userid);
@@ -597,12 +632,11 @@ namespace JMMServer.Plex
                 List<Video> ks = new List<Video>();
                 foreach (Video k in n)
                 {
-                    if ((k is Video) && (!(k is Directory)))
+                    if (k is Video && !(k is Directory))
                     {
-
                         Directory m = new Directory();
                         k.CopyTo(m);
-                        if ((m.Type == "movie") || (m.Type=="episode"))
+                        if ((m.Type == "movie") || (m.Type == "episode"))
                             m.Type = "show";
                         m.ParentThumb = m.GrandparentThumb = null;
                         if (m.Art == null)
@@ -620,12 +654,14 @@ namespace JMMServer.Plex
             return n;
         }
 
-        public static Video MayReplaceVideo(Video v1, AnimeSeries ser, Contract_AnimeSeries cserie, AniDB_Anime anime, JMMType type, int userid, bool all=true)
+        public static Video MayReplaceVideo(Video v1, AnimeSeries ser, Contract_AnimeSeries cserie, AniDB_Anime anime,
+            JMMType type, int userid, bool all = true)
         {
-            int epcount = all ? ser.GetAnimeEpisodesCountWithVideoLocal() :  ser.GetAnimeEpisodesNormalCountWithVideoLocal();
-            if ((epcount == 1) && (anime.AnimeTypeEnum==enAnimeType.OVA || anime.AnimeTypeEnum==enAnimeType.Movie))
+            int epcount = all
+                ? ser.GetAnimeEpisodesCountWithVideoLocal()
+                : ser.GetAnimeEpisodesNormalCountWithVideoLocal();
+            if ((epcount == 1) && (anime.AnimeTypeEnum == enAnimeType.OVA || anime.AnimeTypeEnum == enAnimeType.Movie))
             {
-
                 List<AnimeEpisode> episodes = ser.GetAnimeEpisodes();
                 List<VideoLocal> l = episodes[0].GetVideoLocals();
                 if (l.Count > 0)
@@ -652,7 +688,7 @@ namespace JMMServer.Plex
         internal static Video FromGroup(Contract_AnimeGroup grp, Contract_AnimeSeries ser, int userid)
         {
             Directory p = new Directory();
-            p.Key = ConstructGroupIdUrl(userid, grp.AnimeGroupID); 
+            p.Key = ConstructGroupIdUrl(userid, grp.AnimeGroupID);
             p.Title = grp.GroupName;
             p.Summary = grp.Description;
             p.Type = "show";
@@ -664,15 +700,17 @@ namespace JMMServer.Plex
             return p;
         }
 
-        public static Video FromSerieWithPossibleReplacement(Contract_AnimeSeries cserie, AnimeSeries ser, AniDB_Anime anidb, int userid)
+        public static Video FromSerieWithPossibleReplacement(Contract_AnimeSeries cserie, AnimeSeries ser,
+            AniDB_Anime anidb, int userid)
         {
             Video v = new Directory();
-            FillSerie(v,ser,anidb,cserie,userid);
+            FillSerie(v, ser, anidb, cserie, userid);
             if (ser.GetAnimeNumberOfEpisodeTypes() > 1)
                 v.Type = "show";
-            else if ((cserie.AniDBAnime.AnimeType == (int)enAnimeType.Movie) || (cserie.AniDBAnime.AnimeType == (int)enAnimeType.OVA))
+            else if ((cserie.AniDBAnime.AnimeType == (int) enAnimeType.Movie) ||
+                     (cserie.AniDBAnime.AnimeType == (int) enAnimeType.OVA))
             {
-                v=MayReplaceVideo(v, ser, cserie, ser.GetAnime(), JMMType.File, userid);
+                v = MayReplaceVideo(v, ser, cserie, ser.GetAnime(), JMMType.File, userid);
             }
             return v;
         }
@@ -687,8 +725,8 @@ namespace JMMServer.Plex
             return s;
         }
 
-         
-        public static void FillSerie(Video p ,AnimeSeries aser, AniDB_Anime anidb, Contract_AnimeSeries ser, int userid)
+
+        public static void FillSerie(Video p, AnimeSeries aser, AniDB_Anime anidb, Contract_AnimeSeries ser, int userid)
         {
             using (ISession session = JMMService.SessionFactory.OpenSession())
             {
@@ -704,7 +742,9 @@ namespace JMMServer.Plex
                 if (!string.IsNullOrEmpty(anime.AllTags))
                 {
                     p.Genres = new List<Tag>();
-                    anime.AllTags.Split('|').ToList().ForEach(a => p.Genres.Add(new Tag {Value = textInfo.ToTitleCase(a.Trim())}));
+                    anime.AllTags.Split('|')
+                        .ToList()
+                        .ForEach(a => p.Genres.Add(new Tag {Value = textInfo.ToTitleCase(a.Trim())}));
                 }
                 //p.OriginalTitle
                 if (anime.AirDate.HasValue)
@@ -718,7 +758,7 @@ namespace JMMServer.Plex
                 p.ViewedLeafCount = ser.WatchedEpisodeCount.ToString();
                 p.Rating = (anime.Rating/100F).ToString(CultureInfo.InvariantCulture);
                 List<Contract_CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
-                if (ls!=null && ls.Count > 0)
+                if (ls != null && ls.Count > 0)
                 {
                     foreach (Contract_CrossRef_AniDB_TvDBV2 c in ls)
                     {
@@ -730,10 +770,10 @@ namespace JMMServer.Plex
                     }
                 }
                 p.Thumb = anime.DefaultImagePoster.GenPoster();
-                p.Art = anime.DefaultImageFanart.GenArt();                
+                p.Art = anime.DefaultImageFanart.GenArt();
                 List<AniDB_Anime_Character> chars = anidb.GetAnimeCharacters(session);
 
-                p.Roles=new List<Tag>();
+                p.Roles = new List<Tag>();
                 if (chars != null)
                 {
                     foreach (AniDB_Anime_Character c in chars)
@@ -753,5 +793,4 @@ namespace JMMServer.Plex
             }
         }
     }
-
 }

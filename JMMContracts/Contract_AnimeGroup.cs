@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace JMMContracts
 {
@@ -66,7 +63,8 @@ namespace JMMContracts
 
         public override string ToString()
         {
-            return string.Format("{0} -  Ep Added: {1} - Unwatched Eps: {2}", GroupName, EpisodeAddedDate, UnwatchedEpisodeCount);
+            return string.Format("{0} -  Ep Added: {1} - Unwatched Eps: {2}", GroupName, EpisodeAddedDate,
+                UnwatchedEpisodeCount);
         }
     }
 }

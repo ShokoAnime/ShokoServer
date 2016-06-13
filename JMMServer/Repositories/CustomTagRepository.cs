@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using JMMServer.Entities;
-using NHibernate.Criterion;
 using NHibernate;
+using NHibernate.Criterion;
 
 namespace JMMServer.Repositories
 {
@@ -39,7 +36,8 @@ namespace JMMServer.Repositories
                     .CreateCriteria(typeof(CustomTag))
                     .List<CustomTag>();
 
-                return new List<CustomTag>(objs); ;
+                return new List<CustomTag>(objs);
+                ;
             }
         }
 
@@ -53,9 +51,11 @@ namespace JMMServer.Repositories
 
         public List<CustomTag> GetByAnimeID(ISession session, int animeID)
         {
-            var tags = session.CreateQuery("Select tag FROM CustomTag as tag, CrossRef_CustomTag as xref WHERE tag.CustomTagID = xref.CustomTagID AND xref.CrossRefID= :animeID AND xref.CrossRefType= :xrefType")
+            var tags =
+                session.CreateQuery(
+                    "Select tag FROM CustomTag as tag, CrossRef_CustomTag as xref WHERE tag.CustomTagID = xref.CustomTagID AND xref.CrossRefID= :animeID AND xref.CrossRefType= :xrefType")
                     .SetParameter("animeID", animeID)
-                    .SetParameter("xrefType", (int)CustomTagCrossRefType.Anime)
+                    .SetParameter("xrefType", (int) CustomTagCrossRefType.Anime)
                     .List<CustomTag>();
 
             return new List<CustomTag>(tags);

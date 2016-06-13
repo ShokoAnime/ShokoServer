@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace JMMServer.Providers.JMMAutoUpdates
+﻿namespace JMMServer.Providers.JMMAutoUpdates
 {
     [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
     public partial class Versions
     {
-
         /// <remarks/>
         public string serverversion { get; set; }
 
@@ -23,29 +16,17 @@ namespace JMMServer.Providers.JMMAutoUpdates
 
         public long ServerVersionAbs
         {
-            get
-            {
-                return JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(serverversion);
-            }
-
+            get { return JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(serverversion); }
         }
 
         public string ServerVersionFriendly
         {
-            get
-            {
-                return serverversion;
-            }
-
+            get { return serverversion; }
         }
 
         public long DesktopVersionAbs
         {
-            get
-            {
-                return JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(desktopversion);
-            }
-
+            get { return JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(desktopversion); }
         }
     }
 }

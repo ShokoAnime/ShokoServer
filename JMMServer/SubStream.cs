@@ -17,7 +17,6 @@ namespace JMMServer
         public event CrossPositionHandler CrossPositionCrossed;
 
 
-
         public override void Close()
         {
             _stream.Close();

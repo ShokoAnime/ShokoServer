@@ -1,97 +1,103 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.ComponentModel;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.Configuration;
+using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
 using JMMServer.Entities;
-using JMMServer.Repositories;
 using JMMServer.Providers.Azure;
+using JMMServer.Repositories;
 
 namespace JMMServer
 {
-	public class ServerInfo : INotifyPropertyChanged
-	{
-		private static ServerInfo _instance;
-		public static ServerInfo Instance
-		{
-			get
-			{
-				if (_instance == null)
-				{
-					_instance = new ServerInfo();
-					_instance.Init();
-				}
+    public class ServerInfo : INotifyPropertyChanged
+    {
+        private static ServerInfo _instance;
+
+        public static ServerInfo Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new ServerInfo();
+                    _instance.Init();
+                }
 
                 return _instance;
-			}
-		}
+            }
+        }
 
-		public event PropertyChangedEventHandler PropertyChanged;
-		protected virtual void OnPropertyChanged(PropertyChangedEventArgs e)
-		{
-			PropertyChangedEventHandler handler = PropertyChanged;
-			if (handler != null)
-			{
-				handler(this, e);
-			}
-		}
+        public event PropertyChangedEventHandler PropertyChanged;
 
-		private ServerInfo()
-		{
-			ImportFolders = new ObservableCollection<ImportFolder>();
+        protected virtual void OnPropertyChanged(PropertyChangedEventArgs e)
+        {
+            PropertyChangedEventHandler handler = PropertyChanged;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        private ServerInfo()
+        {
+            ImportFolders = new ObservableCollection<ImportFolder>();
             AdminMessages = new ObservableCollection<AdminMessage>();
-		}
+        }
 
-		private void Init()
-		{
-			//RefreshImportFolders();
+        private void Init()
+        {
+            //RefreshImportFolders();
 
-			JMMService.CmdProcessorGeneral.OnQueueCountChangedEvent += new Commands.CommandProcessorGeneral.QueueCountChangedHandler(CmdProcessorGeneral_OnQueueCountChangedEvent);
-			JMMService.CmdProcessorGeneral.OnQueueStateChangedEvent += new Commands.CommandProcessorGeneral.QueueStateChangedHandler(CmdProcessorGeneral_OnQueueStateChangedEvent);
+            JMMService.CmdProcessorGeneral.OnQueueCountChangedEvent +=
+                new Commands.CommandProcessorGeneral.QueueCountChangedHandler(
+                    CmdProcessorGeneral_OnQueueCountChangedEvent);
+            JMMService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
+                new Commands.CommandProcessorGeneral.QueueStateChangedHandler(
+                    CmdProcessorGeneral_OnQueueStateChangedEvent);
 
-			JMMService.CmdProcessorHasher.OnQueueCountChangedEvent += new Commands.CommandProcessorHasher.QueueCountChangedHandler(CmdProcessorHasher_OnQueueCountChangedEvent);
-			JMMService.CmdProcessorHasher.OnQueueStateChangedEvent += new Commands.CommandProcessorHasher.QueueStateChangedHandler(CmdProcessorHasher_OnQueueStateChangedEvent);
+            JMMService.CmdProcessorHasher.OnQueueCountChangedEvent +=
+                new Commands.CommandProcessorHasher.QueueCountChangedHandler(CmdProcessorHasher_OnQueueCountChangedEvent);
+            JMMService.CmdProcessorHasher.OnQueueStateChangedEvent +=
+                new Commands.CommandProcessorHasher.QueueStateChangedHandler(CmdProcessorHasher_OnQueueStateChangedEvent);
 
-			JMMService.CmdProcessorImages.OnQueueCountChangedEvent += new Commands.CommandProcessorImages.QueueCountChangedHandler(CmdProcessorImages_OnQueueCountChangedEvent);
-			JMMService.CmdProcessorImages.OnQueueStateChangedEvent += new Commands.CommandProcessorImages.QueueStateChangedHandler(CmdProcessorImages_OnQueueStateChangedEvent);
-		}
+            JMMService.CmdProcessorImages.OnQueueCountChangedEvent +=
+                new Commands.CommandProcessorImages.QueueCountChangedHandler(CmdProcessorImages_OnQueueCountChangedEvent);
+            JMMService.CmdProcessorImages.OnQueueStateChangedEvent +=
+                new Commands.CommandProcessorImages.QueueStateChangedHandler(CmdProcessorImages_OnQueueStateChangedEvent);
+        }
 
-		void CmdProcessorImages_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
-		{
-			ImagesQueueState = ev.QueueState;
-		}
+        void CmdProcessorImages_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
+        {
+            ImagesQueueState = ev.QueueState;
+        }
 
-		void CmdProcessorImages_OnQueueCountChangedEvent(Commands.QueueCountEventArgs ev)
-		{
-			ImagesQueueCount = ev.QueueCount;
-		}
+        void CmdProcessorImages_OnQueueCountChangedEvent(Commands.QueueCountEventArgs ev)
+        {
+            ImagesQueueCount = ev.QueueCount;
+        }
 
-		void CmdProcessorHasher_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
-		{
-			HasherQueueState = ev.QueueState;
-		}
+        void CmdProcessorHasher_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
+        {
+            HasherQueueState = ev.QueueState;
+        }
 
-		void CmdProcessorHasher_OnQueueCountChangedEvent(Commands.QueueCountEventArgs ev)
-		{
-			HasherQueueCount = ev.QueueCount;
-		}
+        void CmdProcessorHasher_OnQueueCountChangedEvent(Commands.QueueCountEventArgs ev)
+        {
+            HasherQueueCount = ev.QueueCount;
+        }
 
-		void CmdProcessorGeneral_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
-		{
-			GeneralQueueState = ev.QueueState;
-		}
+        void CmdProcessorGeneral_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
+        {
+            GeneralQueueState = ev.QueueState;
+        }
 
-		void CmdProcessorGeneral_OnQueueCountChangedEvent(Commands.QueueCountEventArgs ev)
-		{
-			GeneralQueueCount = ev.QueueCount;
-		}
+        void CmdProcessorGeneral_OnQueueCountChangedEvent(Commands.QueueCountEventArgs ev)
+        {
+            GeneralQueueCount = ev.QueueCount;
+        }
 
-		#region Observable Properties
+        #region Observable Properties
 
         public ObservableCollection<AdminMessage> AdminMessages { get; set; }
 
@@ -112,16 +118,15 @@ namespace JMMServer
                     AdminMessages.Add(msg);
 
                 AdminMessagesAvailable = true;
-
             }
             catch (Exception ex)
             {
                 Utils.ShowErrorMessage(ex);
             }
-
         }
 
         private bool adminMessagesAvailable = false;
+
         public bool AdminMessagesAvailable
         {
             get { return adminMessagesAvailable; }
@@ -132,267 +137,285 @@ namespace JMMServer
             }
         }
 
-		private int hasherQueueCount = 0;
-		public int HasherQueueCount
-		{
-			get { return hasherQueueCount; }
-			set
-			{
-				hasherQueueCount = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("HasherQueueCount"));
-			}
-		}
+        private int hasherQueueCount = 0;
 
-		private string hasherQueueState = "";
-		public string HasherQueueState
-		{
-			get { return hasherQueueState; }
-			set
-			{
-				hasherQueueState = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("HasherQueueState"));
-			}
-		}
+        public int HasherQueueCount
+        {
+            get { return hasherQueueCount; }
+            set
+            {
+                hasherQueueCount = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("HasherQueueCount"));
+            }
+        }
 
-		private int imagesQueueCount = 0;
-		public int ImagesQueueCount
-		{
-			get { return imagesQueueCount; }
-			set
-			{
-				imagesQueueCount = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueueCount"));
-			}
-		}
+        private string hasherQueueState = "";
 
-		private string imagesQueueState = "";
-		public string ImagesQueueState
-		{
-			get { return imagesQueueState; }
-			set
-			{
-				imagesQueueState = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueueState"));
-			}
-		}
+        public string HasherQueueState
+        {
+            get { return hasherQueueState; }
+            set
+            {
+                hasherQueueState = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("HasherQueueState"));
+            }
+        }
 
-		private int generalQueueCount = 0;
-		public int GeneralQueueCount
-		{
-			get { return generalQueueCount; }
-			set
-			{
-				generalQueueCount = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueueCount"));
-			}
-		}
+        private int imagesQueueCount = 0;
 
-		private string generalQueueState = "";
-		public string GeneralQueueState
-		{
-			get { return generalQueueState; }
-			set
-			{
-				generalQueueState = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueueState"));
-			}
-		}
+        public int ImagesQueueCount
+        {
+            get { return imagesQueueCount; }
+            set
+            {
+                imagesQueueCount = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueueCount"));
+            }
+        }
 
-		private bool hasherQueuePaused = false;
-		public bool HasherQueuePaused
-		{
-			get { return hasherQueuePaused; }
-			set
-			{
-				hasherQueuePaused = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("HasherQueuePaused"));
-			}
-		}
+        private string imagesQueueState = "";
 
-		private bool hasherQueueRunning = true;
-		public bool HasherQueueRunning
-		{
-			get { return hasherQueueRunning; }
-			set
-			{
-				hasherQueueRunning = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("HasherQueueRunning"));
-			}
-		}
+        public string ImagesQueueState
+        {
+            get { return imagesQueueState; }
+            set
+            {
+                imagesQueueState = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueueState"));
+            }
+        }
 
-		private bool generalQueuePaused = false;
-		public bool GeneralQueuePaused
-		{
-			get { return generalQueuePaused; }
-			set
-			{
-				generalQueuePaused = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueuePaused"));
-			}
-		}
+        private int generalQueueCount = 0;
 
-		private bool generalQueueRunning = true;
-		public bool GeneralQueueRunning
-		{
-			get { return generalQueueRunning; }
-			set
-			{
-				generalQueueRunning = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueueRunning"));
-			}
-		}
+        public int GeneralQueueCount
+        {
+            get { return generalQueueCount; }
+            set
+            {
+                generalQueueCount = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueueCount"));
+            }
+        }
 
-		private bool imagesQueuePaused = false;
-		public bool ImagesQueuePaused
-		{
-			get { return imagesQueuePaused; }
-			set
-			{
-				imagesQueuePaused = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueuePaused"));
-			}
-		}
+        private string generalQueueState = "";
 
-		private bool imagesQueueRunning = true;
-		public bool ImagesQueueRunning
-		{
-			get { return imagesQueueRunning; }
-			set
-			{
-				imagesQueueRunning = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueueRunning"));
-			}
-		}
+        public string GeneralQueueState
+        {
+            get { return generalQueueState; }
+            set
+            {
+                generalQueueState = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueueState"));
+            }
+        }
 
-		private string banReason = "";
-		public string BanReason
-		{
-			get { return banReason; }
-			set
-			{
-				banReason = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("BanReason"));
-			}
-		}
+        private bool hasherQueuePaused = false;
 
-		private string banOrigin = "";
-		public string BanOrigin
-		{
-			get { return banOrigin; }
-			set
-			{
-				banOrigin = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("BanOrigin"));
-			}
+        public bool HasherQueuePaused
+        {
+            get { return hasherQueuePaused; }
+            set
+            {
+                hasherQueuePaused = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("HasherQueuePaused"));
+            }
+        }
 
-		}
+        private bool hasherQueueRunning = true;
 
-		private bool isBanned = false;
-		public bool IsBanned
-		{
-			get { return isBanned; }
-			set
-			{
-				isBanned = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("IsBanned"));
-			}
-		}
+        public bool HasherQueueRunning
+        {
+            get { return hasherQueueRunning; }
+            set
+            {
+                hasherQueueRunning = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("HasherQueueRunning"));
+            }
+        }
 
-		private bool isInvalidSession = false;
-		public bool IsInvalidSession
-		{
-			get { return isInvalidSession; }
-			set
-			{
-				isInvalidSession = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("IsInvalidSession"));
-			}
-		}
+        private bool generalQueuePaused = false;
 
-		private bool waitingOnResponseAniDBUDP = false;
-		public bool WaitingOnResponseAniDBUDP
-		{
-			get { return waitingOnResponseAniDBUDP; }
-			set
-			{
-				waitingOnResponseAniDBUDP = value;
-				NotWaitingOnResponseAniDBUDP = !value;
-				OnPropertyChanged(new PropertyChangedEventArgs("WaitingOnResponseAniDBUDP"));
-			}
-		}
+        public bool GeneralQueuePaused
+        {
+            get { return generalQueuePaused; }
+            set
+            {
+                generalQueuePaused = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueuePaused"));
+            }
+        }
 
-		private bool notWaitingOnResponseAniDBUDP = true;
-		public bool NotWaitingOnResponseAniDBUDP
-		{
-			get { return notWaitingOnResponseAniDBUDP; }
-			set
-			{
-				notWaitingOnResponseAniDBUDP = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("NotWaitingOnResponseAniDBUDP"));
-			}
-		}
+        private bool generalQueueRunning = true;
 
-		private string waitingOnResponseAniDBUDPString =  JMMServer.Properties.Resources.Command_Idle; 
-		public string WaitingOnResponseAniDBUDPString
-		{
-			get
+        public bool GeneralQueueRunning
+        {
+            get { return generalQueueRunning; }
+            set
+            {
+                generalQueueRunning = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("GeneralQueueRunning"));
+            }
+        }
+
+        private bool imagesQueuePaused = false;
+
+        public bool ImagesQueuePaused
+        {
+            get { return imagesQueuePaused; }
+            set
+            {
+                imagesQueuePaused = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueuePaused"));
+            }
+        }
+
+        private bool imagesQueueRunning = true;
+
+        public bool ImagesQueueRunning
+        {
+            get { return imagesQueueRunning; }
+            set
+            {
+                imagesQueueRunning = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("ImagesQueueRunning"));
+            }
+        }
+
+        private string banReason = "";
+
+        public string BanReason
+        {
+            get { return banReason; }
+            set
+            {
+                banReason = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("BanReason"));
+            }
+        }
+
+        private string banOrigin = "";
+
+        public string BanOrigin
+        {
+            get { return banOrigin; }
+            set
+            {
+                banOrigin = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("BanOrigin"));
+            }
+        }
+
+        private bool isBanned = false;
+
+        public bool IsBanned
+        {
+            get { return isBanned; }
+            set
+            {
+                isBanned = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("IsBanned"));
+            }
+        }
+
+        private bool isInvalidSession = false;
+
+        public bool IsInvalidSession
+        {
+            get { return isInvalidSession; }
+            set
+            {
+                isInvalidSession = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("IsInvalidSession"));
+            }
+        }
+
+        private bool waitingOnResponseAniDBUDP = false;
+
+        public bool WaitingOnResponseAniDBUDP
+        {
+            get { return waitingOnResponseAniDBUDP; }
+            set
+            {
+                waitingOnResponseAniDBUDP = value;
+                NotWaitingOnResponseAniDBUDP = !value;
+                OnPropertyChanged(new PropertyChangedEventArgs("WaitingOnResponseAniDBUDP"));
+            }
+        }
+
+        private bool notWaitingOnResponseAniDBUDP = true;
+
+        public bool NotWaitingOnResponseAniDBUDP
+        {
+            get { return notWaitingOnResponseAniDBUDP; }
+            set
+            {
+                notWaitingOnResponseAniDBUDP = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("NotWaitingOnResponseAniDBUDP"));
+            }
+        }
+
+        private string waitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.Command_Idle;
+
+        public string WaitingOnResponseAniDBUDPString
+        {
+            get
             {
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 waitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.Command_Idle;
                 return waitingOnResponseAniDBUDPString;
             }
-			set
-			{
+            set
+            {
                 waitingOnResponseAniDBUDPString = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("WaitingOnResponseAniDBUDPString"));
-			}
-		}
+                OnPropertyChanged(new PropertyChangedEventArgs("WaitingOnResponseAniDBUDPString"));
+            }
+        }
 
-		private string extendedPauseString = "";
-		public string ExtendedPauseString
-		{
-			get { return extendedPauseString; }
-			set
-			{
-				extendedPauseString = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("ExtendedPauseString"));
-			}
-		}
+        private string extendedPauseString = "";
 
-		private bool hasExtendedPause = false;
-		public bool HasExtendedPause
-		{
-			get { return hasExtendedPause; }
-			set
-			{
-				hasExtendedPause = value;
-				OnPropertyChanged(new PropertyChangedEventArgs("HasExtendedPause"));
-			}
-		}
+        public string ExtendedPauseString
+        {
+            get { return extendedPauseString; }
+            set
+            {
+                extendedPauseString = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("ExtendedPauseString"));
+            }
+        }
 
-		public ObservableCollection<ImportFolder> ImportFolders { get; set; }
+        private bool hasExtendedPause = false;
 
-		public void RefreshImportFolders()
-		{
-			ImportFolders.Clear();
+        public bool HasExtendedPause
+        {
+            get { return hasExtendedPause; }
+            set
+            {
+                hasExtendedPause = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("HasExtendedPause"));
+            }
+        }
 
-			try
-			{
-				ImportFolderRepository repFolders = new ImportFolderRepository();
-				List<ImportFolder> fldrs = repFolders.GetAll();
+        public ObservableCollection<ImportFolder> ImportFolders { get; set; }
 
-				foreach (ImportFolder ifolder in fldrs)
-					ImportFolders.Add(ifolder);
-				
-			}
-			catch (Exception ex)
-			{
-				Utils.ShowErrorMessage(ex);
-			}
+        public void RefreshImportFolders()
+        {
+            ImportFolders.Clear();
 
-		}
+            try
+            {
+                ImportFolderRepository repFolders = new ImportFolderRepository();
+                List<ImportFolder> fldrs = repFolders.GetAll();
 
-		#endregion
-	}
+                foreach (ImportFolder ifolder in fldrs)
+                    ImportFolders.Add(ifolder);
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+            }
+        }
+
+        #endregion
+    }
 }

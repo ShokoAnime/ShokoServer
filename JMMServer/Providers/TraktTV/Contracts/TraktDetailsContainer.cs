@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using BinaryNorthwest;
 using JMMServer.Entities;
 using JMMServer.Repositories;
-using BinaryNorthwest;
 using NLog;
 
 namespace JMMServer.Providers.TraktTV
@@ -24,8 +22,8 @@ namespace JMMServer.Providers.TraktTV
         }
 
 
-
         private Dictionary<int, Trakt_Episode> dictTraktEpisodes = null;
+
         public Dictionary<int, Trakt_Episode> DictTraktEpisodes
         {
             get
@@ -53,7 +51,6 @@ namespace JMMServer.Providers.TraktTV
                                     dictTraktEpisodes[i] = ep;
                                     i++;
                                 }
-
                             }
                             TimeSpan ts = DateTime.Now - start;
                         }
@@ -68,6 +65,7 @@ namespace JMMServer.Providers.TraktTV
         }
 
         private Dictionary<int, int> dictTraktSeasons = null;
+
         public Dictionary<int, int> DictTraktSeasons
         {
             get
@@ -93,7 +91,6 @@ namespace JMMServer.Providers.TraktTV
 
                                 lastSeason = ep.Season;
                                 i++;
-
                             }
                             TimeSpan ts = DateTime.Now - start;
                         }
@@ -108,6 +105,7 @@ namespace JMMServer.Providers.TraktTV
         }
 
         private Dictionary<int, int> dictTraktSeasonsSpecials = null;
+
         public Dictionary<int, int> DictTraktSeasonsSpecials
         {
             get
@@ -137,7 +135,6 @@ namespace JMMServer.Providers.TraktTV
 
                                 lastSeason = thisSeason;
                                 i++;
-
                             }
                             TimeSpan ts = DateTime.Now - start;
                             //logger.Trace("Got TvDB Seasons in {0} ms", ts.TotalMilliseconds);
@@ -178,6 +175,7 @@ namespace JMMServer.Providers.TraktTV
         }
 
         private List<Trakt_Episode> traktEpisodes = null;
+
         public List<Trakt_Episode> TraktEpisodes
         {
             get

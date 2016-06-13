@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using JMMContracts;
+﻿using JMMContracts;
 
 namespace JMMServer.Providers.Azure
 {
@@ -19,8 +14,8 @@ namespace JMMServer.Providers.Azure
         public long DateSubmitted { get; set; }
 
         public CrossRef_AniDB_Other()
-		{
-		}
+        {
+        }
 
         public Contract_CrossRef_AniDB_OtherResult ToContract()
         {

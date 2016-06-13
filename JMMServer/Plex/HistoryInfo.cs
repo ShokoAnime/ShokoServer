@@ -1,17 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using FluentNHibernate.Utils;
 using JMMContracts.PlexContracts;
 
 namespace JMMServer.Plex
 {
-    public class HistoryInfo 
+    public class HistoryInfo
     {
-
         public string Key { get; set; }
         public string ParentKey { get; set; }
         public string GrandParentKey { get; set; }
@@ -26,8 +22,10 @@ namespace JMMServer.Plex
         public string GrandParentArt { get; set; }
 
         private static int counter = 0;
-        private static Dictionary<string, HistoryInfo> Cache=new Dictionary<string, HistoryInfo>(); //TODO CACHE EVICTION?
-        
+
+        private static Dictionary<string, HistoryInfo> Cache = new Dictionary<string, HistoryInfo>();
+            //TODO CACHE EVICTION?
+
         public HistoryInfo Update(Video v)
         {
             HistoryInfo cache = new HistoryInfo();
@@ -49,7 +47,7 @@ namespace JMMServer.Plex
 
         private string GenMd5()
         {
-            StringBuilder bld=new StringBuilder();
+            StringBuilder bld = new StringBuilder();
             bld.AppendLine(ParentKey);
             bld.AppendLine(GrandParentKey);
             bld.AppendLine(Title);
@@ -63,9 +61,11 @@ namespace JMMServer.Plex
             bld.AppendLine(GrandParentArt);
             using (MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider())
             {
-                return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(bld.ToString()))).Replace("-", string.Empty);
+                return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(bld.ToString())))
+                    .Replace("-", string.Empty);
             }
         }
+
         public string ToKey()
         {
             string md5 = GenMd5();
@@ -74,7 +74,7 @@ namespace JMMServer.Plex
             counter++;
             HistoryInfo cache = new HistoryInfo();
             this.CopyTo(cache);
-            Cache.Add(md5,cache);
+            Cache.Add(md5, cache);
             return md5;
         }
 
@@ -84,6 +84,5 @@ namespace JMMServer.Plex
                 return Cache[key];
             return new HistoryInfo();
         }
-
     }
 }

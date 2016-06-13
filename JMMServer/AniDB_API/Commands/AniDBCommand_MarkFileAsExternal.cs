@@ -47,10 +47,9 @@ namespace AniDBAPI.Commands
                 case "502":
                     return enHelperActivityType.LoginFailed;
                 case "501":
-                    {
-                        return enHelperActivityType.LoginRequired;
-                    }
-
+                {
+                    return enHelperActivityType.LoginRequired;
+                }
             }
 
             return enHelperActivityType.FileDoesNotExist;
@@ -68,7 +67,7 @@ namespace AniDBAPI.Commands
 
             commandText = "MYLISTADD size=" + fileSize;
             commandText += "&ed2k=" + hash;
-            commandText += "&state=" + (int)AniDBFileStatus.DVD;
+            commandText += "&state=" + (int) AniDBFileStatus.DVD;
             commandText += "&edit=1";
         }
     }

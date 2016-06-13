@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.Drawing;
+using System.Windows.Forms;
 using System.Xml.Linq;
-using UPNPLib;
-using JMMContracts;
 using JMMServer.Entities;
+using UPNPLib;
 
 namespace JMMServer
 {
@@ -110,7 +106,6 @@ namespace JMMServer
                     {
                         //Do nothing
                     }
-
                 }
             }
             catch (Exception e)
@@ -147,5 +142,4 @@ namespace JMMServer
             UPnPServerBrowserDialog.tvwServerList.Enabled = true;
         }
     }
-
 }

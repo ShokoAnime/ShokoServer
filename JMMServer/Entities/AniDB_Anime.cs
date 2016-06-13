@@ -1,25 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
-using NLog;
 using System.Xml.Serialization;
 using AniDBAPI;
-using JMMServer.Repositories;
-using JMMServer.Commands;
-using JMMContracts;
-using System.IO;
-using JMMServer.ImageDownload;
-using System.Diagnostics;
-using NHibernate.Criterion;
-using NHibernate;
 using BinaryNorthwest;
+using JMMContracts;
+using JMMServer.Commands;
+using JMMServer.ImageDownload;
+using JMMServer.Repositories;
+using NHibernate;
+using NHibernate.Criterion;
+using NLog;
 
 namespace JMMServer.Entities
 {
     public class AniDB_Anime
     {
         #region DB columns
+
         public int AniDB_AnimeID { get; private set; }
         public int AnimeID { get; set; }
         public int EpisodeCount { get; set; }
@@ -68,7 +68,7 @@ namespace JMMServer.Entities
             get
             {
                 if (AnimeType > 5) return enAnimeType.Other;
-                return (enAnimeType)AnimeType;
+                return (enAnimeType) AnimeType;
             }
         }
 
@@ -91,48 +91,42 @@ namespace JMMServer.Entities
             {
                 switch (AnimeTypeEnum)
                 {
-                    case enAnimeType.Movie: return JMMServer.Properties.Resources.AnimeType_Movie;
-                    case enAnimeType.Other: return JMMServer.Properties.Resources.AnimeType_Other;
-                    case enAnimeType.OVA: return JMMServer.Properties.Resources.AnimeType_OVA;
-                    case enAnimeType.TVSeries: return JMMServer.Properties.Resources.AnimeType_TVSeries;
-                    case enAnimeType.TVSpecial: return JMMServer.Properties.Resources.AnimeType_TVSpecial;
-                    case enAnimeType.Web: return JMMServer.Properties.Resources.AnimeType_Web;
-                    default: return JMMServer.Properties.Resources.AnimeType_Other;
-
+                    case enAnimeType.Movie:
+                        return JMMServer.Properties.Resources.AnimeType_Movie;
+                    case enAnimeType.Other:
+                        return JMMServer.Properties.Resources.AnimeType_Other;
+                    case enAnimeType.OVA:
+                        return JMMServer.Properties.Resources.AnimeType_OVA;
+                    case enAnimeType.TVSeries:
+                        return JMMServer.Properties.Resources.AnimeType_TVSeries;
+                    case enAnimeType.TVSpecial:
+                        return JMMServer.Properties.Resources.AnimeType_TVSpecial;
+                    case enAnimeType.Web:
+                        return JMMServer.Properties.Resources.AnimeType_Web;
+                    default:
+                        return JMMServer.Properties.Resources.AnimeType_Other;
                 }
             }
         }
 
         public bool IsTvDBLinkDisabled
         {
-            get
-            {
-                return (DisableExternalLinksFlag & Constants.FlagLinkTvDB) > 0;
-            }
+            get { return (DisableExternalLinksFlag & Constants.FlagLinkTvDB) > 0; }
         }
 
         public bool IsTraktLinkDisabled
         {
-            get
-            {
-                return (DisableExternalLinksFlag & Constants.FlagLinkTrakt) > 0;
-            }
+            get { return (DisableExternalLinksFlag & Constants.FlagLinkTrakt) > 0; }
         }
 
         public bool IsMALLinkDisabled
         {
-            get
-            {
-                return (DisableExternalLinksFlag & Constants.FlagLinkMAL) > 0;
-            }
+            get { return (DisableExternalLinksFlag & Constants.FlagLinkMAL) > 0; }
         }
 
         public bool IsMovieDBLinkDisabled
         {
-            get
-            {
-                return (DisableExternalLinksFlag & Constants.FlagLinkMovieDB) > 0;
-            }
+            get { return (DisableExternalLinksFlag & Constants.FlagLinkMovieDB) > 0; }
         }
 
         [XmlIgnore]
@@ -215,6 +209,7 @@ namespace JMMServer.Entities
                 return GetDictTvDBEpisodes(session);
             }
         }
+
         public Dictionary<int, TvDB_Episode> GetDictTvDBEpisodes(ISession session)
         {
             if (dictTvDBEpisodes == null)
@@ -278,7 +273,6 @@ namespace JMMServer.Entities
 
                             lastSeason = ep.SeasonNumber;
                             i++;
-
                         }
                     }
                 }
@@ -328,7 +322,6 @@ namespace JMMServer.Entities
 
                             lastSeason = thisSeason;
                             i++;
-
                         }
                     }
                 }
@@ -571,7 +564,7 @@ namespace JMMServer.Entities
         public AniDB_Anime_DefaultImage GetDefaultPoster(ISession session)
         {
             AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
-            return repDefaults.GetByAnimeIDAndImagezSizeType(session, this.AnimeID, (int)ImageSizeType.Poster);
+            return repDefaults.GetByAnimeIDAndImagezSizeType(session, this.AnimeID, (int) ImageSizeType.Poster);
         }
 
         public string PosterPathNoDefault
@@ -598,7 +591,7 @@ namespace JMMServer.Entities
                 return PosterPathNoDefault;
             else
             {
-                ImageEntityType imageType = (ImageEntityType)defaultPoster.ImageParentType;
+                ImageEntityType imageType = (ImageEntityType) defaultPoster.ImageParentType;
 
                 switch (imageType)
                 {
@@ -631,7 +624,6 @@ namespace JMMServer.Entities
                             return moviePoster.FullImagePath;
                         else
                             return this.PosterPath;
-
                 }
             }
 
@@ -648,14 +640,14 @@ namespace JMMServer.Entities
 
         public ImageDetails GetDefaultPosterDetailsNoBlanks(ISession session)
         {
-            ImageDetails details = new ImageDetails() { ImageType = JMMImageType.AniDB_Cover, ImageID = this.AnimeID };
+            ImageDetails details = new ImageDetails() {ImageType = JMMImageType.AniDB_Cover, ImageID = this.AnimeID};
             AniDB_Anime_DefaultImage defaultPoster = GetDefaultPoster(session);
 
             if (defaultPoster == null)
                 return details;
             else
             {
-                ImageEntityType imageType = (ImageEntityType)defaultPoster.ImageParentType;
+                ImageEntityType imageType = (ImageEntityType) defaultPoster.ImageParentType;
 
                 switch (imageType)
                 {
@@ -667,7 +659,11 @@ namespace JMMServer.Entities
                         TvDB_ImagePosterRepository repTvPosters = new TvDB_ImagePosterRepository();
                         TvDB_ImagePoster tvPoster = repTvPosters.GetByID(session, defaultPoster.ImageParentID);
                         if (tvPoster != null)
-                            details = new ImageDetails() { ImageType = JMMImageType.TvDB_Cover, ImageID = tvPoster.TvDB_ImagePosterID };
+                            details = new ImageDetails()
+                            {
+                                ImageType = JMMImageType.TvDB_Cover,
+                                ImageID = tvPoster.TvDB_ImagePosterID
+                            };
 
                         return details;
 
@@ -676,7 +672,11 @@ namespace JMMServer.Entities
                         Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
                         Trakt_ImagePoster traktPoster = repTraktPosters.GetByID(session, defaultPoster.ImageParentID);
                         if (traktPoster != null)
-                            details = new ImageDetails() { ImageType = JMMImageType.Trakt_Poster, ImageID = traktPoster.Trakt_ImagePosterID };
+                            details = new ImageDetails()
+                            {
+                                ImageType = JMMImageType.Trakt_Poster,
+                                ImageID = traktPoster.Trakt_ImagePosterID
+                            };
 
                         return details;
 
@@ -685,10 +685,13 @@ namespace JMMServer.Entities
                         MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
                         MovieDB_Poster moviePoster = repMoviePosters.GetByID(session, defaultPoster.ImageParentID);
                         if (moviePoster != null)
-                            details = new ImageDetails() { ImageType = JMMImageType.MovieDB_Poster, ImageID = moviePoster.MovieDB_PosterID };
+                            details = new ImageDetails()
+                            {
+                                ImageType = JMMImageType.MovieDB_Poster,
+                                ImageID = moviePoster.MovieDB_PosterID
+                            };
 
                         return details;
-
                 }
             }
 
@@ -706,7 +709,7 @@ namespace JMMServer.Entities
         public AniDB_Anime_DefaultImage GetDefaultFanart(ISession session)
         {
             AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
-            return repDefaults.GetByAnimeIDAndImagezSizeType(session, this.AnimeID, (int)ImageSizeType.Fanart);
+            return repDefaults.GetByAnimeIDAndImagezSizeType(session, this.AnimeID, (int) ImageSizeType.Fanart);
         }
 
         public ImageDetails GetDefaultFanartDetailsNoBlanks()
@@ -731,7 +734,11 @@ namespace JMMServer.Entities
                     if (fanarts.Count == 0) return null;
 
                     MovieDB_Fanart movieFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                    details = new ImageDetails() { ImageType = JMMImageType.MovieDB_FanArt, ImageID = movieFanart.MovieDB_FanartID };
+                    details = new ImageDetails()
+                    {
+                        ImageType = JMMImageType.MovieDB_FanArt,
+                        ImageID = movieFanart.MovieDB_FanartID
+                    };
                     return details;
                 }
                 else
@@ -740,45 +747,61 @@ namespace JMMServer.Entities
                     if (fanarts.Count == 0) return null;
 
                     TvDB_ImageFanart tvFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                    details = new ImageDetails() { ImageType = JMMImageType.TvDB_FanArt, ImageID = tvFanart.TvDB_ImageFanartID };
+                    details = new ImageDetails()
+                    {
+                        ImageType = JMMImageType.TvDB_FanArt,
+                        ImageID = tvFanart.TvDB_ImageFanartID
+                    };
                     return details;
                 }
-
             }
             else
             {
-                ImageEntityType imageType = (ImageEntityType)GetDefaultFanart().ImageParentType;
+                ImageEntityType imageType = (ImageEntityType) GetDefaultFanart().ImageParentType;
 
                 switch (imageType)
                 {
-
                     case ImageEntityType.TvDB_FanArt:
 
                         TvDB_ImageFanartRepository repTvFanarts = new TvDB_ImageFanartRepository();
-                        TvDB_ImageFanart tvFanart = repTvFanarts.GetByID(session, GetDefaultFanart(session).ImageParentID);
+                        TvDB_ImageFanart tvFanart = repTvFanarts.GetByID(session,
+                            GetDefaultFanart(session).ImageParentID);
                         if (tvFanart != null)
-                            details = new ImageDetails() { ImageType = JMMImageType.TvDB_FanArt, ImageID = tvFanart.TvDB_ImageFanartID };
+                            details = new ImageDetails()
+                            {
+                                ImageType = JMMImageType.TvDB_FanArt,
+                                ImageID = tvFanart.TvDB_ImageFanartID
+                            };
 
                         return details;
 
                     case ImageEntityType.Trakt_Fanart:
 
                         Trakt_ImageFanartRepository repTraktFanarts = new Trakt_ImageFanartRepository();
-                        Trakt_ImageFanart traktFanart = repTraktFanarts.GetByID(session, GetDefaultFanart(session).ImageParentID);
+                        Trakt_ImageFanart traktFanart = repTraktFanarts.GetByID(session,
+                            GetDefaultFanart(session).ImageParentID);
                         if (traktFanart != null)
-                            details = new ImageDetails() { ImageType = JMMImageType.Trakt_Fanart, ImageID = traktFanart.Trakt_ImageFanartID };
+                            details = new ImageDetails()
+                            {
+                                ImageType = JMMImageType.Trakt_Fanart,
+                                ImageID = traktFanart.Trakt_ImageFanartID
+                            };
 
                         return details;
 
                     case ImageEntityType.MovieDB_FanArt:
 
                         MovieDB_FanartRepository repMovieFanarts = new MovieDB_FanartRepository();
-                        MovieDB_Fanart movieFanart = repMovieFanarts.GetByID(session, GetDefaultFanart(session).ImageParentID);
+                        MovieDB_Fanart movieFanart = repMovieFanarts.GetByID(session,
+                            GetDefaultFanart(session).ImageParentID);
                         if (movieFanart != null)
-                            details = new ImageDetails() { ImageType = JMMImageType.MovieDB_FanArt, ImageID = movieFanart.MovieDB_FanartID };
+                            details = new ImageDetails()
+                            {
+                                ImageType = JMMImageType.MovieDB_FanArt,
+                                ImageID = movieFanart.MovieDB_FanartID
+                            };
 
                         return details;
-
                 }
             }
 
@@ -817,15 +840,13 @@ namespace JMMServer.Entities
                     TvDB_ImageFanart tvFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
                     return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
                 }
-
             }
             else
             {
-                ImageEntityType imageType = (ImageEntityType)GetDefaultFanart().ImageParentType;
+                ImageEntityType imageType = (ImageEntityType) GetDefaultFanart().ImageParentType;
 
                 switch (imageType)
                 {
-
                     case ImageEntityType.TvDB_FanArt:
 
                         TvDB_ImageFanartRepository repTvFanarts = new TvDB_ImageFanartRepository();
@@ -852,7 +873,6 @@ namespace JMMServer.Entities
                             return movieFanart.URL;
 
                         break;
-
                 }
             }
 
@@ -870,7 +890,7 @@ namespace JMMServer.Entities
         public AniDB_Anime_DefaultImage GetDefaultWideBanner(ISession session)
         {
             AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
-            return repDefaults.GetByAnimeIDAndImagezSizeType(session, this.AnimeID, (int)ImageSizeType.WideBanner);
+            return repDefaults.GetByAnimeIDAndImagezSizeType(session, this.AnimeID, (int) ImageSizeType.WideBanner);
         }
 
         public string AnimeTypeRAW
@@ -879,19 +899,18 @@ namespace JMMServer.Entities
             {
                 switch (AnimeType)
                 {
-                    case (int)AnimeTypes.Movie:
+                    case (int) AnimeTypes.Movie:
                         return "movie";
-                    case (int)AnimeTypes.OVA:
+                    case (int) AnimeTypes.OVA:
                         return "ova";
-                    case (int)AnimeTypes.TV_Series:
+                    case (int) AnimeTypes.TV_Series:
                         return "tv series";
-                    case (int)AnimeTypes.TV_Special:
+                    case (int) AnimeTypes.TV_Special:
                         return "tv special";
-                    case (int)AnimeTypes.Web:
+                    case (int) AnimeTypes.Web:
                         return "web";
                     default:
                         return "other";
-
                 }
             }
             set
@@ -899,22 +918,22 @@ namespace JMMServer.Entities
                 switch (value.ToLower())
                 {
                     case "movie":
-                        AnimeType = (int)AnimeTypes.Movie;
+                        AnimeType = (int) AnimeTypes.Movie;
                         break;
                     case "ova":
-                        AnimeType = (int)AnimeTypes.OVA;
+                        AnimeType = (int) AnimeTypes.OVA;
                         break;
                     case "tv series":
-                        AnimeType = (int)AnimeTypes.TV_Series;
+                        AnimeType = (int) AnimeTypes.TV_Series;
                         break;
                     case "tv special":
-                        AnimeType = (int)AnimeTypes.TV_Special;
+                        AnimeType = (int) AnimeTypes.TV_Special;
                         break;
                     case "web":
-                        AnimeType = (int)AnimeTypes.Web;
+                        AnimeType = (int) AnimeTypes.Web;
                         break;
                     default:
-                        AnimeType = (int)AnimeTypes.Other;
+                        AnimeType = (int) AnimeTypes.Other;
                         break;
                 }
             }
@@ -923,7 +942,7 @@ namespace JMMServer.Entities
         [XmlIgnore]
         public string AnimeTypeName
         {
-            get { return Enum.GetName(typeof(AnimeTypes), (AnimeTypes)AnimeType).Replace('_', ' '); }
+            get { return Enum.GetName(typeof(AnimeTypes), (AnimeTypes) AnimeType).Replace('_', ' '); }
         }
 
         [XmlIgnore]
@@ -945,19 +964,13 @@ namespace JMMServer.Entities
         [XmlIgnore]
         public bool SearchOnTvDB
         {
-            get
-            {
-                return (AnimeType != (int)AnimeTypes.Movie);
-            }
+            get { return AnimeType != (int) AnimeTypes.Movie; }
         }
 
         [XmlIgnore]
         public bool SearchOnMovieDB
         {
-            get
-            {
-                return (AnimeType == (int)AnimeTypes.Movie);
-            }
+            get { return AnimeType == (int) AnimeTypes.Movie; }
         }
 
         public List<AniDB_Tag> GetTags()
@@ -970,7 +983,6 @@ namespace JMMServer.Entities
 
         public List<AniDB_Tag> GetTags(ISession session)
         {
-
             AniDB_TagRepository repTag = new AniDB_TagRepository();
 
             List<AniDB_Tag> tags = new List<AniDB_Tag>();
@@ -1097,12 +1109,10 @@ namespace JMMServer.Entities
             {
                 try
                 {
-
                     if (AniDBTotalVotes == 0)
                         return 0;
                     else
-                        return AniDBTotalRating / (decimal)AniDBTotalVotes;
-
+                        return AniDBTotalRating/(decimal) AniDBTotalVotes;
                 }
                 catch (Exception ex)
                 {
@@ -1120,8 +1130,8 @@ namespace JMMServer.Entities
                 try
                 {
                     decimal totalRating = 0;
-                    totalRating += ((decimal)Rating * VoteCount);
-                    totalRating += ((decimal)TempRating * TempVoteCount);
+                    totalRating += (decimal) Rating*VoteCount;
+                    totalRating += (decimal) TempRating*TempVoteCount;
 
                     return totalRating;
                 }
@@ -1172,13 +1182,15 @@ namespace JMMServer.Entities
 
                 // Romaji and English titles will be contained in MAIN and/or OFFICIAL
                 // we won't use synonyms for these two languages
-                if (thisLanguage.Equals(Constants.AniDBLanguageType.Romaji) || thisLanguage.Equals(Constants.AniDBLanguageType.English))
+                if (thisLanguage.Equals(Constants.AniDBLanguageType.Romaji) ||
+                    thisLanguage.Equals(Constants.AniDBLanguageType.English))
                 {
                     foreach (AniDB_Anime_Title title in titles)
                     {
                         string titleType = title.TitleType.Trim().ToUpper();
                         // first try the  Main title
-                        if (titleType == Constants.AnimeTitleType.Main.ToUpper() && title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
+                        if (titleType == Constants.AnimeTitleType.Main.ToUpper() &&
+                            title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
                     }
                 }
 
@@ -1186,7 +1198,8 @@ namespace JMMServer.Entities
                 foreach (AniDB_Anime_Title title in titles)
                 {
                     string titleType = title.TitleType.Trim().ToUpper();
-                    if (titleType == Constants.AnimeTitleType.Official.ToUpper() && title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
+                    if (titleType == Constants.AnimeTitleType.Official.ToUpper() &&
+                        title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
                 }
 
                 // try synonyms
@@ -1195,15 +1208,14 @@ namespace JMMServer.Entities
                     foreach (AniDB_Anime_Title title in titles)
                     {
                         string titleType = title.TitleType.Trim().ToUpper();
-                        if (titleType == Constants.AnimeTitleType.Synonym.ToUpper() && title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
+                        if (titleType == Constants.AnimeTitleType.Synonym.ToUpper() &&
+                            title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
                     }
                 }
-
             }
 
             // otherwise just use the main title
             return this.MainTitle;
-
         }
 
         public string GetFormattedTitle()
@@ -1272,7 +1284,8 @@ namespace JMMServer.Entities
                         for (int i = 0; i < titles.Count; i++)
                         {
                             if (titles[i].Language.Trim().ToUpper() == thisLanguage &&
-                                titles[i].TitleType.Trim().ToUpper() == Constants.AnimeTitleType.Main.ToUpper()) return titles[i].Title;
+                                titles[i].TitleType.Trim().ToUpper() == Constants.AnimeTitleType.Main.ToUpper())
+                                return titles[i].Title;
                         }
                     }
 
@@ -1280,7 +1293,8 @@ namespace JMMServer.Entities
                     for (int i = 0; i < titles.Count; i++)
                     {
                         if (titles[i].Language.Trim().ToUpper() == thisLanguage &&
-                            titles[i].TitleType.Trim().ToUpper() == Constants.AnimeTitleType.Official.ToUpper()) return titles[i].Title;
+                            titles[i].TitleType.Trim().ToUpper() == Constants.AnimeTitleType.Official.ToUpper())
+                            return titles[i].Title;
                     }
 
                     // try synonyms
@@ -1289,16 +1303,17 @@ namespace JMMServer.Entities
                         for (int i = 0; i < titles.Count; i++)
                         {
                             if (titles[i].Language.Trim().ToUpper() == thisLanguage &&
-                                titles[i].TitleType.Trim().ToUpper() == Constants.AnimeTitleType.Synonym.ToUpper()) return titles[i].Title;
+                                titles[i].TitleType.Trim().ToUpper() == Constants.AnimeTitleType.Synonym.ToUpper())
+                                return titles[i].Title;
                         }
                     }
-
                 }
 
                 // otherwise just use the main title
                 for (int i = 0; i < titles.Count; i++)
                 {
-                    if (titles[i].TitleType.Trim().ToUpper() == Constants.AnimeTitleType.Main.ToUpper()) return titles[i].Title;
+                    if (titles[i].TitleType.Trim().ToUpper() == Constants.AnimeTitleType.Main.ToUpper())
+                        return titles[i].Title;
                 }
 
                 return "ERROR";
@@ -1369,11 +1384,12 @@ namespace JMMServer.Entities
             this.TempVoteCount = animeInfo.TempVoteCount;
             this.URL = animeInfo.URL;
             this.VoteCount = animeInfo.VoteCount;
-
         }
 
-        public void PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps, List<Raw_AniDB_Anime_Title> titles,
-            List<Raw_AniDB_Category> cats, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars, List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
+        public void PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
+            List<Raw_AniDB_Anime_Title> titles,
+            List<Raw_AniDB_Category> cats, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars,
+            List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations)
         {
             logger.Trace("------------------------------------------------");
@@ -1392,28 +1408,43 @@ namespace JMMServer.Entities
 
             CreateEpisodes(session, eps);
 
-            TimeSpan ts = DateTime.Now - start; logger.Trace(string.Format("CreateEpisodes in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+            TimeSpan ts = DateTime.Now - start;
+            logger.Trace(string.Format("CreateEpisodes in : {0}", ts.TotalMilliseconds));
+            start = DateTime.Now;
 
             CreateTitles(session, titles);
-            ts = DateTime.Now - start; logger.Trace(string.Format("CreateTitles in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+            ts = DateTime.Now - start;
+            logger.Trace(string.Format("CreateTitles in : {0}", ts.TotalMilliseconds));
+            start = DateTime.Now;
 
             CreateTags(session, tags);
-            ts = DateTime.Now - start; logger.Trace(string.Format("CreateTags in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+            ts = DateTime.Now - start;
+            logger.Trace(string.Format("CreateTags in : {0}", ts.TotalMilliseconds));
+            start = DateTime.Now;
 
             CreateCharacters(session, chars);
-            ts = DateTime.Now - start; logger.Trace(string.Format("CreateCharacters in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+            ts = DateTime.Now - start;
+            logger.Trace(string.Format("CreateCharacters in : {0}", ts.TotalMilliseconds));
+            start = DateTime.Now;
 
             CreateRelations(session, rels, downloadRelations);
-            ts = DateTime.Now - start; logger.Trace(string.Format("CreateRelations in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+            ts = DateTime.Now - start;
+            logger.Trace(string.Format("CreateRelations in : {0}", ts.TotalMilliseconds));
+            start = DateTime.Now;
 
             CreateSimilarAnime(session, sims);
-            ts = DateTime.Now - start; logger.Trace(string.Format("CreateSimilarAnime in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+            ts = DateTime.Now - start;
+            logger.Trace(string.Format("CreateSimilarAnime in : {0}", ts.TotalMilliseconds));
+            start = DateTime.Now;
 
             CreateRecommendations(session, recs);
-            ts = DateTime.Now - start; logger.Trace(string.Format("CreateRecommendations in : {0}", ts.TotalMilliseconds)); start = DateTime.Now;
+            ts = DateTime.Now - start;
+            logger.Trace(string.Format("CreateRecommendations in : {0}", ts.TotalMilliseconds));
+            start = DateTime.Now;
 
             repAnime.Save(this);
-            ts = DateTime.Now - start0; logger.Trace(string.Format("TOTAL TIME in : {0}", ts.TotalMilliseconds));
+            ts = DateTime.Now - start0;
+            logger.Trace(string.Format("TOTAL TIME in : {0}", ts.TotalMilliseconds));
             logger.Trace("------------------------------------------------");
         }
 
@@ -1494,8 +1525,6 @@ namespace JMMServer.Entities
 
                 transaction.Commit();
             }
-
-
 
 
             List<AniDB_Episode> epsToSave = new List<AniDB_Episode>();
@@ -1690,7 +1719,8 @@ namespace JMMServer.Entities
                 foreach (Raw_AniDB_Seiyuu rawSeiyuu in rawchar.Seiyuus)
                 {
                     // save the link between character and seiyuu
-                    AniDB_Character_Seiyuu acc = repCharSeiyuu.GetByCharIDAndSeiyuuID(session, rawchar.CharID, rawSeiyuu.SeiyuuID);
+                    AniDB_Character_Seiyuu acc = repCharSeiyuu.GetByCharIDAndSeiyuuID(session, rawchar.CharID,
+                        rawSeiyuu.SeiyuuID);
                     if (acc == null)
                     {
                         acc = new AniDB_Character_Seiyuu();
@@ -1725,8 +1755,6 @@ namespace JMMServer.Entities
 
                 transaction.Commit();
             }
-
-
         }
 
         private void CreateRelations(ISession session, List<Raw_AniDB_RelatedAnime> rels, bool downloadRelations)
@@ -1740,7 +1768,8 @@ namespace JMMServer.Entities
 
             foreach (Raw_AniDB_RelatedAnime rawrel in rels)
             {
-                AniDB_Anime_Relation anime_rel = repRels.GetByAnimeIDAndRelationID(session, rawrel.AnimeID, rawrel.RelatedAnimeID);
+                AniDB_Anime_Relation anime_rel = repRels.GetByAnimeIDAndRelationID(session, rawrel.AnimeID,
+                    rawrel.RelatedAnimeID);
                 if (anime_rel == null) anime_rel = new AniDB_Anime_Relation();
 
                 anime_rel.Populate(rawrel);
@@ -1755,7 +1784,8 @@ namespace JMMServer.Entities
                     // basically we will download immediate relations, but not relations of relations
 
                     //CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(rawrel.RelatedAnimeID, false, downloadRelations);
-                    CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(anime_rel.RelatedAnimeID, false, false);
+                    CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(anime_rel.RelatedAnimeID,
+                        false, false);
                     cmdsToSave.Add(cr_anime);
                 }
             }
@@ -1783,7 +1813,8 @@ namespace JMMServer.Entities
 
             foreach (Raw_AniDB_SimilarAnime rawsim in sims)
             {
-                AniDB_Anime_Similar anime_sim = repSim.GetByAnimeIDAndSimilarID(session, rawsim.AnimeID, rawsim.SimilarAnimeID);
+                AniDB_Anime_Similar anime_sim = repSim.GetByAnimeIDAndSimilarID(session, rawsim.AnimeID,
+                    rawsim.SimilarAnimeID);
                 if (anime_sim == null) anime_sim = new AniDB_Anime_Similar();
 
                 anime_sim.Populate(rawsim);
@@ -1833,7 +1864,7 @@ namespace JMMServer.Entities
         private void CreateAnimeReviews()
         {
             if (reviewIDListRAW != null)
-            //Only create relations if the origin of the data if from Raw (WebService/AniDB)
+                //Only create relations if the origin of the data if from Raw (WebService/AniDB)
             {
                 if (reviewIDListRAW.Trim().Length == 0)
                     return;
@@ -1984,7 +2015,11 @@ namespace JMMServer.Entities
             if (animeChars != null || animeChars.Count > 0)
             {
                 // first get all the main characters
-                foreach (AniDB_Anime_Character animeChar in animeChars.Where(item => item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
+                foreach (
+                    AniDB_Anime_Character animeChar in
+                        animeChars.Where(
+                            item =>
+                                item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
                 {
                     AniDB_Character chr = repChar.GetByCharID(session, animeChar.CharID);
                     if (chr != null)
@@ -1992,12 +2027,16 @@ namespace JMMServer.Entities
                 }
 
                 // now get the rest
-                foreach (AniDB_Anime_Character animeChar in animeChars.Where(item => !item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
+                foreach (
+                    AniDB_Anime_Character animeChar in
+                        animeChars.Where(
+                            item =>
+                                !item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase))
+                    )
                 {
                     AniDB_Character chr = repChar.GetByCharID(session, animeChar.CharID);
                     if (chr != null)
                         contract.Characters.Add(chr.ToContractAzure(animeChar));
-
                 }
             }
 
@@ -2017,12 +2056,18 @@ namespace JMMServer.Entities
 
                 comment.ImageURL = string.Empty;
 
-                AniDBRecommendationType recType = (AniDBRecommendationType)rec.RecommendationType;
+                AniDBRecommendationType recType = (AniDBRecommendationType) rec.RecommendationType;
                 switch (recType)
                 {
-                    case AniDBRecommendationType.ForFans: comment.CommentType = (int)WhatPeopleAreSayingType.AniDBForFans; break;
-                    case AniDBRecommendationType.MustSee: comment.CommentType = (int)WhatPeopleAreSayingType.AniDBMustSee; break;
-                    case AniDBRecommendationType.Recommended: comment.CommentType = (int)WhatPeopleAreSayingType.AniDBRecommendation; break;
+                    case AniDBRecommendationType.ForFans:
+                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBForFans;
+                        break;
+                    case AniDBRecommendationType.MustSee:
+                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBMustSee;
+                        break;
+                    case AniDBRecommendationType.Recommended:
+                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBRecommendation;
+                        break;
                 }
 
                 comment.Source = "AniDB";
@@ -2164,7 +2209,8 @@ namespace JMMServer.Entities
                 {
                     if (kvp.Value >= EpisodeCountNormal)
                     {
-                        if (contract.Stat_AllVideoQuality_Episodes.Length > 0) contract.Stat_AllVideoQuality_Episodes += ",";
+                        if (contract.Stat_AllVideoQuality_Episodes.Length > 0)
+                            contract.Stat_AllVideoQuality_Episodes += ",";
                         contract.Stat_AllVideoQuality_Episodes += kvp.Key;
                     }
                 }
@@ -2237,7 +2283,8 @@ namespace JMMServer.Entities
             return ser;
         }
 
-        public static void GetRelatedAnimeRecursive(ISession session, int animeID, ref List<AniDB_Anime> relList, ref List<int> relListIDs, ref List<int> searchedIDs)
+        public static void GetRelatedAnimeRecursive(ISession session, int animeID, ref List<AniDB_Anime> relList,
+            ref List<int> relListIDs, ref List<int> searchedIDs)
         {
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
             AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
@@ -2259,7 +2306,8 @@ namespace JMMServer.Entities
                     relListIDs.Add(relAnime.AnimeID);
                     if (!searchedIDs.Contains(rel.RelatedAnimeID))
                     {
-                        GetRelatedAnimeRecursive(session, rel.RelatedAnimeID, ref relList, ref relListIDs, ref searchedIDs);
+                        GetRelatedAnimeRecursive(session, rel.RelatedAnimeID, ref relList, ref relListIDs,
+                            ref searchedIDs);
                     }
                 }
             }
