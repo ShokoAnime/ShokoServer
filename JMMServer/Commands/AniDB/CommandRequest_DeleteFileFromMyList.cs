@@ -1,72 +1,65 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using JMMServer.Repositories;
-using JMMServer.Entities;
-using System.Xml;
-using JMMServer.Commands.MAL;
-using System.Collections.Specialized;
-using System.Threading;
 using System.Globalization;
-using System.Configuration;
+using System.Threading;
+using System.Xml;
+using JMMServer.Entities;
 
 namespace JMMServer.Commands
 {
-	[Serializable]
-	public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation, ICommandRequest
-	{
-		public string Hash { get; set; }
-		public long FileSize { get; set; }
-		public int FileID { get; set; }
+    [Serializable]
+    public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation, ICommandRequest
+    {
+        public string Hash { get; set; }
+        public long FileSize { get; set; }
+        public int FileID { get; set; }
 
-		public CommandRequestPriority DefaultPriority
-		{
-			get { return CommandRequestPriority.Priority9; }
-		}
+        public CommandRequestPriority DefaultPriority
+        {
+            get { return CommandRequestPriority.Priority9; }
+        }
 
-		public string PrettyDescription
-		{
-			get
-			{
+        public string PrettyDescription
+        {
+            get
+            {
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                 return string.Format(JMMServer.Properties.Resources.AniDB_MyListDelete, Hash, FileID);
-			}
-		}
+            }
+        }
 
-		public CommandRequest_DeleteFileFromMyList()
-		{
-		}
+        public CommandRequest_DeleteFileFromMyList()
+        {
+        }
 
-		public CommandRequest_DeleteFileFromMyList(string hash, long fileSize)
-		{
-			this.Hash = hash;
-			this.FileSize = fileSize;
-			this.FileID = -1;
-			this.CommandType = (int)CommandRequestType.AniDB_DeleteFileUDP;
-			this.Priority = (int)DefaultPriority;
+        public CommandRequest_DeleteFileFromMyList(string hash, long fileSize)
+        {
+            this.Hash = hash;
+            this.FileSize = fileSize;
+            this.FileID = -1;
+            this.CommandType = (int) CommandRequestType.AniDB_DeleteFileUDP;
+            this.Priority = (int) DefaultPriority;
 
-			GenerateCommandID();
-		}
+            GenerateCommandID();
+        }
 
-		public CommandRequest_DeleteFileFromMyList(int fileID)
-		{
-			this.Hash = "";
-			this.FileSize = 0;
-			this.FileID = fileID;
-			this.CommandType = (int)CommandRequestType.AniDB_DeleteFileUDP;
-			this.Priority = (int)DefaultPriority;
+        public CommandRequest_DeleteFileFromMyList(int fileID)
+        {
+            this.Hash = "";
+            this.FileSize = 0;
+            this.FileID = fileID;
+            this.CommandType = (int) CommandRequestType.AniDB_DeleteFileUDP;
+            this.Priority = (int) DefaultPriority;
 
-			GenerateCommandID();
-		}
+            GenerateCommandID();
+        }
 
-		public override void ProcessCommand()
-		{
-			logger.Info("Processing CommandRequest_DeleteFileFromMyList: {0}_{1}", Hash, FileID);
+        public override void ProcessCommand()
+        {
+            logger.Info("Processing CommandRequest_DeleteFileFromMyList: {0}_{1}", Hash, FileID);
 
-			try
-			{
+            try
+            {
                 switch (ServerSettings.AniDB_MyList_DeleteType)
                 {
                     case AniDBAPI.AniDBFileDeleteType.Delete:
@@ -95,7 +88,8 @@ namespace JMMServer.Commands
                         break;
 
                     case AniDBAPI.AniDBFileDeleteType.DeleteLocalOnly:
-                            logger.Info("Keeping physical file and AniDB MyList entry, deleting from local DB: {0}_{1}", Hash, FileID);
+                        logger.Info("Keeping physical file and AniDB MyList entry, deleting from local DB: {0}_{1}",
+                            Hash, FileID);
                         break;
 
                     default:
@@ -131,65 +125,64 @@ namespace JMMServer.Commands
                     // By the time we get to this point, the VideoLocal records would have been deleted
                     // So we can't get the episode records to do this on an ep by ep basis
                     // lets also try adding to the users trakt collecion by sync'ing the series
-
                 }
-                
-			}
-			catch (Exception ex)
-			{
-				logger.Error("Error processing CommandRequest_AddFileToMyList: {0}_{1} - {2}", Hash, FileID, ex.ToString());
-				return;
-			}
-		}
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error processing CommandRequest_AddFileToMyList: {0}_{1} - {2}", Hash, FileID,
+                    ex.ToString());
+                return;
+            }
+        }
 
-		/// <summary>
-		/// This should generate a unique key for a command
-		/// It will be used to check whether the command has already been queued before adding it
-		/// </summary>
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_DeleteFileFromMyList_{0}_{1}", Hash, FileID);
-		}
+        /// <summary>
+        /// This should generate a unique key for a command
+        /// It will be used to check whether the command has already been queued before adding it
+        /// </summary>
+        public override void GenerateCommandID()
+        {
+            this.CommandID = string.Format("CommandRequest_DeleteFileFromMyList_{0}_{1}", Hash, FileID);
+        }
 
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
+        public override bool LoadFromDBCommand(CommandRequest cq)
+        {
+            this.CommandID = cq.CommandID;
+            this.CommandRequestID = cq.CommandRequestID;
+            this.CommandType = cq.CommandType;
+            this.Priority = cq.Priority;
+            this.CommandDetails = cq.CommandDetails;
+            this.DateTimeUpdated = cq.DateTimeUpdated;
 
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
+            // read xml to get parameters
+            if (this.CommandDetails.Trim().Length > 0)
+            {
+                XmlDocument docCreator = new XmlDocument();
+                docCreator.LoadXml(this.CommandDetails);
 
-				// populate the fields
-				this.Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "Hash");
-				this.FileSize = long.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileSize"));
-				this.FileID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileID"));
-			}
+                // populate the fields
+                this.Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "Hash");
+                this.FileSize = long.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileSize"));
+                this.FileID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileID"));
+            }
 
-			if (this.Hash.Trim().Length > 0)
-				return true;
-			else
-				return false;
-		}
+            if (this.Hash.Trim().Length > 0)
+                return true;
+            else
+                return false;
+        }
 
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
 
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
+            CommandRequest cq = new CommandRequest();
+            cq.CommandID = this.CommandID;
+            cq.CommandType = this.CommandType;
+            cq.Priority = this.Priority;
+            cq.CommandDetails = this.ToXML();
+            cq.DateTimeUpdated = DateTime.Now;
 
-			return cq;
-		}
-	}
+            return cq;
+        }
+    }
 }

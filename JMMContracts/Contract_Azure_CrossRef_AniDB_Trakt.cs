@@ -18,7 +18,7 @@
         public int? CrossRef_AniDB_TraktId { get; set; }
 
         public Contract_Azure_CrossRef_AniDB_Trakt()
-		{
-		}
+        {
+        }
     }
 }

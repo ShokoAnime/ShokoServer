@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AniDBAPI
+﻿namespace AniDBAPI
 {
     public interface IHash
     {
@@ -11,10 +7,10 @@ namespace AniDBAPI
         string Info { get; }
     }
 
-	public class IHashDummy : IHash
-	{
-		public long FileSize { get; set; }
-		public string ED2KHash { get; set; }
-		public string Info { get; set; }
-	}
+    public class IHashDummy : IHash
+    {
+        public long FileSize { get; set; }
+        public string ED2KHash { get; set; }
+        public string Info { get; set; }
+    }
 }

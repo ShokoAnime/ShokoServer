@@ -23,20 +23,22 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;UNSAFE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;UNSAFE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>db.ico</ApplicationIcon>
@@ -47,6 +49,9 @@
   <PropertyGroup>
     <StartupObject>
     </StartupObject>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Antlr3.Runtime">
@@ -127,6 +132,7 @@
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.ServiceModel.Web" />
     <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml" />
@@ -214,6 +220,19 @@
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
+    <Compile Include="Extensions.cs" />
+    <Compile Include="LZ4\CompressionHelper.cs" />
+    <Compile Include="LZ4\LZ4Codec.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe32.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe32HC.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe64.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe64HC.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe32.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe32HC.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe64.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
     <Compile Include="ObjectExtensions.cs" />
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiImplementation.cs" />
@@ -943,6 +962,7 @@
     <Resource Include="Images\Flags\us.gif" />
     <Resource Include="Images\Flags\vi.gif" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y

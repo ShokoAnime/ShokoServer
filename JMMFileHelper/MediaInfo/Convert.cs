@@ -3,12 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using JMMContracts;
 using JMMContracts.PlexAndKodi;
-using JMMFileHelper;
-using NLog;
+using MediaInfoLib;
 using Stream = JMMContracts.PlexAndKodi.Stream;
-
 
 namespace PlexMediaInfo
 {
@@ -21,7 +18,7 @@ namespace PlexMediaInfo
             codec = codec.ToLower();
             foreach (string k in codecs.Keys)
             {
-                if (codec==k.ToLower())
+                if (codec == k.ToLower())
                 {
                     return codecs[k];
                 }
@@ -41,7 +38,6 @@ namespace PlexMediaInfo
                     if (k > max)
                         max = k;
                 }
-
             }
             return max;
         }
@@ -52,7 +48,7 @@ namespace PlexMediaInfo
 
             if (profile.Contains("advanced simple"))
                 return "asp";
-            if ((codec=="mpeg4") && (profile=="simple"))
+            if ((codec == "mpeg4") && (profile == "simple"))
                 return "sp";
             if (profile.StartsWith("m"))
                 return "main";
@@ -62,22 +58,22 @@ namespace PlexMediaInfo
                 return "advanced";
             return profile;
         }
+
         private static string TranslateLevel(string level)
         {
             level = level.Replace(".", string.Empty).ToLower();
             if (level.StartsWith("l"))
             {
-                int lll ;
+                int lll;
                 int.TryParse(level.Substring(1), out lll);
                 if (lll != 0)
                     level = lll.ToString(CultureInfo.InvariantCulture);
                 else if (level.StartsWith("lm"))
                     level = "medium";
                 else if (level.StartsWith("lh"))
-                    level="high";
+                    level = "high";
                 else
                     level = "low";
-
             }
             else if (level.StartsWith("m"))
                 level = "medium";
@@ -85,9 +81,10 @@ namespace PlexMediaInfo
                 level = "high";
             return level;
         }
+
         private static string GetLanguageFromCode3(string code3, string full)
         {
-            for(int x=0;x<languages.GetUpperBound(0);x++)
+            for (int x = 0; x < languages.GetUpperBound(0); x++)
             {
                 if (languages[x, 2] == code3)
                 {
@@ -109,9 +106,9 @@ namespace PlexMediaInfo
             }
             return c;
         }
+
         public static string PostTranslateLan(string c)
         {
-
             foreach (string k in lan_post.Keys)
             {
                 if (c.ToLower().Contains(k.ToLower()))
@@ -121,6 +118,7 @@ namespace PlexMediaInfo
             }
             return c;
         }
+
         private static string TranslateContainer(string container)
         {
             container = container.ToLower();
@@ -133,12 +131,13 @@ namespace PlexMediaInfo
             }
             return container;
         }
+
         private static Stream TranslateVideoStream(MediaInfo m, int num)
         {
-            Stream s=new Stream();
-            s.Id = m.Get(StreamKind.Video,num,"UniqueID");
+            Stream s = new Stream();
+            s.Id = m.Get(StreamKind.Video, num, "UniqueID");
             s.Codec = TranslateCodec(m.Get(StreamKind.Video, num, "Codec"));
-            s.CodecID = (m.Get(StreamKind.Video, num, "CodecID"));
+            s.CodecID = m.Get(StreamKind.Video, num, "CodecID");
             s.StreamType = "1";
             s.Width = m.Get(StreamKind.Video, num, "Width");
             string title = m.Get(StreamKind.Video, num, "Title");
@@ -156,11 +155,11 @@ namespace PlexMediaInfo
                 s.Duration = duration;
             s.Height = m.Get(StreamKind.Video, num, "Height");
             int brate = BiggerFromList(m.Get(StreamKind.Video, num, "BitRate"));
-            if (brate!=0)
-                s.Bitrate = Math.Round(brate / 1000F).ToString(CultureInfo.InvariantCulture);
+            if (brate != 0)
+                s.Bitrate = Math.Round(brate/1000F).ToString(CultureInfo.InvariantCulture);
             string stype = m.Get(StreamKind.Video, num, "ScanType");
             if (!string.IsNullOrEmpty(stype))
-                s.ScanType=stype.ToLower();
+                s.ScanType = stype.ToLower();
             string refframes = m.Get(StreamKind.Video, num, "Format_Settings_RefFrames");
             if (!string.IsNullOrEmpty(refframes))
                 s.RefFrames = refframes;
@@ -170,14 +169,14 @@ namespace PlexMediaInfo
                 int a = fprofile.ToLower(CultureInfo.InvariantCulture).IndexOf("@", StringComparison.Ordinal);
                 if (a > 0)
                 {
-                    s.Profile = TranslateProfile(s.Codec,fprofile.ToLower(CultureInfo.InvariantCulture).Substring(0, a));
+                    s.Profile = TranslateProfile(s.Codec, fprofile.ToLower(CultureInfo.InvariantCulture).Substring(0, a));
                     s.Level = TranslateLevel(fprofile.ToLower(CultureInfo.InvariantCulture).Substring(a + 1));
                 }
                 else
                     s.Profile = TranslateProfile(s.Codec, fprofile.ToLower(CultureInfo.InvariantCulture));
             }
             string rot = m.Get(StreamKind.Video, num, "Rotation");
-            
+
             if (!string.IsNullOrEmpty(rot))
             {
                 float val;
@@ -199,14 +198,14 @@ namespace PlexMediaInfo
                 if (muxing.ToLower(CultureInfo.InvariantCulture).Contains("strip"))
                     s.HeaderStripping = "1";
             }
-             string cabac = m.Get(StreamKind.Video, num, "Format_Settings_CABAC");
+            string cabac = m.Get(StreamKind.Video, num, "Format_Settings_CABAC");
             if (!string.IsNullOrEmpty(cabac))
             {
                 s.Cabac = cabac.ToLower(CultureInfo.InvariantCulture) == "yes" ? "1" : "0";
             }
-            if (s.Codec=="h264")
+            if (s.Codec == "h264")
             {
-                if (!string.IsNullOrEmpty(s.Level) && (s.Level=="31") && (s.Cabac==null || s.Cabac=="0"))
+                if (!string.IsNullOrEmpty(s.Level) && (s.Level == "31") && (s.Cabac == null || s.Cabac == "0"))
                     s.HasScalingMatrix = "1";
                 else
                     s.HasScalingMatrix = "0";
@@ -215,16 +214,16 @@ namespace PlexMediaInfo
             if (!string.IsNullOrEmpty(fratemode))
                 s.FrameRateMode = fratemode.ToLower(CultureInfo.InvariantCulture);
             float frate = m.GetFloat(StreamKind.Video, num, "FrameRate");
-            if (frate==0.0F)
+            if (frate == 0.0F)
                 frate = m.GetFloat(StreamKind.Video, num, "FrameRate_Original");
             if (frate != 0.0F)
-                s.FrameRate=frate.ToString("F3");
+                s.FrameRate = frate.ToString("F3");
             string colorspace = m.Get(StreamKind.Video, num, "ColorSpace");
             if (!string.IsNullOrEmpty(colorspace))
-                s.ColorSpace=colorspace.ToLower(CultureInfo.InvariantCulture);
-            string chromasubsampling= m.Get(StreamKind.Video, num, "ChromaSubsampling");
+                s.ColorSpace = colorspace.ToLower(CultureInfo.InvariantCulture);
+            string chromasubsampling = m.Get(StreamKind.Video, num, "ChromaSubsampling");
             if (!string.IsNullOrEmpty(chromasubsampling))
-                s.ChromaSubsampling=chromasubsampling.ToLower(CultureInfo.InvariantCulture);
+                s.ChromaSubsampling = chromasubsampling.ToLower(CultureInfo.InvariantCulture);
 
 
             int bitdepth = m.GetInt(StreamKind.Video, num, "BitDepth");
@@ -250,11 +249,11 @@ namespace PlexMediaInfo
                 s.GMC = gmc;
             }
             string bvop = m.Get(StreamKind.Video, num, "Format_Settings_BVOP");
-            if (!string.IsNullOrEmpty(bvop) && (s.Codec!="mpeg1video"))
+            if (!string.IsNullOrEmpty(bvop) && (s.Codec != "mpeg1video"))
             {
                 if (bvop == "No")
                     s.BVOP = "0";
-                else if ((bvop == "1") || (bvop=="Yes"))
+                else if ((bvop == "1") || (bvop == "Yes"))
                     s.BVOP = "1";
             }
             string def = m.Get(StreamKind.Text, num, "Default");
@@ -273,20 +272,21 @@ namespace PlexMediaInfo
             string sp2 = m.Get(StreamKind.Video, num, "PixelAspectRatio_Original");
             if (!string.IsNullOrEmpty(sp2))
                 s.PA = System.Convert.ToSingle(sp2);
-            if ((s.PA != 1.0) && (!string.IsNullOrEmpty(s.Width)))
+            if ((s.PA != 1.0) && !string.IsNullOrEmpty(s.Width))
             {
                 float width = int.Parse(s.Width);
                 width *= s.PA;
-                s.PixelAspectRatio=((int)Math.Round(width)).ToString(CultureInfo.InvariantCulture)+":"+s.Width;
+                s.PixelAspectRatio = ((int) Math.Round(width)).ToString(CultureInfo.InvariantCulture) + ":" + s.Width;
             }
 
             return s;
         }
+
         private static Stream TranslateAudioStream(MediaInfo m, int num)
         {
             Stream s = new Stream();
             s.Id = m.Get(StreamKind.Audio, num, "UniqueID");
-            s.CodecID = (m.Get(StreamKind.Audio, num, "CodecID"));
+            s.CodecID = m.Get(StreamKind.Audio, num, "CodecID");
             s.Codec = TranslateCodec(m.Get(StreamKind.Audio, num, "Codec"));
             string title = m.Get(StreamKind.Audio, num, "Title");
             if (!string.IsNullOrEmpty(title))
@@ -294,7 +294,8 @@ namespace PlexMediaInfo
             s.StreamType = "2";
             string lang = m.Get(StreamKind.Audio, num, "Language/String3");
             if (!string.IsNullOrEmpty(lang))
-                s.LanguageCode = PostTranslateCode3(lang); ;
+                s.LanguageCode = PostTranslateCode3(lang);
+            ;
             string lan = PostTranslateLan(GetLanguageFromCode3(lang, m.Get(StreamKind.Audio, num, "Language/String1")));
             if (!string.IsNullOrEmpty(lan))
                 s.Language = lan;
@@ -303,28 +304,30 @@ namespace PlexMediaInfo
                 s.Duration = duration;
             int brate = BiggerFromList(m.Get(StreamKind.Audio, num, "BitRate"));
             if (brate != 0)
-                s.Bitrate = Math.Round(brate / 1000F).ToString(CultureInfo.InvariantCulture);
+                s.Bitrate = Math.Round(brate/1000F).ToString(CultureInfo.InvariantCulture);
             int bitdepth = m.GetInt(StreamKind.Audio, num, "BitDepth");
             if (bitdepth != 0)
                 s.BitDepth = bitdepth.ToString(CultureInfo.InvariantCulture);
             string fprofile = m.Get(StreamKind.Audio, num, "Format_Profile");
             if (!string.IsNullOrEmpty(fprofile))
             {
-                if ((fprofile.ToLower() != "layer 3") && (fprofile.ToLower() != "dolby digital") && (fprofile.ToLower() != "pro") && (fprofile.ToLower() != "layer 2"))
+                if ((fprofile.ToLower() != "layer 3") && (fprofile.ToLower() != "dolby digital") &&
+                    (fprofile.ToLower() != "pro") &&
+                    (fprofile.ToLower() != "layer 2"))
                     s.Profile = fprofile.ToLower(CultureInfo.InvariantCulture);
                 if (fprofile.ToLower().StartsWith("ma"))
                     s.Profile = "ma";
             }
             string fset = m.Get(StreamKind.Audio, num, "Format_Settings");
-            if ((!string.IsNullOrEmpty(fset)) && (fset == "Little / Signed") && (s.Codec == "pcm") && (bitdepth==16))
+            if (!string.IsNullOrEmpty(fset) && (fset == "Little / Signed") && (s.Codec == "pcm") && (bitdepth == 16))
             {
                 s.Profile = "pcm_s16le";
             }
-            else if ((!string.IsNullOrEmpty(fset)) && (fset == "Big / Signed") && (s.Codec == "pcm") && (bitdepth == 16))
+            else if (!string.IsNullOrEmpty(fset) && (fset == "Big / Signed") && (s.Codec == "pcm") && (bitdepth == 16))
             {
-                 s.Profile = "pcm_s16be";
+                s.Profile = "pcm_s16be";
             }
-            else if ((!string.IsNullOrEmpty(fset)) && (fset == "Little / Unsigned") && (s.Codec == "pcm") &&
+            else if (!string.IsNullOrEmpty(fset) && (fset == "Little / Unsigned") && (s.Codec == "pcm") &&
                      (bitdepth == 8))
             {
                 s.Profile = "pcm_u8";
@@ -339,21 +342,21 @@ namespace PlexMediaInfo
                 }
             }
             int pa = BiggerFromList(m.Get(StreamKind.Audio, num, "SamplingRate"));
-            if (pa!=0)
-                s.SamplingRate=pa.ToString(CultureInfo.InvariantCulture);
+            if (pa != 0)
+                s.SamplingRate = pa.ToString(CultureInfo.InvariantCulture);
             int channels = BiggerFromList(m.Get(StreamKind.Audio, num, "Channel(s)"));
             if (channels != 0)
-                s.Channels=channels.ToString(CultureInfo.InvariantCulture);
+                s.Channels = channels.ToString(CultureInfo.InvariantCulture);
             int channelso = BiggerFromList(m.Get(StreamKind.Audio, num, "Channel(s)_Original"));
-            if ((channelso!=0))
+            if (channelso != 0)
                 s.Channels = channelso.ToString(CultureInfo.InvariantCulture);
-            
+
             string bitRateMode = m.Get(StreamKind.Audio, num, "BitRate_Mode");
             if (!string.IsNullOrEmpty(bitRateMode))
                 s.BitrateMode = bitRateMode.ToLower(CultureInfo.InvariantCulture);
             string dialnorm = m.Get(StreamKind.Audio, num, "dialnorm");
             if (!string.IsNullOrEmpty(dialnorm))
-                s.DialogNorm=dialnorm;
+                s.DialogNorm = dialnorm;
             dialnorm = m.Get(StreamKind.Audio, num, "dialnorm_Average");
             if (!string.IsNullOrEmpty(dialnorm))
                 s.DialogNorm = dialnorm;
@@ -372,13 +375,14 @@ namespace PlexMediaInfo
             }
             return s;
         }
+
         private static Stream TranslateTextStream(MediaInfo m, int num)
         {
             Stream s = new Stream();
 
 
             s.Id = m.Get(StreamKind.Text, num, "UniqueID");
-            s.CodecID = (m.Get(StreamKind.Text, num, "CodecID"));
+            s.CodecID = m.Get(StreamKind.Text, num, "CodecID");
 
             s.StreamType = "3";
             string title = m.Get(StreamKind.Text, num, "Title");
@@ -394,13 +398,14 @@ namespace PlexMediaInfo
             string id = m.Get(StreamKind.Text, num, "ID");
             if (!string.IsNullOrEmpty(id))
             {
-                int idx ;
+                int idx;
                 if (int.TryParse(id, out idx))
                 {
                     s.Index = idx.ToString(CultureInfo.InvariantCulture);
                 }
             }
-            s.Format = s.Codec=GetFormat(m.Get(StreamKind.Text, num, "CodecID"), m.Get(StreamKind.Text, num, "Format"));
+            s.Format =
+                s.Codec = GetFormat(m.Get(StreamKind.Text, num, "CodecID"), m.Get(StreamKind.Text, num, "Format"));
 
             string def = m.Get(StreamKind.Text, num, "Default");
             if (!string.IsNullOrEmpty(def))
@@ -418,6 +423,7 @@ namespace PlexMediaInfo
 
             return s;
         }
+
         private static int GetInt(this MediaInfo mi, StreamKind kind, int number, string par)
         {
             int val;
@@ -426,6 +432,7 @@ namespace PlexMediaInfo
                 return val;
             return 0;
         }
+
         private static float GetFloat(this MediaInfo mi, StreamKind kind, int number, string par)
         {
             float val;
@@ -434,6 +441,7 @@ namespace PlexMediaInfo
                 return val;
             return 0.0F;
         }
+
         public static Media Convert(string filename)
         {
             int ex = 0;
@@ -455,12 +463,12 @@ namespace PlexMediaInfo
                 m.Duration = p.Duration = mi.Get(StreamKind.General, 0, "Duration");
                 m.Container = p.Container = TranslateContainer(mi.Get(StreamKind.General, 0, "Format"));
                 string codid = mi.Get(StreamKind.General, 0, "CodecID");
-                if ((!string.IsNullOrEmpty(codid)) && (codid.Trim().ToLower() == "qt"))
-                    m.Container = p.Container= "mov";
+                if (!string.IsNullOrEmpty(codid) && (codid.Trim().ToLower() == "qt"))
+                    m.Container = p.Container = "mov";
 
                 int brate = mi.GetInt(StreamKind.General, 0, "BitRate");
                 if (brate != 0)
-                    m.Bitrate = Math.Round(brate / 1000F).ToString(CultureInfo.InvariantCulture);
+                    m.Bitrate = Math.Round(brate/1000F).ToString(CultureInfo.InvariantCulture);
                 p.Size = mi.Get(StreamKind.General, 0, "FileSize");
                 //m.Id = p.Id = mi.Get(StreamKind.General, 0, "UniqueID");
 
@@ -479,18 +487,16 @@ namespace PlexMediaInfo
                             m.Height = s.Height;
                             if (!string.IsNullOrEmpty(m.Height))
                             {
-                                
                                 if (!string.IsNullOrEmpty(m.Width))
                                 {
-                                    m.VideoResolution = GetResolution(int.Parse(m.Width),int.Parse(m.Height));
+                                    m.VideoResolution = GetResolution(int.Parse(m.Width), int.Parse(m.Height));
                                     m.AspectRatio = GetAspectRatio(float.Parse(m.Width), float.Parse(m.Height), s.PA);
-
                                 }
                             }
                             if (!string.IsNullOrEmpty(s.FrameRate))
                             {
                                 float fr = System.Convert.ToSingle(s.FrameRate);
-                                m.VideoFrameRate = ((int)Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
+                                m.VideoFrameRate = ((int) Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
                                 if (!string.IsNullOrEmpty(s.ScanType))
                                 {
                                     if (s.ScanType.ToLower().Contains("int"))
@@ -554,7 +560,7 @@ namespace PlexMediaInfo
                         {
                             totalsoundrate += int.Parse(s.Bitrate);
                         }
-                            if (m.Container != "mkv")
+                        if (m.Container != "mkv")
                         {
                             s.Index = iidx.ToString(CultureInfo.InvariantCulture);
                             iidx++;
@@ -562,7 +568,8 @@ namespace PlexMediaInfo
                         streams.Add(s);
                     }
                 }
-                if ((VideoStream!=null) && (string.IsNullOrEmpty(VideoStream.Bitrate) && (!string.IsNullOrEmpty(m.Bitrate))))
+                if ((VideoStream != null) && string.IsNullOrEmpty(VideoStream.Bitrate) &&
+                    !string.IsNullOrEmpty(m.Bitrate))
                 {
                     VideoStream.Bitrate = (int.Parse(m.Bitrate) - totalsoundrate).ToString(CultureInfo.InvariantCulture);
                 }
@@ -606,7 +613,7 @@ namespace PlexMediaInfo
                         if (s.idx < val)
                             val = s.idx;
                     }
-                    if ((val != 0) && (!over))
+                    if ((val != 0) && !over)
                     {
                         foreach (Stream s in streams)
                         {
@@ -627,7 +634,7 @@ namespace PlexMediaInfo
                 }
                 ex = 6;
                 p.Streams = streams;
-                if ((p.Container == "mp4") || (p.Container=="mov"))
+                if ((p.Container == "mp4") || (p.Container == "mov"))
                 {
                     p.Has64bitOffsets = "0";
                     p.OptimizedForStreaming = "0";
@@ -640,7 +647,7 @@ namespace PlexMediaInfo
                     fs.Read(buffer, 0, 8);
                     if ((buffer[4] == 'f') && (buffer[5] == 'r') && (buffer[6] == 'e') && (buffer[7] == 'e'))
                     {
-                        siz = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3]-8;
+                        siz = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3] - 8;
                         fs.Seek(siz, SeekOrigin.Current);
                         fs.Read(buffer, 0, 8);
                     }
@@ -652,25 +659,22 @@ namespace PlexMediaInfo
 
                         buffer = new byte[siz];
                         fs.Read(buffer, 0, siz);
-                        int opos ;
-                        int oposmax ;
+                        int opos;
+                        int oposmax;
                         if (FindInBuffer("trak", 0, siz, buffer, out opos, out oposmax))
                         {
                             if (FindInBuffer("mdia", opos, oposmax, buffer, out opos, out oposmax))
                             {
                                 if (FindInBuffer("minf", opos, oposmax, buffer, out opos, out oposmax))
                                 {
-
                                     if (FindInBuffer("stbl", opos, oposmax, buffer, out opos, out oposmax))
                                     {
                                         if (FindInBuffer("co64", opos, oposmax, buffer, out opos, out oposmax))
                                         {
                                             p.Has64bitOffsets = "1";
                                         }
-
                                     }
                                 }
-
                             }
                         }
                     }
@@ -680,8 +684,7 @@ namespace PlexMediaInfo
             }
             catch (Exception e)
             {
-                throw new Exception(ex+":"+e.Message,e);
-                
+                throw new Exception(ex + ":" + e.Message, e);
             }
             finally
             {
@@ -689,6 +692,7 @@ namespace PlexMediaInfo
                 GC.Collect();
             }
         }
+
         private static bool FindInBuffer(string atom, int start, int max, byte[] buffer, out int pos, out int posmax)
         {
             pos = 0;
@@ -701,18 +705,20 @@ namespace PlexMediaInfo
                     (buffer[start + 7] == atom[3]))
                 {
                     pos = start + 8;
-                    posmax = (buffer[start] << 24 | buffer[start + 1] << 16 | buffer[start + 2] << 8 | buffer[start + 3]) + start;
+                    posmax = (buffer[start] << 24 | buffer[start + 1] << 16 | buffer[start + 2] << 8 | buffer[start + 3]) +
+                             start;
                     return true;
                 }
-                start += (buffer[start] << 24 | buffer[start + 1] << 16 | buffer[start + 2] << 8 | buffer[start + 3]);
-            } while (start<max);
+                start += buffer[start] << 24 | buffer[start + 1] << 16 | buffer[start + 2] << 8 | buffer[start + 3];
+            } while (start < max);
 
             return false;
         }
+
         private static string GetResolution(int width, int height)
 
         {
-            int h = (int)Math.Round((float) width/1.777777777777777F);
+            int h = (int) Math.Round((float) width/1.777777777777777F);
             if (height > h)
                 h = height;
             if (h > 720)
@@ -725,9 +731,10 @@ namespace PlexMediaInfo
                 return "480";
             return "sd";
         }
+
         private static string GetAspectRatio(float width, float height, float pa)
         {
-            float r = (width/height)*pa;
+            float r = width/height*pa;
             if (r < 1.5F)
                 return "1.33";
             if (r < 1.72F)
@@ -740,6 +747,7 @@ namespace PlexMediaInfo
                 return "2.20";
             return "2.35";
         }
+
         private static string GetFormat(string codecid, string format)
         {
             string s = codecid;
@@ -759,273 +767,279 @@ namespace PlexMediaInfo
                 return "ttxt";
             return null;
         }
-        private static Dictionary<string, string> formats = new Dictionary<string, string> {
-            { "S_IMAGE/BMP","bmp"},
-            { "S_TEXT/ASS","ass"},
-            { "S_ASS","ass"},
-            { "S_TEXT/SSA","ssa"},
-            { "S_SSA","ssa"},
-            { "S_TEXT/USF","usf"},
-            { "S_TEXT/UTF8","srt"},
-            { "S_USF","usf"},
-            { "S_VOBSUB","vobsub"},
-            { "S_HDMV/PGS","pgs"},
-            { "c608","eia-608"},
-            { "c708","eia-708"},
-            { "subp","vobsub"},
+
+        private static Dictionary<string, string> formats = new Dictionary<string, string>
+        {
+            {"S_IMAGE/BMP", "bmp"},
+            {"S_TEXT/ASS", "ass"},
+            {"S_ASS", "ass"},
+            {"S_TEXT/SSA", "ssa"},
+            {"S_SSA", "ssa"},
+            {"S_TEXT/USF", "usf"},
+            {"S_TEXT/UTF8", "srt"},
+            {"S_USF", "usf"},
+            {"S_VOBSUB", "vobsub"},
+            {"S_HDMV/PGS", "pgs"},
+            {"c608", "eia-608"},
+            {"c708", "eia-708"},
+            {"subp", "vobsub"},
         };
-        private static Dictionary<string, string> codecs = new Dictionary<string, string> {
-            { "V_MPEG4/ISO/AVC","h264"},
-            {"v_mpeg4/iso/asp","mpeg4"},
-            { "avc","h264"},
-            { "V_MPEG2","mpeg2"},
-            { "DX50","mpeg4"},
-            { "DIV3","msmpeg4"},
-            { "divx","mpeg4"},
-            { "MPA1L3","mp3"},
-            { "MPA2L3","mp3"},
-            { "A_FLAC","flac"},
-            { "A_AAC/MPEG4/LC/SBR","aac"},
-            { "A_AAC","aac"},
-            { "A_AC3","ac3"},
-            { "dts", "dca"},
-            { "161", "wmav2" },
-            { "162", "wmapro" },
-            { "mpa1l2", "mp2" },
-            { "mpa1l3", "mp2" },
-            { "mpeg-1v", "mpeg1video" },
-            { "mpeg-2v", "mpeg2video" },
-            { "xvid", "mpeg4" },
-            { "aac lc", "aac" },
-            { "sorenson h263", "flv" },
-            {"mp42","msmpeg4v2"},
-            {"mp43","msmpeg4"},
-            {"aac lc-sbr","aac"},
-            {"on2 vp6","vp6f"},
-            {"mpeg-4v","mpeg4"},
-            {"vc-1","vc1"},
-            {"2","adpcm_ms"},
-            {"dts-hd","dca"},
-            {"55","mp3"},
-            {"avc1","h264"},
-            {"mpa2.5l3","mp3"},
-            {"mpg4","msmpeg4v1"},
-            {"flv1","flv"},
-            {"aac lc-sbr-ps","aac"}
+
+        private static Dictionary<string, string> codecs = new Dictionary<string, string>
+        {
+            {"V_MPEG4/ISO/AVC", "h264"},
+            {"v_mpeg4/iso/asp", "mpeg4"},
+            {"avc", "h264"},
+            {"V_MPEG2", "mpeg2"},
+            {"DX50", "mpeg4"},
+            {"DIV3", "msmpeg4"},
+            {"divx", "mpeg4"},
+            {"MPA1L3", "mp3"},
+            {"MPA2L3", "mp3"},
+            {"A_FLAC", "flac"},
+            {"A_AAC/MPEG4/LC/SBR", "aac"},
+            {"A_AAC", "aac"},
+            {"A_AC3", "ac3"},
+            {"dts", "dca"},
+            {"161", "wmav2"},
+            {"162", "wmapro"},
+            {"mpa1l2", "mp2"},
+            {"mpa1l3", "mp2"},
+            {"mpeg-1v", "mpeg1video"},
+            {"mpeg-2v", "mpeg2video"},
+            {"xvid", "mpeg4"},
+            {"aac lc", "aac"},
+            {"sorenson h263", "flv"},
+            {"mp42", "msmpeg4v2"},
+            {"mp43", "msmpeg4"},
+            {"aac lc-sbr", "aac"},
+            {"on2 vp6", "vp6f"},
+            {"mpeg-4v", "mpeg4"},
+            {"vc-1", "vc1"},
+            {"2", "adpcm_ms"},
+            {"dts-hd", "dca"},
+            {"55", "mp3"},
+            {"avc1", "h264"},
+            {"mpa2.5l3", "mp3"},
+            {"mpg4", "msmpeg4v1"},
+            {"flv1", "flv"},
+            {"aac lc-sbr-ps", "aac"}
         };
+
         private static Dictionary<string, string> containers = new Dictionary<string, string>
         {
             {"matroska", "mkv"},
             {"windows media", "asf"},
             {"mpeg-ps", "mpeg"},
-            {"mpeg-4","mp4"},
-            {"flash video","flv"},
-            {"divx","avi"},
-            {"realmedia","rm"},
-            {"mpeg video","mpeg"},
-            {"cdxa/mpeg-ps","mpeg"}
-
+            {"mpeg-4", "mp4"},
+            {"flash video", "flv"},
+            {"divx", "avi"},
+            {"realmedia", "rm"},
+            {"mpeg video", "mpeg"},
+            {"cdxa/mpeg-ps", "mpeg"}
         };
+
         private static Dictionary<string, string> code3_post = new Dictionary<string, string>
         {
             {"fra", "fre"},
-            {"deu","ger"},
-            {"ces","cz"},
-            {"ron","rum"}
+            {"deu", "ger"},
+            {"ces", "cz"},
+            {"ron", "rum"}
         };
+
         private static Dictionary<string, string> lan_post = new Dictionary<string, string>
         {
             {"Dutch", "Nederlands"},
         };
+
         public static string[,] languages =
         {
-            {@"abkhazian","ab","abk"},
-            {@"afar","aa","aar"},
-            {@"afrikaans","af","afr"},
-            {@"akan","ak","aka"},
-            {@"albanian","sq","sqi"},
-            {@"amharic","am","amh"},
-            {@"arabic","ar","ara"},
-            {@"aragonese","an","arg"},
-            {@"assamese","as","asm"},
-            {@"armenian","hy","hye"},
-            {@"avaric","av","ava"},
-            {@"avestan","ae","ave"},
-            {@"aymara","ay","aym"},
-            {@"azerbaijani","az","aze"},
-            {@"bashkir","ba","bak"},
-            {@"bambara","bm","bam"},
-            {@"basque","eu","eus"},
-            {@"belarusian","be","bel"},
-            {@"bengali","bn","ben"},
-            {@"bihari languages","bh","bih"},
-            {@"bislama","bi","bis"},
-            {@"bosnian","bs","bos"},
-            {@"breton","br","bre"},
-            {@"bulgarian","bg","bul"},
-            {@"burmese","my","mya"},
-            {@"catalan","ca","cat"},
-            {@"chamorro","ch","cha"},
-            {@"chechen","ce","che"},
-            {@"nyanja","ny","nya"},
-            {@"chinese","zh","chi"},
-            {@"chinese","zh","zho"},
-            {@"chuvash","cv","chv"},
-            {@"cornish","kw","cor"},
-            {@"corsican","co","cos"},
-            {@"cree","cr","cre"},
-            {@"croatian","hr","hrv"},
-            {@"czech","cs","ces"},
-            {@"danish","da","dan"},
-            {@"dhivehi","dv","div"},
-            {@"dzongkha","dz","dzo"},
-            {@"english","en","eng"},
-            {@"esperanto","eo","epo"},
-            {@"estonian, eesti keel","et","est"},
-            {@"ewe","ee","ewe"},
-            {@"faroese","fo","fao"},
-            {@"fijian","fj","fij"},
-            {@"finnish","fi","fin"},
-            {@"french","fr","fra"},
-            {@"fulah","ff","ful"},
-            {@"galician","gl","glg"},
-            {@"german","de","deu"},
-            {@"modern greek","el","ell"},
-            {@"guarani","gn","grn"},
-            {@"gujarati","gu","guj"},
-            {@"haitian","ht","hat"},
-            {@"hausa","ha","hau"},
-            {@"hebrew","he","heb"},
-            {@"herero","hz","her"},
-            {@"hindi","hi","hin"},
-            {@"hiri motu","ho","hmo"},
-            {@"hungarian","hu","hun"},
-            {@"interlingua","ia","ina"},
-            {@"indonesian","id","ind"},
-            {@"interlingue","ie","ile"},
-            {@"irish","ga","gle"},
-            {@"igbo","ig","ibo"},
-            {@"sichuan yi","ii","iii"},
-            {@"inupiaq","ik","ipk"},
-            {@"ido","io","ido"},
-            {@"icelandic","is","isl"},
-            {@"icelandic","is","ice"},
-            {@"italian","it","ita"},
-            {@"inuktitut","iu","iku"},
-            {@"japanese","ja","jpn"},
-            {@"javanese","jv","jav"},
-            {@"georgian","ka","kat"},
-            {@"kongo","kg","kon"},
-            {@"kikuyu","ki","kik"},
-            {@"kuanyama","kj","kua"},
-            {@"kazakh","kk","kaz"},
-            {@"kalaallisut","kl","kal"},
-            {@"kentral khmer","km","khm"},
-            {@"kannada","kn","kan"},
-            {@"korean","ko","kor"},
-            {@"kanuri","kr","kau"},
-            {@"kashmiri","ks","kas"},
-            {@"kurdish","ku","kur"},
-            {@"komi","kv","kom"},
-            {@"kirghiz","ky","kir"},
-            {@"latin","la","lat"},
-            {@"luxembourgish","lb","ltz"},
-            {@"ganda","lg","lug"},
-            {@"limburgan","li","lim"},
-            {@"lingala","ln","lin"},
-            {@"lao","lo","lao"},
-            {@"lithuanian","lt","lit"},
-            {@"luba-katanga","lu","lub"},
-            {@"latvian","lv","lav"},
-            {@"malagasy","mg","mlg"},
-            {@"marshallese","mh","mah"},
-            {@"manx","gv","glv"},
-            {@"maori","mi","mri"},
-            {@"macedonian","mk","mkd"},
-            {@"malayalam","ml","mal"},
-            {@"mongolian","mn","mon"},
-            {@"marathi","mr","mar"},
-            {@"malay","ms","msa"},
-            {@"maltese","mt","mlt"},
-            {@"nauru","na","nau"},
-            {@"Norsk bokmål","nb","nob"},
-            {@"north ndebele","nd","nde"},
-            {@"nepali","ne","nep"},
-            {@"ndonga","ng","ndo"},
-            {@"dutch","nl","nld"},
-            {@"norwegian nynorsk","nn","nno"},
-            {@"norwegian","no","nor"},
-            {@"south ndebele","nr","nbl"},
-            {@"navajo","nv","nav"},
-            {@"occitan","oc","oci"},
-            {@"ojibwa","oj","oji"},
-            {@"church slavic","cu","chu"},
-            {@"oromo","om","orm"},
-            {@"oriya","or","ori"},
-            {@"ossetian","os","oss"},
-            {@"panjabi","pa","pan"},
-            {@"pali","pi","pli"},
-            {@"persian","fa","fas"},
-            {@"polish","pl","pol"},
-            {@"pushto","ps","pus"},
-            {@"portuguese","pt","por"},
-            {@"quechua","qu","que"},
-            {@"romansh","rm","roh"},
-            {@"rundi","rn","run"},
-            {@"romanian","ro","ron"},
-            {@"russian","ru","rus"},
-            {@"kinyarwanda","rw","kin"},
-            {@"sanskrit","sa","san"},
-            {@"sardu","sc","srd"},
-            {@"sardinian","sd","snd"},
-            {@"northern sami","se","sme"},
-            {@"samoan","sm","smo"},
-            {@"sango","sg","sag"},
-            {@"serbian","sr","srp"},
-            {@"scottish gaelic","gd","gla"},
-            {@"shona","sn","sna"},
-            {@"sinhala","si","sin"},
-            {@"slovak","sk","slk"},
-            {@"slovenian","sl","slv"},
-            {@"somali","so","som"},
-            {@"southern sotho","st","sot"},
-            {@"spanish","es","spa"},
-            {@"sundanese","su","sun"},
-            {@"swahili","sw","swa"},
-            {@"swati","ss","ssw"},
-            {@"swedish","sv","swe"},
-            {@"tamil","ta","tam"},
-            {@"telugu","te","tel"},
-            {@"tajik‎","tg","tgk"},
-            {@"thai","th","tha"},
-            {@"tigrinya","ti","tir"},
-            {@"tibetan","bo","bod"},
-            {@"turkmen","tk","tuk"},
-            {@"tagalog","tl","tgl"},
-            {@"tswana","tn","tsn"},
-            {@"tonga","to","ton"},
-            {@"turkish","tr","tur"},
-            {@"tsonga","ts","tso"},
-            {@"tatar‎","tt","tat"},
-            {@"twi","tw","twi"},
-            {@"tahitian","ty","tah"},
-            {@"uighur‎","ug","uig"},
-            {@"ukrainian","uk","ukr"},
-            {@"urdu","ur","urd"},
-            {@"uzbek","uz","uzb"},
-            {@"venda","ve","ven"},
-            {@"vietnamese","vi","vie"},
-            {@"volapük","vo","vol"},
-            {@"walloon","wa","wln"},
-            {@"welsh","cy","cym"},
-            {@"wolof","wo","wol"},
-            {@"western Frisian","fy","fry"},
-            {@"xhosa","xh","xho"},
-            {@"yiddish","yi","yid"},
-            {@"yoruba","yo","yor"},
-            {@"zhuang","za","zha"},
-            {@"zulu","zu","zul"}
+            {@"abkhazian", "ab", "abk"},
+            {@"afar", "aa", "aar"},
+            {@"afrikaans", "af", "afr"},
+            {@"akan", "ak", "aka"},
+            {@"albanian", "sq", "sqi"},
+            {@"amharic", "am", "amh"},
+            {@"arabic", "ar", "ara"},
+            {@"aragonese", "an", "arg"},
+            {@"assamese", "as", "asm"},
+            {@"armenian", "hy", "hye"},
+            {@"avaric", "av", "ava"},
+            {@"avestan", "ae", "ave"},
+            {@"aymara", "ay", "aym"},
+            {@"azerbaijani", "az", "aze"},
+            {@"bashkir", "ba", "bak"},
+            {@"bambara", "bm", "bam"},
+            {@"basque", "eu", "eus"},
+            {@"belarusian", "be", "bel"},
+            {@"bengali", "bn", "ben"},
+            {@"bihari languages", "bh", "bih"},
+            {@"bislama", "bi", "bis"},
+            {@"bosnian", "bs", "bos"},
+            {@"breton", "br", "bre"},
+            {@"bulgarian", "bg", "bul"},
+            {@"burmese", "my", "mya"},
+            {@"catalan", "ca", "cat"},
+            {@"chamorro", "ch", "cha"},
+            {@"chechen", "ce", "che"},
+            {@"nyanja", "ny", "nya"},
+            {@"chinese", "zh", "chi"},
+            {@"chinese", "zh", "zho"},
+            {@"chuvash", "cv", "chv"},
+            {@"cornish", "kw", "cor"},
+            {@"corsican", "co", "cos"},
+            {@"cree", "cr", "cre"},
+            {@"croatian", "hr", "hrv"},
+            {@"czech", "cs", "ces"},
+            {@"danish", "da", "dan"},
+            {@"dhivehi", "dv", "div"},
+            {@"dzongkha", "dz", "dzo"},
+            {@"english", "en", "eng"},
+            {@"esperanto", "eo", "epo"},
+            {@"estonian, eesti keel", "et", "est"},
+            {@"ewe", "ee", "ewe"},
+            {@"faroese", "fo", "fao"},
+            {@"fijian", "fj", "fij"},
+            {@"finnish", "fi", "fin"},
+            {@"french", "fr", "fra"},
+            {@"fulah", "ff", "ful"},
+            {@"galician", "gl", "glg"},
+            {@"german", "de", "deu"},
+            {@"modern greek", "el", "ell"},
+            {@"guarani", "gn", "grn"},
+            {@"gujarati", "gu", "guj"},
+            {@"haitian", "ht", "hat"},
+            {@"hausa", "ha", "hau"},
+            {@"hebrew", "he", "heb"},
+            {@"herero", "hz", "her"},
+            {@"hindi", "hi", "hin"},
+            {@"hiri motu", "ho", "hmo"},
+            {@"hungarian", "hu", "hun"},
+            {@"interlingua", "ia", "ina"},
+            {@"indonesian", "id", "ind"},
+            {@"interlingue", "ie", "ile"},
+            {@"irish", "ga", "gle"},
+            {@"igbo", "ig", "ibo"},
+            {@"sichuan yi", "ii", "iii"},
+            {@"inupiaq", "ik", "ipk"},
+            {@"ido", "io", "ido"},
+            {@"icelandic", "is", "isl"},
+            {@"icelandic", "is", "ice"},
+            {@"italian", "it", "ita"},
+            {@"inuktitut", "iu", "iku"},
+            {@"japanese", "ja", "jpn"},
+            {@"javanese", "jv", "jav"},
+            {@"georgian", "ka", "kat"},
+            {@"kongo", "kg", "kon"},
+            {@"kikuyu", "ki", "kik"},
+            {@"kuanyama", "kj", "kua"},
+            {@"kazakh", "kk", "kaz"},
+            {@"kalaallisut", "kl", "kal"},
+            {@"kentral khmer", "km", "khm"},
+            {@"kannada", "kn", "kan"},
+            {@"korean", "ko", "kor"},
+            {@"kanuri", "kr", "kau"},
+            {@"kashmiri", "ks", "kas"},
+            {@"kurdish", "ku", "kur"},
+            {@"komi", "kv", "kom"},
+            {@"kirghiz", "ky", "kir"},
+            {@"latin", "la", "lat"},
+            {@"luxembourgish", "lb", "ltz"},
+            {@"ganda", "lg", "lug"},
+            {@"limburgan", "li", "lim"},
+            {@"lingala", "ln", "lin"},
+            {@"lao", "lo", "lao"},
+            {@"lithuanian", "lt", "lit"},
+            {@"luba-katanga", "lu", "lub"},
+            {@"latvian", "lv", "lav"},
+            {@"malagasy", "mg", "mlg"},
+            {@"marshallese", "mh", "mah"},
+            {@"manx", "gv", "glv"},
+            {@"maori", "mi", "mri"},
+            {@"macedonian", "mk", "mkd"},
+            {@"malayalam", "ml", "mal"},
+            {@"mongolian", "mn", "mon"},
+            {@"marathi", "mr", "mar"},
+            {@"malay", "ms", "msa"},
+            {@"maltese", "mt", "mlt"},
+            {@"nauru", "na", "nau"},
+            {@"Norsk bokmål", "nb", "nob"},
+            {@"north ndebele", "nd", "nde"},
+            {@"nepali", "ne", "nep"},
+            {@"ndonga", "ng", "ndo"},
+            {@"dutch", "nl", "nld"},
+            {@"norwegian nynorsk", "nn", "nno"},
+            {@"norwegian", "no", "nor"},
+            {@"south ndebele", "nr", "nbl"},
+            {@"navajo", "nv", "nav"},
+            {@"occitan", "oc", "oci"},
+            {@"ojibwa", "oj", "oji"},
+            {@"church slavic", "cu", "chu"},
+            {@"oromo", "om", "orm"},
+            {@"oriya", "or", "ori"},
+            {@"ossetian", "os", "oss"},
+            {@"panjabi", "pa", "pan"},
+            {@"pali", "pi", "pli"},
+            {@"persian", "fa", "fas"},
+            {@"polish", "pl", "pol"},
+            {@"pushto", "ps", "pus"},
+            {@"portuguese", "pt", "por"},
+            {@"quechua", "qu", "que"},
+            {@"romansh", "rm", "roh"},
+            {@"rundi", "rn", "run"},
+            {@"romanian", "ro", "ron"},
+            {@"russian", "ru", "rus"},
+            {@"kinyarwanda", "rw", "kin"},
+            {@"sanskrit", "sa", "san"},
+            {@"sardu", "sc", "srd"},
+            {@"sardinian", "sd", "snd"},
+            {@"northern sami", "se", "sme"},
+            {@"samoan", "sm", "smo"},
+            {@"sango", "sg", "sag"},
+            {@"serbian", "sr", "srp"},
+            {@"scottish gaelic", "gd", "gla"},
+            {@"shona", "sn", "sna"},
+            {@"sinhala", "si", "sin"},
+            {@"slovak", "sk", "slk"},
+            {@"slovenian", "sl", "slv"},
+            {@"somali", "so", "som"},
+            {@"southern sotho", "st", "sot"},
+            {@"spanish", "es", "spa"},
+            {@"sundanese", "su", "sun"},
+            {@"swahili", "sw", "swa"},
+            {@"swati", "ss", "ssw"},
+            {@"swedish", "sv", "swe"},
+            {@"tamil", "ta", "tam"},
+            {@"telugu", "te", "tel"},
+            {@"tajik‎", "tg", "tgk"},
+            {@"thai", "th", "tha"},
+            {@"tigrinya", "ti", "tir"},
+            {@"tibetan", "bo", "bod"},
+            {@"turkmen", "tk", "tuk"},
+            {@"tagalog", "tl", "tgl"},
+            {@"tswana", "tn", "tsn"},
+            {@"tonga", "to", "ton"},
+            {@"turkish", "tr", "tur"},
+            {@"tsonga", "ts", "tso"},
+            {@"tatar‎", "tt", "tat"},
+            {@"twi", "tw", "twi"},
+            {@"tahitian", "ty", "tah"},
+            {@"uighur‎", "ug", "uig"},
+            {@"ukrainian", "uk", "ukr"},
+            {@"urdu", "ur", "urd"},
+            {@"uzbek", "uz", "uzb"},
+            {@"venda", "ve", "ven"},
+            {@"vietnamese", "vi", "vie"},
+            {@"volapük", "vo", "vol"},
+            {@"walloon", "wa", "wln"},
+            {@"welsh", "cy", "cym"},
+            {@"wolof", "wo", "wol"},
+            {@"western Frisian", "fy", "fry"},
+            {@"xhosa", "xh", "xho"},
+            {@"yiddish", "yi", "yid"},
+            {@"yoruba", "yo", "yor"},
+            {@"zhuang", "za", "zha"},
+            {@"zulu", "zu", "zul"}
         };
-
     }
 }

@@ -3,7 +3,6 @@ using System.IO;
 using System.ServiceModel.Web;
 using System.Text;
 using System.Xml.Serialization;
-using JMMContracts;
 using JMMContracts.PlexAndKodi;
 
 namespace JMMServer.PlexAndKodi.Plex
@@ -12,7 +11,8 @@ namespace JMMServer.PlexAndKodi.Plex
     {
         public const string MediaTagVersion = "1461344894";
 
-        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title, bool allowsync = true, bool nocache = true, BreadCrumbs info = null)
+        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title, bool allowsync = true,
+            bool nocache = true, BreadCrumbs info = null)
         {
             MediaContainer m = new MediaContainer();
             m.AllowSync = allowsync ? "1" : "0";
@@ -53,12 +53,12 @@ namespace JMMServer.PlexAndKodi.Plex
         }
 
 
-
         public string ServiceAddress => MainWindow.PathAddressPlex;
         public int ServicePort => int.Parse(ServerSettings.JMMServerPort);
         public bool UseBreadCrumbs => true;
         public bool AddExtraItemForSearchButtonInGroupFilters => true;
         public bool ConstructFakeIosParent => true;
+
         public string Proxyfy(string url)
         {
             return "/video/jmm/proxy/" + ToHex(url);
@@ -67,20 +67,22 @@ namespace JMMServer.PlexAndKodi.Plex
         private static string ToHex(string ka)
         {
             byte[] ba = Encoding.UTF8.GetBytes(ka);
-            StringBuilder hex = new StringBuilder(ba.Length * 2);
+            StringBuilder hex = new StringBuilder(ba.Length*2);
             foreach (byte b in ba)
                 hex.AppendFormat("{0:x2}", b);
             return hex.ToString();
         }
+
         private static string FromHex(string hex)
         {
-            byte[] raw = new byte[hex.Length / 2];
+            byte[] raw = new byte[hex.Length/2];
             for (int i = 0; i < raw.Length; i++)
             {
-                raw[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+                raw[i] = Convert.ToByte(hex.Substring(i*2, 2), 16);
             }
             return Encoding.UTF8.GetString(raw);
         }
+
         public System.IO.Stream GetStreamFromXmlObject<T>(T obj)
         {
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(T));
@@ -95,8 +97,6 @@ namespace JMMServer.PlexAndKodi.Plex
             }
             xmlSerializer.Serialize(textWriter, obj, ns);
             return new MemoryStream(Encoding.UTF8.GetBytes(textWriter.ToString()));
-
         }
-
     }
 }

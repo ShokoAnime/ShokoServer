@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using JMMServer.Entities;
-
-namespace JMMServer.Providers.Azure
+﻿namespace JMMServer.Providers.Azure
 {
     public class CrossRef_AniDB_OtherInput
     {
@@ -16,20 +9,19 @@ namespace JMMServer.Providers.Azure
         public string Username { get; set; }
 
         public CrossRef_AniDB_OtherInput()
-		{
-		}
+        {
+        }
 
         public CrossRef_AniDB_OtherInput(JMMServer.Entities.CrossRef_AniDB_Other xref)
-		{
-			this.AnimeID = xref.AnimeID;
+        {
+            this.AnimeID = xref.AnimeID;
             this.CrossRefID = xref.CrossRefID;
             this.CrossRefSource = xref.CrossRefSource;
             this.CrossRefType = xref.CrossRefType;
 
-			this.Username = ServerSettings.AniDB_Username;
-			if (ServerSettings.WebCache_Anonymous)
-				this.Username = Constants.AnonWebCacheUsername;
-
-		}
+            this.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                this.Username = Constants.AnonWebCacheUsername;
+        }
     }
 }

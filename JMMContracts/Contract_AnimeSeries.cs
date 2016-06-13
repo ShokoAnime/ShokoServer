@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using JMMContracts;
 
 namespace JMMContracts
 {
@@ -29,13 +28,12 @@ namespace JMMContracts
         public int MissingEpisodeCount { get; set; }
         public int MissingEpisodeCountGroups { get; set; }
 
-        public Contract_AniDBAnime AniDBAnime { get; set; }
+        public Contract_AniDB_AnimeDetailed AniDBAnime { get; set; }
         public List<Contract_CrossRef_AniDB_TvDBV2> CrossRefAniDBTvDBV2 { get; set; }
         public Contract_CrossRef_AniDB_Other CrossRefAniDBMovieDB { get; set; }
         public List<Contract_CrossRef_AniDB_MAL> CrossRefAniDBMAL { get; set; }
         public List<Contract_TvDB_Series> TvDB_Series { get; set; }
         public Contract_MovieDB_Movie MovieDB_Movie { get; set; }
         public Contract_AnimeGroup TopLevelGroup { get; set; }
-
     }
 }

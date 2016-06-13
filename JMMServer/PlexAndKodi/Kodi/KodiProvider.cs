@@ -2,7 +2,6 @@
 using System.ServiceModel.Web;
 using System.Text;
 using System.Xml.Serialization;
-using JMMContracts;
 using JMMContracts.PlexAndKodi;
 
 namespace JMMServer.PlexAndKodi.Kodi
@@ -23,9 +22,9 @@ namespace JMMServer.PlexAndKodi.Kodi
         }
 
 
-        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title=null, bool allowsync = true, bool nocache = true, BreadCrumbs info = null)
-        { 
-
+        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title = null, bool allowsync = true,
+            bool nocache = true, BreadCrumbs info = null)
+        {
             MediaContainer m = new MediaContainer();
             m.Title1 = m.Title2 = title;
             m.AllowSync = allowsync ? "1" : "0";
@@ -36,7 +35,6 @@ namespace JMMServer.PlexAndKodi.Kodi
             m.Identifier = "plugin.video.nakamori";
             return m;
         }
-
 
 
         public System.IO.Stream GetStreamFromXmlObject<T>(T obj)
@@ -53,8 +51,6 @@ namespace JMMServer.PlexAndKodi.Kodi
             }
             xmlSerializer.Serialize(textWriter, obj, ns);
             return new MemoryStream(Encoding.UTF8.GetBytes(textWriter.ToString()));
-
         }
-
     }
 }

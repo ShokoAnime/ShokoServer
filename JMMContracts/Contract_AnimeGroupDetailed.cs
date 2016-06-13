@@ -1,6 +1,6 @@
 ﻿namespace JMMContracts
 {
-	public class Contract_AnimeGroupDetailed
-	{
-	}
+    public class Contract_AnimeGroupDetailed
+    {
+    }
 }

@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using System.Windows.Forms;
+using System.Xml.Linq;
 using UPNPLib;
 
 namespace JMMServer
@@ -24,12 +22,12 @@ namespace JMMServer
         public static XDocument Browser(UPnPService service, string objectId)
         {
             object output = new object();
-            object[] input = new object[6] { objectId, "BrowseDirectChildren", "", 0, 0, "0", };
+            object[] input = new object[6] {objectId, "BrowseDirectChildren", "", 0, 0, "0",};
             object response;
             Array o;
 
             response = service.InvokeAction("Browse", input, ref output);
-            o = (Array)output;
+            o = (Array) output;
             XDocument content = XDocument.Parse(o.GetValue(0).ToString());
 
             return content;
@@ -49,7 +47,7 @@ namespace JMMServer
             var ar = a.Attributes(attrib).GetEnumerator();
             while (ar.MoveNext())
             {
-                ids.Add((ar.Current.Value));
+                ids.Add(ar.Current.Value);
             }
             return ids.ToArray();
         }
@@ -77,12 +75,12 @@ namespace JMMServer
         /// <param name="parent"></param>
         public static void buildTreeView(object[,] o, TreeNode parent)
         {
-            for (int i = 0; i < o.Length / 3; i++)
+            for (int i = 0; i < o.Length/3; i++)
             {
                 TreeNode child = addToTree(parent, o[1, i], o[2, i]);
                 if (o[0, i] is object[,])
                 {
-                    buildTreeView((object[,])o[0, i], child);
+                    buildTreeView((object[,]) o[0, i], child);
                 }
             }
         }
@@ -95,7 +93,6 @@ namespace JMMServer
         /// <returns></returns>
         public static object[,] buildStructure(UPnPService s, XDocument XML)
         {
-
             string containerTag = "{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}container";
             string itemTag = "{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item";
             string resTag = "{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res";

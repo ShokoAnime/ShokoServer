@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace JMMServer
 {
@@ -323,13 +320,13 @@ namespace JMMServer
         CompletedSeries = 1,
         MissingEpisodes = 2,
         HasUnwatchedEpisodes = 3,
-        AllEpisodesWatched = 4,
+        // AllEpisodesWatched = 4,
         UserVoted = 5,
-        Category = 6,
+        Tag = 6,
         AirDate = 7,
-        Studio = 8,
+        //Studio = 8,
         AssignedTvDBInfo = 9,
-        ReleaseGroup = 11,
+        //ReleaseGroup = 11,
         AnimeType = 12,
         VideoQuality = 13,
         Favourite = 14,
@@ -351,8 +348,8 @@ namespace JMMServer
         EpisodeCount = 30,
         CustomTags = 31,
         LatestEpisodeAirDate = 32,
-        Tag=33,
-        Year=34
+
+        Year = 34
     }
 
     public enum GroupFilterOperator

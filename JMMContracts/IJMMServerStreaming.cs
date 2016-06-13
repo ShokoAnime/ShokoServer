@@ -2,10 +2,10 @@
 
 namespace JMMContracts
 {
-	[ServiceContract]
-	public interface IJMMServerStreaming
-	{
-		[OperationContract]
-		System.IO.Stream Download(string fileName);
-	}
+    [ServiceContract]
+    public interface IJMMServerStreaming
+    {
+        [OperationContract]
+        System.IO.Stream Download(string fileName);
+    }
 }

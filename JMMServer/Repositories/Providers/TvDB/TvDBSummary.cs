@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using JMMServer.Entities;
-using NLog;
 using JMMServer.Repositories;
+using NLog;
 
 namespace JMMServer.Providers.TvDB
 {
@@ -19,6 +17,7 @@ namespace JMMServer.Providers.TvDB
 
         // All the TvDB cross refs for this anime
         private List<CrossRef_AniDB_TvDBV2> crossRefTvDBV2 = null;
+
         public List<CrossRef_AniDB_TvDBV2> CrossRefTvDBV2
         {
             get
@@ -37,7 +36,6 @@ namespace JMMServer.Providers.TvDB
             {
                 CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
                 crossRefTvDBV2 = repCrossRef.GetByAnimeID(AnimeID);
-              
             }
             catch (Exception ex)
             {
@@ -47,6 +45,7 @@ namespace JMMServer.Providers.TvDB
 
         // All the episode overrides for this anime
         private List<CrossRef_AniDB_TvDB_Episode> crossRefTvDBEpisodes = null;
+
         public List<CrossRef_AniDB_TvDB_Episode> CrossRefTvDBEpisodes
         {
             get
@@ -60,6 +59,7 @@ namespace JMMServer.Providers.TvDB
         }
 
         private Dictionary<int, int> dictTvDBCrossRefEpisodes = null;
+
         public Dictionary<int, int> DictTvDBCrossRefEpisodes
         {
             get
@@ -76,6 +76,7 @@ namespace JMMServer.Providers.TvDB
 
         // All the episodes regardless of which cross ref they come from 
         private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
+
         public Dictionary<int, TvDB_Episode> DictTvDBEpisodes
         {
             get
@@ -97,7 +98,6 @@ namespace JMMServer.Providers.TvDB
                 {
                     if (det != null)
                     {
-
                         // create a dictionary of absolute episode numbers for tvdb episodes
                         // sort by season and episode number
                         // ignore season 0, which is used for specials
@@ -108,7 +108,6 @@ namespace JMMServer.Providers.TvDB
                         {
                             dictTvDBEpisodes[i] = ep;
                             i++;
-
                         }
                     }
                 }
@@ -159,6 +158,5 @@ namespace JMMServer.Providers.TvDB
                 TvDetails[xref.TvDBID] = det;
             }
         }
-
     }
 }

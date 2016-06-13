@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using BinaryNorthwest;
 using JMMServer.Entities;
 using JMMServer.Repositories;
-using BinaryNorthwest;
 using NLog;
 
 namespace JMMServer.Providers.TvDB
@@ -23,6 +21,7 @@ namespace JMMServer.Providers.TvDB
         }
 
         private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
+
         public Dictionary<int, TvDB_Episode> DictTvDBEpisodes
         {
             get
@@ -47,7 +46,6 @@ namespace JMMServer.Providers.TvDB
                             {
                                 dictTvDBEpisodes[i] = ep;
                                 i++;
-
                             }
                             TimeSpan ts = DateTime.Now - start;
                         }
@@ -62,6 +60,7 @@ namespace JMMServer.Providers.TvDB
         }
 
         private Dictionary<int, int> dictTvDBSeasons = null;
+
         public Dictionary<int, int> DictTvDBSeasons
         {
             get
@@ -87,7 +86,6 @@ namespace JMMServer.Providers.TvDB
 
                                 lastSeason = ep.SeasonNumber;
                                 i++;
-
                             }
                             TimeSpan ts = DateTime.Now - start;
                             //logger.Trace("Got TvDB Seasons in {0} ms", ts.TotalMilliseconds);
@@ -103,6 +101,7 @@ namespace JMMServer.Providers.TvDB
         }
 
         private Dictionary<int, int> dictTvDBSeasonsSpecials = null;
+
         public Dictionary<int, int> DictTvDBSeasonsSpecials
         {
             get
@@ -134,7 +133,6 @@ namespace JMMServer.Providers.TvDB
 
                                 lastSeason = thisSeason;
                                 i++;
-
                             }
                             TimeSpan ts = DateTime.Now - start;
                             //logger.Trace("Got TvDB Seasons in {0} ms", ts.TotalMilliseconds);
@@ -171,6 +169,7 @@ namespace JMMServer.Providers.TvDB
         }
 
         private List<TvDB_Episode> tvDBEpisodes = null;
+
         public List<TvDB_Episode> TvDBEpisodes
         {
             get

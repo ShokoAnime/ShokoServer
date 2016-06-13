@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using JMMServer.Entities;
 using NLog;
 
 namespace JMMServer
 {
-    public class TimeUpdater<T,U>
+    public class TimeUpdater<T, U>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -22,18 +20,18 @@ namespace JMMServer
         private Dictionary<T, DateJoinU> updates = new Dictionary<T, DateJoinU>();
         private string name;
         private Action<T, U> action;
-        private Func<U, U, U> updaction; 
+        private Func<U, U, U> updaction;
         private int timeout;
         private object stateLock = new object();
         private Timer timer;
 
-        public TimeUpdater(int seconds, string name, Action<T, U> exec_routine, Func<U,U,U> update_routine=null)
+        public TimeUpdater(int seconds, string name, Action<T, U> exec_routine, Func<U, U, U> update_routine = null)
         {
             this.name = name;
             action = exec_routine;
             updaction = update_routine;
             timeout = seconds;
-            timer = new Timer(UpdateStateWorker, null, seconds * 1000, seconds * 1000);
+            timer = new Timer(UpdateStateWorker, null, seconds*1000, seconds*1000);
         }
 
         public void Update(T t, U u)
@@ -53,15 +51,16 @@ namespace JMMServer
                 updates[t].TimeStamp = DateTime.Now.AddSeconds(timeout);
             }
         }
+
         private void UpdateStateWorker(object o)
         {
             DateTime dt = DateTime.Now;
             List<DateJoinU> par_updates = new List<DateJoinU>();
             lock (stateLock)
-            {   
+            {
                 par_updates = updates.Values.Where(a => a.TimeStamp < dt).ToList();
             }
-            logger.Trace("TimeUpdater "+name+" State Worker Count: {0} ", par_updates.Count);
+            logger.Trace("TimeUpdater " + name + " State Worker Count: {0} ", par_updates.Count);
             if (par_updates.Count > 0)
             {
                 Dictionary<T, DateJoinU> procdic = new Dictionary<T, DateJoinU>();
@@ -88,6 +87,5 @@ namespace JMMServer
                 });
             }
         }
-
     }
 }

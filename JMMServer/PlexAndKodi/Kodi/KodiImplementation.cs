@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 using JMMContracts;
-using Stream = System.IO.Stream;
 
 namespace JMMServer.PlexAndKodi.Kodi
 {

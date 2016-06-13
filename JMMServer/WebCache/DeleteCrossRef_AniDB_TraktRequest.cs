@@ -1,46 +1,44 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Xml.Serialization;
-using JMMServer.Entities;
 using AniDBAPI;
 
 namespace JMMServer.WebCache
 {
-	[Serializable]
-	[XmlRoot("DeleteCrossRef_AniDB_TraktRequest")]
-	public class DeleteCrossRef_AniDB_TraktRequest : XMLBase
-	{
-		protected string username = "";
-		public string Username
-		{
-			get { return username; }
-			set { username = value; }
-		}
+    [Serializable]
+    [XmlRoot("DeleteCrossRef_AniDB_TraktRequest")]
+    public class DeleteCrossRef_AniDB_TraktRequest : XMLBase
+    {
+        protected string username = "";
 
-		protected int animeID = 0;
-		public int AnimeID
-		{
-			get { return animeID; }
-			set { animeID = value; }
-		}
+        public string Username
+        {
+            get { return username; }
+            set { username = value; }
+        }
 
-		// default constructor
-		public DeleteCrossRef_AniDB_TraktRequest()
-		{
-		}
+        protected int animeID = 0;
 
-		// default constructor
-		public DeleteCrossRef_AniDB_TraktRequest(int animeID)
-		{
-			this.AnimeID = animeID;
+        public int AnimeID
+        {
+            get { return animeID; }
+            set { animeID = value; }
+        }
 
-			string username = ServerSettings.AniDB_Username;
-			if (ServerSettings.WebCache_Anonymous)
-				username = Constants.AnonWebCacheUsername;
+        // default constructor
+        public DeleteCrossRef_AniDB_TraktRequest()
+        {
+        }
 
-			this.Username = username;
-		}
-	}
+        // default constructor
+        public DeleteCrossRef_AniDB_TraktRequest(int animeID)
+        {
+            this.AnimeID = animeID;
+
+            string username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                username = Constants.AnonWebCacheUsername;
+
+            this.Username = username;
+        }
+    }
 }

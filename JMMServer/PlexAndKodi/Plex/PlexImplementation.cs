@@ -1,13 +1,13 @@
-﻿using JMMContracts;
-using Stream = System.IO.Stream;
+﻿using System.IO;
+using JMMContracts;
 
 namespace JMMServer.PlexAndKodi.Plex
 {
     public class PlexImplementation : IJMMServerPlex
     {
-        IProvider _prov=new PlexProvider();
-        CommonImplementation _impl=new CommonImplementation();
-        
+        IProvider _prov = new PlexProvider();
+        CommonImplementation _impl = new CommonImplementation();
+
         public Stream GetFilters(string userid)
         {
             return _impl.GetFilters(_prov, userid);

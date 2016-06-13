@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using FluentNHibernate.Mapping;
+﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
 
 namespace JMMServer.Mappings
 {
-	public class LanguageMap : ClassMap<Language>
-	{
-		public LanguageMap()
+    public class LanguageMap : ClassMap<Language>
+    {
+        public LanguageMap()
         {
-			Not.LazyLoad();
+            Not.LazyLoad();
             Id(x => x.LanguageID);
 
-			Map(x => x.LanguageName).Not.Nullable();
+            Map(x => x.LanguageName).Not.Nullable();
         }
-	}
+    }
 }

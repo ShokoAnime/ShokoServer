@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using JMMContracts;
 
 namespace JMMServer.Providers.Azure
@@ -19,20 +15,12 @@ namespace JMMServer.Providers.Azure
 
         public DateTime MessageDateAsDate
         {
-            get
-            {
-
-                return TimeZone.CurrentTimeZone.ToLocalTime(Utils.GetAniDBDateAsDate((int)MessageDate).Value);
-            }
+            get { return TimeZone.CurrentTimeZone.ToLocalTime(Utils.GetAniDBDateAsDate((int) MessageDate).Value); }
         }
 
         public bool HasMessageURL
         {
-            get
-            {
-
-                return !string.IsNullOrEmpty(MessageURL);
-            }
+            get { return !string.IsNullOrEmpty(MessageURL); }
         }
 
         public override string ToString()
@@ -49,7 +37,7 @@ namespace JMMServer.Providers.Azure
             contract.MessageType = MessageType;
             contract.Message = Message;
             contract.MessageURL = MessageURL;
-            
+
 
             return contract;
         }

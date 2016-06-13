@@ -1,16 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.ServiceModel.Channels;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 
 namespace JMMServer.WCFCompression
 {
     public sealed class CompressedMessageEncodingBindingElement : MessageEncodingBindingElement //BindingElement
     {
-
         //We will use an inner binding element to store information required for the inner encoder
         MessageEncodingBindingElement innerBindingElement;
 
@@ -82,5 +77,4 @@ namespace JMMServer.WCFCompression
             return context.CanBuildInnerChannelListener<TChannel>();
         }
     }
-
 }

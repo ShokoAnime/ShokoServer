@@ -2,14 +2,12 @@
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
-using JMMContracts;
 using JMMContracts.PlexAndKodi;
 
 namespace JMMServer.PlexAndKodi
 {
-    public class BreadCrumbs 
+    public class BreadCrumbs
     {
-
         public string Key { get; set; }
         public string ParentKey { get; set; }
         public string GrandParentKey { get; set; }
@@ -25,11 +23,12 @@ namespace JMMServer.PlexAndKodi
         public string Index { get; set; }
         public string ParentIndex { get; set; }
 
-        private static Dictionary<string, BreadCrumbs> Cache=new Dictionary<string, BreadCrumbs>(); //TODO CACHE EVICTION?
-        
-        public BreadCrumbs Update(Video v, bool noart=false)
+        private static Dictionary<string, BreadCrumbs> Cache = new Dictionary<string, BreadCrumbs>();
+        //TODO CACHE EVICTION?
+
+        public BreadCrumbs Update(Video v, bool noart = false)
         {
-            BreadCrumbs cache = (BreadCrumbs)this.DeepCopy();
+            BreadCrumbs cache = (BreadCrumbs) this.DeepCopy();
             cache.GrandParentKey = cache.ParentKey;
             cache.GrandParentTitle = cache.ParentTitle ?? "";
             cache.ParentKey = cache.Key;
@@ -61,7 +60,7 @@ namespace JMMServer.PlexAndKodi
         {
             if (Key != null)
             {
-                if ((addkey) && (Key.Contains("/GetMetadata/")))
+                if (addkey && Key.Contains("/GetMetadata/"))
                     m.Key = prov.Proxyfy(Key + "/" + ToKey());
                 else
                     m.Key = prov.Proxyfy(Key);
@@ -83,7 +82,7 @@ namespace JMMServer.PlexAndKodi
 
         private string GenMd5()
         {
-            StringBuilder bld=new StringBuilder();
+            StringBuilder bld = new StringBuilder();
             bld.AppendLine(ParentKey);
             bld.AppendLine(GrandParentKey);
             bld.AppendLine(Title);
@@ -99,16 +98,18 @@ namespace JMMServer.PlexAndKodi
             bld.AppendLine(ParentIndex);
             using (MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider())
             {
-                return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(bld.ToString()))).Replace("-", string.Empty);
+                return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(bld.ToString())))
+                    .Replace("-", string.Empty);
             }
         }
+
         public string ToKey()
         {
             string md5 = GenMd5();
             if (Cache.ContainsKey(md5))
                 return md5;
-            BreadCrumbs cache = (BreadCrumbs)this.DeepCopy();
-            Cache.Add(md5,cache);
+            BreadCrumbs cache = (BreadCrumbs) this.DeepCopy();
+            Cache.Add(md5, cache);
             return md5;
         }
 
@@ -116,12 +117,11 @@ namespace JMMServer.PlexAndKodi
         {
             if (Cache.ContainsKey(key))
             {
-                BreadCrumbs n= (BreadCrumbs)Cache[key].DeepCopy();
+                BreadCrumbs n = (BreadCrumbs) Cache[key].DeepCopy();
                 n.UpdateKey(key);
                 return n;
             }
             return new BreadCrumbs();
         }
-
     }
 }

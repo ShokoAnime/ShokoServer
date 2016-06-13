@@ -1,19 +1,6 @@
-﻿using NLog;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using System.Xml.Serialization;
+using NLog;
 
 namespace JMMServer.UI
 {
@@ -36,9 +23,9 @@ namespace JMMServer.UI
             try
             {
                 // get the latest version as according to the release
-                Providers.JMMAutoUpdates.JMMVersions verInfo = Providers.JMMAutoUpdates.JMMAutoUpdatesHelper.GetLatestVersionInfo();
+                Providers.JMMAutoUpdates.JMMVersions verInfo =
+                    Providers.JMMAutoUpdates.JMMAutoUpdatesHelper.GetLatestVersionInfo();
                 if (verInfo == null) return;
-
             }
             catch (Exception ex)
             {
