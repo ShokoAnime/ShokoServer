@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using JMMServer.Entities;
-using NLog;
 using JMMServer.Repositories;
+using NLog;
 
 namespace JMMServer.Providers.TraktTV
 {
@@ -19,6 +17,7 @@ namespace JMMServer.Providers.TraktTV
 
         // All the Trakt cross refs for this anime
         private List<CrossRef_AniDB_TraktV2> crossRefTraktV2 = null;
+
         public List<CrossRef_AniDB_TraktV2> CrossRefTraktV2
         {
             get
@@ -37,7 +36,6 @@ namespace JMMServer.Providers.TraktTV
             {
                 CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
                 crossRefTraktV2 = repCrossRef.GetByAnimeID(AnimeID);
-
             }
             catch (Exception ex)
             {
@@ -47,6 +45,7 @@ namespace JMMServer.Providers.TraktTV
 
         // All the episodes regardless of which cross ref they come from 
         private Dictionary<int, Trakt_Episode> dictTraktEpisodes = null;
+
         public Dictionary<int, Trakt_Episode> DictTraktEpisodes
         {
             get
@@ -68,7 +67,6 @@ namespace JMMServer.Providers.TraktTV
                 {
                     if (det != null)
                     {
-
                         // create a dictionary of absolute episode numbers for Trakt episodes
                         // sort by season and episode number
                         // ignore season 0, which is used for specials
@@ -96,7 +94,6 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
-     
 
         public void Populate(int animeID)
         {

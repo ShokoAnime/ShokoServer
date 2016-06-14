@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using JMMServer.Entities;
+﻿using JMMServer.Entities;
 
 namespace JMMServer.Providers
 {
@@ -18,21 +13,21 @@ namespace JMMServer.Providers
         public int StartEpisodeNumber { get; set; }
 
         public CrossRef_AniDB_MALInput()
-		{
-		}
+        {
+        }
 
         public CrossRef_AniDB_MALInput(CrossRef_AniDB_MAL xref)
-		{
-			this.AnimeID = xref.AnimeID;
+        {
+            this.AnimeID = xref.AnimeID;
             this.MALID = xref.MALID;
             this.CrossRefSource = xref.CrossRefSource;
             this.MALTitle = xref.MALTitle;
             this.StartEpisodeType = xref.StartEpisodeType;
             this.StartEpisodeNumber = xref.StartEpisodeNumber;
 
-			this.Username = ServerSettings.AniDB_Username;
-			if (ServerSettings.WebCache_Anonymous)
-				this.Username = Constants.AnonWebCacheUsername;
-		}
+            this.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                this.Username = Constants.AnonWebCacheUsername;
+        }
     }
 }

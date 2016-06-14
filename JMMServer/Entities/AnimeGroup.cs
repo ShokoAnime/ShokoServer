@@ -1,20 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using NLog;
-using JMMServer.Repositories;
-using JMMContracts;
-using System.Xml.Serialization;
-using BinaryNorthwest;
 using System.IO;
+using BinaryNorthwest;
+using JMMContracts;
+using JMMServer.Repositories;
 using NHibernate;
+using NLog;
 
 namespace JMMServer.Entities
 {
     public class AnimeGroup
     {
         #region DB Columns
+
         public int AnimeGroupID { get; private set; }
         public int? AnimeGroupParentID { get; set; }
         public string GroupName { get; set; }
@@ -29,6 +27,7 @@ namespace JMMServer.Entities
         public int MissingEpisodeCountGroups { get; set; }
         public int OverrideDescription { get; set; }
         public int? DefaultAnimeSeriesID { get; set; }
+
         #endregion
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -120,7 +119,6 @@ namespace JMMServer.Entities
             List<AniDB_Anime_Relation> relations = anime.GetRelatedAnime(session);
             foreach (AniDB_Anime_Relation rel in relations)
             {
-
                 string relationtype = rel.RelationType.ToLower();
                 if ((relationtype == "same setting") || (relationtype == "alternative setting") ||
                     (relationtype == "character") || (relationtype == "other"))
@@ -178,26 +176,17 @@ namespace JMMServer.Entities
 
         public bool HasMissingEpisodesAny
         {
-            get
-            {
-                return (MissingEpisodeCount > 0 || MissingEpisodeCountGroups > 0);
-            }
+            get { return MissingEpisodeCount > 0 || MissingEpisodeCountGroups > 0; }
         }
 
         public bool HasMissingEpisodesGroups
         {
-            get
-            {
-                return MissingEpisodeCountGroups > 0;
-            }
+            get { return MissingEpisodeCountGroups > 0; }
         }
 
         public bool HasMissingEpisodes
         {
-            get
-            {
-                return MissingEpisodeCountGroups > 0;
-            }
+            get { return MissingEpisodeCountGroups > 0; }
         }
 
         public List<string> AnimeTypesList
@@ -247,7 +236,6 @@ namespace JMMServer.Entities
                 {
                     AniDB_Anime anime = serie.GetAnime();
                     if (anime != null) relAnime.Add(anime);
-
                 }
                 return relAnime;
             }
@@ -304,7 +292,8 @@ namespace JMMServer.Entities
             else contract.Stat_AllVideoQuality = "";
 
             if (StatsCache.Instance.StatGroupVideoQualityEpisodes.ContainsKey(this.AnimeGroupID))
-                contract.Stat_AllVideoQuality_Episodes = StatsCache.Instance.StatGroupVideoQualityEpisodes[this.AnimeGroupID];
+                contract.Stat_AllVideoQuality_Episodes =
+                    StatsCache.Instance.StatGroupVideoQualityEpisodes[this.AnimeGroupID];
             else contract.Stat_AllVideoQuality_Episodes = "";
 
             if (StatsCache.Instance.StatGroupIsComplete.ContainsKey(this.AnimeGroupID))
@@ -404,15 +393,14 @@ namespace JMMServer.Entities
 
                     foreach (AniDB_Anime anime in Anime)
                     {
-                        totalRating += (decimal)anime.AniDBTotalRating;
+                        totalRating += (decimal) anime.AniDBTotalRating;
                         totalVotes += anime.AniDBTotalVotes;
                     }
 
                     if (totalVotes == 0)
                         return 0;
                     else
-                        return totalRating / (decimal)totalVotes;
-
+                        return totalRating/(decimal) totalVotes;
                 }
                 catch (Exception ex)
                 {
@@ -690,16 +678,14 @@ namespace JMMServer.Entities
                     if (vote != null)
                     {
                         countVotes++;
-                        totalVotes += (decimal)vote.VoteValue;
+                        totalVotes += (decimal) vote.VoteValue;
                     }
                 }
 
                 if (countVotes == 0)
                     return null;
                 else
-                    return totalVotes / (decimal)countVotes / (decimal)100;
-
-
+                    return totalVotes/(decimal) countVotes/(decimal) 100;
             }
         }
 
@@ -712,18 +698,17 @@ namespace JMMServer.Entities
                 foreach (AnimeSeries ser in GetAllSeries())
                 {
                     AniDB_Vote vote = ser.GetAnime().UserVote;
-                    if (vote != null && vote.VoteType == (int)AniDBVoteType.Anime)
+                    if (vote != null && vote.VoteType == (int) AniDBVoteType.Anime)
                     {
                         countVotes++;
-                        totalVotes += (decimal)vote.VoteValue;
+                        totalVotes += (decimal) vote.VoteValue;
                     }
                 }
 
                 if (countVotes == 0)
                     return null;
                 else
-                    return totalVotes / (decimal)countVotes / (decimal)100;
-
+                    return totalVotes/(decimal) countVotes/(decimal) 100;
             }
         }
 
@@ -736,18 +721,17 @@ namespace JMMServer.Entities
                 foreach (AnimeSeries ser in GetAllSeries())
                 {
                     AniDB_Vote vote = ser.GetAnime().UserVote;
-                    if (vote != null && vote.VoteType == (int)AniDBVoteType.AnimeTemp)
+                    if (vote != null && vote.VoteType == (int) AniDBVoteType.AnimeTemp)
                     {
                         countVotes++;
-                        totalVotes += (decimal)vote.VoteValue;
+                        totalVotes += (decimal) vote.VoteValue;
                     }
                 }
 
                 if (countVotes == 0)
                     return null;
                 else
-                    return totalVotes / (decimal)countVotes / (decimal)100;
-
+                    return totalVotes/(decimal) countVotes/(decimal) 100;
             }
         }
 
@@ -860,7 +844,6 @@ namespace JMMServer.Entities
                 AnimeGroupRepository repGrp = new AnimeGroupRepository();
                 repGrp.Save(this);
             }
-
         }
 
         public static void GetAnimeGroupsRecursive(ISession session, int animeGroupID, ref List<AnimeGroup> groupList)
@@ -909,6 +892,5 @@ namespace JMMServer.Entities
                 return parentGroup;
             }
         }
-
     }
 }

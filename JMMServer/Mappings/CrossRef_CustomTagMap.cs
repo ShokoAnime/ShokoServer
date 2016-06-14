@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using FluentNHibernate.Mapping;
+﻿using FluentNHibernate.Mapping;
 using JMMServer.Entities;
 
 namespace JMMServer.Mappings
@@ -11,7 +7,7 @@ namespace JMMServer.Mappings
     {
         public CrossRef_CustomTagMap()
         {
-			Not.LazyLoad();
+            Not.LazyLoad();
             Id(x => x.CrossRef_CustomTagID);
 
             Map(x => x.CustomTagID).Not.Nullable();

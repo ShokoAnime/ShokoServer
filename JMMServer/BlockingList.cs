@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 
 namespace JMMServer
@@ -77,7 +76,7 @@ namespace JMMServer
                     try
                     {
                         if (!Monitor.Wait(_syncRoot, millisecondsTimeout))
-							throw new System.Exception("Timeout on blockinglist GetNextItem");
+                            throw new System.Exception("Timeout on blockinglist GetNextItem");
                     }
                     catch
                     {
@@ -86,7 +85,7 @@ namespace JMMServer
                     }
                 }
 
-                if (_count == (_size - 1))
+                if (_count == _size - 1)
                     // could have blocking Enqueue thread(s).
                     Monitor.PulseAll(_syncRoot);
 
@@ -122,7 +121,7 @@ namespace JMMServer
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((IEnumerable<T>)this).GetEnumerator();
+            return ((IEnumerable<T>) this).GetEnumerator();
         }
     }
 }

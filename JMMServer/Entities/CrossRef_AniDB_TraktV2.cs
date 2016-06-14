@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using JMMContracts;
+﻿using JMMContracts;
 using JMMServer.Repositories;
 using NHibernate;
 
@@ -28,6 +24,7 @@ namespace JMMServer.Entities
                 return GetByTraktShow(session);
             }
         }
+
         public Trakt_Show GetByTraktShow(ISession session)
         {
             Trakt_ShowRepository repTraktShows = new Trakt_ShowRepository();

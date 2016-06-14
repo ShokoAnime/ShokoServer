@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.Serialization;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
@@ -21,7 +16,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
             progress = progressVal;
             episode = new TraktV2Episode();
             episode.ids = new TraktV2EpisodeIds();
-            episode.ids.trakt = (traktId).ToString();
+            episode.ids.trakt = traktId.ToString();
             episode.ids.slug = slugId;
             episode.season = season;
             episode.number = episodeNumber;

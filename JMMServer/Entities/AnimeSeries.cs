@@ -1,24 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Documents;
-using AniDBAPI;
-using JMMServer.ImageDownload;
-using NLog;
-using JMMServer.Repositories;
 using JMMContracts;
-using NHibernate;
 using JMMServer.Commands;
-using NHibernate.Criterion;
+using JMMServer.ImageDownload;
+using JMMServer.Repositories;
+using NHibernate;
+using NLog;
 
 namespace JMMServer.Entities
 {
     public class AnimeSeries
     {
         #region DB Columns
+
         public int AnimeSeriesID { get; private set; }
         public int AnimeGroupID { get; set; }
         public int AniDB_ID { get; set; }
@@ -38,10 +32,7 @@ namespace JMMServer.Entities
 
         public string Year
         {
-            get
-            {
-                return GetAnime().Year;
-            }
+            get { return GetAnime().Year; }
         }
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -67,7 +58,8 @@ namespace JMMServer.Entities
                 {
                     List<TvDB_Series> tvdbs = this.GetTvDBSeries(session);
 
-                    if (tvdbs != null && tvdbs.Count > 0 && !string.IsNullOrEmpty(tvdbs[0].SeriesName) && !tvdbs[0].SeriesName.ToUpper().Contains("**DUPLICATE"))
+                    if (tvdbs != null && tvdbs.Count > 0 && !string.IsNullOrEmpty(tvdbs[0].SeriesName) &&
+                        !tvdbs[0].SeriesName.ToUpper().Contains("**DUPLICATE"))
                         seriesName = tvdbs[0].SeriesName;
                     else
                         seriesName = GetAnime(session).GetFormattedTitle(session);
@@ -75,7 +67,6 @@ namespace JMMServer.Entities
             }
 
             return seriesName;
-
         }
 
         public string GenresRaw
@@ -108,8 +99,12 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return Convert.ToInt32(session.CreateQuery("Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AnimeSeriesID).UniqueResult());
-
+                return
+                    Convert.ToInt32(
+                        session.CreateQuery(
+                            "Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid")
+                            .SetParameter("animeid", AnimeSeriesID)
+                            .UniqueResult());
             }
         }
 
@@ -117,16 +112,28 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return Convert.ToInt32(session.CreateQuery("Select count(distinct epi.EpisodeType) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AnimeSeriesID).UniqueResult());
+                return
+                    Convert.ToInt32(
+                        session.CreateQuery(
+                            "Select count(distinct epi.EpisodeType) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid")
+                            .SetParameter("animeid", AnimeSeriesID)
+                            .UniqueResult());
             }
         }
+
         public int GetAnimeEpisodesCountWithVideoLocal()
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return Convert.ToInt32(session.CreateQuery("Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid").SetParameter("animeid", AnimeSeriesID).UniqueResult());
+                return
+                    Convert.ToInt32(
+                        session.CreateQuery(
+                            "Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid")
+                            .SetParameter("animeid", AnimeSeriesID)
+                            .UniqueResult());
             }
         }
+
         #region TvDB
 
         public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
@@ -285,7 +292,6 @@ namespace JMMServer.Entities
                 if (GetAnime() != null)
                     return GetAnime().AirDate;
                 return DateTime.Now;
-
             }
         }
 
@@ -296,7 +302,6 @@ namespace JMMServer.Entities
                 if (GetAnime() != null)
                     return GetAnime().EndDate;
                 return null;
-
             }
         }
 
@@ -409,15 +414,20 @@ namespace JMMServer.Entities
                 if (tvser != null)
                     sers.Add(tvser);
                 else
-                    logger.Warn("You are missing database information for TvDB series: {0} - {1}", xref.TvDBID, xref.TvDBTitle);
+                    logger.Warn("You are missing database information for TvDB series: {0} - {1}", xref.TvDBID,
+                        xref.TvDBTitle);
             }
 
-            return this.ToContract(anime, tvDBCrossRefs, movieDBCrossRef, userRecord, sers, malDBCrossRef, false, null, null, null, null, movie, forceimages);
+            return this.ToContract(anime, tvDBCrossRefs, movieDBCrossRef, userRecord, sers, malDBCrossRef, false, null,
+                null, null, null, movie, forceimages);
         }
 
-        public Contract_AnimeSeries ToContract(AniDB_Anime animeRec, List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs, CrossRef_AniDB_Other movieDBCrossRef,
-            AnimeSeries_User userRecord, List<TvDB_Series> tvseries, List<CrossRef_AniDB_MAL> malDBCrossRef, bool passedDefaultImages, AniDB_Anime_DefaultImage defPoster,
-            AniDB_Anime_DefaultImage defFanart, AniDB_Anime_DefaultImage defWideBanner, List<AniDB_Anime_Title> titles, MovieDB_Movie movie, bool forceimages = false)
+        public Contract_AnimeSeries ToContract(AniDB_Anime animeRec, List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs,
+            CrossRef_AniDB_Other movieDBCrossRef,
+            AnimeSeries_User userRecord, List<TvDB_Series> tvseries, List<CrossRef_AniDB_MAL> malDBCrossRef,
+            bool passedDefaultImages, AniDB_Anime_DefaultImage defPoster,
+            AniDB_Anime_DefaultImage defFanart, AniDB_Anime_DefaultImage defWideBanner, List<AniDB_Anime_Title> titles,
+            MovieDB_Movie movie, bool forceimages = false)
         {
             Contract_AnimeSeries contract = new Contract_AnimeSeries();
 
@@ -434,7 +444,6 @@ namespace JMMServer.Entities
             contract.MissingEpisodeCountGroups = this.MissingEpisodeCountGroups;
             contract.SeriesNameOverride = this.SeriesNameOverride;
             contract.DefaultFolder = this.DefaultFolder;
-
 
 
             if (userRecord == null)
@@ -473,14 +482,14 @@ namespace JMMServer.Entities
                 else
                     animecontract.DefaultImagePoster = defaultPoster.ToContract();
 
-                if ((animecontract.DefaultImagePoster == null) && (forceimages))
+                if ((animecontract.DefaultImagePoster == null) && forceimages)
                 {
                     ImageDetails im = animeRec.GetDefaultPosterDetailsNoBlanks();
                     if (im != null)
                     {
                         animecontract.DefaultImagePoster = new Contract_AniDB_Anime_DefaultImage();
                         animecontract.DefaultImagePoster.AnimeID = im.ImageID;
-                        animecontract.DefaultImagePoster.ImageType = (int)im.ImageType;
+                        animecontract.DefaultImagePoster.ImageType = (int) im.ImageType;
                     }
                 }
                 AniDB_Anime_DefaultImage defaultFanart = null;
@@ -494,14 +503,14 @@ namespace JMMServer.Entities
                 else
                     animecontract.DefaultImageFanart = defaultFanart.ToContract();
 
-                if ((animecontract.DefaultImageFanart == null) && (forceimages))
+                if ((animecontract.DefaultImageFanart == null) && forceimages)
                 {
                     ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
                     if (im != null)
                     {
                         animecontract.DefaultImageFanart = new Contract_AniDB_Anime_DefaultImage();
                         animecontract.DefaultImageFanart.AnimeID = im.ImageID;
-                        animecontract.DefaultImageFanart.ImageType = (int)im.ImageType;
+                        animecontract.DefaultImageFanart.ImageType = (int) im.ImageType;
                     }
                 }
 
@@ -556,10 +565,15 @@ namespace JMMServer.Entities
             {
                 AnimeType = ept;
             }
+
             private enAnimeType AnimeType { get; set; }
-            System.Text.RegularExpressions.Regex partmatch = new System.Text.RegularExpressions.Regex("part (\\d.*?) of (\\d.*)");
+
+            System.Text.RegularExpressions.Regex partmatch =
+                new System.Text.RegularExpressions.Regex("part (\\d.*?) of (\\d.*)");
+
             System.Text.RegularExpressions.Regex remsymbols = new System.Text.RegularExpressions.Regex("[^A-Za-z0-9 ]");
             private System.Text.RegularExpressions.Regex remmultispace = new System.Text.RegularExpressions.Regex("\\s+");
+
             public void Add(AnimeEpisode ep, bool available)
             {
                 if ((AnimeType == enAnimeType.OVA) || (AnimeType == enAnimeType.Movie))
@@ -652,7 +666,6 @@ namespace JMMServer.Entities
                     public int PartCount;
                     public EpType EpisodeType { get; set; }
                     public bool Available { get; set; }
-
                 }
 
                 public bool Available
@@ -668,9 +681,9 @@ namespace JMMServer.Entities
                         int[] parts = new int[maxcnt + 1];
                         foreach (StatEpisode k in this)
                         {
-                            if ((k.EpisodeType == StatEpisode.EpType.Complete) && (k.Available))
+                            if ((k.EpisodeType == StatEpisode.EpType.Complete) && k.Available)
                                 return true;
-                            if ((k.EpisodeType == StatEpisode.EpType.Part) && (k.Available))
+                            if ((k.EpisodeType == StatEpisode.EpType.Part) && k.Available)
                             {
                                 parts[k.PartCount]++;
                                 if (parts[k.PartCount] == k.PartCount)
@@ -732,8 +745,6 @@ namespace JMMServer.Entities
 
             if (watchedStats)
             {
-
-
                 foreach (JMMUser juser in allUsers)
                 {
                     //this.WatchedCount = 0;
@@ -799,15 +810,12 @@ namespace JMMServer.Entities
                         }
                     }
                     repSeriesUser.Save(userRecord);
-
                 }
             }
 
             TimeSpan ts = DateTime.Now - start;
             logger.Trace("Updated WATCHED stats for SERIES {0} in {1}ms", this.ToString(), ts.TotalMilliseconds);
             start = DateTime.Now;
-
-
 
 
             if (missingEpsStats)
@@ -833,7 +841,6 @@ namespace JMMServer.Entities
                 List<int> userReleaseGroups = new List<int>();
                 foreach (AnimeEpisode ep in eps)
                 {
-
                     List<VideoLocal> vids = new List<VideoLocal>();
                     if (dictCrossRefs.ContainsKey(ep.AniDB_EpisodeID))
                     {
@@ -881,7 +888,6 @@ namespace JMMServer.Entities
                     }
 
 
-
                     AniDB_Episode aniEp = ep.AniDB_Episode;
                     int thisEpNum = aniEp.EpisodeNumber;
 
@@ -902,9 +908,8 @@ namespace JMMServer.Entities
 
                     try
                     {
-                        epReleasedList.Add(ep, (!epReleased || vids.Count != 0));
-                        epGroupReleasedList.Add(ep, (!epReleasedGroup || vids.Count != 0));
-
+                        epReleasedList.Add(ep, !epReleased || vids.Count != 0);
+                        epGroupReleasedList.Add(ep, !epReleasedGroup || vids.Count != 0);
                     }
                     catch (Exception e)
                     {
