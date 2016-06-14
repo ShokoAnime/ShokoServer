@@ -1,9 +1,14 @@
-﻿using System.Runtime.Serialization;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
     [DataContract]
-    internal class TraktV2ScrobbleMovie
+    class TraktV2ScrobbleMovie
     {
         [DataMember(Name = "movie")]
         public TraktV2Movie movie { get; set; }
@@ -17,7 +22,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
             movie = new TraktV2Movie();
             movie.ids = new TraktV2Ids();
             movie.ids.slug = traktSlug;
-            var traktID = 0;
+            int traktID = 0;
             int.TryParse(traktId, out traktID);
             movie.ids.trakt = traktID;
         }

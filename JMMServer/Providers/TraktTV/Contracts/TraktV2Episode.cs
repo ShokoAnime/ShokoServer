@@ -1,4 +1,9 @@
-﻿using System.Runtime.Serialization;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
@@ -19,5 +24,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
 
         [DataMember(Name = "images")]
         public TraktV2EpisodeImage images { get; set; }
+
+
     }
 }

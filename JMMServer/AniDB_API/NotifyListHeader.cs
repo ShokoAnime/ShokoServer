@@ -1,9 +1,25 @@
-﻿namespace AniDBAPI
-{
-    public class NotifyListHeader
-    {
-        public string NotifyType { get; set; } = "";
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 
-        public long NotifyID { get; set; } = 0;
-    }
+namespace AniDBAPI
+{
+	public class NotifyListHeader
+	{
+		private string notifyType = "";
+
+		public string NotifyType
+		{
+			get { return notifyType; }
+			set { notifyType = value; }
+		}
+
+		private long notifyID = 0;
+
+		public long NotifyID
+		{
+			get { return notifyID; }
+			set { notifyID = value; }
+		}
+	}
 }

@@ -1,27 +1,31 @@
-﻿using FluentNHibernate.Mapping;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using FluentNHibernate.Mapping;
 using JMMServer.Entities;
 
 namespace JMMServer.Mappings
 {
-    public class AnimeSeriesMap : ClassMap<AnimeSeries>
-    {
-        public AnimeSeriesMap()
+	public class AnimeSeriesMap : ClassMap<AnimeSeries>
+	{
+		public AnimeSeriesMap()
         {
-            Not.LazyLoad();
+			Not.LazyLoad();
             Id(x => x.AnimeSeriesID);
 
-            Map(x => x.AniDB_ID).Not.Nullable();
-            Map(x => x.AnimeGroupID).Not.Nullable();
-            Map(x => x.DateTimeCreated).Not.Nullable();
-            Map(x => x.DateTimeUpdated).Not.Nullable();
-            Map(x => x.DefaultAudioLanguage);
-            Map(x => x.DefaultSubtitleLanguage);
-            Map(x => x.LatestLocalEpisodeNumber).Not.Nullable();
-            Map(x => x.EpisodeAddedDate);
-            Map(x => x.MissingEpisodeCount).Not.Nullable();
-            Map(x => x.MissingEpisodeCountGroups).Not.Nullable();
-            Map(x => x.SeriesNameOverride);
+			Map(x => x.AniDB_ID).Not.Nullable();
+			Map(x => x.AnimeGroupID).Not.Nullable();
+			Map(x => x.DateTimeCreated).Not.Nullable();
+			Map(x => x.DateTimeUpdated).Not.Nullable();
+			Map(x => x.DefaultAudioLanguage);
+			Map(x => x.DefaultSubtitleLanguage);
+			Map(x => x.LatestLocalEpisodeNumber).Not.Nullable();
+			Map(x => x.EpisodeAddedDate);
+			Map(x => x.MissingEpisodeCount).Not.Nullable();
+			Map(x => x.MissingEpisodeCountGroups).Not.Nullable();
+			Map(x => x.SeriesNameOverride);
             Map(x => x.DefaultFolder);
         }
-    }
+	}
 }

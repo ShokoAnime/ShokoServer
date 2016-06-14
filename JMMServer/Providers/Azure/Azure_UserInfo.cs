@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace JMMServer.Providers.Azure
 {
@@ -19,7 +23,7 @@ namespace JMMServer.Providers.Azure
         public DateTime LastEpisodeWatchedAsDate { get; set; }
         public long DateTimeUpdatedUTC { get; set; }
         public DateTime DateTimeUpdated { get; set; }
-
+        
 
         // optional JMM Desktop fields
         public string DashboardType { get; set; }

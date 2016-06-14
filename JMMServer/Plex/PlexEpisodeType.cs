@@ -15,7 +15,7 @@ namespace JMMServer.Plex
             tp.Type = (int)epType;
             tp.Count = cnt;
             tp.AnimeType = an;
-            var plural = cnt > 1;
+            bool plural = cnt > 1;
             switch (epType)
             {
                 case enEpisodeType.Credits:

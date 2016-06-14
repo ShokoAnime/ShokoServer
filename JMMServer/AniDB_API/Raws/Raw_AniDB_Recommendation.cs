@@ -1,42 +1,47 @@
-﻿using System.Xml;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Xml;
+using AniDBAPI;
 
 namespace AniDBAPI
 {
-    public class Raw_AniDB_Recommendation
-    {
-        public Raw_AniDB_Recommendation()
-        {
-            InitFields();
-        }
+	public class Raw_AniDB_Recommendation
+	{
+		public int AnimeID { get; set; }
+		public int UserID { get; set; }
+		public string RecommendationTypeText { get; set; }
+		//public int RecommendationType { get; set; }
+		public string RecommendationText { get; set; }
 
-        public int AnimeID { get; set; }
-        public int UserID { get; set; }
-        public string RecommendationTypeText { get; set; }
-        //public int RecommendationType { get; set; }
-        public string RecommendationText { get; set; }
+		public Raw_AniDB_Recommendation()
+		{
+			InitFields();
+		}
 
-        private void InitFields()
-        {
-            AnimeID = 0;
-            UserID = 0;
-            //RecommendationType = 0;
+		private void InitFields()
+		{
+			AnimeID = 0;
+			UserID = 0;
+			//RecommendationType = 0;
 
-            RecommendationTypeText = string.Empty;
-            RecommendationText = string.Empty;
-        }
+			RecommendationTypeText = string.Empty;
+			RecommendationText = string.Empty;
+		}
 
-        public void ProcessFromHTTPResult(XmlNode node, int anid)
-        {
-            InitFields();
+		public void ProcessFromHTTPResult(XmlNode node, int anid)
+		{
+			InitFields();
 
-            AnimeID = anid;
+			this.AnimeID = anid;
 
-            RecommendationTypeText = AniDBHTTPHelper.TryGetAttribute(node, "type");
-            RecommendationText = node.InnerText.Trim();
+			this.RecommendationTypeText = AniDBHTTPHelper.TryGetAttribute(node, "type");
+			this.RecommendationText = node.InnerText.Trim();
 
-            var uid = 0;
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "uid"), out uid);
-            UserID = uid;
-        }
-    }
+			int uid = 0;
+			int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "uid"), out uid);
+			this.UserID = uid;
+		}
+	}
 }

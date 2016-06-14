@@ -1,14 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
     [DataContract]
     public class TraktV2SyncWatchedEpisodesByNumber
     {
+        [DataMember(Name = "shows")]
+        public List<TraktV2ShowWatchedPostByNumber> shows { get; set; }
+
         public TraktV2SyncWatchedEpisodesByNumber()
         {
+
         }
 
         public TraktV2SyncWatchedEpisodesByNumber(string slug, int season, int episodeNumber, DateTime watchedDate)
@@ -26,16 +33,13 @@ namespace JMMServer.Providers.TraktTV.Contracts
             shows[0].seasons[0].episodes[0].watched_at = watchedDate.ToUniversalTime().ToString("s") + "Z";
         }
 
-        [DataMember(Name = "shows")]
-        public List<TraktV2ShowWatchedPostByNumber> shows { get; set; }
-
         public void AddEpisode(string slug, int season, int episodeNumber, DateTime watchedDate)
         {
             if (shows == null)
                 shows = new List<TraktV2ShowWatchedPostByNumber>();
 
             TraktV2ShowWatchedPostByNumber thisShow = null;
-            foreach (var shw in shows)
+            foreach (TraktV2ShowWatchedPostByNumber shw in shows)
             {
                 if (shw.ids.slug.Equals(slug, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -59,7 +63,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
             }
 
             TaktV2SeasonWatchedPostByNumber thisSeason = null;
-            foreach (var sea in thisShow.seasons)
+            foreach (TaktV2SeasonWatchedPostByNumber sea in thisShow.seasons)
             {
                 if (sea.number == season)
                 {
@@ -76,7 +80,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
             }
 
             TraktV2EpisodeWatchedPostByNumber thisEp = null;
-            foreach (var ep in thisSeason.episodes)
+            foreach (TraktV2EpisodeWatchedPostByNumber ep in thisSeason.episodes)
             {
                 if (ep.number == episodeNumber)
                 {

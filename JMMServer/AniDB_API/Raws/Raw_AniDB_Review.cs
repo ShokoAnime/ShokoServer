@@ -1,9 +1,21 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace AniDBAPI
 {
     public class Raw_AniDB_Review : XMLBase
     {
+        public int ReviewID { get; set; }
+        public int AuthorID { get; set; }
+        public int RatingAnimation { get; set; }
+        public int RatingSound { get; set; }
+        public int RatingStory { get; set; }
+        public int RatingCharacter { get; set; }
+        public int RatingValue { get; set; }
+        public int RatingEnjoyment { get; set; }
+        public string ReviewText { get; set; }
+
         public Raw_AniDB_Review()
         {
             ReviewID = 0;
@@ -20,7 +32,7 @@ namespace AniDBAPI
         public Raw_AniDB_Review(string sRecMessage)
         {
             // remove the header info
-            var sDetails = sRecMessage.Substring(11).Split('|');
+            string[] sDetails = sRecMessage.Substring(11).Split('|');
 
             // 234 REVIEW0|4||1198|18198|700|700|600|900|500|500|*EDIT* just an update, I stopped watching Naruto
 
@@ -50,20 +62,10 @@ namespace AniDBAPI
             ReviewText = AniDBAPILib.ProcessAniDBString(sDetails[11].Trim());
         }
 
-        public int ReviewID { get; set; }
-        public int AuthorID { get; set; }
-        public int RatingAnimation { get; set; }
-        public int RatingSound { get; set; }
-        public int RatingStory { get; set; }
-        public int RatingCharacter { get; set; }
-        public int RatingValue { get; set; }
-        public int RatingEnjoyment { get; set; }
-        public string ReviewText { get; set; }
-
         public override string ToString()
         {
-            var sb = new StringBuilder();
-            sb.Append("reviewID: " + ReviewID);
+            StringBuilder sb = new StringBuilder();
+            sb.Append("reviewID: " + ReviewID.ToString());
             sb.Append(" | reviewText: " + ReviewText);
 
             return sb.ToString();

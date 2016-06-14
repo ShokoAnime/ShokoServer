@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace JMMServer
 {
@@ -7,14 +10,14 @@ namespace JMMServer
         TvDB = 1,
         Trakt = 2,
         MAL = 3,
-        MovieDB = 4
+        MovieDB = 4,
     }
 
     public enum AiringState
     {
         All = 0,
         StillAiring = 1,
-        FinishedAiring = 2
+        FinishedAiring = 2,
     }
 
     public enum CustomTagCrossRefType
@@ -28,14 +31,14 @@ namespace JMMServer
         TraktComment = 1,
         AniDBRecommendation = 2,
         AniDBMustSee = 3,
-        AniDBForFans = 4
+        AniDBForFans = 4,
     }
 
     public enum AniDBRecommendationType
     {
         ForFans = 1,
         Recommended = 2,
-        MustSee = 3
+        MustSee = 3,
     }
 
     public enum RatingCollectionState
@@ -71,7 +74,7 @@ namespace JMMServer
         FILE_ISV4 = 16, // file is version 4
         FILE_ISV5 = 32, // file is version 5
         FILE_UNC = 64, // file is uncensored
-        FILE_CEN = 128 // file is censored
+        FILE_CEN = 128, // file is censored
     }
 
     public enum ImageEntityType
@@ -155,7 +158,7 @@ namespace JMMServer
         Azure_SendAnimeTitle = 72,
         Azure_SendUserInfo = 73,
         AniDB_GetEpisodeUDP = 80,
-        Refresh_AnimeStats = 90
+        Refresh_AnimeStats = 90,
     }
 
     public enum CommandRequestPriority

@@ -1,53 +1,58 @@
-﻿using System.Net;
-using System.Net.Sockets;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Net;
+using System.Net.Sockets;
 
 namespace AniDBAPI.Commands
 {
-    public class AniDBCommand_Ping : AniDBUDPCommand, IAniDBUDPCommand
-    {
-        public string SessionID = string.Empty;
+	public class AniDBCommand_Ping : AniDBUDPCommand, IAniDBUDPCommand
+	{
+		public string SessionID = string.Empty;
 
-        public AniDBCommand_Ping()
-        {
-            commandType = enAniDBCommandType.Ping;
-            commandID = "";
-        }
+		public virtual enHelperActivityType GetStartEventType()
+		{
+			return enHelperActivityType.Ping;
+		}
 
-        public virtual enHelperActivityType GetStartEventType()
-        {
-            return enHelperActivityType.Ping;
-        }
+		public string GetKey()
+		{
+			return "Ping";
+		}
 
-        public string GetKey()
-        {
-            return "Ping";
-        }
+		public virtual enHelperActivityType Process(ref Socket soUDP,
+			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+		{
+			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
-            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-        {
-            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+			// handle 555 BANNED and 598 - UNKNOWN COMMAND
+			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+			if (ResponseCode == 555) return enHelperActivityType.Banned_555;
 
-            // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+			if (errorOccurred) return enHelperActivityType.PingFailed;
 
-            if (errorOccurred) return enHelperActivityType.PingFailed;
+			// Process Response
+			string sMsgType = socketResponse.Substring(0, 3);
 
-            // Process Response
-            var sMsgType = socketResponse.Substring(0, 3);
+			// 300 PONG
+			if (sMsgType.Equals("300"))
+				return enHelperActivityType.PingFailed;
+			else
+				return enHelperActivityType.PingPong;
 
-            // 300 PONG
-            if (sMsgType.Equals("300"))
-                return enHelperActivityType.PingFailed;
-            return enHelperActivityType.PingPong;
-        }
+		}
 
-        public void Init()
-        {
-            commandText = "PING";
-            commandID = "PING";
-        }
-    }
+		public AniDBCommand_Ping()
+		{
+			commandType = enAniDBCommandType.Ping;
+			commandID = "";
+		}
+
+		public void Init()
+		{
+			commandText = "PING";
+			commandID = "PING";
+		}
+	}
 }

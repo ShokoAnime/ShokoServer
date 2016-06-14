@@ -1,4 +1,9 @@
-﻿using System.Runtime.Serialization;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
@@ -21,7 +26,8 @@ namespace JMMServer.Providers.TraktTV.Contracts
         {
             if (show != null)
                 return string.Format("{0} - Last Watched: {1}", show.Title, last_watched_at);
-            return string.Format("TraktV2ShowWatchedResult - Last Watched: {0}", last_watched_at);
+            else
+                return string.Format("TraktV2ShowWatchedResult - Last Watched: {0}", last_watched_at);
         }
     }
 }

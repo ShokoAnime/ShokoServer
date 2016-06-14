@@ -1,6 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+using System.IO;
+using System.Linq;
+using System.Text;
 using System.Xml.Serialization;
+using JMMContracts.PlexContracts;
 
 namespace JMMContracts.PlexContracts
 {
@@ -8,6 +13,7 @@ namespace JMMContracts.PlexContracts
     [Serializable]
     public class MediaContainer : Video
     {
+
         [XmlElement(typeof(Video), ElementName = "Video")]
         [XmlElement(typeof(Directory), ElementName = "Directory")]
         public List<Video> Childrens { get; set; }
@@ -41,7 +47,7 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("nocache")]
         public string NoCache { get; set; }
-
+        
         [XmlAttribute("offset")]
         public string Offset { get; set; }
 
@@ -53,12 +59,11 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("librarySectionID")]
         public string LibrarySectionID { get; set; }
+
     }
 
     [XmlRoot(ElementName = "Directory")]
-    public class Directory : Video
-    {
-    }
+    public class Directory : Video { }
 
     [XmlType("Video")]
     [Serializable]
@@ -67,7 +72,7 @@ namespace JMMContracts.PlexContracts
         [XmlIgnore]
         public DateTime AirDate { get; set; }
 
-
+       
         [XmlIgnore]
         public Contract_AnimeGroup Group { get; set; }
 
@@ -79,7 +84,7 @@ namespace JMMContracts.PlexContracts
 
         [XmlElement("Extras")]
         public Extras Extras { get; set; }
-
+        
         [XmlElement("Related")]
         public List<Hub> Related { get; set; }
 
@@ -91,7 +96,6 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("art")]
         public string Art { get; set; }
-
         [XmlAttribute("url")]
         public string Url { get; set; }
 
@@ -124,7 +128,6 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("parentKey")]
         public string ParentKey { get; set; }
-
         [XmlAttribute("grandparentKey")]
         public string GrandparentKey { get; set; }
 
@@ -206,7 +209,6 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("viewCount")]
         public string ViewCount { get; set; }
-
         [XmlAttribute("viewOffset")]
         public string ViewOffset { get; set; }
 
@@ -234,15 +236,15 @@ namespace JMMContracts.PlexContracts
     {
         [XmlAttribute("tag")]
         public string Value { get; set; }
-
         [XmlAttribute("role")]
         public string Role { get; set; }
-    }
 
+    }
     [XmlType("Media")]
     [Serializable]
     public class Media
     {
+
         [XmlElement("Part")]
         public List<Part> Parts { get; set; }
 
@@ -286,7 +288,6 @@ namespace JMMContracts.PlexContracts
         [XmlAttribute("optimizedForStreaming")]
         public string OptimizedForStreaming { get; set; }
     }
-
     [XmlType("Part")]
     public class Part
     {
@@ -295,7 +296,7 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("exists")]
         public string Exists { get; set; }
-
+        
         [XmlElement("Stream")]
         public List<Stream> Streams { get; set; }
 
@@ -328,9 +329,6 @@ namespace JMMContracts.PlexContracts
     [XmlType("Stream")]
     public class Stream
     {
-        [XmlIgnore]
-        public int idx;
-
         [XmlAttribute("title")]
         public string Title { get; set; }
 
@@ -361,10 +359,8 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("scanType")]
         public string ScanType { get; set; }
-
         [XmlAttribute("refFrames")]
         public string RefFrames { get; set; }
-
         [XmlAttribute("profile")]
         public string Profile { get; set; }
 
@@ -379,7 +375,7 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("frameRateMode")]
         public string FrameRateMode { get; set; }
-
+        
         [XmlAttribute("file")]
         public string File { get; set; }
 
@@ -406,6 +402,9 @@ namespace JMMContracts.PlexContracts
         [XmlAttribute("index")]
         public string Index { get; set; }
 
+        [XmlIgnore]
+        public int idx;
+
         [XmlAttribute("codec")]
         public string Codec { get; set; }
 
@@ -426,7 +425,6 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("samplingRate")]
         public string SamplingRate { get; set; }
-
         [XmlAttribute("languageCode")]
         public string LanguageCode { get; set; }
 
@@ -447,7 +445,6 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("format")]
         public string Format { get; set; }
-
         [XmlAttribute("default")]
         public string Default { get; set; }
 
@@ -509,8 +506,9 @@ namespace JMMContracts.PlexContracts
 
         [XmlAttribute("more")]
         public string More { get; set; }
-    }
 
+
+    }
     public enum JMMType
     {
         GroupFilter,

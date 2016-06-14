@@ -1,4 +1,10 @@
-﻿namespace JMMServer.Providers.TraktTV
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace JMMServer.Providers.TraktTV
 {
     public static class TraktConstants
     {
@@ -8,15 +14,15 @@
         public const string ClientID = "a20707fa9666bea4acd86bc6ea2123bd6ffdbe996b4927cfdba96f4d3fca3042";
         public const string ClientSecret = "7ef5eec766070fa0b34a4a4a2fea2ad0ddbe9bb1bc1e8eb621551c52fb288739";
         public const string BaseAPIURL = @"https://api-v2launch.trakt.tv";
-        public const string BaseWebsiteURL = @"https://trakt.tv";
+        public const string BaseWebsiteURL = @"https://trakt.tv"; 
         public const string PINAuth = BaseWebsiteURL + @"/pin/5309";
-        //public const string PINAuth = BaseWebsiteURL + @"/pin/600";
-        //public const string BaseWebsiteURL = @"https://trakt.tv";
-        //public const string BaseAPIURL = @"http://api.staging.trakt.tv"; // staging
-        //public const string ClientSecret = "d023b70cc0e8c5e18026c71f4dcdf8ca98e376288eaf9c3e1869d1b15c969d3b";
-        //public const string ClientID = "5f6cb4edf31210042e5f2ab2eaa9e5d0e87116936aabde763cd4c885fea4fd76";
 
         // Staging
+        //public const string ClientID = "5f6cb4edf31210042e5f2ab2eaa9e5d0e87116936aabde763cd4c885fea4fd76";
+        //public const string ClientSecret = "d023b70cc0e8c5e18026c71f4dcdf8ca98e376288eaf9c3e1869d1b15c969d3b";
+        //public const string BaseAPIURL = @"http://api.staging.trakt.tv"; // staging
+        //public const string BaseWebsiteURL = @"https://trakt.tv";
+        //public const string PINAuth = BaseWebsiteURL + @"/pin/600";
     }
 
     public static class TraktSearchType

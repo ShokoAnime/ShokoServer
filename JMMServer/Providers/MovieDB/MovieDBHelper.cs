@@ -1,63 +1,69 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Text;
-using JMMServer.Commands;
-using JMMServer.Entities;
-using JMMServer.Repositories;
-using NHibernate;
+using System.Xml;
 using NLog;
+using JMMServer.Repositories;
+using JMMServer.Entities;
+using JMMServer.Commands;
+using System.IO;
+using NHibernate;
 using TMDbLib.Client;
+using TMDbLib.Objects.Movies;
+using TMDbLib.Objects.General;
+using TMDbLib.Objects.Search;
 
 namespace JMMServer.Providers.MovieDB
 {
-    public class MovieDBHelper
-    {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        private static UTF8Encoding enc = new UTF8Encoding();
-        private static readonly string apiKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
+	public class MovieDBHelper
+	{
+		private static Logger logger = LogManager.GetCurrentClassLogger();
+		private static UTF8Encoding enc = new UTF8Encoding();
+        private static string apiKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
 
-        public static string SearchURL
-        {
-            get { return @"http://api.themoviedb.org/2.1/Movie.search/en/xml/{0}/{1}"; }
-        }
+		public static string SearchURL
+		{
+			get { return @"http://api.themoviedb.org/2.1/Movie.search/en/xml/{0}/{1}"; }
 
-        public static string InfoURL
-        {
-            get { return @"http://api.themoviedb.org/2.1/Movie.getInfo/en/xml/{0}/{1}"; }
-        }
+		}
+
+		public static string InfoURL
+		{
+			get { return @"http://api.themoviedb.org/2.1/Movie.getInfo/en/xml/{0}/{1}"; }
+		}
 
         public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages)
-        {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                SaveMovieToDatabase(session, searchResult, saveImages);
-            }
-        }
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				SaveMovieToDatabase(session, searchResult, saveImages);
+			}
+		}
 
         public static void SaveMovieToDatabase(ISession session, MovieDB_Movie_Result searchResult, bool saveImages)
-        {
-            var repMovies = new MovieDB_MovieRepository();
-            var repFanart = new MovieDB_FanartRepository();
-            var repPosters = new MovieDB_PosterRepository();
+		{
+			MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
+			MovieDB_FanartRepository repFanart = new MovieDB_FanartRepository();
+			MovieDB_PosterRepository repPosters = new MovieDB_PosterRepository();
 
-            // save to the DB
-            var movie = repMovies.GetByOnlineID(searchResult.MovieID);
-            if (movie == null) movie = new MovieDB_Movie();
-            movie.Populate(searchResult);
-            repMovies.Save(session, movie);
+			// save to the DB
+			MovieDB_Movie movie = repMovies.GetByOnlineID(searchResult.MovieID);
+			if (movie == null) movie = new MovieDB_Movie();
+			movie.Populate(searchResult);
+			repMovies.Save(session, movie);
 
-            if (!saveImages) return;
+			if (!saveImages) return;
 
-            var numFanartDownloaded = 0;
-            var numPostersDownloaded = 0;
+			int numFanartDownloaded = 0;
+			int numPostersDownloaded = 0;
 
             // save data to the DB and determine the number of images we already have
-            foreach (var img in searchResult.Images)
+            foreach (MovieDB_Image_Result img in searchResult.Images)
             {
                 if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var poster = repPosters.GetByOnlineID(session, img.URL);
+                    MovieDB_Poster poster = repPosters.GetByOnlineID(session, img.URL);
                     if (poster == null) poster = new MovieDB_Poster();
                     poster.Populate(img, movie.MovieId);
                     repPosters.Save(session, poster);
@@ -68,28 +74,28 @@ namespace JMMServer.Providers.MovieDB
                 else
                 {
                     // fanart (backdrop)
-                    var fanart = repFanart.GetByOnlineID(session, img.URL);
+                    MovieDB_Fanart fanart = repFanart.GetByOnlineID(session, img.URL);
                     if (fanart == null) fanart = new MovieDB_Fanart();
                     fanart.Populate(img, movie.MovieId);
                     repFanart.Save(session, fanart);
 
                     if (!string.IsNullOrEmpty(fanart.FullImagePath) && File.Exists(fanart.FullImagePath))
                         numFanartDownloaded++;
+                        
                 }
             }
 
             // download the posters
             if (ServerSettings.MovieDB_AutoPosters)
             {
-                foreach (var poster in repPosters.GetByMovieID(session, movie.MovieId))
+                foreach (MovieDB_Poster poster in repPosters.GetByMovieID(session, movie.MovieId))
                 {
                     if (numPostersDownloaded >= ServerSettings.MovieDB_AutoPostersAmount) break;
 
                     // download the image
                     if (!string.IsNullOrEmpty(poster.FullImagePath) && !File.Exists(poster.FullImagePath))
                     {
-                        var cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID, JMMImageType.MovieDB_Poster,
-                            false);
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
                         cmd.Save(session);
                         numPostersDownloaded++;
                     }
@@ -99,159 +105,162 @@ namespace JMMServer.Providers.MovieDB
             // download the fanart
             if (ServerSettings.MovieDB_AutoFanart)
             {
-                foreach (var fanart in repFanart.GetByMovieID(session, movie.MovieId))
+                foreach (MovieDB_Fanart fanart in repFanart.GetByMovieID(session, movie.MovieId))
                 {
                     if (numFanartDownloaded >= ServerSettings.MovieDB_AutoFanartAmount) break;
 
                     // download the image
                     if (!string.IsNullOrEmpty(fanart.FullImagePath) && !File.Exists(fanart.FullImagePath))
                     {
-                        var cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt,
-                            false);
-                        cmd.Save(session);
-                        numFanartDownloaded++;
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
+						cmd.Save(session);
+						numFanartDownloaded++;
                     }
                 }
             }
-        }
 
-        public static List<MovieDB_Movie_Result> Search(string criteria)
-        {
-            var results = new List<MovieDB_Movie_Result>();
+		}
 
-            try
-            {
-                var client = new TMDbClient(apiKey);
-                var resultsTemp = client.SearchMovie(criteria);
+		public static List<MovieDB_Movie_Result> Search(string criteria)
+		{
+			List<MovieDB_Movie_Result> results = new List<MovieDB_Movie_Result>();
+			
+			try
+			{
+                TMDbClient client = new TMDbClient(apiKey);
+                SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(criteria);
 
                 Console.WriteLine("Got {0} of {1} results", resultsTemp.Results.Count, resultsTemp.TotalResults);
-                foreach (var result in resultsTemp.Results)
+                foreach (SearchMovie result in resultsTemp.Results)
                 {
-                    var searchResult = new MovieDB_Movie_Result();
-                    var movie = client.GetMovie(result.Id);
-                    var imgs = client.GetMovieImages(result.Id);
+                    MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
+                    Movie movie = client.GetMovie(result.Id);
+                    ImagesWithId imgs = client.GetMovieImages(result.Id);
                     searchResult.Populate(movie, imgs);
                     results.Add(searchResult);
                     SaveMovieToDatabase(searchResult, false);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Error in MovieDB Search: " + ex.Message);
-            }
+                }	
 
-            return results;
-        }
+			}
+			catch (Exception ex)
+			{
+				logger.Error("Error in MovieDB Search: " + ex.Message);
+			}
 
-        public static void UpdateMovieInfo(int movieID, bool saveImages)
-        {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                UpdateMovieInfo(session, movieID, saveImages);
-            }
-        }
+			return results;
+		}
 
-        public static void UpdateMovieInfo(ISession session, int movieID, bool saveImages)
-        {
-            try
-            {
-                var client = new TMDbClient(apiKey);
-                var movie = client.GetMovie(movieID);
-                var imgs = client.GetMovieImages(movieID);
+		public static void UpdateMovieInfo(int movieID, bool saveImages)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				UpdateMovieInfo(session, movieID, saveImages);
+			}
+		}
 
-                var searchResult = new MovieDB_Movie_Result();
+		public static void UpdateMovieInfo(ISession session, int movieID, bool saveImages)
+		{
+
+			try
+			{
+                TMDbClient client = new TMDbClient(apiKey);
+                Movie movie = client.GetMovie(movieID);
+                ImagesWithId imgs = client.GetMovieImages(movieID);
+
+                MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
                 searchResult.Populate(movie, imgs);
 
                 // save to the DB
                 SaveMovieToDatabase(session, searchResult, saveImages);
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException("Error in ParseBanners: " + ex, ex);
-            }
-        }
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error in ParseBanners: " + ex.ToString(), ex);
+			}
+		}
 
-        public static void LinkAniDBMovieDB(int animeID, int movieDBID, bool fromWebCache)
-        {
-            // check if we have this information locally
-            // if not download it now
-            var repMovies = new MovieDB_MovieRepository();
-            var movie = repMovies.GetByOnlineID(movieDBID);
-            if (movie == null)
-            {
-                // we download the series info here just so that we have the basic info in the
-                // database before the queued task runs later
-                UpdateMovieInfo(movieDBID, false);
-                movie = repMovies.GetByOnlineID(movieDBID);
-                if (movie == null) return;
-            }
+		public static void LinkAniDBMovieDB(int animeID, int movieDBID, bool fromWebCache)
+		{
+			// check if we have this information locally
+			// if not download it now
+			MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
+			MovieDB_Movie movie = repMovies.GetByOnlineID(movieDBID);
+			if (movie == null)
+			{
+				// we download the series info here just so that we have the basic info in the
+				// database before the queued task runs later
+				UpdateMovieInfo(movieDBID, false);
+				movie = repMovies.GetByOnlineID(movieDBID);
+				if (movie == null) return;
+			}
 
-            // download and update series info and images
-            UpdateMovieInfo(movieDBID, true);
+			// download and update series info and images
+			UpdateMovieInfo(movieDBID, true);
 
-            var repCrossRef = new CrossRef_AniDB_OtherRepository();
-            var xref = repCrossRef.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
-            if (xref == null)
-                xref = new CrossRef_AniDB_Other();
+			CrossRef_AniDB_OtherRepository repCrossRef = new CrossRef_AniDB_OtherRepository();
+			CrossRef_AniDB_Other xref = repCrossRef.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+			if (xref == null)
+				xref = new CrossRef_AniDB_Other();
 
-            xref.AnimeID = animeID;
-            if (fromWebCache)
-                xref.CrossRefSource = (int)CrossRefSource.WebCache;
-            else
-                xref.CrossRefSource = (int)CrossRefSource.User;
+			xref.AnimeID = animeID;
+			if (fromWebCache)
+				xref.CrossRefSource = (int)CrossRefSource.WebCache;
+			else
+				xref.CrossRefSource = (int)CrossRefSource.User;
 
-            xref.CrossRefType = (int)CrossRefType.MovieDB;
-            xref.CrossRefID = movieDBID.ToString();
-            repCrossRef.Save(xref);
+			xref.CrossRefType = (int)CrossRefType.MovieDB;
+			xref.CrossRefID = movieDBID.ToString();
+			repCrossRef.Save(xref);
 
-            StatsCache.Instance.UpdateUsingAnime(animeID);
+			StatsCache.Instance.UpdateUsingAnime(animeID);
 
-            logger.Trace("Changed moviedb association: {0}", animeID);
+			logger.Trace("Changed moviedb association: {0}", animeID);
 
-            var req = new CommandRequest_WebCacheSendXRefAniDBOther(xref.CrossRef_AniDB_OtherID);
-            req.Save();
-        }
+			CommandRequest_WebCacheSendXRefAniDBOther req = new CommandRequest_WebCacheSendXRefAniDBOther(xref.CrossRef_AniDB_OtherID);
+			req.Save();
+		}
 
-        public static void RemoveLinkAniDBMovieDB(int animeID)
-        {
-            var repCrossRef = new CrossRef_AniDB_OtherRepository();
-            var xref = repCrossRef.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
-            if (xref == null) return;
+		public static void RemoveLinkAniDBMovieDB(int animeID)
+		{
+			CrossRef_AniDB_OtherRepository repCrossRef = new CrossRef_AniDB_OtherRepository();
+			CrossRef_AniDB_Other xref = repCrossRef.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+			if (xref == null) return;
 
-            repCrossRef.Delete(xref.CrossRef_AniDB_OtherID);
+			repCrossRef.Delete(xref.CrossRef_AniDB_OtherID);
 
-            var req = new CommandRequest_WebCacheDeleteXRefAniDBOther(animeID, CrossRefType.MovieDB);
-            req.Save();
-        }
+			CommandRequest_WebCacheDeleteXRefAniDBOther req = new CommandRequest_WebCacheDeleteXRefAniDBOther(animeID, CrossRefType.MovieDB);
+			req.Save();
+		}
 
-        public static void ScanForMatches()
-        {
-            var repSeries = new AnimeSeriesRepository();
-            var allSeries = repSeries.GetAll();
+		public static void ScanForMatches()
+		{
+			AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+			List<AnimeSeries> allSeries = repSeries.GetAll();
 
-            var repCrossRef = new CrossRef_AniDB_OtherRepository();
-            foreach (var ser in allSeries)
-            {
-                var anime = ser.GetAnime();
-                if (anime == null) continue;
+			CrossRef_AniDB_OtherRepository repCrossRef = new CrossRef_AniDB_OtherRepository();
+			foreach (AnimeSeries ser in allSeries)
+			{
+				AniDB_Anime anime = ser.GetAnime();
+				if (anime == null) continue;
 
-                if (anime.IsMovieDBLinkDisabled) continue;
+				if (anime.IsMovieDBLinkDisabled) continue;
 
-                // don't scan if it is associated on the TvDB
-                if (anime.GetCrossRefTvDBV2().Count > 0) continue;
+				// don't scan if it is associated on the TvDB
+				if (anime.GetCrossRefTvDBV2().Count > 0) continue;
 
-                // don't scan if it is associated on the MovieDB
-                if (anime.GetCrossRefMovieDB() != null) continue;
+				// don't scan if it is associated on the MovieDB
+				if (anime.GetCrossRefMovieDB() != null) continue;
 
-                // don't scan if it is not a movie
-                if (!anime.SearchOnMovieDB)
-                    continue;
+				// don't scan if it is not a movie
+				if (!anime.SearchOnMovieDB)
+					continue;
 
-                logger.Trace("Found anime movie without MovieDB association: " + anime.MainTitle);
+				logger.Trace("Found anime movie without MovieDB association: " + anime.MainTitle);
 
-                var cmd = new CommandRequest_MovieDBSearchAnime(ser.AniDB_ID, false);
-                cmd.Save();
-            }
-        }
-    }
+				CommandRequest_MovieDBSearchAnime cmd = new CommandRequest_MovieDBSearchAnime(ser.AniDB_ID, false);
+				cmd.Save();
+			}
+
+		}
+	}
 }

@@ -1,17 +1,21 @@
-﻿using System.Collections.Generic;
-using System.Xml.Serialization;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace JMMServer.Providers.JMMAutoUpdates
 {
-    [XmlType(AnonymousType = true)]
-    public class Updates
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
+    public partial class Updates
     {
-        /// <remarks />
-        [XmlArrayItem("update", IsNullable = false)]
+
+        /// <remarks/>
+        [System.Xml.Serialization.XmlArrayItemAttribute("update", IsNullable = false)]
         public List<Update> server { get; set; }
 
-        /// <remarks />
-        [XmlArrayItem("update", IsNullable = false)]
+        /// <remarks/>
+        [System.Xml.Serialization.XmlArrayItemAttribute("update", IsNullable = false)]
         public List<Update> desktop { get; set; }
     }
 }

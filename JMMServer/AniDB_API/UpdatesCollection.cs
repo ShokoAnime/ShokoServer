@@ -1,42 +1,48 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace JMMServer.AniDB_API
 {
-    public class UpdatesCollection
-    {
-        protected string rawAnimeIDs = "";
+	public class UpdatesCollection
+	{
+		protected string rawAnimeIDs = "";
+		public string RawAnimeIDs
+		{
+			get { return rawAnimeIDs; }
+			set { rawAnimeIDs = value; }
+		}
 
-        protected long updateCount;
+		protected long updateCount = 0;
+		public long UpdateCount
+		{
+			get { return updateCount; }
+			set { updateCount = value; }
+		}
+
+		public List<int> AnimeIDs
+		{
+			get
+			{
+				List<int> ids = new List<int>();
+				string[] sids = rawAnimeIDs.Split('|');
+				foreach (string sid in sids)
+				{
+					int id = 0;
+					if (int.TryParse(sid, out id)) ids.Add(id);
+				}
+
+				return ids;
+			}
+		}
 
 
-        // default constructor
+		// default constructor
+		public UpdatesCollection()
+		{
+		}
 
-        public string RawAnimeIDs
-        {
-            get { return rawAnimeIDs; }
-            set { rawAnimeIDs = value; }
-        }
 
-        public long UpdateCount
-        {
-            get { return updateCount; }
-            set { updateCount = value; }
-        }
-
-        public List<int> AnimeIDs
-        {
-            get
-            {
-                var ids = new List<int>();
-                var sids = rawAnimeIDs.Split('|');
-                foreach (var sid in sids)
-                {
-                    var id = 0;
-                    if (int.TryParse(sid, out id)) ids.Add(id);
-                }
-
-                return ids;
-            }
-        }
-    }
+	}
 }

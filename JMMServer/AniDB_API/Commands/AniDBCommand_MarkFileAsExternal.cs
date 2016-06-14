@@ -6,13 +6,8 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_MarkFileAsExternal : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public string Hash = "";
         public bool ReturnIsWatched = false;
-
-        public AniDBCommand_MarkFileAsExternal()
-        {
-            commandType = enAniDBCommandType.MarkFileExternal;
-        }
+        public string Hash = "";
 
         public string GetKey()
         {
@@ -35,7 +30,7 @@ namespace AniDBAPI.Commands
 
             if (errorOccurred) return enHelperActivityType.NoSuchFile;
 
-            var sMsgType = socketResponse.Substring(0, 3);
+            string sMsgType = socketResponse.Substring(0, 3);
             switch (sMsgType)
             {
                 case "210":
@@ -55,9 +50,15 @@ namespace AniDBAPI.Commands
                     {
                         return enHelperActivityType.LoginRequired;
                     }
+
             }
 
             return enHelperActivityType.FileDoesNotExist;
+        }
+
+        public AniDBCommand_MarkFileAsExternal()
+        {
+            commandType = enAniDBCommandType.MarkFileExternal;
         }
 
         public void Init(string hash, long fileSize)

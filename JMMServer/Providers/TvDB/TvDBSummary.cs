@@ -1,31 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using JMMServer.Entities;
-using JMMServer.Repositories;
 using NLog;
+using JMMServer.Repositories;
 
 namespace JMMServer.Providers.TvDB
 {
     public class TvDBSummary
     {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        // All the episode overrides for this anime
-        private List<CrossRef_AniDB_TvDB_Episode> crossRefTvDBEpisodes;
-
-        // All the TvDB cross refs for this anime
-        private List<CrossRef_AniDB_TvDBV2> crossRefTvDBV2;
-
-        private Dictionary<int, int> dictTvDBCrossRefEpisodes;
-
-        // All the episodes regardless of which cross ref they come from 
-        private Dictionary<int, TvDB_Episode> dictTvDBEpisodes;
+        public int AnimeID { get; set; }
 
         // TvDB ID
         public Dictionary<int, TvDBDetails> TvDetails = new Dictionary<int, TvDBDetails>();
 
-        public int AnimeID { get; set; }
-
+        // All the TvDB cross refs for this anime
+        private List<CrossRef_AniDB_TvDBV2> crossRefTvDBV2 = null;
         public List<CrossRef_AniDB_TvDBV2> CrossRefTvDBV2
         {
             get
@@ -38,6 +31,22 @@ namespace JMMServer.Providers.TvDB
             }
         }
 
+        private void PopulateCrossRefs()
+        {
+            try
+            {
+                CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+                crossRefTvDBV2 = repCrossRef.GetByAnimeID(AnimeID);
+              
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+        }
+
+        // All the episode overrides for this anime
+        private List<CrossRef_AniDB_TvDB_Episode> crossRefTvDBEpisodes = null;
         public List<CrossRef_AniDB_TvDB_Episode> CrossRefTvDBEpisodes
         {
             get
@@ -50,6 +59,7 @@ namespace JMMServer.Providers.TvDB
             }
         }
 
+        private Dictionary<int, int> dictTvDBCrossRefEpisodes = null;
         public Dictionary<int, int> DictTvDBCrossRefEpisodes
         {
             get
@@ -57,13 +67,15 @@ namespace JMMServer.Providers.TvDB
                 if (dictTvDBCrossRefEpisodes == null)
                 {
                     dictTvDBCrossRefEpisodes = new Dictionary<int, int>();
-                    foreach (var xrefEp in CrossRefTvDBEpisodes)
+                    foreach (CrossRef_AniDB_TvDB_Episode xrefEp in CrossRefTvDBEpisodes)
                         dictTvDBCrossRefEpisodes[xrefEp.AniDBEpisodeID] = xrefEp.TvDBEpisodeID;
                 }
                 return dictTvDBCrossRefEpisodes;
             }
         }
 
+        // All the episodes regardless of which cross ref they come from 
+        private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
         public Dictionary<int, TvDB_Episode> DictTvDBEpisodes
         {
             get
@@ -76,38 +88,27 @@ namespace JMMServer.Providers.TvDB
             }
         }
 
-        private void PopulateCrossRefs()
-        {
-            try
-            {
-                var repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-                crossRefTvDBV2 = repCrossRef.GetByAnimeID(AnimeID);
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException(ex.ToString(), ex);
-            }
-        }
-
         private void PopulateDictTvDBEpisodes()
         {
             try
             {
                 dictTvDBEpisodes = new Dictionary<int, TvDB_Episode>();
-                foreach (var det in TvDetails.Values)
+                foreach (TvDBDetails det in TvDetails.Values)
                 {
                     if (det != null)
                     {
+
                         // create a dictionary of absolute episode numbers for tvdb episodes
                         // sort by season and episode number
                         // ignore season 0, which is used for specials
-                        var eps = det.TvDBEpisodes;
+                        List<TvDB_Episode> eps = det.TvDBEpisodes;
 
-                        var i = 1;
-                        foreach (var ep in eps)
+                        int i = 1;
+                        foreach (TvDB_Episode ep in eps)
                         {
                             dictTvDBEpisodes[i] = ep;
                             i++;
+
                         }
                     }
                 }
@@ -122,7 +123,7 @@ namespace JMMServer.Providers.TvDB
         {
             try
             {
-                var repCrossRef = new CrossRef_AniDB_TvDB_EpisodeRepository();
+                CrossRef_AniDB_TvDB_EpisodeRepository repCrossRef = new CrossRef_AniDB_TvDB_EpisodeRepository();
                 crossRefTvDBEpisodes = repCrossRef.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
@@ -152,11 +153,12 @@ namespace JMMServer.Providers.TvDB
         {
             if (CrossRefTvDBV2 == null) return;
 
-            foreach (var xref in CrossRefTvDBV2)
+            foreach (CrossRef_AniDB_TvDBV2 xref in CrossRefTvDBV2)
             {
-                var det = new TvDBDetails(xref.TvDBID);
+                TvDBDetails det = new TvDBDetails(xref.TvDBID);
                 TvDetails[xref.TvDBID] = det;
             }
         }
+
     }
 }

@@ -1,12 +1,18 @@
-﻿using System.Xml.Serialization;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace JMMServer.Providers.JMMAutoUpdates
 {
-    /// <remarks />
-    [XmlType(AnonymousType = true)]
-    [XmlRoot("jmmversions", Namespace = "", IsNullable = false)]
-    public class JMMVersions
+    /// <remarks/>
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
+    [System.Xml.Serialization.XmlRootAttribute("jmmversions", Namespace = "", IsNullable = false)]
+    public partial class JMMVersions
     {
+
         [XmlElement("versions")]
         public Versions versions { get; set; }
 

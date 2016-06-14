@@ -1,26 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using JMMServer.Entities;
-using JMMServer.Repositories;
 using NLog;
+using JMMServer.Repositories;
 
 namespace JMMServer.Providers.TraktTV
 {
     public class TraktSummaryContainer
     {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        // All the Trakt cross refs for this anime
-        private List<CrossRef_AniDB_TraktV2> crossRefTraktV2;
-
-        // All the episodes regardless of which cross ref they come from 
-        private Dictionary<int, Trakt_Episode> dictTraktEpisodes;
+        public int AnimeID { get; set; }
 
         // Trakt ID
         public Dictionary<string, TraktDetailsContainer> TraktDetails = new Dictionary<string, TraktDetailsContainer>();
 
-        public int AnimeID { get; set; }
-
+        // All the Trakt cross refs for this anime
+        private List<CrossRef_AniDB_TraktV2> crossRefTraktV2 = null;
         public List<CrossRef_AniDB_TraktV2> CrossRefTraktV2
         {
             get
@@ -33,6 +31,22 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
+        private void PopulateCrossRefs()
+        {
+            try
+            {
+                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
+                crossRefTraktV2 = repCrossRef.GetByAnimeID(AnimeID);
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+        }
+
+        // All the episodes regardless of which cross ref they come from 
+        private Dictionary<int, Trakt_Episode> dictTraktEpisodes = null;
         public Dictionary<int, Trakt_Episode> DictTraktEpisodes
         {
             get
@@ -45,37 +59,25 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
-        private void PopulateCrossRefs()
-        {
-            try
-            {
-                var repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-                crossRefTraktV2 = repCrossRef.GetByAnimeID(AnimeID);
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException(ex.ToString(), ex);
-            }
-        }
-
         private void PopulateDictTraktEpisodes()
         {
             try
             {
                 dictTraktEpisodes = new Dictionary<int, Trakt_Episode>();
-                foreach (var det in TraktDetails.Values)
+                foreach (TraktDetailsContainer det in TraktDetails.Values)
                 {
                     if (det != null)
                     {
+
                         // create a dictionary of absolute episode numbers for Trakt episodes
                         // sort by season and episode number
                         // ignore season 0, which is used for specials
-                        var eps = det.TraktEpisodes;
+                        List<Trakt_Episode> eps = det.TraktEpisodes;
 
                         if (eps != null)
                         {
-                            var i = 1;
-                            foreach (var ep in eps)
+                            int i = 1;
+                            foreach (Trakt_Episode ep in eps)
                             {
                                 // ignore episode 0, this can't be mapped to Trakt
                                 if (ep.EpisodeNumber > 0)
@@ -94,6 +96,7 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
+     
 
         public void Populate(int animeID)
         {
@@ -115,9 +118,9 @@ namespace JMMServer.Providers.TraktTV
         {
             if (CrossRefTraktV2 == null) return;
 
-            foreach (var xref in CrossRefTraktV2)
+            foreach (CrossRef_AniDB_TraktV2 xref in CrossRefTraktV2)
             {
-                var det = new TraktDetailsContainer(xref.TraktID);
+                TraktDetailsContainer det = new TraktDetailsContainer(xref.TraktID);
                 TraktDetails[xref.TraktID] = det;
             }
         }

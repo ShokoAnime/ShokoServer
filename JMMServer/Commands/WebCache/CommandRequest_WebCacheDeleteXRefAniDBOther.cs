@@ -1,92 +1,101 @@
 ﻿using System;
-using System.Xml;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using JMMServer.Repositories;
 using JMMServer.Entities;
+using JMMServer.WebCache;
+using System.Xml;
 using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands
 {
-    public class CommandRequest_WebCacheDeleteXRefAniDBOther : CommandRequestImplementation, ICommandRequest
-    {
-        public CommandRequest_WebCacheDeleteXRefAniDBOther()
-        {
-        }
+	public class CommandRequest_WebCacheDeleteXRefAniDBOther : CommandRequestImplementation, ICommandRequest
+	{
+		public int AnimeID { get; set; }
+		public int CrossRefType { get; set; }
 
-        public CommandRequest_WebCacheDeleteXRefAniDBOther(int animeID, CrossRefType xrefType)
-        {
-            AnimeID = animeID;
-            CommandType = (int)CommandRequestType.WebCache_DeleteXRefAniDBOther;
-            CrossRefType = (int)xrefType;
-            Priority = (int)DefaultPriority;
+		public CommandRequestPriority DefaultPriority
+		{
+			get { return CommandRequestPriority.Priority9; }
+		}
 
-            GenerateCommandID();
-        }
+		public string PrettyDescription
+		{
+			get
+			{
+				return string.Format("Deleting cross ref for Anidb to Other from web cache: {0}", AnimeID);
+			}
+		}
 
-        public int AnimeID { get; set; }
-        public int CrossRefType { get; set; }
+		public CommandRequest_WebCacheDeleteXRefAniDBOther()
+		{
+		}
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+		public CommandRequest_WebCacheDeleteXRefAniDBOther(int animeID, JMMServer.CrossRefType xrefType)
+		{
+			this.AnimeID = animeID;
+			this.CommandType = (int)CommandRequestType.WebCache_DeleteXRefAniDBOther;
+			this.CrossRefType = (int)xrefType;
+			this.Priority = (int)DefaultPriority;
 
-        public string PrettyDescription
-        {
-            get { return string.Format("Deleting cross ref for Anidb to Other from web cache: {0}", AnimeID); }
-        }
+			GenerateCommandID();
+		}
 
-        public override void ProcessCommand()
-        {
-            try
-            {
-                AzureWebAPI.Delete_CrossRefAniDBOther(AnimeID, (CrossRefType)CrossRefType);
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException("Error processing CommandRequest_WebCacheDeleteXRefAniDBOther: {0}" + ex, ex);
-            }
-        }
+		public override void ProcessCommand()
+		{
+			
+			try
+			{
+                AzureWebAPI.Delete_CrossRefAniDBOther(AnimeID, (JMMServer.CrossRefType)CrossRefType);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error processing CommandRequest_WebCacheDeleteXRefAniDBOther: {0}" + ex.ToString(), ex);
+				return;
+			}
+		}
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            CommandID = cq.CommandID;
-            CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
-            Priority = cq.Priority;
-            CommandDetails = cq.CommandDetails;
-            DateTimeUpdated = cq.DateTimeUpdated;
+		public override void GenerateCommandID()
+		{
+			this.CommandID = string.Format("CommandRequest_WebCacheDeleteXRefAniDBOther_{0}_{1}", AnimeID, CrossRefType);
+		}
 
-            // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                var docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+		public override bool LoadFromDBCommand(CommandRequest cq)
+		{
+			this.CommandID = cq.CommandID;
+			this.CommandRequestID = cq.CommandRequestID;
+			this.CommandType = cq.CommandType;
+			this.Priority = cq.Priority;
+			this.CommandDetails = cq.CommandDetails;
+			this.DateTimeUpdated = cq.DateTimeUpdated;
 
-                // populate the fields
-                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBOther", "AnimeID"));
-                CrossRefType =
-                    int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBOther", "CrossRefType"));
-            }
+			// read xml to get parameters
+			if (this.CommandDetails.Trim().Length > 0)
+			{
+				XmlDocument docCreator = new XmlDocument();
+				docCreator.LoadXml(this.CommandDetails);
 
-            return true;
-        }
+				// populate the fields
+				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBOther", "AnimeID"));
+				this.CrossRefType = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheDeleteXRefAniDBOther", "CrossRefType"));
+			}
 
-        public override void GenerateCommandID()
-        {
-            CommandID = string.Format("CommandRequest_WebCacheDeleteXRefAniDBOther_{0}_{1}", AnimeID, CrossRefType);
-        }
+			return true;
+		}
 
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
+		public override CommandRequest ToDatabaseObject()
+		{
+			GenerateCommandID();
 
-            var cq = new CommandRequest();
-            cq.CommandID = CommandID;
-            cq.CommandType = CommandType;
-            cq.Priority = Priority;
-            cq.CommandDetails = ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
+			CommandRequest cq = new CommandRequest();
+			cq.CommandID = this.CommandID;
+			cq.CommandType = this.CommandType;
+			cq.Priority = this.Priority;
+			cq.CommandDetails = this.ToXML();
+			cq.DateTimeUpdated = DateTime.Now;
 
-            return cq;
-        }
-    }
+			return cq;
+		}
+	}
 }

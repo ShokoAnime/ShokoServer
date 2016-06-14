@@ -1,4 +1,9 @@
-﻿using System.Runtime.Serialization;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
 using JMMContracts;
 
 namespace JMMServer.Providers.TraktTV.Contracts
@@ -15,20 +20,23 @@ namespace JMMServer.Providers.TraktTV.Contracts
         [DataMember(Name = "show")]
         public TraktV2Show show { get; set; }
 
-        public string ShowURL
-        {
-            get { return string.Format(TraktURIs.WebsiteShow, show.ids.slug); }
-        }
-
         public override string ToString()
         {
             return string.Format("{0} - {1} - {2}", show.Title, show.Year, show.Overview);
         }
 
+        public string ShowURL
+        {
+            get
+            {
+                return string.Format(TraktURIs.WebsiteShow, show.ids.slug);
+            }
+        }
+
 
         public Contract_TraktTVShowResponse ToContract()
         {
-            var contract = new Contract_TraktTVShowResponse();
+            Contract_TraktTVShowResponse contract = new Contract_TraktTVShowResponse();
 
             contract.title = show.Title;
             contract.year = show.Year.ToString();

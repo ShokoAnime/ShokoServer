@@ -1,4 +1,10 @@
-﻿namespace JMMContracts
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace JMMContracts
 {
     public class Contract_Azure_CrossRef_AniDB_Trakt
     {
@@ -16,5 +22,9 @@
         public long DateSubmitted { get; set; }
 
         public int? CrossRef_AniDB_TraktId { get; set; }
+
+        public Contract_Azure_CrossRef_AniDB_Trakt()
+		{
+		}
     }
 }

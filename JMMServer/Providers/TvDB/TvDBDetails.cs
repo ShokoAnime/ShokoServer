@@ -1,23 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using BinaryNorthwest;
+using System.Linq;
+using System.Text;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using BinaryNorthwest;
 using NLog;
 
 namespace JMMServer.Providers.TvDB
 {
     public class TvDBDetails
     {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private Dictionary<int, TvDB_Episode> dictTvDBEpisodes;
-
-        private Dictionary<int, int> dictTvDBSeasons;
-
-        private Dictionary<int, int> dictTvDBSeasonsSpecials;
-
-        private List<TvDB_Episode> tvDBEpisodes;
+        public int TvDBID { get; set; }
 
         public TvDBDetails(int tvDBID)
         {
@@ -26,8 +22,7 @@ namespace JMMServer.Providers.TvDB
             PopulateTvDBEpisodes();
         }
 
-        public int TvDBID { get; set; }
-
+        private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
         public Dictionary<int, TvDB_Episode> DictTvDBEpisodes
         {
             get
@@ -38,22 +33,23 @@ namespace JMMServer.Providers.TvDB
                     {
                         if (TvDBEpisodes != null)
                         {
-                            var start = DateTime.Now;
+                            DateTime start = DateTime.Now;
 
                             dictTvDBEpisodes = new Dictionary<int, TvDB_Episode>();
                             // create a dictionary of absolute episode numbers for tvdb episodes
                             // sort by season and episode number
                             // ignore season 0, which is used for specials
-                            var eps = TvDBEpisodes;
+                            List<TvDB_Episode> eps = TvDBEpisodes;
 
 
-                            var i = 1;
-                            foreach (var ep in eps)
+                            int i = 1;
+                            foreach (TvDB_Episode ep in eps)
                             {
                                 dictTvDBEpisodes[i] = ep;
                                 i++;
+
                             }
-                            var ts = DateTime.Now - start;
+                            TimeSpan ts = DateTime.Now - start;
                         }
                     }
                     catch (Exception ex)
@@ -65,6 +61,7 @@ namespace JMMServer.Providers.TvDB
             }
         }
 
+        private Dictionary<int, int> dictTvDBSeasons = null;
         public Dictionary<int, int> DictTvDBSeasons
         {
             get
@@ -75,23 +72,24 @@ namespace JMMServer.Providers.TvDB
                     {
                         if (TvDBEpisodes != null)
                         {
-                            var start = DateTime.Now;
+                            DateTime start = DateTime.Now;
 
                             dictTvDBSeasons = new Dictionary<int, int>();
                             // create a dictionary of season numbers and the first episode for that season
 
-                            var eps = TvDBEpisodes;
-                            var i = 1;
-                            var lastSeason = -999;
-                            foreach (var ep in eps)
+                            List<TvDB_Episode> eps = TvDBEpisodes;
+                            int i = 1;
+                            int lastSeason = -999;
+                            foreach (TvDB_Episode ep in eps)
                             {
                                 if (ep.SeasonNumber != lastSeason)
                                     dictTvDBSeasons[ep.SeasonNumber] = i;
 
                                 lastSeason = ep.SeasonNumber;
                                 i++;
+
                             }
-                            var ts = DateTime.Now - start;
+                            TimeSpan ts = DateTime.Now - start;
                             //logger.Trace("Got TvDB Seasons in {0} ms", ts.TotalMilliseconds);
                         }
                     }
@@ -104,6 +102,7 @@ namespace JMMServer.Providers.TvDB
             }
         }
 
+        private Dictionary<int, int> dictTvDBSeasonsSpecials = null;
         public Dictionary<int, int> DictTvDBSeasonsSpecials
         {
             get
@@ -114,19 +113,19 @@ namespace JMMServer.Providers.TvDB
                     {
                         if (TvDBEpisodes != null)
                         {
-                            var start = DateTime.Now;
+                            DateTime start = DateTime.Now;
 
                             dictTvDBSeasonsSpecials = new Dictionary<int, int>();
                             // create a dictionary of season numbers and the first episode for that season
 
-                            var eps = TvDBEpisodes;
-                            var i = 1;
-                            var lastSeason = -999;
-                            foreach (var ep in eps)
+                            List<TvDB_Episode> eps = TvDBEpisodes;
+                            int i = 1;
+                            int lastSeason = -999;
+                            foreach (TvDB_Episode ep in eps)
                             {
                                 if (ep.SeasonNumber > 0) continue;
 
-                                var thisSeason = 0;
+                                int thisSeason = 0;
                                 if (ep.AirsBeforeSeason.HasValue) thisSeason = ep.AirsBeforeSeason.Value;
                                 if (ep.AirsAfterSeason.HasValue) thisSeason = ep.AirsAfterSeason.Value;
 
@@ -135,8 +134,9 @@ namespace JMMServer.Providers.TvDB
 
                                 lastSeason = thisSeason;
                                 i++;
+
                             }
-                            var ts = DateTime.Now - start;
+                            TimeSpan ts = DateTime.Now - start;
                             //logger.Trace("Got TvDB Seasons in {0} ms", ts.TotalMilliseconds);
                         }
                     }
@@ -149,6 +149,28 @@ namespace JMMServer.Providers.TvDB
             }
         }
 
+        private void PopulateTvDBEpisodes()
+        {
+            try
+            {
+                TvDB_EpisodeRepository repTvEps = new TvDB_EpisodeRepository();
+                tvDBEpisodes = repTvEps.GetBySeriesID(TvDBID);
+
+                if (tvDBEpisodes.Count > 0)
+                {
+                    List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+                    sortCriteria.Add(new SortPropOrFieldAndDirection("SeasonNumber", false, SortType.eInteger));
+                    sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
+                    tvDBEpisodes = Sorting.MultiSort<TvDB_Episode>(tvDBEpisodes, sortCriteria);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+        }
+
+        private List<TvDB_Episode> tvDBEpisodes = null;
         public List<TvDB_Episode> TvDBEpisodes
         {
             get
@@ -158,27 +180,6 @@ namespace JMMServer.Providers.TvDB
                     PopulateTvDBEpisodes();
                 }
                 return tvDBEpisodes;
-            }
-        }
-
-        private void PopulateTvDBEpisodes()
-        {
-            try
-            {
-                var repTvEps = new TvDB_EpisodeRepository();
-                tvDBEpisodes = repTvEps.GetBySeriesID(TvDBID);
-
-                if (tvDBEpisodes.Count > 0)
-                {
-                    var sortCriteria = new List<SortPropOrFieldAndDirection>();
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("SeasonNumber", false, SortType.eInteger));
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-                    tvDBEpisodes = Sorting.MultiSort(tvDBEpisodes, sortCriteria);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException(ex.ToString(), ex);
             }
         }
     }

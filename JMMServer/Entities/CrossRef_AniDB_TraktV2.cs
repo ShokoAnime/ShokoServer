@@ -1,4 +1,8 @@
-﻿using JMMContracts;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using JMMContracts;
 using JMMServer.Repositories;
 using NHibernate;
 
@@ -24,26 +28,25 @@ namespace JMMServer.Entities
                 return GetByTraktShow(session);
             }
         }
-
         public Trakt_Show GetByTraktShow(ISession session)
         {
-            var repTraktShows = new Trakt_ShowRepository();
+            Trakt_ShowRepository repTraktShows = new Trakt_ShowRepository();
             return repTraktShows.GetByTraktSlug(session, TraktID);
         }
 
         public Contract_CrossRef_AniDB_TraktV2 ToContract()
         {
-            var contract = new Contract_CrossRef_AniDB_TraktV2();
-            contract.CrossRef_AniDB_TraktV2ID = CrossRef_AniDB_TraktV2ID;
-            contract.AnimeID = AnimeID;
-            contract.AniDBStartEpisodeType = AniDBStartEpisodeType;
-            contract.AniDBStartEpisodeNumber = AniDBStartEpisodeNumber;
-            contract.TraktID = TraktID;
-            contract.TraktSeasonNumber = TraktSeasonNumber;
-            contract.TraktStartEpisodeNumber = TraktStartEpisodeNumber;
-            contract.CrossRefSource = CrossRefSource;
+            Contract_CrossRef_AniDB_TraktV2 contract = new Contract_CrossRef_AniDB_TraktV2();
+            contract.CrossRef_AniDB_TraktV2ID = this.CrossRef_AniDB_TraktV2ID;
+            contract.AnimeID = this.AnimeID;
+            contract.AniDBStartEpisodeType = this.AniDBStartEpisodeType;
+            contract.AniDBStartEpisodeNumber = this.AniDBStartEpisodeNumber;
+            contract.TraktID = this.TraktID;
+            contract.TraktSeasonNumber = this.TraktSeasonNumber;
+            contract.TraktStartEpisodeNumber = this.TraktStartEpisodeNumber;
+            contract.CrossRefSource = this.CrossRefSource;
 
-            contract.TraktTitle = TraktTitle;
+            contract.TraktTitle = this.TraktTitle;
 
 
             return contract;

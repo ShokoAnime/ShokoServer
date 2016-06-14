@@ -1,18 +1,22 @@
-﻿using FluentNHibernate.Mapping;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using FluentNHibernate.Mapping;
 using JMMServer.Entities;
 
 namespace JMMServer.Mappings
 {
-    public class AniDB_Anime_RelationMap : ClassMap<AniDB_Anime_Relation>
-    {
-        public AniDB_Anime_RelationMap()
+	public class AniDB_Anime_RelationMap : ClassMap<AniDB_Anime_Relation>
+	{
+		public AniDB_Anime_RelationMap()
         {
-            Not.LazyLoad();
+			Not.LazyLoad();
             Id(x => x.AniDB_Anime_RelationID);
 
-            Map(x => x.AnimeID).Not.Nullable();
-            Map(x => x.RelatedAnimeID).Not.Nullable();
-            Map(x => x.RelationType).Not.Nullable();
+			Map(x => x.AnimeID).Not.Nullable();
+			Map(x => x.RelatedAnimeID).Not.Nullable();
+			Map(x => x.RelationType).Not.Nullable();
         }
-    }
+	}
 }

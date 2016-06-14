@@ -1,21 +1,26 @@
-﻿using FluentNHibernate.Mapping;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using FluentNHibernate.Mapping;
 using JMMServer.Entities;
 
 namespace JMMServer.Mappings
 {
-    public class AniDB_CharacterMap : ClassMap<AniDB_Character>
-    {
-        public AniDB_CharacterMap()
+	public class AniDB_CharacterMap : ClassMap<AniDB_Character>
+	{
+		public AniDB_CharacterMap()
         {
-            Not.LazyLoad();
+			Not.LazyLoad();
             Id(x => x.AniDB_CharacterID);
 
-            Map(x => x.CharDescription).Not.Nullable();
-            Map(x => x.CharID).Not.Nullable();
-            Map(x => x.PicName).Not.Nullable();
-            Map(x => x.CharKanjiName).Not.Nullable();
-            Map(x => x.CharName).Not.Nullable();
-            Map(x => x.CreatorListRaw).Not.Nullable();
+			Map(x => x.CharDescription).Not.Nullable();
+			Map(x => x.CharID).Not.Nullable();
+			Map(x => x.PicName).Not.Nullable();
+			Map(x => x.CharKanjiName).Not.Nullable();
+			Map(x => x.CharName).Not.Nullable();
+			Map(x => x.CreatorListRaw).Not.Nullable();
+
         }
-    }
+	}
 }

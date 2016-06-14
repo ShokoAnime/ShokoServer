@@ -1,62 +1,63 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Xml.Serialization;
-using AniDBAPI;
 using JMMServer.Entities;
+using AniDBAPI;
+using JMMServer.Repositories;
 
 namespace JMMServer.WebCache
 {
-    [Serializable]
-    [XmlRoot("AddCrossRef_AniDB_Other_Request")]
-    public class AddCrossRef_AniDB_OtherRequest : XMLBase
-    {
-        protected int animeID;
+	[Serializable]
+	[XmlRoot("AddCrossRef_AniDB_Other_Request")]
+	public class AddCrossRef_AniDB_OtherRequest : XMLBase
+	{
+		protected string username = "";
+		public string Username
+		{
+			get { return username; }
+			set { username = value; }
+		}
 
-        protected string crossRefID = "";
+		protected int animeID = 0;
+		public int AnimeID
+		{
+			get { return animeID; }
+			set { animeID = value; }
+		}
 
-        protected int crossRefType;
-        protected string username = "";
+		protected string crossRefID = "";
+		public string CrossRefID
+		{
+			get { return crossRefID; }
+			set { crossRefID = value; }
+		}
 
-        // default constructor
-        public AddCrossRef_AniDB_OtherRequest()
-        {
-        }
+		protected int crossRefType = 0;
+		public int CrossRefType
+		{
+			get { return crossRefType; }
+			set { crossRefType = value; }
+		}
 
-        // default constructor
-        public AddCrossRef_AniDB_OtherRequest(CrossRef_AniDB_Other data)
-        {
-            AnimeID = data.AnimeID;
-            CrossRefID = data.CrossRefID;
-            CrossRefType = data.CrossRefType;
+		// default constructor
+		public AddCrossRef_AniDB_OtherRequest()
+		{
+		}
 
-            var username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
-                username = Constants.AnonWebCacheUsername;
+		// default constructor
+		public AddCrossRef_AniDB_OtherRequest(CrossRef_AniDB_Other data)
+		{
+			this.AnimeID = data.AnimeID;
+			this.CrossRefID = data.CrossRefID;
+			this.CrossRefType = data.CrossRefType;
 
-            Username = username;
-        }
+			string username = ServerSettings.AniDB_Username;
+			if (ServerSettings.WebCache_Anonymous)
+				username = Constants.AnonWebCacheUsername;
 
-        public string Username
-        {
-            get { return username; }
-            set { username = value; }
-        }
-
-        public int AnimeID
-        {
-            get { return animeID; }
-            set { animeID = value; }
-        }
-
-        public string CrossRefID
-        {
-            get { return crossRefID; }
-            set { crossRefID = value; }
-        }
-
-        public int CrossRefType
-        {
-            get { return crossRefType; }
-            set { crossRefType = value; }
-        }
-    }
+			this.Username = username;
+		}
+	}
 }

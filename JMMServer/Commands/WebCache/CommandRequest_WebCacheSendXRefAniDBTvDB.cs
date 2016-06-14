@@ -1,104 +1,109 @@
 ﻿using System;
-using System.Xml;
-using JMMServer.Entities;
-using JMMServer.Providers.Azure;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using JMMServer.Repositories;
+using JMMServer.Entities;
+using JMMServer.WebCache;
+using System.Xml;
+using JMMServer.Providers.TvDB;
+using JMMServer.Providers.Azure;
 
 namespace JMMServer.Commands
 {
-    public class CommandRequest_WebCacheSendXRefAniDBTvDB : CommandRequestImplementation, ICommandRequest
-    {
-        public CommandRequest_WebCacheSendXRefAniDBTvDB()
-        {
-        }
+	public class CommandRequest_WebCacheSendXRefAniDBTvDB : CommandRequestImplementation, ICommandRequest
+	{
+		public int CrossRef_AniDB_TvDBID { get; set; }
 
-        public CommandRequest_WebCacheSendXRefAniDBTvDB(int xrefID)
-        {
-            CrossRef_AniDB_TvDBID = xrefID;
-            CommandType = (int)CommandRequestType.WebCache_SendXRefAniDBTvDB;
-            Priority = (int)DefaultPriority;
+		public CommandRequestPriority DefaultPriority
+		{
+			get { return CommandRequestPriority.Priority9; }
+		}
 
-            GenerateCommandID();
-        }
+		public string PrettyDescription
+		{
+			get
+			{
+				return string.Format("Sending cross ref for Anidb to TvDB from web cache: {0}", CrossRef_AniDB_TvDBID);
+			}
+		}
 
-        public int CrossRef_AniDB_TvDBID { get; set; }
+		public CommandRequest_WebCacheSendXRefAniDBTvDB()
+		{
+		}
 
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
+		public CommandRequest_WebCacheSendXRefAniDBTvDB(int xrefID)
+		{
+			this.CrossRef_AniDB_TvDBID = xrefID;
+			this.CommandType = (int)CommandRequestType.WebCache_SendXRefAniDBTvDB;
+			this.Priority = (int)DefaultPriority;
 
-        public string PrettyDescription
-        {
-            get
-            {
-                return string.Format("Sending cross ref for Anidb to TvDB from web cache: {0}", CrossRef_AniDB_TvDBID);
-            }
-        }
+			GenerateCommandID();
+		}
 
-        public override void ProcessCommand()
-        {
-            try
-            {
-                //if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
+		public override void ProcessCommand()
+		{
+			
+			try
+			{
+				//if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
 
-                var repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-                var xref = repCrossRef.GetByID(CrossRef_AniDB_TvDBID);
-                if (xref == null) return;
+				CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
+				CrossRef_AniDB_TvDBV2 xref = repCrossRef.GetByID(CrossRef_AniDB_TvDBID);
+				if (xref == null) return;
 
-                var repAnime = new AniDB_AnimeRepository();
-                var anime = repAnime.GetByAnimeID(xref.AnimeID);
-                if (anime == null) return;
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+				AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+				if (anime == null) return;
 
-                AzureWebAPI.Send_CrossRefAniDBTvDB(xref, anime.MainTitle);
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException("Error processing CommandRequest_WebCacheSendXRefAniDBTvDB: {0}" + ex, ex);
-            }
-        }
+				AzureWebAPI.Send_CrossRefAniDBTvDB(xref, anime.MainTitle);
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error processing CommandRequest_WebCacheSendXRefAniDBTvDB: {0}" + ex.ToString(), ex);
+				return;
+			}
+		}
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            CommandID = cq.CommandID;
-            CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
-            Priority = cq.Priority;
-            CommandDetails = cq.CommandDetails;
-            DateTimeUpdated = cq.DateTimeUpdated;
+		public override void GenerateCommandID()
+		{
+			this.CommandID = string.Format("CommandRequest_WebCacheSendXRefAniDBTvDB{0}", CrossRef_AniDB_TvDBID);
+		}
 
-            // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                var docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+		public override bool LoadFromDBCommand(CommandRequest cq)
+		{
+			this.CommandID = cq.CommandID;
+			this.CommandRequestID = cq.CommandRequestID;
+			this.CommandType = cq.CommandType;
+			this.Priority = cq.Priority;
+			this.CommandDetails = cq.CommandDetails;
+			this.DateTimeUpdated = cq.DateTimeUpdated;
 
-                // populate the fields
-                CrossRef_AniDB_TvDBID =
-                    int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheSendXRefAniDBTvDB",
-                        "CrossRef_AniDB_TvDBID"));
-            }
+			// read xml to get parameters
+			if (this.CommandDetails.Trim().Length > 0)
+			{
+				XmlDocument docCreator = new XmlDocument();
+				docCreator.LoadXml(this.CommandDetails);
 
-            return true;
-        }
+				// populate the fields
+				this.CrossRef_AniDB_TvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheSendXRefAniDBTvDB", "CrossRef_AniDB_TvDBID"));
+			}
 
-        public override void GenerateCommandID()
-        {
-            CommandID = string.Format("CommandRequest_WebCacheSendXRefAniDBTvDB{0}", CrossRef_AniDB_TvDBID);
-        }
+			return true;
+		}
 
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
+		public override CommandRequest ToDatabaseObject()
+		{
+			GenerateCommandID();
 
-            var cq = new CommandRequest();
-            cq.CommandID = CommandID;
-            cq.CommandType = CommandType;
-            cq.Priority = Priority;
-            cq.CommandDetails = ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
+			CommandRequest cq = new CommandRequest();
+			cq.CommandID = this.CommandID;
+			cq.CommandType = this.CommandType;
+			cq.Priority = this.Priority;
+			cq.CommandDetails = this.ToXML();
+			cq.DateTimeUpdated = DateTime.Now;
 
-            return cq;
-        }
-    }
+			return cq;
+		}
+	}
 }

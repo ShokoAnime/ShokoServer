@@ -1,4 +1,9 @@
-﻿using JMMContracts;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using JMMContracts;
 
 namespace JMMServer.Entities
 {
@@ -7,10 +12,10 @@ namespace JMMServer.Entities
         public int CustomTagID { get; private set; }
         public string TagName { get; set; }
         public string TagDescription { get; set; }
-
+        
         public Contract_CustomTag ToContract()
         {
-            var ctag = new Contract_CustomTag();
+            Contract_CustomTag ctag = new Contract_CustomTag();
 
             ctag.CustomTagID = CustomTagID;
             ctag.TagName = TagName;

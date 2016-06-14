@@ -1,4 +1,9 @@
-﻿using JMMContracts;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using JMMContracts;
 
 namespace JMMServer.Entities
 {
@@ -13,13 +18,13 @@ namespace JMMServer.Entities
 
         public Contract_CrossRef_AniDB_Trakt_Episode ToContract()
         {
-            var contract = new Contract_CrossRef_AniDB_Trakt_Episode();
-            contract.AnimeID = AnimeID;
-            contract.AniDBEpisodeID = AniDBEpisodeID;
-            contract.CrossRef_AniDB_Trakt_EpisodeID = CrossRef_AniDB_Trakt_EpisodeID;
-            contract.TraktID = TraktID;
-            contract.Season = Season;
-            contract.EpisodeNumber = EpisodeNumber;
+            Contract_CrossRef_AniDB_Trakt_Episode contract = new Contract_CrossRef_AniDB_Trakt_Episode();
+            contract.AnimeID = this.AnimeID;
+            contract.AniDBEpisodeID = this.AniDBEpisodeID;
+            contract.CrossRef_AniDB_Trakt_EpisodeID = this.CrossRef_AniDB_Trakt_EpisodeID;
+            contract.TraktID = this.TraktID;
+            contract.Season = this.Season;
+            contract.EpisodeNumber = this.EpisodeNumber;
 
             return contract;
         }

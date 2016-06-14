@@ -1,24 +1,34 @@
-﻿using System.Xml.Serialization;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace JMMServer.Providers.JMMAutoUpdates
 {
-    [XmlType(AnonymousType = true)]
-    public class Update
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
+    public partial class Update
     {
-        /// <remarks />
+
+
+        /// <remarks/>
         public string version { get; set; }
 
-        /// <remarks />
+        /// <remarks/>
         public string change { get; set; }
-
-        public long VersionAbs
-        {
-            get { return JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(version); }
-        }
 
         public override string ToString()
         {
             return string.Format("{0} - {1}", version, change);
+        }
+
+        public long VersionAbs
+        {
+            get
+            {
+                return JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(version);
+            }
+
         }
     }
 }

@@ -1,4 +1,9 @@
-﻿using JMMContracts;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using JMMContracts;
 
 namespace JMMServer.Providers.Azure
 {
@@ -19,9 +24,13 @@ namespace JMMServer.Providers.Azure
 
         public int? CrossRef_AniDB_TraktId { get; set; }
 
+        public CrossRef_AniDB_Trakt()
+		{
+		}
+
         public Contract_Azure_CrossRef_AniDB_Trakt ToContract()
         {
-            var ret = new Contract_Azure_CrossRef_AniDB_Trakt();
+            Contract_Azure_CrossRef_AniDB_Trakt ret = new Contract_Azure_CrossRef_AniDB_Trakt();
 
             ret.CrossRef_AniDB_TraktId = CrossRef_AniDB_TraktId;
             ret.AnimeID = AnimeID;

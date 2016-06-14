@@ -1,155 +1,163 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
-using System.Xml;
-using JMMServer.Entities;
-using JMMServer.Properties;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using JMMServer.Repositories;
+using JMMServer.Entities;
+using System.Xml;
+using AniDBAPI.Commands;
+using AniDBAPI;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
-    [Serializable]
-    public class CommandRequest_GetCalendar : CommandRequestImplementation, ICommandRequest
-    {
-        public CommandRequest_GetCalendar()
-        {
-        }
+	[Serializable]
+	public class CommandRequest_GetCalendar : CommandRequestImplementation, ICommandRequest
+	{
+		public bool ForceRefresh { get; set; }
 
-        public CommandRequest_GetCalendar(bool forced)
-        {
-            ForceRefresh = forced;
-            CommandType = (int)CommandRequestType.AniDB_GetCalendar;
-            Priority = (int)DefaultPriority;
+		public CommandRequestPriority DefaultPriority 
+		{
+			get { return CommandRequestPriority.Priority7; }
+		}
 
-            GenerateCommandID();
-        }
-
-        public bool ForceRefresh { get; set; }
-
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority7; }
-        }
-
-        public string PrettyDescription
-        {
-            get
-            {
+		public string PrettyDescription
+		{
+			get
+			{
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                return string.Format(Resources.Command_GetCalendar);
-            }
-        }
+                return string.Format(JMMServer.Properties.Resources.Command_GetCalendar);
+			}
+		}
 
-        public override void ProcessCommand()
-        {
-            logger.Info("Processing CommandRequest_GetCalendar");
+		public CommandRequest_GetCalendar()
+		{
+		}
 
-            try
-            {
-                // we will always assume that an anime was downloaded via http first
-                var repSched = new ScheduledUpdateRepository();
-                var repAnime = new AniDB_AnimeRepository();
+		public CommandRequest_GetCalendar(bool forced)
+		{
+			this.ForceRefresh = forced;
+			this.CommandType = (int)CommandRequestType.AniDB_GetCalendar;
+			this.Priority = (int)DefaultPriority;
 
-                var sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
-                if (sched == null)
-                {
-                    sched = new ScheduledUpdate();
-                    sched.UpdateType = (int)ScheduledUpdateType.AniDBCalendar;
-                    sched.UpdateDetails = "";
-                }
-                else
-                {
-                    var freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Calendar_UpdateFrequency);
+			GenerateCommandID();
+		}
 
-                    // if we have run this in the last 12 hours and are not forcing it, then exit
-                    var tsLastRun = DateTime.Now - sched.LastUpdate;
-                    if (tsLastRun.TotalHours < freqHours)
-                    {
-                        if (!ForceRefresh) return;
-                    }
-                }
+		public override void ProcessCommand()
+		{
+			logger.Info("Processing CommandRequest_GetCalendar");
 
-                sched.LastUpdate = DateTime.Now;
-                repSched.Save(sched);
+			try
+			{
+				// we will always assume that an anime was downloaded via http first
+				ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-                var colCalendars = JMMService.AnidbProcessor.GetCalendarUDP();
-                if (colCalendars == null || colCalendars.Calendars == null)
-                {
-                    logger.Error("Could not get calendar from AniDB");
-                    return;
-                }
-                foreach (var cal in colCalendars.Calendars)
-                {
-                    var anime = repAnime.GetByAnimeID(cal.AnimeID);
-                    if (anime != null)
-                    {
-                        // don't update if the local data is less 2 days old
-                        var ts = DateTime.Now - anime.DateTimeUpdated;
-                        if (ts.TotalDays >= 2)
-                        {
-                            var cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false);
-                            cmdAnime.Save();
-                        }
-                        else
-                        {
-                            // update the release date even if we don't update the anime record
-                            anime.AirDate = cal.ReleaseDate;
-                            repAnime.Save(anime);
-                        }
-                    }
-                    else
-                    {
-                        var cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false);
-                        cmdAnime.Save();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException("Error processing CommandRequest_GetCalendar: " + ex, ex);
-            }
-        }
+				ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
+				if (sched == null)
+				{
+					sched = new ScheduledUpdate();
+					sched.UpdateType = (int)ScheduledUpdateType.AniDBCalendar;
+					sched.UpdateDetails = "";
+				}
+				else
+				{
+					int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Calendar_UpdateFrequency);
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            CommandID = cq.CommandID;
-            CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
-            Priority = cq.Priority;
-            CommandDetails = cq.CommandDetails;
-            DateTimeUpdated = cq.DateTimeUpdated;
+					// if we have run this in the last 12 hours and are not forcing it, then exit
+					TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+					if (tsLastRun.TotalHours < freqHours)
+					{
+						if (!ForceRefresh) return;
+					}
+				}
 
-            // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                var docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+				sched.LastUpdate = DateTime.Now;
+				repSched.Save(sched);
 
-                // populate the fields
-                ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetCalendar", "ForceRefresh"));
-            }
+				CalendarCollection colCalendars = JMMService.AnidbProcessor.GetCalendarUDP();
+				if (colCalendars == null || colCalendars.Calendars == null)
+				{
+					logger.Error("Could not get calendar from AniDB");
+					return;
+				}
+				foreach (AniDBAPI.Calendar cal in colCalendars.Calendars)
+				{
+					AniDB_Anime anime = repAnime.GetByAnimeID(cal.AnimeID);
+					if (anime != null)
+					{
+						// don't update if the local data is less 2 days old
+						TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
+						if (ts.TotalDays >= 2)
+						{
+							CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false);
+							cmdAnime.Save();
+						}
+						else
+						{
+							// update the release date even if we don't update the anime record
+							anime.AirDate = cal.ReleaseDate;
+							repAnime.Save(anime);
 
-            return true;
-        }
+						}
+					}
+					else
+					{
+						CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false);
+						cmdAnime.Save();
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.ErrorException("Error processing CommandRequest_GetCalendar: " + ex.ToString(), ex);
+				return;
+			}
+		}
 
-        public override void GenerateCommandID()
-        {
-            CommandID = "CommandRequest_GetCalendar";
-        }
+		public override void GenerateCommandID()
+		{
+			this.CommandID = string.Format("CommandRequest_GetCalendar");
+		}
 
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
+		public override bool LoadFromDBCommand(CommandRequest cq)
+		{
+			this.CommandID = cq.CommandID;
+			this.CommandRequestID = cq.CommandRequestID;
+			this.CommandType = cq.CommandType;
+			this.Priority = cq.Priority;
+			this.CommandDetails = cq.CommandDetails;
+			this.DateTimeUpdated = cq.DateTimeUpdated;
 
-            var cq = new CommandRequest();
-            cq.CommandID = CommandID;
-            cq.CommandType = CommandType;
-            cq.Priority = Priority;
-            cq.CommandDetails = ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
+			// read xml to get parameters
+			if (this.CommandDetails.Trim().Length > 0)
+			{
+				XmlDocument docCreator = new XmlDocument();
+				docCreator.LoadXml(this.CommandDetails);
 
-            return cq;
-        }
-    }
+				// populate the fields
+				this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetCalendar", "ForceRefresh"));
+			}
+
+			return true;
+		}
+
+		public override CommandRequest ToDatabaseObject()
+		{
+			GenerateCommandID();
+
+			CommandRequest cq = new CommandRequest();
+			cq.CommandID = this.CommandID;
+			cq.CommandType = this.CommandType;
+			cq.Priority = this.Priority;
+			cq.CommandDetails = this.ToXML();
+			cq.DateTimeUpdated = DateTime.Now;
+
+			return cq;
+		}
+	}
 }

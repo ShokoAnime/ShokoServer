@@ -1,34 +1,36 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
 namespace AniDBAPI
 {
-    public class Raw_AniDB_AnimeDesc
-    {
-        // constructor
+	public class Raw_AniDB_AnimeDesc
+	{
+		public string Description { get; set; }
+
+		// constructor
         // sRecMessage is the message received from ANIDB file info command
-        public Raw_AniDB_AnimeDesc(string sRecMessage)
+		public Raw_AniDB_AnimeDesc(string sRecMessage)
         {
             // remove the header info
-            var sDetails = sRecMessage.Substring(14).Split('|');
+            string[] sDetails = sRecMessage.Substring(14).Split('|');
 
-            // 233 ANIMEDESC
+			// 233 ANIMEDESC
 
-            //  {int4 current part}|{int4 max parts}|{str description} 
-            //  0. 0 ** current part
-            //  1. 1 ** max parts
-            //  2. Blah blah ** description
+			//  {int4 current part}|{int4 max parts}|{str description} 
+			//  0. 0 ** current part
+			//  1. 1 ** max parts
+			//  2. Blah blah ** description
 
-            Description = AniDBAPILib.ProcessAniDBString(sDetails[2]);
+			this.Description = AniDBAPILib.ProcessAniDBString(sDetails[2]);
         }
-
         public Raw_AniDB_AnimeDesc()
         {
             Description = string.Empty;
         }
-
-        public string Description { get; set; }
-
-        public override string ToString()
-        {
-            return string.Format("Raw_AniDB_AnimeDesc:: Description: {0}", Description);
-        }
-    }
+		public override string ToString()
+		{
+			return string.Format("Raw_AniDB_AnimeDesc:: Description: {0}", Description);
+		}
+	}
 }

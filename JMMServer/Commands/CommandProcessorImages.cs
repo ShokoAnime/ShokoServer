@@ -1,258 +1,259 @@
 ﻿using System;
-using System.ComponentModel;
-using System.Globalization;
-using System.Threading;
-using JMMServer.Properties;
-using JMMServer.Repositories;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using NLog;
+using System.ComponentModel;
+using JMMServer.Repositories;
+using JMMServer.Entities;
+using System.Threading;
+using System.Collections;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
-    public class CommandProcessorImages
-    {
-        public delegate void QueueCountChangedHandler(QueueCountEventArgs ev);
+	public class CommandProcessorImages
+	{
+		private static Logger logger = LogManager.GetCurrentClassLogger();
+		private BackgroundWorker workerCommands = new BackgroundWorker();
+		private bool processingCommands = false;
+		private DateTime? pauseTime = null;
 
-        public delegate void QueueStateChangedHandler(QueueStateEventArgs ev);
+		private object lockQueueCount = new object();
+		private object lockQueueState = new object();
+		private object lockPaused = new object();
 
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-        private readonly object lockPaused = new object();
+		public delegate void QueueCountChangedHandler(QueueCountEventArgs ev);
+		public event QueueCountChangedHandler OnQueueCountChangedEvent;
+		protected void OQueueCountChanged(QueueCountEventArgs ev)
+		{
+			if (OnQueueCountChangedEvent != null)
+			{
+				OnQueueCountChangedEvent(ev);
+			}
+		}
 
-        private readonly object lockQueueCount = new object();
-        private readonly object lockQueueState = new object();
+		public delegate void QueueStateChangedHandler(QueueStateEventArgs ev);
+		public event QueueStateChangedHandler OnQueueStateChangedEvent;
+		protected void OQueueStateChanged(QueueStateEventArgs ev)
+		{
+			if (OnQueueStateChangedEvent != null)
+			{
+				OnQueueStateChangedEvent(ev);
+			}
+		}
 
-        private bool paused;
-        private DateTime? pauseTime;
-
-        private int queueCount;
-
-        private string queueState = Resources.Command_Idle;
-        private readonly BackgroundWorker workerCommands = new BackgroundWorker();
-
-        public CommandProcessorImages()
-        {
-            workerCommands.WorkerReportsProgress = true;
-            workerCommands.WorkerSupportsCancellation = true;
-            workerCommands.DoWork += workerCommands_DoWork;
-            workerCommands.RunWorkerCompleted += workerCommands_RunWorkerCompleted;
-        }
-
-        public bool Paused
-        {
-            get
-            {
-                lock (lockPaused)
-                {
-                    return paused;
-                }
-            }
-            set
-            {
-                lock (lockPaused)
-                {
+		private bool paused = false;
+		public bool Paused
+		{
+			get
+			{
+				lock (lockPaused)
+				{
+					return paused;
+				}
+			}
+			set
+			{
+				lock (lockPaused)
+				{
                     Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
                     paused = value;
-                    if (paused)
-                    {
-                        QueueState = Resources.Command_Paused;
-                        pauseTime = DateTime.Now;
-                    }
-                    else
-                    {
-                        QueueState = Resources.Command_Idle;
-                        pauseTime = null;
-                    }
+					if (paused)
+					{
+						QueueState = JMMServer.Properties.Resources.Command_Paused;
+						pauseTime = DateTime.Now;
+					}
+					else
+					{
+						QueueState = JMMServer.Properties.Resources.Command_Idle;
+						pauseTime = null;
+					}
 
-                    ServerInfo.Instance.ImagesQueuePaused = paused;
-                    ServerInfo.Instance.ImagesQueueRunning = !paused;
-                }
-            }
-        }
+					ServerInfo.Instance.ImagesQueuePaused = paused;
+					ServerInfo.Instance.ImagesQueueRunning = !paused;
+				}
+			}
+		}
 
-        public int QueueCount
-        {
-            get
-            {
-                lock (lockQueueCount)
-                {
-                    return queueCount;
-                }
-            }
-            set
-            {
-                lock (lockQueueCount)
-                {
-                    queueCount = value;
-                    OnQueueCountChangedEvent(new QueueCountEventArgs(queueCount));
-                }
-            }
-        }
+		private int queueCount = 0;
+		public int QueueCount
+		{
+			get
+			{
+				lock (lockQueueCount)
+				{
+					return queueCount;
+				}
+			}
+			set
+			{
+				lock (lockQueueCount)
+				{
+					queueCount = value;
+					OnQueueCountChangedEvent(new QueueCountEventArgs(queueCount));
+				}
+			}
+		}
 
-        public string QueueState
-        {
-            get
-            {
-                lock (lockQueueState)
-                {
+		private string queueState = JMMServer.Properties.Resources.Command_Idle;
+		public string QueueState
+		{
+			get
+			{
+				lock (lockQueueState)
+				{
                     Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                    queueState = Resources.Command_Idle;
+                    queueState = JMMServer.Properties.Resources.Command_Idle;
                     return queueState;
-                }
-            }
-            set
-            {
-                lock (lockQueueCount)
-                {
-                    queueState = value;
-                    OnQueueStateChangedEvent(new QueueStateEventArgs(queueState));
-                }
-            }
+				}
+			}
+			set
+			{
+				lock (lockQueueCount)
+				{
+					queueState = value;
+					OnQueueStateChangedEvent(new QueueStateEventArgs(queueState));
+				}
+			}
+		}
+
+		public bool ProcessingCommands
+		{
+			get { return processingCommands; }
+		}
+
+		public CommandProcessorImages()
+        {
+			workerCommands.WorkerReportsProgress = true;
+			workerCommands.WorkerSupportsCancellation = true;
+			workerCommands.DoWork += new DoWorkEventHandler(workerCommands_DoWork);
+			workerCommands.RunWorkerCompleted +=new RunWorkerCompletedEventHandler(workerCommands_RunWorkerCompleted);
         }
 
-        public bool ProcessingCommands { get; private set; }
-
-        public event QueueCountChangedHandler OnQueueCountChangedEvent;
-
-        protected void OQueueCountChanged(QueueCountEventArgs ev)
-        {
-            if (OnQueueCountChangedEvent != null)
-            {
-                OnQueueCountChangedEvent(ev);
-            }
-        }
-
-        public event QueueStateChangedHandler OnQueueStateChangedEvent;
-
-        protected void OQueueStateChanged(QueueStateEventArgs ev)
-        {
-            if (OnQueueStateChangedEvent != null)
-            {
-                OnQueueStateChangedEvent(ev);
-            }
-        }
-
-        private void workerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
+		void  workerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+		{
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            ProcessingCommands = false;
-            //logger.Trace("Stopping command worker (images)...");
-            QueueState = Resources.Command_Idle;
-            QueueCount = 0;
-        }
+            processingCommands = false;
+			//logger.Trace("Stopping command worker (images)...");
+			QueueState = JMMServer.Properties.Resources.Command_Idle;
+			QueueCount = 0;
+		}
 
-        public void Init()
-        {
+		public void Init()
+		{
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            ProcessingCommands = true;
-            //logger.Trace("Starting command worker (images)...");
-            QueueState = Resources.Command_StartingImages;
-            workerCommands.RunWorkerAsync();
-        }
+            processingCommands = true;
+			//logger.Trace("Starting command worker (images)...");
+			QueueState = JMMServer.Properties.Resources.Command_StartingImages;
+			this.workerCommands.RunWorkerAsync();
+		}
 
-        public void Stop()
-        {
-            workerCommands.CancelAsync();
-        }
+		public void Stop()
+		{
+			workerCommands.CancelAsync();
+		}
 
-        /// <summary>
-        ///     This is simply used to tell the command processor that a new command has been added to the database
-        /// </summary>
-        public void NotifyOfNewCommand()
-        {
-            // if the worker is busy, it will pick up the next command from the DB
-            if (ProcessingCommands)
-            {
-                //logger.Trace("NotifyOfNewCommand (images) exiting, worker already busy");
-                return;
-            }
+		/// <summary>
+		/// This is simply used to tell the command processor that a new command has been added to the database
+		/// </summary>
+		public void NotifyOfNewCommand()
+		{
+			// if the worker is busy, it will pick up the next command from the DB
+			if (processingCommands)
+			{
+				//logger.Trace("NotifyOfNewCommand (images) exiting, worker already busy");
+				return;
+			}
+			
+			// otherwise need to start the worker again
+			//logger.Trace("Restarting command worker (images)...");
 
-            // otherwise need to start the worker again
-            //logger.Trace("Restarting command worker (images)...");
+			processingCommands = true;
+			if (!workerCommands.IsBusy)
+				this.workerCommands.RunWorkerAsync();
+		}
 
-            ProcessingCommands = true;
-            if (!workerCommands.IsBusy)
-                workerCommands.RunWorkerAsync();
-        }
+		void workerCommands_DoWork(object sender, DoWorkEventArgs e)
+		{
+			while (true)
+			{
+				if (workerCommands.CancellationPending)
+				{
+					e.Cancel = true;
+					return;
+				}
 
-        private void workerCommands_DoWork(object sender, DoWorkEventArgs e)
-        {
-            while (true)
-            {
-                if (workerCommands.CancellationPending)
-                {
-                    e.Cancel = true;
-                    return;
-                }
+				// if paused we will sleep for 5 seconds, and the try again
+				// we will remove the pause if it was set more than 6 hours ago
+				// the pause is initiated when banned from AniDB or manually by the user
+				if (Paused)
+				{
+					try
+					{
+						if (workerCommands.CancellationPending)
+						{
+							e.Cancel = true;
+							return;
+						}
 
-                // if paused we will sleep for 5 seconds, and the try again
-                // we will remove the pause if it was set more than 6 hours ago
-                // the pause is initiated when banned from AniDB or manually by the user
-                if (Paused)
-                {
-                    try
-                    {
-                        if (workerCommands.CancellationPending)
-                        {
-                            e.Cancel = true;
-                            return;
-                        }
+						//logger.Trace("Images Queue is paused: {0}", pauseTime.Value);
+						TimeSpan ts = DateTime.Now - pauseTime.Value;
+						if (ts.TotalHours >= 6)
+						{
+							Paused = false;
+						}
+					}
+					catch { }
+					Thread.Sleep(5000);
+					continue;
+				}
 
-                        //logger.Trace("Images Queue is paused: {0}", pauseTime.Value);
-                        var ts = DateTime.Now - pauseTime.Value;
-                        if (ts.TotalHours >= 6)
-                        {
-                            Paused = false;
-                        }
-                    }
-                    catch
-                    {
-                    }
-                    Thread.Sleep(5000);
-                    continue;
-                }
+				//logger.Trace("Looking for next command request (images)...");
 
-                //logger.Trace("Looking for next command request (images)...");
+				CommandRequestRepository repCR = new CommandRequestRepository();
+				CommandRequest crdb = repCR.GetNextDBCommandRequestImages();
+				if (crdb == null) return;
 
-                var repCR = new CommandRequestRepository();
-                var crdb = repCR.GetNextDBCommandRequestImages();
-                if (crdb == null) return;
+				QueueCount = repCR.GetQueuedCommandCountImages();
+				//logger.Trace("{0} commands remaining in queue (images)", QueueCount);
 
-                QueueCount = repCR.GetQueuedCommandCountImages();
-                //logger.Trace("{0} commands remaining in queue (images)", QueueCount);
+				if (workerCommands.CancellationPending)
+				{
+					e.Cancel = true;
+					return;
+				}
 
-                if (workerCommands.CancellationPending)
-                {
-                    e.Cancel = true;
-                    return;
-                }
+				//logger.Trace("Next command request (images): {0}", crdb.CommandID);
 
-                //logger.Trace("Next command request (images): {0}", crdb.CommandID);
+				ICommandRequest icr = CommandHelper.GetCommand(crdb);
+				if (icr == null)
+				{
+					//logger.Trace("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
+					return;
+				}
 
-                var icr = CommandHelper.GetCommand(crdb);
-                if (icr == null)
-                {
-                    //logger.Trace("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
-                    return;
-                }
+				if (workerCommands.CancellationPending)
+				{
+					e.Cancel = true;
+					return;
+				}
 
-                if (workerCommands.CancellationPending)
-                {
-                    e.Cancel = true;
-                    return;
-                }
+				QueueState = icr.PrettyDescription;
 
-                QueueState = icr.PrettyDescription;
+				//logger.Trace("Processing command request (images): {0}", crdb.CommandID);
+				icr.ProcessCommand();
 
-                //logger.Trace("Processing command request (images): {0}", crdb.CommandID);
-                icr.ProcessCommand();
-
-                //logger.Trace("Deleting command request (images): {0}", crdb.CommandID);
-                repCR.Delete(crdb.CommandRequestID);
-                QueueCount = repCR.GetQueuedCommandCountImages();
-            }
-        }
-    }
+				//logger.Trace("Deleting command request (images): {0}", crdb.CommandID);
+				repCR.Delete(crdb.CommandRequestID);
+				QueueCount = repCR.GetQueuedCommandCountImages();
+			}
+		}
+	}
 }

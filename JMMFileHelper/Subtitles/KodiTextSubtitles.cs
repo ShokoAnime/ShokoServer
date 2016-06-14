@@ -1,6 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
+
 using Stream = JMMContracts.KodiContracts.Stream;
 
 namespace JMMFileHelper.Subtitles
@@ -9,20 +13,20 @@ namespace JMMFileHelper.Subtitles
     {
         public List<Stream> Process(string filename)
         {
-            var dirname = Path.GetDirectoryName(filename);
-            var fname = Path.GetFileNameWithoutExtension(filename);
-            if (string.IsNullOrEmpty(dirname) || string.IsNullOrEmpty(fname))
+            string dirname = Path.GetDirectoryName(filename);
+            string fname = Path.GetFileNameWithoutExtension(filename);
+            if (string.IsNullOrEmpty(dirname) || (string.IsNullOrEmpty(fname)))
                 return null;
-            var basename = Path.Combine(dirname, fname);
-            var extensions = new HashSet<string>(SubtitleHelper.Extensions.Keys);
+            string basename = Path.Combine(dirname, fname);
+            HashSet<string> extensions=new HashSet<string>(SubtitleHelper.Extensions.Keys);
             extensions.Remove("idx");
-            var streams = new List<Stream>();
-            foreach (var n in extensions)
+            List<Stream> streams=new List<Stream>();
+            foreach (string n in extensions)
             {
-                var newname = basename + "." + n;
+                string newname = basename + "." + n;
                 if (File.Exists(newname))
                 {
-                    var ss = GetStreams(newname);
+                    List<Stream> ss = GetStreams(newname);
                     if ((ss != null) && (ss.Count > 0))
                         streams.AddRange(ss);
                 }
@@ -32,21 +36,21 @@ namespace JMMFileHelper.Subtitles
 
         public List<Stream> GetStreams(string filename)
         {
-            var ext = Path.GetExtension(filename);
+            string ext = Path.GetExtension(filename);
             if (string.IsNullOrEmpty(ext))
                 return null;
             ext = ext.Replace(".", string.Empty).ToLower();
-            var name = Path.GetFileNameWithoutExtension(filename);
+            string name = Path.GetFileNameWithoutExtension(filename);
             if (string.IsNullOrEmpty(name))
                 return null;
-            var lm = new Regex(".+\\.([^\\.]+)$", RegexOptions.Singleline);
-            var col = lm.Matches(name);
-            var language = "xx";
+            Regex lm=new Regex(".+\\.([^\\.]+)$",RegexOptions.Singleline);
+            MatchCollection col = lm.Matches(name);
+            string language="xx";
             foreach (Match m in col)
             {
                 if (m.Success)
                 {
-                    var val = m.Groups[1].Value.ToLower();
+                    string val = m.Groups[1].Value.ToLower();
                     if (SubtitleHelper.Iso639_3_TO_Iso639_1.ContainsKey(val))
                     {
                         language = SubtitleHelper.Iso639_3_TO_Iso639_1[val];
@@ -64,14 +68,14 @@ namespace JMMFileHelper.Subtitles
                     }
                 }
             }
-            string format = null;
+            string format=null;
             if ((ext == "txt") || (ext == "sub"))
             {
-                var lines = File.ReadAllLines(filename);
-                string firstline = null;
-                foreach (var ws in lines)
+                string[] lines = File.ReadAllLines(filename);
+                string firstline=null;
+                foreach (string ws in lines)
                 {
-                    var k = ws.Trim();
+                    string k = ws.Trim();
                     if (!string.IsNullOrEmpty(k))
                     {
                         firstline = k;
@@ -80,13 +84,13 @@ namespace JMMFileHelper.Subtitles
                 }
                 if (firstline != null)
                 {
-                    lm = new Regex("^\\{[0-9]+\\}\\{[0-9]*\\}", RegexOptions.Singleline);
-                    var m = lm.Match(firstline);
+                    lm=new Regex("^\\{[0-9]+\\}\\{[0-9]*\\}",RegexOptions.Singleline);
+                    Match m = lm.Match(firstline);
                     if (m.Success)
                         format = "microdvd";
                     else
                     {
-                        lm = new Regex("^[0-9]{1,2}:[0-9]{2}:[0-9]{2}[:=,]", RegexOptions.Singleline);
+                        lm=new Regex("^[0-9]{1,2}:[0-9]{2}:[0-9]{2}[:=,]",RegexOptions.Singleline);
                         m = lm.Match(firstline);
                         if (m.Success)
                             format = "txt";
@@ -103,15 +107,15 @@ namespace JMMFileHelper.Subtitles
             ext = ext.Replace("ass", "ssa");
             if (format == null)
                 format = ext;
-            var s = new Stream();
+            Stream s=new Stream();
             s.Format = format;
             s.StreamType = "3";
             s.File = filename;
             s.LanguageCode = SubtitleHelper.Iso639_1_TO_Iso639_3[language];
             s.Language = SubtitleHelper.Iso639_1_TO_Languages[language];
-            var sts = new List<Stream>();
+            List<Stream> sts=new List<Stream>();
             sts.Add(s);
             return sts;
-        }
+        } 
     }
 }

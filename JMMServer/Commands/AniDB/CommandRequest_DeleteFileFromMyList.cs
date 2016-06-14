@@ -1,70 +1,75 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
-using System.Xml;
-using AniDBAPI;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using JMMServer.Repositories;
 using JMMServer.Entities;
-using JMMServer.Properties;
+using System.Xml;
+using JMMServer.Commands.MAL;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
-    [Serializable]
-    public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation, ICommandRequest
-    {
-        public CommandRequest_DeleteFileFromMyList()
-        {
-        }
+	[Serializable]
+	public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation, ICommandRequest
+	{
+		public string Hash { get; set; }
+		public long FileSize { get; set; }
+		public int FileID { get; set; }
 
-        public CommandRequest_DeleteFileFromMyList(string hash, long fileSize)
-        {
-            Hash = hash;
-            FileSize = fileSize;
-            FileID = -1;
-            CommandType = (int)CommandRequestType.AniDB_DeleteFileUDP;
-            Priority = (int)DefaultPriority;
+		public CommandRequestPriority DefaultPriority
+		{
+			get { return CommandRequestPriority.Priority9; }
+		}
 
-            GenerateCommandID();
-        }
-
-        public CommandRequest_DeleteFileFromMyList(int fileID)
-        {
-            Hash = "";
-            FileSize = 0;
-            FileID = fileID;
-            CommandType = (int)CommandRequestType.AniDB_DeleteFileUDP;
-            Priority = (int)DefaultPriority;
-
-            GenerateCommandID();
-        }
-
-        public string Hash { get; set; }
-        public long FileSize { get; set; }
-        public int FileID { get; set; }
-
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
-
-        public string PrettyDescription
-        {
-            get
-            {
+		public string PrettyDescription
+		{
+			get
+			{
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                return string.Format(Resources.AniDB_MyListDelete, Hash, FileID);
-            }
-        }
+                return string.Format(JMMServer.Properties.Resources.AniDB_MyListDelete, Hash, FileID);
+			}
+		}
 
-        public override void ProcessCommand()
-        {
-            logger.Info("Processing CommandRequest_DeleteFileFromMyList: {0}_{1}", Hash, FileID);
+		public CommandRequest_DeleteFileFromMyList()
+		{
+		}
 
-            try
-            {
+		public CommandRequest_DeleteFileFromMyList(string hash, long fileSize)
+		{
+			this.Hash = hash;
+			this.FileSize = fileSize;
+			this.FileID = -1;
+			this.CommandType = (int)CommandRequestType.AniDB_DeleteFileUDP;
+			this.Priority = (int)DefaultPriority;
+
+			GenerateCommandID();
+		}
+
+		public CommandRequest_DeleteFileFromMyList(int fileID)
+		{
+			this.Hash = "";
+			this.FileSize = 0;
+			this.FileID = fileID;
+			this.CommandType = (int)CommandRequestType.AniDB_DeleteFileUDP;
+			this.Priority = (int)DefaultPriority;
+
+			GenerateCommandID();
+		}
+
+		public override void ProcessCommand()
+		{
+			logger.Info("Processing CommandRequest_DeleteFileFromMyList: {0}_{1}", Hash, FileID);
+
+			try
+			{
                 switch (ServerSettings.AniDB_MyList_DeleteType)
                 {
-                    case AniDBFileDeleteType.Delete:
+                    case AniDBAPI.AniDBFileDeleteType.Delete:
                         if (FileID > 0)
                             JMMService.AnidbProcessor.DeleteFileFromMyList(FileID);
                         else
@@ -73,7 +78,7 @@ namespace JMMServer.Commands
                         logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
                         break;
 
-                    case AniDBFileDeleteType.MarkDeleted:
+                    case AniDBAPI.AniDBFileDeleteType.MarkDeleted:
                         if (FileID < 0)
                         {
                             JMMService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
@@ -81,7 +86,7 @@ namespace JMMServer.Commands
                         }
                         break;
 
-                    case AniDBFileDeleteType.MarkUnknown:
+                    case AniDBAPI.AniDBFileDeleteType.MarkUnknown:
                         if (FileID < 0)
                         {
                             JMMService.AnidbProcessor.MarkFileAsUnknown(Hash, FileSize);
@@ -89,9 +94,8 @@ namespace JMMServer.Commands
                         }
                         break;
 
-                    case AniDBFileDeleteType.DeleteLocalOnly:
-                        logger.Info("Keeping physical file and AniDB MyList entry, deleting from local DB: {0}_{1}",
-                            Hash, FileID);
+                    case AniDBAPI.AniDBFileDeleteType.DeleteLocalOnly:
+                            logger.Info("Keeping physical file and AniDB MyList entry, deleting from local DB: {0}_{1}", Hash, FileID);
                         break;
 
                     default:
@@ -104,8 +108,8 @@ namespace JMMServer.Commands
                 }
 
 
-                if (ServerSettings.AniDB_MyList_DeleteType == AniDBFileDeleteType.Delete ||
-                    ServerSettings.AniDB_MyList_DeleteType == AniDBFileDeleteType.MarkDeleted)
+                if (ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.Delete ||
+                    ServerSettings.AniDB_MyList_DeleteType == AniDBAPI.AniDBFileDeleteType.MarkDeleted)
                 {
                     /*VideoLocalRepository repVids = new VideoLocalRepository();
                     VideoLocal vid = repVids.GetByHash(this.Hash);
@@ -127,62 +131,65 @@ namespace JMMServer.Commands
                     // By the time we get to this point, the VideoLocal records would have been deleted
                     // So we can't get the episode records to do this on an ep by ep basis
                     // lets also try adding to the users trakt collecion by sync'ing the series
+
                 }
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Error processing CommandRequest_AddFileToMyList: {0}_{1} - {2}", Hash, FileID,
-                    ex.ToString());
-            }
-        }
+                
+			}
+			catch (Exception ex)
+			{
+				logger.Error("Error processing CommandRequest_AddFileToMyList: {0}_{1} - {2}", Hash, FileID, ex.ToString());
+				return;
+			}
+		}
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            CommandID = cq.CommandID;
-            CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
-            Priority = cq.Priority;
-            CommandDetails = cq.CommandDetails;
-            DateTimeUpdated = cq.DateTimeUpdated;
+		/// <summary>
+		/// This should generate a unique key for a command
+		/// It will be used to check whether the command has already been queued before adding it
+		/// </summary>
+		public override void GenerateCommandID()
+		{
+			this.CommandID = string.Format("CommandRequest_DeleteFileFromMyList_{0}_{1}", Hash, FileID);
+		}
 
-            // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                var docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+		public override bool LoadFromDBCommand(CommandRequest cq)
+		{
+			this.CommandID = cq.CommandID;
+			this.CommandRequestID = cq.CommandRequestID;
+			this.CommandType = cq.CommandType;
+			this.Priority = cq.Priority;
+			this.CommandDetails = cq.CommandDetails;
+			this.DateTimeUpdated = cq.DateTimeUpdated;
 
-                // populate the fields
-                Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "Hash");
-                FileSize = long.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileSize"));
-                FileID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileID"));
-            }
+			// read xml to get parameters
+			if (this.CommandDetails.Trim().Length > 0)
+			{
+				XmlDocument docCreator = new XmlDocument();
+				docCreator.LoadXml(this.CommandDetails);
 
-            if (Hash.Trim().Length > 0)
-                return true;
-            return false;
-        }
+				// populate the fields
+				this.Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "Hash");
+				this.FileSize = long.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileSize"));
+				this.FileID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileID"));
+			}
 
-        /// <summary>
-        ///     This should generate a unique key for a command
-        ///     It will be used to check whether the command has already been queued before adding it
-        /// </summary>
-        public override void GenerateCommandID()
-        {
-            CommandID = string.Format("CommandRequest_DeleteFileFromMyList_{0}_{1}", Hash, FileID);
-        }
+			if (this.Hash.Trim().Length > 0)
+				return true;
+			else
+				return false;
+		}
 
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
+		public override CommandRequest ToDatabaseObject()
+		{
+			GenerateCommandID();
 
-            var cq = new CommandRequest();
-            cq.CommandID = CommandID;
-            cq.CommandType = CommandType;
-            cq.Priority = Priority;
-            cq.CommandDetails = ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
+			CommandRequest cq = new CommandRequest();
+			cq.CommandID = this.CommandID;
+			cq.CommandType = this.CommandType;
+			cq.Priority = this.Priority;
+			cq.CommandDetails = this.ToXML();
+			cq.DateTimeUpdated = DateTime.Now;
 
-            return cq;
-        }
-    }
+			return cq;
+		}
+	}
 }

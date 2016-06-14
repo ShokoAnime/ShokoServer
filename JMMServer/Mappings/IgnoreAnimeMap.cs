@@ -1,18 +1,22 @@
-﻿using FluentNHibernate.Mapping;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using FluentNHibernate.Mapping;
 using JMMServer.Entities;
 
 namespace JMMServer.Mappings
 {
-    public class IgnoreAnimeMap : ClassMap<IgnoreAnime>
-    {
-        public IgnoreAnimeMap()
+	public class IgnoreAnimeMap : ClassMap<IgnoreAnime>
+	{
+		public IgnoreAnimeMap()
         {
-            Not.LazyLoad();
+			Not.LazyLoad();
             Id(x => x.IgnoreAnimeID);
 
-            Map(x => x.AnimeID).Not.Nullable();
-            Map(x => x.JMMUserID).Not.Nullable();
-            Map(x => x.IgnoreType).Not.Nullable();
+			Map(x => x.AnimeID).Not.Nullable();
+			Map(x => x.JMMUserID).Not.Nullable();
+			Map(x => x.IgnoreType).Not.Nullable();
         }
-    }
+	}
 }

@@ -1,28 +1,36 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Xml;
+using NLog;
+using System.IO;
+using JMMServer.ImageDownload;
 using JMMContracts;
-using JMMServer.Providers.TraktTV.Contracts;
 using JMMServer.Repositories;
+using JMMServer.Providers.TraktTV;
+using JMMServer.Providers.TraktTV.Contracts;
 
 namespace JMMServer.Entities
 {
-    public class Trakt_Show
-    {
-        public int Trakt_ShowID { get; private set; }
-        public string TraktID { get; set; }
-        public string Title { get; set; }
-        public string Year { get; set; }
-        public string URL { get; set; }
-        public string Overview { get; set; }
-        public int? TvDB_ID { get; set; }
+	public class Trakt_Show
+	{
+		public int Trakt_ShowID { get; private set; }
+		public string TraktID { get; set; }
+		public string Title { get; set; }
+		public string Year { get; set; }
+		public string URL { get; set; }
+		public string Overview { get; set; }
+		public int? TvDB_ID { get; set; }
 
-        public List<Trakt_Season> Seasons
-        {
-            get
-            {
-                var repSeasons = new Trakt_SeasonRepository();
-                return repSeasons.GetByShowID(Trakt_ShowID);
-            }
-        }
+		public List<Trakt_Season> Seasons
+		{
+			get
+			{
+				Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
+				return repSeasons.GetByShowID(Trakt_ShowID);
+			}
+		}
 
         public void Populate(TraktV2ShowExtended tvshow)
         {
@@ -44,23 +52,23 @@ namespace JMMServer.Entities
             Year = tvshow.Year.ToString();
         }
 
-        public Contract_Trakt_Show ToContract()
-        {
-            var contract = new Contract_Trakt_Show();
+		public Contract_Trakt_Show ToContract()
+		{
+			Contract_Trakt_Show contract = new Contract_Trakt_Show();
 
-            contract.Trakt_ShowID = Trakt_ShowID;
-            contract.TraktID = TraktID;
-            contract.Title = Title;
-            contract.Year = Year;
-            contract.URL = URL;
-            contract.Overview = Overview;
-            contract.TvDB_ID = TvDB_ID;
-            contract.Seasons = new List<Contract_Trakt_Season>();
+			contract.Trakt_ShowID = Trakt_ShowID;
+			contract.TraktID = TraktID;
+			contract.Title = Title;
+			contract.Year = Year;
+			contract.URL = URL;
+			contract.Overview = Overview;
+			contract.TvDB_ID = TvDB_ID;
+			contract.Seasons = new List<Contract_Trakt_Season>();
 
-            foreach (var season in Seasons)
-                contract.Seasons.Add(season.ToContract());
+			foreach (Trakt_Season season in Seasons)
+				contract.Seasons.Add(season.ToContract());
 
-            return contract;
-        }
-    }
+			return contract;
+		}
+	}
 }

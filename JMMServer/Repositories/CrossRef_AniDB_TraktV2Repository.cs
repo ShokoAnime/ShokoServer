@@ -1,7 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using JMMServer.Entities;
-using NHibernate;
 using NHibernate.Criterion;
+using NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -48,8 +51,7 @@ namespace JMMServer.Repositories
             return new List<CrossRef_AniDB_TraktV2>(xrefs);
         }
 
-        public List<CrossRef_AniDB_TraktV2> GetByAnimeIDEpTypeEpNumber(ISession session, int id, int aniEpType,
-            int aniEpisodeNumber)
+        public List<CrossRef_AniDB_TraktV2> GetByAnimeIDEpTypeEpNumber(ISession session, int id, int aniEpType, int aniEpisodeNumber)
         {
             var xrefs = session
                 .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
@@ -61,10 +63,9 @@ namespace JMMServer.Repositories
             return new List<CrossRef_AniDB_TraktV2>(xrefs);
         }
 
-        public CrossRef_AniDB_TraktV2 GetByTraktID(ISession session, string id, int season, int episodeNumber,
-            int animeID, int aniEpType, int aniEpisodeNumber)
+        public CrossRef_AniDB_TraktV2 GetByTraktID(ISession session, string id, int season, int episodeNumber, int animeID, int aniEpType, int aniEpisodeNumber)
         {
-            var cr = session
+            CrossRef_AniDB_TraktV2 cr = session
                 .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
                 .Add(Restrictions.Eq("TraktID", id))
                 .Add(Restrictions.Eq("TraktSeasonNumber", season))
@@ -76,8 +77,7 @@ namespace JMMServer.Repositories
             return cr;
         }
 
-        public CrossRef_AniDB_TraktV2 GetByTraktID(string id, int season, int episodeNumber, int animeID, int aniEpType,
-            int aniEpisodeNumber)
+        public CrossRef_AniDB_TraktV2 GetByTraktID(string id, int season, int episodeNumber, int animeID, int aniEpType, int aniEpisodeNumber)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
@@ -90,10 +90,10 @@ namespace JMMServer.Repositories
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 var xrefs = session
-                    .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
-                    .Add(Restrictions.Eq("TraktID", traktID))
-                    .Add(Restrictions.Eq("TraktSeasonNumber", season))
-                    .List<CrossRef_AniDB_TraktV2>();
+                .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
+                .Add(Restrictions.Eq("TraktID", traktID))
+                .Add(Restrictions.Eq("TraktSeasonNumber", season))
+                .List<CrossRef_AniDB_TraktV2>();
 
                 return new List<CrossRef_AniDB_TraktV2>(xrefs);
             }
@@ -104,9 +104,9 @@ namespace JMMServer.Repositories
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 var xrefs = session
-                    .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
-                    .Add(Restrictions.Eq("TraktID", traktID))
-                    .List<CrossRef_AniDB_TraktV2>();
+                .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
+                .Add(Restrictions.Eq("TraktID", traktID))
+                .List<CrossRef_AniDB_TraktV2>();
 
                 return new List<CrossRef_AniDB_TraktV2>(xrefs);
             }
@@ -131,7 +131,7 @@ namespace JMMServer.Repositories
                 // populate the database
                 using (var transaction = session.BeginTransaction())
                 {
-                    var cr = GetByID(id);
+                    CrossRef_AniDB_TraktV2 cr = GetByID(id);
                     if (cr != null)
                     {
                         session.Delete(cr);

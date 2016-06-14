@@ -1,102 +1,112 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Xml;
 using JMMServer.Entities;
-using JMMServer.Properties;
+using JMMServer.Repositories;
+using JMMServer.Providers.TvDB;
+using JMMServer.WebCache;
 using JMMServer.Providers.TraktTV;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands
 {
-    [Serializable]
-    public class CommandRequest_TraktUpdateInfoAndImages : CommandRequestImplementation, ICommandRequest
-    {
-        public CommandRequest_TraktUpdateInfoAndImages()
-        {
-        }
+	[Serializable]
+	public class CommandRequest_TraktUpdateInfoAndImages : CommandRequestImplementation, ICommandRequest
+	{
+		public string TraktID { get; set; }
 
-        public CommandRequest_TraktUpdateInfoAndImages(string traktID)
-        {
-            TraktID = traktID;
-            CommandType = (int)CommandRequestType.Trakt_UpdateInfoImages;
-            Priority = (int)DefaultPriority;
+		public CommandRequestPriority DefaultPriority 
+		{
+			get { return CommandRequestPriority.Priority9; }
+		}
 
-            GenerateCommandID();
-        }
-
-        public string TraktID { get; set; }
-
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority9; }
-        }
-
-        public string PrettyDescription
-        {
-            get
-            {
+		public string PrettyDescription
+		{
+			get
+			{
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                return string.Format(Resources.Command_UpdateTraktData, TraktID);
-            }
-        }
+                return string.Format(JMMServer.Properties.Resources.Command_UpdateTraktData, TraktID);
+			}
+		}
 
+		public CommandRequest_TraktUpdateInfoAndImages()
+		{
+		}
 
-        public override void ProcessCommand()
-        {
-            logger.Info("Processing CommandRequest_TraktUpdateInfoAndImages: {0}", TraktID);
+		public CommandRequest_TraktUpdateInfoAndImages(string traktID)
+		{
+			this.TraktID = traktID;
+			this.CommandType = (int)CommandRequestType.Trakt_UpdateInfoImages;
+			this.Priority = (int)DefaultPriority;
 
-            try
-            {
-                TraktTVHelper.UpdateAllInfoAndImages(TraktID, false);
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Error processing CommandRequest_TraktUpdateInfoAndImages: {0} - {1}", TraktID,
-                    ex.ToString());
-            }
-        }
+			GenerateCommandID();
+		}
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            CommandID = cq.CommandID;
-            CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
-            Priority = cq.Priority;
-            CommandDetails = cq.CommandDetails;
-            DateTimeUpdated = cq.DateTimeUpdated;
+		
 
-            // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                var docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+		public override void ProcessCommand()
+		{
+			logger.Info("Processing CommandRequest_TraktUpdateInfoAndImages: {0}", TraktID);
 
-                // populate the fields
-                TraktID = TryGetProperty(docCreator, "CommandRequest_TraktUpdateInfoAndImages", "TraktID");
-            }
+			try
+			{
+				TraktTVHelper.UpdateAllInfoAndImages(TraktID, false);
 
-            return true;
-        }
+			}
+			catch (Exception ex)
+			{
+				logger.Error("Error processing CommandRequest_TraktUpdateInfoAndImages: {0} - {1}", TraktID, ex.ToString());
+				return;
+			}
+		}
 
+		
+		
+		public override void GenerateCommandID()
+		{
+			this.CommandID = string.Format("CommandRequest_TraktUpdateInfoAndImages{0}", this.TraktID);
+		}
 
-        public override void GenerateCommandID()
-        {
-            CommandID = string.Format("CommandRequest_TraktUpdateInfoAndImages{0}", TraktID);
-        }
+		public override bool LoadFromDBCommand(CommandRequest cq)
+		{
+			this.CommandID = cq.CommandID;
+			this.CommandRequestID = cq.CommandRequestID;
+			this.CommandType = cq.CommandType;
+			this.Priority = cq.Priority;
+			this.CommandDetails = cq.CommandDetails;
+			this.DateTimeUpdated = cq.DateTimeUpdated;
 
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
+			// read xml to get parameters
+			if (this.CommandDetails.Trim().Length > 0)
+			{
+				XmlDocument docCreator = new XmlDocument();
+				docCreator.LoadXml(this.CommandDetails);
 
-            var cq = new CommandRequest();
-            cq.CommandID = CommandID;
-            cq.CommandType = CommandType;
-            cq.Priority = Priority;
-            cq.CommandDetails = ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
+				// populate the fields
+				this.TraktID = TryGetProperty(docCreator, "CommandRequest_TraktUpdateInfoAndImages", "TraktID");
+			}
 
-            return cq;
-        }
-    }
+			return true;
+		}
+
+		public override CommandRequest ToDatabaseObject()
+		{
+			GenerateCommandID();
+
+			CommandRequest cq = new CommandRequest();
+			cq.CommandID = this.CommandID;
+			cq.CommandType = this.CommandType;
+			cq.Priority = this.Priority;
+			cq.CommandDetails = this.ToXML();
+			cq.DateTimeUpdated = DateTime.Now;
+
+			return cq;
+		}
+	}
 }

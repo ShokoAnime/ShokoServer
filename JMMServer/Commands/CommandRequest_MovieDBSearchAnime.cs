@@ -1,184 +1,189 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Threading;
-using System.Xml;
+using System.Linq;
+using System.Text;
 using JMMServer.Entities;
-using JMMServer.Properties;
-using JMMServer.Providers.Azure;
-using JMMServer.Providers.MovieDB;
 using JMMServer.Repositories;
+using JMMServer.Providers.TvDB;
+using JMMServer.WebCache;
+using System.Xml;
+using JMMServer.Providers.MovieDB;
 using NHibernate;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Threading;
+using System.Globalization;
 
 namespace JMMServer.Commands
 {
-    [Serializable]
-    public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation, ICommandRequest
-    {
-        public CommandRequest_MovieDBSearchAnime()
-        {
-        }
+	[Serializable]
+	public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation, ICommandRequest
+	{
+		public int AnimeID { get; set; }
+		public bool ForceRefresh { get; set; }
 
-        public CommandRequest_MovieDBSearchAnime(int animeID, bool forced)
-        {
-            AnimeID = animeID;
-            ForceRefresh = forced;
-            CommandType = (int)CommandRequestType.MovieDB_SearchAnime;
-            Priority = (int)DefaultPriority;
+		public CommandRequestPriority DefaultPriority 
+		{
+			get { return CommandRequestPriority.Priority8; }
+		}
 
-            GenerateCommandID();
-        }
-
-        public int AnimeID { get; set; }
-        public bool ForceRefresh { get; set; }
-
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority8; }
-        }
-
-        public string PrettyDescription
-        {
-            get
-            {
+		public string PrettyDescription
+		{
+			get
+			{
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                return string.Format(Resources.Command_SearchTMDb, AnimeID);
-            }
-        }
+                return string.Format(JMMServer.Properties.Resources.Command_SearchTMDb, AnimeID);
+			}
+		}
 
-        public override void ProcessCommand()
-        {
-            logger.Info("Processing CommandRequest_MovieDBSearchAnime: {0}", AnimeID);
+		public CommandRequest_MovieDBSearchAnime()
+		{
+		}
 
-            try
-            {
-                using (var session = JMMService.SessionFactory.OpenSession())
-                {
-                    // first check if the user wants to use the web cache
-                    if (ServerSettings.WebCache_TvDB_Get)
-                    {
-                        try
-                        {
-                            var repMovies = new MovieDB_MovieRepository();
+		public CommandRequest_MovieDBSearchAnime(int animeID, bool forced)
+		{
+			this.AnimeID = animeID;
+			this.ForceRefresh = forced;
+			this.CommandType = (int)CommandRequestType.MovieDB_SearchAnime;
+			this.Priority = (int)DefaultPriority;
 
-                            var crossRef = AzureWebAPI.Get_CrossRefAniDBOther(AnimeID, CrossRefType.MovieDB);
-                            if (crossRef != null)
-                            {
-                                var movieID = int.Parse(crossRef.CrossRefID);
-                                var movie = repMovies.GetByOnlineID(session, movieID);
-                                if (movie == null)
-                                {
-                                    // update the info from online
-                                    MovieDBHelper.UpdateMovieInfo(session, movieID, true);
-                                    movie = repMovies.GetByOnlineID(movieID);
-                                }
+			GenerateCommandID();
+		}
 
-                                if (movie != null)
-                                {
-                                    // since we are using the web cache result, let's save it
-                                    MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, true);
-                                    return;
-                                }
-                            }
-                        }
-                        catch (Exception)
-                        {
-                        }
-                    }
+		public override void ProcessCommand()
+		{
+			logger.Info("Processing CommandRequest_MovieDBSearchAnime: {0}", AnimeID);
 
-                    var searchCriteria = "";
-                    var repAnime = new AniDB_AnimeRepository();
-                    var anime = repAnime.GetByAnimeID(session, AnimeID);
-                    if (anime == null) return;
+			try
+			{
+				using (var session = JMMService.SessionFactory.OpenSession())
+				{
+					// first check if the user wants to use the web cache
+					if (ServerSettings.WebCache_TvDB_Get)
+					{
+						try
+						{
+							MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
 
-                    searchCriteria = anime.MainTitle;
+                            JMMServer.Providers.Azure.CrossRef_AniDB_Other crossRef = JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBOther(AnimeID, CrossRefType.MovieDB);
+							if (crossRef != null)
+							{
+								int movieID = int.Parse(crossRef.CrossRefID);
+								MovieDB_Movie movie = repMovies.GetByOnlineID(session, movieID);
+								if (movie == null)
+								{
+									// update the info from online
+									MovieDBHelper.UpdateMovieInfo(session, movieID, true);
+									movie = repMovies.GetByOnlineID(movieID);
+								}
 
-                    // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                    var results = MovieDBHelper.Search(searchCriteria);
-                    logger.Trace("Found {0} moviedb results for {1} on TheTvDB", results.Count, searchCriteria);
-                    if (ProcessSearchResults(session, results, searchCriteria)) return;
+								if (movie != null)
+								{
+									// since we are using the web cache result, let's save it
+									MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, true);
+									return;
+								}
+
+							}
+						}
+						catch (Exception)
+						{
+						}
+					}
+
+					string searchCriteria = "";
+					AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+					AniDB_Anime anime = repAnime.GetByAnimeID(session, AnimeID);
+					if (anime == null) return;
+
+					searchCriteria = anime.MainTitle;
+
+					// if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+					List<MovieDB_Movie_Result> results = MovieDBHelper.Search(searchCriteria);
+					logger.Trace("Found {0} moviedb results for {1} on TheTvDB", results.Count, searchCriteria);
+					if (ProcessSearchResults(session, results, searchCriteria)) return;
 
 
-                    if (results.Count == 0)
-                    {
-                        foreach (var title in anime.GetTitles(session))
-                        {
-                            if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
+					if (results.Count == 0)
+					{
+						foreach (AniDB_Anime_Title title in anime.GetTitles(session))
+						{
+							if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
 
-                            if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
+							if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
-                            results = MovieDBHelper.Search(title.Title);
-                            logger.Trace("Found {0} moviedb results for search on {1}", results.Count, title.Title);
-                            if (ProcessSearchResults(session, results, title.Title)) return;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex.ToString());
-            }
-        }
+							results = MovieDBHelper.Search(title.Title);
+							logger.Trace("Found {0} moviedb results for search on {1}", results.Count, title.Title);
+							if (ProcessSearchResults(session, results, title.Title)) return;
+						}
+					}
+				}
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            CommandID = cq.CommandID;
-            CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
-            Priority = cq.Priority;
-            CommandDetails = cq.CommandDetails;
-            DateTimeUpdated = cq.DateTimeUpdated;
+			}
+			catch (Exception ex)
+			{
+				logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex.ToString());
+				return;
+			}
+		}
 
-            // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                var docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+		private bool ProcessSearchResults(ISession session, List<MovieDB_Movie_Result> results, string searchCriteria)
+		{
+			if (results.Count == 1)
+			{
+				// since we are using this result, lets download the info
+				logger.Trace("Found 1 moviedb results for search on {0} --- Linked to {1} ({2})", searchCriteria, results[0].MovieName, results[0].MovieID);
 
-                // populate the fields
-                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "AnimeID"));
-                ForceRefresh =
-                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "ForceRefresh"));
-            }
+				int movieID = results[0].MovieID;
+				MovieDBHelper.UpdateMovieInfo(session, movieID, true);
+				MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, false);
+				return true;
+			}
 
-            return true;
-        }
+			return false;
+		}
 
-        private bool ProcessSearchResults(ISession session, List<MovieDB_Movie_Result> results, string searchCriteria)
-        {
-            if (results.Count == 1)
-            {
-                // since we are using this result, lets download the info
-                logger.Trace("Found 1 moviedb results for search on {0} --- Linked to {1} ({2})", searchCriteria,
-                    results[0].MovieName, results[0].MovieID);
+		public override void GenerateCommandID()
+		{
+			this.CommandID = string.Format("CommandRequest_MovieDBSearchAnime{0}", this.AnimeID);
+		}
 
-                var movieID = results[0].MovieID;
-                MovieDBHelper.UpdateMovieInfo(session, movieID, true);
-                MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, false);
-                return true;
-            }
+		public override bool LoadFromDBCommand(CommandRequest cq)
+		{
+			this.CommandID = cq.CommandID;
+			this.CommandRequestID = cq.CommandRequestID;
+			this.CommandType = cq.CommandType;
+			this.Priority = cq.Priority;
+			this.CommandDetails = cq.CommandDetails;
+			this.DateTimeUpdated = cq.DateTimeUpdated;
 
-            return false;
-        }
+			// read xml to get parameters
+			if (this.CommandDetails.Trim().Length > 0)
+			{
+				XmlDocument docCreator = new XmlDocument();
+				docCreator.LoadXml(this.CommandDetails);
 
-        public override void GenerateCommandID()
-        {
-            CommandID = string.Format("CommandRequest_MovieDBSearchAnime{0}", AnimeID);
-        }
+				// populate the fields
+				this.AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "AnimeID"));
+				this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "ForceRefresh"));
+			}
 
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
+			return true;
+		}
 
-            var cq = new CommandRequest();
-            cq.CommandID = CommandID;
-            cq.CommandType = CommandType;
-            cq.Priority = Priority;
-            cq.CommandDetails = ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
+		public override CommandRequest ToDatabaseObject()
+		{
+			GenerateCommandID();
 
-            return cq;
-        }
-    }
+			CommandRequest cq = new CommandRequest();
+			cq.CommandID = this.CommandID;
+			cq.CommandType = this.CommandType;
+			cq.Priority = this.Priority;
+			cq.CommandDetails = this.ToXML();
+			cq.DateTimeUpdated = DateTime.Now;
+
+			return cq;
+		}
+	}
 }

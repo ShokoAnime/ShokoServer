@@ -1,4 +1,10 @@
-﻿namespace JMMServer.Providers.Azure
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace JMMServer.Providers.Azure
 {
     public class CrossRef_File_Episode
     {
@@ -10,5 +16,9 @@
         public int EpisodeOrder { get; set; }
         public string Username { get; set; }
         public long DateTimeUpdated { get; set; }
+
+        public CrossRef_File_Episode()
+		{
+		}
     }
 }

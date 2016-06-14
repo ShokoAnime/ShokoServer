@@ -1,9 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace JMMServer
 {
     public class UserCulture
     {
+        public string LanguageName { get; set; }
+        public string Culture { get; set; }
+        public string FlagImage { get; set; }
+
         public UserCulture()
         {
         }
@@ -15,15 +22,11 @@ namespace JMMServer
             FlagImage = flagimage;
         }
 
-        public string LanguageName { get; set; }
-        public string Culture { get; set; }
-        public string FlagImage { get; set; }
-
         public static List<UserCulture> SupportedLanguages
         {
             get
             {
-                var userLanguages = new List<UserCulture>();
+                List<UserCulture> userLanguages = new List<UserCulture>();
 
                 userLanguages.Add(new UserCulture("en", "English (US)", @"Images/Flags/us.gif"));
                 userLanguages.Add(new UserCulture("en-gb", "English (UK)", @"Images/Flags/uk_unitedkingdom.gif"));
@@ -85,5 +88,7 @@ namespace JMMServer
         }
 
         */
+
+
     }
 }

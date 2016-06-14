@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using JMMContracts.KodiContracts;
+using System.Linq;
+using System.Text;
 
 namespace JMMContracts
 {
@@ -47,6 +48,6 @@ namespace JMMContracts
         public Contract_AniDB_Anime_DefaultImage DefaultImageWideBanner { get; set; }
 
         //experiment
-        public List<Character> Characters { get; set; }
+        public List<JMMContracts.KodiContracts.Character> Characters { get; set; }
     }
 }

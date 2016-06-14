@@ -1,24 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using BinaryNorthwest;
+using System.Linq;
+using System.Text;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using BinaryNorthwest;
 using NLog;
 
 namespace JMMServer.Providers.TraktTV
 {
     public class TraktDetailsContainer
     {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
-
-        private Dictionary<int, Trakt_Episode> dictTraktEpisodes;
-
-        private Dictionary<int, int> dictTraktSeasons;
-
-        private Dictionary<int, int> dictTraktSeasonsSpecials;
-
-        private List<Trakt_Episode> traktEpisodes;
+        public string TraktID { get; set; }
+        public Trakt_Show Show { get; set; }
 
         public TraktDetailsContainer(string traktID)
         {
@@ -27,9 +23,9 @@ namespace JMMServer.Providers.TraktTV
             PopulateTraktDetails();
         }
 
-        public string TraktID { get; set; }
-        public Trakt_Show Show { get; set; }
 
+
+        private Dictionary<int, Trakt_Episode> dictTraktEpisodes = null;
         public Dictionary<int, Trakt_Episode> DictTraktEpisodes
         {
             get
@@ -40,25 +36,26 @@ namespace JMMServer.Providers.TraktTV
                     {
                         if (TraktEpisodes != null)
                         {
-                            var start = DateTime.Now;
+                            DateTime start = DateTime.Now;
 
                             dictTraktEpisodes = new Dictionary<int, Trakt_Episode>();
                             // create a dictionary of absolute episode numbers for Trakt episodes
                             // sort by season and episode number
                             // ignore season 0, which is used for specials
-                            var eps = TraktEpisodes;
+                            List<Trakt_Episode> eps = TraktEpisodes;
 
 
-                            var i = 1;
-                            foreach (var ep in eps)
+                            int i = 1;
+                            foreach (Trakt_Episode ep in eps)
                             {
                                 if (ep.EpisodeNumber > 0)
                                 {
                                     dictTraktEpisodes[i] = ep;
                                     i++;
                                 }
+
                             }
-                            var ts = DateTime.Now - start;
+                            TimeSpan ts = DateTime.Now - start;
                         }
                     }
                     catch (Exception ex)
@@ -70,6 +67,7 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
+        private Dictionary<int, int> dictTraktSeasons = null;
         public Dictionary<int, int> DictTraktSeasons
         {
             get
@@ -80,23 +78,24 @@ namespace JMMServer.Providers.TraktTV
                     {
                         if (TraktEpisodes != null)
                         {
-                            var start = DateTime.Now;
+                            DateTime start = DateTime.Now;
 
                             dictTraktSeasons = new Dictionary<int, int>();
                             // create a dictionary of season numbers and the first episode for that season
 
-                            var eps = TraktEpisodes;
-                            var i = 1;
-                            var lastSeason = -999;
-                            foreach (var ep in eps)
+                            List<Trakt_Episode> eps = TraktEpisodes;
+                            int i = 1;
+                            int lastSeason = -999;
+                            foreach (Trakt_Episode ep in eps)
                             {
                                 if (ep.Season != lastSeason)
                                     dictTraktSeasons[ep.Season] = i;
 
                                 lastSeason = ep.Season;
                                 i++;
+
                             }
-                            var ts = DateTime.Now - start;
+                            TimeSpan ts = DateTime.Now - start;
                         }
                     }
                     catch (Exception ex)
@@ -108,6 +107,7 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
+        private Dictionary<int, int> dictTraktSeasonsSpecials = null;
         public Dictionary<int, int> DictTraktSeasonsSpecials
         {
             get
@@ -118,27 +118,28 @@ namespace JMMServer.Providers.TraktTV
                     {
                         if (TraktEpisodes != null)
                         {
-                            var start = DateTime.Now;
+                            DateTime start = DateTime.Now;
 
                             dictTraktSeasonsSpecials = new Dictionary<int, int>();
                             // create a dictionary of season numbers and the first episode for that season
 
-                            var eps = TraktEpisodes;
-                            var i = 1;
-                            var lastSeason = -999;
-                            foreach (var ep in eps)
+                            List<Trakt_Episode> eps = TraktEpisodes;
+                            int i = 1;
+                            int lastSeason = -999;
+                            foreach (Trakt_Episode ep in eps)
                             {
                                 if (ep.Season > 0) continue;
 
-                                var thisSeason = 0;
+                                int thisSeason = 0;
 
                                 if (thisSeason != lastSeason)
                                     dictTraktSeasonsSpecials[thisSeason] = i;
 
                                 lastSeason = thisSeason;
                                 i++;
+
                             }
-                            var ts = DateTime.Now - start;
+                            TimeSpan ts = DateTime.Now - start;
                             //logger.Trace("Got TvDB Seasons in {0} ms", ts.TotalMilliseconds);
                         }
                     }
@@ -151,6 +152,32 @@ namespace JMMServer.Providers.TraktTV
             }
         }
 
+        private void PopulateTraktDetails()
+        {
+            try
+            {
+                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
+                Show = repShows.GetByTraktSlug(TraktID);
+                if (Show == null) return;
+
+                Trakt_EpisodeRepository repTvEps = new Trakt_EpisodeRepository();
+                traktEpisodes = repTvEps.GetByShowID(Show.Trakt_ShowID);
+
+                if (traktEpisodes.Count > 0)
+                {
+                    List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
+                    sortCriteria.Add(new SortPropOrFieldAndDirection("Season", false, SortType.eInteger));
+                    sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
+                    traktEpisodes = Sorting.MultiSort<Trakt_Episode>(traktEpisodes, sortCriteria);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+        }
+
+        private List<Trakt_Episode> traktEpisodes = null;
         public List<Trakt_Episode> TraktEpisodes
         {
             get
@@ -160,31 +187,6 @@ namespace JMMServer.Providers.TraktTV
                     PopulateTraktDetails();
                 }
                 return traktEpisodes;
-            }
-        }
-
-        private void PopulateTraktDetails()
-        {
-            try
-            {
-                var repShows = new Trakt_ShowRepository();
-                Show = repShows.GetByTraktSlug(TraktID);
-                if (Show == null) return;
-
-                var repTvEps = new Trakt_EpisodeRepository();
-                traktEpisodes = repTvEps.GetByShowID(Show.Trakt_ShowID);
-
-                if (traktEpisodes.Count > 0)
-                {
-                    var sortCriteria = new List<SortPropOrFieldAndDirection>();
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("Season", false, SortType.eInteger));
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-                    traktEpisodes = Sorting.MultiSort(traktEpisodes, sortCriteria);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException(ex.ToString(), ex);
             }
         }
     }

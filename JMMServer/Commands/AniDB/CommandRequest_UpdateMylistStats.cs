@@ -1,123 +1,131 @@
 ﻿using System;
-using System.Globalization;
-using System.Threading;
-using System.Xml;
-using JMMServer.Entities;
-using JMMServer.Properties;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using JMMServer.Repositories;
+using JMMServer.Entities;
+using System.Xml;
+using AniDBAPI;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Globalization;
+using System.Configuration;
 
 namespace JMMServer.Commands.AniDB
 {
-    [Serializable]
-    public class CommandRequest_UpdateMylistStats : CommandRequestImplementation, ICommandRequest
-    {
-        public CommandRequest_UpdateMylistStats()
-        {
-        }
+	[Serializable]
+	public class CommandRequest_UpdateMylistStats : CommandRequestImplementation, ICommandRequest
+	{
+		public bool ForceRefresh { get; set; }
 
-        public CommandRequest_UpdateMylistStats(bool forced)
-        {
-            ForceRefresh = forced;
-            CommandType = (int)CommandRequestType.AniDB_UpdateMylistStats;
-            Priority = (int)DefaultPriority;
+		public CommandRequestPriority DefaultPriority 
+		{
+			get { return CommandRequestPriority.Priority10; }
+		}
 
-            GenerateCommandID();
-        }
-
-        public bool ForceRefresh { get; set; }
-
-        public CommandRequestPriority DefaultPriority
-        {
-            get { return CommandRequestPriority.Priority10; }
-        }
-
-        public string PrettyDescription
-        {
-            get
-            {
+		public string PrettyDescription
+		{
+			get
+			{
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                return string.Format(Resources.Command_UpdateMyListStats);
-            }
-        }
+                return string.Format(JMMServer.Properties.Resources.Command_UpdateMyListStats);
+			}
+		}
 
-        public override void ProcessCommand()
-        {
-            logger.Info("Processing CommandRequest_UpdateMylistStats");
+		public CommandRequest_UpdateMylistStats()
+		{
+		}
 
-            try
-            {
-                // we will always assume that an anime was downloaded via http first
-                var repSched = new ScheduledUpdateRepository();
-                var sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AniDBMylistStats);
-                if (sched == null)
-                {
-                    sched = new ScheduledUpdate();
-                    sched.UpdateType = (int)ScheduledUpdateType.AniDBMylistStats;
-                    sched.UpdateDetails = "";
-                }
-                else
-                {
-                    var freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyListStats_UpdateFrequency);
+		public CommandRequest_UpdateMylistStats(bool forced)
+		{
+			this.ForceRefresh = forced;
+			this.CommandType = (int)CommandRequestType.AniDB_UpdateMylistStats;
+			this.Priority = (int)DefaultPriority;
 
-                    // if we have run this in the last 24 hours and are not forcing it, then exit
-                    var tsLastRun = DateTime.Now - sched.LastUpdate;
-                    if (tsLastRun.TotalHours < freqHours)
-                    {
-                        if (!ForceRefresh) return;
-                    }
-                }
+			GenerateCommandID();
+		}
 
-                sched.LastUpdate = DateTime.Now;
-                repSched.Save(sched);
+		public override void ProcessCommand()
+		{
+			logger.Info("Processing CommandRequest_UpdateMylistStats");
 
-                JMMService.AnidbProcessor.UpdateMyListStats();
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Error processing CommandRequest_UpdateMylistStats: {0}", ex.ToString());
-            }
-        }
+			try
+			{
+				// we will always assume that an anime was downloaded via http first
+				ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+				ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.AniDBMylistStats);
+				if (sched == null)
+				{
+					sched = new ScheduledUpdate();
+					sched.UpdateType = (int)ScheduledUpdateType.AniDBMylistStats;
+					sched.UpdateDetails = "";
+				}
+				else
+				{
+					int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyListStats_UpdateFrequency);
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            CommandID = cq.CommandID;
-            CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
-            Priority = cq.Priority;
-            CommandDetails = cq.CommandDetails;
-            DateTimeUpdated = cq.DateTimeUpdated;
+					// if we have run this in the last 24 hours and are not forcing it, then exit
+					TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+					if (tsLastRun.TotalHours < freqHours)
+					{
+						if (!ForceRefresh) return;
+					}
+				}
 
-            // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                var docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+				sched.LastUpdate = DateTime.Now;
+				repSched.Save(sched);
 
-                // populate the fields
-                ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_UpdateMylistStats", "ForceRefresh"));
-            }
+				JMMService.AnidbProcessor.UpdateMyListStats();
 
-            return true;
-        }
 
-        public override void GenerateCommandID()
-        {
-            CommandID = "CommandRequest_UpdateMylistStats";
-        }
+			}
+			catch (Exception ex)
+			{
+				logger.Error("Error processing CommandRequest_UpdateMylistStats: {0}", ex.ToString());
+				return;
+			}
+		}
 
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
+		public override void GenerateCommandID()
+		{
+			this.CommandID = string.Format("CommandRequest_UpdateMylistStats");
+		}
 
-            var cq = new CommandRequest();
-            cq.CommandID = CommandID;
-            cq.CommandType = CommandType;
-            cq.Priority = Priority;
-            cq.CommandDetails = ToXML();
-            cq.DateTimeUpdated = DateTime.Now;
+		public override bool LoadFromDBCommand(CommandRequest cq)
+		{
+			this.CommandID = cq.CommandID;
+			this.CommandRequestID = cq.CommandRequestID;
+			this.CommandType = cq.CommandType;
+			this.Priority = cq.Priority;
+			this.CommandDetails = cq.CommandDetails;
+			this.DateTimeUpdated = cq.DateTimeUpdated;
 
-            return cq;
-        }
-    }
+			// read xml to get parameters
+			if (this.CommandDetails.Trim().Length > 0)
+			{
+				XmlDocument docCreator = new XmlDocument();
+				docCreator.LoadXml(this.CommandDetails);
+
+				// populate the fields
+				this.ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_UpdateMylistStats", "ForceRefresh"));
+			}
+
+			return true;
+		}
+
+		public override CommandRequest ToDatabaseObject()
+		{
+			GenerateCommandID();
+
+			CommandRequest cq = new CommandRequest();
+			cq.CommandID = this.CommandID;
+			cq.CommandType = this.CommandType;
+			cq.Priority = this.Priority;
+			cq.CommandDetails = this.ToXML();
+			cq.DateTimeUpdated = DateTime.Now;
+
+			return cq;
+		}
+	}
 }

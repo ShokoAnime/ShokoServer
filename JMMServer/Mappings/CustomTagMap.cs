@@ -1,4 +1,8 @@
-﻿using FluentNHibernate.Mapping;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using FluentNHibernate.Mapping;
 using JMMServer.Entities;
 
 namespace JMMServer.Mappings
@@ -7,7 +11,7 @@ namespace JMMServer.Mappings
     {
         public CustomTagMap()
         {
-            Not.LazyLoad();
+			Not.LazyLoad();
             Id(x => x.CustomTagID);
 
             Map(x => x.TagName);

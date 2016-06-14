@@ -1,31 +1,56 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using JMMServer;
 
 namespace AniDBAPI
 {
-    public class Calendar
-    {
-        public int AnimeID { get; set; }
+	public class Calendar
+	{
+		private int animeID;
+		public int AnimeID
+		{
+			get { return animeID; }
+			set { animeID = value; }
+		}
 
-        public DateTime? ReleaseDate { get; set; } = DateTime.Now;
+		private DateTime? releaseDate = DateTime.Now;
+		public DateTime? ReleaseDate
+		{
+			get { return releaseDate; }
+			set { releaseDate = value; }
+		}
 
-        public string ReleaseDateRaw { get; set; } = "";
+		private string releaseDateRaw = "";
+		public string ReleaseDateRaw
+		{
+			get { return releaseDateRaw; }
+			set { releaseDateRaw = value; }
+		}
 
-        public int DateFlags { get; set; }
+		private int dateFlags = 0;
+		public int DateFlags
+		{
+			get { return dateFlags; }
+			set { dateFlags = value; }
+		}
 
-        public override string ToString()
-        {
-            return string.Format("Calendar - AnimeID: {0}...Release Date: {1}({2})...Flags: {3}", AnimeID,
-                ReleaseDateRaw, ReleaseDate, DateFlags);
-        }
-    }
+		public override string ToString()
+		{
+			return string.Format("Calendar - AnimeID: {0}...Release Date: {1}({2})...Flags: {3}", animeID, releaseDateRaw, releaseDate, dateFlags);
+		}
+	}
 
-    public class CalendarCollection
-    {
-        public CalendarCollection(string sRecMessage)
-        {
-            /*
+	public class CalendarCollection
+	{
+		private List<Calendar> calendars = new List<Calendar>();
+		public List<Calendar> Calendars
+		{
+			get { return calendars; }
+		}
+		public CalendarCollection(string sRecMessage)
+		{
+			/*
 			// 297 CALENDAR
 			6622|1251417600|0
 			6551|1251417600|0
@@ -39,50 +64,47 @@ namespace AniDBAPI
 			6763|1253923200|0
 			*/
 
-            // DateFlags
-            // 0 = normal start and end date (2010-01-31)
-            // 1 = start date is year-month (2010-01)
-            // 2 = start date is a year (2010)
-            // 4 = normal start date, year-month end date 
-            // 8 = normal start date, year end date 
-            // 10 = start date is a year (2010)
-            // 16 = normal start and end date (2010-01-31)
+			// DateFlags
+			// 0 = normal start and end date (2010-01-31)
+			// 1 = start date is year-month (2010-01)
+			// 2 = start date is a year (2010)
+			// 4 = normal start date, year-month end date 
+			// 8 = normal start date, year end date 
+			// 10 = start date is a year (2010)
+			// 16 = normal start and end date (2010-01-31)
 
 
-            // remove the header info
-            var sDetails = sRecMessage.Substring(0).Split('\n');
+			// remove the header info
+			string[] sDetails = sRecMessage.Substring(0).Split('\n');
 
-            if (sDetails.Length <= 2) return;
+			if (sDetails.Length <= 2) return;
 
-            for (var i = 1; i < sDetails.Length - 1; i++)
-            // first item will be the status command, and last will be empty
-            {
-                //BaseConfig.MyAnimeLog.Write("s: {0}", sDetails[i]);
+			for (int i = 1; i < sDetails.Length - 1; i++) // first item will be the status command, and last will be empty
+			{
+				//BaseConfig.MyAnimeLog.Write("s: {0}", sDetails[i]);
 
-                var cal = new Calendar();
+				Calendar cal = new Calendar();
+				
+				string[] flds = sDetails[i].Substring(0).Split('|');
+				cal.AnimeID = int.Parse(flds[0]);
+				cal.ReleaseDateRaw = flds[1];
+				cal.DateFlags = int.Parse(flds[2]);
+				cal.ReleaseDate = Utils.GetAniDBDateAsDate(flds[1], cal.DateFlags);
 
-                var flds = sDetails[i].Substring(0).Split('|');
-                cal.AnimeID = int.Parse(flds[0]);
-                cal.ReleaseDateRaw = flds[1];
-                cal.DateFlags = int.Parse(flds[2]);
-                cal.ReleaseDate = Utils.GetAniDBDateAsDate(flds[1], cal.DateFlags);
+				calendars.Add(cal);
 
-                Calendars.Add(cal);
+				//BaseConfig.MyAnimeLog.Write("grp: {0}", grp);
+			}
+		}
 
-                //BaseConfig.MyAnimeLog.Write("grp: {0}", grp);
-            }
-        }
-
-        public List<Calendar> Calendars { get; } = new List<Calendar>();
-
-        public override string ToString()
-        {
-            var ret = "";
-            foreach (var cal in Calendars)
-            {
-                ret += cal + Environment.NewLine;
-            }
-            return ret;
-        }
-    }
+		public override string ToString()
+		{
+			string ret = "";
+			foreach (Calendar cal in calendars)
+			{
+				ret += cal.ToString() + Environment.NewLine;
+			}
+			return ret;
+		}
+	}
 }

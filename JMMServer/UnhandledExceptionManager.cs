@@ -1,516 +1,532 @@
 ﻿using System;
-using System.Configuration;
-using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
-using System.Net;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security.Principal;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
+using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Security.Principal;
 using System.Threading;
-using System.Windows.Forms;
-using NLog;
-using Encoder = System.Drawing.Imaging.Encoder;
+using System.Globalization;
+using System.Drawing.Imaging;
+using System.Drawing;
+using System.Configuration;
 
 namespace JMMServer
 {
-    public sealed class UnhandledExceptionManager
-    {
-        private const string _strLogName = "UnhandledExceptionLog.txt";
-        private const string _strScreenshotName = "UnhandledException";
+	public sealed class UnhandledExceptionManager
+	{
+		private static bool _blnLogToFileOK;
+		private static bool _blnLogToEmailOK;
+		private static bool _blnLogToScreenshotOK;
+		private static bool _blnLogToEventLogOK;
+		private static bool _blnLogToDatabaseOK;
 
-        private const string _strClassName = "UnhandledExceptionManager";
+		private static System.Drawing.Imaging.ImageFormat _ScreenshotImageFormat = System.Drawing.Imaging.ImageFormat.Png;
+		private static string _strScreenshotFullPath;
 
-        private const string _strKeyNotPresent =
-            "The key <{0}> is not present in the <appSettings> section of .config file";
+		private static string _strLogFullPath;
+		private static System.Reflection.Assembly _objParentAssembly = null;
+		private static string _strException;
 
-        private const string _strKeyError = "Error {0} retrieving key <{1}> from <appSettings> section of .config file";
-        private static bool _blnLogToFileOK;
-        private static bool _blnLogToEmailOK;
-        private static bool _blnLogToScreenshotOK;
-        private static bool _blnLogToEventLogOK;
-        private static bool _blnLogToDatabaseOK;
+		private static string _strExceptionType;
 
-        private static readonly ImageFormat _ScreenshotImageFormat = ImageFormat.Png;
-        private static string _strScreenshotFullPath;
+		private const string _strLogName = "UnhandledExceptionLog.txt";
+		private const string _strScreenshotName = "UnhandledException";
 
-        private static string _strLogFullPath;
-        private static Assembly _objParentAssembly;
-        private static string _strException;
+		private const string _strClassName = "UnhandledExceptionManager";
 
-        private static string _strExceptionType;
+		#region "Properties"
 
-        private static Assembly ParentAssembly()
-        {
-            if (_objParentAssembly == null)
-            {
-                if (Assembly.GetEntryAssembly() == null)
-                {
-                    _objParentAssembly = Assembly.GetCallingAssembly();
-                }
-                else
-                {
-                    _objParentAssembly = Assembly.GetEntryAssembly();
-                }
-            }
-            return _objParentAssembly;
-        }
+		[DllImport("gdi32", EntryPoint = "BitBlt", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
 
-        //--
-        //-- This *MUST* be called early in your application to set up global error handling
-        //--
-        public static void AddHandler(bool blnConsoleApp = false)
-        {
-            //-- attempt to load optional settings from .config file
-            //LoadConfigSettings();
+		#endregion "Properties"
 
-            //-- we don't need an unhandled exception handler if we are running inside
-            //-- the vs.net IDE; it is our "unhandled exception handler" in that case
-            //if (Variables.AppSettings.IgnoreDebugErrors)
-            if (Debugger.IsAttached)
-                return;
+		#region "win32api screenshot calls"
 
-            //-- track the parent assembly that set up error handling
-            //-- need to call this NOW so we set it appropriately; otherwise
-            //-- we may get the wrong assembly at exception time!
-            ParentAssembly();
+		//--
+		//-- Windows API calls necessary to support screen capture
+		//--
+		private static extern int BitBlt(int hDestDC, int x, int y, int nWidth, int nHeight, int hSrcDC, int xSrc, int ySrc, int dwRop);
 
-            //-- for winforms applications
-            Application.ThreadException -= ThreadExceptionHandler;
-            Application.ThreadException += ThreadExceptionHandler;
+		[DllImport("user32", EntryPoint = "GetDC", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
+		private static extern int GetDC(int hwnd);
 
-            //-- for console applications
-            AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
-            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+		[DllImport("user32", EntryPoint = "ReleaseDC", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
+		private static extern int ReleaseDC(int hwnd, int hdc);
 
-            //-- I cannot find a good way to programatically detect a console app, so that must be specified.
-            //_blnConsoleApp = blnConsoleApp;
-        }
+		#endregion "win32api screenshot calls"
 
-        //--
-        //-- handles Application.ThreadException event
-        //--
-        private static void ThreadExceptionHandler(object sender, ThreadExceptionEventArgs e)
-        {
-            GenericExceptionHandler(e.Exception);
-        }
+		private static System.Reflection.Assembly ParentAssembly()
+		{
+			if (_objParentAssembly == null)
+			{
+				if (System.Reflection.Assembly.GetEntryAssembly() == null)
+				{
+					_objParentAssembly = System.Reflection.Assembly.GetCallingAssembly();
+				}
+				else
+				{
+					_objParentAssembly = System.Reflection.Assembly.GetEntryAssembly();
+				}
+			}
+			return _objParentAssembly;
+		}
 
-        //--
-        //-- handles AppDomain.CurrentDoamin.UnhandledException event
-        //--
-        private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs args)
-        {
-            var objException = (Exception)args.ExceptionObject;
-            GenericExceptionHandler(objException);
-        }
+		//--
+		//-- This *MUST* be called early in your application to set up global error handling
+		//--
+		public static void AddHandler(bool blnConsoleApp = false)
+		{
+			//-- attempt to load optional settings from .config file
+			//LoadConfigSettings();
 
-        //--
-        //-- exception-safe file attrib retrieval; we don't care if this fails
-        //--
-        private static DateTime AssemblyFileTime(Assembly objAssembly)
-        {
-            try
-            {
-                return File.GetLastWriteTime(objAssembly.Location);
-            }
-            catch (Exception ex)
-            {
-                return DateTime.MaxValue;
-            }
-        }
+			//-- we don't need an unhandled exception handler if we are running inside
+			//-- the vs.net IDE; it is our "unhandled exception handler" in that case
+			//if (Variables.AppSettings.IgnoreDebugErrors)
+			if (Debugger.IsAttached)
+				return;
 
-        //--
-        //-- returns build datetime of assembly
-        //-- assumes default assembly value in AssemblyInfo:
-        //-- <Assembly: AssemblyVersion("1.0.*")>
-        //--
-        //-- filesystem create time is used, if revision and build were overridden by user
-        //--
-        private static DateTime AssemblyBuildDate(Assembly objAssembly, bool blnForceFileDate = false)
-        {
-            var objVersion = objAssembly.GetName().Version;
-            var dtBuild = default(DateTime);
+			//-- track the parent assembly that set up error handling
+			//-- need to call this NOW so we set it appropriately; otherwise
+			//-- we may get the wrong assembly at exception time!
+			ParentAssembly();
 
-            if (blnForceFileDate)
-            {
-                dtBuild = AssemblyFileTime(objAssembly);
-            }
-            else
-            {
-                //dtBuild = ((DateTime)"01/01/2000").AddDays(objVersion.Build).AddSeconds(objVersion.Revision * 2);
-                dtBuild = Convert.ToDateTime("01/01/2000").AddDays(objVersion.Build).AddSeconds(objVersion.Revision * 2);
-                if (TimeZone.IsDaylightSavingTime(DateTime.Now,
-                    TimeZone.CurrentTimeZone.GetDaylightChanges(DateTime.Now.Year)))
-                {
-                    dtBuild = dtBuild.AddHours(1);
-                }
-                if (dtBuild > DateTime.Now | objVersion.Build < 730 | objVersion.Revision == 0)
-                {
-                    dtBuild = AssemblyFileTime(objAssembly);
-                }
-            }
+			//-- for winforms applications
+			System.Windows.Forms.Application.ThreadException -= ThreadExceptionHandler;
+			System.Windows.Forms.Application.ThreadException += ThreadExceptionHandler;
 
-            return dtBuild;
-        }
+			//-- for console applications
+			System.AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
+			System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
 
-        //--
-        //-- turns a single stack frame object into an informative string
-        //--
-        private static string StackFrameToString(StackFrame sf)
-        {
-            var sb = new StringBuilder();
-            var intParam = 0;
-            MemberInfo mi = sf.GetMethod();
+			//-- I cannot find a good way to programatically detect a console app, so that must be specified.
+			//_blnConsoleApp = blnConsoleApp;
+		}
 
-            var _with1 = sb;
-            //-- build method name
-            _with1.Append("   ");
-            _with1.Append(mi.DeclaringType.Namespace);
-            _with1.Append(".");
-            _with1.Append(mi.DeclaringType.Name);
-            _with1.Append(".");
-            _with1.Append(mi.Name);
+		//--
+		//-- handles Application.ThreadException event
+		//--
+		private static void ThreadExceptionHandler(System.Object sender, System.Threading.ThreadExceptionEventArgs e)
+		{
+			GenericExceptionHandler(e.Exception);
+		}
 
-            //-- build method params
-            var objParameters = sf.GetMethod().GetParameters();
-            ParameterInfo objParameter = null;
-            _with1.Append("(");
-            intParam = 0;
-            foreach (var objParameter_loopVariable in objParameters)
-            {
-                objParameter = objParameter_loopVariable;
-                intParam += 1;
-                if (intParam > 1)
-                    _with1.Append(", ");
-                _with1.Append(objParameter.Name);
-                _with1.Append(" As ");
-                _with1.Append(objParameter.ParameterType.Name);
-            }
-            _with1.Append(")");
-            _with1.Append(Environment.NewLine);
+		//--
+		//-- handles AppDomain.CurrentDoamin.UnhandledException event
+		//--
+		private static void UnhandledExceptionHandler(System.Object sender, UnhandledExceptionEventArgs args)
+		{
+			Exception objException = (Exception)args.ExceptionObject;
+			GenericExceptionHandler(objException);
+		}
 
-            //-- if source code is available, append location info
-            _with1.Append("       ");
-            if (sf.GetFileName() == null || sf.GetFileName().Length == 0)
-            {
-                _with1.Append(Path.GetFileName(ParentAssembly().CodeBase));
-                //-- native code offset is always available
-                _with1.Append(": N ");
-                _with1.Append(string.Format("{0:#00000}", sf.GetNativeOffset()));
-            }
-            else
-            {
-                _with1.Append(Path.GetFileName(sf.GetFileName()));
-                _with1.Append(": line ");
-                _with1.Append(string.Format("{0:#0000}", sf.GetFileLineNumber()));
-                _with1.Append(", col ");
-                _with1.Append(string.Format("{0:#00}", sf.GetFileColumnNumber()));
-                //-- if IL is available, append IL location info
-                if (sf.GetILOffset() != StackFrame.OFFSET_UNKNOWN)
-                {
-                    _with1.Append(", IL ");
-                    _with1.Append(string.Format("{0:#0000}", sf.GetILOffset()));
-                }
-            }
-            _with1.Append(Environment.NewLine);
-            return sb.ToString();
-        }
+		//--
+		//-- exception-safe file attrib retrieval; we don't care if this fails
+		//--
+		private static DateTime AssemblyFileTime(System.Reflection.Assembly objAssembly)
+		{
+			try
+			{
+				return System.IO.File.GetLastWriteTime(objAssembly.Location);
+			}
+			catch (Exception ex)
+			{
+				return DateTime.MaxValue;
+			}
+		}
 
-        //--
-        //-- enhanced stack trace generator
-        //--
-        private static string EnhancedStackTrace(StackTrace objStackTrace, string strSkipClassName = "")
-        {
-            var intFrame = 0;
+		//--
+		//-- returns build datetime of assembly
+		//-- assumes default assembly value in AssemblyInfo:
+		//-- <Assembly: AssemblyVersion("1.0.*")>
+		//--
+		//-- filesystem create time is used, if revision and build were overridden by user
+		//--
+		private static DateTime AssemblyBuildDate(System.Reflection.Assembly objAssembly, bool blnForceFileDate = false)
+		{
+			System.Version objVersion = objAssembly.GetName().Version;
+			DateTime dtBuild = default(DateTime);
 
-            var sb = new StringBuilder();
+			if (blnForceFileDate)
+			{
+				dtBuild = AssemblyFileTime(objAssembly);
+			}
+			else
+			{
+				//dtBuild = ((DateTime)"01/01/2000").AddDays(objVersion.Build).AddSeconds(objVersion.Revision * 2);
+				dtBuild = Convert.ToDateTime("01/01/2000").AddDays((double)objVersion.Build).AddSeconds((double)(objVersion.Revision * 2));
+				if (TimeZone.IsDaylightSavingTime(DateTime.Now, TimeZone.CurrentTimeZone.GetDaylightChanges(DateTime.Now.Year)))
+				{
+					dtBuild = dtBuild.AddHours(1);
+				}
+				if (dtBuild > DateTime.Now | objVersion.Build < 730 | objVersion.Revision == 0)
+				{
+					dtBuild = AssemblyFileTime(objAssembly);
+				}
+			}
 
-            sb.Append(Environment.NewLine);
-            sb.Append("---- Stack Trace ----");
-            sb.Append(Environment.NewLine);
+			return dtBuild;
+		}
 
-            for (intFrame = 0; intFrame <= objStackTrace.FrameCount - 1; intFrame++)
-            {
-                var sf = objStackTrace.GetFrame(intFrame);
-                MemberInfo mi = sf.GetMethod();
+		//--
+		//-- turns a single stack frame object into an informative string
+		//--
+		private static string StackFrameToString(StackFrame sf)
+		{
+			System.Text.StringBuilder sb = new System.Text.StringBuilder();
+			int intParam = 0;
+			MemberInfo mi = sf.GetMethod();
 
-                if (!string.IsNullOrEmpty(strSkipClassName) && mi.DeclaringType.Name.IndexOf(strSkipClassName) > -1)
-                {
-                    //-- don't include frames with this name
-                }
-                else
-                {
-                    sb.Append(StackFrameToString(sf));
-                }
-            }
-            sb.Append(Environment.NewLine);
+			var _with1 = sb;
+			//-- build method name
+			_with1.Append("   ");
+			_with1.Append(mi.DeclaringType.Namespace);
+			_with1.Append(".");
+			_with1.Append(mi.DeclaringType.Name);
+			_with1.Append(".");
+			_with1.Append(mi.Name);
 
-            return sb.ToString();
-        }
+			//-- build method params
+			ParameterInfo[] objParameters = sf.GetMethod().GetParameters();
+			ParameterInfo objParameter = null;
+			_with1.Append("(");
+			intParam = 0;
+			foreach (ParameterInfo objParameter_loopVariable in objParameters)
+			{
+				objParameter = objParameter_loopVariable;
+				intParam += 1;
+				if (intParam > 1)
+					_with1.Append(", ");
+				_with1.Append(objParameter.Name);
+				_with1.Append(" As ");
+				_with1.Append(objParameter.ParameterType.Name);
+			}
+			_with1.Append(")");
+			_with1.Append(Environment.NewLine);
 
-        //--
-        //-- enhanced stack trace generator (exception)
-        //--
-        private static string EnhancedStackTrace(Exception objException)
-        {
-            var objStackTrace = new StackTrace(objException, true);
-            return EnhancedStackTrace(objStackTrace);
-        }
+			//-- if source code is available, append location info
+			_with1.Append("       ");
+			if (sf.GetFileName() == null || sf.GetFileName().Length == 0)
+			{
+				_with1.Append(System.IO.Path.GetFileName(ParentAssembly().CodeBase));
+				//-- native code offset is always available
+				_with1.Append(": N ");
+				_with1.Append(string.Format("{0:#00000}", sf.GetNativeOffset()));
+			}
+			else
+			{
+				_with1.Append(System.IO.Path.GetFileName(sf.GetFileName()));
+				_with1.Append(": line ");
+				_with1.Append(string.Format("{0:#0000}", sf.GetFileLineNumber()));
+				_with1.Append(", col ");
+				_with1.Append(string.Format("{0:#00}", sf.GetFileColumnNumber()));
+				//-- if IL is available, append IL location info
+				if (sf.GetILOffset() != StackFrame.OFFSET_UNKNOWN)
+				{
+					_with1.Append(", IL ");
+					_with1.Append(string.Format("{0:#0000}", sf.GetILOffset()));
+				}
+			}
+			_with1.Append(Environment.NewLine);
+			return sb.ToString();
+		}
 
-        //--
-        //-- enhanced stack trace generator (no params)
-        //--
-        private static string EnhancedStackTrace()
-        {
-            var objStackTrace = new StackTrace(true);
-            return EnhancedStackTrace(objStackTrace, "ExceptionManager");
-        }
+		//--
+		//-- enhanced stack trace generator
+		//--
+		private static string EnhancedStackTrace(StackTrace objStackTrace, string strSkipClassName = "")
+		{
+			int intFrame = 0;
 
-        //--
-        //-- generic exception handler; the various specific handlers all call into this sub
-        //--
+			System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
-        private static void GenericExceptionHandler(Exception objException)
-        {
-            //-- turn the exception into an informative string
-            try
-            {
-                _strException = ExceptionToString(objException);
-                _strExceptionType = objException.GetType().FullName;
-            }
-            catch (Exception ex)
-            {
-                _strException = "Error '" + ex.Message + "' while generating exception string";
-                _strExceptionType = "";
-            }
+			sb.Append(Environment.NewLine);
+			sb.Append("---- Stack Trace ----");
+			sb.Append(Environment.NewLine);
 
-            Cursor.Current = Cursors.WaitCursor;
+			for (intFrame = 0; intFrame <= objStackTrace.FrameCount - 1; intFrame++)
+			{
+				StackFrame sf = objStackTrace.GetFrame(intFrame);
+				MemberInfo mi = sf.GetMethod();
 
-            //-- log this error to various locations
-            try
-            {
-                //-- screenshot takes around 1 second
-                //ExceptionToScreenshot();
+				if (!string.IsNullOrEmpty(strSkipClassName) && mi.DeclaringType.Name.IndexOf(strSkipClassName) > -1)
+				{
+					//-- don't include frames with this name
+				}
+				else
+				{
+					sb.Append(StackFrameToString(sf));
+				}
+			}
+			sb.Append(Environment.NewLine);
 
-                //-- event logging takes < 100ms
-                ExceptionToEventLog();
+			return sb.ToString();
+		}
 
-                //-- textfile logging takes < 50ms
-                ExceptionToFile();
-            }
-            catch (Exception ex)
-            {
-                //-- generic catch because any exceptions inside the UEH
-                //-- will cause the code to terminate immediately
-            }
+		//--
+		//-- enhanced stack trace generator (exception)
+		//--
+		private static string EnhancedStackTrace(Exception objException)
+		{
+			StackTrace objStackTrace = new StackTrace(objException, true);
+			return EnhancedStackTrace(objStackTrace);
+		}
 
-            Cursor.Current = Cursors.Default;
+		//--
+		//-- enhanced stack trace generator (no params)
+		//--
+		private static string EnhancedStackTrace()
+		{
+			StackTrace objStackTrace = new StackTrace(true);
+			return EnhancedStackTrace(objStackTrace, "ExceptionManager");
+		}
 
-            //-- display message to the user - this is disabled for now since we don't have a UI for exceptions.
-            ExceptionToUI();
+		//--
+		//-- generic exception handler; the various specific handlers all call into this sub
+		//--
 
-            //if (Variables.AppSettings.KillAppOnException)
-            //{
-            //As far as the email not being send when a user closes the dialog too fast, 
-            //I see that you were threading off the email to speed display of the exception 
-            //dialog. Well, if the user clicks ok before the SMTP can be sent, the thread 
-            //is killed immediately and the email will never make it out. To fix that, I changed 
-            //the scope of the objThread to class level and right before the KillApp() call I 
-            //do a objThread.Join(new TimeSpan(0, 0, 30)) to wait up to 30 seconds for it's 
-            //completion. Now the email is sent reliably. Changing the scope of the objThread 
-            //mandated that the class not be static (Shared) anymore, so I changed the relevant 
-            //functions and I instantiate an object of the exception handler to AddHandler() with.
+		private static void GenericExceptionHandler(Exception objException)
+		{
+			//-- turn the exception into an informative string
+			try
+			{
+				_strException = ExceptionToString(objException);
+				_strExceptionType = objException.GetType().FullName;
+			}
+			catch (Exception ex)
+			{
+				_strException = "Error '" + ex.Message + "' while generating exception string";
+				_strExceptionType = "";
+			}
 
-            //objThread.Join(new TimeSpan(0, 0, 30));	// to wait 30 seconds for completion
-            //}
-        }
+			System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.WaitCursor;
 
-        //--
-        //-- This is in a private routine for .NET security reasons
-        //-- if this line of code is in a sub, the entire sub is tagged as full trust
-        //--
-        private static void KillApp()
-        {
-            Process.GetCurrentProcess().Kill();
-        }
+			//-- log this error to various locations
+			try
+			{
+				//-- screenshot takes around 1 second
+				//ExceptionToScreenshot();
 
-        //--
-        //-- turns exception into something an average user can hopefully
-        //-- understand; still very technical
-        //--
-        private static string FormatExceptionForUser(bool blnConsoleApp)
-        {
-            var objStringBuilder = new StringBuilder();
-            string strBullet = null;
-            if (blnConsoleApp)
-            {
-                strBullet = "-";
-            }
-            else
-            {
-                strBullet = "•";
-            }
+				//-- event logging takes < 100ms
+				ExceptionToEventLog();
 
-            var _with2 = objStringBuilder;
-            if (!blnConsoleApp)
-            {
-                _with2.Append("The development team was automatically notified of this problem. ");
-                _with2.Append("If you need immediate assistance, contact (contact).");
-            }
-            _with2.Append(Environment.NewLine);
-            _with2.Append(Environment.NewLine);
-            _with2.Append("The following information about the error was automatically captured: ");
-            _with2.Append(Environment.NewLine);
-            _with2.Append(Environment.NewLine);
+				//-- textfile logging takes < 50ms
+				ExceptionToFile();
 
-            //TakeExceptionScreenshot
-            _with2.Append(" ");
-            _with2.Append(strBullet);
-            _with2.Append(" ");
-            if (_blnLogToScreenshotOK)
-            {
-                _with2.Append("a screenshot was taken of the desktop at:");
-                _with2.Append(Environment.NewLine);
-                _with2.Append("   ");
-                _with2.Append(_strScreenshotFullPath);
-            }
-            else
-            {
-                _with2.Append("a screenshot could NOT be taken of the desktop.");
-            }
-            _with2.Append(Environment.NewLine);
+			}
+			catch (Exception ex)
+			{
+				//-- generic catch because any exceptions inside the UEH
+				//-- will cause the code to terminate immediately
+			}
 
-            //LogExceptionToEventLog
-            _with2.Append(" ");
-            _with2.Append(strBullet);
-            _with2.Append(" ");
-            if (_blnLogToEventLogOK)
-            {
-                _with2.Append("an event was written to the application log");
-            }
-            else
-            {
-                _with2.Append("an event could NOT be written to the application log");
-            }
-            _with2.Append(Environment.NewLine);
+			System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.Default;
 
-            // LogExceptionToFile
-            _with2.Append(" ");
-            _with2.Append(strBullet);
-            _with2.Append(" ");
-            if (_blnLogToFileOK)
-            {
-                _with2.Append("details were written to a text log at:");
-            }
-            else
-            {
-                _with2.Append("details could NOT be written to the text log at:");
-            }
-            _with2.Append(Environment.NewLine);
-            _with2.Append("   ");
-            _with2.Append(_strLogFullPath);
-            _with2.Append(Environment.NewLine);
+			//-- display message to the user - this is disabled for now since we don't have a UI for exceptions.
+			ExceptionToUI();
 
-            _with2.Append(Environment.NewLine);
-            _with2.Append(Environment.NewLine);
-            _with2.Append("Detailed error information follows:");
-            _with2.Append(Environment.NewLine);
-            _with2.Append(Environment.NewLine);
-            _with2.Append(_strException);
-            return objStringBuilder.ToString();
-        }
+			//if (Variables.AppSettings.KillAppOnException)
+			//{
+			//As far as the email not being send when a user closes the dialog too fast, 
+			//I see that you were threading off the email to speed display of the exception 
+			//dialog. Well, if the user clicks ok before the SMTP can be sent, the thread 
+			//is killed immediately and the email will never make it out. To fix that, I changed 
+			//the scope of the objThread to class level and right before the KillApp() call I 
+			//do a objThread.Join(new TimeSpan(0, 0, 30)) to wait up to 30 seconds for it's 
+			//completion. Now the email is sent reliably. Changing the scope of the objThread 
+			//mandated that the class not be static (Shared) anymore, so I changed the relevant 
+			//functions and I instantiate an object of the exception handler to AddHandler() with.
 
-        //--
-        //-- display a dialog to the user; otherwise we just terminate with no alert at all!
-        //--
+			//objThread.Join(new TimeSpan(0, 0, 30));	// to wait 30 seconds for completion
+			//}
+		}
 
-        private static void ExceptionToUI()
-        {
-            const string _strWhatHappened =
-                "There was an unexpected error in (app). This may be due to a programming bug.";
-            string _strHowUserAffected = null;
-            const string _strWhatUserCanDo =
-                "Restart (app), and try repeating your last action. Try alternative methods of performing the same action.";
+		//--
+		//-- This is in a private routine for .NET security reasons
+		//-- if this line of code is in a sub, the entire sub is tagged as full trust
+		//--
+		private static void KillApp()
+		{
+			System.Diagnostics.Process.GetCurrentProcess().Kill();
+		}
 
-            _strHowUserAffected = "The action you requested was not performed.";
+		//--
+		//-- turns exception into something an average user can hopefully
+		//-- understand; still very technical
+		//--
+		private static string FormatExceptionForUser(bool blnConsoleApp)
+		{
+			System.Text.StringBuilder objStringBuilder = new System.Text.StringBuilder();
+			string strBullet = null;
+			if (blnConsoleApp)
+			{
+				strBullet = "-";
+			}
+			else
+			{
+				strBullet = "•";
+			}
+
+			var _with2 = objStringBuilder;
+			if (!blnConsoleApp)
+			{
+				_with2.Append("The development team was automatically notified of this problem. ");
+				_with2.Append("If you need immediate assistance, contact (contact).");
+			}
+			_with2.Append(Environment.NewLine);
+			_with2.Append(Environment.NewLine);
+			_with2.Append("The following information about the error was automatically captured: ");
+			_with2.Append(Environment.NewLine);
+			_with2.Append(Environment.NewLine);
+
+			//TakeExceptionScreenshot
+			_with2.Append(" ");
+			_with2.Append(strBullet);
+			_with2.Append(" ");
+			if (_blnLogToScreenshotOK)
+			{
+				_with2.Append("a screenshot was taken of the desktop at:");
+				_with2.Append(Environment.NewLine);
+				_with2.Append("   ");
+				_with2.Append(_strScreenshotFullPath);
+			}
+			else
+			{
+				_with2.Append("a screenshot could NOT be taken of the desktop.");
+			}
+			_with2.Append(Environment.NewLine);
+
+			//LogExceptionToEventLog
+			_with2.Append(" ");
+			_with2.Append(strBullet);
+			_with2.Append(" ");
+			if (_blnLogToEventLogOK)
+			{
+				_with2.Append("an event was written to the application log");
+			}
+			else
+			{
+				_with2.Append("an event could NOT be written to the application log");
+			}
+			_with2.Append(Environment.NewLine);
+
+			// LogExceptionToFile
+			_with2.Append(" ");
+			_with2.Append(strBullet);
+			_with2.Append(" ");
+			if (_blnLogToFileOK)
+			{
+				_with2.Append("details were written to a text log at:");
+			}
+			else
+			{
+				_with2.Append("details could NOT be written to the text log at:");
+			}
+			_with2.Append(Environment.NewLine);
+			_with2.Append("   ");
+			_with2.Append(_strLogFullPath);
+			_with2.Append(Environment.NewLine);
+
+			_with2.Append(Environment.NewLine);
+			_with2.Append(Environment.NewLine);
+			_with2.Append("Detailed error information follows:");
+			_with2.Append(Environment.NewLine);
+			_with2.Append(Environment.NewLine);
+			_with2.Append(_strException);
+			return objStringBuilder.ToString();
+		}
+
+		//--
+		//-- display a dialog to the user; otherwise we just terminate with no alert at all!
+		//--
+
+		private static void ExceptionToUI()
+		{
+			const string _strWhatHappened = "There was an unexpected error in (app). This may be due to a programming bug.";
+			string _strHowUserAffected = null;
+			const string _strWhatUserCanDo = "Restart (app), and try repeating your last action. Try alternative methods of performing the same action.";
+
+			_strHowUserAffected = "The action you requested was not performed.";
 
 
-            //ApplicationController.ShowError(_strHowUserAffected, FormatExceptionForUser(false));
-        }
+			//ApplicationController.ShowError(_strHowUserAffected, FormatExceptionForUser(false));
 
-        //--
-        //-- for non-web hosted apps, returns:
-        //--   "[path]\bin\YourAssemblyName."
-        //-- for web hosted apps, returns URL with non-filesystem chars removed:
-        //--   "c:\http___domain\path\YourAssemblyName."
-        private static string GetApplicationPath()
-        {
-            if (ParentAssembly().CodeBase.StartsWith("http://"))
-            {
-                //return "c:\\" + Regex.Replace(ParentAssembly().CodeBase(), "[\\/\\\\\\:\\*\\?\\\"\\<\\>\\|]", "_") + ".";
-                return @"c:\" + Regex.Replace(ParentAssembly().CodeBase, "[\\/\\\\\\:\\*\\?\\\"\\<\\>\\|]", "_") + ".";
-            }
-            return AppDomain.CurrentDomain.BaseDirectory + AppDomain.CurrentDomain.FriendlyName + ".";
-        }
+		}
 
-        //--
-        //-- take a desktop screenshot of our exception
-        //-- note that this fires BEFORE the user clicks on the OK dismissing the crash dialog
-        //-- so the crash dialog itself will not be displayed
-        //--
-        private static void ExceptionToScreenshot()
-        {
-            //-- note that screenshotname does NOT include the file type extension
-            try
-            {
-                TakeScreenshotPrivate(GetApplicationPath() + _strScreenshotName);
-                _blnLogToScreenshotOK = true;
-            }
-            catch (Exception ex)
-            {
-                _blnLogToScreenshotOK = false;
-            }
-        }
+		//--
+		//-- for non-web hosted apps, returns:
+		//--   "[path]\bin\YourAssemblyName."
+		//-- for web hosted apps, returns URL with non-filesystem chars removed:
+		//--   "c:\http___domain\path\YourAssemblyName."
+		private static string GetApplicationPath()
+		{
+			if (ParentAssembly().CodeBase.StartsWith("http://"))
+			{
+				//return "c:\\" + Regex.Replace(ParentAssembly().CodeBase(), "[\\/\\\\\\:\\*\\?\\\"\\<\\>\\|]", "_") + ".";
+				return (@"c:\" + Regex.Replace(ParentAssembly().CodeBase, "[\\/\\\\\\:\\*\\?\\\"\\<\\>\\|]", "_") + ".");
+			}
+			else
+			{
+				return System.AppDomain.CurrentDomain.BaseDirectory + System.AppDomain.CurrentDomain.FriendlyName + ".";
+			}
+		}
 
-        //--
-        //-- write an exception to the Windows NT event log
-        //--
-        private static void ExceptionToEventLog()
-        {
-            try
-            {
-                EventLog.WriteEntry(AppDomain.CurrentDomain.FriendlyName, Environment.NewLine + _strException,
-                    EventLogEntryType.Error);
-                _blnLogToEventLogOK = true;
-            }
-            catch (Exception ex)
-            {
-                _blnLogToEventLogOK = false;
-            }
-        }
+		//--
+		//-- take a desktop screenshot of our exception
+		//-- note that this fires BEFORE the user clicks on the OK dismissing the crash dialog
+		//-- so the crash dialog itself will not be displayed
+		//--
+		private static void ExceptionToScreenshot()
+		{
+			//-- note that screenshotname does NOT include the file type extension
+			try
+			{
+				TakeScreenshotPrivate(GetApplicationPath() + _strScreenshotName);
+				_blnLogToScreenshotOK = true;
+			}
+			catch (Exception ex)
+			{
+				_blnLogToScreenshotOK = false;
+			}
+		}
 
-        //--
-        //-- write an exception to the console
-        //--
-        private static void ExceptionToConsole()
-        {
-            Console.WriteLine("This application encountered an unexpected problem.");
-            Console.WriteLine(FormatExceptionForUser(true));
-            Console.WriteLine("The application must now terminate. Press ENTER to continue...");
-            Console.ReadLine();
-        }
+		//--
+		//-- write an exception to the Windows NT event log
+		//--
+		private static void ExceptionToEventLog()
+		{
+			try
+			{
+				System.Diagnostics.EventLog.WriteEntry(System.AppDomain.CurrentDomain.FriendlyName, Environment.NewLine + _strException, EventLogEntryType.Error);
+				_blnLogToEventLogOK = true;
+			}
+			catch (Exception ex)
+			{
+				_blnLogToEventLogOK = false;
+			}
+		}
 
-        //--
-        //-- write an exception to a text file
-        //--
-        private static void ExceptionToFile()
-        {
-            LogManager.GetCurrentClassLogger().Fatal(_strException);
+		//--
+		//-- write an exception to the console
+		//--
+		private static void ExceptionToConsole()
+		{
+			Console.WriteLine("This application encountered an unexpected problem.");
+			Console.WriteLine(FormatExceptionForUser(true));
+			Console.WriteLine("The application must now terminate. Press ENTER to continue...");
+			Console.ReadLine();
+		}
 
-            /*_strLogFullPath = GetApplicationPath() + _strLogName;
+		//--
+		//-- write an exception to a text file
+		//--
+		private static void ExceptionToFile()
+		{
+			NLog.LogManager.GetCurrentClassLogger().Fatal(_strException);
+
+			/*_strLogFullPath = GetApplicationPath() + _strLogName;
 			try
 			{
 				System.IO.StreamWriter objStreamWriter = new System.IO.StreamWriter(_strLogFullPath, true);
@@ -523,204 +539,204 @@ namespace JMMServer
 			{
 				_blnLogToFileOK = false;
 			}*/
-        }
+		}
 
-        //--
-        //-- exception-safe WindowsIdentity.GetCurrent retrieval returns "domain\username"
-        //-- per MS, this sometimes randomly fails with "Access Denied" particularly on NT4
-        //--
-        private static string CurrentWindowsIdentity()
-        {
-            try
-            {
-                //return System.Security.Principal.WindowsIdentity.GetCurrent().Name();
-                return WindowsIdentity.GetCurrent().Name;
-            }
-            catch (Exception ex)
-            {
-                return "";
-            }
-        }
+		//--
+		//-- exception-safe WindowsIdentity.GetCurrent retrieval returns "domain\username"
+		//-- per MS, this sometimes randomly fails with "Access Denied" particularly on NT4
+		//--
+		private static string CurrentWindowsIdentity()
+		{
+			try
+			{
+				//return System.Security.Principal.WindowsIdentity.GetCurrent().Name();
+				return WindowsIdentity.GetCurrent().Name;
+			}
+			catch (Exception ex)
+			{
+				return "";
+			}
+		}
 
-        //--
-        //-- exception-safe "domain\username" retrieval from Environment
-        //--
-        private static string CurrentEnvironmentIdentity()
-        {
-            try
-            {
-                return Environment.UserDomainName + "\\" + Environment.UserName;
-            }
-            catch (Exception ex)
-            {
-                return "";
-            }
-        }
+		//--
+		//-- exception-safe "domain\username" retrieval from Environment
+		//--
+		private static string CurrentEnvironmentIdentity()
+		{
+			try
+			{
+				return System.Environment.UserDomainName + "\\" + System.Environment.UserName;
+			}
+			catch (Exception ex)
+			{
+				return "";
+			}
+		}
 
-        //--
-        //-- retrieve identity with fallback on error to safer method
-        //--
-        private static string UserIdentity()
-        {
-            string strTemp = null;
-            strTemp = CurrentWindowsIdentity();
-            if (string.IsNullOrEmpty(strTemp))
-            {
-                strTemp = CurrentEnvironmentIdentity();
-            }
-            return strTemp;
-        }
+		//--
+		//-- retrieve identity with fallback on error to safer method
+		//--
+		private static string UserIdentity()
+		{
+			string strTemp = null;
+			strTemp = CurrentWindowsIdentity();
+			if (string.IsNullOrEmpty(strTemp))
+			{
+				strTemp = CurrentEnvironmentIdentity();
+			}
+			return strTemp;
+		}
 
-        //--
-        //-- gather some system information that is helpful to diagnosing
-        //-- exception
-        //--
-        internal static string SysInfoToString(bool blnIncludeStackTrace = false)
-        {
-            var objStringBuilder = new StringBuilder();
+		//--
+		//-- gather some system information that is helpful to diagnosing
+		//-- exception
+		//--
+		static internal string SysInfoToString(bool blnIncludeStackTrace = false)
+		{
+			System.Text.StringBuilder objStringBuilder = new System.Text.StringBuilder();
 
-            var _with4 = objStringBuilder;
+			var _with4 = objStringBuilder;
 
-            _with4.Append("Date and Time:         ");
-            _with4.Append(DateTime.Now);
-            _with4.Append(Environment.NewLine);
+			_with4.Append("Date and Time:         ");
+			_with4.Append(DateTime.Now);
+			_with4.Append(Environment.NewLine);
 
-            _with4.Append("Machine Name:          ");
-            try
-            {
-                _with4.Append(Environment.MachineName);
-            }
-            catch (Exception e)
-            {
-                _with4.Append(e.Message);
-            }
-            _with4.Append(Environment.NewLine);
+			_with4.Append("Machine Name:          ");
+			try
+			{
+				_with4.Append(Environment.MachineName);
+			}
+			catch (Exception e)
+			{
+				_with4.Append(e.Message);
+			}
+			_with4.Append(Environment.NewLine);
 
-            _with4.Append("IP Address:            ");
-            _with4.Append(GetCurrentIP());
-            _with4.Append(Environment.NewLine);
+			_with4.Append("IP Address:            ");
+			_with4.Append(GetCurrentIP());
+			_with4.Append(Environment.NewLine);
 
-            _with4.Append("Current User:          ");
-            _with4.Append(UserIdentity());
-            _with4.Append(Environment.NewLine);
-            _with4.Append(Environment.NewLine);
+			_with4.Append("Current User:          ");
+			_with4.Append(UserIdentity());
+			_with4.Append(Environment.NewLine);
+			_with4.Append(Environment.NewLine);
 
-            _with4.Append("Application Domain:    ");
-            try
-            {
-                //_with4.Append(System.AppDomain.CurrentDomain.FriendlyName());
-                _with4.Append(AppDomain.CurrentDomain.FriendlyName);
-            }
-            catch (Exception e)
-            {
-                _with4.Append(e.Message);
-            }
+			_with4.Append("Application Domain:    ");
+			try
+			{
+				//_with4.Append(System.AppDomain.CurrentDomain.FriendlyName());
+				_with4.Append(System.AppDomain.CurrentDomain.FriendlyName);
+			}
+			catch (Exception e)
+			{
+				_with4.Append(e.Message);
+			}
 
-            _with4.Append(Environment.NewLine);
-            _with4.Append("Assembly Codebase:     ");
-            try
-            {
-                //_with4.Append(ParentAssembly().CodeBase());
-                _with4.Append(ParentAssembly().CodeBase);
-            }
-            catch (Exception e)
-            {
-                _with4.Append(e.Message);
-            }
-            _with4.Append(Environment.NewLine);
+			_with4.Append(Environment.NewLine);
+			_with4.Append("Assembly Codebase:     ");
+			try
+			{
+				//_with4.Append(ParentAssembly().CodeBase());
+				_with4.Append(ParentAssembly().CodeBase);
+			}
+			catch (Exception e)
+			{
+				_with4.Append(e.Message);
+			}
+			_with4.Append(Environment.NewLine);
 
-            _with4.Append("Assembly Full Name:    ");
-            try
-            {
-                _with4.Append(ParentAssembly().FullName);
-            }
-            catch (Exception e)
-            {
-                _with4.Append(e.Message);
-            }
-            _with4.Append(Environment.NewLine);
+			_with4.Append("Assembly Full Name:    ");
+			try
+			{
+				_with4.Append(ParentAssembly().FullName);
+			}
+			catch (Exception e)
+			{
+				_with4.Append(e.Message);
+			}
+			_with4.Append(Environment.NewLine);
 
-            _with4.Append("Assembly Version:      ");
-            try
-            {
-                //_with4.Append(ParentAssembly().GetName().Version().ToString);
-                _with4.Append(ParentAssembly().GetName().Version);
-            }
-            catch (Exception e)
-            {
-                _with4.Append(e.Message);
-            }
-            _with4.Append(Environment.NewLine);
+			_with4.Append("Assembly Version:      ");
+			try
+			{
+				//_with4.Append(ParentAssembly().GetName().Version().ToString);
+				_with4.Append(ParentAssembly().GetName().Version.ToString());
+			}
+			catch (Exception e)
+			{
+				_with4.Append(e.Message);
+			}
+			_with4.Append(Environment.NewLine);
 
-            _with4.Append("Assembly Build Date:   ");
-            try
-            {
-                _with4.Append(AssemblyBuildDate(ParentAssembly()));
-            }
-            catch (Exception e)
-            {
-                _with4.Append(e.Message);
-            }
-            _with4.Append(Environment.NewLine);
-            _with4.Append(Environment.NewLine);
+			_with4.Append("Assembly Build Date:   ");
+			try
+			{
+				_with4.Append(AssemblyBuildDate(ParentAssembly()).ToString());
+			}
+			catch (Exception e)
+			{
+				_with4.Append(e.Message);
+			}
+			_with4.Append(Environment.NewLine);
+			_with4.Append(Environment.NewLine);
 
-            if (blnIncludeStackTrace)
-            {
-                _with4.Append(EnhancedStackTrace());
-            }
+			if (blnIncludeStackTrace)
+			{
+				_with4.Append(EnhancedStackTrace());
+			}
 
-            return objStringBuilder.ToString();
-        }
+			return objStringBuilder.ToString();
+		}
 
-        //--
-        //-- translate exception object to string, with additional system info
-        //--
-        internal static string ExceptionToString(Exception objException)
-        {
-            var objStringBuilder = new StringBuilder();
+		//--
+		//-- translate exception object to string, with additional system info
+		//--
+		static internal string ExceptionToString(Exception objException)
+		{
+			System.Text.StringBuilder objStringBuilder = new System.Text.StringBuilder();
 
-            if (objException.InnerException != null)
-            {
-                //-- sometimes the original exception is wrapped in a more relevant outer exception
-                //-- the detail exception is the "inner" exception
-                //-- see http://msdn.microsoft.com/library/default.asp?url=/library/en-us/dnbda/html/exceptdotnet.asp
-                var _with5 = objStringBuilder;
-                _with5.Append("(Inner Exception)");
-                _with5.Append(Environment.NewLine);
-                _with5.Append(ExceptionToString(objException.InnerException));
-                _with5.Append(Environment.NewLine);
-                _with5.Append("(Outer Exception)");
-                _with5.Append(Environment.NewLine);
-            }
-            var _with6 = objStringBuilder;
-            //-- get general system and app information
-            _with6.Append(SysInfoToString());
+			if ((objException.InnerException != null))
+			{
+				//-- sometimes the original exception is wrapped in a more relevant outer exception
+				//-- the detail exception is the "inner" exception
+				//-- see http://msdn.microsoft.com/library/default.asp?url=/library/en-us/dnbda/html/exceptdotnet.asp
+				var _with5 = objStringBuilder;
+				_with5.Append("(Inner Exception)");
+				_with5.Append(Environment.NewLine);
+				_with5.Append(ExceptionToString(objException.InnerException));
+				_with5.Append(Environment.NewLine);
+				_with5.Append("(Outer Exception)");
+				_with5.Append(Environment.NewLine);
+			}
+			var _with6 = objStringBuilder;
+			//-- get general system and app information
+			_with6.Append(SysInfoToString());
 
-            //-- get exception-specific information
-            _with6.Append("Exception Source:      ");
-            try
-            {
-                _with6.Append(objException.Source);
-            }
-            catch (Exception e)
-            {
-                _with6.Append(e.Message);
-            }
-            _with6.Append(Environment.NewLine);
+			//-- get exception-specific information
+			_with6.Append("Exception Source:      ");
+			try
+			{
+				_with6.Append(objException.Source);
+			}
+			catch (Exception e)
+			{
+				_with6.Append(e.Message);
+			}
+			_with6.Append(Environment.NewLine);
 
-            _with6.Append("Exception Type:        ");
-            try
-            {
-                _with6.Append(objException.GetType().FullName);
-            }
-            catch (Exception e)
-            {
-                _with6.Append(e.Message);
-            }
-            _with6.Append(Environment.NewLine);
+			_with6.Append("Exception Type:        ");
+			try
+			{
+				_with6.Append(objException.GetType().FullName);
+			}
+			catch (Exception e)
+			{
+				_with6.Append(e.Message);
+			}
+			_with6.Append(Environment.NewLine);
 
-            _with6.Append("Exception Message:     ");
-            /*try
+			_with6.Append("Exception Message:     ");
+			/*try
 			{
 				//_with6.Append(ret.Result);
 				Task.Factory.StartNew<string>(() =>
@@ -739,223 +755,222 @@ namespace JMMServer
 			{
 				_with6.Append(e.Message);
 			}*/
-            _with6.Append(Environment.NewLine);
+			_with6.Append(Environment.NewLine);
 
-            _with6.Append("Exception Target Site: ");
-            try
-            {
-                _with6.Append(objException.TargetSite.Name);
-            }
-            catch (Exception e)
-            {
-                _with6.Append(e.Message);
-            }
-            _with6.Append(Environment.NewLine);
+			_with6.Append("Exception Target Site: ");
+			try
+			{
+				_with6.Append(objException.TargetSite.Name);
+			}
+			catch (Exception e)
+			{
+				_with6.Append(e.Message);
+			}
+			_with6.Append(Environment.NewLine);
 
-            try
-            {
-                var x = EnhancedStackTrace(objException);
-                _with6.Append(x);
-            }
-            catch (Exception e)
-            {
-                _with6.Append(e.Message);
-            }
-            _with6.Append(Environment.NewLine);
+			try
+			{
+				string x = EnhancedStackTrace(objException);
+				_with6.Append(x);
+			}
+			catch (Exception e)
+			{
+				_with6.Append(e.Message);
+			}
+			_with6.Append(Environment.NewLine);
 
-            return objStringBuilder.ToString();
-        }
+			return objStringBuilder.ToString();
+		}
 
-        //--
-        //-- returns ImageCodecInfo for the specified MIME type
-        //--
-        private static ImageCodecInfo GetEncoderInfo(string strMimeType)
-        {
-            var j = 0;
-            ImageCodecInfo[] objImageCodecInfo = null;
-            objImageCodecInfo = ImageCodecInfo.GetImageEncoders();
+		//--
+		//-- returns ImageCodecInfo for the specified MIME type
+		//--
+		private static ImageCodecInfo GetEncoderInfo(string strMimeType)
+		{
+			int j = 0;
+			System.Drawing.Imaging.ImageCodecInfo[] objImageCodecInfo = null;
+			objImageCodecInfo = System.Drawing.Imaging.ImageCodecInfo.GetImageEncoders();
 
-            j = 0;
-            while (j < objImageCodecInfo.Length)
-            {
-                if (objImageCodecInfo[j].MimeType == strMimeType)
-                {
-                    return objImageCodecInfo[j];
-                }
-                j += 1;
-            }
+			j = 0;
+			while (j < objImageCodecInfo.Length)
+			{
+				if (objImageCodecInfo[j].MimeType == strMimeType)
+				{
+					return objImageCodecInfo[j];
+				}
+				j += 1;
+			}
 
-            return null;
-        }
+			return null;
+		}
 
-        //--
-        //-- save bitmap object to JPEG of specified quality level
-        //--
-        private static void BitmapToJPEG(Bitmap objBitmap, string strFilename, long lngCompression = 75)
-        {
-            var objEncoderParameters = new EncoderParameters(1);
-            var objImageCodecInfo = GetEncoderInfo("image/jpeg");
+		//--
+		//-- save bitmap object to JPEG of specified quality level
+		//--
+		private static void BitmapToJPEG(Bitmap objBitmap, string strFilename, long lngCompression = 75)
+		{
+			System.Drawing.Imaging.EncoderParameters objEncoderParameters = new System.Drawing.Imaging.EncoderParameters(1);
+			System.Drawing.Imaging.ImageCodecInfo objImageCodecInfo = GetEncoderInfo("image/jpeg");
 
-            objEncoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, lngCompression);
-            objBitmap.Save(strFilename, objImageCodecInfo, objEncoderParameters);
-        }
+			objEncoderParameters.Param[0] = new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality, lngCompression);
+			objBitmap.Save(strFilename, objImageCodecInfo, objEncoderParameters);
+		}
 
-        //--
-        //-- takes a screenshot of the desktop and saves to filename and format specified
-        //--
-        private static void TakeScreenshotPrivate(string strFilename)
-        {
-            var objRectangle = Screen.PrimaryScreen.Bounds;
-            var objBitmap = new Bitmap(objRectangle.Right, objRectangle.Bottom);
-            Graphics objGraphics = null;
-            var hdcDest = default(IntPtr);
-            var hdcSrc = 0;
-            const int SRCCOPY = 0xcc0020;
-            string strFormatExtension = null;
+		//--
+		//-- takes a screenshot of the desktop and saves to filename and format specified
+		//--
+		private static void TakeScreenshotPrivate(string strFilename)
+		{
+			Rectangle objRectangle = System.Windows.Forms.Screen.PrimaryScreen.Bounds;
+			Bitmap objBitmap = new Bitmap(objRectangle.Right, objRectangle.Bottom);
+			Graphics objGraphics = null;
+			IntPtr hdcDest = default(IntPtr);
+			int hdcSrc = 0;
+			const int SRCCOPY = 0xcc0020;
+			string strFormatExtension = null;
 
-            //objGraphics = objGraphics.FromImage(objBitmap);
-            objGraphics = Graphics.FromImage(objBitmap);
+			//objGraphics = objGraphics.FromImage(objBitmap);
+			objGraphics = Graphics.FromImage(objBitmap);
 
-            //-- get a device context to the windows desktop and our destination  bitmaps
-            hdcSrc = GetDC(0);
-            hdcDest = objGraphics.GetHdc();
-            //-- copy what is on the desktop to the bitmap
-            BitBlt(hdcDest.ToInt32(), 0, 0, objRectangle.Right, objRectangle.Bottom, hdcSrc, 0, 0, SRCCOPY);
-            //-- release device contexts
-            objGraphics.ReleaseHdc(hdcDest);
-            ReleaseDC(0, hdcSrc);
+			//-- get a device context to the windows desktop and our destination  bitmaps
+			hdcSrc = GetDC(0);
+			hdcDest = objGraphics.GetHdc();
+			//-- copy what is on the desktop to the bitmap
+			BitBlt(hdcDest.ToInt32(), 0, 0, objRectangle.Right, objRectangle.Bottom, hdcSrc, 0, 0, SRCCOPY);
+			//-- release device contexts
+			objGraphics.ReleaseHdc(hdcDest);
+			ReleaseDC(0, hdcSrc);
 
-            strFormatExtension = _ScreenshotImageFormat.ToString().ToLower();
-            if (Path.GetExtension(strFilename) != "." + strFormatExtension)
-            {
-                strFilename += "." + strFormatExtension;
-            }
-            switch (strFormatExtension)
-            {
-                case "jpeg":
-                    BitmapToJPEG(objBitmap, strFilename, 80);
-                    break;
-                default:
-                    objBitmap.Save(strFilename, _ScreenshotImageFormat);
-                    break;
-            }
+			strFormatExtension = _ScreenshotImageFormat.ToString().ToLower();
+			if (System.IO.Path.GetExtension(strFilename) != "." + strFormatExtension)
+			{
+				strFilename += "." + strFormatExtension;
+			}
+			switch (strFormatExtension)
+			{
+				case "jpeg":
+					BitmapToJPEG(objBitmap, strFilename, 80);
+					break;
+				default:
+					objBitmap.Save(strFilename, _ScreenshotImageFormat);
+					break;
+			}
 
-            //-- save the complete path/filename of the screenshot for possible later use
-            _strScreenshotFullPath = strFilename;
-        }
+			//-- save the complete path/filename of the screenshot for possible later use
+			_strScreenshotFullPath = strFilename;
+		}
 
 
-        //--
-        //-- get IP address of this machine
-        //-- not an ideal method for a number of reasons (guess why!)
-        //-- but the alternatives are very ugly
-        //--
-        private static string GetCurrentIP()
-        {
-            try
-            {
-                var strIP = Dns.GetHostByName(Dns.GetHostName()).AddressList[0].ToString();
-                return strIP;
-            }
-            catch (Exception ex)
-            {
-                return "127.0.0.1";
-            }
-        }
+		//--
+		//-- get IP address of this machine
+		//-- not an ideal method for a number of reasons (guess why!)
+		//-- but the alternatives are very ugly
+		//--
+		private static string GetCurrentIP()
+		{
+			try
+			{
+				string strIP = System.Net.Dns.GetHostByName(System.Net.Dns.GetHostName()).AddressList[0].ToString();
+				return strIP;
+			}
+			catch (Exception ex)
+			{
+				return "127.0.0.1";
+			}
+		}
 
-        //--
-        //-- Returns the specified String value from the application .config file,
-        //-- with many fail-safe checks (exceptions, key not present, etc)
-        //--
-        //-- this is important in an *unhandled exception handler*, because any unhandled exceptions will simply exit!
-        //--
-        private static string GetConfigString(string strKey, string strDefault = null)
-        {
-            try
-            {
-                var strTemp = Convert.ToString(ConfigurationSettings.AppSettings.Get(_strClassName + "/" + strKey));
-                if (strTemp == null)
-                {
-                    if (strDefault == null)
-                    {
-                        return string.Format(_strKeyNotPresent, _strClassName + "/" + strKey);
-                    }
-                    return strDefault;
-                }
-                return strTemp;
-            }
-            catch (Exception ex)
-            {
-                if (strDefault == null)
-                {
-                    return string.Format(_strKeyError, ex.Message, _strClassName + "/" + strKey);
-                }
-                return strDefault;
-            }
-        }
+		const string _strKeyNotPresent = "The key <{0}> is not present in the <appSettings> section of .config file";
 
-        //--
-        //-- Returns the specified boolean value from the application .config file,
-        //-- with many fail-safe checks (exceptions, key not present, etc)
-        //--
-        //-- this is important in an *unhandled exception handler*, because any unhandled exceptions will simply exit!
-        //--
-        //private static bool GetConfigBoolean(string strKey, bool blnDefault = null)
-        private static bool GetConfigBoolean(string strKey, [Optional, DefaultParameterValue(false)] bool blnDefault)
-        {
-            string strTemp = null;
-            try
-            {
-                strTemp = ConfigurationSettings.AppSettings.Get(_strClassName + "/" + strKey);
-            }
-            catch (Exception ex)
-            {
-                if (blnDefault == null)
-                {
-                    return false;
-                }
-                return blnDefault;
-            }
+		const string _strKeyError = "Error {0} retrieving key <{1}> from <appSettings> section of .config file";
 
-            if (strTemp == null)
-            {
-                if (blnDefault == null)
-                {
-                    return false;
-                }
-                return blnDefault;
-            }
-            switch (strTemp.ToLower())
-            {
-                case "1":
-                case "true":
-                    return true;
-                default:
-                    return false;
-            }
-        }
+		//--
+		//-- Returns the specified String value from the application .config file,
+		//-- with many fail-safe checks (exceptions, key not present, etc)
+		//--
+		//-- this is important in an *unhandled exception handler*, because any unhandled exceptions will simply exit!
+		//--
+		private static string GetConfigString(string strKey, string strDefault = null)
+		{
+			try
+			{
+				string strTemp = Convert.ToString(ConfigurationSettings.AppSettings.Get(_strClassName + "/" + strKey));
+				if (strTemp == null)
+				{
+					if (strDefault == null)
+					{
+						return string.Format(_strKeyNotPresent, _strClassName + "/" + strKey);
+					}
+					else
+					{
+						return strDefault;
+					}
+				}
+				else
+				{
+					return strTemp;
+				}
+			}
+			catch (Exception ex)
+			{
+				if (strDefault == null)
+				{
+					return string.Format(_strKeyError, ex.Message, _strClassName + "/" + strKey);
+				}
+				else
+				{
+					return strDefault;
+				}
+			}
+		}
 
-        #region "Properties"
+		//--
+		//-- Returns the specified boolean value from the application .config file,
+		//-- with many fail-safe checks (exceptions, key not present, etc)
+		//--
+		//-- this is important in an *unhandled exception handler*, because any unhandled exceptions will simply exit!
+		//--
+		//private static bool GetConfigBoolean(string strKey, bool blnDefault = null)
+		private static bool GetConfigBoolean(string strKey, [Optional, DefaultParameterValue(false)] bool blnDefault)
+		{
+			string strTemp = null;
+			try
+			{
+				strTemp = ConfigurationSettings.AppSettings.Get(_strClassName + "/" + strKey);
+			}
+			catch (Exception ex)
+			{
+				if (blnDefault == null)
+				{
+					return false;
+				}
+				else
+				{
+					return blnDefault;
+				}
+			}
 
-        [DllImport("gdi32", EntryPoint = "BitBlt", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
-
-        #endregion "Properties"
-
-        #region "win32api screenshot calls"
-
-        //--
-        //-- Windows API calls necessary to support screen capture
-        //--
-        private static extern int BitBlt(int hDestDC, int x, int y, int nWidth, int nHeight, int hSrcDC, int xSrc,
-            int ySrc, int dwRop);
-
-        [DllImport("user32", EntryPoint = "GetDC", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
-        private static extern int GetDC(int hwnd);
-
-        [DllImport("user32", EntryPoint = "ReleaseDC", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true
-            )]
-        private static extern int ReleaseDC(int hwnd, int hdc);
-
-        #endregion "win32api screenshot calls"
-    }
+			if (strTemp == null)
+			{
+				if (blnDefault == null)
+				{
+					return false;
+				}
+				else
+				{
+					return blnDefault;
+				}
+			}
+			else
+			{
+				switch (strTemp.ToLower())
+				{
+					case "1":
+					case "true":
+						return true;
+					default:
+						return false;
+				}
+			}
+		}
+	}
 }

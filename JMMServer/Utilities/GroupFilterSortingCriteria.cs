@@ -1,11 +1,32 @@
-﻿namespace JMMServer
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace JMMServer
 {
-    public class GroupFilterSortingCriteria
-    {
-        public int? GroupFilterID { get; set; }
+	public class GroupFilterSortingCriteria
+	{
+		public int? GroupFilterID { get; set; }
 
-        public GroupFilterSorting SortType { get; set; } = GroupFilterSorting.AniDBRating;
+		private GroupFilterSorting sortType = GroupFilterSorting.AniDBRating;
+		public GroupFilterSorting SortType
+		{
+			get { return sortType; }
+			set
+			{
+				sortType = value;
+			}
+		}
 
-        public GroupFilterSortDirection SortDirection { get; set; } = GroupFilterSortDirection.Asc;
-    }
+		private GroupFilterSortDirection sortDirection = GroupFilterSortDirection.Asc;
+		public GroupFilterSortDirection SortDirection
+		{
+			get { return sortDirection; }
+			set
+			{
+				sortDirection = value;
+			}
+		}
+	}
 }

@@ -8,6 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+using System.Xml.Serialization;
 
 // 
 // Ce code source a été automatiquement généré par xsd, Version=2.0.50727.3038.
@@ -19,38 +20,31 @@
 [System.SerializableAttribute()]
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
-[System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
-[System.Xml.Serialization.XmlRootAttribute(Namespace = "", IsNullable = false)]
-public partial class myanimelist
-{
-
+[System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
+[System.Xml.Serialization.XmlRootAttribute(Namespace="", IsNullable=false)]
+public partial class myanimelist {
+    
     private myanimelistMyinfo myinfoField;
-
+    
     private myanimelistAnime[] animeField;
-
+    
     /// <remarks/>
-    public myanimelistMyinfo myinfo
-    {
-        get
-        {
+    public myanimelistMyinfo myinfo {
+        get {
             return this.myinfoField;
         }
-        set
-        {
+        set {
             this.myinfoField = value;
         }
     }
-
+    
     /// <remarks/>
     [System.Xml.Serialization.XmlElementAttribute("anime")]
-    public myanimelistAnime[] anime
-    {
-        get
-        {
+    public myanimelistAnime[] anime {
+        get {
             return this.animeField;
         }
-        set
-        {
+        set {
             this.animeField = value;
         }
     }
@@ -61,12 +55,11 @@ public partial class myanimelist
 [System.SerializableAttribute()]
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
-[System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
-public partial class myanimelistMyinfo
-{
+[System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
+public partial class myanimelistMyinfo {
 
     private int user_idField;
-
+    
     private string user_nameField;
 
     private int user_watchingField;
@@ -78,109 +71,91 @@ public partial class myanimelistMyinfo
     private int user_droppedField;
 
     private int user_plantowatchField;
-
+    
     private decimal user_days_spent_watchingField;
-
+    
     /// <remarks/>
     public int user_id
     {
-        get
-        {
+        get {
             return this.user_idField;
         }
-        set
-        {
+        set {
             this.user_idField = value;
         }
     }
-
+    
     /// <remarks/>
-    public string user_name
-    {
-        get
-        {
+    public string user_name {
+        get {
             return this.user_nameField;
         }
-        set
-        {
+        set {
             this.user_nameField = value;
         }
     }
-
+    
     /// <remarks/>
     public int user_watching
     {
-        get
-        {
+        get {
             return this.user_watchingField;
         }
-        set
-        {
+        set {
             this.user_watchingField = value;
         }
     }
-
+    
     /// <remarks/>
     public int user_completed
     {
-        get
-        {
+        get {
             return this.user_completedField;
         }
-        set
-        {
+        set {
             this.user_completedField = value;
         }
     }
-
+    
     /// <remarks/>
     public int user_onhold
     {
-        get
-        {
+        get {
             return this.user_onholdField;
         }
-        set
-        {
+        set {
             this.user_onholdField = value;
         }
     }
-
+    
     /// <remarks/>
     public int user_dropped
     {
-        get
-        {
+        get {
             return this.user_droppedField;
         }
-        set
-        {
+        set {
             this.user_droppedField = value;
         }
     }
-
+    
     /// <remarks/>
     public int user_plantowatch
     {
-        get
-        {
+        get {
             return this.user_plantowatchField;
         }
-        set
-        {
+        set {
             this.user_plantowatchField = value;
         }
     }
-
+    
     /// <remarks/>
-    public decimal user_days_spent_watching
-    {
-        get
-        {
+    public decimal user_days_spent_watching {
+        get {
             return this.user_days_spent_watchingField;
         }
-        set
-        {
+        set {
             this.user_days_spent_watchingField = value;
         }
     }
@@ -191,14 +166,13 @@ public partial class myanimelistMyinfo
 [System.SerializableAttribute()]
 [System.Diagnostics.DebuggerStepThroughAttribute()]
 [System.ComponentModel.DesignerCategoryAttribute("code")]
-[System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
-public partial class myanimelistAnime
-{
+[System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true)]
+public partial class myanimelistAnime {
 
     private int series_animedb_idField;
-
+    
     private string series_titleField;
-
+    
     private string series_synonymsField;
 
     private int series_typeField;
@@ -206,19 +180,19 @@ public partial class myanimelistAnime
     private int series_episodesField;
 
     private int series_statusField;
-
+    
     private string series_startField;
-
+    
     private string series_endField;
-
+    
     private string series_imageField;
 
     private int my_idField;
 
     private int my_watched_episodesField;
-
+    
     private string my_start_dateField;
-
+    
     private string my_finish_dateField;
 
     private int my_scoreField;
@@ -230,252 +204,206 @@ public partial class myanimelistAnime
     private int my_rewatching_epField;
 
     private int my_last_updatedField;
-
+    
     private object my_tagsField;
-
+    
     /// <remarks/>
     public int series_animedb_id
     {
-        get
-        {
+        get {
             return this.series_animedb_idField;
         }
-        set
-        {
+        set {
             this.series_animedb_idField = value;
         }
     }
-
+    
     /// <remarks/>
-    public string series_title
-    {
-        get
-        {
+    public string series_title {
+        get {
             return this.series_titleField;
         }
-        set
-        {
+        set {
             this.series_titleField = value;
         }
     }
-
+    
     /// <remarks/>
-    public string series_synonyms
-    {
-        get
-        {
+    public string series_synonyms {
+        get {
             return this.series_synonymsField;
         }
-        set
-        {
+        set {
             this.series_synonymsField = value;
         }
     }
-
+    
     /// <remarks/>
     public int series_type
     {
-        get
-        {
+        get {
             return this.series_typeField;
         }
-        set
-        {
+        set {
             this.series_typeField = value;
         }
     }
-
+    
     /// <remarks/>
     public int series_episodes
     {
-        get
-        {
+        get {
             return this.series_episodesField;
         }
-        set
-        {
+        set {
             this.series_episodesField = value;
         }
     }
-
+    
     /// <remarks/>
     public int series_status
     {
-        get
-        {
+        get {
             return this.series_statusField;
         }
-        set
-        {
+        set {
             this.series_statusField = value;
         }
     }
-
+    
     /// <remarks/>
-    public string series_start
-    {
-        get
-        {
+    public string series_start {
+        get {
             return this.series_startField;
         }
-        set
-        {
+        set {
             this.series_startField = value;
         }
     }
-
+    
     /// <remarks/>
-    public string series_end
-    {
-        get
-        {
+    public string series_end {
+        get {
             return this.series_endField;
         }
-        set
-        {
+        set {
             this.series_endField = value;
         }
     }
-
+    
     /// <remarks/>
-    public string series_image
-    {
-        get
-        {
+    public string series_image {
+        get {
             return this.series_imageField;
         }
-        set
-        {
+        set {
             this.series_imageField = value;
         }
     }
-
+    
     /// <remarks/>
     public int my_id
     {
-        get
-        {
+        get {
             return this.my_idField;
         }
-        set
-        {
+        set {
             this.my_idField = value;
         }
     }
-
+    
     /// <remarks/>
     public int my_watched_episodes
     {
-        get
-        {
+        get {
             return this.my_watched_episodesField;
         }
-        set
-        {
+        set {
             this.my_watched_episodesField = value;
         }
     }
-
+    
     /// <remarks/>
-    public string my_start_date
-    {
-        get
-        {
+    public string my_start_date {
+        get {
             return this.my_start_dateField;
         }
-        set
-        {
+        set {
             this.my_start_dateField = value;
         }
     }
-
+    
     /// <remarks/>
-    public string my_finish_date
-    {
-        get
-        {
+    public string my_finish_date {
+        get {
             return this.my_finish_dateField;
         }
-        set
-        {
+        set {
             this.my_finish_dateField = value;
         }
     }
-
+    
     /// <remarks/>
     public int my_score
     {
-        get
-        {
+        get {
             return this.my_scoreField;
         }
-        set
-        {
+        set {
             this.my_scoreField = value;
         }
     }
-
+    
     /// <remarks/>
     public int my_status
     {
-        get
-        {
+        get {
             return this.my_statusField;
         }
-        set
-        {
+        set {
             this.my_statusField = value;
         }
     }
-
+    
     /// <remarks/>
     public string my_rewatching
     {
-        get
-        {
+        get {
             return this.my_rewatchingField;
         }
-        set
-        {
+        set {
             this.my_rewatchingField = value;
         }
     }
-
+    
     /// <remarks/>
     public int my_rewatching_ep
     {
-        get
-        {
+        get {
             return this.my_rewatching_epField;
         }
-        set
-        {
+        set {
             this.my_rewatching_epField = value;
         }
     }
-
+    
     /// <remarks/>
     public int my_last_updated
     {
-        get
-        {
+        get {
             return this.my_last_updatedField;
         }
-        set
-        {
+        set {
             this.my_last_updatedField = value;
         }
     }
-
+    
     /// <remarks/>
-    public object my_tags
-    {
-        get
-        {
+    public object my_tags {
+        get {
             return this.my_tagsField;
         }
-        set
-        {
+        set {
             this.my_tagsField = value;
         }
     }

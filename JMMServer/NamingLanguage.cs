@@ -1,26 +1,35 @@
-﻿namespace JMMServer
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace JMMServer
 {
-    public class NamingLanguage
-    {
-        public NamingLanguage()
-        {
-        }
+	public class NamingLanguage
+	{
+		public string Language { get; set; }
 
-        public NamingLanguage(string language)
-        {
-            Language = language;
-        }
+		public string LanguageDescription
+		{
+			get
+			{
+				return Languages.GetLanguageDescription(Language.Trim().ToUpper());
 
-        public string Language { get; set; }
+			}
+		}
 
-        public string LanguageDescription
-        {
-            get { return Languages.GetLanguageDescription(Language.Trim().ToUpper()); }
-        }
+		public NamingLanguage()
+		{
+		}
 
-        public override string ToString()
-        {
-            return string.Format("{0} - ({1})", Language, LanguageDescription);
-        }
-    }
+		public NamingLanguage(string language)
+		{
+			this.Language = language;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("{0} - ({1})", Language, LanguageDescription);
+		}
+	}
 }

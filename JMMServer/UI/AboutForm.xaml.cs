@@ -1,26 +1,38 @@
-﻿using System.Windows;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+using Infralution.Localization.Wpf;
 
 namespace JMMServer.UI
 {
-    /// <summary>
-    ///     Interaction logic for AboutForm.xaml
-    /// </summary>
-    public partial class AboutForm : Window
-    {
-        public AboutForm()
-        {
-            InitializeComponent();
+	/// <summary>
+	/// Interaction logic for AboutForm.xaml
+	/// </summary>
+	public partial class AboutForm : Window
+	{
+		public AboutForm()
+		{
+			InitializeComponent();
 
-            btnUpdates.Click += btnUpdates_Click;
-        }
+			btnUpdates.Click += new RoutedEventHandler(btnUpdates_Click);
+		}
 
-        private void btnUpdates_Click(object sender, RoutedEventArgs e)
-        {
-            var mdw = Owner as MainWindow;
+		void btnUpdates_Click(object sender, RoutedEventArgs e)
+		{
+            MainWindow mdw = this.Owner as MainWindow;
             if (mdw == null) return;
 
-            Close();
+            this.Close();
             mdw.CheckForUpdatesNew(true);
-        }
-    }
+		}
+	}
 }

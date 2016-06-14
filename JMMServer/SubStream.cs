@@ -1,15 +1,27 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 
 namespace JMMServer
 {
     internal class SubStream : Stream
     {
+        private long _bytesLeft;
+        private Stream _stream;
+        private long _pos;
+        private long _original;
+
+
+        public long CrossPosition { get; set; }
+
         public delegate void CrossPositionHandler(long position);
 
-        private long _bytesLeft;
-        private long _pos;
-        private readonly Stream _stream;
+        public event CrossPositionHandler CrossPositionCrossed;
+
+
+
+        public override void Close()
+        {
+            _stream.Close();
+        }
 
         public SubStream(Stream stream, long offset, long bytesToRead)
         {
@@ -17,11 +29,16 @@ namespace JMMServer
             _pos = 0;
             _stream.Seek(offset, SeekOrigin.Begin);
             _bytesLeft = bytesToRead;
-            Length = bytesToRead;
+            _original = bytesToRead;
         }
 
-
-        public long CrossPosition { get; set; }
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _stream.Dispose();
+            }
+        }
 
 
         public override bool CanRead
@@ -39,43 +56,30 @@ namespace JMMServer
             get { return false; }
         }
 
-        public override long Length { get; }
+        public override void Flush()
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override long Length
+        {
+            get { return _original; }
+        }
 
         public override long Position
         {
             get { return _pos; }
-            set { throw new NotImplementedException(); }
-        }
-
-        public event CrossPositionHandler CrossPositionCrossed;
-
-
-        public override void Close()
-        {
-            _stream.Close();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _stream.Dispose();
-            }
-        }
-
-        public override void Flush()
-        {
-            throw new NotImplementedException();
+            set { throw new System.NotImplementedException(); }
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
             if (count > _bytesLeft)
             {
-                count = (int)_bytesLeft;
+                count = (int) _bytesLeft;
             }
-            var oldpos = _stream.Position;
-            var read = _stream.Read(buffer, offset, count);
+            long oldpos = _stream.Position;
+            int read = _stream.Read(buffer, offset, count);
             _pos += read;
             _bytesLeft -= read;
             if (CrossPositionCrossed != null)
@@ -90,17 +94,17 @@ namespace JMMServer
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public override void SetLength(long value)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
     }
 }

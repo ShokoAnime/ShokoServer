@@ -1,49 +1,54 @@
-﻿using System.IO;
-using JMMContracts;
-using JMMServer.ImageDownload;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Xml;
 using NLog;
+using System.IO;
+using JMMServer.ImageDownload;
+using JMMContracts;
 
 namespace JMMServer.Entities
 {
-    public class Trakt_ImageFanart
-    {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+	public class Trakt_ImageFanart
+	{
+		private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public int Trakt_ImageFanartID { get; private set; }
-        public int Trakt_ShowID { get; set; }
-        public int Season { get; set; }
-        public string ImageURL { get; set; }
-        public int Enabled { get; set; }
+		public int Trakt_ImageFanartID { get; private set; }
+		public int Trakt_ShowID { get; set; }
+		public int Season { get; set; }
+		public string ImageURL { get; set; }
+		public int Enabled { get; set; }
 
-        public string FullImagePath
-        {
-            get
-            {
-                // typical url
-                // http://vicmackey.trakt.tv/images/fanart/3228.jpg
+		public string FullImagePath
+		{
+			get
+			{
+				// typical url
+				// http://vicmackey.trakt.tv/images/fanart/3228.jpg
 
-                if (string.IsNullOrEmpty(ImageURL)) return "";
+				if (string.IsNullOrEmpty(ImageURL)) return "";
 
-                var pos = ImageURL.IndexOf(@"images/");
-                if (pos <= 0) return "";
+				int pos = ImageURL.IndexOf(@"images/");
+				if (pos <= 0) return "";
 
-                var relativePath = ImageURL.Substring(pos + 7, ImageURL.Length - pos - 7);
-                relativePath = relativePath.Replace("/", @"\");
+				string relativePath = ImageURL.Substring(pos + 7, ImageURL.Length - pos - 7);
+				relativePath = relativePath.Replace("/", @"\");
 
-                return Path.Combine(ImageUtils.GetTraktImagePath(), relativePath);
-            }
-        }
+				return Path.Combine(ImageUtils.GetTraktImagePath(), relativePath);
+			}
+		}
 
-        public Contract_Trakt_ImageFanart ToContract()
-        {
-            var contract = new Contract_Trakt_ImageFanart();
-            contract.Trakt_ImageFanartID = Trakt_ImageFanartID;
-            contract.Trakt_ShowID = Trakt_ShowID;
-            contract.Season = Season;
-            contract.ImageURL = ImageURL;
-            contract.Enabled = Enabled;
-
-            return contract;
-        }
-    }
+		public Contract_Trakt_ImageFanart ToContract()
+		{
+			Contract_Trakt_ImageFanart contract = new Contract_Trakt_ImageFanart();
+			contract.Trakt_ImageFanartID = this.Trakt_ImageFanartID;
+			contract.Trakt_ShowID = this.Trakt_ShowID;
+			contract.Season = this.Season;
+			contract.ImageURL = this.ImageURL;
+			contract.Enabled = this.Enabled;
+			
+			return contract;
+		}
+	}
 }

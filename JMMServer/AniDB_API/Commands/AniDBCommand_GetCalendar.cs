@@ -1,72 +1,83 @@
-﻿using System.Net;
-using System.Net.Sockets;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Net.Sockets;
+using System.Net;
 
 namespace AniDBAPI.Commands
 {
-    public class AniDBCommand_GetCalendar : AniDBUDPCommand, IAniDBUDPCommand
-    {
-        public AniDBCommand_GetCalendar()
-        {
-            commandType = enAniDBCommandType.GetCalendar;
-        }
+	public class AniDBCommand_GetCalendar : AniDBUDPCommand, IAniDBUDPCommand
+	{
+		public string GetKey()
+		{
+			return "AniDBCommand_GetCalendar";
+		}
 
-        public CalendarCollection Calendars { get; set; }
+		private CalendarCollection calendars = null;
+		public CalendarCollection Calendars
+		{
+			get { return calendars; }
+			set { calendars = value; }
+		}
 
-        public string GetKey()
-        {
-            return "AniDBCommand_GetCalendar";
-        }
+		public virtual enHelperActivityType GetStartEventType()
+		{
+			return enHelperActivityType.GettingCalendar;
+		}
 
-        public virtual enHelperActivityType GetStartEventType()
-        {
-            return enHelperActivityType.GettingCalendar;
-        }
+		public virtual enHelperActivityType Process(ref Socket soUDP,
+			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+		{
+			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
-            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-        {
-            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+			// handle 555 BANNED and 598 - UNKNOWN COMMAND
+			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+			if (ResponseCode == 555) return enHelperActivityType.Banned_555;
 
-            // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+			if (errorOccurred) return enHelperActivityType.CalendarEmpty;
 
-            if (errorOccurred) return enHelperActivityType.CalendarEmpty;
+			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCalendar: Response: {0}", socketResponse);
 
-            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCalendar: Response: {0}", socketResponse);
-
-            // Process Response
-            var sMsgType = socketResponse.Substring(0, 3);
+			// Process Response
+			string sMsgType = socketResponse.Substring(0, 3);
 
 
-            switch (sMsgType)
-            {
-                case "297":
-                    {
-                        Calendars = new CalendarCollection(socketResponse);
-                        return enHelperActivityType.GotCalendar;
-                    }
-                case "397":
-                    {
-                        return enHelperActivityType.CalendarEmpty;
-                    }
-                case "501":
-                    {
-                        return enHelperActivityType.LoginRequired;
-                    }
-            }
+			switch (sMsgType)
+			{
+				case "297":
+					{
 
-            return enHelperActivityType.CalendarEmpty;
-        }
+						calendars = new CalendarCollection(socketResponse);
+						return enHelperActivityType.GotCalendar;
 
-        public void Init()
-        {
-            commandText = "CALENDAR ";
+					}
+				case "397":
+					{
+						return enHelperActivityType.CalendarEmpty;
+					}
+				case "501":
+					{
+						return enHelperActivityType.LoginRequired;
+					}
+			}
 
-            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCalendar: Request: {0}", commandText);
+			return enHelperActivityType.CalendarEmpty;
 
-            commandID = "CALENDAR ";
-        }
-    }
+		}
+
+		public AniDBCommand_GetCalendar()
+		{
+			commandType = enAniDBCommandType.GetCalendar;
+		}
+
+		public void Init()
+		{
+			commandText = "CALENDAR ";
+
+			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCalendar: Request: {0}", commandText);
+
+			commandID = "CALENDAR ";
+		}
+	}
 }

@@ -1,84 +1,99 @@
-﻿using System.Net;
-using System.Net.Sockets;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Net.Sockets;
+using System.Net;
 
 namespace AniDBAPI.Commands
 {
-    public class AniDBCommand_GetAnimeDescription : AniDBUDPCommand, IAniDBUDPCommand
-    {
-        public AniDBCommand_GetAnimeDescription()
-        {
-            commandType = enAniDBCommandType.GetAnimeDescription;
-        }
+	public class AniDBCommand_GetAnimeDescription : AniDBUDPCommand, IAniDBUDPCommand
+	{
+		private int animeID;
+		public int AnimeID
+		{
+			get { return animeID; }
+			set { animeID = value; }
+		}
 
-        public int AnimeID { get; set; }
+		public string GetKey()
+		{
+			return "AniDBCommand_GetAnimeDescription" + AnimeID.ToString();
+		}
 
-        public Raw_AniDB_AnimeDesc AnimeDesc { get; set; }
+		private Raw_AniDB_AnimeDesc animeDesc;
+		public Raw_AniDB_AnimeDesc AnimeDesc
+		{
+			get { return animeDesc; }
+			set { animeDesc = value; }
+		}
 
-        public string GetKey()
-        {
-            return "AniDBCommand_GetAnimeDescription" + AnimeID;
-        }
+		public virtual enHelperActivityType GetStartEventType()
+		{
+			return enHelperActivityType.GettingAnimeDesc;
+		}
 
-        public virtual enHelperActivityType GetStartEventType()
-        {
-            return enHelperActivityType.GettingAnimeDesc;
-        }
+		public virtual enHelperActivityType Process(ref Socket soUDP,
+			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+		{
+			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
-            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-        {
-            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+			// handle 555 BANNED and 598 - UNKNOWN COMMAND
+			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+			if (ResponseCode == 555) return enHelperActivityType.Banned_555;
 
-            // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+			if (errorOccurred) return enHelperActivityType.NoSuchAnime;
 
-            if (errorOccurred) return enHelperActivityType.NoSuchAnime;
+			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetAnimeDescription.Process: Response: {0}", socketResponse);
 
-            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetAnimeDescription.Process: Response: {0}", socketResponse);
-
-            // Process Response
-            var sMsgType = socketResponse.Substring(0, 3);
+			// Process Response
+			string sMsgType = socketResponse.Substring(0, 3);
 
 
-            switch (sMsgType)
-            {
-                case "233":
-                    {
-                        // 233 ANIMEDESC
-                        // the first 11 characters should be "240 EPISODE"
-                        // the rest of the information should be the data list
+			switch (sMsgType)
+			{
+				case "233":
+					{
+						// 233 ANIMEDESC
+						// the first 11 characters should be "240 EPISODE"
+						// the rest of the information should be the data list
 
-                        AnimeDesc = new Raw_AniDB_AnimeDesc(socketResponse);
-                        return enHelperActivityType.GotAnimeDesc;
-                    }
-                case "330":
-                    {
-                        return enHelperActivityType.NoSuchAnime;
-                    }
-                case "333": // no such description
-                    {
-                        return enHelperActivityType.NoSuchAnime;
-                    }
-                case "501":
-                    {
-                        return enHelperActivityType.LoginRequired;
-                    }
-            }
+						animeDesc = new Raw_AniDB_AnimeDesc(socketResponse);
+						return enHelperActivityType.GotAnimeDesc;
 
-            return enHelperActivityType.FileDoesNotExist;
-        }
+					}
+				case "330":
+					{
+						return enHelperActivityType.NoSuchAnime;
+					}
+				case "333": // no such description
+					{
+						return enHelperActivityType.NoSuchAnime;
+					}
+				case "501":
+					{
+						return enHelperActivityType.LoginRequired;
+					}
+			}
 
-        public void Init(int animeID)
-        {
-            AnimeID = animeID;
-            commandText = "ANIMEDESC aid=" + animeID;
-            commandText += "&part=0";
+			return enHelperActivityType.FileDoesNotExist;
 
-            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetAnimeDescription.Process: Request: {0}", commandText);
+		}
 
-            commandID = animeID.ToString();
-        }
-    }
+		public AniDBCommand_GetAnimeDescription()
+		{
+			commandType = enAniDBCommandType.GetAnimeDescription;
+		}
+
+		public void Init(int animeID)
+		{
+			this.animeID = animeID;
+			commandText = "ANIMEDESC aid=" + animeID.ToString();
+			commandText += "&part=0";
+
+			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetAnimeDescription.Process: Request: {0}", commandText);
+
+			commandID = animeID.ToString();
+		}
+	}
 }

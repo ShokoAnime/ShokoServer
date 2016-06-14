@@ -1,4 +1,9 @@
-﻿using JMMContracts;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using JMMContracts;
 
 namespace JMMServer.Providers.Azure
 {
@@ -14,7 +19,7 @@ namespace JMMServer.Providers.Azure
 
         public Contract_Azure_AnimeLink ToContract()
         {
-            var contract = new Contract_Azure_AnimeLink();
+            Contract_Azure_AnimeLink contract = new Contract_Azure_AnimeLink();
 
             contract.RandomAnimeID = RandomAnimeID;
             contract.AnimeNeedingApproval = AnimeNeedingApproval;

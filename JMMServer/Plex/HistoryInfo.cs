@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
+using FluentNHibernate.Utils;
 using JMMContracts.PlexContracts;
 
 namespace JMMServer.Plex
 {
-    public class HistoryInfo
+    public class HistoryInfo 
     {
-        private static int counter;
-
-        private static readonly Dictionary<string, HistoryInfo> Cache = new Dictionary<string, HistoryInfo>();
-        //TODO CACHE EVICTION?
 
         public string Key { get; set; }
         public string ParentKey { get; set; }
@@ -26,9 +25,12 @@ namespace JMMServer.Plex
         public string ParentArt { get; set; }
         public string GrandParentArt { get; set; }
 
+        private static int counter = 0;
+        private static Dictionary<string, HistoryInfo> Cache=new Dictionary<string, HistoryInfo>(); //TODO CACHE EVICTION?
+        
         public HistoryInfo Update(Video v)
         {
-            var cache = new HistoryInfo();
+            HistoryInfo cache = new HistoryInfo();
             this.CopyTo(cache);
             cache.GrandParentKey = cache.ParentKey;
             cache.GrandParentTitle = cache.ParentTitle ?? "";
@@ -47,7 +49,7 @@ namespace JMMServer.Plex
 
         private string GenMd5()
         {
-            var bld = new StringBuilder();
+            StringBuilder bld=new StringBuilder();
             bld.AppendLine(ParentKey);
             bld.AppendLine(GrandParentKey);
             bld.AppendLine(Title);
@@ -59,22 +61,20 @@ namespace JMMServer.Plex
             bld.AppendLine(Art);
             bld.AppendLine(ParentArt);
             bld.AppendLine(GrandParentArt);
-            using (var md5 = new MD5CryptoServiceProvider())
+            using (MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider())
             {
-                return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(bld.ToString())))
-                    .Replace("-", string.Empty);
+                return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(bld.ToString()))).Replace("-", string.Empty);
             }
         }
-
         public string ToKey()
         {
-            var md5 = GenMd5();
+            string md5 = GenMd5();
             if (Cache.ContainsKey(md5))
                 return md5;
             counter++;
-            var cache = new HistoryInfo();
+            HistoryInfo cache = new HistoryInfo();
             this.CopyTo(cache);
-            Cache.Add(md5, cache);
+            Cache.Add(md5,cache);
             return md5;
         }
 
@@ -84,5 +84,6 @@ namespace JMMServer.Plex
                 return Cache[key];
             return new HistoryInfo();
         }
+
     }
 }
