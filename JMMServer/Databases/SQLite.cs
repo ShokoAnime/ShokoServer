@@ -1502,7 +1502,7 @@ namespace JMMServer.Databases
             cmds.Add("ALTER TABLE GroupFilter ADD ParentGroupFilterID int NULL");
             cmds.Add("ALTER TABLE GroupFilter ADD InvisibleInClients int NOT NULL DEFAULT 0");
             cmds.Add("ALTER TABLE GroupFilter ADD SeriesIdsVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE GroupFilter ADD SeriessIdsString text NULL");
+            cmds.Add("ALTER TABLE GroupFilter ADD SeriesIdsString text NULL");
             foreach (string cmdTable in cmds)
             {
                 SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);

@@ -33,18 +33,32 @@ namespace JMMServer.Repositories
             contract.IsAdmin = user.IsAdmin;
             contract.IsAniDBUser = user.IsAniDBUser;
             contract.IsTraktUser = user.IsTraktUser;
-            contract.HideCategories =
-                new HashSet<string>(
-                    user.HideCategories.ToLowerInvariant()
-                        .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(a => a.Trim())
-                        .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
+            if (!string.IsNullOrEmpty(user.HideCategories))
+            {
+                contract.HideCategories =
+                    new HashSet<string>(
+                        user.HideCategories.Trim().Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(a => a.Trim())
+                            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
+                        StringComparer.InvariantCultureIgnoreCase);
+            }
+            else
+                contract.HideCategories=new HashSet<string>();
+
             contract.CanEditServerSettings = user.CanEditServerSettings;
-            contract.PlexUsers =
-                new HashSet<string>(
-                    user.PlexUsers.Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(a => a.Trim())
-                        .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
+            if (!string.IsNullOrEmpty(user.PlexUsers))
+            {
+                contract.PlexUsers =
+                    new HashSet<string>(
+                        user.PlexUsers.Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(a => a.Trim())
+                            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
+                        StringComparer.InvariantCultureIgnoreCase);
+            }
+            else
+            {
+                contract.PlexUsers=new HashSet<string>();
+            }
             user.Contract = contract;
         }
 
