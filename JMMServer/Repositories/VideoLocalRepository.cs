@@ -64,24 +64,26 @@ namespace JMMServer.Repositories
         public void Save(VideoLocal obj, bool updateEpisodes)
         {
             UpdateMediaContracts(obj);
-            bool repeatupdate = obj.VideoLocalID == 0;
-
-            using (var session = JMMService.SessionFactory.OpenSession())
+            if (obj.VideoLocalID == 0)
             {
-                // populate the database
-                using (var transaction = session.BeginTransaction())
+                obj.Media = null;
+                using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    session.SaveOrUpdate(obj);
-                    transaction.Commit();
-                }
-                if (repeatupdate)
-                {
-                    UpdateMediaContracts(obj);
+                    // populate the database
                     using (var transaction = session.BeginTransaction())
                     {
                         session.SaveOrUpdate(obj);
                         transaction.Commit();
                     }
+                }
+            }
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                UpdateMediaContracts(obj);
+                using (var transaction = session.BeginTransaction())
+                {
+                    session.SaveOrUpdate(obj);
+                    transaction.Commit();
                 }
                 Cache.Update(obj);
             }

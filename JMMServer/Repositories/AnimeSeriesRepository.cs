@@ -93,6 +93,7 @@ namespace JMMServer.Repositories
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    obj.Contract = null;
                     // populate the database
                     using (var transaction = session.BeginTransaction())
                     {

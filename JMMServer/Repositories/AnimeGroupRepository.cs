@@ -58,6 +58,7 @@ namespace JMMServer.Repositories
                 if (grp.AnimeGroupID == 0)
                     //We are creating one, and we need the AnimeGroupID before Update the contracts
                 {
+                    grp.Contract = null;
                     using (var transaction = session.BeginTransaction())
                     {
                         session.SaveOrUpdate(grp);
