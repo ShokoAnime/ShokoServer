@@ -173,6 +173,7 @@ namespace JMMServer.Repositories
 
         public List<AniDB_Anime> SearchByTag(string queryText)
         {
+            
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 var objs = session
