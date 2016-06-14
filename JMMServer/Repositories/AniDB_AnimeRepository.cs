@@ -22,6 +22,7 @@ namespace JMMServer.Repositories
         {
             if (obj.AnimeID == 0)
             {
+                obj.Contract = null;
                 using (var transaction = session.BeginTransaction())
                 {
                     session.SaveOrUpdate(obj);
