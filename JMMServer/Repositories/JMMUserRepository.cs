@@ -77,13 +77,18 @@ namespace JMMServer.Repositories
         public void Save(JMMUser obj, bool updateGroupFilters)
         {
             GenerateContract(obj);
-            using (var session = JMMService.SessionFactory.OpenSession())
+            if (updateGroupFilters)
             {
-                if (updateGroupFilters)
+                using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     JMMUser old = session.Get<JMMUser>(obj.JMMUserID);
                     updateGroupFilters = JMMUser.CompareUser(old.Contract, obj.Contract);
                 }
+            }
+
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+
                 // populate the database
                 using (var transaction = session.BeginTransaction())
                 {

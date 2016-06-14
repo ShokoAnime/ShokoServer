@@ -71,7 +71,7 @@ namespace JMMServer.Entities
 
         public static bool CompareUser(Contract_JMMUser olduser, Contract_JMMUser newuser)
         {
-            if (olduser == null || !newuser.HideCategories.SetEquals(newuser.HideCategories))
+            if (olduser == null || !olduser.HideCategories.SetEquals(newuser.HideCategories))
                 return true;
             return false;
         }
