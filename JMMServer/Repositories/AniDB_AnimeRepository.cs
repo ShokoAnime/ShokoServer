@@ -20,7 +20,7 @@ namespace JMMServer.Repositories
 
         public void Save(ISession session, AniDB_Anime obj)
         {
-            if (obj.AnimeID == 0)
+            if (obj.AniDB_AnimeID == 0)
             {
                 obj.Contract = null;
                 using (var transaction = session.BeginTransaction())

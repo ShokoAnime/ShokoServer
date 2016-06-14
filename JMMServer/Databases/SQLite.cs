@@ -151,6 +151,7 @@ namespace JMMServer.Databases
                 UpdateSchema_047(versionNumber);
                 UpdateSchema_048(versionNumber);
                 UpdateSchema_049(versionNumber);
+                UpdateSchema_050(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1564,7 +1565,18 @@ namespace JMMServer.Databases
             }
             UpdateDatabaseVersion(thisVersion);
         }
+        private static void UpdateSchema_050(int currentVersionNumber)
+        {
+            int thisVersion = 50;
+            if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+            List<string> cmds = new List<string>();
+            DropColumns(myConn, "AniDB_Anime", new List<string> { "AllCategories" });
+            UpdateDatabaseVersion(thisVersion);
+        }
 
         private static void ExecuteSQLCommands(List<string> cmds)
         {

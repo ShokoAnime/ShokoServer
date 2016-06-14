@@ -63,6 +63,7 @@ namespace JMMServer.Entities
 
         public const int CONTRACT_VERSION = 5;
 
+
         #endregion
 
         private Contract_AniDB_AnimeDetailed _contract = null;

@@ -175,6 +175,8 @@ namespace JMMServer.Databases
                 UpdateSchema_049(versionNumber);
                 UpdateSchema_050(versionNumber);
                 UpdateSchema_051(versionNumber);
+                UpdateSchema_052(versionNumber);
+
             }
             catch (Exception ex)
             {
@@ -2014,7 +2016,37 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+        private static void UpdateSchema_052(int currentVersionNumber)
+        {
+            int thisVersion = 52;
+            if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE `AniDB_Anime` DROP COLUMN `AllCategories`");
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
         private static void ExecuteSQLCommands(List<string> cmds)
         {
             using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
