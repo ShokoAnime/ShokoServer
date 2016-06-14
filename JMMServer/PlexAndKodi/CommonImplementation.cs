@@ -438,44 +438,57 @@ namespace JMMServer.PlexAndKodi
             if (user == null) return new MemoryStream();
             List<Video> ls = new List<Video>();
             int cnt = 0;
-            List<AniDB_Anime> animes = searchTag ? repAnime.SearchByTag(query) : repAnime.SearchByName(query);
-            foreach (AniDB_Anime anidb_anime in animes)
-            {
-                if (!user.AllowedAnime(anidb_anime)) continue;
-                AnimeSeries ser = repSeries.GetByAnimeID(anidb_anime.AnimeID);
-                if (ser != null)
-                {
-                    Video v = ser.GetPlexContract(user.JMMUserID)?.Clone<Directory>();
-                    if (v != null)
-                    {
-                        switch (anidb_anime.AnimeTypeEnum)
-                        {
-                            case enAnimeType.Movie:
-                                v.SourceTitle = "Anime Movies";
-                                break;
-                            case enAnimeType.OVA:
-                                v.SourceTitle = "Anime Ovas";
-                                break;
-                            case enAnimeType.Other:
-                                v.SourceTitle = "Anime Others";
-                                break;
-                            case enAnimeType.TVSeries:
-                                v.SourceTitle = "Anime Series";
-                                break;
-                            case enAnimeType.TVSpecial:
-                                v.SourceTitle = "Anime Specials";
-                                break;
-                            case enAnimeType.Web:
-                                v.SourceTitle = "Anime Web Clips";
-                                break;
-                        }
+            IEnumerable<AnimeSeries> series = searchTag
+                ? repSeries.GetAll()
+                    .Where(
+                        a =>
+                            a.Contract != null && a.Contract.AniDBAnime != null &&
+                            a.Contract.AniDBAnime.AniDBAnime != null &&
+                            a.Contract.AniDBAnime.AniDBAnime.AllTags.Contains(query,
+                                StringComparer.InvariantCultureIgnoreCase) ||
+                            a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName)
+                                .Contains(query, StringComparer.InvariantCultureIgnoreCase))
+                : repSeries.GetAll()
+                    .Where(
+                        a =>
+                            a.Contract != null && a.Contract.AniDBAnime != null &&
+                            a.Contract.AniDBAnime.AniDBAnime != null &&
+                            string.Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles).IndexOf(query,0,StringComparison.InvariantCultureIgnoreCase)>=0);
 
-                        ls.Add(prov, v, info);
+            List<AniDB_Anime> animes = searchTag ? repAnime.SearchByTag(query) : repAnime.SearchByName(query);
+            foreach (AnimeSeries ser in series)
+            {
+                if (!user.AllowedSeries(ser)) continue;
+                Video v = ser.GetPlexContract(user.JMMUserID)?.Clone<Directory>();
+                if (v != null)
+                {
+                    switch (ser.Contract.AniDBAnime.AniDBAnime.AnimeType)
+                    {
+                        case (int)enAnimeType.Movie:
+                            v.SourceTitle = "Anime Movies";
+                            break;
+                        case (int)enAnimeType.OVA:
+                            v.SourceTitle = "Anime Ovas";
+                            break;
+                        case (int)enAnimeType.Other:
+                            v.SourceTitle = "Anime Others";
+                            break;
+                        case (int)enAnimeType.TVSeries:
+                            v.SourceTitle = "Anime Series";
+                            break;
+                        case (int)enAnimeType.TVSpecial:
+                            v.SourceTitle = "Anime Specials";
+                            break;
+                        case (int)enAnimeType.Web:
+                            v.SourceTitle = "Anime Web Clips";
+                            break;
                     }
-                    cnt++;
-                    if (cnt == lim)
-                        break;
+
+                    ls.Add(prov, v, info);
                 }
+                cnt++;
+                if (cnt == lim)
+                    break;
             }
             ret.MediaContainer.RandomizeArt(ls);
             ret.MediaContainer.Childrens = Helper.ConvertToDirectory(ls);
