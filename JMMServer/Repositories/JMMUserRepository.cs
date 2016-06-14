@@ -82,7 +82,7 @@ namespace JMMServer.Repositories
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     JMMUser old = session.Get<JMMUser>(obj.JMMUserID);
-                    updateGroupFilters = JMMUser.CompareUser(old.Contract, obj.Contract);
+                    updateGroupFilters = JMMUser.CompareUser(old?.Contract, obj.Contract);
                 }
             }
 
