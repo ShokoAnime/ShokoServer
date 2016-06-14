@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="myanimelist">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="myinfo">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="user_id" type="xs:int" />
+              <xs:element name="user_name" type="xs:string" />
+              <xs:element name="user_watching" type="xs:int" />
+              <xs:element name="user_completed" type="xs:int" />
+              <xs:element name="user_onhold" type="xs:int" />
+              <xs:element name="user_dropped" type="xs:int" />
+              <xs:element name="user_plantowatch" type="xs:int" />
+              <xs:element name="user_days_spent_watching" type="xs:decimal" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element maxOccurs="unbounded" name="anime">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="series_animedb_id" type="xs:int" />
+              <xs:element name="series_title" type="xs:string" />
+              <xs:element name="series_synonyms" type="xs:string" />
+              <xs:element name="series_type" type="xs:int" />
+              <xs:element name="series_episodes" type="xs:int" />
+              <xs:element name="series_status" type="xs:int" />
+              <xs:element name="series_start" type="xs:string" />
+              <xs:element name="series_end" type="xs:string" />
+              <xs:element name="series_image" type="xs:string" />
+              <xs:element name="my_id" type="xs:int" />
+              <xs:element name="my_watched_episodes" type="xs:int" />
+              <xs:element name="my_start_date" type="xs:string" />
+              <xs:element name="my_finish_date" type="xs:string" />
+              <xs:element name="my_score" type="xs:int" />
+              <xs:element name="my_status" type="xs:int" />
+              <xs:element name="my_rewatching" type="xs:string" />
+              <xs:element name="my_rewatching_ep" type="xs:int" />
+              <xs:element name="my_last_updated" type="xs:int" />
+              <xs:element name="my_tags" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

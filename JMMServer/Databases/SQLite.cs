@@ -150,6 +150,7 @@ namespace JMMServer.Databases
                 UpdateSchema_046(versionNumber);
                 UpdateSchema_047(versionNumber);
                 UpdateSchema_048(versionNumber);
+                UpdateSchema_049(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1502,6 +1503,53 @@ namespace JMMServer.Databases
             cmds.Add("ALTER TABLE GroupFilter ADD InvisibleInClients int NOT NULL DEFAULT 0");
             cmds.Add("ALTER TABLE GroupFilter ADD SeriesIdsVersion int NOT NULL DEFAULT 0");
             cmds.Add("ALTER TABLE GroupFilter ADD SeriessIdsString text NULL");
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                try
+                {
+                    sqCommand.ExecuteNonQuery();
+                }
+                catch (Exception e) //This might fall on mixed branches
+                {
+                }
+            }
+            UpdateDatabaseVersion(thisVersion);
+        }
+        private static void UpdateSchema_049(int currentVersionNumber)
+        {
+            int thisVersion = 49;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+            List<string> cmds = new List<string>();
+            DropColumns(myConn, "AniDB_Anime", new List<string> { "ContractString" });
+            DropColumns(myConn, "VideoLocal", new List<string> { "MediaString" });
+            DropColumns(myConn, "AnimeEpisode", new List<string> { "PlexContractString" });
+            DropColumns(myConn, "AnimeEpisode_User", new List<string> { "ContractString" });
+            DropColumns(myConn, "AnimeSeries", new List<string> { "ContractString" });
+            DropColumns(myConn, "AnimeSeries_User", new List<string> { "PlexContractString" });
+            DropColumns(myConn, "AnimeGroup_User", new List<string> { "PlexContractString" });
+            DropColumns(myConn, "AnimeGroup", new List<string> { "ContractString" });
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractSize int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE VideoLocal ADD MediaBlob BLOB NULL");
+            cmds.Add("ALTER TABLE VideoLocal ADD MediaSize int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractSize int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractSize int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractSize int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractSize int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractSize int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractSize int NOT NULL DEFAULT 0");
             foreach (string cmdTable in cmds)
             {
                 SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);

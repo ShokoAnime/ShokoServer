@@ -1959,6 +1959,60 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+        private static void UpdateSchema_051(int currentVersionNumber)
+        {
+            int thisVersion = 51;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE `AniDB_Anime` ADD `ContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AniDB_Anime` ADD `ContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AniDB_Anime` DROP COLUMN `ContractString`");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `MediaBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `MediaSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `VideoLocal` DROP COLUMN `MediaString`");
+            cmds.Add("ALTER TABLE `AnimeEpisode` ADD `PlexContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeEpisode` ADD `PlexContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeEpisode` DROP COLUMN `PlexContractString`");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` DROP COLUMN `ContractString`");
+            cmds.Add("ALTER TABLE `AnimeSeries` ADD `ContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries` ADD `ContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeSeries` DROP COLUMN `ContractString`");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `PlexContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `PlexContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` DROP COLUMN `PlexContractString`");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `PlexContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `PlexContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` DROP COLUMN `PlexContractString`");
+            cmds.Add("ALTER TABLE `AnimeGroup` ADD `ContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup` ADD `ContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeGroup` DROP COLUMN `ContractString`");
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
 
         private static void ExecuteSQLCommands(List<string> cmds)
         {
