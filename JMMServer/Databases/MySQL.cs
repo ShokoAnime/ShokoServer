@@ -174,6 +174,7 @@ namespace JMMServer.Databases
                 UpdateSchema_048(versionNumber);
                 UpdateSchema_049(versionNumber);
                 UpdateSchema_050(versionNumber);
+                UpdateSchema_051(versionNumber);
             }
             catch (Exception ex)
             {
