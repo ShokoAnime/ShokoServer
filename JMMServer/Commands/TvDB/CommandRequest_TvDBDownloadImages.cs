@@ -27,13 +27,13 @@ namespace JMMServer.Commands
             }
         }
 
-        /*
+        
         public CommandRequest_TvDBDownloadImages()
         {
         }
-        */
+        
 
-        /*
+        
 		public CommandRequest_TvDBDownloadImages(int tvDBSeriesID, bool forced)
 		{
 			this.TvDBSeriesID = tvDBSeriesID;
@@ -43,7 +43,7 @@ namespace JMMServer.Commands
 
 			GenerateCommandID();
         }
-        */
+        
 
         public override void ProcessCommand()
         {
