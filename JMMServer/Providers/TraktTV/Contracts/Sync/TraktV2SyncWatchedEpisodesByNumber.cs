@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JMMServer.Providers.TraktTV.Contracts
 {
@@ -15,7 +12,6 @@ namespace JMMServer.Providers.TraktTV.Contracts
 
         public TraktV2SyncWatchedEpisodesByNumber()
         {
-
         }
 
         public TraktV2SyncWatchedEpisodesByNumber(string slug, int season, int episodeNumber, DateTime watchedDate)

@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-
 using Stream = JMMContracts.KodiContracts.Stream;
 
 namespace JMMFileHelper.Subtitles
@@ -15,14 +11,14 @@ namespace JMMFileHelper.Subtitles
         {
             string dirname = Path.GetDirectoryName(filename);
             string fname = Path.GetFileNameWithoutExtension(filename);
-            if (string.IsNullOrEmpty(dirname) || (string.IsNullOrEmpty(fname)))
+            if (string.IsNullOrEmpty(dirname) || string.IsNullOrEmpty(fname))
                 return null;
             string basename = Path.Combine(dirname, fname);
-            List<Stream> streams=new List<Stream>();
+            List<Stream> streams = new List<Stream>();
             if (File.Exists(basename + ".idx") && File.Exists(basename + ".sub"))
             {
                 List<Stream> ss = GetStreams(basename + ".sub");
-                if ((ss != null) && (ss.Count>0))
+                if ((ss != null) && (ss.Count > 0))
                     streams.AddRange(ss);
             }
             return streams;
@@ -32,7 +28,7 @@ namespace JMMFileHelper.Subtitles
         {
             string dirname = Path.GetDirectoryName(filename);
             string fname = Path.GetFileNameWithoutExtension(filename);
-            if (string.IsNullOrEmpty(dirname) || (string.IsNullOrEmpty(fname)))
+            if (string.IsNullOrEmpty(dirname) || string.IsNullOrEmpty(fname))
                 return null;
             string basename = Path.Combine(dirname, fname);
             if (!File.Exists(basename + ".idx"))
@@ -43,7 +39,7 @@ namespace JMMFileHelper.Subtitles
             Regex ex = new Regex("\\nid: ([A-Za-z]{2})");
             MatchCollection ma = ex.Matches(bing);
             int x = 0;
-            List<Stream> ss=new List<Stream>();
+            List<Stream> ss = new List<Stream>();
             foreach (Match m in ma)
             {
                 if (m.Success)
@@ -73,7 +69,6 @@ namespace JMMFileHelper.Subtitles
                         s.Language = SubtitleHelper.Iso639_1_TO_Languages[language];
                         ss.Add(s);
                     }
-
                 }
                 x++;
             }

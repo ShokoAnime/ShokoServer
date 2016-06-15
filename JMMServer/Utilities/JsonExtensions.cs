@@ -1,12 +1,10 @@
-﻿using Newtonsoft.Json;
-using NLog;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
+using NLog;
 
 namespace JMMServer.Utilities
 {
@@ -24,7 +22,6 @@ namespace JMMServer.Utilities
         {
             if (string.IsNullOrEmpty(jsonArray)) return new List<T>();
 
-            
 
             try
             {

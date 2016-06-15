@@ -12,7 +12,7 @@ namespace JMMServer.Kodi
 
         public static void EpisodeTypeTranslated(KodiEpisodeType tp, enEpisodeType epType, AnimeTypes an, int cnt)
         {
-            tp.Type = (int)epType;
+            tp.Type = (int) epType;
             tp.Count = cnt;
             tp.AnimeType = an;
             bool plural = cnt > 1;

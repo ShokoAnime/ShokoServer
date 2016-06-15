@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.Serialization;
 using JMMContracts;
 
 namespace JMMServer.Providers.TraktTV.Contracts
@@ -27,10 +22,7 @@ namespace JMMServer.Providers.TraktTV.Contracts
 
         public string ShowURL
         {
-            get
-            {
-                return string.Format(TraktURIs.WebsiteShow, show.ids.slug);
-            }
+            get { return string.Format(TraktURIs.WebsiteShow, show.ids.slug); }
         }
 
 

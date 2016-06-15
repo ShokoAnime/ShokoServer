@@ -1,20 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Globalization;
-using System.Linq;
-using System.Net;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.IO;
 using System.ServiceModel.Web;
 using JMMContracts;
-using JMMFileHelper.Subtitles;
-using JMMServer.Repositories;
 using JMMServer.Entities;
 using JMMServer.Properties;
+using JMMServer.Repositories;
 using NLog;
 
 namespace JMMServer
@@ -39,7 +33,7 @@ namespace JMMServer
             Trakt_EpisodeRepository repTraktEpisodes = new Trakt_EpisodeRepository();
             Trakt_FriendRepository repTraktFriends = new Trakt_FriendRepository();
 
-            JMMImageType imageType = (JMMImageType)int.Parse(ImageType);
+            JMMImageType imageType = (JMMImageType) int.Parse(ImageType);
 
             switch (imageType)
             {
@@ -261,10 +255,6 @@ namespace JMMServer
 
                     return BlankImage();
             }
-
-
-
-
         }
 
         public System.IO.Stream BlankImage()
@@ -454,6 +444,7 @@ namespace JMMServer
             return "application/octet-stream";
         }
         */
+
         public System.IO.Stream GetImageUsingPath(string serverImagePath)
         {
             if (File.Exists(serverImagePath))
@@ -468,9 +459,9 @@ namespace JMMServer
                 return null;
             }
         }
+
         public static Image ReSize(Image im, int width, int height)
         {
-
             Bitmap dest = new Bitmap(width, height);
             using (Graphics g = Graphics.FromImage(dest))
             {
@@ -492,25 +483,25 @@ namespace JMMServer
             float nheight = 0;
             do
             {
-                nheight = calcwidth / newratio;
-                if (nheight > ((float)im.Height + 0.5F))
+                nheight = calcwidth/newratio;
+                if (nheight > (float) im.Height + 0.5F)
                 {
-                    calcwidth = calcwidth * ((float)im.Height / nheight);
+                    calcwidth = calcwidth*((float) im.Height/nheight);
                 }
                 else
                 {
                     calcheight = nheight;
                 }
-            } while (nheight > ((float)im.Height + 0.5F));
+            } while (nheight > (float) im.Height + 0.5F);
 
-            int newwidth = (int)Math.Round(calcwidth);
-            int newheight = (int)Math.Round(calcheight);
+            int newwidth = (int) Math.Round(calcwidth);
+            int newheight = (int) Math.Round(calcheight);
             int x = 0;
             int y = 0;
             if (newwidth < im.Width)
-                x = (im.Width - newwidth) / 2;
+                x = (im.Width - newwidth)/2;
             if (newheight < im.Height)
-                y = (im.Height - newheight) / 2;
+                y = (im.Height - newheight)/2;
 
             Image im2 = ReSize(im, newwidth, newheight);
             Graphics g = Graphics.FromImage(im2);
@@ -531,7 +522,7 @@ namespace JMMServer
                     return new MemoryStream();
                 name = Path.GetFileNameWithoutExtension(name);
                 System.Resources.ResourceManager man = Resources.ResourceManager;
-                byte[] dta = (byte[])man.GetObject(name);
+                byte[] dta = (byte[]) man.GetObject(name);
                 if ((dta == null) || (dta.Length == 0))
                     return new MemoryStream();
                 if (WebOperationContext.Current != null)
@@ -552,11 +543,11 @@ namespace JMMServer
 
                 if (w <= h)
                 {
-                    nw = h * newratio;
+                    nw = h*newratio;
                     if (nw < w)
                     {
                         nw = w;
-                        nh = w / newratio;
+                        nh = w/newratio;
                     }
                     else
                     {
@@ -565,28 +556,30 @@ namespace JMMServer
                 }
                 else
                 {
-                    nh = w / newratio;
+                    nh = w/newratio;
                     if (nh < h)
                     {
                         nh = h;
-                        nw = w * newratio;
+                        nw = w*newratio;
                     }
                     else
                     {
                         nw = w;
                     }
                 }
-                nw = (float)Math.Round(nw);
-                nh = (float)Math.Round(nh);
-                Image im2 = new Bitmap((int)nw, (int)nh, PixelFormat.Format32bppArgb);
+                nw = (float) Math.Round(nw);
+                nh = (float) Math.Round(nh);
+                Image im2 = new Bitmap((int) nw, (int) nh, PixelFormat.Format32bppArgb);
                 using (Graphics g = Graphics.FromImage(im2))
                 {
-                    g.InterpolationMode = nw >= im.Width ? InterpolationMode.HighQualityBilinear : InterpolationMode.HighQualityBicubic;
+                    g.InterpolationMode = nw >= im.Width
+                        ? InterpolationMode.HighQualityBilinear
+                        : InterpolationMode.HighQualityBicubic;
                     g.PixelOffsetMode = PixelOffsetMode.HighQuality;
                     g.SmoothingMode = SmoothingMode.HighQuality;
                     g.Clear(Color.Transparent);
                     Rectangle src = new Rectangle(0, 0, im.Width, im.Height);
-                    Rectangle dst = new Rectangle((int)((nw - w) / 2), (int)((nh - h) / 2), im.Width, im.Height);
+                    Rectangle dst = new Rectangle((int) ((nw - w)/2), (int) ((nh - h)/2), im.Width, im.Height);
                     g.DrawImage(im, dst, src, GraphicsUnit.Pixel);
                 }
                 MemoryStream ms2 = new MemoryStream();
@@ -605,7 +598,8 @@ namespace JMMServer
                 if (m != null)
                 {
                     float newratio = 0F;
-                    if (float.TryParse(Ratio, NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"), out newratio))
+                    if (float.TryParse(Ratio, NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"),
+                        out newratio))
                     {
                         using (Image im = Image.FromStream(m))
                         {

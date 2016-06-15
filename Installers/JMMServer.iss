@@ -13,76 +13,64 @@ AppPublisher=JMM
 AppPublisherURL=https://github.com/japanesemediamanager
 AppSupportURL=https://github.com/japanesemediamanager
 AppUpdatesURL=https://github.com/japanesemediamanager
-DefaultDirName={pf}\JMM Server
+DefaultDirName={pf}\JMM\JMM Server
 DefaultGroupName=JMM Server
 AllowNoIcons=yes
 OutputBaseFilename=JMM_Server_Setup
 Compression=lzma
 SolidCompression=yes
 
-[Components]
-Name: "main"; Description: "Main Files"; Types: full compact custom; Flags: fixed
-Name: "firewall"; Description: "Open JMM Server port on Firewall"; Types: full compact custom;
-
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Components: main; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "quicklaunchicon"; Components: main; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
+Name: "firewall"; Description: "Firewall Exception"
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
 
 [Files]
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.exe"; Components: main; DestDir: "{app}"; Flags: ignoreversion 
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Antlr3.Runtime.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Castle.Core.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\FluentNHibernate.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\FluentNHibernate.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\HibernatingRhinos.Profiler.Appender.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\ICSharpCode.SharpZipLib.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Iesi.Collections.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Iesi.Collections.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMContracts.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMContracts.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMFileHelper.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMFileHelper.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.vshost.exe"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.vshost.exe.manifest"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.ConnectionInfo.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.Management.Sdk.Sfc.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.Smo.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.SqlEnum.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\MySql.Data.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.ByteCode.Castle.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.ByteCode.Castle.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NLog.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Remotion.Data.Linq.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\System.Data.SQLite.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\TMDbLib.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\TMDbLib.pdb"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\RestSharp.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Newtonsoft.Json.dll"; Components: main; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\Config\JMMServer.exe.Config"; Components: main; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\hasher.dll"; Components: main; DestDir: "{app}\x64"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\MediaInfo.dll"; Components: main; DestDir: "{app}\x64"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\SQLite.Interop.dll"; Components: main; DestDir: "{app}\x64"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\hasher.dll"; Components: main; DestDir: "{app}\x86"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\MediaInfo.dll"; Components: main; DestDir: "{app}\x86"; Flags: ignoreversion
-Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\SQLite.Interop.dll"; Components: main; DestDir: "{app}\x86"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\*"; Excludes: "JMMServer.exe.Config"; DestDir: "{app}"; Flags: ignoreversion 
+Source: "..\JMMServer\bin\Release\JMMServer.exe.Config"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
+Source: "..\JMMServer\bin\Release\x64\*"; DestDir: "{app}\x64"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\x86\*"; DestDir: "{app}\x86"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{group}\JMM Server"; Components: main; Filename: "{app}\JMMServer.exe"
-Name: "{group}\{cm:UninstallProgram,JMM Server}"; Components: main; Filename: "{uninstallexe}"
-Name: "{commondesktop}\JMM Server"; Components: main; Filename: "{app}\JMMServer.exe"; Tasks: desktopicon
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\JMM Server"; Components: main; Filename: "{app}\JMMServer.exe"; Tasks: quicklaunchicon
+Name: "{group}\JMM Server"; Filename: "{app}\JMMServer.exe"
+Name: "{group}\{cm:UninstallProgram,JMM Server}"; Filename: "{uninstallexe}"
+Name: "{commondesktop}\JMM Server"; Filename: "{app}\JMMServer.exe"; Tasks: desktopicon
+Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\JMM Server"; Filename: "{app}\JMMServer.exe"; Tasks: quicklaunchicon
 
 [Run]
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; StatusMsg: "Open exception on firewall..."; Flags: runhidden; Components:firewall;
-Filename: "{app}\JMMServer.exe"; Description: "{cm:LaunchProgram,JMM Server}"; Flags: nowait postinstall skipifsilent
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerImage user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerBinary user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetro user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetroImage user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerPlex user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerKodi user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerREST user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8112/JMMFilePort user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
+Filename: "{app}\JMMServer.exe"; Flags: nowait postinstall skipifsilent; Description: "{cm:LaunchProgram,JMM Server}"
 
 [UninstallRun]
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport=8111"; StatusMsg: "Open exception on firewall..."; Flags: runhidden; Components:firewall;
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - File Port"" protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerBinary"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerMetro"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerMetroImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerPlex"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerKodi"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerREST"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerStreaming"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8112/JMMFilePort"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
+
+[Dirs]
+Name: "{app}"; Permissions: users-full
+
+[Types]
+Name: "main"; Description: "Main"; Flags: iscustom
 

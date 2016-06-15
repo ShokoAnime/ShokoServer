@@ -18,11 +18,11 @@ using NHibernate;
 using Directory = JMMContracts.KodiContracts.Directory;
 
 // ReSharper disable FunctionComplexityOverflow
+
 namespace JMMServer.Kodi
 {
     public static class KodiHelper
     {
-    
         public const string MediaTagVersion = "1420942002";
 
 
@@ -44,6 +44,7 @@ namespace JMMServer.Kodi
             var plainTextBytes = Encoding.UTF8.GetBytes(plainText);
             return Convert.ToBase64String(plainTextBytes).Replace("+", "-").Replace("/", "_").Replace("=", ",");
         }
+
         /* public static string ToHex(string ka)
         {
             byte[] ba = Encoding.UTF8.GetBytes(ka);
@@ -66,6 +67,7 @@ namespace JMMServer.Kodi
             // return "/video/jmm/proxy/" + ToHex(url);
             return url;
         } */
+
         public static System.IO.Stream GetStreamFromXmlObject<T>(T obj)
         {
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(T));
@@ -80,12 +82,11 @@ namespace JMMServer.Kodi
             }
             xmlSerializer.Serialize(textWriter, obj, ns);
             return new MemoryStream(Encoding.UTF8.GetBytes(textWriter.ToString()));
-
         }
 
         private static T XmlDeserializeFromString<T>(string objectData)
         {
-            return (T)XmlDeserializeFromString(objectData, typeof(T));
+            return (T) XmlDeserializeFromString(objectData, typeof(T));
         }
 
         private static object XmlDeserializeFromString(string objectData, Type type)
@@ -112,7 +113,7 @@ namespace JMMServer.Kodi
                 : repUsers.GetAll().FirstOrDefault(a => a.Username == "Default");
         }
 
-        public static string ServerUrl(int port, string path, bool externalip=false)
+        public static string ServerUrl(int port, string path, bool externalip = false)
         {
             if ((WebOperationContext.Current == null) ||
                 (WebOperationContext.Current.IncomingRequest.UriTemplateMatch == null))
@@ -131,7 +132,7 @@ namespace JMMServer.Kodi
                    path;
         }
 
-        public static string ReplaceSchemeHost(string str, bool externalip=false)
+        public static string ReplaceSchemeHost(string str, bool externalip = false)
         {
             if (str == null)
                 return null;
@@ -145,7 +146,7 @@ namespace JMMServer.Kodi
                     host = ip.ToString();
             }
 
-           /* if (str.StartsWith("/video/jmm/proxy/"))
+            /* if (str.StartsWith("/video/jmm/proxy/"))
             {
                 string k = str.Substring(17);
                 k = FromHex(k);
@@ -153,7 +154,9 @@ namespace JMMServer.Kodi
                 //return "/video/jmm/proxy/" + ToHex(k);
                 return "/video/jmm/proxy/" +k;
             } */
-            return str.Replace("{SCHEME}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme).Replace("{HOST}", host);
+            return
+                str.Replace("{SCHEME}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme)
+                    .Replace("{HOST}", host);
         }
 
         private static void PopulateVideoEpisodeFromVideoLocal(Video l, VideoLocal v, JMMType type)
@@ -161,14 +164,23 @@ namespace JMMServer.Kodi
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available";
             l.Title = Path.GetFileNameWithoutExtension(v.FilePath);
-            l.Key = l.PrimaryExtraKey = ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetMetadata/0/" + (int)type + "/" + v.VideoLocalID);
-            l.AddedAt = v.DateTimeCreated.Year.ToString("0000") + "-" + v.DateTimeCreated.Month.ToString("00") + "-" + v.DateTimeCreated.Day.ToString("00") + " " + v.DateTimeCreated.Hour.ToString("00") + ":" + v.DateTimeCreated.Minute.ToString("00") + ":" + v.DateTimeCreated.Millisecond.ToString("00");
-            l.UpdatedAt = v.DateTimeUpdated.Year.ToString("0000") + "-" + v.DateTimeUpdated.Month.ToString("00") + "-" + v.DateTimeUpdated.Day.ToString("00") + " " + v.DateTimeUpdated.Hour.ToString("00") + ":" + v.DateTimeUpdated.Minute.ToString("00") + ":" + v.DateTimeUpdated.Millisecond.ToString("00");
-            l.OriginallyAvailableAt = v.DateTimeCreated.Year.ToString("0000") + "-" + v.DateTimeCreated.Month.ToString("00") + "-" + v.DateTimeCreated.Day.ToString("00");
+            l.Key =
+                l.PrimaryExtraKey =
+                    ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                        MainWindow.PathAddressKodi + "/GetMetadata/0/" + (int) type + "/" + v.VideoLocalID);
+            l.AddedAt = v.DateTimeCreated.Year.ToString("0000") + "-" + v.DateTimeCreated.Month.ToString("00") + "-" +
+                        v.DateTimeCreated.Day.ToString("00") + " " + v.DateTimeCreated.Hour.ToString("00") + ":" +
+                        v.DateTimeCreated.Minute.ToString("00") + ":" + v.DateTimeCreated.Millisecond.ToString("00");
+            l.UpdatedAt = v.DateTimeUpdated.Year.ToString("0000") + "-" + v.DateTimeUpdated.Month.ToString("00") + "-" +
+                          v.DateTimeUpdated.Day.ToString("00") + " " + v.DateTimeUpdated.Hour.ToString("00") + ":" +
+                          v.DateTimeUpdated.Minute.ToString("00") + ":" + v.DateTimeUpdated.Millisecond.ToString("00");
+            l.OriginallyAvailableAt = v.DateTimeCreated.Year.ToString("0000") + "-" +
+                                      v.DateTimeCreated.Month.ToString("00") + "-" +
+                                      v.DateTimeCreated.Day.ToString("00");
             l.Year = v.DateTimeCreated.Year.ToString();
-     
+
             VideoInfo info = v.VideoInfo;
-            
+
             Media m = null;
             if (info != null)
             {
@@ -199,19 +211,18 @@ namespace JMMServer.Kodi
                     repo.Save(info);
                     m = XmlDeserializeFromString<Media>(info.FullInfo);
                 }
-
             }
             l.Medias = new List<Media>();
             if (m != null)
             {
-
                 m.Id = null;
                 List<JMMContracts.KodiContracts.Stream> subs = SubtitleHelper.GetSubtitleStreamsKodi(v.FullServerPath);
                 if (subs.Count > 0)
                 {
                     foreach (JMMContracts.KodiContracts.Stream s in subs)
                     {
-                        s.Key = ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/0/"+Base64EncodeUrl(s.File),KodiObject.IsExternalRequest);
+                        s.Key = ServerUrl(int.Parse(ServerSettings.JMMServerFilePort),
+                            "file/0/" + Base64EncodeUrl(s.File), KodiObject.IsExternalRequest);
                     }
                     m.Parts[0].Streams.AddRange(subs);
                 }
@@ -221,7 +232,8 @@ namespace JMMServer.Kodi
 
                     p.File = v.FullServerPath;
                     string ff = Path.GetExtension(v.FullServerPath);
-                    p.Key = ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/0/"+v.VideoLocalID + "/file" + ff,KodiObject.IsExternalRequest);
+                    p.Key = ServerUrl(int.Parse(ServerSettings.JMMServerFilePort),
+                        "videolocal/0/" + v.VideoLocalID + "/file" + ff, KodiObject.IsExternalRequest);
                     p.Accessible = "1";
                     p.Exists = "1";
                     bool vid = false;
@@ -229,16 +241,16 @@ namespace JMMServer.Kodi
                     bool txt = false;
                     foreach (JMMContracts.KodiContracts.Stream ss in p.Streams.ToArray())
                     {
-                        if ((ss.StreamType == "1") && (!vid))
+                        if ((ss.StreamType == "1") && !vid)
                         {
                             vid = true;
                         }
-                        if ((ss.StreamType == "2") && (!aud))
+                        if ((ss.StreamType == "2") && !aud)
                         {
                             aud = true;
                             ss.Selected = "1";
                         }
-                        if ((ss.StreamType == "3") && (!txt))
+                        if ((ss.StreamType == "3") && !txt)
                         {
                             txt = true;
                             ss.Selected = "1";
@@ -261,14 +273,14 @@ namespace JMMServer.Kodi
                 v.Index = aep.EpisodeNumber.ToString();
                 v.Title = aep.EnglishName;
                 v.OriginalTitle = aep.RomajiName;
-                v.Rating = (Convert.ToDouble(aep.Rating)).ToString(CultureInfo.InvariantCulture);
+                v.Rating = Convert.ToDouble(aep.Rating).ToString(CultureInfo.InvariantCulture);
                 v.Votes = aep.Votes;
                 if (aep.AirDateAsDate.HasValue)
                 {
                     v.Year = aep.AirDateAsDate.Value.Year.ToString();
                     v.OriginallyAvailableAt = aep.AirDateAsDate.Value.Year.ToString("0000") + "-" +
-                                                aep.AirDateAsDate.Value.Month.ToString("00") +
-                                                "-" + aep.AirDateAsDate.Value.Day.ToString("00");
+                                              aep.AirDateAsDate.Value.Month.ToString("00") +
+                                              "-" + aep.AirDateAsDate.Value.Day.ToString("00");
                 }
                 AnimeEpisode_User epuser = ep.GetUserRecord(userid);
                 if (epuser != null)
@@ -276,9 +288,11 @@ namespace JMMServer.Kodi
                 MetroContract_Anime_Episode contract = new MetroContract_Anime_Episode();
                 JMMServiceImplementationMetro.SetTvDBInfo(aep.AnimeID, aep, ref contract);
                 if (contract.ImageID != 0)
-                    v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/" + contract.ImageType+ "/" + contract.ImageID);
+                    v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                        MainWindow.PathAddressREST + "/GetImage/" + contract.ImageType + "/" + contract.ImageID);
                 else
-                    v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404.png");
+                    v.Thumb = ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                        MainWindow.PathAddressKodi + "/GetSupportImage/plex_404.png");
                 v.Summary = contract.EpisodeOverview;
 
                 //total local files
@@ -286,7 +300,9 @@ namespace JMMServer.Kodi
                 {
                     v.totalLocal = ep.GetAnimeSeries().GetAnimeEpisodesCountWithVideoLocal();
                 }
-                catch { }
+                catch
+                {
+                }
                 //end total local files
 
                 //community support
@@ -313,7 +329,6 @@ namespace JMMServer.Kodi
 
                 //community support END
             }
-
         }
 
 
@@ -374,40 +389,41 @@ namespace JMMServer.Kodi
             }
             return ret;
         }
+
         public static bool PopulateVideo(Video l, VideoLocal v, JMMType type, int userid)
         {
-
             PopulateVideoEpisodeFromVideoLocal(l, v, type);
             List<AnimeEpisode> eps = v.GetAnimeEpisodes();
             if (eps.Count > 0)
             {
-                PopulateVideoEpisodeFromAnimeEpisode(l,eps[0],userid);
+                PopulateVideoEpisodeFromAnimeEpisode(l, eps[0], userid);
                 AnimeSeries series = eps[0].GetAnimeSeries();
                 if (series != null)
                 {
                     Contract_AnimeSeries cseries = series.ToContract(series.GetUserRecord(userid), true);
                     Video nv = FromSerie(cseries, userid);
                     AniDB_Anime ani = series.GetAnime();
-                    return PopulateVideoEpisodeFromAnime(l,ani,nv);
+                    return PopulateVideoEpisodeFromAnime(l, ani, nv);
                 }
-                    
             }
             return false;
         }
-        public static bool PopulateVideo(Video l, VideoLocal v, AnimeEpisode ep,  AnimeSeries series , AniDB_Anime ani, Video nv, JMMType type, int userid)
-        {
 
+        public static bool PopulateVideo(Video l, VideoLocal v, AnimeEpisode ep, AnimeSeries series, AniDB_Anime ani,
+            Video nv, JMMType type, int userid)
+        {
             PopulateVideoEpisodeFromVideoLocal(l, v, type);
-            if (ep!=null)
+            if (ep != null)
             {
                 PopulateVideoEpisodeFromAnimeEpisode(l, ep, userid);
                 if (series != null)
                 {
-                    return PopulateVideoEpisodeFromAnime(l,ani, nv);
+                    return PopulateVideoEpisodeFromAnime(l, ani, nv);
                 }
             }
             return false;
         }
+
         public static IEnumerable<T> Randomize<T>(this IEnumerable<T> source, int seed)
         {
             Random rnd = new Random(seed);
@@ -428,6 +444,7 @@ namespace JMMServer.Kodi
             }
             return null;
         }
+
         public static string GetRandomFanartFromVideoList(List<Video> videos)
         {
             foreach (Video v in videos.Randomize(123456789))
@@ -437,7 +454,9 @@ namespace JMMServer.Kodi
             }
             return null;
         }
-        public static Video VideoFromAnimeGroup(ISession session, AnimeGroup grp, int userid, List<AnimeSeries> allSeries)
+
+        public static Video VideoFromAnimeGroup(ISession session, AnimeGroup grp, int userid,
+            List<AnimeSeries> allSeries)
         {
             Contract_AnimeGroup cgrp = grp.ToContract(grp.GetUserRecord(session, userid));
             if (StatsCache.Instance.StatGroupSeriesCount[grp.AnimeGroupID] == 1)
@@ -454,7 +473,9 @@ namespace JMMServer.Kodi
             }
             else
             {
-                AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value) : JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
+                AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue
+                    ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value)
+                    : JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
                 if (ser != null)
                 {
                     Video v = FromGroup(cgrp, ser.ToContract(ser.GetUserRecord(session, userid), true), userid);
@@ -465,12 +486,15 @@ namespace JMMServer.Kodi
             }
             return null;
         }
-        public static Video MayReplaceVideo(Directory v1, AnimeSeries ser, AniDB_Anime anime, JMMType type, int userid, bool all=true)
+
+        public static Video MayReplaceVideo(Directory v1, AnimeSeries ser, AniDB_Anime anime, JMMType type, int userid,
+            bool all = true)
         {
-            int epcount = all ? ser.GetAnimeEpisodesCountWithVideoLocal() :  ser.GetAnimeEpisodesNormalCountWithVideoLocal();
+            int epcount = all
+                ? ser.GetAnimeEpisodesCountWithVideoLocal()
+                : ser.GetAnimeEpisodesNormalCountWithVideoLocal();
             if (epcount == 1)
             {
-
                 List<AnimeEpisode> episodes = ser.GetAnimeEpisodes();
                 List<VideoLocal> l = episodes[0].GetVideoLocals();
                 if (l.Count > 0)
@@ -497,8 +521,8 @@ namespace JMMServer.Kodi
         {
             Directory p = new Directory();
             p.Key = ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                        MainWindow.PathAddressKodi + "/GetMetadata/" + userid + "/" + (int)JMMType.Group + "/" +
-                        grp.AnimeGroupID.ToString());
+                MainWindow.PathAddressKodi + "/GetMetadata/" + userid + "/" + (int) JMMType.Group + "/" +
+                grp.AnimeGroupID.ToString());
             p.Title = grp.GroupName;
             p.Summary = grp.Description;
             p.Type = "show";
@@ -506,12 +530,20 @@ namespace JMMServer.Kodi
             Contract_AniDBAnime anime = ser.AniDBAnime;
             if (anime != null)
             {
-
                 Contract_AniDB_Anime_DefaultImage poster = anime.DefaultImagePoster;
                 Contract_AniDB_Anime_DefaultImage fanart = anime.DefaultImageFanart;
-                p.Thumb = poster != null ? poster.GenPoster() : ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404V.png");
+                p.Thumb = poster != null
+                    ? poster.GenPoster()
+                    : ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                        MainWindow.PathAddressKodi + "/GetSupportImage/plex_404V.png");
                 if (fanart != null)
                     p.Art = fanart.GenArt();
+                if (!string.IsNullOrEmpty(anime.AllTags))
+                {
+                    p.Tags = new List<Tag> {new Tag {Value = anime.AllTags.Replace("|", ",")}};
+                }
+                p.Rating = (anime.Rating/100F).ToString(CultureInfo.InvariantCulture);
+                p.Year = "" + anime.BeginYear;
             }
             p.LeafCount = (grp.UnwatchedEpisodeCount + grp.WatchedEpisodeCount).ToString();
             p.ViewedLeafCount = grp.WatchedEpisodeCount.ToString();
@@ -522,7 +554,7 @@ namespace JMMServer.Kodi
         {
             Video v = KodiHelper.FromSerie(cserie, userid);
             //if (ser.GetAnimeNumberOfEpisodeTypes() > 1)
-                v.Type = "show";
+            v.Type = "show";
             //else if ((cserie.AniDBAnime.AnimeType == (int)enAnimeType.Movie) || (cserie.AniDBAnime.AnimeType == (int)enAnimeType.OVA))
             //{
             //    v = MayReplaceVideo((Directory)v, ser, ser.GetAnime(), JMMType.File, userid);
@@ -537,14 +569,14 @@ namespace JMMServer.Kodi
             Contract_AniDBAnime anime = ser.AniDBAnime;
 
             p.Key = ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                        MainWindow.PathAddressKodi + "/GetMetadata/" + userid + "/" + (int)JMMType.Serie + "/" +
-                        ser.AnimeSeriesID);
+                MainWindow.PathAddressKodi + "/GetMetadata/" + userid + "/" + (int) JMMType.Serie + "/" +
+                ser.AnimeSeriesID);
 
-            if (ser.AniDBAnime.Restricted>0)
+            if (ser.AniDBAnime.Restricted > 0)
                 p.ContentRating = "R";
             p.Title = anime.MainTitle;
             p.Summary = anime.Description;
-            if (string.IsNullOrEmpty(p.Summary) && ser.MovieDB_Movie!=null)
+            if (string.IsNullOrEmpty(p.Summary) && ser.MovieDB_Movie != null)
             {
                 p.Summary = ser.MovieDB_Movie.Overview;
             }
@@ -557,23 +589,24 @@ namespace JMMServer.Kodi
 
             if (!string.IsNullOrEmpty(anime.AllCategories))
             {
-                p.Genres = new List<Tag> { new Tag { Value = anime.AllCategories.Replace("|", ",") } };
+                p.Genres = new List<Tag> {new Tag {Value = anime.AllCategories.Replace("|", ",")}};
             }
             if (!string.IsNullOrEmpty(anime.AllTags))
             {
-                p.Tags = new List<Tag> { new Tag { Value = anime.AllTags.Replace("|", ",") } };
+                p.Tags = new List<Tag> {new Tag {Value = anime.AllTags.Replace("|", ",")}};
             }
             p.OriginalTitle = anime.AllTitles;
             if (anime.AirDate.HasValue)
             {
                 p.AirDate = anime.AirDate.Value;
-                p.OriginallyAvailableAt = anime.AirDate.Value.Year.ToString("0000") + "-" + anime.AirDate.Value.Month.ToString("00") + "-" +
-                                            anime.AirDate.Value.Day.ToString("00");
+                p.OriginallyAvailableAt = anime.AirDate.Value.Year.ToString("0000") + "-" +
+                                          anime.AirDate.Value.Month.ToString("00") + "-" +
+                                          anime.AirDate.Value.Day.ToString("00");
                 p.Year = anime.AirDate.Value.Year.ToString();
             }
             p.LeafCount = anime.EpisodeCount.ToString();
             p.ViewedLeafCount = ser.WatchedEpisodeCount.ToString();
-            p.Rating = (anime.Rating / 100F).ToString(CultureInfo.InvariantCulture);
+            p.Rating = (anime.Rating/100F).ToString(CultureInfo.InvariantCulture);
             p.Votes = anime.VoteCount.ToString();
             List<Contract_CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
             if (ls.Count > 0)
@@ -589,7 +622,10 @@ namespace JMMServer.Kodi
             Contract_AniDB_Anime_DefaultImage poster = anime.DefaultImagePoster;
             Contract_AniDB_Anime_DefaultImage fanart = anime.DefaultImageFanart;
 
-            p.Thumb = poster != null ? poster.GenPoster() : ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressKodi + "/GetSupportImage/plex_404V.png");
+            p.Thumb = poster != null
+                ? poster.GenPoster()
+                : ServerUrl(int.Parse(ServerSettings.JMMServerPort),
+                    MainWindow.PathAddressKodi + "/GetSupportImage/plex_404V.png");
             if (fanart != null)
                 p.Art = fanart.GenArt();
 
@@ -643,10 +679,5 @@ namespace JMMServer.Kodi
 
             return p;
         }
-
-
-
-
     }
-
 }

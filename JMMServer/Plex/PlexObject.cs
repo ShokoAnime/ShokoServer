@@ -12,7 +12,7 @@ namespace JMMServer.Plex
         {
             get
             {
-                if (WebOperationContext.Current==null)
+                if (WebOperationContext.Current == null)
                     return new NameValueCollection();
                 return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters;
             }
@@ -37,12 +37,12 @@ namespace JMMServer.Plex
                 return false;
             }
         }
-        
+
         private List<Video> LimitVideos(List<Video> list)
         {
             MediaContainer.TotalSize = list.Count.ToString();
             MediaContainer.Offset = Start.ToString();
-            int size = Size > list.Count-Start ? list.Count-Start : Size;
+            int size = Size > list.Count - Start ? list.Count - Start : Size;
             MediaContainer.TotalSize = list.Count.ToString();
             MediaContainer.Size = size.ToString();
             return list.Skip(Start).Take(size).ToList();
@@ -62,48 +62,55 @@ namespace JMMServer.Plex
                 MediaContainer.ViewGroup = null;
                 MediaContainer.ViewMode = null;
             }
-            if (WebOperationContext.Current != null && WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
+            if (WebOperationContext.Current != null &&
+                WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
             {
                 //Fix for android hang, if the type is populated
                 string kh = WebOperationContext.Current.IncomingRequest.Headers.Get("X-Plex-Product").ToUpper();
                 if (kh.Contains("ANDROID"))
                 {
-                    MediaContainer.Childrens.ForEach(a =>
-                    {
-                        a.Type = null;
-                    });
+                    MediaContainer.Childrens.ForEach(a => { a.Type = null; });
                 }
             }
             return PlexHelper.GetStreamFromXmlObject(MediaContainer);
         }
+
         public PlexObject(MediaContainer m)
         {
             MediaContainer = m;
         }
+
         public bool Init()
         {
             Start = 0;
             Size = int.MaxValue;
-            if (WebOperationContext.Current!=null)
-            { 
+            if (WebOperationContext.Current != null)
+            {
                 WebOperationContext.Current.OutgoingResponse.Headers.Add("Access-Control-Allow-Origin", "*");
                 if (WebOperationContext.Current.IncomingRequest.Method == "OPTIONS")
                 {
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT, HEAD");
+                    WebOperationContext.Current.OutgoingResponse.Headers.Add("Access-Control-Allow-Methods",
+                        "POST, GET, OPTIONS, DELETE, PUT, HEAD");
                     WebOperationContext.Current.OutgoingResponse.Headers.Add("Access-Control-Max-Age", "1209600");
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add("Access-Control-Allow-Headers", "accept, x-plex-token, x-plex-client-identifier, x-plex-username, x-plex-product, x-plex-device, x-plex-platform, x-plex-platform-version, x-plex-version, x-plex-device-name");
+                    WebOperationContext.Current.OutgoingResponse.Headers.Add("Access-Control-Allow-Headers",
+                        "accept, x-plex-token, x-plex-client-identifier, x-plex-username, x-plex-product, x-plex-device, x-plex-platform, x-plex-platform-version, x-plex-version, x-plex-device-name");
                     WebOperationContext.Current.OutgoingResponse.Headers.Add("Connection", "close");
                     WebOperationContext.Current.OutgoingResponse.Headers.Add("X-Plex-Protocol", "1.0");
                     WebOperationContext.Current.OutgoingResponse.Headers.Add("Cache-Control", "no-cache");
                     WebOperationContext.Current.OutgoingResponse.ContentType = "text/plain";
                     return false;
                 }
-                if ((WebOperationContext.Current.IncomingRequest.UriTemplateMatch != null) && (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters != null))
+                if ((WebOperationContext.Current.IncomingRequest.UriTemplateMatch != null) &&
+                    (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters != null))
                 {
-
-                    if (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains("X-Plex-Container-Size"))
+                    if (
+                        WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains(
+                            "X-Plex-Container-Size"))
                     {
-                        int max = int.Parse(WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters["X-Plex-Container-Size"]);
+                        int max =
+                            int.Parse(
+                                WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[
+                                    "X-Plex-Container-Size"]);
                         if (max < Size)
                             Size = max;
                     }
@@ -111,7 +118,5 @@ namespace JMMServer.Plex
             }
             return true;
         }
-
-
     }
 }

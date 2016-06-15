@@ -2,19 +2,19 @@
 using JMMContracts;
 using JMMContracts.KodiContracts;
 using JMMServer.ImageDownload;
+
 // ReSharper disable FunctionComplexityOverflow
+
 namespace JMMServer.Kodi
 {
     public static class KodiExtensions
     {
-
-
         public static string GenPoster(this ImageDetails im)
         {
             if (im == null)
                 return null;
             return KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetThumb/" + (int)im.ImageType + "/" + im.ImageID + "/0.6667");
+                MainWindow.PathAddressREST + "/GetThumb/" + (int) im.ImageType + "/" + im.ImageID + "/0.6667");
         }
 
         public static string GenArt(this ImageDetails im)
@@ -22,7 +22,7 @@ namespace JMMServer.Kodi
             if (im == null)
                 return null;
             return KodiHelper.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetImage/" + (int)im.ImageType + "/" + im.ImageID);
+                MainWindow.PathAddressREST + "/GetImage/" + (int) im.ImageType + "/" + im.ImageID);
         }
 
         public static string GenPoster(this Contract_AniDB_Anime_DefaultImage im)
@@ -130,7 +130,5 @@ namespace JMMServer.Kodi
             v.totalLocal = o.totalLocal;
             return v;
         }
-
-
     }
 }
