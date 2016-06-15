@@ -66,7 +66,23 @@ namespace JMMServer
             }
             set { UpdateSetting("JMMServerFilePort", value); }
         }
+        public static string PluginAutoWatchThreshold
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
 
+                string th = appSettings["PluginAutoWatchThreshold"];
+                if (string.IsNullOrEmpty(th))
+                {
+                    th = "0.89";
+                    UpdateSetting("PluginAutoWatchThreshold", th);
+                }
+
+                return th;
+            }
+            set { UpdateSetting("PluginAutoWatchThreshold", value); }
+        }
         public static string PlexThumbnailAspects
         {
             get

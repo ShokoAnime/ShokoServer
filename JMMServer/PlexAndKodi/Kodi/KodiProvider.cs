@@ -15,6 +15,7 @@ namespace JMMServer.PlexAndKodi.Kodi
         public bool UseBreadCrumbs => false;
         public bool AddExtraItemForSearchButtonInGroupFilters => false;
         public bool ConstructFakeIosParent => false;
+        public bool AutoWatch => false;
 
         public string Proxyfy(string url)
         {

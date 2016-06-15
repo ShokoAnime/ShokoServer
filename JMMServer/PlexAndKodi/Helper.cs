@@ -23,16 +23,14 @@ namespace JMMServer.PlexAndKodi
 {
     public static class Helper
     {
-        public static string ConstructVideoLocalStream(int userid, int vid, string extension)
+        public static string ConstructVideoLocalStream(int userid, int vid, string extension, bool autowatch)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort),
-                "videolocal/" + userid + "/" + vid + "/file" + extension, PlexObject.IsExternalRequest);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/file" + extension, PlexObject.IsExternalRequest);
         }
 
-        public static string ConstructFileStream(int userid, string file)
+        public static string ConstructFileStream(int userid, string file, bool autowatch)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + userid + "/" + Base64EncodeUrl(file),
-                PlexObject.IsExternalRequest);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + userid + "/" + (autowatch ? "1" : "0") +"/"+Base64EncodeUrl(file), PlexObject.IsExternalRequest);
         }
 
         public static string ConstructImageLink(int type, int id)
@@ -230,12 +228,12 @@ namespace JMMServer.PlexAndKodi
                         foreach (Part p in m.Parts)
                         {
                             string ff = Path.GetExtension(p.Extension);
-                            p.Key = ConstructVideoLocalStream(userid, int.Parse(m.Id), ff);
+                            p.Key = ConstructVideoLocalStream(userid, int.Parse(m.Id), ff, prov.AutoWatch);
                             if (p.Streams != null)
                             {
                                 foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
                                 {
-                                    s.Key = ConstructFileStream(userid, s.File);
+                                    s.Key = ConstructFileStream(userid, s.File,prov.AutoWatch);
                                 }
                             }
                         }

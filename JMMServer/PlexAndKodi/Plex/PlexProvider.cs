@@ -58,7 +58,7 @@ namespace JMMServer.PlexAndKodi.Plex
         public bool UseBreadCrumbs => true;
         public bool AddExtraItemForSearchButtonInGroupFilters => true;
         public bool ConstructFakeIosParent => true;
-
+        public bool AutoWatch => true;
         public string Proxyfy(string url)
         {
             return "/video/jmm/proxy/" + ToHex(url);
