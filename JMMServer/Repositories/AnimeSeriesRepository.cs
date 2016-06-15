@@ -114,7 +114,7 @@ namespace JMMServer.Repositories
             }
             if (!skipgroupfilters)
             {
-                GroupFilterRepository.CreateOrVerifyLockedFilters();
+                GroupFilterRepository.CreateOrVerifyTagsAndYearsFilters(false, obj.Contract?.AniDBAnime?.AniDBAnime?.AllTags,obj.Contract?.AniDBAnime?.AniDBAnime?.AirDate);
                 //This call will create extra years or tags if the Group have a new year or tag
                 obj.UpdateGroupFilters(types, null);
             }

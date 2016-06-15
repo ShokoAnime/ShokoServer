@@ -84,16 +84,16 @@ namespace JMMServer.Repositories
                     gf.EvaluateAnimeSeries();
                 repo.Save(gf);
             }
-            CreateOrVerifyLockedFilters(true);
         }
 
 
         //TODO Cleanup function for Empty Tags and Empty Years
 
-        public static void CreateOrVerifyLockedFilters(bool frominit = false)
+        
+
+        public static void CreateOrVerifyLockedFilters()
         {
             GroupFilterRepository repFilters = new GroupFilterRepository();
-            GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
 
             using (var session = JMMService.SessionFactory.OpenSession())
             {
@@ -103,9 +103,7 @@ namespace JMMServer.Repositories
                 //Continue Watching
                 // check if it already exists
 
-                if (frominit)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
-                        " Creating Continue Watching filter");
+                ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " Creating Continue Watching filter");
 
                 GroupFilter cwatching =
                     lockedGFs.FirstOrDefault(
@@ -114,17 +112,13 @@ namespace JMMServer.Repositories
                                 StringComparison.InvariantCultureIgnoreCase));
                 if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
                 {
-                    if (frominit)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
-                            " Creating Continue Watching filter");
+                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " Creating Continue Watching filter");
                     cwatching.FilterType = (int) GroupFilterType.ContinueWatching;
                     repFilters.Save(cwatching);
                 }
                 else if (cwatching == null)
                 {
-                    if (frominit)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
-                            " Creating Continue Watching filter");
+                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " Creating Continue Watching filter");
                     GroupFilter gf = new GroupFilter();
                     gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
                     gf.Locked = 1;
@@ -155,9 +149,7 @@ namespace JMMServer.Repositories
                 GroupFilter allfilter = lockedGFs.FirstOrDefault(a => a.FilterType == (int) GroupFilterType.All);
                 if (allfilter == null)
                 {
-                    if (frominit)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
-                            " Creating All filter");
+                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " Creating All filter");
                     GroupFilter gf = new GroupFilter
                     {
                         GroupFilterName = "All",
@@ -203,53 +195,99 @@ namespace JMMServer.Repositories
                     };
                     repFilters.Save(yearsdirec);
                 }
+            }
+            CreateOrVerifyTagsAndYearsFilters(true);
+        }
+        public static void CreateOrVerifyTagsAndYearsFilters(bool frominit = false, HashSet<string> tags = null, DateTime? airdate = null)
+        {
+            GroupFilterRepository repFilters = new GroupFilterRepository();
+
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                string t = "GroupFilter";
+
+                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
                 AniDB_TagRepository tagsrepo = new AniDB_TagRepository();
                 AnimeGroupRepository grouprepo = new AnimeGroupRepository();
-                HashSet<string> alltags = new HashSet<string>(tagsrepo.GetAll(session).Select(a => a.TagName).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
-                HashSet<string> notin = new HashSet<string>(lockedGFs.Where(a=>a.FilterType== (int)GroupFilterType.Tag).Select(a=>a.Conditions.FirstOrDefault()?.ConditionParameter),StringComparer.InvariantCultureIgnoreCase);
-                alltags.ExceptWith(notin);
+                GroupFilter tagsdirec = lockedGFs.FirstOrDefault(a => a.FilterType == (int)(GroupFilterType.Directory | GroupFilterType.Tag));
+                if (tagsdirec != null)
+                {
+                    HashSet<string> alltags;
+                    if (tags == null)
+                        alltags = new HashSet<string>(tagsrepo.GetAll(session).Select(a => a.TagName).Distinct(StringComparer.InvariantCultureIgnoreCase),StringComparer.InvariantCultureIgnoreCase);
+                    else
+                        alltags = new HashSet<string>(tags.Distinct(StringComparer.InvariantCultureIgnoreCase),StringComparer.InvariantCultureIgnoreCase);
+                    HashSet<string> notin = new HashSet<string>(lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Tag).Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),StringComparer.InvariantCultureIgnoreCase);
+                    alltags.ExceptWith(notin);
 
-                int max = alltags.Count;
-                int cnt = 0;
-                //AniDB Tags are in english so we use en-us culture
-                TextInfo tinfo = new CultureInfo("en-US", false).TextInfo;
-                foreach (string s in alltags)
-                {
-                    cnt++;
-                    if (frominit)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
-                            " Creating Tag '" + s + "' filter " + cnt + "/" + max);
-                    GroupFilter yf = new GroupFilter
+                    int max = alltags.Count;
+                    int cnt = 0;
+                    //AniDB Tags are in english so we use en-us culture
+                    TextInfo tinfo = new CultureInfo("en-US", false).TextInfo;
+                    foreach (string s in alltags)
                     {
-                        ParentGroupFilterID = tagsdirec.GroupFilterID,
-                        InvisibleInClients = 0,
-                        GroupFilterName = tinfo.ToTitleCase(s),
-                        BaseCondition = 1,
-                        Locked = 1,
-                        SortingCriteria = "5;1",
-                        FilterType = (int) GroupFilterType.Tag
-                    };
-                    GroupFilterCondition gfc = new GroupFilterCondition();
-                    gfc.ConditionType = (int) GroupFilterConditionType.Tag;
-                    gfc.ConditionOperator = (int) GroupFilterOperator.Include;
-                    gfc.ConditionParameter = s;
-                    gfc.GroupFilterID = yf.GroupFilterID;
-                    yf.Conditions.Add(gfc);
-                    yf.EvaluateAnimeGroups();
-                    yf.EvaluateAnimeSeries();
-                    repFilters.Save(yf);
+                        cnt++;
+                        if (frominit)
+                            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                                " Creating Tag '" + s + "' filter " + cnt + "/" + max);
+                        GroupFilter yf = new GroupFilter
+                        {
+                            ParentGroupFilterID = tagsdirec.GroupFilterID,
+                            InvisibleInClients = 0,
+                            GroupFilterName = tinfo.ToTitleCase(s.Replace("`","'")),
+                            BaseCondition = 1,
+                            Locked = 1,
+                            SortingCriteria = "5;1",
+                            FilterType = (int) GroupFilterType.Tag
+                        };
+                        GroupFilterCondition gfc = new GroupFilterCondition();
+                        gfc.ConditionType = (int) GroupFilterConditionType.Tag;
+                        gfc.ConditionOperator = (int) GroupFilterOperator.Include;
+                        gfc.ConditionParameter = s;
+                        gfc.GroupFilterID = yf.GroupFilterID;
+                        yf.Conditions.Add(gfc);
+                        yf.EvaluateAnimeGroups();
+                        yf.EvaluateAnimeSeries();
+                        repFilters.Save(yf);
+                    }
                 }
-                List<Contract_AnimeGroup> grps =
-                    grouprepo.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
-                if (grps.Any(a => a.Stat_AirDate_Min.HasValue && a.Stat_AirDate_Max.HasValue))
+                GroupFilter yearsdirec = lockedGFs.FirstOrDefault(a => a.FilterType == (int)(GroupFilterType.Directory | GroupFilterType.Year));
+                if (yearsdirec != null)
                 {
-                    DateTime maxtime = grps.Where(a => a.Stat_AirDate_Max.HasValue).Max(a => a.Stat_AirDate_Max.Value);
-                    DateTime mintime = grps.Where(a => a.Stat_AirDate_Min.HasValue).Min(a => a.Stat_AirDate_Min.Value);
-                    HashSet<string> allyears = new HashSet<string>(Enumerable.Range(mintime.Year, maxtime.Year - mintime.Year + 1).Select(a => a.ToString()), StringComparer.InvariantCultureIgnoreCase);
-                    notin = new HashSet<string>(lockedGFs.Where(a => a.FilterType == (int)GroupFilterType.Year).Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter), StringComparer.InvariantCultureIgnoreCase);
+
+                    HashSet<string> allyears;
+                    if (airdate == null)
+                    {
+                        List<Contract_AnimeGroup> grps =
+                            grouprepo.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+                        if (grps.Any(a => a.Stat_AirDate_Min.HasValue && a.Stat_AirDate_Max.HasValue))
+                        {
+                            DateTime maxtime =
+                                grps.Where(a => a.Stat_AirDate_Max.HasValue).Max(a => a.Stat_AirDate_Max.Value);
+                            DateTime mintime =
+                                grps.Where(a => a.Stat_AirDate_Min.HasValue).Min(a => a.Stat_AirDate_Min.Value);
+                            allyears =
+                                new HashSet<string>(
+                                    Enumerable.Range(mintime.Year, maxtime.Year - mintime.Year + 1)
+                                        .Select(a => a.ToString()), StringComparer.InvariantCultureIgnoreCase);
+                        }
+                        else
+                        {
+                            allyears = new HashSet<string>();
+                        }
+                    }
+                    else
+                    {
+                        allyears = new HashSet<string>(new string[] {airdate.Value.Year.ToString()});
+                    }
+                    HashSet<string> notin =
+                        new HashSet<string>(
+                            lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Year)
+                                .Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),
+                            StringComparer.InvariantCultureIgnoreCase);
                     allyears.ExceptWith(notin);
-                    max = allyears.Count;
-                    cnt = 0;
+                    int max = allyears.Count;
+                    int cnt = 0;
                     foreach (string s in allyears)
                     {
                         cnt++;
@@ -353,6 +391,17 @@ namespace JMMServer.Repositories
         public List<GroupFilter> GetLockedGroupFilters(ISession session)
         {
             return Cache.Values.Where(a => a.Locked == 1).ToList();
+        }
+
+        public List<GroupFilter> GetWithConditionTypesAndAll(HashSet<GroupFilterConditionType> types)
+        {
+            HashSet<int> filters = new HashSet<int>(Cache.Values.Where(a => a.FilterType == (int)GroupFilterType.All).Select(a=>a.GroupFilterID));
+            foreach (GroupFilterConditionType t in types)
+            {
+                filters.UnionWith(Types.FindInverse(t));
+            }
+            
+            return filters.Select(a => Cache.Get(a)).ToList();
         }
 
         public List<GroupFilter> GetWithConditionsTypes(HashSet<GroupFilterConditionType> types)

@@ -75,7 +75,7 @@ namespace JMMServer.Repositories
                 Cache.Update(grp);
                 if (verifylockedFilters)
                 {
-                    GroupFilterRepository.CreateOrVerifyLockedFilters();
+                    GroupFilterRepository.CreateOrVerifyTagsAndYearsFilters(false, grp.Contract.Stat_AllTags,grp.Contract.Stat_AirDate_Min);
                     //This call will create extra years or tags if the Group have a new year or tag
                     grp.UpdateGroupFilters(types, null);
                 }

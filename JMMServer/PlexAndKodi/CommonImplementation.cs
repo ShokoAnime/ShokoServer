@@ -63,16 +63,12 @@ namespace JMMServer.PlexAndKodi
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     GroupFilterRepository repGF = new GroupFilterRepository();
-                    List<GroupFilter> allGfs = repGF.GetTopLevel().Where(a => a.InvisibleInClients == 0).ToList();
-                    ;
+                    List<GroupFilter> allGfs = repGF.GetTopLevel().Where(a => a.InvisibleInClients == 0 && 
+                    (
+                        (a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0) 
+                        || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
+                    ).ToList();
 
-                    foreach (GroupFilter gg in allGfs.ToArray())
-                    {
-                        if (!gg.GroupsIds.ContainsKey(userid) || gg.GroupsIds[userid].Count == 0)
-                        {
-                            allGfs.Remove(gg);
-                        }
-                    }
 
 
                     AnimeGroupRepository repGroups = new AnimeGroupRepository();
@@ -978,19 +974,13 @@ namespace JMMServer.PlexAndKodi
                             info));
                     if (!ret.Init())
                         return new MemoryStream();
-
                     List<GroupFilter> allGfs =
-                        repGF.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0).ToList();
+                    repGF.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
+                    (
+                        (a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count > 0)
+                        || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
+                    ).ToList();
                     List<Directory> dirs = new List<Directory>();
-                    foreach (GroupFilter gg in allGfs.ToArray())
-                    {
-                        if (!gg.GroupsIds.ContainsKey(userid) || gg.GroupsIds[userid].Count == 0)
-                        {
-                            allGfs.Remove(gg);
-                        }
-                    }
-
-
                     AnimeGroupRepository repGroups = new AnimeGroupRepository();
                     foreach (GroupFilter gg in allGfs)
                     {

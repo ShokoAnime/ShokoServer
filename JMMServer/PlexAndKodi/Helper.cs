@@ -371,6 +371,46 @@ namespace JMMServer.PlexAndKodi
             return l;
         }
 
+        private static void GetValidVideoRecursive(AnimeGroupRepository repGroups,GroupFilter f, int userid, Directory pp)
+        {
+            GroupFilterRepository repo=new GroupFilterRepository();
+            List<GroupFilter> gfs = repo.GetByParentID(f.GroupFilterID).Where(a=>a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0).ToList();
+
+            foreach (GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == 0))
+            {
+                if (gg.GroupsIds.ContainsKey(userid))
+                {
+                    HashSet<int> groups = gg.GroupsIds[userid];
+                    if (groups.Count != 0)
+                    {
+                        foreach (int grp in groups)
+                        {
+                            AnimeGroup ag = repGroups.GetByID(grp);
+                            Video v = ag.GetPlexContract(userid);
+                            if (v?.Art != null && v.Thumb != null)
+                            {
+                                pp.Art = Helper.ReplaceSchemeHost(v.Art);
+                                pp.Thumb = Helper.ReplaceSchemeHost(v.Thumb);
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (pp.Art != null)
+                    break;
+            }
+            if (pp.Art == null)
+            {
+                foreach (GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory && a.InvisibleInClients==0))
+                {
+                    GetValidVideoRecursive(repGroups, gg, userid, pp);
+                    if (pp.Art != null)
+                        break;
+                }
+            }
+            pp.LeafCount = gfs.Count.ToString();
+            pp.ViewedLeafCount = "0";        
+        }
         public static Directory DirectoryFromFilter(AnimeGroupRepository repGroups, IProvider prov, GroupFilter gg,
             int userid)
         {
@@ -379,25 +419,32 @@ namespace JMMServer.PlexAndKodi
             pp.Title = gg.GroupFilterName;
             pp.Id = gg.GroupFilterID;
             pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroupFilter;
-            HashSet<int> groups = gg.GroupsIds[userid];
-            if (groups.Count != 0)
+            if ((gg.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
-                pp.LeafCount = groups.Count.ToString();
-                pp.ViewedLeafCount = "0";
-                foreach (int grp in groups)
-                {
-                    AnimeGroup ag = repGroups.GetByID(grp);
-                    Video v = ag.GetPlexContract(userid);
-                    if (v?.Art != null && v.Thumb != null)
-                    {
-                        pp.Art = Helper.ReplaceSchemeHost(v.Art);
-                        pp.Thumb = Helper.ReplaceSchemeHost(v.Thumb);
-                        break;
-                    }
-                }
-                return pp;
+                GetValidVideoRecursive(repGroups, gg, userid, pp);
             }
-            return null;
+            else if (gg.GroupsIds.ContainsKey(userid))
+            {
+                HashSet<int> groups = gg.GroupsIds[userid];
+                if (groups.Count != 0)
+                {
+                    pp.LeafCount = groups.Count.ToString();
+                    pp.ViewedLeafCount = "0";
+                    foreach (int grp in groups)
+                    {
+                        AnimeGroup ag = repGroups.GetByID(grp);
+                        Video v = ag.GetPlexContract(userid);
+                        if (v?.Art != null && v.Thumb != null)
+                        {
+                            pp.Art = Helper.ReplaceSchemeHost(v.Art);
+                            pp.Thumb = Helper.ReplaceSchemeHost(v.Thumb);
+                            break;
+                        }
+                    }
+                    return pp;
+                }
+            }
+            return pp;
         }
 
         public static Media GenerateMediaFromVideoLocal(VideoLocal v)

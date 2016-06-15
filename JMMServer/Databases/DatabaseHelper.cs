@@ -216,6 +216,10 @@ namespace JMMServer.Databases
             ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Group Filters)...";
             CreateInitialGroupFilters();
 
+            ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Locked Group Filters)...";
+            CreateOrVerifyLockedFilters();
+
+
             ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Rename Script)...";
             CreateInitialRenameScript();
 
@@ -223,6 +227,10 @@ namespace JMMServer.Databases
             DatabaseHelper.CreateInitialCustomTags();
         }
 
+        public static void CreateOrVerifyLockedFilters()
+        {
+            GroupFilterRepository.CreateOrVerifyLockedFilters();
+        }
         private static void CreateInitialGroupFilters()
         {
             // group filters
@@ -243,6 +251,8 @@ namespace JMMServer.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
             repFilters.Save(gf);
 
             // Missing Episodes
@@ -257,6 +267,8 @@ namespace JMMServer.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
             repFilters.Save(gf);
 
 
@@ -272,6 +284,8 @@ namespace JMMServer.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "10";
             gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
             repFilters.Save(gf);
 
             // Newly Airing Series
@@ -286,6 +300,8 @@ namespace JMMServer.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "30";
             gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
             repFilters.Save(gf);
 
             // Votes Needed
@@ -310,6 +326,8 @@ namespace JMMServer.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
             repFilters.Save(gf);
 
             // Recently Watched
@@ -324,6 +342,8 @@ namespace JMMServer.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "10";
             gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
             repFilters.Save(gf);
 
             // TvDB/MovieDB Link Missing
@@ -338,6 +358,8 @@ namespace JMMServer.Databases
             gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
             repFilters.Save(gf);
         }
 
@@ -359,7 +381,7 @@ namespace JMMServer.Databases
 
             JMMUser familyUser = new JMMUser();
             familyUser.CanEditServerSettings = 1;
-            familyUser.HideCategories = "Ecchi,Nudity,Sex,Sexual Abuse,Horror,Erotic Game,Incest,18 Restricted";
+            familyUser.HideCategories = "ecchi,nudity,sex,sexual abuse,horror,erotic game,incest,18 restricted";
             familyUser.IsAdmin = 1;
             familyUser.IsAniDBUser = 1;
             familyUser.IsTraktUser = 1;

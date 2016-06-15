@@ -365,10 +365,8 @@ namespace NutzCode.InMemoryIndex
                 foreach (S s in value)
                 {
                     if (!inverse.ContainsKey(s))
-                    {
                         inverse[s] = new HashSet<T>();
-                        inverse[s].Add(key);
-                    }
+                    inverse[s].Add(key);
                 }
                 direct[key] = value;
             }

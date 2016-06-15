@@ -1264,7 +1264,7 @@ namespace JMMServer.Entities
             {
                 HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
                 Contract_AnimeGroup cgrp = GetUserContract(u.JMMUserID, n);
-                foreach (GroupFilter gf in repos.GetWithConditionsTypes(n))
+                foreach (GroupFilter gf in repos.GetWithConditionTypesAndAll(n))
                 {
                     if (gf.CalculateGroupFilterGroups(cgrp, u.Contract, u.JMMUserID))
                     {
