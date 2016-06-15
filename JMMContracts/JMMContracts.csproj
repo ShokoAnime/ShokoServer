@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>JMMContracts</RootNamespace>
     <AssemblyName>JMMContracts</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -22,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -30,6 +31,8 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
@@ -40,6 +43,7 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <OutputPath>bin\x86\Release\</OutputPath>
@@ -48,64 +52,113 @@
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>x86</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Contract_AdminMessage.cs" />
     <Compile Include="Contract_AniDBAnime.cs" />
     <Compile Include="Contract_AniDBReleaseGroup.cs" />
     <Compile Include="Contract_AniDBVote.cs" />
     <Compile Include="Contract_AniDB_AnimeCrossRefs.cs" />
+    <Compile Include="Contract_AniDB_Anime_Character.cs" />
     <Compile Include="Contract_AniDB_Anime_DefaultImage.cs" />
+    <Compile Include="Contract_AniDB_Anime_Relation.cs" />
+    <Compile Include="Contract_AniDB_Anime_Similar.cs" />
+    <Compile Include="Contract_AniDB_Character.cs" />
+    <Compile Include="Contract_AniDB_Character_Seiyuu.cs" />
+    <Compile Include="Contract_AniDB_Episode.cs" />
+    <Compile Include="Contract_AniDB_Recommendation.cs" />
+    <Compile Include="Contract_AniDB_Seiyuu.cs" />
     <Compile Include="Contract_AnimeCategory.cs" />
     <Compile Include="Contract_AnimeEpisode.cs" />
     <Compile Include="Contract_AnimeGroup.cs" />
     <Compile Include="Contract_AnimeGroupDetailed.cs" />
     <Compile Include="Contract_AnimeGroup_Save.cs" />
     <Compile Include="Contract_AnimeGroup_SaveResponse.cs" />
+    <Compile Include="Contract_AnimeRating.cs" />
+    <Compile Include="Contract_AnimeSearch.cs" />
     <Compile Include="Contract_AnimeSeries.cs" />
     <Compile Include="Contract_AniDB_AnimeDetailed.cs" />
     <Compile Include="Contract_AnimeSeries_Save.cs" />
     <Compile Include="Contract_AnimeSeries_SaveResponse.cs" />
     <Compile Include="Contract_AnimeTag.cs" />
     <Compile Include="Contract_AnimeTitle.cs" />
+    <Compile Include="Contract_AppVersions.cs" />
+    <Compile Include="Contract_Azure_AnimeLink.cs" />
+    <Compile Include="Contract_Azure_CrossRef_AniDB_Trakt.cs" />
+    <Compile Include="Contract_Azure_CrossRef_AniDB_TvDB.cs" />
+    <Compile Include="Contract_BookmarkedAnime.cs" />
+    <Compile Include="Contract_BookmarkedAnime_SaveResponse.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_MAL.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_MALResult.cs" />
     <Compile Include="Contract_CrossRef_AniDB_Other.cs" />
     <Compile Include="Contract_CrossRef_AniDB_OtherResult.cs" />
     <Compile Include="Contract_CrossRef_AniDB_Trakt.cs" />
     <Compile Include="Contract_CrossRef_AniDB_TraktResult.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_TraktV2.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_Trakt_Episode.cs" />
     <Compile Include="Contract_CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Contract_CrossRef_AniDB_TvDBResult.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_TvDBV2.cs" />
+    <Compile Include="Contract_CrossRef_AniDB_TvDB_Episode.cs" />
+    <Compile Include="Contract_CrossRef_CustomTag.cs" />
+    <Compile Include="Contract_CrossRef_CustomTag_SaveResponse.cs" />
+    <Compile Include="Contract_CustomTag.cs" />
+    <Compile Include="Contract_CustomTag_SaveResponse.cs" />
     <Compile Include="Contract_DuplicateFile.cs" />
+    <Compile Include="Contract_FileFfdshowPreset.cs" />
+    <Compile Include="Contract_GroupFileSummary.cs" />
     <Compile Include="Contract_GroupFilter.cs" />
     <Compile Include="Contract_GroupFilterCondition.cs" />
     <Compile Include="Contract_GroupFilterExtended.cs" />
     <Compile Include="Contract_GroupFilter_SaveResponse.cs" />
     <Compile Include="Contract_GroupVideoQuality.cs" />
+    <Compile Include="Contract_IgnoreAnime.cs" />
     <Compile Include="Contract_ImportFolder.cs" />
     <Compile Include="Contract_ImportFolder_SaveResponse.cs" />
     <Compile Include="Contract_JMMUser.cs" />
+    <Compile Include="Contract_LogMessage.cs" />
+    <Compile Include="Contract_MALAnimeResponse.cs" />
+    <Compile Include="Contract_MissingEpisode.cs" />
+    <Compile Include="Contract_MissingFile.cs" />
     <Compile Include="Contract_MovieDBMovieSearchResult.cs" />
     <Compile Include="Contract_MovieDB_Fanart.cs" />
     <Compile Include="Contract_MovieDB_Movie.cs" />
     <Compile Include="Contract_MovieDB_Poster.cs" />
+    <Compile Include="Contract_Playlist.cs" />
+    <Compile Include="Contract_Playlist_SaveResponse.cs" />
+    <Compile Include="Contract_Recommendation.cs" />
     <Compile Include="Contract_ReleaseGroup.cs" />
+    <Compile Include="Contract_RenameScript.cs" />
+    <Compile Include="Contract_RenameScript_SaveResponse.cs" />
     <Compile Include="Contract_ServerSettings.cs" />
     <Compile Include="Contract_ServerSettings_SaveResponse.cs" />
     <Compile Include="Contract_ServerStatus.cs" />
     <Compile Include="Contract_ToggleWatchedStatusOnEpisode_Response.cs" />
     <Compile Include="Contract_TraktTVShowResponse.cs" />
+    <Compile Include="Contract_Trakt_Activity.cs" />
     <Compile Include="Contract_Trakt_Episode.cs" />
+    <Compile Include="Contract_Trakt_Friend.cs" />
     <Compile Include="Contract_Trakt_ImageFanart.cs" />
     <Compile Include="Contract_Trakt_ImagePoster.cs" />
     <Compile Include="Contract_Trakt_Season.cs" />
+    <Compile Include="Contract_Trakt_Shout.cs" />
+    <Compile Include="Contract_Trakt_ShoutUser.cs" />
     <Compile Include="Contract_Trakt_Show.cs" />
+    <Compile Include="Contract_Trakt_User.cs" />
+    <Compile Include="Contract_Trakt_WatchedEpisode.cs" />
+    <Compile Include="Contract_TvDBLanguage.cs" />
     <Compile Include="Contract_TVDBSeriesSearchResult.cs" />
     <Compile Include="Contract_TvDB_Episode.cs" />
     <Compile Include="Contract_TvDB_ImageFanart.cs" />
@@ -115,13 +168,31 @@
     <Compile Include="Contract_VideoDetailed.cs" />
     <Compile Include="Contract_VideoLocal.cs" />
     <Compile Include="Contract_VideoLocalManualLink.cs" />
+    <Compile Include="Contract_VideoLocalRenamed.cs" />
     <Compile Include="Hashes.cs" />
     <Compile Include="IJMMServer.cs" />
     <Compile Include="IJMMServerImage.cs" />
+    <Compile Include="IJMMServerMetro.cs" />
+    <Compile Include="IJMMServerKodi.cs" />
+    <Compile Include="IJMMServerPlex.cs" />
+    <Compile Include="IJMMServerREST.cs" />
+    <Compile Include="IJMMServerStreaming.cs" />
     <Compile Include="MediaInfoResult.cs" />
+    <Compile Include="MetroContract_AniDB_Character.cs" />
+    <Compile Include="MetroContract_Anime_Detail.cs" />
+    <Compile Include="MetroContract_Anime_Episode.cs" />
+    <Compile Include="MetroContract_Anime_Summary.cs" />
+    <Compile Include="MetroContract_CommunityLinks.cs" />
+    <Compile Include="MetroContract_Shout.cs" />
+    <Compile Include="KodiContracts.cs" />
+    <Compile Include="PlexContracts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

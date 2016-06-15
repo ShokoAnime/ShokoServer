@@ -1,101 +1,116 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+using JMMContracts;
 using JMMServer.Entities;
-using JMMServer;
-using JMMServer.Repositories;
+//using System.Windows.Media;
+//using System.Windows.Media.Imaging;
+//using System.Windows.Shapes;
 
 namespace JMMServer
 {
-	/// <summary>
-	/// Interaction logic for ImportFolder.xaml
-	/// </summary>
-	public partial class ImportFolderForm : Window
-	{
-		private ImportFolder importFldr = null;
-		
-		public ImportFolderForm()
-		{
-			InitializeComponent();
+    /// <summary>
+    /// Interaction logic for ImportFolder.xaml
+    /// </summary>
+    public partial class ImportFolderForm : Window
+    {
+        private ImportFolder importFldr = null;
 
-			btnCancel.Click += new RoutedEventHandler(btnCancel_Click);
-			btnSave.Click += new RoutedEventHandler(btnSave_Click);
-		}
+        public ImportFolderForm()
+        {
+            InitializeComponent();
 
-		void btnSave_Click(object sender, RoutedEventArgs e)
-		{
-			try
-			{
-				// An import folder cannot be both the drop source and the drop destination
-				if (chkDropDestination.IsChecked.HasValue && chkDropSource.IsChecked.HasValue && chkDropDestination.IsChecked.Value && chkDropSource.IsChecked.Value)
-				{
-					MessageBox.Show("An import folder cannot be both the drop source and the drop destination", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-					return;
-				}
+            btnCancel.Click += new RoutedEventHandler(btnCancel_Click);
+            btnSave.Click += new RoutedEventHandler(btnSave_Click);
+            btnChooseFolder.Click += new RoutedEventHandler(btnChooseFolder_Click);
+        }
 
-				// The import folder location cannot be blank. Enter a valid path on OMM Server
-				if (string.IsNullOrEmpty(txtImportFolderLocation.Text))
-				{
-					MessageBox.Show("The import folder location cannot be blank. Enter a valid path on OMM Server", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-					txtImportFolderLocation.Focus();
-					return;
-				}
+        void btnChooseFolder_Click(object sender, RoutedEventArgs e)
+        {
+            System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
 
-				if (string.IsNullOrEmpty(txtImportFolderName.Text))
-					importFldr.ImportFolderName = "NA";
-				else
-					importFldr.ImportFolderName = txtImportFolderName.Text.Trim();
+            if (!string.IsNullOrEmpty(txtImportFolderLocation.Text) && Directory.Exists(txtImportFolderLocation.Text))
+                dialog.SelectedPath = txtImportFolderLocation.Text;
 
-				importFldr.ImportFolderLocation = txtImportFolderLocation.Text.Trim();
-				importFldr.IsDropDestination = chkDropDestination.IsChecked.Value ? 1 : 0;
-				importFldr.IsDropSource = chkDropSource.IsChecked.Value ? 1 : 0;
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                txtImportFolderLocation.Text = dialog.SelectedPath;
+            }
+        }
 
-				ImportFolderRepository repFolders = new ImportFolderRepository();
-				repFolders.Save(importFldr);
+        void btnSave_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // An import folder cannot be both the drop source and the drop destination
+                if (chkDropDestination.IsChecked.HasValue && chkDropSource.IsChecked.HasValue &&
+                    chkDropDestination.IsChecked.Value && chkDropSource.IsChecked.Value)
+                {
+                    MessageBox.Show(JMMServer.Properties.Resources.ImportFolders_SameFolder,
+                        JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
 
-				//JMMServerVM.Instance.RefreshImportFolders();
-			}
-			catch (Exception ex)
-			{
-				Utils.ShowErrorMessage(ex);
-			}
+                // The import folder location cannot be blank. Enter a valid path on OMM Server
+                if (string.IsNullOrEmpty(txtImportFolderLocation.Text))
+                {
+                    MessageBox.Show(JMMServer.Properties.Resources.ImportFolders_BlankImport,
+                        JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                    txtImportFolderLocation.Focus();
+                    return;
+                }
 
-			this.DialogResult = true;
-			this.Close();
-		}
+                Contract_ImportFolder contract = new Contract_ImportFolder();
+                if (importFldr.ImportFolderID == 0)
+                    contract.ImportFolderID = null;
+                else
+                    contract.ImportFolderID = importFldr.ImportFolderID;
+                contract.ImportFolderName = "NA";
+                contract.ImportFolderLocation = txtImportFolderLocation.Text.Trim();
+                contract.IsDropDestination = chkDropDestination.IsChecked.Value ? 1 : 0;
+                contract.IsDropSource = chkDropSource.IsChecked.Value ? 1 : 0;
+                contract.IsWatched = chkIsWatched.IsChecked.Value ? 1 : 0;
 
-		void btnCancel_Click(object sender, RoutedEventArgs e)
-		{
-			this.DialogResult = false;
-			this.Close();
-		}
+                JMMServiceImplementation imp = new JMMServiceImplementation();
+                Contract_ImportFolder_SaveResponse response = imp.SaveImportFolder(contract);
+                if (!string.IsNullOrEmpty(response.ErrorMessage))
+                    MessageBox.Show(response.ErrorMessage, JMMServer.Properties.Resources.Error, MessageBoxButton.OK,
+                        MessageBoxImage.Error);
 
-		public void Init(ImportFolder ifldr)
-		{
-			try
-			{
-				importFldr = ifldr;
+                ServerInfo.Instance.RefreshImportFolders();
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+            }
 
-				txtImportFolderLocation.Text = importFldr.ImportFolderLocation;
-				txtImportFolderName.Text = importFldr.ImportFolderName;
-				chkDropDestination.IsChecked = importFldr.IsDropDestination == 1;
-				chkDropSource.IsChecked = importFldr.IsDropSource == 1;
+            this.DialogResult = true;
+            this.Close();
+        }
 
-				txtImportFolderName.Focus();
-			}
-			catch (Exception ex)
-			{
-				Utils.ShowErrorMessage(ex);
-			}
-		}
-	}
+        void btnCancel_Click(object sender, RoutedEventArgs e)
+        {
+            this.DialogResult = false;
+            this.Close();
+        }
+
+        public void Init(ImportFolder ifldr)
+        {
+            try
+            {
+                importFldr = ifldr;
+
+                txtImportFolderLocation.Text = importFldr.ImportFolderLocation;
+                chkDropDestination.IsChecked = importFldr.IsDropDestination == 1;
+                chkDropSource.IsChecked = importFldr.IsDropSource == 1;
+                chkIsWatched.IsChecked = importFldr.IsWatched == 1;
+
+                txtImportFolderLocation.Focus();
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+            }
+        }
+    }
 }

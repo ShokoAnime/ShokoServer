@@ -1,136 +1,178 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using JMMServer.Entities;
+using System.Globalization;
 using System.IO;
-using JMMServer.Repositories;
-using JMMContracts;
-using JMMFileHelper;
-using AniDBAPI;
+using System.Threading;
 using System.Xml;
-using JMMServer.WebCache;
+using AniDBAPI;
+using JMMServer.Commands.AniDB;
+using JMMServer.Entities;
+using JMMServer.Repositories;
 
 namespace JMMServer.Commands
 {
-	[Serializable]
-	public class CommandRequest_GetFile : CommandRequestImplementation, ICommandRequest
-	{
-		public int VideoLocalID { get; set; }
-		private VideoLocal vlocal = null;
+    [Serializable]
+    public class CommandRequest_GetFile : CommandRequestImplementation, ICommandRequest
+    {
+        public int VideoLocalID { get; set; }
+        public bool ForceAniDB { get; set; }
 
-		public CommandRequestPriority DefaultPriority
-		{
-			get { return CommandRequestPriority.Priority3; }
-		}
+        private VideoLocal vlocal = null;
 
-		public string PrettyDescription
-		{
-			get
-			{
-				if (vlocal != null)
-					return string.Format("Getting file info from UDP API: {0}", vlocal.FullServerPath);
-				else
-					return string.Format("Getting file info from UDP API: {0}", VideoLocalID);
-			}
-		}
+        public CommandRequestPriority DefaultPriority
+        {
+            get { return CommandRequestPriority.Priority3; }
+        }
 
-		public CommandRequest_GetFile()
-		{
-		}
+        public string PrettyDescription
+        {
+            get
+            {
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-		public CommandRequest_GetFile(int vidLocalID)
-		{
-			this.VideoLocalID = vidLocalID;
-			this.CommandType = (int)CommandRequestType.AniDB_GetFileUDP;
-			this.Priority = (int)DefaultPriority;
+                if (vlocal != null)
+                    return string.Format(JMMServer.Properties.Resources.Command_GetFileInfo, vlocal.FullServerPath);
+                else
+                    return string.Format(JMMServer.Properties.Resources.Command_GetFileInfo, VideoLocalID);
+            }
+        }
 
-			GenerateCommandID();
-		}
+        public CommandRequest_GetFile()
+        {
+        }
 
-		public override void ProcessCommand()
-		{
-			logger.Info("Get AniDB file info: {0}", VideoLocalID);
+        public CommandRequest_GetFile(int vidLocalID, bool forceAniDB)
+        {
+            this.VideoLocalID = vidLocalID;
+            this.ForceAniDB = forceAniDB;
+            this.CommandType = (int) CommandRequestType.AniDB_GetFileUDP;
+            this.Priority = (int) DefaultPriority;
 
-			
-			try
-			{
-				AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-				VideoLocalRepository repVids = new VideoLocalRepository();
-				vlocal = repVids.GetByID(VideoLocalID);
-				if (vlocal == null) return;
+            GenerateCommandID();
+        }
 
-				AniDB_File aniFile = repAniFile.GetByHash(vlocal.Hash);
+        public override void ProcessCommand()
+        {
+            logger.Info("Get AniDB file info: {0}", VideoLocalID);
 
-				Raw_AniDB_File fileInfo = JMMService.AnidbProcessor.GetFileInfo(vlocal);
-				if (fileInfo != null)
+
+            try
+            {
+                AniDB_FileRepository repAniFile = new AniDB_FileRepository();
+                VideoLocalRepository repVids = new VideoLocalRepository();
+                vlocal = repVids.GetByID(VideoLocalID);
+                if (vlocal == null) return;
+
+                AniDB_File aniFile = repAniFile.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
+
+                /*// get anidb file info from web cache
+				if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
 				{
-					// save to the database
-					if (aniFile == null)
+					AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
+					if (fr != null)
+					{
 						aniFile = new AniDB_File();
+						aniFile.Populate(fr);
 
-					aniFile.Populate(fileInfo);
+						//overwrite with local file name
+						string localFileName = Path.GetFileName(vlocal.FilePath);
+						aniFile.FileName = localFileName;
 
-					//overwrite with local file name
-					string localFileName = Path.GetFileName(vlocal.FilePath);
-					aniFile.FileName = localFileName;
+						repAniFile.Save(aniFile, false);
+						aniFile.CreateLanguages();
+						aniFile.CreateCrossEpisodes(localFileName);
 
-					repAniFile.Save(aniFile);
-					aniFile.CreateLanguages();
-					aniFile.CreateCrossEpisodes(localFileName);
-				}
-				
-			}
-			catch (Exception ex)
-			{
-				logger.Error("Error processing CommandRequest_GetFile: {0} - {1}", VideoLocalID, ex.ToString());
-				return;
-			}
-		}
+						StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
+					}
+				}*/
 
-		/// <summary>
-		/// This should generate a unique key for a command
-		/// It will be used to check whether the command has already been queued before adding it
-		/// </summary>
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_GetFile_{0}", this.VideoLocalID);
-		}
+                Raw_AniDB_File fileInfo = null;
+                if (aniFile == null || ForceAniDB)
+                    fileInfo = JMMService.AnidbProcessor.GetFileInfo(vlocal);
 
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
+                if (fileInfo != null)
+                {
+                    // save to the database
+                    if (aniFile == null)
+                        aniFile = new AniDB_File();
 
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
+                    aniFile.Populate(fileInfo);
 
-				// populate the fields
-				this.VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "VideoLocalID"));
-			}
+                    //overwrite with local file name
+                    string localFileName = Path.GetFileName(vlocal.FilePath);
+                    aniFile.FileName = localFileName;
 
-			return true;
-		}
+                    repAniFile.Save(aniFile, false);
+                    aniFile.CreateLanguages();
+                    aniFile.CreateCrossEpisodes(localFileName);
 
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
+                    if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
+                    {
+                        string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
+                        foreach (string epid in epIDs)
+                        {
+                            int id = 0;
+                            if (int.TryParse(epid, out id))
+                            {
+                                CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
+                                cmdEp.Save();
+                            }
+                        }
+                    }
 
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
+                    StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error processing CommandRequest_GetFile: {0} - {1}", VideoLocalID, ex.ToString());
+                return;
+            }
+        }
 
-			return cq;
-		}
-	}
+        /// <summary>
+        /// This should generate a unique key for a command
+        /// It will be used to check whether the command has already been queued before adding it
+        /// </summary>
+        public override void GenerateCommandID()
+        {
+            this.CommandID = string.Format("CommandRequest_GetFile_{0}", this.VideoLocalID);
+        }
+
+        public override bool LoadFromDBCommand(CommandRequest cq)
+        {
+            this.CommandID = cq.CommandID;
+            this.CommandRequestID = cq.CommandRequestID;
+            this.CommandType = cq.CommandType;
+            this.Priority = cq.Priority;
+            this.CommandDetails = cq.CommandDetails;
+            this.DateTimeUpdated = cq.DateTimeUpdated;
+
+            // read xml to get parameters
+            if (this.CommandDetails.Trim().Length > 0)
+            {
+                XmlDocument docCreator = new XmlDocument();
+                docCreator.LoadXml(this.CommandDetails);
+
+                // populate the fields
+                this.VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "VideoLocalID"));
+                this.ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "ForceAniDB"));
+            }
+
+            return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest();
+            cq.CommandID = this.CommandID;
+            cq.CommandType = this.CommandType;
+            cq.Priority = this.Priority;
+            cq.CommandDetails = this.ToXML();
+            cq.DateTimeUpdated = DateTime.Now;
+
+            return cq;
+        }
+    }
 }

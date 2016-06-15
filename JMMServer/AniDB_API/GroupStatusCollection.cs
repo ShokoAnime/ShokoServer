@@ -1,49 +1,49 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace AniDBAPI
 {
-	public class GroupStatusCollection
-	{
-		private List<Raw_AniDB_GroupStatus> groups = new List<Raw_AniDB_GroupStatus>();
-		public List<Raw_AniDB_GroupStatus> Groups
-		{
-			get { return groups; }
-		}
+    public class GroupStatusCollection
+    {
+        private List<Raw_AniDB_GroupStatus> groups = new List<Raw_AniDB_GroupStatus>();
 
-		public List<Raw_AniDB_GroupStatus> GetMissingEpisodes(int latestEpNumber)
-		{
-			List<Raw_AniDB_GroupStatus> missingGroups = new List<Raw_AniDB_GroupStatus>();
+        public List<Raw_AniDB_GroupStatus> Groups
+        {
+            get { return groups; }
+        }
 
-			foreach (Raw_AniDB_GroupStatus grp in groups)
-			{
-				if (grp.LastEpisodeNumber > latestEpNumber)
-					missingGroups.Add(grp);
-			}
+        public List<Raw_AniDB_GroupStatus> GetMissingEpisodes(int latestEpNumber)
+        {
+            List<Raw_AniDB_GroupStatus> missingGroups = new List<Raw_AniDB_GroupStatus>();
 
-			return missingGroups;
-		}
+            foreach (Raw_AniDB_GroupStatus grp in groups)
+            {
+                if (grp.LastEpisodeNumber > latestEpNumber)
+                    missingGroups.Add(grp);
+            }
 
-		public int LatestEpisodeNumber
-		{
-			get
-			{
-				int latest = 0;
+            return missingGroups;
+        }
 
-				foreach (Raw_AniDB_GroupStatus grp in groups)
-				{
-					if (grp.LastEpisodeNumber > latest)
-						latest = grp.LastEpisodeNumber;
-				}
+        public int LatestEpisodeNumber
+        {
+            get
+            {
+                int latest = 0;
 
-				return latest;
-			}
-		}
+                foreach (Raw_AniDB_GroupStatus grp in groups)
+                {
+                    if (grp.LastEpisodeNumber > latest)
+                        latest = grp.LastEpisodeNumber;
+                }
 
-		public GroupStatusCollection(int animeID, string sRecMessage)
-		{
-			/*
+                return latest;
+            }
+        }
+
+        public GroupStatusCollection(int animeID, string sRecMessage)
+        {
+            /*
 			// 225 GROUPSTATUS
 			1612|MDAN|1|9|784|2|1-9
 			1412|Dattebayo|1|9|677|55|1-9
@@ -67,33 +67,41 @@ namespace AniDBAPI
 			7429|Inter-Anime Fansub|1|1|656|1|1
 			6358|Aino Fansub|1|8|0|0|8
 			6656|Atelier Thryst|1|1|747|13|1
-			*/    
+			*/
 
-			// remove the header info
-			string[] sDetails = sRecMessage.Substring(0).Split('\n');
+            // remove the header info
+            string[] sDetails = sRecMessage.Substring(0).Split('\n');
 
-			if (sDetails.Length <= 2) return;
+            if (sDetails.Length <= 2) return;
 
-			for (int i=1; i< sDetails.Length -1; i++) // first item will be the status command, and last will be empty
-			{
-				//BaseConfig.MyAnimeLog.Write("s: {0}", sDetails[i]);
+            for (int i = 1; i < sDetails.Length - 1; i++)
+                // first item will be the status command, and last will be empty
+            {
+                //BaseConfig.MyAnimeLog.Write("s: {0}", sDetails[i]);
 
-				Raw_AniDB_GroupStatus grp = new Raw_AniDB_GroupStatus();
-				grp.AnimeID = animeID;
+                Raw_AniDB_GroupStatus grp = new Raw_AniDB_GroupStatus();
+                grp.AnimeID = animeID;
 
-				// {int group id}|{str group name}|{int completion state}|{int last episode number}|{int rating}|{int votes}|{str episode range}\n
-				string[] flds = sDetails[i].Substring(0).Split('|');
-				grp.GroupID = int.Parse(flds[0]);
-				grp.GroupName = flds[1];
-				grp.CompletionState = int.Parse(flds[2]);
-				grp.LastEpisodeNumber = int.Parse(flds[3]);
-				grp.Rating = int.Parse(flds[4]);
-				grp.Votes = int.Parse(flds[5]);
-				grp.EpisodeRange = flds[6];
-				groups.Add(grp);
+                try
+                {
+                    // {int group id}|{str group name}|{int completion state}|{int last episode number}|{int rating}|{int votes}|{str episode range}\n
+                    string[] flds = sDetails[i].Substring(0).Split('|');
+                    grp.GroupID = int.Parse(flds[0]);
+                    grp.GroupName = flds[1];
+                    grp.CompletionState = int.Parse(flds[2]);
+                    grp.LastEpisodeNumber = int.Parse(flds[3]);
+                    grp.Rating = int.Parse(flds[4]);
+                    grp.Votes = int.Parse(flds[5]);
+                    grp.EpisodeRange = flds[6];
+                    groups.Add(grp);
+                }
+                catch (Exception ex)
+                {
+                    NLog.LogManager.GetCurrentClassLogger().ErrorException(ex.ToString(), ex);
+                }
 
-				//BaseConfig.MyAnimeLog.Write("grp: {0}", grp);
-			}
-		}
-	}
+                //BaseConfig.MyAnimeLog.Write("grp: {0}", grp);
+            }
+        }
+    }
 }

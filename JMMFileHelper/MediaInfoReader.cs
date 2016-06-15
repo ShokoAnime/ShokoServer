@@ -1,75 +1,131 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
-using System.IO;
-using NLog;
+using System.Xml.Serialization;
 using JMMContracts;
+using NLog;
 
 namespace JMMFileHelper
 {
-	public class MediaInfoReader
-	{
-		private static Logger logger = LogManager.GetCurrentClassLogger();
+    public class MediaInfoReader
+    {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
-		public static bool ReadMediaInfo(string fileNameFull, bool forceRefresh, ref MediaInfoResult info)
-		{
-			try
-			{
+        private static string XmlSerializeToString<T>(T objectInstance)
+        {
+            var serializer = new XmlSerializer(typeof(T));
+            var sb = new StringBuilder();
+            XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
+            ns.Add("", "");
+            using (TextWriter writer = new StringWriter(sb))
+            {
+                serializer.Serialize(writer, objectInstance, ns);
+            }
 
-				if (!forceRefresh)
-				{
-					// if we have populated the vid res, we have already read the data
-					if (info.VideoResolution.Length > 0) return false;
-				}
+            return sb.ToString();
+        }
 
-				MediaInfo mi = MediaInfo.GetInstance();
+        public static bool ReadMediaInfo(string fileNameFull, bool forceRefresh, ref MediaInfoResult info)
+        {
+            return ReadMediaInfo(fileNameFull, forceRefresh, ref info, false);
+        }
 
-				if (mi == null) return false;
-				if (!File.Exists(fileNameFull)) return false;
+        public static bool ReadMediaInfo(string fileNameFull, bool forceRefresh, ref MediaInfoResult info, bool useKodi)
+        {
+            try
+            {
+                if (!forceRefresh)
+                {
+                    // if we have populated the full info, we have already read the data
+                    if (!string.IsNullOrEmpty(info.FullInfo)) return false;
+                }
+                if (useKodi)
+                {
+                    JMMContracts.KodiContracts.Media m = KodiMediaInfo.MediaConvert.Convert(fileNameFull);
+                    if (m != null)
+                    {
+                        string xml = XmlSerializeToString(m);
+                        if (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
+                            info.VideoResolution = m.Width + "x" + m.Height;
+                        if (!string.IsNullOrEmpty(m.VideoCodec))
+                            info.VideoCodec = m.VideoCodec;
+                        if (!string.IsNullOrEmpty(m.AudioCodec))
+                            info.AudioCodec = m.AudioCodec;
+                        if (!string.IsNullOrEmpty(m.Duration))
+                            info.Duration = int.Parse(m.Duration);
+                        List<JMMContracts.KodiContracts.Stream> vparts =
+                            m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
+                        if (vparts.Count > 0)
+                        {
+                            if (!string.IsNullOrEmpty(vparts[0].Bitrate))
+                                info.VideoBitrate = vparts[0].Bitrate;
+                            if (!string.IsNullOrEmpty(vparts[0].BitDepth))
+                                info.VideoBitDepth = vparts[0].BitDepth;
+                            if (!string.IsNullOrEmpty(vparts[0].FrameRate))
+                                info.VideoFrameRate = vparts[0].FrameRate;
+                        }
+                        List<JMMContracts.KodiContracts.Stream> aparts =
+                            m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
+                        if (aparts.Count > 0)
+                        {
+                            if (!string.IsNullOrEmpty(aparts[0].Bitrate))
+                                info.AudioBitrate = aparts[0].Bitrate;
+                        }
+                        info.FullInfo = xml;
+                    }
+                    else
+                    {
+                        logger.Error("ERROR getting kodi media info:: {0}", fileNameFull);
+                    }
+                }
+                else
+                {
+                    JMMContracts.PlexContracts.Media m = PlexMediaInfo.MediaConvert.Convert(fileNameFull);
+                    if (m != null)
+                    {
+                        string xml = XmlSerializeToString(m);
+                        if (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
+                            info.VideoResolution = m.Width + "x" + m.Height;
+                        if (!string.IsNullOrEmpty(m.VideoCodec))
+                            info.VideoCodec = m.VideoCodec;
+                        if (!string.IsNullOrEmpty(m.AudioCodec))
+                            info.AudioCodec = m.AudioCodec;
+                        if (!string.IsNullOrEmpty(m.Duration))
+                            info.Duration = int.Parse(m.Duration);
+                        List<JMMContracts.PlexContracts.Stream> vparts =
+                            m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
+                        if (vparts.Count > 0)
+                        {
+                            if (!string.IsNullOrEmpty(vparts[0].Bitrate))
+                                info.VideoBitrate = vparts[0].Bitrate;
+                            if (!string.IsNullOrEmpty(vparts[0].BitDepth))
+                                info.VideoBitDepth = vparts[0].BitDepth;
+                            if (!string.IsNullOrEmpty(vparts[0].FrameRate))
+                                info.VideoFrameRate = vparts[0].FrameRate;
+                        }
+                        List<JMMContracts.PlexContracts.Stream> aparts =
+                            m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
+                        if (aparts.Count > 0)
+                        {
+                            if (!string.IsNullOrEmpty(aparts[0].Bitrate))
+                                info.AudioBitrate = aparts[0].Bitrate;
+                        }
+                        info.FullInfo = xml;
+                    }
+                    else
+                    {
+                        logger.Error("ERROR getting plex media info:: {0}", fileNameFull);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error reading Media Info for: {0} --- {1}", fileNameFull, ex.ToString());
+            }
 
-				mi.Open(fileNameFull);
-				string test = mi.getPlaytime();
-				if (test.Length > 0)
-				{
-
-					info.VideoResolution = mi.getWidth() + "x" + mi.getHeight();
-					info.VideoCodec = mi.getVidCodec();
-					info.VideoBitrate = mi.getVidBitrate();
-					info.VideoFrameRate = mi.getFPS();
-					info.AudioCodec = mi.getAudioCodec();
-					info.AudioBitrate = mi.getAudioBitrate();
-					// TODO CreateLanguages(mi.getAudioLanguages(), mi.getTextLanguages());
-					int dur = 0;
-					int.TryParse(mi.getDuration(), out dur);
-					info.Duration = dur;
-
-					info.VideoCodec = info.VideoCodec.Replace("V_MPEG4/ISO/AVC", "H264");
-					info.VideoCodec = info.VideoCodec.Replace("V_MPEG2", "MPEG2");
-					info.VideoCodec = info.VideoCodec.Replace("MPEG-2V", "MPEG2");
-					info.VideoCodec = info.VideoCodec.Replace("DIV3", "DIVX");
-					info.VideoCodec = info.VideoCodec.Replace("DX50", "DIVX");
-
-					info.AudioCodec = info.AudioCodec.Replace("MPA1L3", "MP3");
-					info.AudioCodec = info.AudioCodec.Replace("MPA2L3", "MP3");
-					info.AudioCodec = info.AudioCodec.Replace("A_FLAC", "FLAC");
-					info.AudioCodec = info.AudioCodec.Replace("A_AAC/MPEG4/LC/SBR", "AAC");
-					info.AudioCodec = info.AudioCodec.Replace("A_AAC", "AAC");
-					info.AudioCodec = info.AudioCodec.Replace("A_AC3", "AC3");
-				}
-				else
-				{
-					logger.Error("ERROR getting media info:: {0}", fileNameFull);
-				}
-				mi.Close();
-
-			}
-			catch (Exception ex)
-			{
-				logger.Error("Error reading Media Info for: {0} --- {1}", fileNameFull, ex.ToString());
-			}
-
-			return true;
-		}
-	}
+            return true;
+        }
+    }
 }

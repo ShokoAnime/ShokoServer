@@ -1,32 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AniDBAPI
+﻿namespace AniDBAPI
 {
-	public class AniDBAPILib
-	{
-		public static int ProcessAniDBInt(string fld)
-		{
-			int iVal = 0;
-			int.TryParse(fld, out iVal);
-			return iVal;
-		}
+    public class AniDBAPILib
+    {
+        public static int ProcessAniDBInt(string fld)
+        {
+            int iVal = 0;
+            int.TryParse(fld, out iVal);
+            return iVal;
+        }
 
-		public static string ProcessAniDBString(string fld)
-		{
-			string ret = fld.Trim();
+        public static long ProcessAniDBLong(string fld)
+        {
+            long iVal = 0;
+            long.TryParse(fld, out iVal);
+            return iVal;
+        }
 
-			// remove any html
-			ret = ret.Replace(@"</br>", ".");
-			ret = ret.Replace(@"< /br>", ".");
-			ret = ret.Replace(@"</ br>", ".");
-			ret = ret.Replace(@"<br />", ".");
-			ret = ret.Replace(@"<br/>", ".");
+        public static string ProcessAniDBString(string fld)
+        {
+            string ret = fld.Trim();
 
-			return ret;
-		}
-	}
+            // remove any html
+            ret = ret.Replace(@"</br>", ".");
+            ret = ret.Replace(@"< /br>", ".");
+            ret = ret.Replace(@"</ br>", ".");
+            ret = ret.Replace(@"<br />", ".");
+            ret = ret.Replace(@"<br/>", ".");
 
-	
+            return ret;
+        }
+    }
 }

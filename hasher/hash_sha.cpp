@@ -33,8 +33,7 @@ void DigestSHA::update(char* buf, int len){
 }
 int DigestSHA::digest(char* sum, int len){
 	CSHA* sha = (CSHA*)addr;
-	CAICHHash hash;
-	sha->Finish(hash);
-	memcpy(sum,hash.GetRawHash(), hash.GetHashSize());
-	return hash.GetHashSize();
+	sha->Finish();
+	sha->GetHash((uchar *)sum);
+	return 20;
 }

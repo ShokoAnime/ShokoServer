@@ -54,7 +54,7 @@ namespace JMMServer.Commands
 					return;
 				}
 
-				TraktTVHelper.MarkEpisodeUnwatched(ep);
+                TraktTVHelper.SyncEpisodeToTrakt(ep, TraktSyncType.HistoryRemove);
 			}
 			catch (Exception ex)
 			{

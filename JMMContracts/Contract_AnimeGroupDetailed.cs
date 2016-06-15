@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace JMMContracts
+﻿namespace JMMContracts
 {
-	public class Contract_AnimeGroupDetailed
-	{
-	}
+    public class Contract_AnimeGroupDetailed
+    {
+    }
 }

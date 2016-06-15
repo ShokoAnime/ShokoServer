@@ -1,370 +1,719 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.ServiceModel;
-using System.IO;
 
 namespace JMMContracts
 {
-	[ServiceContract]
-	public interface IJMMServer
-	{
-		[OperationContract]
-		List<Contract_AnimeEpisode> GetEpisodesForSeriesOld(int animeSeriesID);
+    [ServiceContract]
+    public interface IJMMServer
+    {
+        [OperationContract]
+        Contract_AnimeEpisode GetLastWatchedEpisodeForSeries(int animeSeriesID, int jmmuserID);
 
-		[OperationContract]
-		Contract_AnimeEpisode GetEpisode(int animeEpisodeID, int userID);
+        [OperationContract]
+        string UseMyTraktLinksWebCache(int animeID);
 
-		[OperationContract]
-		string RemoveAssociationOnFile(int videoLocalID, int animeEpisodeID);
+        [OperationContract]
+        string UseMyTvDBLinksWebCache(int animeID);
 
-		[OperationContract]
-		string SetIgnoreStatusOnFile(int videoLocalID, bool isIgnored);
+        [OperationContract]
+        List<Contract_CrossRef_AniDB_TraktV2> GetAllTraktCrossRefs();
 
-		[OperationContract]
-		Contract_AnimeSeries_SaveResponse CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID);
+        [OperationContract]
+        bool CheckTraktLinkValidity(string slug, bool removeDBEntries);
 
-		[OperationContract]
-		string UpdateAnimeData(int animeID);
+        [OperationContract]
+        Contract_Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType);
 
-		[OperationContract]
-		string AssociateSingleFile(int videoLocalID, int animeEpisodeID);
+        [OperationContract]
+        bool IsWebCacheAdmin();
 
-		[OperationContract]
-		string  AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startEpNum, int endEpNum);
+        [OperationContract]
+        string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
 
-		[OperationContract]
-		string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, int startingEpisodeNumber, bool singleEpisode);
+        [OperationContract]
+        string RevokeTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
 
-		[OperationContract]
-		List<Contract_AnimeGroup> GetAllGroups(int userID);
+        [OperationContract]
+        string UpdateCalendarData();
 
-		[OperationContract]
-		Contract_AnimeGroup_SaveResponse SaveGroup(Contract_AnimeGroup_Save grp, int userID);
+        [OperationContract]
+        string UpdateEpisodeData(int episodeID);
 
-		[OperationContract]
-		Contract_AnimeGroup GetGroup(int animeGroupID, int userID);
+        [OperationContract]
+        string DeleteCustomTagCrossRef(int customTagID, int crossRefType, int crossRefID);
 
-		[OperationContract]
-		List<Contract_AnimeGroup> GetAllGroupsAboveSeries(int animeSeriesID, int userID);
+        [OperationContract]
+        Contract_CrossRef_CustomTag_SaveResponse SaveCustomTagCrossRef(Contract_CrossRef_CustomTag contract);
 
-		[OperationContract]
-		List<Contract_AnimeGroup> GetAllGroupsAboveGroupInclusive(int animeGroupID, int userID);
+        [OperationContract]
+        string DeleteCustomTagCrossRefByID(int xrefID);
 
-		[OperationContract]
-		List<Contract_AnimeSeries> GetAllSeries(int userID);
+        [OperationContract]
+        List<Contract_CustomTag> GetAllCustomTags();
 
-		[OperationContract]
-		Contract_AnimeSeries_SaveResponse SaveSeries(Contract_AnimeSeries_Save contract, int userID);
+        [OperationContract]
+        Contract_CustomTag_SaveResponse SaveCustomTag(Contract_CustomTag contract);
 
-		[OperationContract]
-		Contract_AnimeSeries_SaveResponse MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID);
+        [OperationContract]
+        string DeleteCustomTag(int customTagID);
 
-		[OperationContract]
-		List<Contract_AniDBAnime> GetAllAnime();
+        [OperationContract]
+        Contract_CustomTag GetCustomTag(int customTagID);
 
-		[OperationContract]
-		List<Contract_AniDB_AnimeDetailed> GetAllAnimeDetailed();
+        [OperationContract]
+        List<Contract_AdminMessage> GetAdminMessages();
 
-		[OperationContract]
-		Contract_AniDB_AnimeDetailed GetAnimeDetailed(int animeID);
+        [OperationContract]
+        List<Contract_AnimeEpisode> GetContinueWatchingFilter(int userID, int maxRecords);
 
-		[OperationContract]
-		List<Contract_AnimeSeries> GetSeriesForGroup(int animeGroupID, int userID);
+        [OperationContract]
+        string RemoveLinkAniDBTvDBForAnime(int animeID);
 
-		[OperationContract]
-		List<Contract_AnimeEpisode> GetEpisodesForSeries(int animeSeriesID, int userID);
+        [OperationContract]
+        List<Contract_AnimeEpisode> GetEpisodesForSeriesOld(int animeSeriesID);
 
-		[OperationContract]
-		List<Contract_AnimeEpisode> GetEpisodesForFile(int videoLocalID, int userID);
+        [OperationContract]
+        Contract_AnimeEpisode GetEpisode(int animeEpisodeID, int userID);
 
-		[OperationContract]
-		List<Contract_VideoDetailed> GetFilesForEpisode(int episodeID, int userID);
+        [OperationContract]
+        string RemoveAssociationOnFile(int videoLocalID, int animeEpisodeID);
 
+        [OperationContract]
+        string SetIgnoreStatusOnFile(int videoLocalID, bool isIgnored);
 
+        [OperationContract]
+        Contract_AnimeSeries_SaveResponse CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID);
 
-		[OperationContract]
-		List<Contract_AniDBReleaseGroup> GetMyReleaseGroupsForAniDBEpisode(int aniDBEpisodeID);
+        [OperationContract]
+        string UpdateAnimeData(int animeID);
 
-		[OperationContract]
-		List<Contract_ImportFolder> GetImportFolders();
+        [OperationContract]
+        string AssociateSingleFile(int videoLocalID, int animeEpisodeID);
 
-		[OperationContract]
-		Contract_ServerStatus GetServerStatus();
+        [OperationContract]
+        string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startEpNum, int endEpNum);
 
-		[OperationContract]
-		Contract_ServerSettings GetServerSettings();
+        [OperationContract]
+        string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, int startingEpisodeNumber,
+            bool singleEpisode);
 
-		[OperationContract]
-		Contract_ServerSettings_SaveResponse SaveServerSettings(Contract_ServerSettings contractIn);
+        [OperationContract]
+        List<Contract_AnimeGroup> GetAllGroups(int userID);
 
-		[OperationContract]
-		string ToggleWatchedStatusOnVideo(int videoLocalID, bool watchedStatus, int userID);
+        [OperationContract]
+        Contract_AnimeGroup_SaveResponse SaveGroup(Contract_AnimeGroup_Save grp, int userID);
 
-		[OperationContract]
-		Contract_ToggleWatchedStatusOnEpisode_Response ToggleWatchedStatusOnEpisode(int animeEpisodeID, bool watchedStatus, int userID);
+        [OperationContract]
+        Contract_AnimeGroup GetGroup(int animeGroupID, int userID);
 
-		[OperationContract]
-		Contract_VideoDetailed GetVideoDetailed(int videoLocalID);
+        [OperationContract]
+        List<Contract_AnimeGroup> GetAllGroupsAboveSeries(int animeSeriesID, int userID);
 
-		[OperationContract]
-		Contract_ImportFolder_SaveResponse SaveImportFolder(Contract_ImportFolder contract);
+        [OperationContract]
+        List<Contract_AnimeGroup> GetAllGroupsAboveGroupInclusive(int animeGroupID, int userID);
 
-		[OperationContract]
-		string DeleteImportFolder(int importFolderID);
+        [OperationContract]
+        List<Contract_AnimeSeries> GetAllSeries(int userID);
 
-		[OperationContract]
-		Contract_AnimeSeries GetSeries(int animeSeriesID, int userID);
+        [OperationContract]
+        Contract_AnimeSeries_SaveResponse SaveSeries(Contract_AnimeSeries_Save contract, int userID);
 
-		[OperationContract]
-		void RunImport();
+        [OperationContract]
+        Contract_AnimeSeries_SaveResponse MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID);
 
-		[OperationContract]
-		void RemoveMissingFiles();
+        [OperationContract]
+        List<Contract_AniDBAnime> GetAllAnime();
 
-		[OperationContract]
-		void SyncMyList();
+        [OperationContract]
+        List<Contract_AniDB_AnimeDetailed> GetAllAnimeDetailed();
 
-		[OperationContract]
-		void RehashFile(int videoLocalID);
+        [OperationContract]
+        Contract_AniDB_AnimeDetailed GetAnimeDetailed(int animeID);
 
-		[OperationContract]
-		void SetCommandProcessorHasherPaused(bool paused);
+        [OperationContract]
+        List<Contract_AnimeSeries> GetSeriesForGroup(int animeGroupID, int userID);
 
-		[OperationContract]
-		void SetCommandProcessorGeneralPaused(bool paused);
+        [OperationContract]
+        List<Contract_AnimeEpisode> GetEpisodesForSeries(int animeSeriesID, int userID);
 
-		[OperationContract]
-		void SetCommandProcessorImagesPaused(bool paused);
+        [OperationContract]
+        List<Contract_AnimeEpisode> GetEpisodesForFile(int videoLocalID, int userID);
 
-		[OperationContract]
-		List<Contract_VideoLocal> GetUnrecognisedFiles(int userID);
+        [OperationContract]
+        List<Contract_VideoDetailed> GetFilesForEpisode(int episodeID, int userID);
 
-		[OperationContract]
-		List<Contract_VideoLocal> GetManuallyLinkedFiles(int userID);
 
-		[OperationContract]
-		List<Contract_VideoLocal> GetIgnoredFiles(int userID);
+        [OperationContract]
+        List<Contract_AniDBReleaseGroup> GetMyReleaseGroupsForAniDBEpisode(int aniDBEpisodeID);
 
-		[OperationContract]
-		string TestAniDBConnection();
+        [OperationContract]
+        List<Contract_ImportFolder> GetImportFolders();
 
-		[OperationContract]
-		string RenameAllGroups();
+        [OperationContract]
+        Contract_ServerStatus GetServerStatus();
 
-		[OperationContract]
-		List<Contract_GroupFilter> GetAllGroupFilters();
+        [OperationContract]
+        Contract_ServerSettings GetServerSettings();
 
-		[OperationContract]
-		Contract_GroupFilter_SaveResponse SaveGroupFilter(Contract_GroupFilter contract);
+        [OperationContract]
+        Contract_ServerSettings_SaveResponse SaveServerSettings(Contract_ServerSettings contractIn);
 
-		[OperationContract]
-		string DeleteGroupFilter(int groupFilterID);
+        [OperationContract]
+        string ToggleWatchedStatusOnVideo(int videoLocalID, bool watchedStatus, int userID);
 
-		[OperationContract]
-		List<string> GetAllCategoryNames();
+        [OperationContract]
+        Contract_ToggleWatchedStatusOnEpisode_Response ToggleWatchedStatusOnEpisode(int animeEpisodeID,
+            bool watchedStatus, int userID);
 
-		[OperationContract]
-		void ScanFolder(int importFolderID);
+        [OperationContract]
+        Contract_VideoDetailed GetVideoDetailed(int videoLocalID, int userID);
 
-		[OperationContract]
-		void SyncVotes();
+        [OperationContract]
+        Contract_ImportFolder_SaveResponse SaveImportFolder(Contract_ImportFolder contract);
 
-		[OperationContract]
-		void VoteAnime(int animeID, decimal voteValue, int voteType);
+        [OperationContract]
+        string DeleteImportFolder(int importFolderID);
 
-		[OperationContract]
-		void VoteAnimeRevoke(int animeID);
+        [OperationContract]
+        Contract_AnimeSeries GetSeries(int animeSeriesID, int userID);
 
-		[OperationContract]
-		string SetWatchedStatusOnSeries(int animeSeriesID, bool watchedStatus, int maxEpisodeNumber, int episodeType, int userID);
+        [OperationContract]
+        void RunImport();
 
-		[OperationContract]
-		List<string> GetAllUniqueVideoQuality();
+        [OperationContract]
+        void RemoveMissingFiles();
 
-		[OperationContract]
-		List<string> GetAllUniqueAudioLanguages();
+        [OperationContract]
+        void SyncMyList();
 
-		[OperationContract]
-		List<string> GetAllUniqueSubtitleLanguages();
+        [OperationContract]
+        void RehashFile(int videoLocalID);
 
-		[OperationContract]
-		List<Contract_DuplicateFile> GetAllDuplicateFiles();
+        [OperationContract]
+        void SetCommandProcessorHasherPaused(bool paused);
 
-		[OperationContract]
-		string DeleteDuplicateFile(int duplicateFileID, int fileNumber);
+        [OperationContract]
+        void SetCommandProcessorGeneralPaused(bool paused);
 
-		[OperationContract]
-		List<Contract_VideoLocal> GetAllManuallyLinkedFiles(int userID);
+        [OperationContract]
+        void SetCommandProcessorImagesPaused(bool paused);
 
-		[OperationContract]
-		List<Contract_AnimeEpisode> GetAllEpisodesWithMultipleFiles(int userID);
+        [OperationContract]
+        List<Contract_VideoLocal> GetUnrecognisedFiles(int userID);
 
-		[OperationContract]
-		void ReevaluateDuplicateFiles();
+        [OperationContract]
+        List<Contract_VideoLocal> GetManuallyLinkedFiles(int userID);
 
-		[OperationContract]
-		List<Contract_GroupVideoQuality> GetGroupVideoQualitySummary(int animeID);
+        [OperationContract]
+        List<Contract_VideoLocal> GetIgnoredFiles(int userID);
 
-		[OperationContract]
-		string DeleteVideoLocalAndFile(int videoLocalID);
+        [OperationContract]
+        string TestAniDBConnection();
 
-		[OperationContract]
-		void RescanUnlinkedFiles();
+        [OperationContract]
+        string RenameAllGroups();
 
-		[OperationContract]
-		List<Contract_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName, string resolution, string videoSource, int userID);
+        [OperationContract]
+        List<Contract_GroupFilter> GetAllGroupFilters();
 
-		[OperationContract]
-		Contract_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID);
+        [OperationContract]
+        Contract_GroupFilter_SaveResponse SaveGroupFilter(Contract_GroupFilter contract);
 
-		[OperationContract]
-		Contract_CrossRef_AniDB_TvDBResult GetTVDBCrossRefWebCache(int animeID);
+        [OperationContract]
+        string DeleteGroupFilter(int groupFilterID);
 
-		[OperationContract]
-		Contract_CrossRef_AniDB_TvDB GetTVDBCrossRef(int animeID);
+        [OperationContract]
+        List<string> GetAllTagNames();
 
-		[OperationContract]
-		List<Contract_TVDBSeriesSearchResult> SearchTheTvDB(string criteria);
+        [OperationContract]
+        void ScanFolder(int importFolderID);
 
-		[OperationContract]
-		List<int> GetSeasonNumbersForSeries(int seriesID);
+        [OperationContract]
+        void SyncVotes();
 
-		[OperationContract]
-		string LinkAniDBTvDB(int animeID, int tvDBID, int seasonNumber);
+        [OperationContract]
+        void VoteAnime(int animeID, decimal voteValue, int voteType);
 
-		[OperationContract]
-		string RemoveLinkAniDBTvDB(int animeID);
+        [OperationContract]
+        void VoteAnimeRevoke(int animeID);
 
-		[OperationContract]
-		List<Contract_TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID);
+        [OperationContract]
+        string SetWatchedStatusOnSeries(int animeSeriesID, bool watchedStatus, int maxEpisodeNumber, int episodeType,
+            int userID);
 
-		[OperationContract]
-		List<Contract_TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID);
+        [OperationContract]
+        List<string> GetAllUniqueVideoQuality();
 
-		[OperationContract]
-		List<Contract_TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID);
+        [OperationContract]
+        List<string> GetAllUniqueAudioLanguages();
 
-		[OperationContract]
-		List<Contract_TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID);
+        [OperationContract]
+        List<string> GetAllUniqueSubtitleLanguages();
 
-		[OperationContract]
-		string UpdateTvDBData(int seriesID);
+        [OperationContract]
+        List<Contract_DuplicateFile> GetAllDuplicateFiles();
 
-		[OperationContract]
-		string EnableDisableImage(bool enabled, int imageID, int imageType);
+        [OperationContract]
+        string DeleteDuplicateFile(int duplicateFileID, int fileNumber);
 
-		[OperationContract]
-		Contract_CrossRef_AniDB_OtherResult GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType);
+        [OperationContract]
+        List<Contract_VideoLocal> GetAllManuallyLinkedFiles(int userID);
 
-		[OperationContract]
-		Contract_CrossRef_AniDB_Other GetOtherAnimeCrossRef(int animeID, int crossRefType);
+        [OperationContract]
+        List<Contract_AnimeEpisode> GetAllEpisodesWithMultipleFiles(int userID, bool onlyFinishedSeries,
+            bool ignoreVariations);
 
-		[OperationContract]
-		List<Contract_MovieDBMovieSearchResult> SearchTheMovieDB(string criteria);
+        [OperationContract]
+        void ReevaluateDuplicateFiles();
 
-		[OperationContract]
-		string LinkAniDBOther(int animeID, int movieID, int crossRefType);
+        [OperationContract]
+        List<Contract_GroupVideoQuality> GetGroupVideoQualitySummary(int animeID);
 
-		[OperationContract]
-		string RemoveLinkAniDBOther(int animeID, int crossRefType);
+        [OperationContract]
+        string DeleteVideoLocalAndFile(int videoLocalID);
 
-		[OperationContract]
-		List<Contract_MovieDB_Poster> GetAllMovieDBPosters(int? movieID);
+        [OperationContract]
+        void RescanUnlinkedFiles();
 
-		[OperationContract]
-		List<Contract_MovieDB_Fanart> GetAllMovieDBFanart(int? movieID);
+        [OperationContract]
+        List<Contract_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName, string resolution,
+            string videoSource, int videoBitDepth, int userID);
 
-		[OperationContract]
-		Contract_AniDBAnime GetAnime(int animeID);
+        [OperationContract]
+        Contract_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID);
 
-		[OperationContract]
-		string SetDefaultImage(bool isDefault, int animeID, int imageID, int imageType, int imageSizeType);
+        [OperationContract]
+        List<Contract_Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin);
 
-		[OperationContract]
-		Contract_AnimeEpisode GetNextUnwatchedEpisode(int animeSeriesID, int userID);
+        [OperationContract]
+        List<Contract_CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID);
 
-		[OperationContract]
-		Contract_AnimeEpisode GetNextUnwatchedEpisodeForGroup(int animeGroupID, int userID);
+        [OperationContract]
+        List<Contract_TVDBSeriesSearchResult> SearchTheTvDB(string criteria);
 
-		[OperationContract]
-		List<Contract_AnimeEpisode> GetEpisodesToWatch_RecentlyWatched(int maxRecords, int jmmuserID);
+        [OperationContract]
+        List<int> GetSeasonNumbersForSeries(int seriesID);
 
-		[OperationContract]
-		string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles);
+        [OperationContract]
+        string LinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber, int tvEpNumber,
+            int? crossRef_AniDB_TvDBV2ID);
 
-		[OperationContract]
-		string DeleteAnimeGroup(int animeGroupID, bool deleteFiles);
+        [OperationContract]
+        string RemoveLinkAniDBTvDB(int animeID, int aniEpType, int aniEpNumber, int tvDBID, int tvSeasonNumber,
+            int tvEpNumber);
 
-		[OperationContract]
-		List<Contract_AnimeSeries> GetSeriesWithMissingEpisodes(int maxRecords, int jmmuserID);
+        [OperationContract]
+        List<Contract_TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID);
 
-		[OperationContract]
-		List<Contract_AniDBAnime> GetMiniCalendar(int jmmuserID, int numberOfDays);
+        [OperationContract]
+        List<Contract_TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID);
 
-		[OperationContract]
-		List<Contract_JMMUser> GetAllUsers();
+        [OperationContract]
+        List<Contract_TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID);
 
-		[OperationContract]
-		Contract_JMMUser AuthenticateUser(string username, string password);
+        [OperationContract]
+        List<Contract_TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID);
 
-		[OperationContract]
-		string SaveUser(Contract_JMMUser user);
+        [OperationContract]
+        string UpdateTvDBData(int seriesID);
 
-		[OperationContract]
-		string DeleteUser(int userID);
+        [OperationContract]
+        string EnableDisableImage(bool enabled, int imageID, int imageType);
 
-		[OperationContract]
-		string TestTraktLogin();
+        [OperationContract]
+        Contract_CrossRef_AniDB_OtherResult GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType);
 
-		[OperationContract]
-		List<Contract_Trakt_ImageFanart> GetAllTraktFanart(int? traktShowID);
+        [OperationContract]
+        Contract_CrossRef_AniDB_Other GetOtherAnimeCrossRef(int animeID, int crossRefType);
 
-		[OperationContract]
-		List<Contract_Trakt_ImagePoster> GetAllTraktPosters(int? traktShowID);
+        [OperationContract]
+        List<Contract_MovieDBMovieSearchResult> SearchTheMovieDB(string criteria);
 
-		[OperationContract]
-		List<Contract_Trakt_Episode> GetAllTraktEpisodes(int? traktShowID);
+        [OperationContract]
+        string LinkAniDBOther(int animeID, int movieID, int crossRefType);
 
-		[OperationContract]
-		Contract_CrossRef_AniDB_TraktResult GetTraktCrossRefWebCache(int animeID);
+        [OperationContract]
+        string RemoveLinkAniDBOther(int animeID, int crossRefType);
 
-		[OperationContract]
-		Contract_CrossRef_AniDB_Trakt GetTraktCrossRef(int animeID);
+        [OperationContract]
+        List<Contract_MovieDB_Poster> GetAllMovieDBPosters(int? movieID);
 
-		[OperationContract]
-		List<Contract_TraktTVShowResponse> SearchTrakt(string criteria);
+        [OperationContract]
+        List<Contract_MovieDB_Fanart> GetAllMovieDBFanart(int? movieID);
 
-		[OperationContract]
-		string LinkAniDBTrakt(int animeID, string traktID, int seasonNumber);
+        [OperationContract]
+        Contract_AniDBAnime GetAnime(int animeID);
 
-		[OperationContract]
-		string RemoveLinkAniDBTrakt(int animeID);
+        [OperationContract]
+        string SetDefaultImage(bool isDefault, int animeID, int imageID, int imageType, int imageSizeType);
 
-		[OperationContract]
-		List<int> GetSeasonNumbersForTrakt(string traktID);
+        [OperationContract]
+        Contract_AnimeEpisode GetNextUnwatchedEpisode(int animeSeriesID, int userID);
 
-		[OperationContract]
-		string UpdateTraktData(string traktD);
+        [OperationContract]
+        Contract_AnimeEpisode GetNextUnwatchedEpisodeForGroup(int animeGroupID, int userID);
 
-		[OperationContract]
-		Contract_GroupFilterExtended GetGroupFilterExtended(int groupFilterID, int userID);
+        [OperationContract]
+        List<Contract_AnimeEpisode> GetEpisodesToWatch_RecentlyWatched(int maxRecords, int jmmuserID);
 
-		[OperationContract]
-		List<Contract_AnimeGroup> GetAnimeGroupsForFilter(int groupFilterID, int userID);
+        [OperationContract]
+        string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup);
 
-		[OperationContract]
-		List<Contract_GroupFilterExtended> GetAllGroupFiltersExtended(int userID);
+        [OperationContract]
+        string DeleteAnimeGroup(int animeGroupID, bool deleteFiles);
 
-		[OperationContract]
-		List<Contract_AnimeGroup> GetSubGroupsForGroup(int animeGroupID, int userID);
+        [OperationContract]
+        List<Contract_AnimeSeries> GetSeriesWithMissingEpisodes(int maxRecords, int jmmuserID);
 
-		[OperationContract]
-		List<Contract_AnimeSeries> GetSeriesForGroupRecursive(int animeGroupID, int userID);
+        [OperationContract]
+        List<Contract_AniDBAnime> GetMiniCalendar(int jmmuserID, int numberOfDays);
 
-		[OperationContract]
-		bool GetSeriesExistingForAnime(int animeID);
-	}
+        [OperationContract]
+        List<Contract_JMMUser> GetAllUsers();
 
+        [OperationContract]
+        Contract_JMMUser AuthenticateUser(string username, string password);
+
+        [OperationContract]
+        string SaveUser(Contract_JMMUser user);
+
+        [OperationContract]
+        string DeleteUser(int userID);
+
+        [OperationContract]
+        string EnterTraktPIN(string pin);
+
+        [OperationContract]
+        List<Contract_Trakt_ImageFanart> GetAllTraktFanart(int? traktShowID);
+
+        [OperationContract]
+        List<Contract_Trakt_ImagePoster> GetAllTraktPosters(int? traktShowID);
+
+        [OperationContract]
+        List<Contract_Trakt_Episode> GetAllTraktEpisodes(int? traktShowID);
+
+        [OperationContract]
+        List<Contract_Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID);
+
+        [OperationContract]
+        List<Contract_Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin);
+
+        [OperationContract]
+        string ApproveTraktCrossRefWebCache(int crossRef_AniDB_TraktId);
+
+        [OperationContract]
+        string RevokeTraktCrossRefWebCache(int crossRef_AniDB_TraktId);
+
+
+        [OperationContract]
+        List<Contract_CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID);
+
+        [OperationContract]
+        List<Contract_CrossRef_AniDB_Trakt_Episode> GetTraktCrossRefEpisode(int animeID);
+
+        [OperationContract]
+        List<Contract_TraktTVShowResponse> SearchTrakt(string criteria);
+
+        [OperationContract]
+        string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber,
+            int traktEpNumber, int? crossRef_AniDB_TraktV2ID);
+
+        [OperationContract]
+        string RemoveLinkAniDBTraktForAnime(int animeID);
+
+        [OperationContract]
+        string RemoveLinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int traktSeasonNumber,
+            int traktEpNumber);
+
+        [OperationContract]
+        List<int> GetSeasonNumbersForTrakt(string traktID);
+
+        [OperationContract]
+        string UpdateTraktData(string traktD);
+
+        [OperationContract]
+        string SyncTraktSeries(int animeID);
+
+        [OperationContract]
+        string UpdateMovieDBData(int movieD);
+
+        [OperationContract]
+        Contract_GroupFilterExtended GetGroupFilterExtended(int groupFilterID, int userID);
+
+        [OperationContract]
+        List<Contract_AnimeGroup> GetAnimeGroupsForFilter(int groupFilterID, int userID, bool getSingleSeriesGroups);
+
+        [OperationContract]
+        List<Contract_GroupFilterExtended> GetAllGroupFiltersExtended(int userID);
+
+        [OperationContract]
+        List<Contract_AnimeGroup> GetSubGroupsForGroup(int animeGroupID, int userID);
+
+        [OperationContract]
+        List<Contract_AnimeSeries> GetSeriesForGroupRecursive(int animeGroupID, int userID);
+
+        [OperationContract]
+        bool GetSeriesExistingForAnime(int animeID);
+
+        [OperationContract]
+        List<Contract_AniDB_Anime_Similar> GetSimilarAnimeLinks(int animeID, int userID);
+
+        [OperationContract]
+        List<Contract_AniDB_Anime_Relation> GetRelatedAnimeLinks(int animeID, int userID);
+
+        [OperationContract]
+        List<Contract_Recommendation> GetRecommendations(int maxResults, int userID, int recommendationType);
+
+        [OperationContract]
+        List<Contract_AniDBReleaseGroup> GetReleaseGroupsForAnime(int animeID);
+
+        [OperationContract]
+        List<Contract_AniDBAnime> GetAnimeForMonth(int jmmuserID, int month, int year);
+
+        [OperationContract]
+        Contract_AnimeSeries GetSeriesForAnime(int animeID, int userID);
+
+        [OperationContract]
+        List<Contract_AniDB_Character> GetCharactersForAnime(int animeID);
+
+        [OperationContract]
+        void ForceAddFileToMyList(string hash);
+
+        [OperationContract]
+        List<Contract_MissingFile> GetMyListFilesForRemoval(int userID);
+
+        [OperationContract]
+        void RemoveMissingMyListFiles(List<Contract_MissingFile> myListFiles);
+
+        [OperationContract]
+        List<Contract_AnimeSeries> GetSeriesWithoutAnyFiles(int userID);
+
+        [OperationContract]
+        void DeleteFileFromMyList(int fileID);
+
+        [OperationContract]
+        List<Contract_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly,
+            int airingState);
+
+        [OperationContract]
+        void IgnoreAnime(int animeID, int ignoreType, int userID);
+
+        [OperationContract]
+        Contract_AniDBVote GetUserVote(int animeID);
+
+        [OperationContract]
+        void IncrementEpisodeStats(int animeEpisodeID, int userID, int statCountType);
+
+        [OperationContract]
+        List<Contract_IgnoreAnime> GetIgnoredAnime(int userID);
+
+        [OperationContract]
+        void RemoveIgnoreAnime(int ignoreAnimeID);
+
+        [OperationContract]
+        void SetDefaultSeriesForGroup(int animeGroupID, int animeSeriesID);
+
+        [OperationContract]
+        void RemoveDefaultSeriesForGroup(int animeGroupID);
+
+        [OperationContract]
+        List<Contract_TvDBLanguage> GetTvDBLanguages();
+
+        [OperationContract]
+        void ScanDropFolders();
+
+        [OperationContract]
+        void RefreshAllMediaInfo();
+
+        [OperationContract]
+        bool TraktFriendRequestDeny(string friendUsername, ref string returnMessage);
+
+        [OperationContract]
+        bool TraktFriendRequestApprove(string friendUsername, ref string returnMessage);
+
+        [OperationContract]
+        string ChangePassword(int userID, string newPassword);
+
+        [OperationContract]
+        List<Contract_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID);
+
+        [OperationContract]
+        bool PostTraktCommentShow(string traktID, string commentText, bool isSpoiler, ref string returnMessage);
+
+        [OperationContract]
+        Contract_AnimeGroup GetTopLevelGroupForSeries(int animeSeriesID, int userID);
+
+        [OperationContract]
+        List<Contract_AnimeEpisode> GetEpisodesRecentlyWatched(int maxRecords, int jmmuserID);
+
+        [OperationContract]
+        List<Contract_MALAnimeResponse> SearchMAL(string criteria);
+
+        [OperationContract]
+        string TestMALLogin();
+
+        [OperationContract]
+        Contract_CrossRef_AniDB_MALResult GetMALCrossRefWebCache(int animeID);
+
+        [OperationContract]
+        string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber);
+
+        [OperationContract]
+        string RemoveLinkAniDBMAL(int animeID, int epType, int epNumber);
+
+        [OperationContract]
+        string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber,
+            int newEpType, int newEpNumber);
+
+        [OperationContract]
+        void SyncMALUpload();
+
+        [OperationContract]
+        void SyncMALDownload();
+
+        [OperationContract]
+        void RecreateAllGroups();
+
+        [OperationContract]
+        List<Contract_Playlist> GetAllPlaylists();
+
+        [OperationContract]
+        Contract_Playlist_SaveResponse SavePlaylist(Contract_Playlist contract);
+
+        [OperationContract]
+        string DeletePlaylist(int playlistID);
+
+        [OperationContract]
+        Contract_Playlist GetPlaylist(int playlistID);
+
+        [OperationContract]
+        Contract_AppVersions GetAppVersions();
+
+        [OperationContract]
+        string UpdateFileData(int videoLocalID);
+
+        [OperationContract]
+        string RescanFile(int videoLocalID);
+
+        [OperationContract]
+        List<Contract_BookmarkedAnime> GetAllBookmarkedAnime();
+
+        [OperationContract]
+        Contract_BookmarkedAnime_SaveResponse SaveBookmarkedAnime(Contract_BookmarkedAnime contract);
+
+        [OperationContract]
+        string DeleteBookmarkedAnime(int bookmarkedAnimeID);
+
+        [OperationContract]
+        Contract_BookmarkedAnime GetBookmarkedAnime(int bookmarkedAnimeID);
+
+        [OperationContract]
+        List<Contract_AnimeEpisode> GetEpisodesRecentlyAdded(int maxRecords, int jmmuserID);
+
+        [OperationContract]
+        List<Contract_AnimeSeries> GetSeriesRecentlyAdded(int maxRecords, int jmmuserID);
+
+        [OperationContract]
+        string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID);
+
+        [OperationContract]
+        List<Contract_CrossRef_AniDB_TvDB_Episode> GetTVDBCrossRefEpisode(int animeID);
+
+        [OperationContract]
+        string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID);
+
+        [OperationContract]
+        List<Contract_AniDB_Character> GetCharactersForSeiyuu(int seiyuuID);
+
+        [OperationContract]
+        Contract_AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID);
+
+        [OperationContract]
+        Contract_AnimeEpisode GetPreviousEpisodeForUnwatched(int animeSeriesID, int userID);
+
+        [OperationContract]
+        Contract_AnimeEpisode GetEpisodeByAniDBEpisodeID(int episodeID, int userID);
+
+        [OperationContract]
+        Contract_FileFfdshowPreset GetFFDPreset(int videoLocalID);
+
+        [OperationContract]
+        void DeleteFFDPreset(int videoLocalID);
+
+        [OperationContract]
+        void SaveFFDPreset(Contract_FileFfdshowPreset preset);
+
+        [OperationContract]
+        void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags);
+
+        [OperationContract]
+        List<Contract_VideoLocal> SearchForFiles(int searchType, string searchCriteria, int userID);
+
+        [OperationContract]
+        Contract_VideoLocalRenamed RenameFilePreview(int videoLocalID, string renameRules);
+
+        [OperationContract]
+        Contract_VideoLocalRenamed RenameFile(int videoLocalID, string renameRules);
+
+        [OperationContract]
+        List<Contract_VideoLocal> RandomFileRenamePreview(int maxResults, int userID);
+
+        [OperationContract]
+        List<Contract_VideoLocal> GetVideoLocalsForEpisode(int episodeID, int userID);
+
+        [OperationContract]
+        List<Contract_VideoLocal> GetVideoLocalsForAnime(int animeID, int userID);
+
+        [OperationContract]
+        List<Contract_RenameScript> GetAllRenameScripts();
+
+        [OperationContract]
+        Contract_RenameScript_SaveResponse SaveRenameScript(Contract_RenameScript contract);
+
+        [OperationContract]
+        string DeleteRenameScript(int renameScriptID);
+
+        [OperationContract]
+        void ClearHasherQueue();
+
+        [OperationContract]
+        void ClearImagesQueue();
+
+        [OperationContract]
+        void ClearGeneralQueue();
+
+        [OperationContract]
+        int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly);
+
+        [OperationContract]
+        List<Contract_GroupFileSummary> GetGroupFileSummary(int animeID);
+
+        [OperationContract]
+        List<Contract_AnimeEpisode> GetAllUnwatchedEpisodes(int animeSeriesID, int userID);
+
+        [OperationContract]
+        List<Contract_VideoDetailed> GetFilesByGroup(int animeID, string relGroupName, int userID);
+
+        [OperationContract]
+        List<Contract_AnimeEpisode> GetEpisodesRecentlyAddedSummary(int maxRecords, int jmmuserID);
+
+        [OperationContract]
+        List<Contract_AnimeRating> GetAnimeRatings(int collectionState, int watchedState, int ratingVotedState,
+            int userID);
+
+        [OperationContract]
+        string SetVariationStatusOnFile(int videoLocalID, bool isVariation);
+
+        [OperationContract]
+        List<Contract_AniDB_Recommendation> GetAniDBRecommendations(int animeID);
+
+        [OperationContract]
+        void RescanManuallyLinkedFiles();
+
+        [OperationContract]
+        List<Contract_AnimeSearch> OnlineAnimeTitleSearch(string titleQuery);
+
+        [OperationContract]
+        List<Contract_AniDB_Episode> GetAniDBEpisodesForAnime(int animeID);
+    }
 }

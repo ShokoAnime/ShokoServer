@@ -1,206 +1,169 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using JMMServer.Repositories;
-using JMMServer.Entities;
-using System.Xml;
+using System.Globalization;
 using System.IO;
+using System.Text;
+using System.Threading;
+using System.Xml;
+using JMMServer.Commands.Azure;
+using JMMServer.Entities;
+using JMMServer.Providers.Azure;
+using JMMServer.Repositories;
 
 namespace JMMServer.Commands
 {
-	[Serializable]
-	public class CommandRequest_GetAniDBTitles : CommandRequestImplementation, ICommandRequest
-	{
-		public CommandRequestPriority DefaultPriority
-		{
-			get { return CommandRequestPriority.Priority10; }
-		}
+    [Serializable]
+    public class CommandRequest_GetAniDBTitles : CommandRequestImplementation, ICommandRequest
+    {
+        public CommandRequestPriority DefaultPriority
+        {
+            get { return CommandRequestPriority.Priority10; }
+        }
 
-		public string PrettyDescription
-		{
-			get
-			{
-				return string.Format("Getting AniDB Titles from HTTP API");
-			}
-		}
+        public string PrettyDescription
+        {
+            get
+            {
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-		public CommandRequest_GetAniDBTitles()
-		{
-		}
+                return string.Format(JMMServer.Properties.Resources.AniDB_GetTitles);
+            }
+        }
 
-		public CommandRequest_GetAniDBTitles(string hash, bool watched)
-		{
-			this.CommandType = (int)CommandRequestType.AniDB_GetTitles;
-			this.Priority = (int)DefaultPriority;
+        public CommandRequest_GetAniDBTitles()
+        {
+            this.CommandType = (int) CommandRequestType.AniDB_GetTitles;
+            this.Priority = (int) DefaultPriority;
 
-			GenerateCommandID();
-		}
+            GenerateCommandID();
+        }
 
-		public override void ProcessCommand()
-		{
-			logger.Info("Processing CommandRequest_GetAniDBTitles");
-
-			
-			try
-			{
-				string url = Constants.AniDBTitlesURL;
-				logger.Trace("Get AniDB Titles: {0}", url);
-
-				Stream s = Utils.DownloadWebBinary(url);
-				int bytes = 2048;
-				byte[] data = new byte[2048];
-				StringBuilder b = new StringBuilder();
-				UTF8Encoding enc = new UTF8Encoding();
-
-				ICSharpCode.SharpZipLib.GZip.GZipInputStream zis = new ICSharpCode.SharpZipLib.GZip.GZipInputStream(s);
-
-				while ((bytes = zis.Read(data, 0, data.Length)) > 0)
-					b.Append(enc.GetString(data, 0, bytes));
-
-				zis.Close();
-
-				AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
-				
+        public override void ProcessCommand()
+        {
+            logger.Info("Processing CommandRequest_GetAniDBTitles");
 
 
+            try
+            {
+                bool process =
+                    ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
+                    ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase);
 
-				/*string[] lines = b.ToString().Split('\n');
-				Dictionary<int, AniDB_Anime_Title> titles = new Dictionary<int, AniDB_Anime_Title>();
-				foreach (string line in lines)
-				{
-					if (line.Trim().Length == 0 || line.Trim().Substring(0, 1) == "#") continue;
+                if (!process) return;
 
-					string[] fields = line.Split('|');
+                string url = Constants.AniDBTitlesURL;
+                logger.Trace("Get AniDB Titles: {0}", url);
 
-					int animeID = 0;
-					int.TryParse(fields[0], out animeID);
-					if (animeID == 0) continue;
+                Stream s = Utils.DownloadWebBinary(url);
+                int bytes = 2048;
+                byte[] data = new byte[2048];
+                StringBuilder b = new StringBuilder();
+                UTF8Encoding enc = new UTF8Encoding();
 
-					string titleType = fields[1].Trim().ToLower();
-					string language = fields[2].Trim().ToLower();
-					string titleValue = fields[3].Trim();
+                ICSharpCode.SharpZipLib.GZip.GZipInputStream zis = new ICSharpCode.SharpZipLib.GZip.GZipInputStream(s);
 
-					List<AniDB_Anime_Title> existingtitles = repTitles.GetByAnimeIDLanguageTypeValue(animeID, language, titleType, titleValue);
-					if (existingtitles.Count == 0)
-					{
-					}
+                while ((bytes = zis.Read(data, 0, data.Length)) > 0)
+                    b.Append(enc.GetString(data, 0, bytes));
 
-					foreach (AniDB_Anime_Title animetitle in existingtitles)
-					{
-						if (animetitle.Title != titleValue)
-						{
-							animetitle.Title = titleValue;
-							repTitles.Save(animetitle);
-						}
-					}
+                zis.Close();
+
+                AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
+
+                string[] lines = b.ToString().Split('\n');
+                Dictionary<int, AnimeIDTitle> titles = new Dictionary<int, AnimeIDTitle>();
+                foreach (string line in lines)
+                {
+                    if (line.Trim().Length == 0 || line.Trim().Substring(0, 1) == "#") continue;
+
+                    string[] fields = line.Split('|');
+
+                    int animeID = 0;
+                    int.TryParse(fields[0], out animeID);
+                    if (animeID == 0) continue;
+
+                    string titleType = fields[1].Trim().ToLower();
+                    //string language = fields[2].Trim().ToLower();
+                    string titleValue = fields[3].Trim();
 
 
-					AniDB_Title thisTitle = null;
-					if (titles.ContainsKey(animeID))
-					{
-						thisTitle = titles[animeID];
-					}
-					else
-					{
-						thisTitle = new AniDB_Title();
-						thisTitle.AnimeID = animeID;
-					}
+                    AnimeIDTitle thisTitle = null;
+                    if (titles.ContainsKey(animeID))
+                    {
+                        thisTitle = titles[animeID];
+                    }
+                    else
+                    {
+                        thisTitle = new AnimeIDTitle();
+                        thisTitle.AnimeIDTitleId = 0;
+                        thisTitle.MainTitle = titleValue;
+                        thisTitle.AnimeID = animeID;
+                        titles[animeID] = thisTitle;
+                    }
 
-					if (titleType == 1 || titleType == 4)
-					{
-						if (language == "EN") thisTitle.EnglishName = titleValue;
-						if (language == "X-JAT") thisTitle.RomajiName = titleValue;
-					}
+                    if (!string.IsNullOrEmpty(thisTitle.Titles))
+                        thisTitle.Titles += "|";
 
-					if (titleType == 2) thisTitle.Synonyms.Add(titleValue);
-					if (titleType == 3) thisTitle.ShortTitles.Add(titleValue);
+                    if (titleType.Equals("1"))
+                        thisTitle.MainTitle = titleValue;
 
-					titles[animeID] = thisTitle;
-				}
+                    thisTitle.Titles += titleValue;
+                }
 
-				foreach (AniDB_Title aniTitle in titles.Values)
-				{
-					AniDB_Anime anime = new AniDB_Anime();
-					if (!anime.Load(aniTitle.AnimeID))
-					{
-						anime.AnimeID = aniTitle.AnimeID;
+                foreach (AnimeIDTitle aniTitle in titles.Values)
+                {
+                    //AzureWebAPI.Send_AnimeTitle(aniTitle);
+                    CommandRequest_Azure_SendAnimeTitle cmdAzure =
+                        new CommandRequest_Azure_SendAnimeTitle(aniTitle.AnimeID, aniTitle.MainTitle, aniTitle.Titles);
+                    cmdAzure.Save();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error processing CommandRequest_GetAniDBTitles: {0}", ex.ToString());
+                return;
+            }
+        }
 
-						// populate with blank values instead of nulls
-						anime.AnimeNfoID = "";
-						anime.AnimeType = -1;
-						anime.AwardList = "";
-						anime.CharacterIDListRAW = "";
-						anime.DateRecordUpdated = "";
-						anime.DateTimeUpdated = DateTime.Now.AddDays(-20); // we do this so it is not excluded from updates
-						anime.Description = "";
-						anime.GenreRAW = "";
-						anime.ImageEnabled = 1;
-						anime.OtherName = "";
-						anime.Picname = "";
-						anime.RelatedAnimeIdsRAW = "";
-						anime.RelatedAnimeTypesRAW = "";
-						anime.ReviewIDListRAW = "";
-						anime.KanjiName = "";
-						anime.URL = "";
-					}
-					anime.RomajiName = aniTitle.RomajiName;
-					anime.EnglishName = aniTitle.EnglishName;
-					anime.Synonyms = aniTitle.SynonymDBList;
-					anime.ShortNames = aniTitle.ShortTitlesDBList;
+        /// <summary>
+        /// This should generate a unique key for a command
+        /// It will be used to check whether the command has already been queued before adding it
+        /// </summary>
+        public override void GenerateCommandID()
+        {
+            this.CommandID = string.Format("CommandRequest_GetAniDBTitles_{0}", DateTime.Now.ToString());
+        }
 
-					anime.Save(true, false, false);
-				}*/
+        public override bool LoadFromDBCommand(CommandRequest cq)
+        {
+            this.CommandID = cq.CommandID;
+            this.CommandRequestID = cq.CommandRequestID;
+            this.CommandType = cq.CommandType;
+            this.Priority = cq.Priority;
+            this.CommandDetails = cq.CommandDetails;
+            this.DateTimeUpdated = cq.DateTimeUpdated;
 
-				
-			}
-			catch (Exception ex)
-			{
-				logger.Error("Error processing CommandRequest_GetAniDBTitles: {0}", ex.ToString());
-				return;
-			}
-		}
+            // read xml to get parameters
+            if (this.CommandDetails.Trim().Length > 0)
+            {
+                XmlDocument docCreator = new XmlDocument();
+                docCreator.LoadXml(this.CommandDetails);
+            }
 
-		/// <summary>
-		/// This should generate a unique key for a command
-		/// It will be used to check whether the command has already been queued before adding it
-		/// </summary>
-		public override void GenerateCommandID()
-		{
-			this.CommandID = string.Format("CommandRequest_GetAniDBTitles");
-		}
+            return true;
+        }
 
-		public override bool LoadFromDBCommand(CommandRequest cq)
-		{
-			this.CommandID = cq.CommandID;
-			this.CommandRequestID = cq.CommandRequestID;
-			this.CommandType = cq.CommandType;
-			this.Priority = cq.Priority;
-			this.CommandDetails = cq.CommandDetails;
-			this.DateTimeUpdated = cq.DateTimeUpdated;
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
 
-			// read xml to get parameters
-			if (this.CommandDetails.Trim().Length > 0)
-			{
-				XmlDocument docCreator = new XmlDocument();
-				docCreator.LoadXml(this.CommandDetails);
-			}
+            CommandRequest cq = new CommandRequest();
+            cq.CommandID = this.CommandID;
+            cq.CommandType = this.CommandType;
+            cq.Priority = this.Priority;
+            cq.CommandDetails = this.ToXML();
+            cq.DateTimeUpdated = DateTime.Now;
 
-			return true;
-		}
-
-		public override CommandRequest ToDatabaseObject()
-		{
-			GenerateCommandID();
-
-			CommandRequest cq = new CommandRequest();
-			cq.CommandID = this.CommandID;
-			cq.CommandType = this.CommandType;
-			cq.Priority = this.Priority;
-			cq.CommandDetails = this.ToXML();
-			cq.DateTimeUpdated = DateTime.Now;
-
-			return cq;
-		}
-	}
+            return cq;
+        }
+    }
 }

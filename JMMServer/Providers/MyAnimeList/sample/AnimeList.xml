@@ -1,0 +1,621 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<myanimelist>
+  <myinfo>
+    <user_id>349263</user_id>
+    <user_name>igizo</user_name>
+    <user_watching>7</user_watching>
+    <user_completed>17</user_completed>
+    <user_onhold>0</user_onhold>
+
+    <user_dropped>0</user_dropped>
+    <user_plantowatch>0</user_plantowatch>
+    <user_days_spent_watching>41.05</user_days_spent_watching>
+  </myinfo>
+
+  <anime>
+    <series_animedb_id>442</series_animedb_id>
+    <series_title><![CDATA[Naruto: Movie 1 - Dai Katsugeki!! Yuki Hime Shinobu Houjou Dattebayo!]]></series_title>
+
+    <series_synonyms><![CDATA[Naruto: It&apos;s the Snow Princess&apos; Ninja Art Book!; Naruto: Daikatsugeki! Yukihime Ninpocho Dattebayo!; Naruto Movie 1; Naruto the Movie: Ninja Clash in the Land of Snow; Naruto: It&apos;s the Snow Princess&apos; Ninja Art Book!]]></series_synonyms>
+    <series_type>3</series_type>
+    <series_episodes>1</series_episodes>
+    <series_status>2</series_status>
+    <series_start>2004-08-21</series_start>
+    <series_end>2004-08-21</series_end>
+
+    <series_image>http://cdn.myanimelist.net/images/anime/13/24257.jpg</series_image>
+    <my_id>22540902</my_id>
+    <my_watched_episodes>1</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>9</my_score>
+
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278036541</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+
+    <series_animedb_id>20</series_animedb_id>
+    <series_title><![CDATA[Naruto]]></series_title>
+    <series_synonyms><![CDATA[; Naruto]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>220</series_episodes>
+    <series_status>2</series_status>
+    <series_start>2002-10-03</series_start>
+
+    <series_end>2007-02-08</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/13/17405.jpg</series_image>
+    <my_id>22540892</my_id>
+    <my_watched_episodes>220</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+
+    <my_score>9</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278036506</my_last_updated>
+    <my_tags></my_tags>
+
+  </anime>
+
+  <anime>
+    <series_animedb_id>936</series_animedb_id>
+    <series_title><![CDATA[Naruto: Movie 2 - Daigekitotsu! Maboroshi no Chiteiiseki Dattebayo!]]></series_title>
+    <series_synonyms><![CDATA[Naruto THE Movie vol.2; Naruto Movie 2; Naruto the Movie 2: Legend of the Stone of Gelel; Gekijouban Naruto; Naruto: Naruto&apos;s big clash in the Theatre! The illusion of the ruins of the depths of the earth!!]]></series_synonyms>
+    <series_type>3</series_type>
+    <series_episodes>1</series_episodes>
+
+    <series_status>2</series_status>
+    <series_start>2005-08-06</series_start>
+    <series_end>2005-08-06</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/2/24258.jpg</series_image>
+    <my_id>22540907</my_id>
+    <my_watched_episodes>1</my_watched_episodes>
+
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>9</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+
+    <my_last_updated>1278036564</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>2144</series_animedb_id>
+    <series_title><![CDATA[Naruto: Movie 3 - Dai Koufun! Mikazuki Jima no Animaru Panikku Dattebayo!]]></series_title>
+    <series_synonyms><![CDATA[Naruto Movie Volume 3; Naruto the Movie 3: Guardians of the Crescent Moon Kingdom; Naruto: Gekijouban Naruto: Dai Koufun! Mikazuki-jima no Animal Panic Datte ba yo!; Naruto Movie 3: Large Interest Stirred Up! Cresent Moon Island`s Animal Rebellion]]></series_synonyms>
+    <series_type>3</series_type>
+
+    <series_episodes>1</series_episodes>
+    <series_status>2</series_status>
+    <series_start>2006-08-05</series_start>
+    <series_end>2006-08-05</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/1/2289.jpg</series_image>
+    <my_id>22540909</my_id>
+
+    <my_watched_episodes>1</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>9</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278036583</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>269</series_animedb_id>
+    <series_title><![CDATA[Bleach]]></series_title>
+
+    <series_synonyms><![CDATA[]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>0</series_episodes>
+    <series_status>1</series_status>
+    <series_start>2004-10-05</series_start>
+    <series_end>0000-00-00</series_end>
+
+    <series_image>http://cdn.myanimelist.net/images/anime/9/21683.jpg</series_image>
+    <my_id>22540918</my_id>
+    <my_watched_episodes>273</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>8</my_score>
+
+    <my_status>1</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278036721</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+
+    <series_animedb_id>21</series_animedb_id>
+    <series_title><![CDATA[One Piece]]></series_title>
+    <series_synonyms><![CDATA[; One Piece]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>0</series_episodes>
+    <series_status>1</series_status>
+    <series_start>1999-10-20</series_start>
+
+    <series_end>0000-00-00</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/5/19082.jpg</series_image>
+    <my_id>22540938</my_id>
+    <my_watched_episodes>451</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+
+    <my_score>10</my_score>
+    <my_status>1</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278036728</my_last_updated>
+    <my_tags></my_tags>
+
+  </anime>
+
+  <anime>
+    <series_animedb_id>1735</series_animedb_id>
+    <series_title><![CDATA[Naruto: Shippuuden]]></series_title>
+    <series_synonyms><![CDATA[Naruto Shippuuden; Naruto: Shipuden, Naruto: Shippuden; Naruto: Hurricane Chronicles; Naruto: Hurricane Chronicles]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>0</series_episodes>
+
+    <series_status>1</series_status>
+    <series_start>2007-02-15</series_start>
+    <series_end>0000-00-00</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/13/11194.jpg</series_image>
+    <my_id>22540955</my_id>
+    <my_watched_episodes>165</my_watched_episodes>
+
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>9</my_score>
+    <my_status>1</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+
+    <my_last_updated>1278036780</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>527</series_animedb_id>
+    <series_title><![CDATA[Pokemon]]></series_title>
+    <series_synonyms><![CDATA[Pocket Monsters; Pokémon - Johto League Champions; Pokémon - Master Quest; Pokémon - The Johto Journey; Indigo League]]></series_synonyms>
+    <series_type>1</series_type>
+
+    <series_episodes>276</series_episodes>
+    <series_status>2</series_status>
+    <series_start>1997-04-01</series_start>
+    <series_end>2002-11-14</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/3/2615.jpg</series_image>
+    <my_id>22540964</my_id>
+
+    <my_watched_episodes>276</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>7</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278036824</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>1313</series_animedb_id>
+    <series_title><![CDATA[Digimon Adventure 02]]></series_title>
+
+    <series_synonyms><![CDATA[Digimon: Digital Monsters 02; Digimon Zero Two]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>50</series_episodes>
+    <series_status>2</series_status>
+    <series_start>2000-04-02</series_start>
+    <series_end>2001-03-25</series_end>
+
+    <series_image>http://cdn.myanimelist.net/images/anime/9/3251.jpg</series_image>
+    <my_id>22540980</my_id>
+    <my_watched_episodes>50</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>7</my_score>
+
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278036911</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+
+    <series_animedb_id>1132</series_animedb_id>
+    <series_title><![CDATA[Digimon Frontier]]></series_title>
+    <series_synonyms><![CDATA[Digimon Season Four]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>50</series_episodes>
+    <series_status>2</series_status>
+    <series_start>2002-04-07</series_start>
+
+    <series_end>2003-03-30</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/4/3250.jpg</series_image>
+    <my_id>22540989</my_id>
+    <my_watched_episodes>50</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+
+    <my_score>7</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278036927</my_last_updated>
+    <my_tags></my_tags>
+
+  </anime>
+
+  <anime>
+    <series_animedb_id>859</series_animedb_id>
+    <series_title><![CDATA[Digimon Savers]]></series_title>
+    <series_synonyms><![CDATA[Digimon Data Squad; Digimon Data Squad]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>48</series_episodes>
+
+    <series_status>2</series_status>
+    <series_start>2006-04-02</series_start>
+    <series_end>2007-03-25</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/3/20365.jpg</series_image>
+    <my_id>22540994</my_id>
+    <my_watched_episodes>48</my_watched_episodes>
+
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>8</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+
+    <my_last_updated>1278036944</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>874</series_animedb_id>
+    <series_title><![CDATA[Digimon Tamers]]></series_title>
+    <series_synonyms><![CDATA[Digimon: Digital Monsters 03; Digimon]]></series_synonyms>
+    <series_type>1</series_type>
+
+    <series_episodes>51</series_episodes>
+    <series_status>2</series_status>
+    <series_start>2001-04-01</series_start>
+    <series_end>2002-03-31</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/9/3249.jpg</series_image>
+    <my_id>22540999</my_id>
+
+    <my_watched_episodes>51</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>7</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278036963</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>552</series_animedb_id>
+    <series_title><![CDATA[Digimon: Digital Monsters]]></series_title>
+
+    <series_synonyms><![CDATA[Digimon Adventure; Digimon Adventure 01; Digimon: Digital Monsters]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>54</series_episodes>
+    <series_status>2</series_status>
+    <series_start>1999-03-07</series_start>
+    <series_end>2000-03-26</series_end>
+
+    <series_image>http://cdn.myanimelist.net/images/anime/10/11070.jpg</series_image>
+    <my_id>22541005</my_id>
+    <my_watched_episodes>54</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>8</my_score>
+
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278036987</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+
+    <series_animedb_id>934</series_animedb_id>
+    <series_title><![CDATA[Higurashi no Naku Koro ni]]></series_title>
+    <series_synonyms><![CDATA[The Moment the Cicadas Cry; When They Cry]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>26</series_episodes>
+    <series_status>2</series_status>
+    <series_start>2006-04-05</series_start>
+
+    <series_end>2006-09-27</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/12/19634.jpg</series_image>
+    <my_id>22541025</my_id>
+    <my_watched_episodes>26</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+
+    <my_score>9</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278037055</my_last_updated>
+    <my_tags></my_tags>
+
+  </anime>
+
+  <anime>
+    <series_animedb_id>1889</series_animedb_id>
+    <series_title><![CDATA[Higurashi no Naku Koro ni Kai]]></series_title>
+    <series_synonyms><![CDATA[Higurashi no Naku Koro ni 2; Higurashi no Naku Koro ni 2nd Series; Higurashi no Nakukoro ni 2nd Season; The Moment the Cicadas Cry 2; When they Cry 2; The Moment the Cicadas Cry 2]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>24</series_episodes>
+
+    <series_status>2</series_status>
+    <series_start>2007-07-05</series_start>
+    <series_end>2007-12-15</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/12/14114.jpg</series_image>
+    <my_id>22541029</my_id>
+    <my_watched_episodes>24</my_watched_episodes>
+
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>9</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+
+    <my_last_updated>1278037072</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>4896</series_animedb_id>
+    <series_title><![CDATA[Umineko no Naku Koro ni]]></series_title>
+    <series_synonyms><![CDATA[When They Cry 3; When the Seagulls Cry, When They Cry - Seagulls; When the Seagulls Cry]]></series_synonyms>
+    <series_type>1</series_type>
+
+    <series_episodes>26</series_episodes>
+    <series_status>2</series_status>
+    <series_start>2009-07-02</series_start>
+    <series_end>2009-12-23</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/8/14475.jpg</series_image>
+    <my_id>22541035</my_id>
+
+    <my_watched_episodes>26</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>7</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278037100</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>223</series_animedb_id>
+    <series_title><![CDATA[Dragon Ball]]></series_title>
+
+    <series_synonyms><![CDATA[Dragonball]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>153</series_episodes>
+    <series_status>2</series_status>
+    <series_start>1986-02-26</series_start>
+    <series_end>1989-04-12</series_end>
+
+    <series_image>http://cdn.myanimelist.net/images/anime/9/21055.jpg</series_image>
+    <my_id>22541043</my_id>
+    <my_watched_episodes>153</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>8</my_score>
+
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278037149</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+
+    <series_animedb_id>813</series_animedb_id>
+    <series_title><![CDATA[Dragon Ball Z (Original)]]></series_title>
+    <series_synonyms><![CDATA[DBZ; Dragon Ball Z - Japanese Version; Dragonball Z; Dragon Ball Z]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>291</series_episodes>
+    <series_status>2</series_status>
+    <series_start>1989-04-26</series_start>
+
+    <series_end>1996-01-31</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/6/20936.jpg</series_image>
+    <my_id>22541046</my_id>
+    <my_watched_episodes>291</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+
+    <my_score>9</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1278037170</my_last_updated>
+    <my_tags></my_tags>
+
+  </anime>
+
+  <anime>
+    <series_animedb_id>224</series_animedb_id>
+    <series_title><![CDATA[Dragon Ball Z (U.S.)]]></series_title>
+    <series_synonyms><![CDATA[DBZ; Dragonball Z]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>276</series_episodes>
+
+    <series_status>2</series_status>
+    <series_start>1989-04-26</series_start>
+    <series_end>1996-01-31</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/7/10272.jpg</series_image>
+    <my_id>22541049</my_id>
+    <my_watched_episodes>276</my_watched_episodes>
+
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>9</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+
+    <my_last_updated>1278037184</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>6347</series_animedb_id>
+    <series_title><![CDATA[Baka to Test to Shoukanjuu]]></series_title>
+    <series_synonyms><![CDATA[The Idiot, the Tests, and the Summoned Creatures; Baka to Test to Shokanju; Baka and Test - Summon the Beasts]]></series_synonyms>
+    <series_type>1</series_type>
+
+    <series_episodes>13</series_episodes>
+    <series_status>2</series_status>
+    <series_start>2010-01-06</series_start>
+    <series_end>2010-03-31</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/3/19617.jpg</series_image>
+    <my_id>24636243</my_id>
+
+    <my_watched_episodes>2</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>7</my_score>
+    <my_status>1</my_status>
+    <my_rewatching>0</my_rewatching>
+
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1283848322</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>7870</series_animedb_id>
+    <series_title><![CDATA[Baka to Test to Shoukanjuu: Mikoukai Eizou]]></series_title>
+
+    <series_synonyms><![CDATA[Mikoukai Eizou (Seisaku: Muttsuri Shoukai); Baka to Test to Shoukanjuu Specials; The Idiot, the Tests, and the Summoned Creatures Specials; Private Footage (Produced by Muttsuri Company)]]></series_synonyms>
+    <series_type>4</series_type>
+    <series_episodes>6</series_episodes>
+    <series_status>1</series_status>
+    <series_start>2010-04-23</series_start>
+    <series_end>2010-09-22</series_end>
+
+    <series_image>http://cdn.myanimelist.net/images/anime/11/23358.jpg</series_image>
+    <my_id>24646639</my_id>
+    <my_watched_episodes>4</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>0</my_score>
+
+    <my_status>1</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1283721531</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+
+    <series_animedb_id>6033</series_animedb_id>
+    <series_title><![CDATA[Dragon Ball Kai]]></series_title>
+    <series_synonyms><![CDATA[Dragonball Kai; DBK; DB Kai; Dragon Ball Z Kai]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>0</series_episodes>
+    <series_status>1</series_status>
+    <series_start>2009-04-05</series_start>
+
+    <series_end>0000-00-00</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/6/14065.jpg</series_image>
+    <my_id>24673625</my_id>
+    <my_watched_episodes>71</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+
+    <my_score>0</my_score>
+    <my_status>1</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1283801680</my_last_updated>
+    <my_tags></my_tags>
+
+  </anime>
+
+  <anime>
+    <series_animedb_id>477</series_animedb_id>
+    <series_title><![CDATA[Aria the Animation]]></series_title>
+    <series_synonyms><![CDATA[Aria]]></series_synonyms>
+    <series_type>1</series_type>
+    <series_episodes>13</series_episodes>
+
+    <series_status>2</series_status>
+    <series_start>2005-10-06</series_start>
+    <series_end>2005-12-29</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/7/9931.jpg</series_image>
+    <my_id>24714205</my_id>
+    <my_watched_episodes>1</my_watched_episodes>
+
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>0</my_score>
+    <my_status>1</my_status>
+    <my_rewatching>0</my_rewatching>
+    <my_rewatching_ep>0</my_rewatching_ep>
+
+    <my_last_updated>1283930096</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+
+  <anime>
+    <series_animedb_id>4565</series_animedb_id>
+    <series_title><![CDATA[Tengen Toppa Gurren Lagann Movie: Lagann-hen]]></series_title>
+    <series_synonyms><![CDATA[Tengen Toppa Gurren Lagann Movie 2]]></series_synonyms>
+    <series_type>3</series_type>
+
+    <series_episodes>1</series_episodes>
+    <series_status>2</series_status>
+    <series_start>2009-04-22</series_start>
+    <series_end>2009-04-22</series_end>
+    <series_image>http://cdn.myanimelist.net/images/anime/12/19698.jpg</series_image>
+    <my_id>24714354</my_id>
+
+    <my_watched_episodes>1</my_watched_episodes>
+    <my_start_date>0000-00-00</my_start_date>
+    <my_finish_date>0000-00-00</my_finish_date>
+    <my_score>0</my_score>
+    <my_status>2</my_status>
+    <my_rewatching>0</my_rewatching>
+
+    <my_rewatching_ep>0</my_rewatching_ep>
+    <my_last_updated>1283930787</my_last_updated>
+    <my_tags></my_tags>
+  </anime>
+</myanimelist>

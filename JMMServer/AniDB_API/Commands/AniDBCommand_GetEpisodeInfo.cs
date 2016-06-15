@@ -1,157 +1,165 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Net;
+using System.Text;
 
 namespace AniDBAPI.Commands
 {
-	public class AniDBCommand_GetEpisodeInfo : AniDBUDPCommand, IAniDBUDPCommand
-	{
-		private int episodeID = 0;
-		public int EpisodeID
-		{
-			get { return episodeID; }
-			set { episodeID = value; }
-		}
+    public class AniDBCommand_GetEpisodeInfo : AniDBUDPCommand, IAniDBUDPCommand
+    {
+        private int episodeID = 0;
 
-		private int episodeNumber = 0;
-		public int EpisodeNumber
-		{
-			get { return episodeNumber; }
-			set { episodeNumber = value; }
-		}
+        public int EpisodeID
+        {
+            get { return episodeID; }
+            set { episodeID = value; }
+        }
 
-		private int animeID = 0;
-		public int AnimeID
-		{
-			get { return animeID; }
-			set { animeID = value; }
-		}
+        private int episodeNumber = 0;
 
-		private enEpisodeType episodeType;
-		public enEpisodeType EpisodeType
-		{
-			get { return episodeType; }
-			set { episodeType = value; }
-		}
+        public int EpisodeNumber
+        {
+            get { return episodeNumber; }
+            set { episodeNumber = value; }
+        }
 
-		private Raw_AniDB_Episode episodeInfo = null;
-		public Raw_AniDB_Episode EpisodeInfo
-		{
-			get { return episodeInfo; }
-			set { episodeInfo = value; }
-		}
+        private int animeID = 0;
 
-		private bool forceRefresh = false;
-		public bool ForceRefresh
-		{
-			get { return forceRefresh; }
-			set { forceRefresh = value; }
-		}
+        public int AnimeID
+        {
+            get { return animeID; }
+            set { animeID = value; }
+        }
 
-		string key = "";
+        private enEpisodeType episodeType;
 
-		public string GetKey()
-		{
-			return key;
-		}
+        public enEpisodeType EpisodeType
+        {
+            get { return episodeType; }
+            set { episodeType = value; }
+        }
 
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.GettingEpisodeInfo;
-		}
+        private Raw_AniDB_Episode episodeInfo = null;
 
-		public virtual enHelperActivityType Process(ref Socket soUDP,
-			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-		{
-			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+        public Raw_AniDB_Episode EpisodeInfo
+        {
+            get { return episodeInfo; }
+            set { episodeInfo = value; }
+        }
 
-			// handle 555 BANNED and 598 - UNKNOWN COMMAND
-			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand;
-			if (ResponseCode == 555) return enHelperActivityType.Banned;
+        private bool forceRefresh = false;
 
-			if (errorOccurred) return enHelperActivityType.NoSuchEpisode;
+        public bool ForceRefresh
+        {
+            get { return forceRefresh; }
+            set { forceRefresh = value; }
+        }
 
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetEpisodeInfo.Process: Response: {0}", socketResponse);
+        string key = "";
 
-			// Process Response
-			string sMsgType = socketResponse.Substring(0, 3);
+        public string GetKey()
+        {
+            return key;
+        }
 
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.GettingEpisodeInfo;
+        }
 
-			switch (sMsgType)
-			{
-				case "240":
-					{
-						// 240 EPISODE INFO
-						// the first 11 characters should be "240 EPISODE"
-						// the rest of the information should be the data list
+        public virtual enHelperActivityType Process(ref Socket soUDP,
+            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+        {
+            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-						episodeInfo = new Raw_AniDB_Episode(socketResponse, enEpisodeSourceType.Episode);
-						return enHelperActivityType.GotEpisodeInfo;
+            // handle 555 BANNED and 598 - UNKNOWN COMMAND
+            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+
+            if (errorOccurred) return enHelperActivityType.NoSuchEpisode;
+
+            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetEpisodeInfo.Process: Response: {0}", socketResponse);
+
+            // Process Response
+            string sMsgType = socketResponse.Substring(0, 3);
 
 
-						// Response: 240 EPISODE 99297|6267|25|539|5|01|The Girl Returns|Shoujo Kikan|????|1238976000
-					}
-				case "340":
-					{
-						return enHelperActivityType.NoSuchEpisode;
-					}
-				case "501":
-					{
-						return enHelperActivityType.LoginRequired;
-					}
-			}
+            switch (sMsgType)
+            {
+                case "240":
+                {
+                    // 240 EPISODE INFO
+                    // the first 11 characters should be "240 EPISODE"
+                    // the rest of the information should be the data list
 
-			return enHelperActivityType.NoSuchEpisode;
-
-		}
+                    episodeInfo = new Raw_AniDB_Episode(socketResponse, enEpisodeSourceType.Episode);
+                    return enHelperActivityType.GotEpisodeInfo;
 
 
+                    // Response: 240 EPISODE 99297|6267|25|539|5|01|The Girl Returns|Shoujo Kikan|????|1238976000
+                }
+                case "340":
+                {
+                    return enHelperActivityType.NoSuchEpisode;
+                }
+                case "501":
+                {
+                    return enHelperActivityType.LoginRequired;
+                }
+            }
 
-		public AniDBCommand_GetEpisodeInfo()
-		{
-			commandType = enAniDBCommandType.GetEpisodeInfo;
-		}
+            return enHelperActivityType.NoSuchEpisode;
+        }
 
-		public void Init(int episodeID, bool force)
-		{
-			this.episodeID = episodeID;
-			this.forceRefresh = force;
 
-			key = "AniDBCommand_GetEpisodeInfo_" + EpisodeID.ToString();
-			commandText = "EPISODE eid=" + episodeID.ToString();
+        public AniDBCommand_GetEpisodeInfo()
+        {
+            commandType = enAniDBCommandType.GetEpisodeInfo;
+        }
 
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetEpisodeInfo.Process: Request: {0}", commandText);
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetEpisodeInfo.Init: {0}", key);
+        public void Init(int episodeID, bool force)
+        {
+            this.episodeID = episodeID;
+            this.forceRefresh = force;
 
-			commandID = episodeID.ToString();
-		}
+            key = "AniDBCommand_GetEpisodeInfo_" + EpisodeID.ToString();
+            commandText = "EPISODE eid=" + episodeID.ToString();
 
-		public void Init(int animeID, int episodeNumber, enEpisodeType epType)
-		{
-			this.episodeNumber = episodeNumber;
-			this.animeID = animeID;
-			this.episodeType = epType;
+            commandID = episodeID.ToString();
+        }
 
-			string epNumberFormatted = episodeNumber.ToString();
+        public void Init(int animeID, int episodeNumber, enEpisodeType epType)
+        {
+            this.episodeNumber = episodeNumber;
+            this.animeID = animeID;
+            this.episodeType = epType;
 
-			switch (epType)
-			{
-				case enEpisodeType.Credits: epNumberFormatted = "C" + episodeNumber.ToString(); break;
-				case enEpisodeType.Special: epNumberFormatted = "S" + episodeNumber.ToString(); break;
-				case enEpisodeType.Other: epNumberFormatted = "0" + episodeNumber.ToString(); break;
-				case enEpisodeType.Trailer: epNumberFormatted = "T" + episodeNumber.ToString(); break;
-				case enEpisodeType.Parody: epNumberFormatted = "P" + episodeNumber.ToString(); break;
-			}
+            string epNumberFormatted = episodeNumber.ToString();
 
-			key = "AniDBCommand_GetEpisodeInfo_" + animeID.ToString() + "_" + epNumberFormatted;
-			commandText = string.Format("EPISODE aid={0}&epno={1}", animeID, epNumberFormatted);
+            switch (epType)
+            {
+                case enEpisodeType.Credits:
+                    epNumberFormatted = "C" + episodeNumber.ToString();
+                    break;
+                case enEpisodeType.Special:
+                    epNumberFormatted = "S" + episodeNumber.ToString();
+                    break;
+                case enEpisodeType.Other:
+                    epNumberFormatted = "0" + episodeNumber.ToString();
+                    break;
+                case enEpisodeType.Trailer:
+                    epNumberFormatted = "T" + episodeNumber.ToString();
+                    break;
+                case enEpisodeType.Parody:
+                    epNumberFormatted = "P" + episodeNumber.ToString();
+                    break;
+            }
 
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetEpisodeInfo.Process: Request: {0}", commandText);
+            key = "AniDBCommand_GetEpisodeInfo_" + animeID.ToString() + "_" + epNumberFormatted;
+            commandText = string.Format("EPISODE aid={0}&epno={1}", animeID, epNumberFormatted);
 
-			commandID = animeID.ToString();
-		}
-	}
+            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetEpisodeInfo.Process: Request: {0}", commandText);
+
+            commandID = animeID.ToString();
+        }
+    }
 }

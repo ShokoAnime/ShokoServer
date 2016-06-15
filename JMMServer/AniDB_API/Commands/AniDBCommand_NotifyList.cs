@@ -1,77 +1,72 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Net;
+using System.Text;
 
 namespace AniDBAPI.Commands
 {
-	public class AniDBCommand_NotifyList : AniDBUDPCommand, IAniDBUDPCommand
-	{
-		public string GetKey()
-		{
-			return "AniDBCommand_NotifyList";
-		}
+    public class AniDBCommand_NotifyList : AniDBUDPCommand, IAniDBUDPCommand
+    {
+        public string GetKey()
+        {
+            return "AniDBCommand_NotifyList";
+        }
 
-		private Raw_AniDB_NotifyList notifyListCollection = null;
-		public Raw_AniDB_NotifyList NotifyListCollection
-		{
-			get { return notifyListCollection; }
-			set { notifyListCollection = value; }
-		}
+        private Raw_AniDB_NotifyList notifyListCollection = null;
 
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.GettingNotifyList;
-		}
+        public Raw_AniDB_NotifyList NotifyListCollection
+        {
+            get { return notifyListCollection; }
+            set { notifyListCollection = value; }
+        }
 
-		public virtual enHelperActivityType Process(ref Socket soUDP,
-			ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
-		{
-			ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.GettingNotifyList;
+        }
 
-			// handle 555 BANNED and 598 - UNKNOWN COMMAND
-			if (ResponseCode == 598) return enHelperActivityType.UnknownCommand;
-			if (ResponseCode == 555) return enHelperActivityType.Banned;
+        public virtual enHelperActivityType Process(ref Socket soUDP,
+            ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
+        {
+            ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-			if (errorOccurred) return enHelperActivityType.LoginRequired;
+            // handle 555 BANNED and 598 - UNKNOWN COMMAND
+            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
+            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
 
-			// Process Response
-			string sMsgType = socketResponse.Substring(0, 3);
+            if (errorOccurred) return enHelperActivityType.LoginRequired;
+
+            // Process Response
+            string sMsgType = socketResponse.Substring(0, 3);
 
 
-			switch (sMsgType)
-			{
-				case "291":
-					{
+            switch (sMsgType)
+            {
+                case "291":
+                {
+                    notifyListCollection = new Raw_AniDB_NotifyList(socketResponse);
+                    return enHelperActivityType.GotNotifyList;
+                }
+                case "501":
+                {
+                    return enHelperActivityType.LoginRequired;
+                }
+            }
 
-						notifyListCollection = new Raw_AniDB_NotifyList(socketResponse);
-						return enHelperActivityType.GotNotifyList;
+            return enHelperActivityType.GotNotifyList;
+        }
 
-					}
-				case "501":
-					{
-						return enHelperActivityType.LoginRequired;
-					}
-			}
+        public AniDBCommand_NotifyList()
+        {
+            commandType = enAniDBCommandType.GetNotifyList;
+        }
 
-			return enHelperActivityType.GotNotifyList;
+        public void Init()
+        {
+            commandText = "NOTIFYLIST ";
 
-		}
+            //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCalendar: Request: {0}", commandText);
 
-		public AniDBCommand_NotifyList()
-		{
-			commandType = enAniDBCommandType.GetNotifyList;
-		}
-
-		public void Init()
-		{
-			commandText = "NOTIFYLIST ";
-
-			//BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCalendar: Request: {0}", commandText);
-
-			commandID = "NOTIFYLIST ";
-		}
-	}
+            commandID = "NOTIFYLIST ";
+        }
+    }
 }

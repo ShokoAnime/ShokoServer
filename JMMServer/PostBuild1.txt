@@ -1,0 +1,17 @@
+﻿xcopy "$(TargetDir)*.dll" "C:\Projects\GitHub\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	
+xcopy "$(TargetDir)*.exe" "C:\Projects\GitHub\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
+xcopy "$(TargetDir)*.pdb" "C:\Projects\GitHub\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
+xcopy "$(TargetDir)*.manifest" "C:\Projects\GitHub\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
+
+
+-- NuGet packages
+
+http://www.nuget.org/packages/System.Data.SQLite.Core/
+Install-Package System.Data.SQLite.Core
+
+https://www.nuget.org/packages/NHibernate/
+Install-Package NHibernate
+
+https://www.nuget.org/packages/FluentNHibernate/
+Install-Package FluentNHibernate
+

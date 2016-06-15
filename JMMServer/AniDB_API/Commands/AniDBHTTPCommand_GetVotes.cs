@@ -1,84 +1,83 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using AniDBAPI.Commands;
-using AniDBAPI;
-using JMMServer.AniDB_API.Raws;
+﻿using System.Collections.Generic;
 using System.Xml;
+using AniDBAPI;
+using AniDBAPI.Commands;
+using JMMServer.AniDB_API.Raws;
 
 namespace JMMServer.AniDB_API.Commands
 {
-	public class AniDBHTTPCommand_GetVotes : AniDBHTTPCommand, IAniDBHTTPCommand
-	{
-		private List<Raw_AniDB_Vote_HTTP> myVotes = new List<Raw_AniDB_Vote_HTTP>();
-		public List<Raw_AniDB_Vote_HTTP> MyVotes
-		{
-			get { return myVotes; }
-			set { myVotes = value; }
-		}
+    public class AniDBHTTPCommand_GetVotes : AniDBHTTPCommand, IAniDBHTTPCommand
+    {
+        private List<Raw_AniDB_Vote_HTTP> myVotes = new List<Raw_AniDB_Vote_HTTP>();
 
-		private string username = "";
-		public string Username
-		{
-			get { return username; }
-			set { username = value; }
-		}
+        public List<Raw_AniDB_Vote_HTTP> MyVotes
+        {
+            get { return myVotes; }
+            set { myVotes = value; }
+        }
 
-		private string password = "";
-		public string Password
-		{
-			get { return password; }
-			set { password = value; }
-		}
+        private string username = "";
 
-		private string xmlResult = "";
-		public string XmlResult
-		{
-			get { return xmlResult; }
-			set { xmlResult = value; }
-		}
+        public string Username
+        {
+            get { return username; }
+            set { username = value; }
+        }
 
-		public string GetKey()
-		{
-			return "AniDBHTTPCommand_GetVotes";
-		}
+        private string password = "";
 
-		public virtual enHelperActivityType GetStartEventType()
-		{
-			return enHelperActivityType.GettingVotesHTTP;
-		}
+        public string Password
+        {
+            get { return password; }
+            set { password = value; }
+        }
 
-		public virtual enHelperActivityType Process()
-		{
+        private string xmlResult = "";
 
-			XmlDocument docAnime = AniDBHTTPHelper.GetVotesXMLFromAPI(username, password, ref xmlResult);
+        public string XmlResult
+        {
+            get { return xmlResult; }
+            set { xmlResult = value; }
+        }
 
-			if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
+        public string GetKey()
+        {
+            return "AniDBHTTPCommand_GetVotes";
+        }
 
-			//APIUtils.WriteToLog("AniDBHTTPCommand_GetFullAnime: " + xmlResult);
-			if (docAnime != null)
-			{
+        public virtual enHelperActivityType GetStartEventType()
+        {
+            return enHelperActivityType.GettingVotesHTTP;
+        }
 
-				myVotes = AniDBHTTPHelper.ProcessVotes(docAnime);
-				return enHelperActivityType.GotVotesHTTP;
-			}
-			else
-			{
-				return enHelperActivityType.NoSuchAnime;
-			}
-		}
+        public virtual enHelperActivityType Process()
+        {
+            XmlDocument docAnime = AniDBHTTPHelper.GetVotesXMLFromAPI(username, password, ref xmlResult);
 
-		public AniDBHTTPCommand_GetVotes()
-		{
-			commandType = enAniDBCommandType.GetVotesHTTP;
-		}
+            if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
 
-		public void Init(string uname, string pword)
-		{
-			this.username = uname;
-			this.password = pword;
-			commandID = "VOTES";
-		}
-	}
+            //APIUtils.WriteToLog("AniDBHTTPCommand_GetFullAnime: " + xmlResult);
+            if (docAnime != null)
+            {
+                myVotes = AniDBHTTPHelper.ProcessVotes(docAnime);
+                return enHelperActivityType.GotVotesHTTP;
+            }
+            else
+            {
+                return enHelperActivityType.NoSuchAnime;
+            }
+        }
+
+        public AniDBHTTPCommand_GetVotes()
+        {
+            commandType = enAniDBCommandType.GetVotesHTTP;
+        }
+
+        public void Init(string uname, string pword)
+        {
+            this.username = uname;
+            this.password = pword;
+            commandID = "VOTES";
+        }
+    }
 }

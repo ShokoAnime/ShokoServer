@@ -9,15 +9,17 @@
 #include <sys/stat.h>
 #include <tchar.h>
 #include <stdio.h>
+#include <windows.h>
+
 
 /////////////////////////////////////////////////////////////////////////////////
 #define ED2K_CHUNK_SIZE  9728000
 #define SIZE_HASH_BUFFER  16384
 
-extern "C" __declspec(dllexport) int __cdecl CalculateHashes_SyncIO(const TCHAR * pszFile, unsigned char * pResult, HASHCALLBACK pHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
+extern "C" __declspec(dllexport) int __cdecl CalculateHashes_SyncIO(LPCWSTR pszFile, unsigned char * pResult, HASHCALLBACK pHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 {
 	struct _stat64 statFile;
-	if (_tstat64(pszFile, &statFile) != 0)
+	if (_wstat64(pszFile, &statFile) != 0)
 		return 1;
 	if (statFile.st_size <= 0)
 		return 6;
@@ -31,7 +33,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_SyncIO(const TCHAR 
 	else
 		uChunkSizeLast = uChunkSize;
 
-	HANDLE hFile = CreateFile(pszFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	HANDLE hFile = CreateFileW(pszFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return 2;
 
@@ -79,7 +81,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_SyncIO(const TCHAR 
 		}
 
 		MD4Engine.Finish();
-		MD4Engine.GetHash(&md4);
+		MD4Engine.GetHash((uchar *)&md4);
 		BYTE * pData = (BYTE*)&md4;
 		for (int n=0; n<16; n++)
 			pTemp[nChunk*16+n] = pData[n];
@@ -113,7 +115,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_SyncIO(const TCHAR 
 			MD4Engine.Reset();
 			MD4Engine.Add(pTemp, nChunks*16);
 			MD4Engine.Finish();
-			MD4Engine.GetHash(&md4);
+			MD4Engine.GetHash((uchar *)&md4);
 			BYTE * pData = (BYTE*)&md4;
 			for (int n=0; n<16; n++)
 				pResult[n] = pData[n];
@@ -145,11 +147,11 @@ static const unsigned int uChunkSize = 9728000;
 #define HIDWORD(l) ((DWORD)(((DWORDLONG)(l)>>32)&0xFFFFFFFF))
 #define MAKEDWORDLONG(a,b) ((DWORDLONG)(((DWORD)(a))|(((DWORDLONG)((DWORD)(b)))<<32)))
 
-extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(const TCHAR * pszFile, unsigned char * pResult, HASHCALLBACK pHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
+extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(LPCWSTR pszFile, unsigned char * pResult, HASHCALLBACK pHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 {
 	//get file size
 	struct _stat64 statFile;
-	if (_tstat64(pszFile, &statFile) != 0)
+	if (_wstat64(pszFile, &statFile) != 0)
 		return 1;
 	if (statFile.st_size <= 0)
 		return 6;
@@ -161,10 +163,24 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(const TCHAR
 		nChunks++;
 
 	//open file
-	HANDLE hFile = CreateFile(pszFile, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING,
+	HANDLE hFile = CreateFileW(pszFile, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING,
 		FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED | FILE_FLAG_SEQUENTIAL_SCAN, 0);       
 	if (hFile == INVALID_HANDLE_VALUE)
 		return 2;
+
+	// If the current OS is Vista or later, set the file IO priority to background. This will allow the
+	// hashing to operate at full speed unless other, higher IO (low and above) is scheduled. This allows
+	// the hashing to be relatively unobtrusive. Remember, this is just a hint, so other factors can come
+	// in to play that could cause the IO to be issued at the Normal level.
+	OSVERSIONINFOW osVersion;
+	SecureZeroMemory(&osVersion, sizeof(OSVERSIONINFOW));
+	osVersion.dwOSVersionInfoSize = sizeof(OSVERSIONINFOW);
+	if (GetVersionExW(&osVersion) && osVersion.dwMajorVersion > 5)
+	{
+		FILE_IO_PRIORITY_HINT_INFO priorityHint;
+		priorityHint.PriorityHint = IoPriorityHintVeryLow;
+		SetFileInformationByHandle(hFile, FileIoPriorityHintInfo, &priorityHint, sizeof(priorityHint));
+	}
 
 	//allocate data
 	char * blocks[NumBlocks] = {0};
@@ -249,13 +265,16 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(const TCHAR
 		{
 			//update MD4 of current chunk
 			DWORD dwBytesChunkLeft = (DWORD)(uChunkEnd - iPos);
-			MD4Engine.Add(blocks[iMaskedReaderPos], dwBytesChunkLeft);
-			if (getSHA1) sha1.update(blocks[iMaskedReaderPos], dwBytesChunkLeft);
-			if (getCRC32) crc32.update(blocks[iMaskedReaderPos], dwBytesChunkLeft);
-			if (getMD5) md5.update(blocks[iMaskedReaderPos], dwBytesChunkLeft);
+			if (dwBytesChunkLeft>0)
+			{
+				MD4Engine.Add(blocks[iMaskedReaderPos], dwBytesChunkLeft);
+				if (getSHA1) sha1.update(blocks[iMaskedReaderPos], dwBytesChunkLeft);
+				if (getCRC32) crc32.update(blocks[iMaskedReaderPos], dwBytesChunkLeft);
+				if (getMD5) md5.update(blocks[iMaskedReaderPos], dwBytesChunkLeft);
+			}
 			//calculate MD4 of chunk
 			MD4Engine.Finish();
-			MD4Engine.GetHash(&md4);
+			MD4Engine.GetHash((uchar *)&md4);
 			BYTE * pData = (BYTE*)&md4;
 			for (int n=0; n<16; n++)
 				pTemp[nChunk*16+n] = pData[n];
@@ -270,9 +289,14 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(const TCHAR
 			//update MD4 of next chunk if data was left on the block
 			DWORD dwBytesChunkNext = dwBytesRead - dwBytesChunkLeft;
 			if (dwBytesChunkNext > 0)
+			{
 				MD4Engine.Add(blocks[iMaskedReaderPos] + dwBytesChunkLeft, dwBytesChunkNext);
+				if (getSHA1) sha1.update(blocks[iMaskedReaderPos] + dwBytesChunkLeft, dwBytesChunkNext);
+				if (getCRC32) crc32.update(blocks[iMaskedReaderPos] + dwBytesChunkLeft, dwBytesChunkNext);
+				if (getMD5) md5.update(blocks[iMaskedReaderPos] + dwBytesChunkLeft, dwBytesChunkNext);
+			}
 		}
-
+	
 		//prepare for next block
 		iReaderPos++;
 		iPos += dwBytesRead;
@@ -312,7 +336,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(const TCHAR
 			MD4Engine.Reset();
 			MD4Engine.Add(pTemp, nChunks*16);
 			MD4Engine.Finish();
-			MD4Engine.GetHash(&md4);
+			MD4Engine.GetHash((uchar *)&md4);
 			BYTE * pData = (BYTE*)&md4;
 			for (int n=0; n<16; n++)
 				pResult[n] = pData[n];
@@ -322,8 +346,8 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(const TCHAR
 			memcpy(pResult, pTemp, 16);
 		}
 		if (getCRC32) crc32.digest((char *)(pResult+16),4);
-		if (getSHA1) md5.digest((char *)(pResult+20),16);
-		if (getMD5) sha1.digest((char *)(pResult+36),20);
+		if (getMD5) md5.digest((char *)(pResult+20),16);
+		if (getSHA1) sha1.digest((char *)(pResult+36),20);
 	}
 
 	delete pTemp;
@@ -336,7 +360,7 @@ extern "C" __declspec(dllexport) int __cdecl CalculateHashes_AsyncIO(const TCHAR
 	return nStatus;
 }
 
-extern "C" __declspec(dllexport) int __cdecl CalculateHashes(const TCHAR * pszFile, unsigned char * pResult, HASHCALLBACK pHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
+extern "C" __declspec(dllexport) int __cdecl CalculateHashes(LPCWSTR pszFile, unsigned char * pResult, HASHCALLBACK pHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
 {
 	return (0 == CalculateHashes_AsyncIO(pszFile, pResult, pHashProgress, getCRC32, getMD5, getSHA1)) ? TRUE : FALSE;
 }

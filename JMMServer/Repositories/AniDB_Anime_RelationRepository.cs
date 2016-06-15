@@ -1,76 +1,84 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using JMMServer.Entities;
+using NHibernate;
 using NHibernate.Criterion;
 
 namespace JMMServer.Repositories
 {
-	public class AniDB_Anime_RelationRepository
-	{
-		public void Save(AniDB_Anime_Relation obj)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				// populate the database
-				using (var transaction = session.BeginTransaction())
-				{
-					session.SaveOrUpdate(obj);
-					transaction.Commit();
-				}
-			}
-		}
+    public class AniDB_Anime_RelationRepository
+    {
+        public void Save(AniDB_Anime_Relation obj)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    session.SaveOrUpdate(obj);
+                    transaction.Commit();
+                }
+            }
+        }
 
-		public AniDB_Anime_Relation GetByID(int id)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				return session.Get<AniDB_Anime_Relation>(id);
-			}
-		}
+        public AniDB_Anime_Relation GetByID(int id)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return session.Get<AniDB_Anime_Relation>(id);
+            }
+        }
 
-		public AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				AniDB_Anime_Relation cr = session
-					.CreateCriteria(typeof(AniDB_Anime_Relation))
-					.Add(Restrictions.Eq("AnimeID", animeid))
-					.Add(Restrictions.Eq("RelatedAnimeID", relatedanimeid))
-					.UniqueResult<AniDB_Anime_Relation>();
-				return cr;
-			}
-		}
+        public AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return GetByAnimeIDAndRelationID(session, animeid, relatedanimeid);
+            }
+        }
 
-		public List<AniDB_Anime_Relation> GetByAnimeID(int id)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				var cats = session
-					.CreateCriteria(typeof(AniDB_Anime_Relation))
-					.Add(Restrictions.Eq("AnimeID", id))
-					.List<AniDB_Anime_Relation>();
+        public AniDB_Anime_Relation GetByAnimeIDAndRelationID(ISession session, int animeid, int relatedanimeid)
+        {
+            AniDB_Anime_Relation cr = session
+                .CreateCriteria(typeof(AniDB_Anime_Relation))
+                .Add(Restrictions.Eq("AnimeID", animeid))
+                .Add(Restrictions.Eq("RelatedAnimeID", relatedanimeid))
+                .UniqueResult<AniDB_Anime_Relation>();
+            return cr;
+        }
 
-				return new List<AniDB_Anime_Relation>(cats);
-			}
-		}
+        public List<AniDB_Anime_Relation> GetByAnimeID(int id)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return GetByAnimeID(session, id);
+            }
+        }
 
-		public void Delete(int id)
-		{
-			using (var session = JMMService.SessionFactory.OpenSession())
-			{
-				// populate the database
-				using (var transaction = session.BeginTransaction())
-				{
-					AniDB_Anime_Relation cr = GetByID(id);
-					if (cr != null)
-					{
-						session.Delete(cr);
-						transaction.Commit();
-					}
-				}
-			}
-		}
-	}
+        public List<AniDB_Anime_Relation> GetByAnimeID(ISession session, int id)
+        {
+            var cats = session
+                .CreateCriteria(typeof(AniDB_Anime_Relation))
+                .Add(Restrictions.Eq("AnimeID", id))
+                .List<AniDB_Anime_Relation>();
+
+            return new List<AniDB_Anime_Relation>(cats);
+        }
+
+        public void Delete(int id)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    AniDB_Anime_Relation cr = GetByID(id);
+                    if (cr != null)
+                    {
+                        session.Delete(cr);
+                        transaction.Commit();
+                    }
+                }
+            }
+        }
+    }
 }
