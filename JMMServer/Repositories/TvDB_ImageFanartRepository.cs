@@ -64,16 +64,8 @@ namespace JMMServer.Repositories
             List<TvDB_ImageFanart> results = new List<TvDB_ImageFanart>();
             foreach (TvDB_ImageFanart pic in temp)
             {
-                if (!System.IO.File.Exists(pic.FullImagePath) || !System.IO.File.Exists(pic.FullThumbnailPath))
+                if (!System.IO.File.Exists(pic.FullImagePath))
                 {
-                    if (System.IO.File.Exists(pic.FullImagePath))
-                    {
-                        System.IO.File.Delete(pic.FullImagePath);
-                    }
-                    if (System.IO.File.Exists(pic.FullThumbnailPath))
-                    {
-                        System.IO.File.Delete(pic.FullThumbnailPath);
-                    }
                     Delete(pic.TvDB_ImageFanartID);
                 }
                 else

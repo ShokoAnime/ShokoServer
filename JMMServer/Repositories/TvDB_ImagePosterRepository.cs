@@ -78,10 +78,6 @@ namespace JMMServer.Repositories
             {
                 if (!System.IO.File.Exists(pic.FullImagePath))
                 {
-                    if (System.IO.File.Exists(pic.FullImagePath))
-                    {
-                        System.IO.File.Delete(pic.FullImagePath);
-                    }
                     Delete(pic.TvDB_ImagePosterID);
                 }
                 else

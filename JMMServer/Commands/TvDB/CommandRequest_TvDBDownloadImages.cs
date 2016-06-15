@@ -27,9 +27,11 @@ namespace JMMServer.Commands
             }
         }
 
+        /*
         public CommandRequest_TvDBDownloadImages()
         {
         }
+        */
 
         /*
 		public CommandRequest_TvDBDownloadImages(int tvDBSeriesID, bool forced)
