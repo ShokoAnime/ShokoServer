@@ -489,7 +489,7 @@ namespace PlexMediaInfo
                             {
                                 if (!string.IsNullOrEmpty(m.Width))
                                 {
-                                    m.VideoResolution = GetResolution(int.Parse(m.Width), int.Parse(m.Height));
+                                    m.VideoResolution = GetResolution(float.Parse(m.Width), float.Parse(m.Height));
                                     m.AspectRatio = GetAspectRatio(float.Parse(m.Width), float.Parse(m.Height), s.PA);
                                 }
                             }
@@ -514,8 +514,12 @@ namespace PlexMediaInfo
                             m.VideoCodec = s.Codec;
                             if (!string.IsNullOrEmpty(m.Duration) && !string.IsNullOrEmpty(s.Duration))
                             {
-                                if (int.Parse(s.Duration) > int.Parse(m.Duration))
-                                    m.Duration = p.Duration = s.Duration;
+                                double sdur = 0;
+                                double mdur = 0;
+                                double.TryParse(s.Duration,NumberStyles.Any,CultureInfo.InvariantCulture, out sdur);
+                                double.TryParse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture, out mdur);
+                                if (sdur> mdur)
+                                    m.Duration = p.Duration = ((int)sdur).ToString();
                             }
                             if (video_count == 1)
                             {
@@ -547,8 +551,12 @@ namespace PlexMediaInfo
                             m.AudioChannels = s.Channels;
                             if (!string.IsNullOrEmpty(m.Duration) && !string.IsNullOrEmpty(s.Duration))
                             {
-                                if (int.Parse(s.Duration) > int.Parse(m.Duration))
-                                    m.Duration = p.Duration = s.Duration;
+                                double sdur = 0;
+                                double mdur = 0;
+                                double.TryParse(s.Duration, NumberStyles.Any, CultureInfo.InvariantCulture, out sdur);
+                                double.TryParse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture, out mdur);
+                                if (sdur > mdur)
+                                    m.Duration = p.Duration = ((int)sdur).ToString();
                             }
                             if (audio_count == 1)
                             {
@@ -558,7 +566,9 @@ namespace PlexMediaInfo
                         }
                         if (!string.IsNullOrEmpty(s.Bitrate))
                         {
-                            totalsoundrate += int.Parse(s.Bitrate);
+                            double birate = 0;
+                            double.TryParse(s.Bitrate, NumberStyles.Any, CultureInfo.InvariantCulture, out birate);
+                            totalsoundrate += (int)brate;
                         }
                         if (m.Container != "mkv")
                         {
@@ -571,7 +581,9 @@ namespace PlexMediaInfo
                 if ((VideoStream != null) && string.IsNullOrEmpty(VideoStream.Bitrate) &&
                     !string.IsNullOrEmpty(m.Bitrate))
                 {
-                    VideoStream.Bitrate = (int.Parse(m.Bitrate) - totalsoundrate).ToString(CultureInfo.InvariantCulture);
+                    double mrate = 0;
+                    double.TryParse(m.Bitrate, NumberStyles.Any, CultureInfo.InvariantCulture, out  mrate);
+                    VideoStream.Bitrate = (((int)mrate) - totalsoundrate).ToString(CultureInfo.InvariantCulture);
                 }
 
 
@@ -715,10 +727,10 @@ namespace PlexMediaInfo
             return false;
         }
 
-        private static string GetResolution(int width, int height)
+        private static string GetResolution(float width, float height)
 
         {
-            int h = (int) Math.Round((float) width/1.777777777777777F);
+            float h = (float)Math.Round((float) width/1.777777777777777F);
             if (height > h)
                 h = height;
             if (h > 720)

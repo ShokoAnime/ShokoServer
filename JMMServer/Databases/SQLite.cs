@@ -146,12 +146,6 @@ namespace JMMServer.Databases
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
                 UpdateSchema_044(versionNumber);
-                UpdateSchema_045(versionNumber);
-                UpdateSchema_046(versionNumber);
-                UpdateSchema_047(versionNumber);
-                UpdateSchema_048(versionNumber);
-                UpdateSchema_049(versionNumber);
-                UpdateSchema_050(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1339,25 +1333,106 @@ namespace JMMServer.Databases
             SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
             myConn.Open();
 
+            string createcommand = "CREATE TABLE AniDB_Anime ( " +
+                                   " AniDB_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                   " AnimeID int NOT NULL, " +
+                                   " EpisodeCount int NOT NULL, " +
+                                   " AirDate timestamp NULL, " +
+                                   " EndDate timestamp NULL, " +
+                                   " URL text NULL, " +
+                                   " Picname text NULL, " +
+                                   " BeginYear int NOT NULL, " +
+                                   " EndYear int NOT NULL, " +
+                                   " AnimeType int NOT NULL, " +
+                                   " MainTitle text NOT NULL, " +
+                                   " AllTitles text NOT NULL, " +
+                                   " AllTags text NOT NULL, " +
+                                   " Description text NOT NULL, " +
+                                   " EpisodeCountNormal int NOT NULL, " +
+                                   " EpisodeCountSpecial int NOT NULL, " +
+                                   " Rating int NOT NULL, " +
+                                   " VoteCount int NOT NULL, " +
+                                   " TempRating int NOT NULL, " +
+                                   " TempVoteCount int NOT NULL, " +
+                                   " AvgReviewRating int NOT NULL, " +
+                                   " ReviewCount int NOT NULL, " +
+                                   " DateTimeUpdated timestamp NOT NULL, " +
+                                   " DateTimeDescUpdated timestamp NOT NULL, " +
+                                   " ImageEnabled int NOT NULL, " +
+                                   " AwardList text NOT NULL, " +
+                                   " Restricted int NOT NULL, " +
+                                   " AnimePlanetID int NULL, " +
+                                   " ANNID int NULL, " +
+                                   " AllCinemaID int NULL, " +
+                                   " AnimeNfo int NULL, " +
+                                   " LatestEpisodeNumber int NULL, " +
+                                   " DisableExternalLinksFlag int NULL " +
+                                   " )";
+            List<string> indexcommands = new List<string>() { "CREATE UNIQUE INDEX [UIX2_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);" };
+            DropColumns(myConn, "AniDB_Anime", new List<string>() { "AllCategories"}, createcommand, indexcommands);
+            
             List<string> cmds = new List<string>();
+
+            //AniDB Updates
             cmds.Add("ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractString text NULL");
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractSize int NOT NULL DEFAULT 0");
+
+            //AnimeGroup Updates
+
             cmds.Add("ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeGroup ADD ContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate timestamp NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractSize int NOT NULL DEFAULT 0");
+
+            //AnimeGroup_User Updates
             cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractString text NULL");
-            cmds.Add("ALTER TABLE AnimeGroup_User ADD KodiContractVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeGroup_User ADD KodiContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractSize int NOT NULL DEFAULT 0");
+
+            //AnimerSeries Updates
+
             cmds.Add("ALTER TABLE AnimeSeries ADD ContractVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeSeries ADD ContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate timestamp NULL");
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractSize int NOT NULL DEFAULT 0");
+
+            //AnimeSeries_User Updates
+
             cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractString text NULL");
-            cmds.Add("ALTER TABLE AnimeSeries_User ADD KodiContractVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeSeries_User ADD KodiContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractSize int NOT NULL DEFAULT 0");
+
+            //GroupFilter Updates
+
             cmds.Add("ALTER TABLE GroupFilter ADD GroupsIdsVersion int NOT NULL DEFAULT 0");
             cmds.Add("ALTER TABLE GroupFilter ADD GroupsIdsString text NULL");
+            cmds.Add("ALTER TABLE GroupFilter ADD GroupConditionsVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE GroupFilter ADD GroupConditions text NULL");
+            cmds.Add("ALTER TABLE GroupFilter ADD ParentGroupFilterID int NULL");
+            cmds.Add("ALTER TABLE GroupFilter ADD InvisibleInClients int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE GroupFilter ADD SeriesIdsVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE GroupFilter ADD SeriesIdsString text NULL");
+
+            //AnimeEpisode Updates
+
+            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractSize int NOT NULL DEFAULT 0");
+
+
+            //AnimeEpisode_User Updates
+
             cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractString text NULL");
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractSize int NOT NULL DEFAULT 0");
+
+            //VideoLocal Updates
+
+            cmds.Add("ALTER TABLE VideoLocal ADD MediaVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE VideoLocal ADD MediaBlob BLOB NULL");
+            cmds.Add("ALTER TABLE VideoLocal ADD MediaSize int NOT NULL DEFAULT 0");
+
 
             foreach (string cmdTable in cmds)
             {
@@ -1373,67 +1448,10 @@ namespace JMMServer.Databases
             // Now do the migratiuon
         }
 
-        private static void UpdateSchema_045(int currentVersionNumber)
-        {
-            int thisVersion = 45;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
-            myConn.Open();
-
-            List<string> cmds = new List<string>();
-            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractString text NULL");
-            cmds.Add("ALTER TABLE VideoLocal ADD MediaVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE Videolocal ADD MediaString text NULL");
-            foreach (string cmdTable in cmds)
-            {
-                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
-                sqCommand.Connection = myConn;
-                sqCommand.ExecuteNonQuery();
-            }
-
-            myConn.Close();
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private static void UpdateSchema_046(int currentVersionNumber)
-        {
-            int thisVersion = 46;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
-            myConn.Open();
-
-            List<string> cmds = new List<string>();
-            DropColumns(myConn, "AnimeGroup_User", new List<string> {"KodiContractVersion", "KodiContractString"});
-            DropColumns(myConn, "AnimeSeries_User", new List<string> {"KodiContractVersion", "KodiContractString"});
-
-/*			cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractVersion");
-            cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractString");
-            cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractVersion");
-            cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractString");
-			*/
-            foreach (string cmdTable in cmds)
-            {
-                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
-                sqCommand.Connection = myConn;
-                sqCommand.ExecuteNonQuery();
-            }
-
-            myConn.Close();
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
+  
         //WE NEED TO DROP SOME SQL LITE COLUMNS...
 
-        private static void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove)
+        private static void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove, string createcommand, List<string> indexcommands)
         {
             List<string> updatedTableColumns = GetTableColumns(tableName);
             colsToRemove.ForEach(a => updatedTableColumns.Remove(a));
@@ -1441,7 +1459,9 @@ namespace JMMServer.Databases
             List<string> cmds = new List<string>();
 
             cmds.Add("ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;");
-            cmds.Add("CREATE TABLE " + tableName + " AS SELECT " + columnsSeperated + " FROM " + tableName + "_old;");
+            cmds.Add(createcommand);
+            cmds.AddRange(indexcommands);
+            cmds.Add("INSERT INTO "+tableName + " SELECT " + columnsSeperated + " FROM " + tableName + "_old; ");
             cmds.Add("DROP TABLE " + tableName + "_old;");
             foreach (string cmdTable in cmds)
             {
@@ -1463,120 +1483,7 @@ namespace JMMServer.Databases
             return columns;
         }
 
-        private static void UpdateSchema_047(int currentVersionNumber)
-        {
-            int thisVersion = 47;
-            if (currentVersionNumber >= thisVersion) return;
 
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
-            myConn.Open();
-            List<string> cmds = new List<string>();
-            cmds.Add("ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate timestamp NULL");
-            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate timestamp NULL");
-            foreach (string cmdTable in cmds)
-            {
-                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
-                sqCommand.Connection = myConn;
-                try
-                {
-                    sqCommand.ExecuteNonQuery();
-                }
-                catch (Exception e) //This might fall on mixed branches
-                {
-                }
-            }
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private static void UpdateSchema_048(int currentVersionNumber)
-        {
-            int thisVersion = 48;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
-            myConn.Open();
-            List<string> cmds = new List<string>();
-            cmds.Add("ALTER TABLE GroupFilter ADD GroupConditionsVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE GroupFilter ADD GroupConditions text NULL");
-            cmds.Add("ALTER TABLE GroupFilter ADD ParentGroupFilterID int NULL");
-            cmds.Add("ALTER TABLE GroupFilter ADD InvisibleInClients int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE GroupFilter ADD SeriesIdsVersion int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE GroupFilter ADD SeriesIdsString text NULL");
-            foreach (string cmdTable in cmds)
-            {
-                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
-                sqCommand.Connection = myConn;
-                try
-                {
-                    sqCommand.ExecuteNonQuery();
-                }
-                catch (Exception e) //This might fall on mixed branches
-                {
-                }
-            }
-            UpdateDatabaseVersion(thisVersion);
-        }
-        private static void UpdateSchema_049(int currentVersionNumber)
-        {
-            int thisVersion = 49;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
-            myConn.Open();
-            List<string> cmds = new List<string>();
-            DropColumns(myConn, "AniDB_Anime", new List<string> { "ContractString" });
-            DropColumns(myConn, "VideoLocal", new List<string> { "MediaString" });
-            DropColumns(myConn, "AnimeEpisode", new List<string> { "PlexContractString" });
-            DropColumns(myConn, "AnimeEpisode_User", new List<string> { "ContractString" });
-            DropColumns(myConn, "AnimeSeries", new List<string> { "ContractString" });
-            DropColumns(myConn, "AnimeSeries_User", new List<string> { "PlexContractString" });
-            DropColumns(myConn, "AnimeGroup_User", new List<string> { "PlexContractString" });
-            DropColumns(myConn, "AnimeGroup", new List<string> { "ContractString" });
-            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractBlob BLOB NULL");
-            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractSize int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE VideoLocal ADD MediaBlob BLOB NULL");
-            cmds.Add("ALTER TABLE VideoLocal ADD MediaSize int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractBlob BLOB NULL");
-            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractSize int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractBlob BLOB NULL");
-            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractSize int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeSeries ADD ContractBlob BLOB NULL");
-            cmds.Add("ALTER TABLE AnimeSeries ADD ContractSize int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractBlob BLOB NULL");
-            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractSize int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractBlob BLOB NULL");
-            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractSize int NOT NULL DEFAULT 0");
-            cmds.Add("ALTER TABLE AnimeGroup ADD ContractBlob BLOB NULL");
-            cmds.Add("ALTER TABLE AnimeGroup ADD ContractSize int NOT NULL DEFAULT 0");
-            foreach (string cmdTable in cmds)
-            {
-                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
-                sqCommand.Connection = myConn;
-                try
-                {
-                    sqCommand.ExecuteNonQuery();
-                }
-                catch (Exception e) //This might fall on mixed branches
-                {
-                }
-            }
-            UpdateDatabaseVersion(thisVersion);
-        }
-        private static void UpdateSchema_050(int currentVersionNumber)
-        {
-            int thisVersion = 50;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
-            myConn.Open();
-            List<string> cmds = new List<string>();
-            DropColumns(myConn, "AniDB_Anime", new List<string> { "AllCategories" });
-            UpdateDatabaseVersion(thisVersion);
-        }
 
         private static void ExecuteSQLCommands(List<string> cmds)
         {
