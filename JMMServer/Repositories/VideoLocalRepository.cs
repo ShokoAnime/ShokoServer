@@ -277,7 +277,7 @@ namespace JMMServer.Repositories
             {
                 return
                     session.CreateQuery(
-                        "FROM VideoLocal vl.VideoLocalID WHERE vl.ImportFolderID NOT IN (select ImportFolderID from ImportFolder fldr)")
+                        "Select vl.VideoLocalID FROM VideoLocal vl.VideoLocalID WHERE vl.ImportFolderID NOT IN (select ImportFolderID from ImportFolder fldr)")
                         .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
             }
         }
