@@ -36,7 +36,8 @@ namespace JMMServer.FileServer
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        if (!stop)
+                            logger.ErrorException(ex.ToString(), ex);
                     }
                 }
             });
@@ -365,11 +366,14 @@ namespace JMMServer.FileServer
             if (w <= 0 || w >= 1)
                 w = 0.89;
             WatchedThreshold = w;
+            stop = false;
             Run();
         }
 
+        private bool stop = false;
         public void Stop()
         {
+            stop = true;
             _listener.Stop();
             _listener.Close();
         }
