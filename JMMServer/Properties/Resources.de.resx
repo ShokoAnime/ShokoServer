@@ -853,4 +853,7 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Vollständiger Bericht</value>
   </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
 </root>

@@ -853,4 +853,7 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Historia completa</value>
   </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Registro de cambios</value>
+  </data>
 </root>

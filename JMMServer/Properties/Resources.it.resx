@@ -853,4 +853,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Full Story</value>
   </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
 </root>

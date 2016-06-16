@@ -853,4 +853,7 @@ Você só pode ter uma pasta listada como um destino de soltar.</value>
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>História completa</value>
   </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
 </root>

@@ -853,4 +853,7 @@
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Полная история</value>
   </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>История изменений</value>
+  </data>
 </root>

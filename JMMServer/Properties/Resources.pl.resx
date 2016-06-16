@@ -853,4 +853,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Pełen opis</value>
   </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Lista zmian</value>
+  </data>
 </root>

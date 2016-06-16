@@ -853,4 +853,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Full Story</value>
   </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
 </root>
