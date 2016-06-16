@@ -293,28 +293,31 @@ namespace JMMServer.PlexAndKodi
                 }
                 v = (Video) e.Key.PlexContract?.Clone<Video>();
             }
-            if (e.Value != null)
+            if (v != null)
             {
-                v.ViewCount = e.Value.WatchedCount.ToString();
-                if (e.Value.WatchedDate.HasValue)
-                    v.LastViewedAt = e.Value.WatchedDate.Value.ToUnixTime();
+                if (e.Value != null)
+                {
+                    v.ViewCount = e.Value.WatchedCount.ToString();
+                    if (e.Value.WatchedDate.HasValue)
+                        v.LastViewedAt = e.Value.WatchedDate.Value.ToUnixTime();
+                }
+                v.ParentIndex = "1";
+                if (e.Key.EpisodeTypeEnum != enEpisodeType.Episode)
+                {
+                    v.ParentIndex = null;
+                }
+                if (cross != null && cross.Count > 0)
+                {
+                    Contract_CrossRef_AniDB_TvDBV2 c2 =
+                        cross.FirstOrDefault(
+                            a =>
+                                a.AniDBStartEpisodeType == v.EpisodeType &&
+                                a.AniDBStartEpisodeNumber <= v.EpisodeNumber);
+                    if (c2?.TvDBSeasonNumber > 0)
+                        v.ParentIndex = c2.TvDBSeasonNumber.ToString();
+                }
+                AddLinksToAnimeEpisodeVideo(prov, v, userid);
             }
-            v.ParentIndex = "1";
-            if (e.Key.EpisodeTypeEnum != enEpisodeType.Episode)
-            {
-                v.ParentIndex = null;
-            }
-            if (cross != null && cross.Count > 0)
-            {
-                Contract_CrossRef_AniDB_TvDBV2 c2 =
-                    cross.FirstOrDefault(
-                        a =>
-                            a.AniDBStartEpisodeType == v.EpisodeType &&
-                            a.AniDBStartEpisodeNumber <= v.EpisodeNumber);
-                if (c2?.TvDBSeasonNumber > 0)
-                    v.ParentIndex = c2.TvDBSeasonNumber.ToString();
-            }
-            AddLinksToAnimeEpisodeVideo(prov, v, userid);
             return v;
         }
 

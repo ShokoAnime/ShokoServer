@@ -96,16 +96,11 @@ namespace JMMServer.Commands
                     // save in bulk to improve performance
                     using (var session = JMMService.SessionFactory.OpenSession())
                     {
-                        using (var transaction = session.BeginTransaction())
+                        foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
                         {
-                            foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
-                            {
-                                CommandRequest_GetReleaseGroup cmdRelgrp =
-                                    new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
-                                cmdRelgrp.Save(session);
-                            }
-
-                            transaction.Commit();
+                            CommandRequest_GetReleaseGroup cmdRelgrp =
+                                new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
+                            cmdRelgrp.Save(session);
                         }
                     }
                 }

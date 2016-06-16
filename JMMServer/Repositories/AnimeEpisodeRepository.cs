@@ -71,7 +71,6 @@ namespace JMMServer.Repositories
 
         public void Save(ISession session, AnimeEpisode obj)
         {
-            UpdatePlexContract(obj);
             if (obj.AnimeEpisodeID == 0)
             {
                 obj.PlexContract = null;

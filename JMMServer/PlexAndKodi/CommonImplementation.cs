@@ -235,7 +235,7 @@ namespace JMMServer.PlexAndKodi
                             if (con == null)
                                 return new MemoryStream();
                             Video v = Helper.VideoFromAnimeEpisode(prov, con.CrossRefAniDBTvDBV2, ep, userid);
-                            if (v.Medias != null && v.Medias.Count > 0)
+                            if (v!=null && v.Medias != null && v.Medias.Count > 0)
                             {
                                 Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid));
                                 v.Type = "episode";
@@ -354,21 +354,24 @@ namespace JMMServer.PlexAndKodi
                 try
                 {
                     Video v = Helper.VideoFromAnimeEpisode(prov, con.CrossRefAniDBTvDBV2, ep, userid);
-                    Video nv = ser.GetPlexContract(userid);
-                    Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid));
-                    v.Type = "episode";
-                    if (v.Medias != null && v.Medias.Count > 0)
+                    if (v != null)
                     {
-                        dirs.EppAdd(prov, v, info, true);
-                        if (prov.ConstructFakeIosParent)
-                            v.GrandparentKey =
-                                prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,
-                                    v.Art ?? v.ParentArt ?? v.GrandparentArt));
-                        v.ParentKey = null;
+                        Video nv = ser.GetPlexContract(userid);
+                        Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid));
+                        if (v.Medias != null && v.Medias.Count > 0)
+                        {
+                            v.Type = "episode";
+                            dirs.EppAdd(prov, v, info, true);
+                            if (prov.ConstructFakeIosParent)
+                                v.GrandparentKey =
+                                    prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,
+                                        v.Art ?? v.ParentArt ?? v.GrandparentArt));
+                            v.ParentKey = null;
+                        }
+                        if (prov.UseBreadCrumbs)
+                            v.Key = ret.MediaContainer.Key;
+                        ret.MediaContainer.Art = Helper.ReplaceSchemeHost(nv.Art ?? nv.ParentArt ?? nv.GrandparentArt);
                     }
-                    if (prov.UseBreadCrumbs)
-                        v.Key = ret.MediaContainer.Key;
-                    ret.MediaContainer.Art = Helper.ReplaceSchemeHost(nv.Art ?? nv.ParentArt ?? nv.GrandparentArt);
                     ret.MediaContainer.Childrens = dirs;
                     return ret.GetStream(prov);
                 }
@@ -923,7 +926,7 @@ namespace JMMServer.PlexAndKodi
                     try
                     {
                         Video v = Helper.VideoFromAnimeEpisode(prov, cseries.CrossRefAniDBTvDBV2, ep, userid);
-                        if (v.Medias != null && v.Medias.Count > 0)
+                        if (v!=null && v.Medias != null && v.Medias.Count > 0)
                         {
                             Helper.AddInformationFromMasterSeries(v, cseries, nv);
                             v.Type = "episode";
