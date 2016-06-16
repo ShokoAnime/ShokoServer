@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using JMMContracts.PlexAndKodi;
 
 namespace JMMContracts
 {
@@ -20,5 +22,7 @@ namespace JMMContracts
         public int IsVariation { get; set; }
 
         public Contract_ImportFolder ImportFolder { get; set; }
+
+        public Media Media { get; set; }
     }
 }

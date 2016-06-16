@@ -6308,8 +6308,7 @@ namespace JMMServer
 
                 return
                     repEpUser.GetMostRecentlyWatched(jmmuserID, maxRecords)
-                        .Select(a => a.Contract)
-                        .Where(a => a != null)
+                        .Select(a => repEps.GetByID(a.AnimeEpisodeID).GetUserContract(jmmuserID))
                         .ToList();
                 /*
                                 using (var session = JMMService.SessionFactory.OpenSession())
@@ -6511,7 +6510,7 @@ namespace JMMServer
             try
             {
                 AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
-                return repEpUser.GetLastWatchedEpisodeForSeries(animeSeriesID, jmmuserID).Contract;
+                return repEpUser.GetLastWatchedEpisodeForSeries(animeSeriesID, jmmuserID)?.Contract;
                 /*
                                 using (var session = JMMService.SessionFactory.OpenSession())
                                 {

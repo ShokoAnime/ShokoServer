@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using AniDBAPI;
 using BinaryNorthwest;
+using FluentNHibernate.Utils;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
@@ -13,6 +15,7 @@ using JMMServer.Repositories;
 using NHibernate;
 using NLog;
 using Directory = System.IO.Directory;
+using Stream = JMMContracts.PlexAndKodi.Stream;
 
 namespace JMMServer.Entities
 {
@@ -745,7 +748,25 @@ namespace JMMServer.Entities
                 contract.IsWatched = 1;
                 contract.WatchedDate = userRecord.WatchedDate;
             }
-
+            if (Media != null)
+            {
+                contract.Media = (Media) Media.DeepCopy();
+                if (contract.Media?.Parts != null)
+                {
+                    foreach (Part p in contract.Media?.Parts)
+                    {
+                        string ff = Path.GetExtension(p.Extension);
+                        p.Key = PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID, ff, false);
+                        if (p.Streams != null)
+                        {
+                            foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
+                            {
+                                s.Key = PlexAndKodi.Helper.ConstructFileStream(userID, s.File, false);
+                            }
+                        }
+                    }
+                }
+            }
             return contract;
         }
 
