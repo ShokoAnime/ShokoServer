@@ -86,15 +86,26 @@ namespace JMMServer.Providers.MovieDB
             {
                 foreach (MovieDB_Poster poster in repPosters.GetByMovieID(session, movie.MovieId))
                 {
-                    if (numPostersDownloaded >= ServerSettings.MovieDB_AutoPostersAmount) break;
-
-                    // download the image
-                    if (!string.IsNullOrEmpty(poster.FullImagePath) && !File.Exists(poster.FullImagePath))
+                    if (numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
                     {
-                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID,
-                            JMMImageType.MovieDB_Poster, false);
-                        cmd.Save(session);
-                        numPostersDownloaded++;
+                        // download the image
+                        if (!string.IsNullOrEmpty(poster.FullImagePath) && !File.Exists(poster.FullImagePath))
+                        {
+                            CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID,
+                                JMMImageType.MovieDB_Poster, false);
+                            cmd.Save(session);
+                            numPostersDownloaded++;
+                        }
+                    }
+                    else
+                    {
+                        //The MovieDB_AutoPostersAmount should prevent from saving image info without image
+                        // we should clean those image that we didn't download because those dont exists in local repo
+                        // first we check if file was downloaded
+                        if (!File.Exists(poster.FullImagePath))
+                        {
+                            repPosters.Delete(poster.MovieDB_PosterID);
+                        }
                     }
                 }
             }
@@ -104,15 +115,26 @@ namespace JMMServer.Providers.MovieDB
             {
                 foreach (MovieDB_Fanart fanart in repFanart.GetByMovieID(session, movie.MovieId))
                 {
-                    if (numFanartDownloaded >= ServerSettings.MovieDB_AutoFanartAmount) break;
-
-                    // download the image
-                    if (!string.IsNullOrEmpty(fanart.FullImagePath) && !File.Exists(fanart.FullImagePath))
+                    if (numFanartDownloaded < ServerSettings.MovieDB_AutoFanartAmount)
                     {
-                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID,
-                            JMMImageType.MovieDB_FanArt, false);
-                        cmd.Save(session);
-                        numFanartDownloaded++;
+                        // download the image
+                        if (!string.IsNullOrEmpty(fanart.FullImagePath) && !File.Exists(fanart.FullImagePath))
+                        {
+                            CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID,
+                                JMMImageType.MovieDB_FanArt, false);
+                            cmd.Save(session);
+                            numFanartDownloaded++;
+                        }
+                    }
+                    else
+                    {
+                        //The MovieDB_AutoFanartAmount should prevent from saving image info without image
+                        // we should clean those image that we didn't download because those dont exists in local repo
+                        // first we check if file was downloaded
+                        if (!File.Exists(fanart.FullImagePath))
+                        {
+                            repFanart.Delete(fanart.MovieDB_FanartID);
+                        }
                     }
                 }
             }
