@@ -2165,6 +2165,7 @@ namespace JMMServer
         private static void StartBinaryHost()
         {
             BinaryMessageEncodingBindingElement encoding = new BinaryMessageEncodingBindingElement();
+            encoding.CompressionFormat = CompressionFormat.GZip;
             HttpTransportBindingElement transport = new HttpTransportBindingElement();
             Binding binding = new CustomBinding(encoding, transport);
             binding.Name = "BinaryBinding";
@@ -2181,6 +2182,7 @@ namespace JMMServer
             ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
             smb.HttpGetEnabled = true;
             smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
+            
             hostBinary.Description.Behaviors.Add(smb);
             hostBinary.AddServiceEndpoint(typeof(IJMMServer), binding, baseAddressBinary);
 
