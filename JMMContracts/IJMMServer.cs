@@ -221,6 +221,9 @@ namespace JMMContracts
         List<Contract_GroupFilter> GetGroupFilters(int gfparentid = 0);
 
         [OperationContract]
+        Contract_GroupFilter GetGroupFilter(int gf);
+
+        [OperationContract]
         List<Contract_GroupFilterExtended> GetGroupFiltersExtended(int userID, int gfparentid = 0);
 
         [OperationContract]

@@ -417,7 +417,20 @@ namespace JMMServer
             }
             return gfs;
         }
-
+        public Contract_GroupFilter GetGroupFilter(int gf)
+        {
+            List<Contract_GroupFilter> gfs = new List<Contract_GroupFilter>();
+            try
+            {
+                GroupFilterRepository repGF = new GroupFilterRepository();
+                return repGF.GetByID(gf)?.ToContract();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return null;
+        }
         public Contract_GroupFilter EvaluateGroupFilter(Contract_GroupFilter contract)
         {
             try
