@@ -1530,6 +1530,7 @@ namespace JMMServer
                         ser = new AnimeSeries();
                         ser.Populate(anime);
                         ser.AnimeGroupID = animeGroupID.Value;
+                        repSeries.Save(ser, false);
                     }
                     else
                     {
