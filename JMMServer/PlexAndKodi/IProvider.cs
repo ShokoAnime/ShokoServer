@@ -11,7 +11,7 @@ namespace JMMServer.PlexAndKodi
         string ServiceAddress { get; }
         int ServicePort { get; }
         bool UseBreadCrumbs { get; }
-        bool AddExtraItemForSearchButtonInGroupFilters { get; }
+        int AddExtraItemForSearchButtonInGroupFilters { get; }
         bool ConstructFakeIosParent { get; }
         bool AutoWatch { get;  }
         string Proxyfy(string url);

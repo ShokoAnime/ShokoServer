@@ -108,8 +108,7 @@ namespace JMMServer.PlexAndKodi
                 }
                 ret.MediaContainer.RandomizeArt(dirs);
                 ret.Childrens = dirs;
-                if (prov.AddExtraItemForSearchButtonInGroupFilters)
-                    ret.MediaContainer.Size = (int.Parse(ret.MediaContainer.Size) + 1).ToString();
+                ret.MediaContainer.Size = (int.Parse(ret.MediaContainer.Size) + prov.AddExtraItemForSearchButtonInGroupFilters).ToString();
                 return ret.GetStream(prov);
             }
             catch (Exception ex)

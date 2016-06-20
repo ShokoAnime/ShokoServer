@@ -13,7 +13,7 @@ namespace JMMServer.PlexAndKodi.Kodi
         public string ServiceAddress => MainWindow.PathAddressKodi;
         public int ServicePort => int.Parse(ServerSettings.JMMServerPort);
         public bool UseBreadCrumbs => false;
-        public bool AddExtraItemForSearchButtonInGroupFilters => false;
+        public int AddExtraItemForSearchButtonInGroupFilters => 0;
         public bool ConstructFakeIosParent => false;
         public bool AutoWatch => false;
 
