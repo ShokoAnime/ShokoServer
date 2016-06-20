@@ -2376,6 +2376,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Changelog.
+        /// </summary>
+        internal static string Update_Changelog {
+            get {
+                return ResourceManager.GetString("Update_Changelog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Download Page.
         /// </summary>
         internal static string Update_DownloadPage {

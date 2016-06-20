@@ -439,6 +439,16 @@ namespace JMMServer.Providers.TvDB
                             numFanartDownloaded++;
                         }
                     }
+                    else
+                    {
+                        //The TvDB_AutoFanartAmount point to download less images than its available
+                        // we should clean those image that we didn't download because those dont exists in local repo
+                        // first we check if file was downloaded
+                        if (!File.Exists(img.FullImagePath))
+                        {
+                            repFanart.Delete(img.TvDB_ImageFanartID);
+                        }
+                    }
                 }
 
                 if (obj.GetType() == typeof(TvDB_ImagePoster))
@@ -453,6 +463,16 @@ namespace JMMServer.Providers.TvDB
                                 JMMImageType.TvDB_Cover, forceDownload);
                             cmd.Save();
                             numPostersDownloaded++;
+                        }
+                    }
+                    else
+                    {
+                        //The TvDB_AutoPostersAmount point to download less images than its available
+                        // we should clean those image that we didn't download because those dont exists in local repo
+                        // first we check if file was downloaded
+                        if (!File.Exists(img.FullImagePath))
+                        {
+                            repPosters.Delete(img.TvDB_ImagePosterID);
                         }
                     }
                 }
@@ -471,6 +491,16 @@ namespace JMMServer.Providers.TvDB
                                     JMMImageType.TvDB_Banner, forceDownload);
                             cmd.Save();
                             numBannersDownloaded++;
+                        }
+                    }
+                    else
+                    {
+                        //The TvDB_AutoWideBannersAmount point to download less images than its available
+                        // we should clean those image that we didn't download because those dont exists in local repo
+                        // first we check if file was downloaded
+                        if (!File.Exists(img.FullImagePath))
+                        {
+                            repBanners.Delete(img.TvDB_ImageWideBannerID);
                         }
                     }
                 }

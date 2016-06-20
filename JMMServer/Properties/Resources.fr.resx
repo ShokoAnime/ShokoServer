@@ -853,4 +853,7 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Lire l'article</value>
   </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
 </root>
