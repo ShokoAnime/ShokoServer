@@ -1,4 +1,6 @@
-﻿namespace JMMContracts
+﻿using System.Collections.Generic;
+
+namespace JMMContracts
 {
     public class Contract_JMMUser
     {
@@ -8,8 +10,8 @@
         public int IsAdmin { get; set; }
         public int IsAniDBUser { get; set; }
         public int IsTraktUser { get; set; }
-        public string HideCategories { get; set; }
+        public HashSet<string> HideCategories { get; set; }
         public int? CanEditServerSettings { get; set; }
-        public string PlexUsers { get; set; }
+        public HashSet<string> PlexUsers { get; set; }
     }
 }

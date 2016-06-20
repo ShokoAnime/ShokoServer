@@ -99,7 +99,8 @@ namespace AniDBAPI.Commands
             commandText += "&ed2k=" + fileData.ED2KHash;
             commandText += string.Format("&fmask={0}{1}{2}{3}{4}", fByte1.ToString("X").PadLeft(2, '0'),
                 fByte2.ToString("X").PadLeft(2, '0'), fByte3.ToString("X").PadLeft(2, '0'),
-                fByte4.ToString("X").PadLeft(2, '0'), fByte5.ToString("X").PadLeft(2, '0'));
+                fByte4.ToString("X").PadLeft(2, '0'),
+                fByte5.ToString("X").PadLeft(2, '0'));
             commandText += string.Format("&amask={0}{1}{2}{3}", aByte1.ToString("X").PadLeft(2, '0'),
                 aByte2.ToString("X").PadLeft(2, '0'), aByte3.ToString("X").PadLeft(2, '0'),
                 aByte4.ToString("X").PadLeft(2, '0'));

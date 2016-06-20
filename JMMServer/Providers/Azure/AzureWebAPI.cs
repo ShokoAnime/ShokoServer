@@ -34,12 +34,12 @@ namespace JMMServer.Providers.Azure
 
             //localhost:50994
             //jmm.azurewebsites.net
-            string uri =
-                string.Format(
-                    @"http://{0}/api/CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}&p3={4}&p4={5}&p5={6}&p6={7}&p7={8}",
-                    azureHostBaseAddress,
-                    animeID, ServerSettings.AniDB_Username, aniDBStartEpisodeType, aniDBStartEpisodeNumber, tvDBID,
-                    tvDBSeasonNumber, tvDBStartEpisodeNumber, ServerSettings.WebCacheAuthKey);
+            string uri = string.Format(
+                @"http://{0}/api/CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}&p3={4}&p4={5}&p5={6}&p6={7}&p7={8}",
+                azureHostBaseAddress,
+                animeID, ServerSettings.AniDB_Username, aniDBStartEpisodeType, aniDBStartEpisodeNumber, tvDBID,
+                tvDBSeasonNumber,
+                tvDBStartEpisodeNumber, ServerSettings.WebCacheAuthKey);
 
 
             string json = DeleteDataJson(uri);
@@ -137,12 +137,12 @@ namespace JMMServer.Providers.Azure
 
             //localhost:50994
             //jmm.azurewebsites.net
-            string uri =
-                string.Format(
-                    @"http://{0}/api/CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}&p3={4}&p4={5}&p5={6}&p6={7}&p7={8}",
-                    azureHostBaseAddress,
-                    animeID, ServerSettings.AniDB_Username, aniDBStartEpisodeType, aniDBStartEpisodeNumber, traktID,
-                    traktSeasonNumber, traktStartEpisodeNumber, ServerSettings.WebCacheAuthKey);
+            string uri = string.Format(
+                @"http://{0}/api/CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}&p3={4}&p4={5}&p5={6}&p6={7}&p7={8}",
+                azureHostBaseAddress,
+                animeID, ServerSettings.AniDB_Username, aniDBStartEpisodeType, aniDBStartEpisodeNumber, traktID,
+                traktSeasonNumber,
+                traktStartEpisodeNumber, ServerSettings.WebCacheAuthKey);
 
 
             string json = DeleteDataJson(uri);
@@ -222,7 +222,8 @@ namespace JMMServer.Providers.Azure
                 username = Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Other/{1}?p={2}&p2={3}", azureHostBaseAddress,
-                animeID, username, (int) xrefType);
+                animeID,
+                username, (int) xrefType);
             string msg = string.Format("Getting AniDB/Other Cross Ref From Cache: {0}", animeID);
 
             DateTime start = DateTime.Now;
@@ -265,7 +266,8 @@ namespace JMMServer.Providers.Azure
                 username = Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/CrossRef_AniDB_Other/{1}?p={2}&p2={3}", azureHostBaseAddress,
-                animeID, username, (int) xrefType);
+                animeID,
+                username, (int) xrefType);
 
 
             string json = DeleteDataJson(uri);
@@ -715,10 +717,10 @@ namespace JMMServer.Providers.Azure
                 uinfo.FileCount = repVids.GetTotalRecordCount();
 
                 AnimeEpisode_UserRepository repEps = new AnimeEpisode_UserRepository();
-                List<AnimeEpisode_User> recs = repEps.GetLastWatchedEpisode();
+                AnimeEpisode_User rec = repEps.GetLastWatchedEpisode();
                 uinfo.LastEpisodeWatched = 0;
-                if (recs.Count > 0)
-                    uinfo.LastEpisodeWatched = Utils.GetAniDBDateAsSeconds(recs[0].WatchedDate);
+                if (rec != null)
+                    uinfo.LastEpisodeWatched = Utils.GetAniDBDateAsSeconds(rec.WatchedDate);
 
                 return uinfo;
             }
@@ -759,7 +761,8 @@ namespace JMMServer.Providers.Azure
 
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}",
-                azureHostBaseAddress, animeID, username, ServerSettings.WebCacheAuthKey);
+                azureHostBaseAddress,
+                animeID, username, ServerSettings.WebCacheAuthKey);
             string msg = string.Format("Getting AniDB/TvDB Cross Ref From Cache: {0}", animeID);
 
             string json = GetDataJson(uri);
@@ -776,7 +779,8 @@ namespace JMMServer.Providers.Azure
                 username = Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}",
-                azureHostBaseAddress, crossRef_AniDB_TvDBId, username, ServerSettings.WebCacheAuthKey);
+                azureHostBaseAddress,
+                crossRef_AniDB_TvDBId, username, ServerSettings.WebCacheAuthKey);
             string json = string.Empty;
 
             return SendData(uri, json, "POST");
@@ -789,7 +793,8 @@ namespace JMMServer.Providers.Azure
                 username = Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_TvDB/{1}?p={2}&p2={3}",
-                azureHostBaseAddress, crossRef_AniDB_TvDBId, username, ServerSettings.WebCacheAuthKey);
+                azureHostBaseAddress,
+                crossRef_AniDB_TvDBId, username, ServerSettings.WebCacheAuthKey);
             string json = string.Empty;
 
             return SendData(uri, json, "PUT");
@@ -820,7 +825,8 @@ namespace JMMServer.Providers.Azure
 
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}",
-                azureHostBaseAddress, animeID, username, ServerSettings.WebCacheAuthKey);
+                azureHostBaseAddress,
+                animeID, username, ServerSettings.WebCacheAuthKey);
             string msg = string.Format("Getting AniDB/Trakt Cross Ref From Cache: {0}", animeID);
 
             string json = GetDataJson(uri);
@@ -837,7 +843,8 @@ namespace JMMServer.Providers.Azure
                 username = Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}",
-                azureHostBaseAddress, crossRef_AniDB_TraktId, username, ServerSettings.WebCacheAuthKey);
+                azureHostBaseAddress,
+                crossRef_AniDB_TraktId, username, ServerSettings.WebCacheAuthKey);
             string json = string.Empty;
 
             return SendData(uri, json, "POST");
@@ -850,7 +857,8 @@ namespace JMMServer.Providers.Azure
                 username = Constants.AnonWebCacheUsername;
 
             string uri = string.Format(@"http://{0}/api/Admin_CrossRef_AniDB_Trakt/{1}?p={2}&p2={3}",
-                azureHostBaseAddress, crossRef_AniDB_TraktId, username, ServerSettings.WebCacheAuthKey);
+                azureHostBaseAddress,
+                crossRef_AniDB_TraktId, username, ServerSettings.WebCacheAuthKey);
             string json = string.Empty;
 
             return SendData(uri, json, "PUT");

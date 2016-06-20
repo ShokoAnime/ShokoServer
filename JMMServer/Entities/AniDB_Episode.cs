@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
@@ -99,9 +98,9 @@ namespace JMMServer.Entities
         {
             // check if there is an existing episode for this EpisodeID
             AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-            List<AnimeEpisode> existingEps = repEps.GetByAniEpisodeIDAndSeriesID(session, EpisodeID, animeSeriesID);
+            AnimeEpisode existingEp = repEps.GetByAniDBEpisodeID(session, EpisodeID);
 
-            if (existingEps.Count == 0)
+            if (existingEp == null)
             {
                 AnimeEpisode animeEp = new AnimeEpisode();
                 animeEp.Populate(this);

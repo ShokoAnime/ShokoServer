@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
@@ -10,12 +10,13 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>JMMServer</RootNamespace>
     <AssemblyName>JMMServer</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
     <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>ce0854c0</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -23,20 +24,22 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;UNSAFE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;UNSAFE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>db.ico</ApplicationIcon>
@@ -47,6 +50,9 @@
   <PropertyGroup>
     <StartupObject>
     </StartupObject>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Antlr3.Runtime">
@@ -93,8 +99,8 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\MySql.Data.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="NHibernate">
@@ -110,15 +116,16 @@
     <Reference Include="Remotion.Data.Linq">
       <HintPath>..\Dependencies\Remotion.Data.Linq.dll</HintPath>
     </Reference>
-    <Reference Include="RestSharp">
-      <HintPath>..\packages\RestSharp.104.5.0\lib\net4\RestSharp.dll</HintPath>
+    <Reference Include="RestSharp, Version=105.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RestSharp.105.2.3\lib\net46\RestSharp.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Data.SQLite, Version=1.0.94.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\System.Data.SQLite.Core.1.0.94.0\lib\net45\System.Data.SQLite.dll</HintPath>
+    <Reference Include="System.Data.SQLite, Version=1.0.101.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Data.SQLite.Core.1.0.101.0\lib\net46\System.Data.SQLite.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Net" />
@@ -127,14 +134,16 @@
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.ServiceModel.Web" />
     <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="TMDbLib">
-      <HintPath>..\packages\TMDbLib.0.7.7\lib\net40\TMDbLib.dll</HintPath>
+    <Reference Include="TMDbLib, Version=0.8.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TMDbLib.0.8.3\lib\net45\TMDbLib.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
@@ -213,6 +222,27 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="Databases\DatabaseFixes.cs" />
+    <Compile Include="Extensions.cs" />
+    <Compile Include="LZ4\CompressionHelper.cs" />
+    <Compile Include="LZ4\LZ4Codec.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe32.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe32HC.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe64.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Safe64HC.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe32.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe32HC.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe64.Dirty.cs" />
+    <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
+    <Compile Include="ObjectExtensions.cs" />
+    <Compile Include="PlexAndKodi\IProvider.cs" />
+    <Compile Include="PlexAndKodi\Kodi\KodiImplementation.cs" />
+    <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
+    <Compile Include="PlexAndKodi\Plex\PlexImplementation.cs" />
+    <Compile Include="PlexAndKodi\Plex\PlexProvider.cs" />
+    <Compile Include="PocoCache.cs" />
     <Compile Include="BitMaskHelper.cs" />
     <Compile Include="BlockingList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetEpisode.cs" />
@@ -296,8 +326,7 @@
     <Compile Include="FileServer\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
     <Compile Include="JMMServiceImplementationMetro.cs" />
-    <Compile Include="JMMServiceImplementationKodi.cs" />
-    <Compile Include="JMMServiceImplementationPlex.cs" />
+    <Compile Include="PlexAndKodi\CommonImplementation.cs" />
     <Compile Include="JMMServiceImplementationREST.cs" />
     <Compile Include="JMMServiceImplementationStreaming.cs" />
     <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
@@ -313,23 +342,13 @@
     <Compile Include="Mappings\FileFfdshowPresetMap.cs" />
     <Compile Include="Mappings\PlaylistMap.cs" />
     <Compile Include="Mappings\RenameScriptMap.cs" />
-    <Compile Include="Kodi\KodiEpisodeType.cs" />
-    <Compile Include="Kodi\KodiExtensions.cs" />
-    <Compile Include="Kodi\KodiHelper.cs" />
-    <Compile Include="Kodi\KodiObject.cs" />
-    <Compile Include="Kodi\Utf8SringWriter.cs" />
-    <Compile Include="Plex\HistoryInfo.cs" />
-    <Compile Include="Plex\MediaContainerTypes.cs" />
-    <Compile Include="Plex\PlexEpisodeType.cs" />
-    <Compile Include="Plex\PlexExtensions.cs" />
-    <Compile Include="Plex\PlexHelper.cs" />
-    <Compile Include="Plex\PlexObject.cs" />
-    <Compile Include="Plex\Utf8SringWriter.cs" />
-    <Compile Include="Properties\Resources.de.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.de.resx</DependentUpon>
-    </Compile>
+    <Compile Include="PlexAndKodi\Breadcrumbs.cs" />
+    <Compile Include="PlexAndKodi\MediaContainerTypes.cs" />
+    <Compile Include="PlexAndKodi\EpisodeType.cs" />
+    <Compile Include="PlexAndKodi\Extensions.cs" />
+    <Compile Include="PlexAndKodi\Helper.cs" />
+    <Compile Include="PlexAndKodi\BaseObject.cs" />
+    <Compile Include="PlexAndKodi\Utf8SringWriter.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -400,6 +419,10 @@
     <Compile Include="Providers\JMMAutoUpdates\Update.cs" />
     <Compile Include="Providers\JMMAutoUpdates\Updates.cs" />
     <Compile Include="Providers\JMMAutoUpdates\Versions.cs" />
+    <Compile Include="Providers\JSONHelper.cs" />
+    <Compile Include="Providers\MovieDB\MovieDBHelper.cs" />
+    <Compile Include="Providers\MovieDB\MovieDB_Image_Result.cs" />
+    <Compile Include="Providers\MovieDB\MovieDB_Movie_Result.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
     <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
@@ -448,11 +471,15 @@
     <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2WatchedEpisode.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2WatchedSeason.cs" />
     <Compile Include="Providers\TraktTV\TraktConstants.cs" />
+    <Compile Include="Providers\TraktTV\TraktTVHelper.cs" />
     <Compile Include="Providers\TraktTV\TraktURIs.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktV2RefreshToken.cs" />
     <Compile Include="Providers\TraktTV\Contracts\TraktDetailsContainer.cs" />
     <Compile Include="Providers\TraktTV\Contracts\TraktSummaryContainer.cs" />
     <Compile Include="Providers\TvDB\TvDBDetails.cs" />
+    <Compile Include="Providers\TvDB\TvDBHelper.cs" />
+    <Compile Include="Providers\TvDB\TvDBLanguage.cs" />
+    <Compile Include="Providers\TvDB\TVDBSeriesSearchResult.cs" />
     <Compile Include="Providers\TvDB\TvDBSummary.cs" />
     <Compile Include="Repositories\AniDB_MylistStatsRepository.cs" />
     <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
@@ -600,14 +627,6 @@
     <Compile Include="MultiSortLib\SortSearchCriteria.cs" />
     <Compile Include="MultiSortLib\ValueComparison.cs" />
     <Compile Include="NamingLanguage.cs" />
-    <Compile Include="Providers\JSONHelper.cs" />
-    <Compile Include="Providers\MovieDB\MovieDBHelper.cs" />
-    <Compile Include="Providers\MovieDB\MovieDB_Image_Result.cs" />
-    <Compile Include="Providers\MovieDB\MovieDB_Movie_Result.cs" />
-    <Compile Include="Providers\TraktTV\TraktTVHelper.cs" />
-    <Compile Include="Providers\TvDB\TvDBHelper.cs" />
-    <Compile Include="Providers\TvDB\TVDBSeriesSearchResult.cs" />
-    <Compile Include="Providers\TvDB\TvDBLanguage.cs" />
     <Compile Include="Repositories\AdhocRepository.cs" />
     <Compile Include="Repositories\AniDB_AnimeRepository.cs" />
     <Compile Include="Repositories\AniDB_Anime_CharacterRepository.cs" />
@@ -670,7 +689,6 @@
     <Compile Include="Security\StringTools.cs" />
     <Compile Include="ServerSettings.cs" />
     <Compile Include="ServerState.cs" />
-    <Compile Include="StatsCache.cs" />
     <Compile Include="SubStream.cs" />
     <Compile Include="TimeUpdater.cs" />
     <Compile Include="UI\AboutForm.xaml.cs">
@@ -706,6 +724,11 @@
     <Compile Include="Utilities\RenameFileHelper.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WatchedUnwatchedCount.cs" />
+    <Compile Include="WCFCompression\CompressedMessageEncoderFactory.cs" />
+    <Compile Include="WCFCompression\CompressedMessageEncodingBindingElement.cs" />
+    <Compile Include="WCFCompression\CompressionSelectionEndpointBehavior.cs" />
+    <Compile Include="WCFCompression\CompressionSelectionMessageInspector.cs" />
+    <Compile Include="WCFCompression\CompressionType.cs" />
     <Compile Include="WebCache\AniDB_FileRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_MALRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_OtherRequest.cs" />
@@ -827,15 +850,6 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <AppDesigner Include="Properties\" />
-    <None Include="Providers\MyAnimeList\XMLSchema\AnimeList.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Providers\MyAnimeList\XMLSchema\SearchResult.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Providers\MyAnimeList\XMLSchema\VerifyCredentials.xsd">
-      <SubType>Designer</SubType>
-    </None>
     <None Include="Resources\plex_404.bin" />
     <None Include="Resources\plex_404V.bin" />
     <None Include="Resources\plex_credits.bin" />
@@ -919,12 +933,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\16_folder_find.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Providers\MyAnimeList\sample\AnimeList.xml" />
-    <Resource Include="Providers\MyAnimeList\sample\AnimeValues.xml" />
-    <Resource Include="Providers\MyAnimeList\sample\SearchResult.xml" />
-    <Resource Include="Providers\MyAnimeList\sample\VerifyCredentials.xml" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_new.png" />
@@ -1011,6 +1019,7 @@
     <Resource Include="Images\Flags\us.gif" />
     <Resource Include="Images\Flags\vi.gif" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y
@@ -1021,12 +1030,12 @@ xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y</PostBui
 xcopy "$(SolutionDir)JMMFileHelper\bin\$(ConfigurationName)\x64\*.dll" "$(TargetDir)\x64\*.dll" /S /R /I /Y	
 </PreBuildEvent>
   </PropertyGroup>
-  <Import Project="..\packages\System.Data.SQLite.Core.1.0.94.0\build\net45\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.94.0\build\net45\System.Data.SQLite.Core.targets')" />
+  <Import Project="..\packages\System.Data.SQLite.Core.1.0.101.0\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.101.0\build\net46\System.Data.SQLite.Core.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.1.0.94.0\build\net45\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.1.0.94.0\build\net45\System.Data.SQLite.Core.targets'))" />
+    <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.1.0.101.0\build\net46\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.1.0.101.0\build\net46\System.Data.SQLite.Core.targets'))" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

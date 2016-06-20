@@ -7,33 +7,28 @@ namespace JMMContracts
     public interface IJMMServerKodi
     {
         [OperationContract]
-        [WebInvoke(UriTemplate = "GetFilters/{UserId}", ResponseFormat = WebMessageFormat.Xml,
+        [WebInvoke(UriTemplate = "GetFilters/{userid}", ResponseFormat = WebMessageFormat.Xml,
             BodyStyle = WebMessageBodyStyle.Bare, Method = "*")]
-        System.IO.Stream GetFilters(string UserId);
+        System.IO.Stream GetFilters(string userid);
 
         [OperationContract]
-        [WebInvoke(UriTemplate = "GetMetadata/{UserId}/{TypeId}/{Id}", ResponseFormat = WebMessageFormat.Xml,
+        [WebInvoke(UriTemplate = "GetMetadata/{userid}/{typeid}/{id}", ResponseFormat = WebMessageFormat.Xml,
             BodyStyle = WebMessageBodyStyle.Bare, Method = "*")]
-        System.IO.Stream GetMetadata(string UserId, string TypeId, string Id);
-
-        [OperationContract]
-        [WebGet(UriTemplate = "GetFile/{Id}", ResponseFormat = WebMessageFormat.Xml,
-            BodyStyle = WebMessageBodyStyle.Bare)]
-        System.IO.Stream GetFile(string Id);
+        System.IO.Stream GetMetadata(string userid, string typeid, string id);
 
         [OperationContract]
         [WebGet(UriTemplate = "GetUsers", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
         System.IO.Stream GetUsers();
 
         [OperationContract]
-        [WebGet(UriTemplate = "Search/{UserId}/{limit}/{query}", ResponseFormat = WebMessageFormat.Xml,
+        [WebGet(UriTemplate = "Search/{userid}/{limit}/{query}", ResponseFormat = WebMessageFormat.Xml,
             BodyStyle = WebMessageBodyStyle.Bare)]
-        System.IO.Stream Search(string UserId, string limit, string query);
+        System.IO.Stream Search(string userid, string limit, string query);
 
         [OperationContract]
-        [WebGet(UriTemplate = "SearchTag/{UserId}/{limit}/{query}", ResponseFormat = WebMessageFormat.Xml,
+        [WebGet(UriTemplate = "SearchTag/{userid}/{limit}/{query}", ResponseFormat = WebMessageFormat.Xml,
             BodyStyle = WebMessageBodyStyle.Bare)]
-        System.IO.Stream SearchTag(string UserId, string limit, string query);
+        System.IO.Stream SearchTag(string userid, string limit, string query);
 
         [OperationContract]
         [WebGet(UriTemplate = "GetSupportImage/{name}", ResponseFormat = WebMessageFormat.Xml,
@@ -43,7 +38,7 @@ namespace JMMContracts
         [OperationContract]
         [WebGet(UriTemplate = "Watch/{userid}/{episodeid}/{watchedstatus}", ResponseFormat = WebMessageFormat.Xml,
             BodyStyle = WebMessageBodyStyle.Bare)]
-        void ToggleWatchedStatusOnEpisode(string userid, string episodeid, string watchedstatus);
+        System.IO.Stream ToggleWatchedStatusOnEpisode(string userid, string episodeid, string watchedstatus);
 
         [OperationContract]
         [WebGet(UriTemplate = "Vote/{userid}/{seriesid}/{votevalue}/{votetype}", ResponseFormat = WebMessageFormat.Xml,
@@ -51,8 +46,13 @@ namespace JMMContracts
         System.IO.Stream VoteAnime(string userid, string seriesid, string votevalue, string votetype);
 
         [OperationContract]
-        [WebGet(UriTemplate = "TraktScrobble/{animeId}/{type}/{progress}/{status}",
-            ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
-        System.IO.Stream TraktScrobble(string animeId, string type, string progress, string status);
+        [WebGet(UriTemplate = "TraktScrobble/{animeid}/{type}/{progress}/{status}",
+            ResponseFormat = WebMessageFormat.Xml,
+            BodyStyle = WebMessageBodyStyle.Bare)]
+        System.IO.Stream TraktScrobble(string animeid, string type, string progress, string status);
+
+        [OperationContract]
+        [WebGet(UriTemplate = "GetVersion", ResponseFormat = WebMessageFormat.Xml, BodyStyle = WebMessageBodyStyle.Bare)]
+        System.IO.Stream GetVersion();
     }
 }

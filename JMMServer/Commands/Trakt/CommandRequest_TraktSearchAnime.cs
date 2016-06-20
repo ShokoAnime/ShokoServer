@@ -101,7 +101,8 @@ namespace JMMServer.Commands
                         {
                             // first search for this show by the TvDB ID
                             List<TraktV2SearchTvDBIDShowResult> searchResults =
-                                TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb, tvXRef.TvDBID.ToString());
+                                TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb,
+                                    tvXRef.TvDBID.ToString());
                             if (searchResults != null && searchResults.Count > 0)
                             {
                                 // since we are searching by ID, there will only be one 'show' result
@@ -127,7 +128,8 @@ namespace JMMServer.Commands
                                         {
                                             Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
                                             Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(session,
-                                                traktShow.Trakt_ShowID, xrefTvDBs[0].TvDBSeasonNumber);
+                                                traktShow.Trakt_ShowID,
+                                                xrefTvDBs[0].TvDBSeasonNumber);
                                             if (traktSeason != null)
                                             {
                                                 logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}",
@@ -135,7 +137,8 @@ namespace JMMServer.Commands
                                                 TraktTVHelper.LinkAniDBTrakt(AnimeID,
                                                     (AniDBAPI.enEpisodeType) tvXRef.AniDBStartEpisodeType,
                                                     tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug,
-                                                    tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber, true);
+                                                    tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
+                                                    true);
                                                 return;
                                             }
                                         }
@@ -194,7 +197,8 @@ namespace JMMServer.Commands
                     if (showInfo != null)
                     {
                         TraktTVHelper.LinkAniDBTrakt(session, AnimeID, AniDBAPI.enEpisodeType.Episode, 1,
-                            results[0].show.ids.slug, 1, 1, true);
+                            results[0].show.ids.slug, 1, 1,
+                            true);
                         return true;
                     }
                 }

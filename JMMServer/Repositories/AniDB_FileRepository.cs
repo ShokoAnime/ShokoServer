@@ -25,7 +25,7 @@ namespace JMMServer.Repositories
             if (updateStats)
             {
                 logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {0}", obj.Hash);
-                StatsCache.Instance.UpdateUsingAniDBFile(obj.Hash);
+                AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
             }
         }
 
@@ -136,7 +136,7 @@ namespace JMMServer.Repositories
             }
 
             if (animeID > 0)
-                StatsCache.Instance.UpdateAnimeContract(animeID);
+                AniDB_Anime.UpdateStatsByAnimeID(animeID);
         }
     }
 }

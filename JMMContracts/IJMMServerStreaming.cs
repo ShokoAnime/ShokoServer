@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.ServiceModel;
+﻿using System.ServiceModel;
 
 namespace JMMContracts
 {
@@ -7,6 +6,6 @@ namespace JMMContracts
     public interface IJMMServerStreaming
     {
         [OperationContract]
-        Stream Download(string fileName);
+        System.IO.Stream Download(string fileName);
     }
 }

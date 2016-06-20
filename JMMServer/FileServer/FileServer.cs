@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -18,8 +19,8 @@ namespace JMMServer.FileServer
         private static Logger logger = LogManager.GetCurrentClassLogger();
         private HttpListener _listener;
 
-        private const double WatchedThreshold = 0.89;
-            //89% Should be enough to not touch matroska offsets and give us some margin
+        //89% Should be enough to not touch matroska offsets and give us some margin
+        private double WatchedThreshold = 0.89;
 
 
         private void Run()
@@ -35,7 +36,8 @@ namespace JMMServer.FileServer
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        if (!stop)
+                            logger.ErrorException(ex.ToString(), ex);
                     }
                 }
             });
@@ -184,14 +186,17 @@ namespace JMMServer.FileServer
             {
                 bool fname = false;
                 string[] dta = obj.Request.RawUrl.Split(new char[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
-                if (dta.Length < 3)
+                if (dta.Length < 4)
                     return;
                 string cmd = dta[0].ToLower();
                 string user = dta[1];
+                string aw = dta[3];
                 string arg = dta[2];
                 string fullname;
                 int userid = 0;
+                int autowatch = 0;
                 int.TryParse(user, out userid);
+                int.TryParse(aw, out autowatch);
                 VideoLocal loc = null;
                 if (cmd == "videolocal")
                 {
@@ -313,14 +318,15 @@ namespace JMMServer.FileServer
                         obj.Response.ContentLength64 = totalsize;
                         obj.Response.StatusCode = (int) HttpStatusCode.OK;
                     }
-                    if ((userid != 0) && (loc != null))
+                    if ((userid != 0) && (loc != null) && autowatch==1)
                     {
                         outstream.CrossPosition = (long) ((double) totalsize*WatchedThreshold);
                         outstream.CrossPositionCrossed +=
                             (a) =>
                             {
                                 Task.Factory.StartNew(() => { loc.ToggleWatchedStatus(true, userid); },
-                                    new CancellationToken(), TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                                    new CancellationToken(),
+                                    TaskCreationOptions.LongRunning, TaskScheduler.Default);
                             };
                     }
                     obj.Response.SendChunked = false;
@@ -355,11 +361,19 @@ namespace JMMServer.FileServer
 
         public void Start()
         {
+            double w;
+            double.TryParse(ServerSettings.PluginAutoWatchThreshold, NumberStyles.Any, CultureInfo.InvariantCulture, out w);
+            if (w <= 0 || w >= 1)
+                w = 0.89;
+            WatchedThreshold = w;
+            stop = false;
             Run();
         }
 
+        private bool stop = false;
         public void Stop()
         {
+            stop = true;
             _listener.Stop();
             _listener.Close();
         }

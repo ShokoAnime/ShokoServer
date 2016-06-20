@@ -9,6 +9,9 @@ using BinaryNorthwest;
 using JMMContracts;
 using JMMServer.Commands;
 using JMMServer.ImageDownload;
+using JMMServer.LZ4;
+using JMMServer.Properties;
+using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
 using NHibernate;
 using NHibernate.Criterion;
@@ -32,7 +35,6 @@ namespace JMMServer.Entities
         public int AnimeType { get; set; }
         public string MainTitle { get; set; }
         public string AllTitles { get; set; }
-        public string AllCategories { get; set; }
         public string AllTags { get; set; }
         public string Description { get; set; }
         public int EpisodeCountNormal { get; set; }
@@ -53,10 +55,42 @@ namespace JMMServer.Entities
         public int? AllCinemaID { get; set; }
         public int? AnimeNfo { get; set; }
         public int? LatestEpisodeNumber { get; set; }
-        public DateTime? LatestEpisodeAirDate { get; set; }
         public int DisableExternalLinksFlag { get; set; }
 
+        public int ContractVersion { get; set; }
+        public byte[] ContractBlob { get; set; }
+        public int ContractSize { get; set; }
+
+        public const int CONTRACT_VERSION = 5;
+
+
         #endregion
+
+        private Contract_AniDB_AnimeDetailed _contract = null;
+
+        public virtual Contract_AniDB_AnimeDetailed Contract
+        {
+            get
+            {
+                if ((_contract == null) && (ContractBlob != null) && (ContractBlob.Length > 0) && (ContractSize > 0))
+                    _contract = CompressionHelper.DeserializeObject<Contract_AniDB_AnimeDetailed>(ContractBlob,
+                        ContractSize);
+                return _contract;
+            }
+            set
+            {
+                _contract = value;
+                int outsize;
+                ContractBlob = CompressionHelper.SerializeObject(value, out outsize);
+                ContractSize = outsize;
+                ContractVersion = CONTRACT_VERSION;
+            }
+        }
+
+        public void CollectContractMemory()
+        {
+            _contract = null;
+        }
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -92,19 +126,19 @@ namespace JMMServer.Entities
                 switch (AnimeTypeEnum)
                 {
                     case enAnimeType.Movie:
-                        return JMMServer.Properties.Resources.AnimeType_Movie;
+                        return Resources.AnimeType_Movie;
                     case enAnimeType.Other:
-                        return JMMServer.Properties.Resources.AnimeType_Other;
+                        return Resources.AnimeType_Other;
                     case enAnimeType.OVA:
-                        return JMMServer.Properties.Resources.AnimeType_OVA;
+                        return Resources.AnimeType_OVA;
                     case enAnimeType.TVSeries:
-                        return JMMServer.Properties.Resources.AnimeType_TVSeries;
+                        return Resources.AnimeType_TVSeries;
                     case enAnimeType.TVSpecial:
-                        return JMMServer.Properties.Resources.AnimeType_TVSpecial;
+                        return Resources.AnimeType_TVSpecial;
                     case enAnimeType.Web:
-                        return JMMServer.Properties.Resources.AnimeType_Web;
+                        return Resources.AnimeType_Web;
                     default:
-                        return JMMServer.Properties.Resources.AnimeType_Other;
+                        return Resources.AnimeType_Other;
                 }
             }
         }
@@ -148,7 +182,7 @@ namespace JMMServer.Entities
         {
             get
             {
-                if (string.IsNullOrEmpty(Picname)) return "";
+                if (String.IsNullOrEmpty(Picname)) return "";
 
                 return Path.Combine(ImageUtils.GetAniDBImagePath(AnimeID), Picname);
             }
@@ -516,7 +550,7 @@ namespace JMMServer.Entities
             if (xref == null) return null;
 
             MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
-            return repMovies.GetByOnlineID(session, int.Parse(xref.CrossRefID));
+            return repMovies.GetByOnlineID(session, Int32.Parse(xref.CrossRefID));
         }
 
         public List<MovieDB_Fanart> GetMovieDBFanarts()
@@ -533,7 +567,7 @@ namespace JMMServer.Entities
             if (xref == null) return new List<MovieDB_Fanart>();
 
             MovieDB_FanartRepository repFanart = new MovieDB_FanartRepository();
-            return repFanart.GetByMovieID(session, int.Parse(xref.CrossRefID));
+            return repFanart.GetByMovieID(session, Int32.Parse(xref.CrossRefID));
         }
 
         public List<MovieDB_Poster> GetMovieDBPosters()
@@ -550,7 +584,7 @@ namespace JMMServer.Entities
             if (xref == null) return new List<MovieDB_Poster>();
 
             MovieDB_PosterRepository repPosters = new MovieDB_PosterRepository();
-            return repPosters.GetByMovieID(session, int.Parse(xref.CrossRefID));
+            return repPosters.GetByMovieID(session, Int32.Parse(xref.CrossRefID));
         }
 
         public AniDB_Anime_DefaultImage GetDefaultPoster()
@@ -838,7 +872,7 @@ namespace JMMServer.Entities
                     if (fanarts.Count == 0) return null;
 
                     TvDB_ImageFanart tvFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                    return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
+                    return String.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
                 }
             }
             else
@@ -852,7 +886,7 @@ namespace JMMServer.Entities
                         TvDB_ImageFanartRepository repTvFanarts = new TvDB_ImageFanartRepository();
                         TvDB_ImageFanart tvFanart = repTvFanarts.GetByID(GetDefaultFanart(session).ImageParentID);
                         if (tvFanart != null)
-                            return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
+                            return String.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
 
                         break;
 
@@ -1190,7 +1224,8 @@ namespace JMMServer.Entities
                         string titleType = title.TitleType.Trim().ToUpper();
                         // first try the  Main title
                         if (titleType == Constants.AnimeTitleType.Main.ToUpper() &&
-                            title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
+                            title.Language.Trim().ToUpper() == thisLanguage)
+                            return title.Title;
                     }
                 }
 
@@ -1199,7 +1234,8 @@ namespace JMMServer.Entities
                 {
                     string titleType = title.TitleType.Trim().ToUpper();
                     if (titleType == Constants.AnimeTitleType.Official.ToUpper() &&
-                        title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
+                        title.Language.Trim().ToUpper() == thisLanguage)
+                        return title.Title;
                 }
 
                 // try synonyms
@@ -1209,7 +1245,8 @@ namespace JMMServer.Entities
                     {
                         string titleType = title.TitleType.Trim().ToUpper();
                         if (titleType == Constants.AnimeTitleType.Synonym.ToUpper() &&
-                            title.Language.Trim().ToUpper() == thisLanguage) return title.Title;
+                            title.Language.Trim().ToUpper() == thisLanguage)
+                            return title.Title;
                     }
                 }
             }
@@ -1361,7 +1398,6 @@ namespace JMMServer.Entities
             this.EndYear = animeInfo.EndYear;
             this.MainTitle = animeInfo.MainTitle;
             this.AllTitles = "";
-            this.AllCategories = "";
             this.AllTags = "";
             //this.EnglishName = animeInfo.EnglishName;
             this.EpisodeCount = animeInfo.EpisodeCount;
@@ -1393,7 +1429,7 @@ namespace JMMServer.Entities
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations)
         {
             logger.Trace("------------------------------------------------");
-            logger.Trace(string.Format("PopulateAndSaveFromHTTP: for {0} - {1}", animeInfo.AnimeID, animeInfo.MainTitle));
+            logger.Trace(String.Format("PopulateAndSaveFromHTTP: for {0} - {1}", animeInfo.AnimeID, animeInfo.MainTitle));
             logger.Trace("------------------------------------------------");
 
             DateTime start0 = DateTime.Now;
@@ -1407,44 +1443,43 @@ namespace JMMServer.Entities
             DateTime start = DateTime.Now;
 
             CreateEpisodes(session, eps);
-
             TimeSpan ts = DateTime.Now - start;
-            logger.Trace(string.Format("CreateEpisodes in : {0}", ts.TotalMilliseconds));
+            logger.Trace(String.Format("CreateEpisodes in : {0}", ts.TotalMilliseconds));
             start = DateTime.Now;
 
             CreateTitles(session, titles);
             ts = DateTime.Now - start;
-            logger.Trace(string.Format("CreateTitles in : {0}", ts.TotalMilliseconds));
+            logger.Trace(String.Format("CreateTitles in : {0}", ts.TotalMilliseconds));
             start = DateTime.Now;
 
             CreateTags(session, tags);
             ts = DateTime.Now - start;
-            logger.Trace(string.Format("CreateTags in : {0}", ts.TotalMilliseconds));
+            logger.Trace(String.Format("CreateTags in : {0}", ts.TotalMilliseconds));
             start = DateTime.Now;
 
             CreateCharacters(session, chars);
             ts = DateTime.Now - start;
-            logger.Trace(string.Format("CreateCharacters in : {0}", ts.TotalMilliseconds));
+            logger.Trace(String.Format("CreateCharacters in : {0}", ts.TotalMilliseconds));
             start = DateTime.Now;
 
             CreateRelations(session, rels, downloadRelations);
             ts = DateTime.Now - start;
-            logger.Trace(string.Format("CreateRelations in : {0}", ts.TotalMilliseconds));
+            logger.Trace(String.Format("CreateRelations in : {0}", ts.TotalMilliseconds));
             start = DateTime.Now;
 
             CreateSimilarAnime(session, sims);
             ts = DateTime.Now - start;
-            logger.Trace(string.Format("CreateSimilarAnime in : {0}", ts.TotalMilliseconds));
+            logger.Trace(String.Format("CreateSimilarAnime in : {0}", ts.TotalMilliseconds));
             start = DateTime.Now;
 
             CreateRecommendations(session, recs);
             ts = DateTime.Now - start;
-            logger.Trace(string.Format("CreateRecommendations in : {0}", ts.TotalMilliseconds));
+            logger.Trace(String.Format("CreateRecommendations in : {0}", ts.TotalMilliseconds));
             start = DateTime.Now;
 
             repAnime.Save(this);
             ts = DateTime.Now - start0;
-            logger.Trace(string.Format("TOTAL TIME in : {0}", ts.TotalMilliseconds));
+            logger.Trace(String.Format("TOTAL TIME in : {0}", ts.TotalMilliseconds));
             logger.Trace("------------------------------------------------");
         }
 
@@ -1490,7 +1525,7 @@ namespace JMMServer.Entities
                     .List<AniDB_Episode>();
 
                 List<AniDB_Episode> existingEps = new List<AniDB_Episode>(tempEps);
-
+                AnimeSeriesRepository repSers = new AnimeSeriesRepository();
                 // delete any old records
                 foreach (AniDB_Episode epOld in existingEps)
                 {
@@ -1542,12 +1577,10 @@ namespace JMMServer.Entities
                 epsToSave.Add(epNew);
 
                 // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
-                if (epNew.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Episode)
-                {
+                if (epNew.EpisodeTypeEnum == enEpisodeType.Episode)
                     this.EpisodeCountNormal++;
-                }
 
-                if (epNew.EpisodeTypeEnum == AniDBAPI.enEpisodeType.Special)
+                if (epNew.EpisodeTypeEnum == enEpisodeType.Special)
                     this.EpisodeCountSpecial++;
             }
             using (var transaction = session.BeginTransaction())
@@ -1652,7 +1685,9 @@ namespace JMMServer.Entities
                     session.SaveOrUpdate(xref);
 
                 foreach (AniDB_Anime_Tag xref in xrefsToDelete)
+                {
                     repTagsXRefs.Delete(xref.AniDB_Anime_TagID);
+                }
 
                 transaction.Commit();
             }
@@ -1909,23 +1944,23 @@ namespace JMMServer.Entities
             return sb.ToString();
         }
 
-        public Contract_AniDBAnime ToContract(bool getDefaultImages, List<AniDB_Anime_Title> titles)
-        {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return ToContract(session, getDefaultImages, titles);
-            }
-        }
-
-        public Contract_AniDBAnime ToContract(ISession session, bool getDefaultImages, List<AniDB_Anime_Title> titles)
+        private Contract_AniDBAnime GenerateContract(ISession session, List<AniDB_Anime_Title> titles)
         {
             Contract_AniDBAnime contract = new Contract_AniDBAnime();
-
             contract.AirDate = this.AirDate;
-            contract.AllCategories = this.AllCategories;
             contract.AllCinemaID = this.AllCinemaID;
-            contract.AllTags = this.AllTags;
-            contract.AllTitles = this.AllTitles;
+
+            //TODO this can 
+            contract.AllTags =
+                new HashSet<string>(
+                    this.AllTags.Split(new char[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(a => a.Trim())
+                        .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
+            contract.AllTitles =
+                new HashSet<string>(
+                    this.AllTitles.Split(new char[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(a => a.Trim())
+                        .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
             contract.AnimeID = this.AnimeID;
             contract.AnimeNfo = this.AnimeNfo;
             contract.AnimePlanetID = this.AnimePlanetID;
@@ -1944,7 +1979,6 @@ namespace JMMServer.Entities
             contract.EpisodeCountSpecial = this.EpisodeCountSpecial;
             contract.ImageEnabled = this.ImageEnabled;
             contract.LatestEpisodeNumber = this.LatestEpisodeNumber;
-            contract.LatestEpisodeAirDate = this.LatestEpisodeAirDate;
             contract.MainTitle = this.MainTitle;
             contract.Picname = this.Picname;
             contract.Rating = this.Rating;
@@ -1954,156 +1988,58 @@ namespace JMMServer.Entities
             contract.TempVoteCount = this.TempVoteCount;
             contract.URL = this.URL;
             contract.VoteCount = this.VoteCount;
-
-            if (titles == null)
-                contract.FormattedTitle = this.GetFormattedTitle(session);
-            else
-                contract.FormattedTitle = GetFormattedTitle(titles);
-
+            contract.FormattedTitle = GetFormattedTitle(titles);
             contract.DisableExternalLinksFlag = this.DisableExternalLinksFlag;
-
-            if (getDefaultImages)
-            {
-                AniDB_Anime_DefaultImage defFanart = this.GetDefaultFanart(session);
-                if (defFanart != null) contract.DefaultImageFanart = defFanart.ToContract(session);
-
-                AniDB_Anime_DefaultImage defPoster = this.GetDefaultPoster(session);
-                if (defPoster != null) contract.DefaultImagePoster = defPoster.ToContract(session);
-
-                AniDB_Anime_DefaultImage defBanner = this.GetDefaultWideBanner(session);
-                if (defBanner != null) contract.DefaultImageWideBanner = defBanner.ToContract(session);
-            }
-
+            AniDB_Anime_DefaultImage defFanart = this.GetDefaultFanart(session);
+            if (defFanart != null) contract.DefaultImageFanart = defFanart.ToContract(session);
+            AniDB_Anime_DefaultImage defPoster = this.GetDefaultPoster(session);
+            if (defPoster != null) contract.DefaultImagePoster = defPoster.ToContract(session);
+            AniDB_Anime_DefaultImage defBanner = this.GetDefaultWideBanner(session);
+            if (defBanner != null) contract.DefaultImageWideBanner = defBanner.ToContract(session);
+            contract.Characters = GetCharactersContract();
             return contract;
         }
 
-        public JMMServer.Providers.Azure.AnimeFull ToContractAzure()
+        public List<Contract_AniDB_Character> GetCharactersContract()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            List<Contract_AniDB_Character> chars = new List<Contract_AniDB_Character>();
+
+            try
             {
-                return ToContractAzure(session);
-            }
-        }
+                AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
+                AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
 
-        public JMMServer.Providers.Azure.AnimeFull ToContractAzure(ISession session)
-        {
-            JMMServer.Providers.Azure.AnimeFull contract = new JMMServer.Providers.Azure.AnimeFull();
-            contract.Detail = new Providers.Azure.AnimeDetail();
-            contract.Characters = new List<Providers.Azure.AnimeCharacter>();
-            contract.Comments = new List<Providers.Azure.AnimeComment>();
+                List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(this.AniDB_AnimeID);
+                if (animeChars == null || animeChars.Count == 0) return chars;
 
-            contract.Detail.AllTags = this.TagsString;
-            contract.Detail.AllCategories = this.TagsString;
-            contract.Detail.AnimeID = this.AnimeID;
-            contract.Detail.AnimeName = this.MainTitle;
-            contract.Detail.AnimeType = this.AnimeTypeDescription;
-            contract.Detail.Description = this.Description;
-            contract.Detail.EndDateLong = Utils.GetAniDBDateAsSeconds(this.EndDate);
-            contract.Detail.StartDateLong = Utils.GetAniDBDateAsSeconds(this.AirDate);
-            contract.Detail.EpisodeCountNormal = this.EpisodeCountNormal;
-            contract.Detail.EpisodeCountSpecial = this.EpisodeCountSpecial;
-            contract.Detail.FanartURL = GetDefaultFanartOnlineURL(session);
-            contract.Detail.OverallRating = this.AniDBRating;
-            contract.Detail.PosterURL = string.Format(Constants.URLS.AniDB_Images, Picname);
-            contract.Detail.TotalVotes = this.AniDBTotalVotes;
-
-            AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
-            AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
-
-            List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(session, AnimeID);
-
-            if (animeChars != null || animeChars.Count > 0)
-            {
-                // first get all the main characters
-                foreach (
-                    AniDB_Anime_Character animeChar in
-                        animeChars.Where(
-                            item =>
-                                item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
+                foreach (AniDB_Anime_Character animeChar in animeChars)
                 {
-                    AniDB_Character chr = repChar.GetByCharID(session, animeChar.CharID);
+                    AniDB_Character chr = repChar.GetByCharID(animeChar.CharID);
                     if (chr != null)
-                        contract.Characters.Add(chr.ToContractAzure(animeChar));
-                }
-
-                // now get the rest
-                foreach (
-                    AniDB_Anime_Character animeChar in
-                        animeChars.Where(
-                            item =>
-                                !item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase))
-                    )
-                {
-                    AniDB_Character chr = repChar.GetByCharID(session, animeChar.CharID);
-                    if (chr != null)
-                        contract.Characters.Add(chr.ToContractAzure(animeChar));
+                        chars.Add(chr.ToContract(animeChar));
                 }
             }
-
-            AniDB_RecommendationRepository repBA = new AniDB_RecommendationRepository();
-
-            foreach (AniDB_Recommendation rec in repBA.GetByAnimeID(session, AnimeID))
+            catch (Exception ex)
             {
-                JMMServer.Providers.Azure.AnimeComment comment = new JMMServer.Providers.Azure.AnimeComment();
-
-                comment.UserID = rec.UserID;
-                comment.UserName = "";
-
-                // Comment details
-                comment.CommentText = rec.RecommendationText;
-                comment.IsSpoiler = false;
-                comment.CommentDateLong = 0;
-
-                comment.ImageURL = string.Empty;
-
-                AniDBRecommendationType recType = (AniDBRecommendationType) rec.RecommendationType;
-                switch (recType)
-                {
-                    case AniDBRecommendationType.ForFans:
-                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBForFans;
-                        break;
-                    case AniDBRecommendationType.MustSee:
-                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBMustSee;
-                        break;
-                    case AniDBRecommendationType.Recommended:
-                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBRecommendation;
-                        break;
-                }
-
-                comment.Source = "AniDB";
-                contract.Comments.Add(comment);
+                logger.ErrorException(ex.ToString(), ex);
             }
-
-            return contract;
+            return chars;
         }
 
-        public Contract_AniDBAnime ToContract()
-        {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return ToContract(session);
-            }
-        }
-
-        public Contract_AniDBAnime ToContract(ISession session)
-        {
-            return ToContract(session, false, null);
-        }
-
-        public Contract_AniDB_AnimeDetailed ToContractDetailed(ISession session)
+        public void UpdateContractDetailed(ISession session)
         {
             AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
+            List<AniDB_Anime_Title> animeTitles = repTitles.GetByAnimeID(session, AnimeID);
+            Contract_AniDB_AnimeDetailed contract = new Contract_AniDB_AnimeDetailed();
+            contract.AniDBAnime = GenerateContract(session, animeTitles);
             AniDB_TagRepository repTags = new AniDB_TagRepository();
 
-            Contract_AniDB_AnimeDetailed contract = new Contract_AniDB_AnimeDetailed();
 
             contract.AnimeTitles = new List<Contract_AnimeTitle>();
             contract.Tags = new List<Contract_AnimeTag>();
             contract.CustomTags = new List<Contract_CustomTag>();
-            contract.AniDBAnime = this.ToContract(session);
 
             // get all the anime titles
-            List<AniDB_Anime_Title> animeTitles = repTitles.GetByAnimeID(session, AnimeID);
             if (animeTitles != null)
             {
                 foreach (AniDB_Anime_Title title in animeTitles)
@@ -2151,8 +2087,8 @@ namespace JMMServer.Entities
                 contract.UserVote = this.UserVote.ToContract();
 
             AdhocRepository repAdHoc = new AdhocRepository();
-            List<string> audioLanguages = new List<string>();
-            List<string> subtitleLanguages = new List<string>();
+            HashSet<string> audioLanguages = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+            HashSet<string> subtitleLanguages = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
             //logger.Trace(" XXXX 06");
 
@@ -2182,45 +2118,134 @@ namespace JMMServer.Entities
 
             //logger.Trace(" XXXX 08");
 
-            contract.Stat_AudioLanguages = "";
-            foreach (string audioLan in audioLanguages)
-            {
-                if (contract.Stat_AudioLanguages.Length > 0) contract.Stat_AudioLanguages += ",";
-                contract.Stat_AudioLanguages += audioLan;
-            }
+            contract.Stat_AudioLanguages = audioLanguages;
 
             //logger.Trace(" XXXX 09");
 
-            contract.Stat_SubtitleLanguages = "";
-            foreach (string subLan in subtitleLanguages)
-            {
-                if (contract.Stat_SubtitleLanguages.Length > 0) contract.Stat_SubtitleLanguages += ",";
-                contract.Stat_SubtitleLanguages += subLan;
-            }
+            contract.Stat_SubtitleLanguages = subtitleLanguages;
 
             //logger.Trace(" XXXX 10");
             contract.Stat_AllVideoQuality = repAdHoc.GetAllVideoQualityForAnime(session, this.AnimeID);
 
-            contract.Stat_AllVideoQuality_Episodes = "";
             AnimeVideoQualityStat stat = repAdHoc.GetEpisodeVideoQualityStatsForAnime(session, this.AnimeID);
+            contract.Stat_AllVideoQuality_Episodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+
             if (stat != null && stat.VideoQualityEpisodeCount.Count > 0)
             {
                 foreach (KeyValuePair<string, int> kvp in stat.VideoQualityEpisodeCount)
                 {
                     if (kvp.Value >= EpisodeCountNormal)
                     {
-                        if (contract.Stat_AllVideoQuality_Episodes.Length > 0)
-                            contract.Stat_AllVideoQuality_Episodes += ",";
-                        contract.Stat_AllVideoQuality_Episodes += kvp.Key;
+                        contract.Stat_AllVideoQuality_Episodes.Add(kvp.Key);
                     }
                 }
             }
 
             //logger.Trace(" XXXX 11");
 
-            return contract;
+            Contract = contract;
         }
 
+
+        public AnimeFull ToContractAzure()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                return ToContractAzure(session);
+            }
+        }
+
+        public AnimeFull ToContractAzure(ISession session)
+        {
+            AnimeFull contract = new AnimeFull();
+            contract.Detail = new AnimeDetail();
+            contract.Characters = new List<AnimeCharacter>();
+            contract.Comments = new List<AnimeComment>();
+
+            contract.Detail.AllTags = this.TagsString;
+            contract.Detail.AllCategories = this.TagsString;
+            contract.Detail.AnimeID = this.AnimeID;
+            contract.Detail.AnimeName = this.MainTitle;
+            contract.Detail.AnimeType = this.AnimeTypeDescription;
+            contract.Detail.Description = this.Description;
+            contract.Detail.EndDateLong = Utils.GetAniDBDateAsSeconds(this.EndDate);
+            contract.Detail.StartDateLong = Utils.GetAniDBDateAsSeconds(this.AirDate);
+            contract.Detail.EpisodeCountNormal = this.EpisodeCountNormal;
+            contract.Detail.EpisodeCountSpecial = this.EpisodeCountSpecial;
+            contract.Detail.FanartURL = GetDefaultFanartOnlineURL(session);
+            contract.Detail.OverallRating = this.AniDBRating;
+            contract.Detail.PosterURL = String.Format(Constants.URLS.AniDB_Images, Picname);
+            contract.Detail.TotalVotes = this.AniDBTotalVotes;
+
+            AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
+            AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
+
+            List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(session, AnimeID);
+
+            if (animeChars != null || animeChars.Count > 0)
+            {
+                // first get all the main characters
+                foreach (
+                    AniDB_Anime_Character animeChar in
+                        animeChars.Where(
+                            item =>
+                                item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
+                {
+                    AniDB_Character chr = repChar.GetByCharID(session, animeChar.CharID);
+                    if (chr != null)
+                        contract.Characters.Add(chr.ToContractAzure(animeChar));
+                }
+
+                // now get the rest
+                foreach (
+                    AniDB_Anime_Character animeChar in
+                        animeChars.Where(
+                            item =>
+                                !item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase))
+                    )
+                {
+                    AniDB_Character chr = repChar.GetByCharID(session, animeChar.CharID);
+                    if (chr != null)
+                        contract.Characters.Add(chr.ToContractAzure(animeChar));
+                }
+            }
+
+            AniDB_RecommendationRepository repBA = new AniDB_RecommendationRepository();
+
+            foreach (AniDB_Recommendation rec in repBA.GetByAnimeID(session, AnimeID))
+            {
+                AnimeComment comment = new AnimeComment();
+
+                comment.UserID = rec.UserID;
+                comment.UserName = "";
+
+                // Comment details
+                comment.CommentText = rec.RecommendationText;
+                comment.IsSpoiler = false;
+                comment.CommentDateLong = 0;
+
+                comment.ImageURL = String.Empty;
+
+                AniDBRecommendationType recType = (AniDBRecommendationType) rec.RecommendationType;
+                switch (recType)
+                {
+                    case AniDBRecommendationType.ForFans:
+                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBForFans;
+                        break;
+                    case AniDBRecommendationType.MustSee:
+                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBMustSee;
+                        break;
+                    case AniDBRecommendationType.Recommended:
+                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBRecommendation;
+                        break;
+                }
+
+                comment.Source = "AniDB";
+                contract.Comments.Add(comment);
+            }
+
+            return contract;
+        }
 
         public AnimeSeries CreateAnimeSeriesAndGroup()
         {
@@ -2248,13 +2273,101 @@ namespace JMMServer.Entities
 
             if (ServerSettings.AutoGroupSeries)
             {
-                List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(session, ser.AniDB_ID);
+                List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(session, ser.AniDB_ID, true);
 
                 // only use if there is just one result
+
+                // we are moving all to a single group, and then naming it, so keep outside loop
+                AnimeSeries name = null;
+                string customGroupName = null;
                 if (grps != null && grps.Count > 0)
                 {
-                    ser.AnimeGroupID = grps[0].AnimeGroupID;
+                    int groupID = -1;
+                    foreach (AnimeGroup grp in grps.ToList())
+                        //FIX repSeries.Save(series, true) Groups might change the enumeration
+                    {
+                        bool groupHasCustomName = true;
+                        if (grp.GroupName.Equals("AAA Migrating Groups AAA")) continue;
+                        if (groupID == -1) groupID = grp.AnimeGroupID;
+                        ser.AnimeGroupID = groupID;
+                        if (name == null) name = ser;
+
+                        #region Naming
+
+                        if (grp.DefaultAnimeSeriesID.HasValue)
+                        {
+                            name = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
+                            if (name == null)
+                            {
+                                grp.DefaultAnimeSeriesID = null;
+                                //TODO what this means, its not saved back to AnimeGroup
+                            }
+                            else
+                            {
+                                groupHasCustomName = false;
+                            }
+                        }
+                        foreach (AnimeSeries series in grp.GetAllSeries())
+                        {
+                            series.AnimeGroupID = groupID;
+                            repSeries.Save(series, true);
+
+                            if (!grp.DefaultAnimeSeriesID.HasValue)
+                            {
+                                if (name == null)
+                                {
+                                    name = series;
+                                }
+                                else
+                                {
+                                    if (series.AirDate < name.AirDate)
+                                    {
+                                        name = series;
+                                    }
+                                }
+                                // Check all titles for custom naming, in case user changed language preferences
+                                if (series.SeriesNameOverride.Equals(grp.GroupName))
+                                {
+                                    groupHasCustomName = false;
+                                }
+                                else
+                                {
+                                    foreach (AniDB_Anime_Title title in series.GetAnime().GetTitles())
+                                    {
+                                        if (title.Title.Equals(grp.GroupName))
+                                        {
+                                            groupHasCustomName = false;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (groupHasCustomName)
+                            customGroupName = grp.GroupName;
+                    }
+                    if (name != null)
+                    {
+                        AnimeGroup newGroup = repGroups.GetByID(groupID);
+                        string newTitle = name.GetAnime().PreferredTitle;
+                        if (name.SeriesNameOverride != null && !name.SeriesNameOverride.Equals(""))
+                            newTitle = name.SeriesNameOverride;
+                        if (customGroupName != null) newTitle = customGroupName;
+                        // reset tags, description, etc to new series
+                        newGroup.Populate(name);
+                        newGroup.GroupName = newTitle;
+                        newGroup.SortName = newTitle;
+                        repGroups.Save(newGroup, true, false);
+                    }
+
+                    #endregion
+
                     createNewGroup = false;
+                    foreach (AnimeGroup group in grps)
+                    {
+                        if (group.GetAllSeries().Count == 0) repGroups.Delete(group.AnimeGroupID);
+                    }
                 }
             }
 
@@ -2262,19 +2375,19 @@ namespace JMMServer.Entities
             {
                 AnimeGroup anGroup = new AnimeGroup();
                 anGroup.Populate(ser);
-                repGroups.Save(anGroup);
+                repGroups.Save(anGroup, true, true);
 
                 ser.AnimeGroupID = anGroup.AnimeGroupID;
             }
 
-            repSeries.Save(ser);
+            repSeries.Save(ser, false, false);
 
             // check for TvDB associations
             CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(this.AnimeID, false);
             cmd.Save();
 
             // check for Trakt associations
-            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (ServerSettings.Trakt_IsEnabled && !String.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
             {
                 CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(this.AnimeID, false);
                 cmd2.Save();
@@ -2293,8 +2406,7 @@ namespace JMMServer.Entities
             foreach (AniDB_Anime_Relation rel in anime.GetRelatedAnime(session))
             {
                 string relationtype = rel.RelationType.ToLower();
-                if ((relationtype == "same setting") || (relationtype == "alternative setting") ||
-                    (relationtype == "character") || (relationtype == "other"))
+                if (AnimeGroup.IsRelationTypeInExclusions(relationtype))
                 {
                     //Filter these relations these will fix messes, like Gundam , Clamp, etc.
                     continue;
@@ -2311,6 +2423,18 @@ namespace JMMServer.Entities
                     }
                 }
             }
+        }
+
+        public static void UpdateStatsByAnimeID(int id)
+        {
+            AniDB_AnimeRepository repAnimes = new AniDB_AnimeRepository();
+            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+            AniDB_Anime an = repAnimes.GetByAnimeID(id);
+            if (an != null)
+                repAnimes.Save(an);
+            AnimeSeries series = repSeries.GetByAnimeID(id);
+            if (series != null)
+                repSeries.Save(series, true, false);
         }
     }
 }

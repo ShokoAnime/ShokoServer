@@ -111,15 +111,14 @@ namespace JMMServer.Commands
                 {
                     Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                    queueState = JMMServer.Properties.Resources.Command_Idle;
                     return queueState;
                 }
             }
             set
             {
-                lock (lockQueueCount)
+                lock (lockQueueState)
                 {
-                    queueState = value;
+                    queueState = string.IsNullOrEmpty(value) ? JMMServer.Properties.Resources.Command_Idle : value;
                     OnQueueStateChangedEvent(new QueueStateEventArgs(queueState));
                 }
             }

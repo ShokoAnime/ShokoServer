@@ -1,5 +1,6 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
 using JMMContracts;
+using JMMServer.Repositories;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -16,20 +17,18 @@ namespace JMMServer.Entities
         public int? CanEditServerSettings { get; set; }
         public string PlexUsers { get; set; }
 
-        public Contract_JMMUser ToContract()
-        {
-            Contract_JMMUser contract = new Contract_JMMUser();
 
-            contract.JMMUserID = this.JMMUserID;
-            contract.Username = this.Username;
-            contract.Password = this.Password;
-            contract.IsAdmin = this.IsAdmin;
-            contract.IsAniDBUser = this.IsAniDBUser;
-            contract.IsTraktUser = this.IsTraktUser;
-            contract.HideCategories = this.HideCategories;
-            contract.CanEditServerSettings = this.CanEditServerSettings;
-            contract.PlexUsers = this.PlexUsers;
-            return contract;
+        private Contract_JMMUser _contract = null;
+
+        public virtual Contract_JMMUser Contract
+        {
+            get
+            {
+                if (_contract == null)
+                    JMMUserRepository.GenerateContract(this);
+                return _contract;
+            }
+            set { _contract = value; }
         }
 
         /// <summary>
@@ -39,27 +38,16 @@ namespace JMMServer.Entities
         /// <returns></returns>
         public bool AllowedSeries(ISession session, AnimeSeries ser)
         {
-            if (string.IsNullOrEmpty(HideCategories)) return true;
-
-            string[] cats = HideCategories.ToLower().Split(',');
-            string[] animeCats = ser.GetAnime(session).AllCategories.ToLower().Split('|');
-            foreach (string cat in cats)
-            {
-                if (!string.IsNullOrEmpty(cat.Trim()) && animeCats.Contains(cat.Trim()))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            if (Contract.HideCategories.Count == 0) return true;
+            if (ser?.Contract?.AniDBAnime == null) return false;
+            return !Contract.HideCategories.FindInEnumerable(ser.Contract.AniDBAnime.AniDBAnime.AllTags);
         }
 
         public bool AllowedSeries(AnimeSeries ser)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return AllowedSeries(session, ser);
-            }
+            if (Contract.HideCategories.Count == 0) return true;
+            if (ser?.Contract?.AniDBAnime == null) return false;
+            return !Contract.HideCategories.FindInEnumerable(ser.Contract.AniDBAnime.AniDBAnime.AllTags);
         }
 
         /// <summary>
@@ -69,36 +57,49 @@ namespace JMMServer.Entities
         /// <returns></returns>
         public bool AllowedAnime(AniDB_Anime anime)
         {
-            if (string.IsNullOrEmpty(HideCategories)) return true;
-
-            string[] cats = HideCategories.ToLower().Split(',');
-            string[] animeCats = anime.AllCategories.ToLower().Split('|');
-            foreach (string cat in cats)
-            {
-                if (!string.IsNullOrEmpty(cat.Trim()) && animeCats.Contains(cat.Trim()))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            if (Contract.HideCategories.Count == 0) return true;
+            if (anime?.Contract?.AnimeTitles == null) return false;
+            return !Contract.HideCategories.FindInEnumerable(anime.Contract.AniDBAnime.AllTags);
         }
 
-        public bool AllowedGroup(AnimeGroup grp, AnimeGroup_User userRec)
+        public bool AllowedGroup(AnimeGroup grp)
         {
-            if (string.IsNullOrEmpty(HideCategories)) return true;
+            if (Contract.HideCategories.Count == 0) return true;
+            if (grp.Contract == null) return false;
+            return !Contract.HideCategories.FindInEnumerable(grp.Contract.Stat_AllTags);
+        }
 
-            string[] cats = HideCategories.ToLower().Split(',');
-            string[] animeCats = grp.ToContract(userRec).Stat_AllTags.ToLower().Split('|');
-            foreach (string cat in cats)
+        public static bool CompareUser(Contract_JMMUser olduser, Contract_JMMUser newuser)
+        {
+            if (olduser == null || !olduser.HideCategories.SetEquals(newuser.HideCategories))
+                return true;
+            return false;
+        }
+
+        public void UpdateGroupFilters()
+        {
+            AnimeGroupRepository repGroups = new AnimeGroupRepository();
+            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+            GroupFilterRepository repGrpFilter = new GroupFilterRepository();
+            List<GroupFilter> gfs = repGrpFilter.GetAll();
+            List<AnimeGroup> allGrps = repGroups.GetAllTopLevelGroups(); // No Need of subgroups
+            List<AnimeSeries> allSeries = repSeries.GetAll();
+            foreach (GroupFilter gf in gfs)
             {
-                if (!string.IsNullOrEmpty(cat.Trim()) && animeCats.Contains(cat.Trim()))
+                bool change = false;
+                foreach (AnimeGroup grp in allGrps)
                 {
-                    return false;
+                    Contract_AnimeGroup cgrp = grp.GetUserContract(this.JMMUserID);
+                    change |= gf.CalculateGroupFilterGroups(cgrp, Contract, JMMUserID);
                 }
+                foreach (AnimeSeries ser in allSeries)
+                {
+                    Contract_AnimeSeries cser = ser.GetUserContract(this.JMMUserID);
+                    change |= gf.CalculateGroupFilterSeries(cser, Contract, JMMUserID);
+                }
+                if (change)
+                    repGrpFilter.Save(gf);
             }
-
-            return true;
         }
     }
 }

@@ -86,7 +86,8 @@ namespace JMMServer.UI
             if (txtUsername.Text.Trim().Length == 0)
             {
                 MessageBox.Show(Properties.Resources.InitialSetup_EnterUsername, Properties.Resources.Error,
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 txtUsername.Focus();
                 return;
             }
@@ -94,7 +95,8 @@ namespace JMMServer.UI
             if (txtPassword.Password.Trim().Length == 0)
             {
                 MessageBox.Show(Properties.Resources.InitialSetup_EnterPassword, Properties.Resources.Error,
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 txtPassword.Focus();
                 return;
             }
@@ -102,7 +104,8 @@ namespace JMMServer.UI
             if (txtClientPort.Text.Trim().Length == 0)
             {
                 MessageBox.Show(Properties.Resources.InitialSetup_EnterPort, Properties.Resources.Error,
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 txtClientPort.Focus();
                 return;
             }

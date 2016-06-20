@@ -11,10 +11,10 @@
         public const string WebsiteMovie = TraktConstants.BaseWebsiteURL + @"/movies/{0}"; // /shows/:slug/seasons/:num
 
         public const string WebsiteSeason = TraktConstants.BaseWebsiteURL + @"/shows/{0}/seasons/{1}";
-            // /shows/:slug/seasons/:num
+        // /shows/:slug/seasons/:num
 
         public const string WebsiteEpisode = TraktConstants.BaseWebsiteURL + @"/shows/{0}/seasons/{1}/episodes/{2}";
-            // /shows/:slug/seasons/:num/episodes/:num
+        // /shows/:slug/seasons/:num/episodes/:num
 
         public const string WebsitePerson = TraktConstants.BaseWebsiteURL + @"/people/{0}"; // /people/:slug
         public const string WebsiteComment = TraktConstants.BaseWebsiteURL + @"/comments/{0}"; // /comments/:id
@@ -22,7 +22,7 @@
         //types
         // movie , show , episode , person , list 
         public const string Search = TraktConstants.BaseAPIURL + @"/search?query={0}&type={1}";
-            // search criteria / search type
+        // search criteria / search type
 
         // trakt-movie , trakt-show , trakt-episode , imdb , tmdb , tvdb , tvrage 
         public const string SearchByID = TraktConstants.BaseAPIURL + @"/search?id_type={0}&id={1}"; // id type / id

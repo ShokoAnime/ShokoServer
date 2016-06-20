@@ -66,7 +66,23 @@ namespace JMMServer
             }
             set { UpdateSetting("JMMServerFilePort", value); }
         }
+        public static string PluginAutoWatchThreshold
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
 
+                string th = appSettings["PluginAutoWatchThreshold"];
+                if (string.IsNullOrEmpty(th))
+                {
+                    th = "0.89";
+                    UpdateSetting("PluginAutoWatchThreshold", th);
+                }
+
+                return th;
+            }
+            set { UpdateSetting("PluginAutoWatchThreshold", value); }
+        }
         public static string PlexThumbnailAspects
         {
             get
@@ -961,6 +977,24 @@ namespace JMMServer
             set { UpdateSetting("AutoGroupSeries", value.ToString()); }
         }
 
+        public static string AutoGroupSeriesRelationExclusions
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string val = "same setting|alternative setting|character|other";
+                try
+                {
+                    val = appSettings["AutoGroupSeriesRelationExclusions"];
+                }
+                catch (Exception e)
+                {
+                }
+                return val;
+            }
+            set { UpdateSetting("AutoGroupSeriesRelationExclusions", value); }
+        }
+
         public static string LanguagePreference
         {
             get
@@ -1396,6 +1430,7 @@ namespace JMMServer
             // Import settings
             contract.VideoExtensions = ServerSettings.VideoExtensions;
             contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
+            contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
             contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
             contract.RunImportOnStart = ServerSettings.RunImportOnStart;
             contract.ScanDropFoldersOnStart = ServerSettings.ScanDropFoldersOnStart;
@@ -1484,7 +1519,8 @@ namespace JMMServer
                 {
                     FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(mediaInfoPath);
                     mediaInfoVersion = string.Format("MediaInfo DLL {0}.{1}.{2}.{3} ({4})", fvi.FileMajorPart,
-                        fvi.FileMinorPart, fvi.FileBuildPart, fvi.FilePrivatePart, mediaInfoPath);
+                        fvi.FileMinorPart,
+                        fvi.FileBuildPart, fvi.FilePrivatePart, mediaInfoPath);
                 }
                 logger.Info(mediaInfoVersion);
 
@@ -1582,6 +1618,7 @@ namespace JMMServer
             logger.Info("Trakt_SyncFrequency: {0}", Trakt_SyncFrequency);
 
             logger.Info("AutoGroupSeries: {0}", AutoGroupSeries);
+            logger.Info("AutoGroupSeriesRelationExclusions: {0}", AutoGroupSeriesRelationExclusions);
             logger.Info("LanguagePreference: {0}", LanguagePreference);
             logger.Info("LanguageUseSynonyms: {0}", LanguageUseSynonyms);
             logger.Info("EpisodeTitleSource: {0}", EpisodeTitleSource);

@@ -113,7 +113,8 @@ namespace JMMServer.Commands
                 {
                     //AzureWebAPI.Send_AnimeTitle(aniTitle);
                     CommandRequest_Azure_SendAnimeTitle cmdAzure =
-                        new CommandRequest_Azure_SendAnimeTitle(aniTitle.AnimeID, aniTitle.MainTitle, aniTitle.Titles);
+                        new CommandRequest_Azure_SendAnimeTitle(aniTitle.AnimeID,
+                            aniTitle.MainTitle, aniTitle.Titles);
                     cmdAzure.Save();
                 }
             }

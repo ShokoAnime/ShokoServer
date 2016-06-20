@@ -20,8 +20,7 @@ namespace JMMServer.Repositories
             }
             if (obj.VoteType == (int) AniDBVoteType.Anime || obj.VoteType == (int) AniDBVoteType.AnimeTemp)
             {
-                StatsCache.Instance.UpdateUsingAnime(obj.EntityID);
-                StatsCache.Instance.UpdateAnimeContract(obj.EntityID);
+                AniDB_Anime.UpdateStatsByAnimeID(obj.EntityID);
             }
         }
 
@@ -135,8 +134,7 @@ namespace JMMServer.Repositories
             }
             if (animeID.HasValue)
             {
-                StatsCache.Instance.UpdateUsingAnime(animeID.Value);
-                StatsCache.Instance.UpdateAnimeContract(animeID.Value);
+                AniDB_Anime.UpdateStatsByAnimeID(animeID.Value);
             }
         }
     }

@@ -19,6 +19,7 @@ namespace JMMServer.Entities
         public int AniDB_FileID { get; private set; }
         public int FileID { get; set; }
         public string Hash { get; set; }
+        //TODO SHOULD BE REMOVED AniDB_File might belongs to one Anime, but it may have multiple episodes that belongs to differente
         public int AnimeID { get; set; }
         public int GroupID { get; set; }
         public string File_Source { get; set; }

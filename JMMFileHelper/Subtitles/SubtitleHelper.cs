@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using JMMContracts.PlexAndKodi;
 
 namespace JMMFileHelper.Subtitles
 {
@@ -10,19 +11,13 @@ namespace JMMFileHelper.Subtitles
         private static Dictionary<string, string> _lan_lower;
 
 
-        public static List<JMMContracts.PlexContracts.Stream> GetSubtitleStreams(string fullpath)
+        public static List<Stream> GetSubtitleStreams(string fullpath)
         {
-            List<JMMContracts.PlexContracts.Stream> ls = new VobSubSubtitles().Process(fullpath);
+            List<Stream> ls = new VobSubSubtitles().Process(fullpath);
             ls.AddRange(new TextSubtitles().Process(fullpath));
             return ls;
         }
 
-        public static List<JMMContracts.KodiContracts.Stream> GetSubtitleStreamsKodi(string fullpath)
-        {
-            List<JMMContracts.KodiContracts.Stream> ls = new KodiVobSubSubtitles().Process(fullpath);
-            ls.AddRange(new KodiTextSubtitles().Process(fullpath));
-            return ls;
-        }
 
         public static Dictionary<string, string> Iso639_1_TO_Iso639_3
         {

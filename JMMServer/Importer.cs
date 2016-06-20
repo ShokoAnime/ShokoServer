@@ -334,7 +334,8 @@ namespace JMMServer
                 if (!fileExists)
                 {
                     CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID,
-                        JMMImageType.AniDB_Cover, false);
+                        JMMImageType.AniDB_Cover,
+                        false);
                     cmd.Save();
                 }
             }
@@ -372,8 +373,8 @@ namespace JMMServer
 
                     if (!fileExists && postersAvailable < ServerSettings.TvDB_AutoPostersAmount)
                     {
-                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(
-                            tvPoster.TvDB_ImagePosterID, JMMImageType.TvDB_Cover, false);
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvPoster.TvDB_ImagePosterID,
+                            JMMImageType.TvDB_Cover, false);
                         cmd.Save();
 
                         if (postersCount.ContainsKey(tvPoster.SeriesID))
@@ -417,8 +418,8 @@ namespace JMMServer
 
                     if (!fileExists && fanartAvailable < ServerSettings.TvDB_AutoFanartAmount)
                     {
-                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(
-                            tvFanart.TvDB_ImageFanartID, JMMImageType.TvDB_FanArt, false);
+                        CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvFanart.TvDB_ImageFanartID,
+                            JMMImageType.TvDB_FanArt, false);
                         cmd.Save();
 
                         if (fanartCount.ContainsKey(tvFanart.SeriesID))
@@ -463,8 +464,8 @@ namespace JMMServer
                     if (!fileExists && bannersAvailable < ServerSettings.TvDB_AutoWideBannersAmount)
                     {
                         CommandRequest_DownloadImage cmd =
-                            new CommandRequest_DownloadImage(tvBanner.TvDB_ImageWideBannerID, JMMImageType.TvDB_Banner,
-                                false);
+                            new CommandRequest_DownloadImage(tvBanner.TvDB_ImageWideBannerID,
+                                JMMImageType.TvDB_Banner, false);
                         cmd.Save();
 
                         if (fanartCount.ContainsKey(tvBanner.SeriesID))
@@ -523,7 +524,8 @@ namespace JMMServer
                     if (!fileExists && postersAvailable < ServerSettings.MovieDB_AutoPostersAmount)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(
-                            moviePoster.MovieDB_PosterID, JMMImageType.MovieDB_Poster, false);
+                            moviePoster.MovieDB_PosterID,
+                            JMMImageType.MovieDB_Poster, false);
                         cmd.Save();
 
                         if (postersCount.ContainsKey(moviePoster.MovieId))
@@ -568,7 +570,8 @@ namespace JMMServer
                     if (!fileExists && fanartAvailable < ServerSettings.MovieDB_AutoFanartAmount)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(
-                            movieFanart.MovieDB_FanartID, JMMImageType.MovieDB_FanArt, false);
+                            movieFanart.MovieDB_FanartID,
+                            JMMImageType.MovieDB_FanArt, false);
                         cmd.Save();
 
                         if (fanartCount.ContainsKey(movieFanart.MovieId))
@@ -590,8 +593,8 @@ namespace JMMServer
                     if (!fileExists)
                     {
                         CommandRequest_DownloadImage cmd =
-                            new CommandRequest_DownloadImage(traktPoster.Trakt_ImagePosterID, JMMImageType.Trakt_Poster,
-                                false);
+                            new CommandRequest_DownloadImage(traktPoster.Trakt_ImagePosterID,
+                                JMMImageType.Trakt_Poster, false);
                         cmd.Save();
                     }
                 }
@@ -608,8 +611,8 @@ namespace JMMServer
                     if (!fileExists)
                     {
                         CommandRequest_DownloadImage cmd =
-                            new CommandRequest_DownloadImage(traktFanart.Trakt_ImageFanartID, JMMImageType.Trakt_Fanart,
-                                false);
+                            new CommandRequest_DownloadImage(traktFanart.Trakt_ImageFanartID,
+                                JMMImageType.Trakt_Fanart, false);
                         cmd.Save();
                     }
                 }
@@ -880,7 +883,8 @@ namespace JMMServer
                     // download and update series info, episode info and episode images
                     // will also download fanart, posters and wide banners
                     CommandRequest_TvDBUpdateSeriesAndEpisodes cmdSeriesEps =
-                        new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvid, false);
+                        new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvid,
+                            false);
                     cmdSeriesEps.Save();
                 }
             }

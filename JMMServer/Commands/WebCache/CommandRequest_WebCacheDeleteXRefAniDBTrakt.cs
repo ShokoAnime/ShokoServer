@@ -29,7 +29,8 @@ namespace JMMServer.Commands
         }
 
         public CommandRequest_WebCacheDeleteXRefAniDBTrakt(int animeID, int aniDBStartEpisodeType,
-            int aniDBStartEpisodeNumber, string traktID,
+            int aniDBStartEpisodeNumber,
+            string traktID,
             int traktSeasonNumber, int traktStartEpisodeNumber)
         {
             this.AnimeID = animeID;

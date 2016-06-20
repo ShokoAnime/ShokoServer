@@ -228,8 +228,7 @@ namespace JMMServer.Providers.MovieDB
             xref.CrossRefType = (int) CrossRefType.MovieDB;
             xref.CrossRefID = movieDBID.ToString();
             repCrossRef.Save(xref);
-
-            StatsCache.Instance.UpdateUsingAnime(animeID);
+            AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed moviedb association: {0}", animeID);
 

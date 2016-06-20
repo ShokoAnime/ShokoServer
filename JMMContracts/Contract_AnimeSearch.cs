@@ -1,10 +1,12 @@
-﻿namespace JMMContracts
+﻿using System.Collections.Generic;
+
+namespace JMMContracts
 {
     public class Contract_AnimeSearch
     {
         public int AnimeID { get; set; }
         public string MainTitle { get; set; }
-        public string Titles { get; set; }
+        public HashSet<string> Titles { get; set; }
         public bool SeriesExists { get; set; }
         public int? AnimeSeriesID { get; set; }
         public string AnimeSeriesName { get; set; }

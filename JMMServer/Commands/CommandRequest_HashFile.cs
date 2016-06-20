@@ -157,7 +157,8 @@ namespace JMMServer.Commands
                 {
                     CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
                     List<CrossRef_File_Episode> crossRefs =
-                        repCrossRefs.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath), vlocal.FileSize);
+                        repCrossRefs.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath),
+                            vlocal.FileSize);
                     if (crossRefs.Count == 1)
                     {
                         vlocal.Hash = crossRefs[0].Hash;
@@ -195,7 +196,8 @@ namespace JMMServer.Commands
                     logger.Trace("Calculating hashes for: {0}", FileName);
                     // update the VideoLocal record with the Hash
                     hashes = FileHashHelper.GetHashInfo(FileName, true, MainWindow.OnHashProgress,
-                        ServerSettings.Hash_CRC32, ServerSettings.Hash_MD5, ServerSettings.Hash_SHA1);
+                        ServerSettings.Hash_CRC32,
+                        ServerSettings.Hash_MD5, ServerSettings.Hash_SHA1);
                     TimeSpan ts = DateTime.Now - start;
                     logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName,
                         Utils.FormatByteSize(vlocal.FileSize));
@@ -225,10 +227,12 @@ namespace JMMServer.Commands
                         // check if we have a record of this in the database, if not create one
                         DuplicateFileRepository repDups = new DuplicateFileRepository();
                         List<DuplicateFile> dupFiles = repDups.GetByFilePathsAndImportFolder(vlocal.FilePath,
-                            vidTemp.FilePath, vlocal.ImportFolderID, vidTemp.ImportFolderID);
+                            vidTemp.FilePath,
+                            vlocal.ImportFolderID, vidTemp.ImportFolderID);
                         if (dupFiles.Count == 0)
                             dupFiles = repDups.GetByFilePathsAndImportFolder(vidTemp.FilePath, vlocal.FilePath,
-                                vidTemp.ImportFolderID, vlocal.ImportFolderID);
+                                vidTemp.ImportFolderID,
+                                vlocal.ImportFolderID);
 
                         if (dupFiles.Count == 0)
                         {
@@ -246,7 +250,7 @@ namespace JMMServer.Commands
                     }
                 }
 
-                repVidLocal.Save(vlocal);
+                repVidLocal.Save(vlocal, true);
 
                 // also save the filename to hash record
                 // replace the existing records just in case it was corrupt

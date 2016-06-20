@@ -9,7 +9,6 @@ namespace JMMServer.Mappings
         {
             Not.LazyLoad();
             Id(x => x.AnimeGroup_UserID);
-
             Map(x => x.JMMUserID);
             Map(x => x.AnimeGroupID);
             Map(x => x.IsFave).Not.Nullable();
@@ -19,6 +18,9 @@ namespace JMMServer.Mappings
             Map(x => x.WatchedCount).Not.Nullable();
             Map(x => x.WatchedDate);
             Map(x => x.WatchedEpisodeCount);
+            Map(x => x.PlexContractVersion).Not.Nullable();
+            Map(x => x.PlexContractBlob).Nullable().CustomType("BinaryBlob");
+            Map(x => x.PlexContractSize).Not.Nullable();
         }
     }
 }

@@ -49,7 +49,8 @@ namespace AniDBAPI.Commands
         public string GetKey()
         {
             return "AniDBCommand_Vote" + entityID.ToString() + "_" + episodeNumber.ToString() + "_" +
-                   voteType.ToString() + "_" + episodeType.ToString();
+                   voteType.ToString() + "_" +
+                   episodeType.ToString();
         }
 
         public virtual enHelperActivityType GetStartEventType()

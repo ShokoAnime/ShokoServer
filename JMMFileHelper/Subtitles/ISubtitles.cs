@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using JMMContracts.PlexContracts;
+using JMMContracts.PlexAndKodi;
 
 namespace JMMFileHelper.Subtitles
 {

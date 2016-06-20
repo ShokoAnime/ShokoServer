@@ -45,7 +45,8 @@ namespace JMMServer.Commands
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_WebCacheDeleteXRefFileEpisode: {0}-{1} - {2}", Hash,
-                    EpisodeID, ex.ToString());
+                    EpisodeID,
+                    ex.ToString());
                 return;
             }
         }

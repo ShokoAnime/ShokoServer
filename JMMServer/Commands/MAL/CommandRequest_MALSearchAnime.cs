@@ -60,7 +60,8 @@ namespace JMMServer.Commands.MAL
                         if (crossRef != null)
                         {
                             logger.Trace("Found MAL match on web cache for {0} - id = {1} ({2}/{3})", AnimeID,
-                                crossRef.MALID, crossRef.StartEpisodeType, crossRef.StartEpisodeNumber);
+                                crossRef.MALID,
+                                crossRef.StartEpisodeType, crossRef.StartEpisodeNumber);
                             MALHelper.LinkAniDBMAL(AnimeID, crossRef.MALID, crossRef.MALTitle, crossRef.StartEpisodeType,
                                 crossRef.StartEpisodeNumber, true);
 
@@ -85,9 +86,11 @@ namespace JMMServer.Commands.MAL
                 if (malResults.entry.Length == 1)
                 {
                     logger.Trace("Using MAL search result for search on {0} : {1} ({2})", searchCriteria,
-                        malResults.entry[0].id, malResults.entry[0].title);
+                        malResults.entry[0].id,
+                        malResults.entry[0].title);
                     MALHelper.LinkAniDBMAL(AnimeID, malResults.entry[0].id, malResults.entry[0].title,
-                        (int) enEpisodeType.Episode, 1, false);
+                        (int) enEpisodeType.Episode, 1,
+                        false);
                 }
                 else if (malResults.entry.Length == 0)
                     logger.Trace("ZERO MAL search result results for: {0}", searchCriteria);

@@ -1,4 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using JMMContracts.PlexAndKodi;
+using JMMServer.LZ4;
+using JMMServer.PlexAndKodi;
+using JMMServer.Repositories;
 using NLog;
 
 namespace JMMServer.Entities
@@ -20,7 +25,40 @@ namespace JMMServer.Entities
         public int WatchedCount { get; set; }
         public int StoppedCount { get; set; }
 
+        public int PlexContractVersion { get; set; }
+        public byte[] PlexContractBlob { get; set; }
+        public int PlexContractSize { get; set; }
+
         #endregion
+
+        public const int PLEXCONTRACT_VERSION = 5;
+
+
+        private Video _plexcontract = null;
+
+        public virtual Video PlexContract
+        {
+            get
+            {
+                if ((_plexcontract == null) && (PlexContractBlob != null) && (PlexContractBlob.Length > 0) &&
+                    (PlexContractSize > 0))
+                    _plexcontract = CompressionHelper.DeserializeObject<Video>(PlexContractBlob, PlexContractSize);
+                return _plexcontract;
+            }
+            set
+            {
+                _plexcontract = value;
+                int outsize;
+                PlexContractBlob = CompressionHelper.SerializeObject(value, out outsize, true);
+                PlexContractSize = outsize;
+                PlexContractVersion = PLEXCONTRACT_VERSION;
+            }
+        }
+
+        public void CollectContractMemory()
+        {
+            _plexcontract = null;
+        }
 
         public AnimeGroup_User()
         {
@@ -30,7 +68,6 @@ namespace JMMServer.Entities
         {
             JMMUserID = userID;
             AnimeGroupID = groupID;
-
             IsFave = 0;
             UnwatchedEpisodeCount = 0;
             WatchedEpisodeCount = 0;
@@ -40,20 +77,70 @@ namespace JMMServer.Entities
             StoppedCount = 0;
         }
 
-
-        public bool HasUnwatchedFiles
+        public static HashSet<GroupFilterConditionType> GetConditionTypesChanged(AnimeGroup_User oldcontract,
+            AnimeGroup_User newcontract)
         {
-            get { return UnwatchedEpisodeCount > 0; }
+            HashSet<GroupFilterConditionType> h = new HashSet<GroupFilterConditionType>();
+
+            if (oldcontract == null ||
+                oldcontract.UnwatchedEpisodeCount > 0 != newcontract.UnwatchedEpisodeCount > 0)
+                h.Add(GroupFilterConditionType.HasUnwatchedEpisodes);
+            if (oldcontract == null || oldcontract.IsFave != newcontract.IsFave)
+                h.Add(GroupFilterConditionType.Favourite);
+            if (oldcontract == null || oldcontract.WatchedDate != newcontract.WatchedDate)
+                h.Add(GroupFilterConditionType.EpisodeWatchedDate);
+            if (oldcontract == null || oldcontract.WatchedEpisodeCount > 0 != newcontract.WatchedEpisodeCount > 0)
+                h.Add(GroupFilterConditionType.HasWatchedEpisodes);
+            return h;
         }
 
-        public bool AllFilesWatched
+
+        public void UpdateGroupFilter(HashSet<GroupFilterConditionType> types)
         {
-            get { return UnwatchedEpisodeCount == 0; }
+            AnimeGroupRepository repo = new AnimeGroupRepository();
+            JMMUserRepository repouser = new JMMUserRepository();
+            AnimeGroup grp = repo.GetByID(AnimeGroupID);
+            JMMUser usr = repouser.GetByID(JMMUserID);
+            if (grp != null && usr != null)
+                grp.UpdateGroupFilters(types, usr);
         }
 
-        public bool AnyFilesWatched
+        public void DeleteFromFilters()
         {
-            get { return WatchedEpisodeCount > 0; }
+            GroupFilterRepository repo = new GroupFilterRepository();
+            foreach (GroupFilter gf in repo.GetAll())
+            {
+                bool change = false;
+                if (gf.GroupsIds.ContainsKey(JMMUserID))
+                {
+                    if (gf.GroupsIds[JMMUserID].Contains(AnimeGroupID))
+                    {
+                        gf.GroupsIds[JMMUserID].Remove(AnimeGroupID);
+                        change = true;
+                    }
+                }
+                if (change)
+                    repo.Save(gf);
+            }
         }
+
+        public void UpdatePlexKodiContracts()
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                AnimeGroupRepository repo = new AnimeGroupRepository();
+                AnimeGroup grp = repo.GetByID(AnimeGroupID);
+                if (grp == null)
+                    return;
+                List<AnimeSeries> series = grp.GetAllSeries(session);
+                PlexContract = Helper.GenerateFromAnimeGroup(session, grp, JMMUserID, series);
+            }
+        }
+
+        public bool HasUnwatchedFiles => UnwatchedEpisodeCount > 0;
+
+        public bool AllFilesWatched => UnwatchedEpisodeCount == 0;
+
+        public bool AnyFilesWatched => WatchedEpisodeCount > 0;
     }
 }

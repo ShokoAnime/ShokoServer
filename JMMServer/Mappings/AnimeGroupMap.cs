@@ -23,6 +23,9 @@ namespace JMMServer.Mappings
             Map(x => x.LatestEpisodeAirDate);
             Map(x => x.MissingEpisodeCount).Not.Nullable();
             Map(x => x.MissingEpisodeCountGroups).Not.Nullable();
+            Map(x => x.ContractVersion).Not.Nullable();
+            Map(x => x.ContractBlob).Nullable().CustomType("BinaryBlob");
+            Map(x => x.ContractSize).Not.Nullable();
         }
     }
 }

@@ -26,8 +26,8 @@ namespace JMMServer.Repositories
             logger.Trace(
                 "Updating group filter stats by groupfilter condition from GroupFilterConditionRepository.Save: {0}",
                 obj.GroupFilterID);
-            StatsCache.Instance.UpdateGroupFilterUsingGroupFilter(obj.GroupFilterID);
         }
+
 
         public GroupFilterCondition GetByID(int id)
         {
@@ -100,7 +100,6 @@ namespace JMMServer.Repositories
                 logger.Trace(
                     "Updating group filter stats by groupfilter condition from GroupFilterConditionRepository.Delete: {0}",
                     cr.GroupFilterID);
-                StatsCache.Instance.UpdateGroupFilterUsingGroupFilter(cr.GroupFilterID);
             }
         }
     }

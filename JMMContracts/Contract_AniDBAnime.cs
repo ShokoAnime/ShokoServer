@@ -16,9 +16,8 @@ namespace JMMContracts
         public int AnimeType { get; set; }
         public string MainTitle { get; set; }
         public string FormattedTitle { get; set; }
-        public string AllTitles { get; set; }
-        public string AllCategories { get; set; }
-        public string AllTags { get; set; }
+        public HashSet<string> AllTitles { get; set; }
+        public HashSet<string> AllTags { get; set; }
         public string Description { get; set; }
         public int EpisodeCountNormal { get; set; }
         public int EpisodeCountSpecial { get; set; }
@@ -38,14 +37,11 @@ namespace JMMContracts
         public int? AllCinemaID { get; set; }
         public int? AnimeNfo { get; set; }
         public int? LatestEpisodeNumber { get; set; }
-        public DateTime? LatestEpisodeAirDate { get; set; }
         public int DisableExternalLinksFlag { get; set; }
 
         public Contract_AniDB_Anime_DefaultImage DefaultImagePoster { get; set; }
         public Contract_AniDB_Anime_DefaultImage DefaultImageFanart { get; set; }
         public Contract_AniDB_Anime_DefaultImage DefaultImageWideBanner { get; set; }
-
-        //experiment
-        public List<JMMContracts.KodiContracts.Character> Characters { get; set; }
+        public List<Contract_AniDB_Character> Characters { get; set; }
     }
 }

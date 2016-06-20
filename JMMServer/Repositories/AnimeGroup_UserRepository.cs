@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
-using NHibernate.Criterion;
 using NLog;
+using NutzCode.InMemoryIndex;
 
 namespace JMMServer.Repositories
 {
@@ -10,97 +12,115 @@ namespace JMMServer.Repositories
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public void Save(AnimeGroup_User obj)
+
+        private static PocoCache<int, AnimeGroup_User> Cache;
+        private static PocoIndex<int, AnimeGroup_User, int> Groups;
+        private static PocoIndex<int, AnimeGroup_User, int> Users;
+        private static PocoIndex<int, AnimeGroup_User, int, int> UsersGroups;
+
+        public static void InitCache()
+        {
+            string t = "AnimeGroups_User";
+            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            AnimeGroup_UserRepository repo = new AnimeGroup_UserRepository();
+            Cache = new PocoCache<int, AnimeGroup_User>(repo.InternalGetAll(), a => a.AnimeGroup_UserID);
+            Groups = Cache.CreateIndex(a => a.AnimeGroupID);
+            Users = Cache.CreateIndex(a => a.JMMUserID);
+            UsersGroups = Cache.CreateIndex(a => a.JMMUserID, a => a.AnimeGroupID);
+
+            int cnt = 0;
+            List<AnimeGroup_User> grps =
+                Cache.Values.Where(a => a.PlexContractVersion < AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
+            int max = grps.Count;
+            foreach (AnimeGroup_User g in grps)
+            {
+                repo.Save(g);
+                cnt++;
+                if (cnt%10 == 0)
+                {
+                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                        " DbRegen - " + cnt + "/" + max);
+                }
+            }
+            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                " DbRegen - " + max + "/" + max);
+        }
+
+
+        private List<AnimeGroup_User> InternalGetAll()
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                // populate the database
+                var grps = session
+                    .CreateCriteria(typeof(AnimeGroup_User))
+                    .List<AnimeGroup_User>();
+
+                return new List<AnimeGroup_User>(grps);
+            }
+        }
+
+
+        public void Save(AnimeGroup_User obj)
+        {
+            obj.UpdatePlexKodiContracts();
+            //Get The previous AnimeGroup_User from db for comparasion;
+            AnimeGroup_User old;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                old = session.Get<AnimeGroup_User>(obj.AnimeGroup_UserID);
+            }
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                HashSet<GroupFilterConditionType> types = AnimeGroup_User.GetConditionTypesChanged(old, obj);
                 using (var transaction = session.BeginTransaction())
                 {
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
                 }
+                logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Save: {0}",
+                    obj.AnimeGroupID);
+                obj.UpdateGroupFilter(types);
             }
-            //logger.Trace("Updating group stats by group from AnimeGroup_UserRepository.Save: {0}", obj.AnimeGroupID);
-            //StatsCache.Instance.UpdateUsingGroup(obj.AnimeGroupID);
-            logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Save: {0}",
-                obj.AnimeGroupID);
-            StatsCache.Instance.UpdateGroupFilterUsingGroup(obj.AnimeGroupID);
+
+            Cache.Update(obj);
         }
+
 
         public AnimeGroup_User GetByID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return session.Get<AnimeGroup_User>(id);
-            }
+            return Cache.Get(id);
         }
 
         public AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetByUserAndGroupID(session, userid, groupid);
-            }
+            return UsersGroups.GetOne(userid, groupid);
         }
 
         public AnimeGroup_User GetByUserAndGroupID(ISession session, int userid, int groupid)
         {
-            AnimeGroup_User cr = session
-                .CreateCriteria(typeof(AnimeGroup_User))
-                .Add(Restrictions.Eq("JMMUserID", userid))
-                .Add(Restrictions.Eq("AnimeGroupID", groupid))
-                .UniqueResult<AnimeGroup_User>();
-            return cr;
+            return GetByUserAndGroupID(userid, groupid);
         }
 
         public List<AnimeGroup_User> GetByUserID(int userid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var grps = session
-                    .CreateCriteria(typeof(AnimeGroup_User))
-                    .Add(Restrictions.Eq("JMMUserID", userid))
-                    .List<AnimeGroup_User>();
-
-                return new List<AnimeGroup_User>(grps);
-            }
+            return Users.GetMultiple(userid);
         }
 
         public List<AnimeGroup_User> GetByUserID(ISession session, int userid)
         {
-            var grps = session
-                .CreateCriteria(typeof(AnimeGroup_User))
-                .Add(Restrictions.Eq("JMMUserID", userid))
-                .List<AnimeGroup_User>();
-
-            return new List<AnimeGroup_User>(grps);
+            return GetByUserID(userid);
         }
 
         public List<AnimeGroup_User> GetByGroupID(int groupid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var grps = session
-                    .CreateCriteria(typeof(AnimeGroup_User))
-                    .Add(Restrictions.Eq("AnimeGroupID", groupid))
-                    .List<AnimeGroup_User>();
-
-                return new List<AnimeGroup_User>(grps);
-            }
+            return Groups.GetMultiple(groupid);
         }
 
         public List<AnimeGroup_User> GetAll()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var grps = session
-                    .CreateCriteria(typeof(AnimeGroup_User))
-                    .List<AnimeGroup_User>();
-
-                return new List<AnimeGroup_User>(grps);
-            }
+            return Cache.Values.ToList();
         }
+
 
         public void Delete(int id)
         {
@@ -115,21 +135,14 @@ namespace JMMServer.Repositories
                     {
                         session.Delete(cr);
                         transaction.Commit();
+                        Cache.Remove(cr);
+                        logger.Trace(
+                            "Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}",
+                            cr.AnimeGroupID);
+                        cr.DeleteFromFilters();
                     }
                 }
             }
-            if (cr != null)
-            {
-                logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}",
-                    cr.AnimeGroupID);
-                StatsCache.Instance.UpdateGroupFilterUsingGroup(cr.AnimeGroupID);
-            }
         }
-
-        //if (cr != null)
-        //{
-        //	logger.Trace("Updating group stats by group from AnimeGroupRepository.Delete: {0}", cr.AnimeGroupID);
-        //	StatsCache.Instance.UpdateUsingGroup(cr.AnimeGroupID);
-        //}
     }
 }

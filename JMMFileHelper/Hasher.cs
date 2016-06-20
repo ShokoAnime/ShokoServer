@@ -146,7 +146,8 @@ namespace JMMFileHelper
         }
 
         public static Hashes CalculateHashes_here(string strPath, OnHashProgress onHashProgress, bool getCRC32,
-            bool getMD5, bool getSHA1)
+            bool getMD5,
+            bool getSHA1)
         {
             bool getED2k = true;
             logger.Trace("Using C# code to has file: {0}", strPath);

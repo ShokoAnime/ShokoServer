@@ -46,7 +46,8 @@ namespace JMMServer
         //-- Windows API calls necessary to support screen capture
         //--
         private static extern int BitBlt(int hDestDC, int x, int y, int nWidth, int nHeight, int hSrcDC, int xSrc,
-            int ySrc, int dwRop);
+            int ySrc,
+            int dwRop);
 
         [DllImport("user32", EntryPoint = "GetDC", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
         private static extern int GetDC(int hwnd);
@@ -818,7 +819,8 @@ namespace JMMServer
             System.Drawing.Imaging.ImageCodecInfo objImageCodecInfo = GetEncoderInfo("image/jpeg");
 
             objEncoderParameters.Param[0] =
-                new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality, lngCompression);
+                new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality,
+                    lngCompression);
             objBitmap.Save(strFilename, objImageCodecInfo, objEncoderParameters);
         }
 

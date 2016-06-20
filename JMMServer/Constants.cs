@@ -79,7 +79,7 @@
             public static readonly string VideoBitDepth = "%bit"; // 8bit, 10bit
 
             public static readonly string OriginalFileName = "%sna";
-                // The original file name as specified by the sub group
+            // The original file name as specified by the sub group
 
             public static readonly string Censored = "%cen";
             public static readonly string Deprecated = "%dep";
@@ -220,21 +220,21 @@
                 @"http://www.thetvdb.com/api/GetSeries.php?seriesname={0}&language=all";
 
             public static readonly string urlFullSeriesData = @"{0}/api/{1}/series/{2}/all/{3}.zip";
-                // mirrirURL, apiKey, seriesID
+            // mirrirURL, apiKey, seriesID
 
             public static readonly string urlBannersXML = @"{0}/api/{1}/series/{2}/banners.xml";
-                // mirrirURL, apiKey, seriesID
+            // mirrirURL, apiKey, seriesID
 
             public static readonly string urlSeriesBaseXML = @"{0}/api/{1}/series/{2}/{3}.xml";
-                // mirrirURL, apiKey, seriesID
+            // mirrirURL, apiKey, seriesID
 
             public static readonly string urlEpisodeXML = @"{0}/api/{1}/episodes/{2}/{3}.xml";
-                // mirrirURL, apiKey, episodeID
+            // mirrirURL, apiKey, episodeID
 
             public static readonly string urlLanguagesXML = @"{0}/api/{1}/languages.xml"; // mirrirURL, apiKey
 
             public static readonly string urlUpdatesList = @"{0}/api/Updates.php?type=all&time={1}";
-                // mirrirURL, server time
+            // mirrirURL, server time
         }
 
         public struct Folders

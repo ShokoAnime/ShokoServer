@@ -163,7 +163,8 @@ namespace JMMContracts
 
         [OperationContract]
         Contract_ToggleWatchedStatusOnEpisode_Response ToggleWatchedStatusOnEpisode(int animeEpisodeID,
-            bool watchedStatus, int userID);
+            bool watchedStatus,
+            int userID);
 
         [OperationContract]
         Contract_VideoDetailed GetVideoDetailed(int videoLocalID, int userID);
@@ -215,6 +216,18 @@ namespace JMMContracts
 
         [OperationContract]
         List<Contract_GroupFilter> GetAllGroupFilters();
+
+        [OperationContract]
+        List<Contract_GroupFilter> GetGroupFilters(int gfparentid = 0);
+
+        [OperationContract]
+        Contract_GroupFilter GetGroupFilter(int gf);
+
+        [OperationContract]
+        List<Contract_GroupFilterExtended> GetGroupFiltersExtended(int userID, int gfparentid = 0);
+
+        [OperationContract]
+        Contract_GroupFilter EvaluateGroupFilter(Contract_GroupFilter contract);
 
         [OperationContract]
         Contract_GroupFilter_SaveResponse SaveGroupFilter(Contract_GroupFilter contract);
@@ -416,7 +429,8 @@ namespace JMMContracts
 
         [OperationContract]
         string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber,
-            int traktEpNumber, int? crossRef_AniDB_TraktV2ID);
+            int traktEpNumber,
+            int? crossRef_AniDB_TraktV2ID);
 
         [OperationContract]
         string RemoveLinkAniDBTraktForAnime(int animeID);
@@ -563,7 +577,8 @@ namespace JMMContracts
 
         [OperationContract]
         string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber,
-            int newEpType, int newEpNumber);
+            int newEpType,
+            int newEpNumber);
 
         [OperationContract]
         void SyncMALUpload();

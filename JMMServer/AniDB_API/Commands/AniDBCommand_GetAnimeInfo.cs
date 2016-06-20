@@ -124,7 +124,7 @@ namespace AniDBAPI.Commands
             int aByte3 = 255; // amask - byte3
             int aByte4 = 255; // amask - byte4 old 252 new 255 Added Award List and 18+ Restricted
             int aByte5 = 241;
-                // amask - byte5 old 0 new 241 (Added AnimePlanetID/ANN ID/AllCinema ID/AnimeNfo ID/LastUpdate
+            // amask - byte5 old 0 new 241 (Added AnimePlanetID/ANN ID/AllCinema ID/AnimeNfo ID/LastUpdate
             int aByte6 = 136; // amask - byte6
 
 
@@ -134,7 +134,8 @@ namespace AniDBAPI.Commands
             commandText += string.Format("&amask={0}{1}{2}{3}{4}{5}", aByte1.ToString("X").PadLeft(2, '0'),
                 aByte2.ToString("X").PadLeft(2, '0'),
                 aByte3.ToString("X").PadLeft(2, '0'), aByte4.ToString("X").PadLeft(2, '0'),
-                aByte5.ToString("X").PadLeft(2, '0'), aByte6.ToString("X").PadLeft(2, '0'));
+                aByte5.ToString("X").PadLeft(2, '0'),
+                aByte6.ToString("X").PadLeft(2, '0'));
 
             //BaseConfig.MyAnimeLog.Write(commandText);
         }

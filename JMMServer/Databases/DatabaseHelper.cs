@@ -67,6 +67,7 @@ namespace JMMServer.Databases
         {
             try
             {
+                DatabaseFixes.InitFixes();
                 if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLSERVER")
                 {
                     if (!SQLServer.DatabaseAlreadyExists())
@@ -86,8 +87,9 @@ namespace JMMServer.Databases
                     ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_ApplySchema;
                     SQLServer.UpdateSchema();
 
+                    InitCache();
+
                     PopulateInitialData();
-                    DatabaseHelper.CreateInitialCustomTags();
 
                     return true;
                 }
@@ -106,8 +108,9 @@ namespace JMMServer.Databases
                     ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_ApplySchema;
                     SQLite.UpdateSchema();
 
+                    InitCache();
+
                     PopulateInitialData();
-                    DatabaseHelper.CreateInitialCustomTags();
 
                     return true;
                 }
@@ -131,8 +134,9 @@ namespace JMMServer.Databases
                     MySQL.UpdateSchema();
                     //MySQL.UpdateSchema_Fix();
 
+                    InitCache();
+
                     PopulateInitialData();
-                    DatabaseHelper.CreateInitialCustomTags();
 
                     return true;
                 }
@@ -169,6 +173,41 @@ namespace JMMServer.Databases
             }
         }
 
+        public static void InitCache()
+        {
+            JMMUserRepository.InitCache();
+            AniDB_AnimeRepository.InitCache();
+            VideoInfoRepository.InitCache();
+            VideoLocalRepository.InitCache();
+            VideoLocal_UserRepository.InitCache();
+            List<GroupFilter> recalc = GroupFilterRepository.InitCache();
+            AnimeEpisodeRepository.InitCache();
+            AnimeEpisode_UserRepository.InitCache();
+            AnimeSeriesRepository.InitCache();
+            AnimeSeries_UserRepository.InitCache();
+            AnimeGroupRepository.InitCache();
+            AnimeGroup_UserRepository.InitCache();
+            GroupFilterRepository.InitCacheSecondPart(recalc);
+            DatabaseFixes.ExecuteDatabaseFixes();
+            CleanUpMemory();
+        }
+
+        public static void CleanUpMemory()
+        {
+            new AniDB_AnimeRepository().GetAll().ForEach(a => a.CollectContractMemory());
+            new VideoLocalRepository().GetAll().ForEach(a => a.CollectContractMemory());
+            new AnimeEpisodeRepository().GetAll().ForEach(a => a.CollectContractMemory());
+            new AnimeEpisode_UserRepository().GetAll().ForEach(a => a.CollectContractMemory());
+            new AnimeSeriesRepository().GetAll().ForEach(a => a.CollectContractMemory());
+            new AnimeSeries_UserRepository().GetAll().ForEach(a => a.CollectContractMemory());
+            new AnimeGroupRepository().GetAll().ForEach(a => a.CollectContractMemory());
+            new AnimeGroup_UserRepository().GetAll().ForEach(a => a.CollectContractMemory());
+            GC.Collect();
+        }
+
+        //TO be translated
+        public static string InitCacheTitle = "Database Cache - Caching  - {0}{1}...";
+
         public static void PopulateInitialData()
         {
             ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Users)...";
@@ -176,12 +215,22 @@ namespace JMMServer.Databases
 
             ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Group Filters)...";
             CreateInitialGroupFilters();
-            CreateContinueWatchingGroupFilter();
+
+            ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Locked Group Filters)...";
+            CreateOrVerifyLockedFilters();
+
 
             ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Rename Script)...";
             CreateInitialRenameScript();
+
+            ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Custom Tags)...";
+            DatabaseHelper.CreateInitialCustomTags();
         }
 
+        public static void CreateOrVerifyLockedFilters()
+        {
+            GroupFilterRepository.CreateOrVerifyLockedFilters();
+        }
         private static void CreateInitialGroupFilters()
         {
             // group filters
@@ -197,16 +246,14 @@ namespace JMMServer.Databases
             gf.BaseCondition = 1;
             gf.Locked = 0;
             gf.FilterType = (int) GroupFilterType.UserDefined;
-
-            repFilters.Save(gf);
-
             GroupFilterCondition gfc = new GroupFilterCondition();
             gfc.ConditionType = (int) GroupFilterConditionType.Favourite;
             gfc.ConditionOperator = (int) GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
-            gfc.GroupFilterID = gf.GroupFilterID;
-            repGFC.Save(gfc);
-
+            gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
+            repFilters.Save(gf);
 
             // Missing Episodes
             gf = new GroupFilter();
@@ -215,15 +262,15 @@ namespace JMMServer.Databases
             gf.BaseCondition = 1;
             gf.Locked = 0;
             gf.FilterType = (int) GroupFilterType.UserDefined;
-
-            repFilters.Save(gf);
-
             gfc = new GroupFilterCondition();
             gfc.ConditionType = (int) GroupFilterConditionType.MissingEpisodesCollecting;
             gfc.ConditionOperator = (int) GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
-            gfc.GroupFilterID = gf.GroupFilterID;
-            repGFC.Save(gfc);
+            gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
+            repFilters.Save(gf);
+
 
             // Newly Added Series
             gf = new GroupFilter();
@@ -232,15 +279,14 @@ namespace JMMServer.Databases
             gf.BaseCondition = 1;
             gf.Locked = 0;
             gf.FilterType = (int) GroupFilterType.UserDefined;
-
-            repFilters.Save(gf);
-
             gfc = new GroupFilterCondition();
             gfc.ConditionType = (int) GroupFilterConditionType.SeriesCreatedDate;
             gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "10";
-            gfc.GroupFilterID = gf.GroupFilterID;
-            repGFC.Save(gfc);
+            gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
+            repFilters.Save(gf);
 
             // Newly Airing Series
             gf = new GroupFilter();
@@ -249,15 +295,14 @@ namespace JMMServer.Databases
             gf.BaseCondition = 1;
             gf.Locked = 0;
             gf.FilterType = (int) GroupFilterType.UserDefined;
-
-            repFilters.Save(gf);
-
             gfc = new GroupFilterCondition();
             gfc.ConditionType = (int) GroupFilterConditionType.AirDate;
             gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "30";
-            gfc.GroupFilterID = gf.GroupFilterID;
-            repGFC.Save(gfc);
+            gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
+            repFilters.Save(gf);
 
             // Votes Needed
             gf = new GroupFilter();
@@ -266,29 +311,24 @@ namespace JMMServer.Databases
             gf.BaseCondition = 1;
             gf.Locked = 0;
             gf.FilterType = (int) GroupFilterType.UserDefined;
-
-            repFilters.Save(gf);
-
             gfc = new GroupFilterCondition();
             gfc.ConditionType = (int) GroupFilterConditionType.CompletedSeries;
             gfc.ConditionOperator = (int) GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
-            gfc.GroupFilterID = gf.GroupFilterID;
-            repGFC.Save(gfc);
-
+            gf.Conditions.Add(gfc);
             gfc = new GroupFilterCondition();
             gfc.ConditionType = (int) GroupFilterConditionType.HasUnwatchedEpisodes;
             gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
-            gfc.GroupFilterID = gf.GroupFilterID;
-            repGFC.Save(gfc);
-
+            gf.Conditions.Add(gfc);
             gfc = new GroupFilterCondition();
             gfc.ConditionType = (int) GroupFilterConditionType.UserVotedAny;
             gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
-            gfc.GroupFilterID = gf.GroupFilterID;
-            repGFC.Save(gfc);
+            gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
+            repFilters.Save(gf);
 
             // Recently Watched
             gf = new GroupFilter();
@@ -297,15 +337,14 @@ namespace JMMServer.Databases
             gf.BaseCondition = 1;
             gf.Locked = 0;
             gf.FilterType = (int) GroupFilterType.UserDefined;
-
-            repFilters.Save(gf);
-
             gfc = new GroupFilterCondition();
             gfc.ConditionType = (int) GroupFilterConditionType.EpisodeWatchedDate;
             gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "10";
-            gfc.GroupFilterID = gf.GroupFilterID;
-            repGFC.Save(gfc);
+            gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
+            repFilters.Save(gf);
 
             // TvDB/MovieDB Link Missing
             gf = new GroupFilter();
@@ -314,15 +353,14 @@ namespace JMMServer.Databases
             gf.BaseCondition = 1;
             gf.Locked = 0;
             gf.FilterType = (int) GroupFilterType.UserDefined;
-
-            repFilters.Save(gf);
-
             gfc = new GroupFilterCondition();
             gfc.ConditionType = (int) GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
             gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
-            gfc.GroupFilterID = gf.GroupFilterID;
-            repGFC.Save(gfc);
+            gf.Conditions.Add(gfc);
+            gf.EvaluateAnimeGroups();
+            gf.EvaluateAnimeSeries();
+            repFilters.Save(gf);
         }
 
         private static void CreateInitialUsers()
@@ -339,17 +377,17 @@ namespace JMMServer.Databases
             defaultUser.IsTraktUser = 1;
             defaultUser.Password = "";
             defaultUser.Username = "Default";
-            repUsers.Save(defaultUser);
+            repUsers.Save(defaultUser, true);
 
             JMMUser familyUser = new JMMUser();
             familyUser.CanEditServerSettings = 1;
-            familyUser.HideCategories = "Ecchi,Nudity,Sex,Sexual Abuse,Horror,Erotic Game,Incest,18 Restricted";
+            familyUser.HideCategories = "ecchi,nudity,sex,sexual abuse,horror,erotic game,incest,18 restricted";
             familyUser.IsAdmin = 1;
             familyUser.IsAniDBUser = 1;
             familyUser.IsTraktUser = 1;
             familyUser.Password = "";
             familyUser.Username = "Family Friendly";
-            repUsers.Save(familyUser);
+            repUsers.Save(familyUser, true);
         }
 
         private static void CreateInitialRenameScript()
@@ -407,258 +445,24 @@ namespace JMMServer.Databases
             repScripts.Save(initialScript);
         }
 
-        public static void FixDuplicateTvDBLinks()
-        {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+        /*
+		private static void CreateContinueWatchingGroupFilter()
+		{
+			// group filters
+			GroupFilterRepository repFilters = new GroupFilterRepository();
+			GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
 
-            // delete all TvDB link duplicates
-            CrossRef_AniDB_TvDBRepository repCrossRefTvDB = new CrossRef_AniDB_TvDBRepository();
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				// check if it already exists
+				List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
 
-            List<CrossRef_AniDB_TvDB> xrefsTvDBProcessed = new List<CrossRef_AniDB_TvDB>();
-            List<CrossRef_AniDB_TvDB> xrefsTvDBToBeDeleted = new List<CrossRef_AniDB_TvDB>();
-
-            List<CrossRef_AniDB_TvDB> xrefsTvDB = repCrossRefTvDB.GetAll();
-            foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
-            {
-                bool deleteXref = false;
-                foreach (CrossRef_AniDB_TvDB xref in xrefsTvDBProcessed)
-                {
-                    if (xref.TvDBID == xrefTvDB.TvDBID && xref.TvDBSeasonNumber == xrefTvDB.TvDBSeasonNumber)
-                    {
-                        xrefsTvDBToBeDeleted.Add(xrefTvDB);
-                        deleteXref = true;
-                    }
-                }
-                if (!deleteXref)
-                    xrefsTvDBProcessed.Add(xrefTvDB);
-            }
-
-
-            foreach (CrossRef_AniDB_TvDB xref in xrefsTvDBToBeDeleted)
-            {
-                string msg = "";
-                AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
-                if (anime != null) msg = anime.MainTitle;
-
-                logger.Warn("Deleting TvDB Link because of a duplicate: {0} ({1}) - {2}/{3}", xref.AnimeID, msg,
-                    xref.TvDBID, xref.TvDBSeasonNumber);
-                repCrossRefTvDB.Delete(xref.CrossRef_AniDB_TvDBID);
-            }
-        }
-
-        public static void FixDuplicateTraktLinks()
-        {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-
-            // delete all Trakt link duplicates
-            CrossRef_AniDB_TraktRepository repCrossRefTrakt = new CrossRef_AniDB_TraktRepository();
-
-            List<CrossRef_AniDB_Trakt> xrefsTraktProcessed = new List<CrossRef_AniDB_Trakt>();
-            List<CrossRef_AniDB_Trakt> xrefsTraktToBeDeleted = new List<CrossRef_AniDB_Trakt>();
-
-            List<CrossRef_AniDB_Trakt> xrefsTrakt = repCrossRefTrakt.GetAll();
-            foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
-            {
-                bool deleteXref = false;
-                foreach (CrossRef_AniDB_Trakt xref in xrefsTraktProcessed)
-                {
-                    if (xref.TraktID == xrefTrakt.TraktID && xref.TraktSeasonNumber == xrefTrakt.TraktSeasonNumber)
-                    {
-                        xrefsTraktToBeDeleted.Add(xrefTrakt);
-                        deleteXref = true;
-                    }
-                }
-                if (!deleteXref)
-                    xrefsTraktProcessed.Add(xrefTrakt);
-            }
-
-
-            foreach (CrossRef_AniDB_Trakt xref in xrefsTraktToBeDeleted)
-            {
-                string msg = "";
-                AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
-                if (anime != null) msg = anime.MainTitle;
-
-                logger.Warn("Deleting Trakt Link because of a duplicate: {0} ({1}) - {2}/{3}", xref.AnimeID, msg,
-                    xref.TraktID, xref.TraktSeasonNumber);
-                repCrossRefTrakt.Delete(xref.CrossRef_AniDB_TraktID);
-            }
-        }
-
-        public static void MigrateTvDBLinks_V1_to_V2()
-        {
-            try
-            {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                TvDB_EpisodeRepository repEps = new TvDB_EpisodeRepository();
-
-                CrossRef_AniDB_TvDBRepository repCrossRefTvDB = new CrossRef_AniDB_TvDBRepository();
-                CrossRef_AniDB_TvDBV2Repository repCrossRefTvDBNew = new CrossRef_AniDB_TvDBV2Repository();
-
-                using (var session = JMMService.SessionFactory.OpenSession())
-                {
-                    List<CrossRef_AniDB_TvDB> xrefsTvDB = repCrossRefTvDB.GetAll();
-                    foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
-                    {
-                        CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2();
-                        xrefNew.AnimeID = xrefTvDB.AnimeID;
-                        xrefNew.CrossRefSource = xrefTvDB.CrossRefSource;
-                        xrefNew.TvDBID = xrefTvDB.TvDBID;
-                        xrefNew.TvDBSeasonNumber = xrefTvDB.TvDBSeasonNumber;
-
-                        TvDB_Series ser = xrefTvDB.GetTvDBSeries(session);
-                        if (ser != null)
-                            xrefNew.TvDBTitle = ser.SeriesName;
-
-                        // determine start ep type
-                        if (xrefTvDB.TvDBSeasonNumber == 0)
-                            xrefNew.AniDBStartEpisodeType = (int) AniDBAPI.enEpisodeType.Special;
-                        else
-                            xrefNew.AniDBStartEpisodeType = (int) AniDBAPI.enEpisodeType.Episode;
-
-                        xrefNew.AniDBStartEpisodeNumber = 1;
-                        xrefNew.TvDBStartEpisodeNumber = 1;
-
-                        repCrossRefTvDBNew.Save(xrefNew);
-                    }
-
-                    // create cross ref's for specials
-                    foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
-                    {
-                        AniDB_Anime anime = repAnime.GetByAnimeID(xrefTvDB.AnimeID);
-                        if (anime == null) continue;
-
-                        // this anime has specials
-                        if (anime.EpisodeCountSpecial <= 0) continue;
-
-                        // this tvdb series has a season 0 (specials)
-                        List<int> seasons = repEps.GetSeasonNumbersForSeries(xrefTvDB.TvDBID);
-                        if (!seasons.Contains(0)) continue;
-
-                        //make sure we are not doubling up
-                        CrossRef_AniDB_TvDBV2 temp = repCrossRefTvDBNew.GetByTvDBID(xrefTvDB.TvDBID, 0, 1,
-                            xrefTvDB.AnimeID, (int) AniDBAPI.enEpisodeType.Special, 1);
-                        if (temp != null) continue;
-
-                        CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2();
-                        xrefNew.AnimeID = xrefTvDB.AnimeID;
-                        xrefNew.CrossRefSource = xrefTvDB.CrossRefSource;
-                        xrefNew.TvDBID = xrefTvDB.TvDBID;
-                        xrefNew.TvDBSeasonNumber = 0;
-                        xrefNew.TvDBStartEpisodeNumber = 1;
-                        xrefNew.AniDBStartEpisodeType = (int) AniDBAPI.enEpisodeType.Special;
-                        xrefNew.AniDBStartEpisodeNumber = 1;
-
-                        TvDB_Series ser = xrefTvDB.GetTvDBSeries(session);
-                        if (ser != null)
-                            xrefNew.TvDBTitle = ser.SeriesName;
-
-                        repCrossRefTvDBNew.Save(xrefNew);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException("Could not MigrateTvDBLinks_V1_to_V2: " + ex.ToString(), ex);
-            }
-        }
-
-        public static void MigrateTraktLinks_V1_to_V2()
-        {
-            try
-            {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                Trakt_EpisodeRepository repEps = new Trakt_EpisodeRepository();
-                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-
-                CrossRef_AniDB_TraktRepository repCrossRefTrakt = new CrossRef_AniDB_TraktRepository();
-                CrossRef_AniDB_TraktV2Repository repCrossRefTraktNew = new CrossRef_AniDB_TraktV2Repository();
-
-                using (var session = JMMService.SessionFactory.OpenSession())
-                {
-                    List<CrossRef_AniDB_Trakt> xrefsTrakt = repCrossRefTrakt.GetAll();
-                    foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
-                    {
-                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2();
-                        xrefNew.AnimeID = xrefTrakt.AnimeID;
-                        xrefNew.CrossRefSource = xrefTrakt.CrossRefSource;
-                        xrefNew.TraktID = xrefTrakt.TraktID;
-                        xrefNew.TraktSeasonNumber = xrefTrakt.TraktSeasonNumber;
-
-                        Trakt_Show show = xrefTrakt.GetByTraktShow(session);
-                        if (show != null)
-                            xrefNew.TraktTitle = show.Title;
-
-                        // determine start ep type
-                        if (xrefTrakt.TraktSeasonNumber == 0)
-                            xrefNew.AniDBStartEpisodeType = (int) AniDBAPI.enEpisodeType.Special;
-                        else
-                            xrefNew.AniDBStartEpisodeType = (int) AniDBAPI.enEpisodeType.Episode;
-
-                        xrefNew.AniDBStartEpisodeNumber = 1;
-                        xrefNew.TraktStartEpisodeNumber = 1;
-
-                        repCrossRefTraktNew.Save(xrefNew);
-                    }
-
-                    // create cross ref's for specials
-                    foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
-                    {
-                        AniDB_Anime anime = repAnime.GetByAnimeID(xrefTrakt.AnimeID);
-                        if (anime == null) continue;
-
-                        Trakt_Show show = xrefTrakt.GetByTraktShow(session);
-                        if (show == null) continue;
-
-                        // this anime has specials
-                        if (anime.EpisodeCountSpecial <= 0) continue;
-
-                        // this Trakt series has a season 0 (specials)
-                        List<int> seasons = repEps.GetSeasonNumbersForSeries(show.Trakt_ShowID);
-                        if (!seasons.Contains(0)) continue;
-
-                        //make sure we are not doubling up
-                        CrossRef_AniDB_TraktV2 temp = repCrossRefTraktNew.GetByTraktID(xrefTrakt.TraktID, 0, 1,
-                            xrefTrakt.AnimeID, (int) AniDBAPI.enEpisodeType.Special, 1);
-                        if (temp != null) continue;
-
-                        CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2();
-                        xrefNew.AnimeID = xrefTrakt.AnimeID;
-                        xrefNew.CrossRefSource = xrefTrakt.CrossRefSource;
-                        xrefNew.TraktID = xrefTrakt.TraktID;
-                        xrefNew.TraktSeasonNumber = 0;
-                        xrefNew.TraktStartEpisodeNumber = 1;
-                        xrefNew.AniDBStartEpisodeType = (int) AniDBAPI.enEpisodeType.Special;
-                        xrefNew.AniDBStartEpisodeNumber = 1;
-                        xrefNew.TraktTitle = show.Title;
-
-                        repCrossRefTraktNew.Save(xrefNew);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException("Could not MigrateTraktLinks_V1_to_V2: " + ex.ToString(), ex);
-            }
-        }
-
-        private static void CreateContinueWatchingGroupFilter()
-        {
-            // group filters
-            GroupFilterRepository repFilters = new GroupFilterRepository();
-            GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
-
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                // check if it already exists
-                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
-
-                if (lockedGFs != null)
-                {
+				if (lockedGFs != null)
+				{
                     // if it already exists we can leave
                     foreach (GroupFilter gfTemp in lockedGFs)
                     {
-                        if (gfTemp.FilterType == (int) GroupFilterType.ContinueWatching)
+                        if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
                             return;
                     }
 
@@ -666,108 +470,41 @@ namespace JMMServer.Databases
                     // this is only needed for users of a migrated database
                     foreach (GroupFilter gfTemp in lockedGFs)
                     {
-                        if (
-                            gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching,
-                                StringComparison.InvariantCultureIgnoreCase) &&
-                            gfTemp.FilterType != (int) GroupFilterType.ContinueWatching)
+                        if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase) &&
+                            gfTemp.FilterType != (int)GroupFilterType.ContinueWatching)
                         {
-                            FixContinueWatchingGroupFilter_20160406();
+	                        DatabaseFixes.FixContinueWatchingGroupFilter_20160406();
                             return;
                         }
                     }
-                }
+				}
 
-                GroupFilter gf = new GroupFilter();
-                gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
-                gf.Locked = 1;
-                gf.SortingCriteria = "4;2"; // by last watched episode desc
-                gf.ApplyToSeries = 0;
-                gf.BaseCondition = 1; // all
-                gf.FilterType = (int) GroupFilterType.ContinueWatching;
+				GroupFilter gf = new GroupFilter();
+				gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
+				gf.Locked = 1;
+				gf.SortingCriteria = "4;2"; // by last watched episode desc
+				gf.ApplyToSeries = 0;
+				gf.BaseCondition = 1; // all
+                gf.FilterType = (int)GroupFilterType.ContinueWatching;
 
-                repFilters.Save(gf);
+                repFilters.Save(gf,true,null);
 
-                GroupFilterCondition gfc = new GroupFilterCondition();
-                gfc.ConditionType = (int) GroupFilterConditionType.HasWatchedEpisodes;
-                gfc.ConditionOperator = (int) GroupFilterOperator.Include;
-                gfc.ConditionParameter = "";
-                gfc.GroupFilterID = gf.GroupFilterID;
-                repGFC.Save(gfc);
+				GroupFilterCondition gfc = new GroupFilterCondition();
+				gfc.ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes;
+				gfc.ConditionOperator = (int)GroupFilterOperator.Include;
+				gfc.ConditionParameter = "";
+				gfc.GroupFilterID = gf.GroupFilterID;
+				repGFC.Save(gfc);
 
-                gfc = new GroupFilterCondition();
-                gfc.ConditionType = (int) GroupFilterConditionType.HasUnwatchedEpisodes;
-                gfc.ConditionOperator = (int) GroupFilterOperator.Include;
-                gfc.ConditionParameter = "";
-                gfc.GroupFilterID = gf.GroupFilterID;
-                repGFC.Save(gfc);
-            }
-        }
-
-        public static void FixContinueWatchingGroupFilter_20160406()
-        {
-            // group filters
-            GroupFilterRepository repFilters = new GroupFilterRepository();
-            GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
-
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                // check if it already exists
-                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
-
-                if (lockedGFs != null)
-                {
-                    // if it already exists we can leave
-                    foreach (GroupFilter gf in lockedGFs)
-                    {
-                        if (gf.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching,
-                            StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            gf.FilterType = (int) GroupFilterType.ContinueWatching;
-                            repFilters.Save(gf);
-                        }
-                    }
-                }
-            }
-        }
-
-        public static void RemoveOldMovieDBImageRecords()
-        {
-            try
-            {
-                MovieDB_FanartRepository repFanart = new MovieDB_FanartRepository();
-                foreach (MovieDB_Fanart fanart in repFanart.GetAll())
-                {
-                    repFanart.Delete(fanart.MovieDB_FanartID);
-                }
-
-                MovieDB_PosterRepository repPoster = new MovieDB_PosterRepository();
-                foreach (MovieDB_Poster poster in repPoster.GetAll())
-                {
-                    repPoster.Delete(poster.MovieDB_PosterID);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException("Could not RemoveOldMovieDBImageRecords: " + ex.ToString(), ex);
-            }
-        }
-
-        public static void PopulateTagWeight()
-        {
-            try
-            {
-                AniDB_Anime_TagRepository repTags = new AniDB_Anime_TagRepository();
-                foreach (AniDB_Anime_Tag atag in repTags.GetAll())
-                {
-                    atag.Weight = 0;
-                    repTags.Save(atag);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException("Could not PopulateTagWeight: " + ex.ToString(), ex);
-            }
-        }
+				gfc = new GroupFilterCondition();
+				gfc.ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes;
+				gfc.ConditionOperator = (int)GroupFilterOperator.Include;
+				gfc.ConditionParameter = "";
+				gfc.GroupFilterID = gf.GroupFilterID;
+				repGFC.Save(gfc);
+			}
+		}
+		*/
 
         public static void CreateInitialCustomTags()
         {
@@ -811,43 +548,6 @@ namespace JMMServer.Databases
             catch (Exception ex)
             {
                 logger.ErrorException("Could not Create Initial Custom Tags: " + ex.ToString(), ex);
-            }
-        }
-
-        public static void FixHashes()
-        {
-            try
-            {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-
-                foreach (VideoLocal vid in repVids.GetAll())
-                {
-                    bool fixedHash = false;
-                    if (vid.CRC32.Equals("00000000"))
-                    {
-                        vid.CRC32 = null;
-                        fixedHash = true;
-                    }
-                    if (vid.MD5.Equals("00000000000000000000000000000000"))
-                    {
-                        vid.MD5 = null;
-                        fixedHash = true;
-                    }
-                    if (vid.SHA1.Equals("0000000000000000000000000000000000000000"))
-                    {
-                        vid.SHA1 = null;
-                        fixedHash = true;
-                    }
-                    if (fixedHash)
-                    {
-                        repVids.Save(vid);
-                        logger.Info("Fixed hashes on file: {0}", vid.FullServerPath);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException(ex.ToString(), ex);
             }
         }
     }

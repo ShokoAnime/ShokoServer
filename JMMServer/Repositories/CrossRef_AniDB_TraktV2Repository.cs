@@ -62,7 +62,8 @@ namespace JMMServer.Repositories
         }
 
         public CrossRef_AniDB_TraktV2 GetByTraktID(ISession session, string id, int season, int episodeNumber,
-            int animeID, int aniEpType, int aniEpisodeNumber)
+            int animeID,
+            int aniEpType, int aniEpisodeNumber)
         {
             CrossRef_AniDB_TraktV2 cr = session
                 .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))

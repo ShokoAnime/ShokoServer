@@ -48,7 +48,8 @@ namespace JMMServer.Commands
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_WebCacheSendXRefFileEpisode: {0} - {1}",
-                    CrossRef_File_EpisodeID, ex.ToString());
+                    CrossRef_File_EpisodeID,
+                    ex.ToString());
                 return;
             }
         }

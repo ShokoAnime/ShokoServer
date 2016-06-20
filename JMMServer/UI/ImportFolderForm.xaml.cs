@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using JMMContracts;
 using JMMServer.Entities;
+
 //using System.Windows.Media;
 //using System.Windows.Media.Imaging;
 //using System.Windows.Shapes;
@@ -44,10 +45,12 @@ namespace JMMServer
             {
                 // An import folder cannot be both the drop source and the drop destination
                 if (chkDropDestination.IsChecked.HasValue && chkDropSource.IsChecked.HasValue &&
-                    chkDropDestination.IsChecked.Value && chkDropSource.IsChecked.Value)
+                    chkDropDestination.IsChecked.Value &&
+                    chkDropSource.IsChecked.Value)
                 {
                     MessageBox.Show(JMMServer.Properties.Resources.ImportFolders_SameFolder,
-                        JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                        JMMServer.Properties.Resources.Error,
+                        MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -55,7 +58,8 @@ namespace JMMServer
                 if (string.IsNullOrEmpty(txtImportFolderLocation.Text))
                 {
                     MessageBox.Show(JMMServer.Properties.Resources.ImportFolders_BlankImport,
-                        JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                        JMMServer.Properties.Resources.Error,
+                        MessageBoxButton.OK, MessageBoxImage.Error);
                     txtImportFolderLocation.Focus();
                     return;
                 }

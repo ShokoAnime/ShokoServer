@@ -95,8 +95,15 @@ namespace JMMServer.Commands
                         else
                         {
                             // update the release date even if we don't update the anime record
-                            anime.AirDate = cal.ReleaseDate;
-                            repAnime.Save(anime);
+                            if (anime.AirDate != cal.ReleaseDate)
+                            {
+                                anime.AirDate = cal.ReleaseDate;
+                                repAnime.Save(anime);
+                                AnimeSeriesRepository srepo = new AnimeSeriesRepository();
+                                AnimeSeries ser = srepo.GetByAnimeID(anime.AnimeID);
+                                if (ser != null)
+                                    srepo.Save(ser, true, false);
+                            }
                         }
                     }
                     else

@@ -171,21 +171,24 @@ namespace JMMServer
                             oldPort));
 
                     BatchFileStream.WriteLine(
-                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerImage user=everyone", Port));
+                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerImage user=everyone",
+                            Port));
                     BatchFileStream.WriteLine(
-                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerBinary user=everyone", Port));
+                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerBinary user=everyone",
+                            Port));
                     BatchFileStream.WriteLine(
-                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerMetro user=everyone", Port));
-                    BatchFileStream.WriteLine(
-                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerMetroImage user=everyone", Port));
+                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerMetro user=everyone",
+                            Port));
+                    BatchFileStream.WriteLine(string.Format(
+                        @"netsh http add urlacl url=http://+:{0}/JMMServerMetroImage user=everyone", Port));
                     BatchFileStream.WriteLine(
                         string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerPlex user=everyone", Port));
                     BatchFileStream.WriteLine(
                         string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerKodi user=everyone", Port));
                     BatchFileStream.WriteLine(
                         string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerREST user=everyone", Port));
-                    BatchFileStream.WriteLine(
-                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerStreaming user=everyone", Port));
+                    BatchFileStream.WriteLine(string.Format(
+                        @"netsh http add urlacl url=http://+:{0}/JMMServerStreaming user=everyone", Port));
                 }
                 if (!string.IsNullOrEmpty(FilePort))
                 {
@@ -199,7 +202,8 @@ namespace JMMServer
                             oldFilePort));
 
                     BatchFileStream.WriteLine(
-                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMFilePort user=everyone", FilePort));
+                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMFilePort user=everyone",
+                            FilePort));
                 }
 
                 if (!string.IsNullOrEmpty(oldPort))
@@ -794,7 +798,8 @@ namespace JMMServer
                 // If we are running under Wow64 than the OS is 64-bit.
                 bool isWow64;
                 return ModuleContainsFunction("kernel32.dll", "IsWow64Process") &&
-                       IsWow64Process(GetCurrentProcess(), out isWow64) && isWow64;
+                       IsWow64Process(GetCurrentProcess(), out isWow64) &&
+                       isWow64;
             }
         }
 

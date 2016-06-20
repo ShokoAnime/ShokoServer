@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -18,11 +20,49 @@ namespace JMMServer.Repositories
 
         public void Save(ISession session, AniDB_Anime obj)
         {
+            if (obj.AniDB_AnimeID == 0)
+            {
+                obj.Contract = null;
+                using (var transaction = session.BeginTransaction())
+                {
+                    session.SaveOrUpdate(obj);
+                    transaction.Commit();
+                }
+            }
+
+            obj.UpdateContractDetailed(session);
             // populate the database
+
             using (var transaction = session.BeginTransaction())
             {
                 session.SaveOrUpdate(obj);
                 transaction.Commit();
+            }
+        }
+
+        public static void InitCache()
+        {
+            string t = "AniDB_Anime";
+            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            AniDB_AnimeRepository repo = new AniDB_AnimeRepository();
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                List<AniDB_Anime> ls =
+                    repo.GetAll(session).Where(a => a.ContractVersion < AniDB_Anime.CONTRACT_VERSION).ToList();
+                int max = ls.Count;
+                int cnt = 0;
+                foreach (AniDB_Anime a in ls)
+                {
+                    repo.Save(session, a);
+                    cnt++;
+                    if (cnt%10 == 0)
+                    {
+                        ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                            " DbRegen - " + cnt + "/" + max);
+                    }
+                }
+                ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                    " DbRegen - " + max + "/" + max);
             }
         }
 
@@ -134,6 +174,7 @@ namespace JMMServer.Repositories
 
         public List<AniDB_Anime> SearchByTag(string queryText)
         {
+            
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 var objs = session

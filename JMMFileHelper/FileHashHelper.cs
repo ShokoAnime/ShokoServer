@@ -27,20 +27,16 @@ namespace JMMFileHelper
         }
 
         public static Hashes GetHashInfo(string fileName, bool forceRefresh,
-            JMMFileHelper.Hasher.OnHashProgress hashProgress, bool getCRC32, bool getMD5, bool getSHA1)
+            JMMFileHelper.Hasher.OnHashProgress hashProgress,
+            bool getCRC32, bool getMD5, bool getSHA1)
         {
             return Hasher.CalculateHashes(fileName, hashProgress, getCRC32, getMD5, getSHA1);
         }
 
         public static MediaInfoResult GetMediaInfo(string fileName, bool forceRefresh)
         {
-            return GetMediaInfo(fileName, forceRefresh, false);
-        }
-
-        public static MediaInfoResult GetMediaInfo(string fileName, bool forceRefresh, bool useKodi)
-        {
             MediaInfoResult vidInfo = new MediaInfoResult();
-            MediaInfoReader.ReadMediaInfo(fileName, forceRefresh, ref vidInfo, useKodi);
+            MediaInfoReader.ReadMediaInfo(fileName, forceRefresh, ref vidInfo);
             return vidInfo;
         }
 

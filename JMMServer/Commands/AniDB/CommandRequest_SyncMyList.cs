@@ -177,7 +177,8 @@ namespace JMMServer.Commands
                                             modifiedItems++;
                                             if (jmmUserID.HasValue)
                                                 vl.ToggleWatchedStatus(myitem.IsWatched, false, myitem.WatchedDate,
-                                                    false, false, jmmUserID.Value, false, true);
+                                                    false, false, jmmUserID.Value, false,
+                                                    true);
                                             action = "Used AniDB Status";
                                         }
                                     }

@@ -71,7 +71,8 @@ namespace JMMServer.Commands
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_TraktCollectionEpisode: {0} - {1} - {2}", AnimeEpisodeID,
-                    Action, ex.ToString());
+                    Action,
+                    ex.ToString());
                 return;
             }
         }

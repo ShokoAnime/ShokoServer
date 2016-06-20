@@ -149,7 +149,8 @@ namespace JMMServer
             ExtendPauseSecs = secsToPause;
             ExtendPauseReason = pauseReason;
             ServerInfo.Instance.ExtendedPauseString = string.Format(JMMServer.Properties.Resources.AniDB_Paused,
-                secsToPause, pauseReason);
+                secsToPause,
+                pauseReason);
             ServerInfo.Instance.HasExtendedPause = true;
         }
 
@@ -926,7 +927,11 @@ namespace JMMServer
                 // updated cached stats
                 // we don't do it in the save method as it would be too many unecessary updates
                 logger.Trace("Updating group stats by anime from GetReleaseGroupStatusUDP: {0}", animeID);
-                StatsCache.Instance.UpdateUsingAnime(animeID);
+
+
+                // StatsCache.Instance.UpdateUsingAnime(animeID); 
+                //Removed QueueUpdateStatus will Update Groups
+
 
                 if (getCmd.GrpStatusCollection.LatestEpisodeNumber > 0)
                 {
@@ -946,7 +951,6 @@ namespace JMMServer
                             CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(animeID, true, false);
                             cr_anime.Save();
                         }
-
                         // update the missing episode stats on groups and children
                         AnimeSeries series = repSeries.GetByAnimeID(animeID);
                         if (series != null)
@@ -1155,15 +1159,18 @@ namespace JMMServer
 
             // Request an image download
             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AniDB_AnimeID,
-                JMMImageType.AniDB_Cover, false);
+                JMMImageType.AniDB_Cover,
+                false);
             cmd.Save(session);
             // create AnimeEpisode records for all episodes in this anime
             // only if we have a series
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
             AnimeSeries ser = repSeries.GetByAnimeID(session, animeID);
+            repAnime.Save(anime);
             if (ser != null)
             {
                 ser.CreateAnimeEpisodes(session);
+                repSeries.Save(ser, true, false);
             }
 
             // update any files, that may have been linked
@@ -1171,8 +1178,9 @@ namespace JMMServer
             repCrossRefs.GetByAnimeID(*/
 
             // update cached stats
-            StatsCache.Instance.UpdateUsingAnime(session, anime.AnimeID);
-            StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
+
+            //StatsCache.Instance.UpdateUsingAnime(session, anime.AnimeID);
+            //StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
 
             // download character images
             foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session))
@@ -1185,7 +1193,8 @@ namespace JMMServer
                     if (!string.IsNullOrEmpty(chr.PosterPath) && !File.Exists(chr.PosterPath))
                     {
                         logger.Debug("Downloading character image: {0} - {1}({2}) - {3}", anime.MainTitle, chr.CharName,
-                            chr.CharID, chr.PosterPath);
+                            chr.CharID,
+                            chr.PosterPath);
                         cmd = new CommandRequest_DownloadImage(chr.AniDB_CharacterID, JMMImageType.AniDB_Character,
                             false);
                         cmd.Save();
@@ -1200,7 +1209,8 @@ namespace JMMServer
                     if (!File.Exists(seiyuu.PosterPath))
                     {
                         logger.Debug("Downloading seiyuu image: {0} - {1}({2}) - {3}", anime.MainTitle,
-                            seiyuu.SeiyuuName, seiyuu.SeiyuuID, seiyuu.PosterPath);
+                            seiyuu.SeiyuuName, seiyuu.SeiyuuID,
+                            seiyuu.PosterPath);
                         cmd = new CommandRequest_DownloadImage(seiyuu.AniDB_SeiyuuID, JMMImageType.AniDB_Creator, false);
                         cmd.Save();
                     }
@@ -1262,7 +1272,8 @@ namespace JMMServer
             soUdp.ReceiveTimeout = 30000; // 30 seconds
 
             logger.Info("BindToLocalPort: Bound to local address: {0} - Port: {1} ({2})", localIpEndPoint.ToString(),
-                clientPort, localIpEndPoint.AddressFamily);
+                clientPort,
+                localIpEndPoint.AddressFamily);
 
             return true;
         }

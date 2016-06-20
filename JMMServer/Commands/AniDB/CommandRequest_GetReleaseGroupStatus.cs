@@ -90,21 +90,17 @@ namespace JMMServer.Commands
 
                 GroupStatusCollection grpCol = JMMService.AnidbProcessor.GetReleaseGroupStatusUDP(AnimeID);
 
-                if (ServerSettings.AniDB_DownloadReleaseGroups)
+                if (ServerSettings.AniDB_DownloadReleaseGroups && grpCol != null && grpCol.Groups != null &&
+                    grpCol.Groups.Count > 0)
                 {
                     // save in bulk to improve performance
                     using (var session = JMMService.SessionFactory.OpenSession())
                     {
-                        using (var transaction = session.BeginTransaction())
+                        foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
                         {
-                            foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
-                            {
-                                CommandRequest_GetReleaseGroup cmdRelgrp =
-                                    new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
-                                cmdRelgrp.Save(session);
-                            }
-
-                            transaction.Commit();
+                            CommandRequest_GetReleaseGroup cmdRelgrp =
+                                new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
+                            cmdRelgrp.Save(session);
                         }
                     }
                 }

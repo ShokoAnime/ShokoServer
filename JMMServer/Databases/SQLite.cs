@@ -14,6 +14,7 @@ namespace JMMServer.Databases
         private static Logger logger = LogManager.GetCurrentClassLogger();
         public const string DefaultDBName = @"JMMServer.db3";
 
+
         public static string GetDatabasePath()
         {
             string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
@@ -79,8 +80,8 @@ namespace JMMServer.Databases
                     rowList.Add(values);
                 }
 
-                myConn.Close();
                 reader.Close();
+                myConn.Close();
             }
             catch (Exception ex)
             {
@@ -280,8 +281,9 @@ namespace JMMServer.Databases
 
             logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-            DatabaseHelper.FixDuplicateTvDBLinks();
-            DatabaseHelper.FixDuplicateTraktLinks();
+
+            DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTvDBLinks);
+            DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTraktLinks);
 
             SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
             myConn.Open();
@@ -1022,7 +1024,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
             // Now do the migratiuon
-            DatabaseHelper.MigrateTvDBLinks_V1_to_V2();
+            DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTvDBLinks_V1_to_V2);
         }
 
         private static void UpdateSchema_030(int currentVersionNumber)
@@ -1094,7 +1096,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
             // Now do the migratiuon
-            DatabaseHelper.MigrateTraktLinks_V1_to_V2();
+            DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTraktLinks_V1_to_V2);
         }
 
 
@@ -1145,7 +1147,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
             // Now do the migration
-            DatabaseHelper.RemoveOldMovieDBImageRecords();
+            DatabaseFixes.Fixes.Add(DatabaseFixes.RemoveOldMovieDBImageRecords);
         }
 
         private static void UpdateSchema_035(int currentVersionNumber)
@@ -1212,7 +1214,7 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            DatabaseHelper.PopulateTagWeight();
+            DatabaseFixes.Fixes.Add(DatabaseFixes.PopulateTagWeight);
         }
 
         private static void UpdateSchema_038(int currentVersionNumber)
@@ -1237,7 +1239,9 @@ namespace JMMServer.Databases
 
             logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-            DatabaseHelper.FixHashes();
+            // Now do the migration
+            DatabaseFixes.Fixes.Add(DatabaseFixes.FixHashes);
+
 
             UpdateDatabaseVersion(thisVersion);
         }
@@ -1299,6 +1303,136 @@ namespace JMMServer.Databases
 
             List<string> cmds = new List<string>();
             cmds.Add("ALTER TABLE GroupFilter ADD FilterType int NOT NULL DEFAULT 1");
+            //Add Migration as SQL, since Groupfilters Cache is not init yet.
+            cmds.Add("UPDATE GroupFilter SET FilterType = 2 WHERE GroupFilterName='" +
+                     Constants.GroupFilterName.ContinueWatching +
+                     "'");
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+
+            // Now do the migration
+            DatabaseFixes.Fixes.Add(DatabaseFixes.FixContinueWatchingGroupFilter_20160406);
+        }
+
+        private static void UpdateSchema_044(int currentVersionNumber)
+        {
+            int thisVersion = 44;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+
+            string createcommand = "CREATE TABLE AniDB_Anime ( " +
+                                   " AniDB_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                   " AnimeID int NOT NULL, " +
+                                   " EpisodeCount int NOT NULL, " +
+                                   " AirDate timestamp NULL, " +
+                                   " EndDate timestamp NULL, " +
+                                   " URL text NULL, " +
+                                   " Picname text NULL, " +
+                                   " BeginYear int NOT NULL, " +
+                                   " EndYear int NOT NULL, " +
+                                   " AnimeType int NOT NULL, " +
+                                   " MainTitle text NOT NULL, " +
+                                   " AllTitles text NOT NULL, " +
+                                   " AllTags text NOT NULL, " +
+                                   " Description text NOT NULL, " +
+                                   " EpisodeCountNormal int NOT NULL, " +
+                                   " EpisodeCountSpecial int NOT NULL, " +
+                                   " Rating int NOT NULL, " +
+                                   " VoteCount int NOT NULL, " +
+                                   " TempRating int NOT NULL, " +
+                                   " TempVoteCount int NOT NULL, " +
+                                   " AvgReviewRating int NOT NULL, " +
+                                   " ReviewCount int NOT NULL, " +
+                                   " DateTimeUpdated timestamp NOT NULL, " +
+                                   " DateTimeDescUpdated timestamp NOT NULL, " +
+                                   " ImageEnabled int NOT NULL, " +
+                                   " AwardList text NOT NULL, " +
+                                   " Restricted int NOT NULL, " +
+                                   " AnimePlanetID int NULL, " +
+                                   " ANNID int NULL, " +
+                                   " AllCinemaID int NULL, " +
+                                   " AnimeNfo int NULL, " +
+                                   " LatestEpisodeNumber int NULL, " +
+                                   " DisableExternalLinksFlag int NULL " +
+                                   " )";
+            List<string> indexcommands = new List<string>() { "CREATE UNIQUE INDEX [UIX2_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);" };
+            DropColumns(myConn, "AniDB_Anime", new List<string>() { "AllCategories"}, createcommand, indexcommands);
+            
+            List<string> cmds = new List<string>();
+
+            //AniDB Updates
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractSize int NOT NULL DEFAULT 0");
+
+            //AnimeGroup Updates
+
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate timestamp NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeGroup ADD ContractSize int NOT NULL DEFAULT 0");
+
+            //AnimeGroup_User Updates
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractSize int NOT NULL DEFAULT 0");
+
+            //AnimerSeries Updates
+
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate timestamp NULL");
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeSeries ADD ContractSize int NOT NULL DEFAULT 0");
+
+            //AnimeSeries_User Updates
+
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractSize int NOT NULL DEFAULT 0");
+
+            //GroupFilter Updates
+
+            cmds.Add("ALTER TABLE GroupFilter ADD GroupsIdsVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE GroupFilter ADD GroupsIdsString text NULL");
+            cmds.Add("ALTER TABLE GroupFilter ADD GroupConditionsVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE GroupFilter ADD GroupConditions text NULL");
+            cmds.Add("ALTER TABLE GroupFilter ADD ParentGroupFilterID int NULL");
+            cmds.Add("ALTER TABLE GroupFilter ADD InvisibleInClients int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE GroupFilter ADD SeriesIdsVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE GroupFilter ADD SeriesIdsString text NULL");
+
+            //AnimeEpisode Updates
+
+            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractSize int NOT NULL DEFAULT 0");
+
+
+            //AnimeEpisode_User Updates
+
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractBlob BLOB NULL");
+            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractSize int NOT NULL DEFAULT 0");
+
+            //VideoLocal Updates
+
+            cmds.Add("ALTER TABLE VideoLocal ADD MediaVersion int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE VideoLocal ADD MediaBlob BLOB NULL");
+            cmds.Add("ALTER TABLE VideoLocal ADD MediaSize int NOT NULL DEFAULT 0");
+
 
             foreach (string cmdTable in cmds)
             {
@@ -1312,24 +1446,44 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
             // Now do the migratiuon
-            DatabaseHelper.FixContinueWatchingGroupFilter_20160406();
         }
 
-        private static void UpdateSchema_044(int currentVersionNumber)
+  
+        //WE NEED TO DROP SOME SQL LITE COLUMNS...
+
+        private static void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove, string createcommand, List<string> indexcommands)
         {
-            int thisVersion = 44;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
+            List<string> updatedTableColumns = GetTableColumns(tableName);
+            colsToRemove.ForEach(a => updatedTableColumns.Remove(a));
+            String columnsSeperated = string.Join(",", updatedTableColumns);
             List<string> cmds = new List<string>();
-            cmds.Add("ALTER TABLE AniDB_Anime ADD LatestEpisodeAirDate timestamp NULL");
-            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate timestamp NULL");
 
-            ExecuteSQLCommands(cmds);
-
-            UpdateDatabaseVersion(thisVersion);
+            cmds.Add("ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;");
+            cmds.Add(createcommand);
+            cmds.AddRange(indexcommands);
+            cmds.Add("INSERT INTO "+tableName + " SELECT " + columnsSeperated + " FROM " + tableName + "_old; ");
+            cmds.Add("DROP TABLE " + tableName + "_old;");
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = db;
+                sqCommand.ExecuteNonQuery();
+            }
         }
+
+        private static List<string> GetTableColumns(string tableName)
+        {
+            string cmd = "pragma table_info(" + tableName + ");";
+            List<string> columns = new List<string>();
+            foreach (object o in GetData(cmd))
+            {
+                object[] oo = (object[]) o;
+                columns.Add((string) oo[1]);
+            }
+            return columns;
+        }
+
+
 
         private static void ExecuteSQLCommands(List<string> cmds)
         {
@@ -1500,8 +1654,7 @@ namespace JMMServer.Databases
                      " ANNID int NULL, " +
                      " AllCinemaID int NULL, " +
                      " AnimeNfo int NULL, " +
-                     " LatestEpisodeNumber int NULL, " +
-                     " LatestEpisodeAirDate timestamp NULL " +
+                     " LatestEpisodeNumber int NULL " +
                      " );");
 
             cmds.Add("CREATE UNIQUE INDEX [UIX_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);");
@@ -1901,8 +2054,7 @@ namespace JMMServer.Databases
                      " MissingEpisodeCount int NOT NULL, " +
                      " MissingEpisodeCountGroups int NOT NULL, " +
                      " OverrideDescription int NOT NULL, " +
-                     " EpisodeAddedDate timestamp NULL, " +
-                     " LatestEpisodeAirDate timestamp NULL " +
+                     " EpisodeAddedDate timestamp NULL " +
                      " ); ");
 
             return cmds;

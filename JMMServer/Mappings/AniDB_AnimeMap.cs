@@ -13,7 +13,6 @@ namespace JMMServer.Mappings
             Map(x => x.AirDate);
             Map(x => x.AllCinemaID);
             Map(x => x.AllTitles);
-            Map(x => x.AllCategories);
             Map(x => x.AllTags);
             Map(x => x.AnimeNfo);
             Map(x => x.AnimeID).Not.Nullable();
@@ -33,7 +32,6 @@ namespace JMMServer.Mappings
             Map(x => x.EpisodeCountSpecial).Not.Nullable();
             Map(x => x.ImageEnabled).Not.Nullable();
             Map(x => x.LatestEpisodeNumber);
-            Map(x => x.LatestEpisodeAirDate);
             Map(x => x.MainTitle).Not.Nullable();
             Map(x => x.Picname);
             Map(x => x.Rating).Not.Nullable();
@@ -41,9 +39,12 @@ namespace JMMServer.Mappings
             Map(x => x.ReviewCount).Not.Nullable();
             Map(x => x.TempRating).Not.Nullable();
             Map(x => x.TempVoteCount).Not.Nullable();
-            Map(x => x.URL).Not.Nullable();
+            Map(x => x.URL);
             Map(x => x.VoteCount).Not.Nullable();
             Map(x => x.DisableExternalLinksFlag).Not.Nullable();
+            Map(x => x.ContractVersion).Not.Nullable();
+            Map(x => x.ContractBlob).Nullable().CustomType("BinaryBlob");
+            Map(x => x.ContractSize).Not.Nullable();
         }
     }
 }

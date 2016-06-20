@@ -67,6 +67,7 @@
         // Import settings
         public string VideoExtensions { get; set; }
         public bool AutoGroupSeries { get; set; }
+        public string AutoGroupSeriesRelationExclusions { get; set; }
         public bool RunImportOnStart { get; set; }
         public bool ScanDropFoldersOnStart { get; set; }
         public bool Hash_CRC32 { get; set; }

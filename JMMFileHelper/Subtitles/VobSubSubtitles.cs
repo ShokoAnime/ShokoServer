@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using Stream = JMMContracts.PlexContracts.Stream;
+using Stream = JMMContracts.PlexAndKodi.Stream;
 
 namespace JMMFileHelper.Subtitles
 {

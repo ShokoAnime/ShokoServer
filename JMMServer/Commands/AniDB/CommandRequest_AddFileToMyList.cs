@@ -77,7 +77,8 @@ namespace JMMServer.Commands
 
                     if (isManualLink)
                         newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
-                            xrefs[0].Episode.EpisodeNumber, ref watchedDate);
+                            xrefs[0].Episode.EpisodeNumber,
+                            ref watchedDate);
                     else
                         newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate);
 
@@ -112,7 +113,8 @@ namespace JMMServer.Commands
                                 {
                                     logger.Info(
                                         "Setting file as watched, because episode was already watched: {0} - user: {1}",
-                                        vid.ToString(), juser.Username);
+                                        vid.ToString(),
+                                        juser.Username);
                                     vid.ToggleWatchedStatus(true, true, epUser.WatchedDate, false, false,
                                         epUser.JMMUserID, false, true);
                                 }
@@ -131,8 +133,9 @@ namespace JMMServer.Commands
                     {
                         foreach (AnimeEpisode aep in animeEpisodes)
                         {
-                            CommandRequest_TraktCollectionEpisode cmdSyncTrakt =
-                                new CommandRequest_TraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Add);
+                            CommandRequest_TraktCollectionEpisode cmdSyncTrakt = new CommandRequest_TraktCollectionEpisode
+                                (
+                                aep.AnimeEpisodeID, TraktSyncAction.Add);
                             cmdSyncTrakt.Save();
                         }
                     }

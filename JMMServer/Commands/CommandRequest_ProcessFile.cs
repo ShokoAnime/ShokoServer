@@ -287,13 +287,13 @@ namespace JMMServer.Commands
 
                 // update stats
                 ser.EpisodeAddedDate = DateTime.Now;
-                repSeries.Save(ser);
+                repSeries.Save(ser, false, false);
 
                 AnimeGroupRepository repGroups = new AnimeGroupRepository();
                 foreach (AnimeGroup grp in ser.AllGroupsAbove)
                 {
                     grp.EpisodeAddedDate = DateTime.Now;
-                    repGroups.Save(grp);
+                    repGroups.Save(grp, true, false);
                 }
             }
 

@@ -24,9 +24,12 @@ using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.MyAnime2Helper;
+using JMMServer.PlexAndKodi.Kodi;
+using JMMServer.PlexAndKodi.Plex;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
 using JMMServer.UI;
+using JMMServer.WCFCompression;
 using Microsoft.SqlServer.Management.Smo;
 using NHibernate;
 using NLog;
@@ -322,7 +325,7 @@ namespace JMMServer
             //automaticUpdater.MenuItem = mnuCheckForUpdates;
 
             ServerState.Instance.LoadSettings();
-            workerFileEvents.RunWorkerAsync();
+
 
             cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
 
@@ -618,7 +621,8 @@ namespace JMMServer
             string streamingAddress = "";
 
             Utils.StartStreamingVideo("localhost",
-                @"e:\test\[Frostii]_K-On!_-_S5_(1280x720_Blu-ray_H264)_[8B9E0A76].mkv", "12000", "30", "1280",
+                @"e:\test\[Frostii]_K-On!_-_S5_(1280x720_Blu-ray_H264)_[8B9E0A76].mkv",
+                "12000", "30", "1280",
                 "128", "44100", "8088", ref errorMsg, ref streamingAddress);
 
             return;
@@ -674,7 +678,8 @@ namespace JMMServer
                         || string.IsNullOrEmpty(cboMSSQLServerList.Text) || string.IsNullOrEmpty(txtMSSQL_Username.Text))
                     {
                         MessageBox.Show(JMMServer.Properties.Resources.Server_FillOutSettings,
-                            JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                            JMMServer.Properties.Resources.Error,
+                            MessageBoxButton.OK, MessageBoxImage.Error);
                         txtMSSQL_DatabaseName.Focus();
                         return;
                     }
@@ -693,7 +698,8 @@ namespace JMMServer
                         string.IsNullOrEmpty(txtMySQL_Username.Text))
                     {
                         MessageBox.Show(JMMServer.Properties.Resources.Server_FillOutSettings,
-                            JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                            JMMServer.Properties.Resources.Error,
+                            MessageBoxButton.OK, MessageBoxImage.Error);
                         txtMySQL_DatabaseName.Focus();
                         return;
                     }
@@ -858,6 +864,12 @@ namespace JMMServer
             if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL") cboDatabaseType.SelectedIndex = 2;
         }
 
+        public void StartFileWorker()
+        {
+            if (!workerFileEvents.IsBusy)
+                workerFileEvents.RunWorkerAsync();
+        }
+
         void workerSetupDB_DoWork(object sender, DoWorkEventArgs e)
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
@@ -915,6 +927,7 @@ namespace JMMServer
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingSession;
                 ISessionFactory temp = JMMService.SessionFactory;
 
+
                 logger.Info("Initializing Hosts...");
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingHosts;
                 SetupAniDBProcessor();
@@ -928,14 +941,12 @@ namespace JMMServer
                 StartRESTHost();
                 StartStreamingHost();
 
-                //  Load all stats
-                ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingStats;
-                StatsCache.Instance.InitStats();
 
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
                 JMMService.CmdProcessorGeneral.Init();
                 JMMService.CmdProcessorHasher.Init();
                 JMMService.CmdProcessorImages.Init();
+
 
                 // timer for automatic updates
                 autoUpdateTimer = new System.Timers.Timer();
@@ -952,6 +963,9 @@ namespace JMMServer
                 autoUpdateTimerShort.Start();
 
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingFile;
+
+                StartFileWorker();
+
                 StartWatchingFiles();
 
                 DownloadAllImages();
@@ -981,7 +995,8 @@ namespace JMMServer
         {
             RefreshAllMediaInfo();
             MessageBox.Show(JMMServer.Properties.Resources.Serrver_VideoMediaUpdate,
-                JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
+                JMMServer.Properties.Resources.Success,
+                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         void workerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
@@ -1126,20 +1141,17 @@ namespace JMMServer
 
                             // update stats
                             ser.EpisodeAddedDate = DateTime.Now;
-                            repSeries.Save(ser);
+                            repSeries.Save(ser, false, false);
 
                             AnimeGroupRepository repGroups = new AnimeGroupRepository();
                             foreach (AnimeGroup grp in ser.AllGroupsAbove)
                             {
                                 grp.EpisodeAddedDate = DateTime.Now;
-                                repGroups.Save(grp);
+                                repGroups.Save(grp, false, false);
                             }
 
 
                             AnimeEpisode epAnime = repEps.GetByAniDBEpisodeID(episodeID);
-                            if (epAnime == null)
-                                continue;
-
                             CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
                             JMMServer.Entities.CrossRef_File_Episode xref =
                                 new JMMServer.Entities.CrossRef_File_Episode();
@@ -1233,7 +1245,8 @@ namespace JMMServer
             if (string.IsNullOrEmpty(txtServerPort.Text))
             {
                 MessageBox.Show(JMMServer.Properties.Resources.Server_EnterAnyValue,
-                    JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                    JMMServer.Properties.Resources.Error,
+                    MessageBoxButton.OK, MessageBoxImage.Error);
                 txtServerPort.Focus();
                 return;
             }
@@ -1243,7 +1256,8 @@ namespace JMMServer
             if (port <= 0 || port > 65535)
             {
                 MessageBox.Show(JMMServer.Properties.Resources.Server_EnterCertainValue,
-                    JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                    JMMServer.Properties.Resources.Error,
+                    MessageBoxButton.OK, MessageBoxImage.Error);
                 txtServerPort.Focus();
                 return;
             }
@@ -1708,7 +1722,8 @@ namespace JMMServer
 
                     ScanFolder(fldr.ImportFolderID);
                     MessageBox.Show(JMMServer.Properties.Resources.Server_ScanFolder,
-                        JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
+                        JMMServer.Properties.Resources.Success,
+                        MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
@@ -1725,7 +1740,8 @@ namespace JMMServer
                 Importer.RunImport_UpdateAllAniDB();
                 this.Cursor = Cursors.Arrow;
                 MessageBox.Show(JMMServer.Properties.Resources.Server_AniDBInfoUpdate,
-                    JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
+                    JMMServer.Properties.Resources.Success,
+                    MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -1741,7 +1757,8 @@ namespace JMMServer
                 Importer.RunImport_UpdateTvDB(false);
                 this.Cursor = Cursors.Arrow;
                 MessageBox.Show(JMMServer.Properties.Resources.Server_TvDBInfoUpdate,
-                    JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
+                    JMMServer.Properties.Resources.Success,
+                    MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -1755,7 +1772,8 @@ namespace JMMServer
             Importer.UpdateAllStats();
             this.Cursor = Cursors.Arrow;
             MessageBox.Show(JMMServer.Properties.Resources.Server_StatsInfoUpdate,
-                JMMServer.Properties.Resources.Success, MessageBoxButton.OK, MessageBoxImage.Information);
+                JMMServer.Properties.Resources.Success,
+                MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         void btnSyncVotes_Click(object sender, RoutedEventArgs e)
@@ -2147,6 +2165,7 @@ namespace JMMServer
         private static void StartBinaryHost()
         {
             BinaryMessageEncodingBindingElement encoding = new BinaryMessageEncodingBindingElement();
+            encoding.CompressionFormat = CompressionFormat.GZip;
             HttpTransportBindingElement transport = new HttpTransportBindingElement();
             Binding binding = new CustomBinding(encoding, transport);
             binding.Name = "BinaryBinding";
@@ -2163,9 +2182,10 @@ namespace JMMServer
             ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
             smb.HttpGetEnabled = true;
             smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
+            
             hostBinary.Description.Behaviors.Add(smb);
-
             hostBinary.AddServiceEndpoint(typeof(IJMMServer), binding, baseAddressBinary);
+
 
             // ** DISCOVERY ** //
             // make the service discoverable by adding the discovery behavior
@@ -2202,7 +2222,8 @@ namespace JMMServer
 
             hostImage.AddServiceEndpoint(typeof(IJMMServerImage), binding, baseAddressImage);
             hostImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
-                MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
+                MetadataExchangeBindings.CreateMexHttpBinding(),
+                "mex");
 
             // Open the ServiceHost to start listening for messages. Since
             // no endpoints are explicitly configured, the runtime will create
@@ -2345,7 +2366,8 @@ namespace JMMServer
 
             hostMetro.AddServiceEndpoint(typeof(IJMMServerMetro), binding, baseAddressMetro);
             hostMetro.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
-                MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
+                MetadataExchangeBindings.CreateMexHttpBinding(),
+                "mex");
 
             // Open the ServiceHost to start listening for messages. Since
             // no endpoints are explicitly configured, the runtime will create
@@ -2358,17 +2380,45 @@ namespace JMMServer
 
         private static void StartPlexHost()
         {
-            hostPlex = new WebServiceHost(typeof(JMMServiceImplementationPlex), baseAddressPlex);
-            ServiceEndpoint ep = hostPlex.AddServiceEndpoint(typeof(IJMMServerPlex), new WebHttpBinding(), "");
+            hostPlex = new WebServiceHost(typeof(PlexImplementation), baseAddressPlex);
+            AddCompressableEndpoint(hostPlex, typeof(IJMMServerPlex), new WebHttpBinding());
             ServiceDebugBehavior stp = hostPlex.Description.Behaviors.Find<ServiceDebugBehavior>();
             stp.HttpHelpPageEnabled = false;
             hostPlex.Open();
         }
 
+        private static void AddCompressableEndpoint(ServiceHost host, Type t, Binding original, object address = null)
+        {
+            CustomBinding custom = new CustomBinding(original);
+            for (int i = 0; i < custom.Elements.Count; i++)
+            {
+                if (custom.Elements[i] is WebMessageEncodingBindingElement)
+                {
+                    WebMessageEncodingBindingElement webBE = (WebMessageEncodingBindingElement) custom.Elements[i];
+                    custom.Elements[i] = new CompressedMessageEncodingBindingElement(webBE);
+                }
+                else if (custom.Elements[i] is TransportBindingElement)
+                {
+                    ((TransportBindingElement) custom.Elements[i]).MaxReceivedMessageSize = int.MaxValue;
+                }
+            }
+            ServiceEndpoint ep = null;
+            string addr = address as string;
+            if (addr != null)
+                ep = host.AddServiceEndpoint(t, custom, addr);
+            Uri addrurl = address as Uri;
+            if (addrurl != null)
+                ep = host.AddServiceEndpoint(t, custom, addrurl);
+            if (ep == null)
+                ep = host.AddServiceEndpoint(t, custom, "");
+            ep.EndpointBehaviors.Add(new WebHttpBehavior {HelpEnabled = true, AutomaticFormatSelectionEnabled = true});
+            ep.EndpointBehaviors.Add(new CompressionSelectionEndpointBehavior());
+        }
+
         private static void StartKodiHost()
         {
-            hostKodi = new WebServiceHost(typeof(JMMServiceImplementationKodi), baseAddressKodi);
-            ServiceEndpoint ep = hostKodi.AddServiceEndpoint(typeof(IJMMServerKodi), new WebHttpBinding(), "");
+            hostKodi = new WebServiceHost(typeof(KodiImplementation), baseAddressKodi);
+            AddCompressableEndpoint(hostKodi, typeof(IJMMServerKodi), new WebHttpBinding());
             ServiceDebugBehavior stp = hostKodi.Description.Behaviors.Find<ServiceDebugBehavior>();
             stp.HttpHelpPageEnabled = false;
             hostKodi.Open();
@@ -2387,7 +2437,7 @@ namespace JMMServer
         private static void StartRESTHost()
         {
             hostREST = new WebServiceHost(typeof(JMMServiceImplementationREST), baseAddressREST);
-            ServiceEndpoint ep = hostREST.AddServiceEndpoint(typeof(IJMMServerREST),
+            hostREST.AddServiceEndpoint(typeof(IJMMServerREST),
                 new WebHttpBinding()
                 {
                     CloseTimeout = TimeSpan.FromMinutes(20),
@@ -2579,13 +2629,17 @@ namespace JMMServer
             logger.Info("ED2K only took {0} ms --- {1}/{2}/{3}/{4}", doubleED2k, hashes.ed2k, hashes.crc32, hashes.md5,
                 hashes.sha1);
             logger.Info("ED2K + CRCR32 took {0} ms --- {1}/{2}/{3}/{4}", doubleCRC32, hashes2.ed2k, hashes2.crc32,
-                hashes2.md5, hashes2.sha1);
+                hashes2.md5,
+                hashes2.sha1);
             logger.Info("ED2K + MD5 took {0} ms --- {1}/{2}/{3}/{4}", doubleMD5, hashes3.ed2k, hashes3.crc32,
-                hashes3.md5, hashes3.sha1);
+                hashes3.md5,
+                hashes3.sha1);
             logger.Info("ED2K + SHA1 took {0} ms --- {1}/{2}/{3}/{4}", doubleSHA1, hashes4.ed2k, hashes4.crc32,
-                hashes4.md5, hashes4.sha1);
+                hashes4.md5,
+                hashes4.sha1);
             logger.Info("Everything took {0} ms --- {1}/{2}/{3}/{4}", doubleAll, hashes5.ed2k, hashes5.crc32,
-                hashes5.md5, hashes5.sha1);
+                hashes5.md5,
+                hashes5.sha1);
         }
 
         private static void HashTest2()

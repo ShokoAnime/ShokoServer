@@ -22,7 +22,7 @@ namespace JMMServer.Repositories
                 }
             }
             logger.Trace("Updating group stats by file from CrossRef_File_EpisodeRepository.Save: {0}", obj.Hash);
-            StatsCache.Instance.UpdateUsingAniDBFile(obj.Hash);
+            AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
         }
 
         public CrossRef_File_Episode GetByID(int id)
@@ -133,8 +133,7 @@ namespace JMMServer.Repositories
             if (animeID > 0)
             {
                 logger.Trace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {0}", animeID);
-                StatsCache.Instance.UpdateUsingAnime(animeID);
-                StatsCache.Instance.UpdateAnimeContract(animeID);
+                AniDB_Anime.UpdateStatsByAnimeID(animeID);
             }
         }
     }

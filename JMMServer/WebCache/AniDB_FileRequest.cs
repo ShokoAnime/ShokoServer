@@ -219,7 +219,7 @@ namespace JMMServer.WebCache
         {
             this.Anime_GroupName = data.Anime_GroupName;
             this.Anime_GroupNameShort = data.Anime_GroupNameShort;
-            this.AnimeID = data.AnimeID;
+            //this.AnimeID = data.AnimeID;
             this.CRC = data.CRC;
             this.Episode_Rating = data.Episode_Rating;
             this.Episode_Votes = data.Episode_Votes;

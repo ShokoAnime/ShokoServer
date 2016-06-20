@@ -170,6 +170,13 @@ namespace JMMServer.Databases
                 UpdateSchema_044(versionNumber);
                 UpdateSchema_045(versionNumber);
                 UpdateSchema_046(versionNumber);
+                UpdateSchema_047(versionNumber);
+                UpdateSchema_048(versionNumber);
+                UpdateSchema_049(versionNumber);
+                UpdateSchema_050(versionNumber);
+                UpdateSchema_051(versionNumber);
+                UpdateSchema_052(versionNumber);
+
             }
             catch (Exception ex)
             {
@@ -376,8 +383,9 @@ namespace JMMServer.Databases
 
             logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-            DatabaseHelper.FixDuplicateTvDBLinks();
-            DatabaseHelper.FixDuplicateTraktLinks();
+
+            DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTvDBLinks);
+            DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTraktLinks);
 
             List<string> cmds = new List<string>();
 
@@ -419,8 +427,6 @@ namespace JMMServer.Databases
 
             logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-            DatabaseHelper.FixDuplicateTvDBLinks();
-            DatabaseHelper.FixDuplicateTraktLinks();
 
             List<string> cmds = new List<string>();
 
@@ -1367,7 +1373,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
             // Now do the migratiuon
-            DatabaseHelper.MigrateTvDBLinks_V1_to_V2();
+            DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTvDBLinks_V1_to_V2);
         }
 
         private static void UpdateSchema_030(int currentVersionNumber)
@@ -1449,7 +1455,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
             // Now do the migratiuon
-            DatabaseHelper.MigrateTraktLinks_V1_to_V2();
+            DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTraktLinks_V1_to_V2);
         }
 
         private static void UpdateSchema_033(int currentVersionNumber)
@@ -1506,8 +1512,8 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            // Now do the migratiuon
-            DatabaseHelper.RemoveOldMovieDBImageRecords();
+            // Now do the migration
+            DatabaseFixes.Fixes.Add(DatabaseFixes.RemoveOldMovieDBImageRecords);
         }
 
         private static void UpdateSchema_035(int currentVersionNumber)
@@ -1662,7 +1668,7 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            DatabaseHelper.PopulateTagWeight();
+            DatabaseFixes.Fixes.Add(DatabaseFixes.PopulateTagWeight);
         }
 
         private static void UpdateSchema_040(int currentVersionNumber)
@@ -1688,7 +1694,8 @@ namespace JMMServer.Databases
 
             logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
-            DatabaseHelper.FixHashes();
+            // Now do the migration
+            DatabaseFixes.Fixes.Add(DatabaseFixes.FixHashes);
 
             UpdateDatabaseVersion(thisVersion);
         }
@@ -1753,7 +1760,6 @@ namespace JMMServer.Databases
             cmds.Add("UPDATE GroupFilter SET FilterType = 1 ;");
             cmds.Add("ALTER TABLE `GroupFilter` CHANGE COLUMN `FilterType` `FilterType` int NOT NULL ;");
 
-
             using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
             {
                 conn.Open();
@@ -1775,6 +1781,8 @@ namespace JMMServer.Databases
             }
 
             UpdateDatabaseVersion(thisVersion);
+
+            DatabaseFixes.Fixes.Add(DatabaseFixes.FixContinueWatchingGroupFilter_20160406);
         }
 
         private static void UpdateSchema_046(int currentVersionNumber)
@@ -1786,7 +1794,131 @@ namespace JMMServer.Databases
 
             List<string> cmds = new List<string>();
 
-            cmds.Add("ALTER TABLE AniDB_Anime ADD LatestEpisodeAirDate datetime NULL");
+            cmds.Add("ALTER TABLE `AniDB_Anime` ADD `ContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AniDB_Anime` ADD `ContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup` ADD `ContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeGroup` ADD `ContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `PlexContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `PlexContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `KodiContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `KodiContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries` ADD `ContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeSeries` ADD `ContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `PlexContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `PlexContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `KodiContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `KodiContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `GroupsIdsVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `GroupsIdsString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractString` mediumtext character set utf8 NULL");
+
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
+
+        private static void UpdateSchema_047(int currentVersionNumber)
+        {
+            int thisVersion = 47;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE `AnimeEpisode` ADD `PlexContractVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeEpisode` ADD `PlexContractString` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `MediaVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `MediaString` mediumtext character set utf8 NULL");
+
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
+
+        private static void UpdateSchema_048(int currentVersionNumber)
+        {
+            int thisVersion = 48;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE `AnimeSeries_User` DROP COLUMN `KodiContractVersion`");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` DROP COLUMN `KodiContractString`");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` DROP COLUMN `KodiContractVersion`");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` DROP COLUMN `KodiContractString`");
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
+
+        private static void UpdateSchema_049(int currentVersionNumber)
+        {
+            int thisVersion = 49;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate datetime NULL");
             cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate datetime NULL");
 
             ExecuteSQLCommands(cmds);
@@ -1794,6 +1926,127 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
+        private static void UpdateSchema_050(int currentVersionNumber)
+        {
+            int thisVersion = 50;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `GroupConditionsVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `GroupConditions` mediumtext character set utf8 NULL");
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `ParentGroupFilterID` int NULL");
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `InvisibleInClients` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `SeriesIdsVersion` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `GroupFilter` ADD `SeriesIdsString` mediumtext character set utf8 NULL");
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
+        private static void UpdateSchema_051(int currentVersionNumber)
+        {
+            int thisVersion = 51;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE `AniDB_Anime` ADD `ContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AniDB_Anime` ADD `ContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AniDB_Anime` DROP COLUMN `ContractString`");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `MediaBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `MediaSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `VideoLocal` DROP COLUMN `MediaString`");
+            cmds.Add("ALTER TABLE `AnimeEpisode` ADD `PlexContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeEpisode` ADD `PlexContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeEpisode` DROP COLUMN `PlexContractString`");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` ADD `ContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeEpisode_User` DROP COLUMN `ContractString`");
+            cmds.Add("ALTER TABLE `AnimeSeries` ADD `ContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries` ADD `ContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeSeries` DROP COLUMN `ContractString`");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `PlexContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` ADD `PlexContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeSeries_User` DROP COLUMN `PlexContractString`");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `PlexContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` ADD `PlexContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeGroup_User` DROP COLUMN `PlexContractString`");
+            cmds.Add("ALTER TABLE `AnimeGroup` ADD `ContractBlob` mediumblob NULL");
+            cmds.Add("ALTER TABLE `AnimeGroup` ADD `ContractSize` int NOT NULL DEFAULT 0");
+            cmds.Add("ALTER TABLE `AnimeGroup` DROP COLUMN `ContractString`");
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
+        private static void UpdateSchema_052(int currentVersionNumber)
+        {
+            int thisVersion = 52;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE `AniDB_Anime` DROP COLUMN `AllCategories`");
+
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
         private static void ExecuteSQLCommands(List<string> cmds)
         {
             using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
@@ -2173,7 +2426,6 @@ namespace JMMServer.Databases
                      " `AllCinemaID` int NULL, " +
                      " `AnimeNfo` int NULL, " +
                      " `LatestEpisodeNumber` int NULL, " +
-                     " `LatestEpisodeAirDate` datetime NULL, " +
                      " PRIMARY KEY (`AniDB_AnimeID`) ) ; ");
 
             cmds.Add("ALTER TABLE `AniDB_Anime` ADD UNIQUE INDEX `UIX_AniDB_Anime_AnimeID` (`AnimeID` ASC) ;");
@@ -2615,7 +2867,6 @@ namespace JMMServer.Databases
                      " `MissingEpisodeCountGroups` int NOT NULL, " +
                      " `OverrideDescription` int NOT NULL, " +
                      " `EpisodeAddedDate` datetime NULL, " +
-                     " `LatestEpisodeAirDate` datetime NULL, " +
                      " PRIMARY KEY (`AnimeGroupID`) ) ; ");
 
             return cmds;

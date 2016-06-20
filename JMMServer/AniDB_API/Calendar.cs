@@ -41,7 +41,8 @@ namespace AniDBAPI
         public override string ToString()
         {
             return string.Format("Calendar - AnimeID: {0}...Release Date: {1}({2})...Flags: {3}", animeID,
-                releaseDateRaw, releaseDate, dateFlags);
+                releaseDateRaw,
+                releaseDate, dateFlags);
         }
     }
 

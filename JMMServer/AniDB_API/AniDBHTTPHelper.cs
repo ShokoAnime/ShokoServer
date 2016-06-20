@@ -19,7 +19,7 @@ namespace AniDBAPI
             {
                 return
                     "http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=anime&aid={0}";
-                    // they have said now that this will never change
+                // they have said now that this will never change
             }
         }
 
@@ -29,7 +29,7 @@ namespace AniDBAPI
             {
                 return
                     "http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=mylist&user={0}&pass={1}";
-                    // they have said now that this will never change
+                // they have said now that this will never change
             }
         }
 
@@ -39,7 +39,7 @@ namespace AniDBAPI
             {
                 return
                     "http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=votes&user={0}&pass={1}";
-                    // they have said now that this will never change
+                // they have said now that this will never change
             }
         }
 

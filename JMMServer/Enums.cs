@@ -320,13 +320,13 @@ namespace JMMServer
         CompletedSeries = 1,
         MissingEpisodes = 2,
         HasUnwatchedEpisodes = 3,
-        AllEpisodesWatched = 4,
+        // AllEpisodesWatched = 4,
         UserVoted = 5,
-        Category = 6,
+        Tag = 6,
         AirDate = 7,
-        Studio = 8,
+        //Studio = 8,
         AssignedTvDBInfo = 9,
-        ReleaseGroup = 11,
+        //ReleaseGroup = 11,
         AnimeType = 12,
         VideoQuality = 13,
         Favourite = 14,
@@ -347,7 +347,9 @@ namespace JMMServer
         AssignedMALInfo = 29,
         EpisodeCount = 30,
         CustomTags = 31,
-        LatestEpisodeAirDate = 32
+        LatestEpisodeAirDate = 32,
+
+        Year = 34
     }
 
     public enum GroupFilterOperator
@@ -365,10 +367,15 @@ namespace JMMServer
         NotInAllEpisodes = 11
     }
 
+    [Flags]
     public enum GroupFilterType
     {
         UserDefined = 1,
-        ContinueWatching = 2
+        ContinueWatching = 2,
+        All = 4,
+        Directory = 8,
+        Tag = 16,
+        Year = 32,
     }
 
     public enum GroupFilterSorting
@@ -384,7 +391,8 @@ namespace JMMServer
         MissingEpisodeCount = 9,
         UserRating = 10,
         AniDBRating = 11,
-        SortName = 12
+        SortName = 12,
+        GroupFilterName = 13,
     }
 
     public enum GroupFilterSortDirection

@@ -157,7 +157,8 @@ namespace AniDBAPI.Commands
                         errorMessage = ex.ToString();
                     }
                     if ((commandType == enAniDBCommandType.Login) && (byReceivedAdd[0] == 0xFE) &&
-                        (byReceivedAdd[1] == 0xFF) && (byReceivedAdd[3] == 53) && (byReceivedAdd[5] != 53) &&
+                        (byReceivedAdd[1] == 0xFF) &&
+                        (byReceivedAdd[3] == 53) && (byReceivedAdd[5] != 53) &&
                         !Encoding.EncodingName.ToLower().StartsWith("unicode") && (changeencoding != null) &&
                         changeencoding.EncodingName.ToLower().StartsWith("unicode"))
                     {

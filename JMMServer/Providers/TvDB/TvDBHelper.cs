@@ -54,9 +54,7 @@ namespace JMMServer.Providers.TvDB
 
         public static string URLMirror
         {
-            get
-            {
-                return "http://thetvdb.com"; // they have said now that this will never change
+            get { return "http://thetvdb.com"; // they have said now that this will never change
             }
         }
 
@@ -152,7 +150,8 @@ namespace JMMServer.Providers.TvDB
                 //Init();
 
                 string url = string.Format(Constants.TvDBURLs.urlSeriesBaseXML, URLMirror, Constants.TvDBURLs.apiKey,
-                    seriesID, ServerSettings.TvDB_Language);
+                    seriesID,
+                    ServerSettings.TvDB_Language);
                 logger.Trace("GetSeriesInfo: {0}", url);
 
                 // Search for a series
@@ -219,7 +218,8 @@ namespace JMMServer.Providers.TvDB
                 Init();
 
                 string url = string.Format(Constants.TvDBURLs.urlFullSeriesData, urlMirror, Constants.TvDBURLs.apiKey,
-                    seriesID, ServerSettings.TvDB_Language);
+                    seriesID,
+                    ServerSettings.TvDB_Language);
                 logger.Trace("GetFullSeriesInfo: {0}", url);
 
                 Stream data = Utils.DownloadWebBinary(url);
@@ -487,8 +487,8 @@ namespace JMMServer.Providers.TvDB
                         if (!fileExists || (fileExists && forceDownload))
                         {
                             CommandRequest_DownloadImage cmd =
-                                new CommandRequest_DownloadImage(img.TvDB_ImageWideBannerID, JMMImageType.TvDB_Banner,
-                                    forceDownload);
+                                new CommandRequest_DownloadImage(img.TvDB_ImageWideBannerID,
+                                    JMMImageType.TvDB_Banner, forceDownload);
                             cmd.Save();
                             numBannersDownloaded++;
                         }
@@ -831,7 +831,8 @@ namespace JMMServer.Providers.TvDB
             {
                 CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
                 List<CrossRef_AniDB_TvDBV2> xrefTemps = repCrossRef.GetByAnimeIDEpTypeEpNumber(session, animeID,
-                    (int) aniEpType, aniEpNumber);
+                    (int) aniEpType,
+                    aniEpNumber);
                 if (xrefTemps != null && xrefTemps.Count > 0)
                 {
                     foreach (CrossRef_AniDB_TvDBV2 xrefTemp in xrefTemps)
@@ -857,11 +858,13 @@ namespace JMMServer.Providers.TvDB
                 // download and update series info, episode info and episode images
                 // will also download fanart, posters and wide banners
                 CommandRequest_TvDBUpdateSeriesAndEpisodes cmdSeriesEps =
-                    new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvDBID, false);
+                    new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvDBID,
+                        false);
                 cmdSeriesEps.Save();
 
                 CrossRef_AniDB_TvDBV2 xref = repCrossRef.GetByTvDBID(session, tvDBID, tvSeasonNumber, tvEpNumber,
-                    animeID, (int) aniEpType, aniEpNumber);
+                    animeID,
+                    (int) aniEpType, aniEpNumber);
                 if (xref == null)
                     xref = new CrossRef_AniDB_TvDBV2();
 
@@ -882,7 +885,7 @@ namespace JMMServer.Providers.TvDB
 
                 repCrossRef.Save(xref);
 
-                StatsCache.Instance.UpdateUsingAnime(animeID);
+                AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
                 logger.Trace("Changed tvdb association: {0}", animeID);
 
@@ -920,7 +923,7 @@ namespace JMMServer.Providers.TvDB
             xref.TvDBEpisodeID = tvDBID;
             repCrossRef.Save(xref);
 
-            StatsCache.Instance.UpdateUsingAnime(animeID);
+            AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed tvdb episode association: {0}", aniDBID);
         }
@@ -931,12 +934,13 @@ namespace JMMServer.Providers.TvDB
         {
             CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
             CrossRef_AniDB_TvDBV2 xref = repCrossRef.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID,
-                (int) aniEpType, aniEpNumber);
+                (int) aniEpType,
+                aniEpNumber);
             if (xref == null) return;
 
             repCrossRef.Delete(xref.CrossRef_AniDB_TvDBV2ID);
 
-            StatsCache.Instance.UpdateUsingAnime(animeID);
+            AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(animeID,
                 (int) aniEpType, aniEpNumber,
