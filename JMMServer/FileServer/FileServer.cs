@@ -190,8 +190,8 @@ namespace JMMServer.FileServer
                     return;
                 string cmd = dta[0].ToLower();
                 string user = dta[1];
-                string aw = dta[3];
-                string arg = dta[2];
+                string aw = dta[2];
+                string arg = dta[3];
                 string fullname;
                 int userid = 0;
                 int autowatch = 0;
