@@ -2358,7 +2358,7 @@ namespace JMMServer.Entities
                         newGroup.Populate(name);
                         newGroup.GroupName = newTitle;
                         newGroup.SortName = newTitle;
-                        repGroups.Save(newGroup, true, false);
+                        repGroups.Save(newGroup, true, true);
                     }
 
                     #endregion

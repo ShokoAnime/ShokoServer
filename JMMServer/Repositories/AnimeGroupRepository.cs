@@ -81,9 +81,11 @@ namespace JMMServer.Repositories
                 }
                 if (grp.AnimeGroupParentID.HasValue && recursive)
                 {
-                    //TODO Introduced possible BUG, if a circular GroupParent is created, this will run infinite
                     AnimeGroup pgroup = GetByID(session, grp.AnimeGroupParentID.Value);
-                    Save(pgroup, updategrpcontractstats, true, verifylockedFilters);
+					// This will avoid the recursive error that would be possible, it won't update it, but that would be
+					// the least of the issues
+					if(pgroup != null && pgroup.AnimeGroupParentID == grp.AnimeGroupID)
+						Save(pgroup, updategrpcontractstats, true, verifylockedFilters);
                 }
             }
         }
