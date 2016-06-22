@@ -1034,7 +1034,12 @@ namespace JMMServer
                 AnimeGroup grp = repGroups.GetByID(oldGroupID);
                 if (grp != null)
                 {
-                    grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
+					AnimeGroup topGroup = grp.TopLevelAnimeGroup;
+					if (grp.GetAllSeries().Count == 0)
+					{
+						repGroups.Delete(grp.AnimeGroupID);
+					}
+					topGroup.UpdateStatsFromTopLevel(true, true, true);
                 }
 
                 AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
