@@ -325,7 +325,7 @@ namespace JMMServer.Entities
                     string newTitle = list[0].GetAnime().PreferredTitle;
                     grp.GroupName = newTitle;
                     grp.SortName = newTitle;
-                    repGroups.Save(grp, true, false);
+                    repGroups.Save(grp, true, true);
                 }
                 else if (list.Count > 1)
                 {
@@ -388,7 +388,7 @@ namespace JMMServer.Entities
                         grp.Populate(series);
                         grp.GroupName = newTitle;
                         grp.SortName = newTitle;
-                        repGroups.Save(grp, true, false);
+                        repGroups.Save(grp, true, true);
                     }
 
                     #endregion

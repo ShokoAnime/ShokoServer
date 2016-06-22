@@ -8029,12 +8029,7 @@ namespace JMMServer
                                     if (grp.DefaultAnimeSeriesID.HasValue)
                                     {
                                         name = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
-                                        if (name == null)
-                                        {
-                                            grp.DefaultAnimeSeriesID = null;
-                                            //TODO this do nothing, only in memory is not saved
-                                        }
-                                        else
+                                        if (name != null)
                                         {
                                             groupHasCustomName = false;
                                         }
@@ -8097,7 +8092,7 @@ namespace JMMServer
                                 grp.Populate(name);
                                 grp.GroupName = newTitle;
                                 grp.SortName = newTitle;
-                                repGroups.Save(grp, true, false);
+                                repGroups.Save(grp, true, true);
                             }
 
                             #endregion
