@@ -322,10 +322,10 @@ namespace JMMServer.Entities
                 // only rename the group if it has one direct child Anime Series
                 if (list.Count == 1)
                 {
-                    string newTitle = list[0].GetAnime().PreferredTitle;
+                    string newTitle = list[0].GetSeriesName();
                     grp.GroupName = newTitle;
                     grp.SortName = newTitle;
-                    repGroups.Save(grp, true, true);
+                    repGroups.Save(grp, true, false);
                 }
                 else if (list.Count > 1)
                 {
@@ -368,8 +368,22 @@ namespace JMMServer.Entities
                                             break;
                                         }
                                     }
-                                }
-                                series = ser;
+									#region tvdb names
+									List<TvDB_Series> tvdbs = ser.GetTvDBSeries();
+									if(tvdbs != null && tvdbs.Count != 0)
+									{
+										foreach (TvDB_Series tvdbser in tvdbs)
+										{
+											if (tvdbser.SeriesName.Equals(grp.GroupName))
+											{
+												hasCustomName = false;
+												break;
+											}
+										}
+									}
+									#endregion
+								}
+								series = ser;
                                 continue;
                             }
                             if (ser.AirDate < series.AirDate) series = ser;
@@ -377,13 +391,11 @@ namespace JMMServer.Entities
                     }
                     if (series != null)
                     {
-                        string newTitle = series.GetAnime().PreferredTitle;
-                        if (series.SeriesNameOverride != null && !series.SeriesNameOverride.Equals(""))
-                            newTitle = series.SeriesNameOverride;
-                        if (hasCustomName &&
-                            (!grp.DefaultAnimeSeriesID.HasValue ||
-                             series.AnimeSeriesID != grp.DefaultAnimeSeriesID.Value))
-                            newTitle = grp.GroupName;
+                        string newTitle = series.GetSeriesName();
+						if (grp.DefaultAnimeSeriesID.HasValue &&
+							grp.DefaultAnimeSeriesID.Value != series.AnimeSeriesID)
+							newTitle = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value).GetSeriesName();
+                        if (hasCustomName) newTitle = grp.GroupName;
                         // reset tags, description, etc to new series
                         grp.Populate(series);
                         grp.GroupName = newTitle;
