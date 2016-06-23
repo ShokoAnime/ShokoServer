@@ -66,7 +66,7 @@ namespace JMMServer.Commands
         {
             try
             {
-                using (FileStream fs = File.OpenRead(fileName))
+                using (FileStream fs = File.Open(fileName,FileMode.Open,FileAccess.Read,FileShare.None))
                 {
                     fs.Close();
                     return true;
