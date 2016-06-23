@@ -8152,7 +8152,7 @@ namespace JMMServer
 
                 // create group user records and update group stats
                 foreach (AnimeGroup grp in repGroups.GetAll())
-                    grp.UpdateStatsFromTopLevel(true, true);
+                    grp.UpdateStatsFromTopLevel(true, true, true);
 
 
                 // un-pause queues

@@ -325,7 +325,7 @@ namespace JMMServer.Entities
                     string newTitle = list[0].GetSeriesName();
                     grp.GroupName = newTitle;
                     grp.SortName = newTitle;
-                    repGroups.Save(grp, true, false);
+                    repGroups.Save(grp, true, true);
                 }
                 else if (list.Count > 1)
                 {
