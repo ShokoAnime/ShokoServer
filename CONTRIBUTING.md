@@ -3,7 +3,8 @@
 Contributing to JMM is simple! 
 
 Anyone can contribute by simply Forking the project and submitting a Pull Request with your changes. Here are some things to consider before submitting your pull request and once you’ve submitted it. 
-* Thoroughly test any changes you make to reduce the chance of breaking another function. Multiple commits in a pull request is ok. 
+* Thoroughly test any changes you make to reduce the chance of breaking another function. 
+* Multiple commits in a pull request is ok. 
 * Please update your pull request with each commit you submit; it makes it easier for us to understand. 
 * Some pull requests might remain open for a number of days, this can be for a number of reasons so we’ll make sure to keep you updated on why. 
 
