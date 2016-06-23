@@ -2340,8 +2340,23 @@ namespace JMMServer.Entities
                                             break;
                                         }
                                     }
-                                }
-                            }
+
+									#region tvdb names
+									List<TvDB_Series> tvdbs = series.GetTvDBSeries();
+									if (tvdbs != null && tvdbs.Count != 0)
+									{
+										foreach (TvDB_Series tvdbser in tvdbs)
+										{
+											if (tvdbser.SeriesName.Equals(grp.GroupName))
+											{
+												groupHasCustomName = false;
+												break;
+											}
+										}
+									}
+									#endregion
+								}
+							}
                         }
 
                         if (groupHasCustomName)
@@ -2350,12 +2365,13 @@ namespace JMMServer.Entities
                     if (name != null)
                     {
                         AnimeGroup newGroup = repGroups.GetByID(groupID);
-                        string newTitle = name.GetAnime().PreferredTitle;
-                        if (name.SeriesNameOverride != null && !name.SeriesNameOverride.Equals(""))
-                            newTitle = name.SeriesNameOverride;
-                        if (customGroupName != null) newTitle = customGroupName;
-                        // reset tags, description, etc to new series
-                        newGroup.Populate(name);
+						string newTitle = name.GetSeriesName();
+						if (newGroup.DefaultAnimeSeriesID.HasValue &&
+							newGroup.DefaultAnimeSeriesID.Value != name.AnimeSeriesID)
+							newTitle = new AnimeSeriesRepository().GetByID(newGroup.DefaultAnimeSeriesID.Value).GetSeriesName();
+						if (customGroupName != null) newTitle = customGroupName;
+						// reset tags, description, etc to new series
+						newGroup.Populate(name);
                         newGroup.GroupName = newTitle;
                         newGroup.SortName = newTitle;
                         repGroups.Save(newGroup, true, true);
