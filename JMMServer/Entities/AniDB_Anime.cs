@@ -2009,7 +2009,7 @@ namespace JMMServer.Entities
                 AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
                 AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
 
-                List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(this.AniDB_AnimeID);
+                List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(this.AnimeID);
                 if (animeChars == null || animeChars.Count == 0) return chars;
 
                 foreach (AniDB_Anime_Character animeChar in animeChars)
