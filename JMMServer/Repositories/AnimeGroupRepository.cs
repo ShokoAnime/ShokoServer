@@ -53,37 +53,41 @@ namespace JMMServer.Repositories
 
         public void Save(AnimeGroup grp, bool updategrpcontractstats, bool recursive, bool verifylockedFilters = true)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (grp)
             {
-                if (grp.AnimeGroupID == 0)
-                    //We are creating one, and we need the AnimeGroupID before Update the contracts
+                using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    grp.Contract = null;
+                    if (grp.AnimeGroupID == 0)
+                        //We are creating one, and we need the AnimeGroupID before Update the contracts
+                    {
+                        grp.Contract = null;
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            session.SaveOrUpdate(grp);
+                            transaction.Commit();
+                        }
+                    }
+                    HashSet<GroupFilterConditionType> types = grp.UpdateContract(session, updategrpcontractstats);
+                    //Types will contains the affected GroupFilterConditionTypes
                     using (var transaction = session.BeginTransaction())
                     {
                         session.SaveOrUpdate(grp);
                         transaction.Commit();
                     }
-                }
-                HashSet<GroupFilterConditionType> types = grp.UpdateContract(session, updategrpcontractstats);
-                //Types will contains the affected GroupFilterConditionTypes
-                using (var transaction = session.BeginTransaction())
-                {
-                    session.SaveOrUpdate(grp);
-                    transaction.Commit();
-                }
-                Cache.Update(grp);
-                if (verifylockedFilters)
-                {
-                    GroupFilterRepository.CreateOrVerifyTagsAndYearsFilters(false, grp.Contract.Stat_AllTags,grp.Contract.Stat_AirDate_Min);
-                    //This call will create extra years or tags if the Group have a new year or tag
-                    grp.UpdateGroupFilters(types, null);
-                }
-                if (grp.AnimeGroupParentID.HasValue && recursive)
-                {
-                    //TODO Introduced possible BUG, if a circular GroupParent is created, this will run infinite
-                    AnimeGroup pgroup = GetByID(session, grp.AnimeGroupParentID.Value);
-                    Save(pgroup, updategrpcontractstats, true, verifylockedFilters);
+                    Cache.Update(grp);
+                    if (verifylockedFilters)
+                    {
+                        GroupFilterRepository.CreateOrVerifyTagsAndYearsFilters(false, grp.Contract.Stat_AllTags,
+                            grp.Contract.Stat_AirDate_Min);
+                        //This call will create extra years or tags if the Group have a new year or tag
+                        grp.UpdateGroupFilters(types, null);
+                    }
+                    if (grp.AnimeGroupParentID.HasValue && recursive)
+                    {
+                        //TODO Introduced possible BUG, if a circular GroupParent is created, this will run infinite
+                        AnimeGroup pgroup = GetByID(session, grp.AnimeGroupParentID.Value);
+                        Save(pgroup, updategrpcontractstats, true, verifylockedFilters);
+                    }
                 }
             }
         }

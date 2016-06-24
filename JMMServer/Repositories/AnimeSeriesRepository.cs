@@ -69,31 +69,44 @@ namespace JMMServer.Repositories
             bool newSeries = false;
             AnimeGroup oldGroup = null;
             AnimeGroupRepository repGroups = new AnimeGroupRepository();
-            if (obj.AnimeSeriesID == 0)
-                newSeries = true; // a new series
-            else
+            lock (obj)
             {
-                // get the old version from the DB
-                AnimeSeries oldSeries;
-                using (var session = JMMService.SessionFactory.OpenSession())
+                if (obj.AnimeSeriesID == 0)
+                    newSeries = true; // a new series
+                else
                 {
-                    oldSeries = session.Get<AnimeSeries>(obj.AnimeSeriesID);
-                }
-                if (oldSeries != null)
-                {
-                    // means we are moving series to a different group
-                    if (oldSeries.AnimeGroupID != obj.AnimeGroupID)
+                    // get the old version from the DB
+                    AnimeSeries oldSeries;
+                    using (var session = JMMService.SessionFactory.OpenSession())
                     {
-                        oldGroup = repGroups.GetByID(oldSeries.AnimeGroupID);
-                        newSeries = true;
+                        oldSeries = session.Get<AnimeSeries>(obj.AnimeSeriesID);
+                    }
+                    if (oldSeries != null)
+                    {
+                        // means we are moving series to a different group
+                        if (oldSeries.AnimeGroupID != obj.AnimeGroupID)
+                        {
+                            oldGroup = repGroups.GetByID(oldSeries.AnimeGroupID);
+                            newSeries = true;
+                        }
                     }
                 }
-            }
-            if (newSeries)
-            {
+                if (newSeries)
+                {
+                    using (var session = JMMService.SessionFactory.OpenSession())
+                    {
+                        obj.Contract = null;
+                        // populate the database
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            session.SaveOrUpdate(obj);
+                            transaction.Commit();
+                        }
+                    }
+                }
+                HashSet<GroupFilterConditionType> types = obj.UpdateContract(onlyupdatestats);
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    obj.Contract = null;
                     // populate the database
                     using (var transaction = session.BeginTransaction())
                     {
@@ -101,24 +114,15 @@ namespace JMMServer.Repositories
                         transaction.Commit();
                     }
                 }
-            }
-            HashSet<GroupFilterConditionType> types = obj.UpdateContract(onlyupdatestats);
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                // populate the database
-                using (var transaction = session.BeginTransaction())
+                if (!skipgroupfilters)
                 {
-                    session.SaveOrUpdate(obj);
-                    transaction.Commit();
+                    GroupFilterRepository.CreateOrVerifyTagsAndYearsFilters(false,
+                        obj.Contract?.AniDBAnime?.AniDBAnime?.AllTags, obj.Contract?.AniDBAnime?.AniDBAnime?.AirDate);
+                    //This call will create extra years or tags if the Group have a new year or tag
+                    obj.UpdateGroupFilters(types, null);
                 }
+                Cache.Update(obj);
             }
-            if (!skipgroupfilters)
-            {
-                GroupFilterRepository.CreateOrVerifyTagsAndYearsFilters(false, obj.Contract?.AniDBAnime?.AniDBAnime?.AllTags,obj.Contract?.AniDBAnime?.AniDBAnime?.AirDate);
-                //This call will create extra years or tags if the Group have a new year or tag
-                obj.UpdateGroupFilters(types, null);
-            }
-            Cache.Update(obj);
             if (updateGroups)
             {
                 if (newSeries)

@@ -332,30 +332,33 @@ namespace JMMServer.Repositories
 
         public void Save(GroupFilter obj, bool onlyconditions = false)
         {
-            if (!onlyconditions)
+            lock (obj)
             {
-                obj.GroupsIdsString =
-                    Newtonsoft.Json.JsonConvert.SerializeObject(obj.GroupsIds.ToDictionary(a => a.Key,
-                        a => a.Value.ToList()));
-                obj.GroupsIdsVersion = GroupFilter.GROUPFILTER_VERSION;
-                obj.SeriesIdsString =
-                    Newtonsoft.Json.JsonConvert.SerializeObject(obj.SeriesIds.ToDictionary(a => a.Key,
-                        a => a.Value.ToList()));
-                obj.SeriesIdsVersion = GroupFilter.SERIEFILTER_VERSION;
-            }
-            obj.GroupConditions = Newtonsoft.Json.JsonConvert.SerializeObject(obj._conditions);
-            obj.GroupConditionsVersion = GroupFilter.GROUPCONDITIONS_VERSION;
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                // populate the database
-                using (var transaction = session.BeginTransaction())
+                if (!onlyconditions)
                 {
-                    session.SaveOrUpdate(obj);
-                    transaction.Commit();
+                    obj.GroupsIdsString =
+                        Newtonsoft.Json.JsonConvert.SerializeObject(obj.GroupsIds.ToDictionary(a => a.Key,
+                            a => a.Value.ToList()));
+                    obj.GroupsIdsVersion = GroupFilter.GROUPFILTER_VERSION;
+                    obj.SeriesIdsString =
+                        Newtonsoft.Json.JsonConvert.SerializeObject(obj.SeriesIds.ToDictionary(a => a.Key,
+                            a => a.Value.ToList()));
+                    obj.SeriesIdsVersion = GroupFilter.SERIEFILTER_VERSION;
                 }
+                obj.GroupConditions = Newtonsoft.Json.JsonConvert.SerializeObject(obj._conditions);
+                obj.GroupConditionsVersion = GroupFilter.GROUPCONDITIONS_VERSION;
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    // populate the database
+                    using (var transaction = session.BeginTransaction())
+                    {
+                        session.SaveOrUpdate(obj);
+                        transaction.Commit();
+                    }
+                }
+                Cache.Update(obj);
+                Types[obj.GroupFilterID] = obj.Types;
             }
-            Cache.Update(obj);
-            Types[obj.GroupFilterID] = obj.Types;
         }
 
         public GroupFilter GetByID(int id)

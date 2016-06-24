@@ -76,31 +76,34 @@ namespace JMMServer.Repositories
 
         public void Save(JMMUser obj, bool updateGroupFilters)
         {
-            GenerateContract(obj);
-            if (updateGroupFilters)
+            lock (obj)
             {
+                GenerateContract(obj);
+                if (updateGroupFilters)
+                {
+                    using (var session = JMMService.SessionFactory.OpenSession())
+                    {
+                        JMMUser old = session.Get<JMMUser>(obj.JMMUserID);
+                        updateGroupFilters = JMMUser.CompareUser(old?.Contract, obj.Contract);
+                    }
+                }
+
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    JMMUser old = session.Get<JMMUser>(obj.JMMUserID);
-                    updateGroupFilters = JMMUser.CompareUser(old?.Contract, obj.Contract);
+
+                    // populate the database
+                    using (var transaction = session.BeginTransaction())
+                    {
+                        session.SaveOrUpdate(obj);
+                        transaction.Commit();
+                    }
                 }
-            }
-
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-
-                // populate the database
-                using (var transaction = session.BeginTransaction())
+                Cache.Update(obj);
+                if (updateGroupFilters)
                 {
-                    session.SaveOrUpdate(obj);
-                    transaction.Commit();
+                    logger.Trace("Updating group filter stats by user from JMMUserRepository.Save: {0}", obj.JMMUserID);
+                    obj.UpdateGroupFilters();
                 }
-            }
-            Cache.Update(obj);
-            if (updateGroupFilters)
-            {
-                logger.Trace("Updating group filter stats by user from JMMUserRepository.Save: {0}", obj.JMMUserID);
-                obj.UpdateGroupFilters();
             }
         }
 

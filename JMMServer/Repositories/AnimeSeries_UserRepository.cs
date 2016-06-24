@@ -61,24 +61,27 @@ namespace JMMServer.Repositories
 
         public void Save(AnimeSeries_User obj)
         {
-            UpdatePlexKodiContracts(obj);
-            AnimeSeries_User old;
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (obj)
             {
-                old = session.Get<AnimeSeries_User>(obj.AnimeSeries_UserID);
-            }
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                HashSet<GroupFilterConditionType> types = AnimeSeries_User.GetConditionTypesChanged(old, obj);
-                // populate the database
-                using (var transaction = session.BeginTransaction())
+                UpdatePlexKodiContracts(obj);
+                AnimeSeries_User old;
+                using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    session.SaveOrUpdate(obj);
-                    transaction.Commit();
+                    old = session.Get<AnimeSeries_User>(obj.AnimeSeries_UserID);
                 }
-                obj.UpdateGroupFilter(types);
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    HashSet<GroupFilterConditionType> types = AnimeSeries_User.GetConditionTypesChanged(old, obj);
+                    // populate the database
+                    using (var transaction = session.BeginTransaction())
+                    {
+                        session.SaveOrUpdate(obj);
+                        transaction.Commit();
+                    }
+                    obj.UpdateGroupFilter(types);
+                }
+                Cache.Update(obj);
             }
-            Cache.Update(obj);
             //logger.Trace("Updating group stats by series from AnimeSeries_UserRepository.Save: {0}", obj.AnimeSeriesID);
             //StatsCache.Instance.UpdateUsingSeries(obj.AnimeSeriesID);
         }
