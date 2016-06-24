@@ -351,8 +351,6 @@ namespace JMMServer.Entities
                         foreach (AnimeSeries ser in list)
                         {
                             if (ser == null) continue;
-                            if (series == null)
-                            {
                                 // Check all titles for custom naming, in case user changed language preferences
                                 if (ser.SeriesNameOverride.Equals(grp.GroupName))
                                 {
@@ -381,12 +379,14 @@ namespace JMMServer.Entities
 											}
 										}
 									}
-									#endregion
+								#endregion
+								if (series == null)
+								{
+									series = ser;
+									continue;
 								}
-								series = ser;
-                                continue;
-                            }
-                            if (ser.AirDate < series.AirDate) series = ser;
+								if (ser.AirDate < series.AirDate) series = ser;
+							}
                         }
                     }
                     if (series != null)
