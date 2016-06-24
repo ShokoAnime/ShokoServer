@@ -1034,7 +1034,12 @@ namespace JMMServer
                 AnimeGroup grp = repGroups.GetByID(oldGroupID);
                 if (grp != null)
                 {
-                    grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
+					AnimeGroup topGroup = grp.TopLevelAnimeGroup;
+					if (grp.GetAllSeries().Count == 0)
+					{
+						repGroups.Delete(grp.AnimeGroupID);
+					}
+					topGroup.UpdateStatsFromTopLevel(true, true, true);
                 }
 
                 AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
@@ -8029,16 +8034,17 @@ namespace JMMServer
                                     if (grp.DefaultAnimeSeriesID.HasValue)
                                     {
                                         name = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
-                                        if (name == null)
-                                        {
-                                            grp.DefaultAnimeSeriesID = null;
-                                            //TODO this do nothing, only in memory is not saved
-                                        }
-                                        else
-                                        {
-                                            groupHasCustomName = false;
-                                        }
-                                    }
+										if (name == null)
+										{
+											grp.DefaultAnimeSeriesID = null;
+											//TODO this do nothing, only in memory is not saved
+											// Actually it is used in if (!grp.DefaultAnimeSeriesID.HasValue) down below
+										}
+										else
+										{
+											groupHasCustomName = false;
+										}
+									}
                                     foreach (AnimeSeries series in grp.GetAllSeries())
                                     {
                                         if (series.AnimeGroupID == groupID) continue;
@@ -8075,8 +8081,23 @@ namespace JMMServer
                                                         break;
                                                     }
                                                 }
-                                            }
-                                        }
+
+												#region tvdb names
+												List<TvDB_Series> tvdbs = ser.GetTvDBSeries();
+												if (tvdbs != null && tvdbs.Count != 0)
+												{
+													foreach (TvDB_Series tvdbser in tvdbs)
+													{
+														if (tvdbser.SeriesName.Equals(grp.GroupName))
+														{
+															groupHasCustomName = false;
+															break;
+														}
+													}
+												}
+												#endregion
+											}
+										}
 
                                         repSeries.Save(series, false);
                                     }
@@ -8089,15 +8110,16 @@ namespace JMMServer
                             if (name != null)
                             {
                                 AnimeGroup grp = repGroups.GetByID(groupID);
-                                string newTitle = name.GetAnime().PreferredTitle;
-                                if (name.SeriesNameOverride != null && !name.SeriesNameOverride.Equals(""))
-                                    newTitle = name.SeriesNameOverride;
-                                if (customGroupName != null) newTitle = customGroupName;
+								string newTitle = name.GetSeriesName();
+								if (grp.DefaultAnimeSeriesID.HasValue &&
+									grp.DefaultAnimeSeriesID.Value != name.AnimeSeriesID)
+									newTitle = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value).GetSeriesName();
+								if (customGroupName != null) newTitle = customGroupName;
                                 // reset tags, description, etc to new series
                                 grp.Populate(name);
                                 grp.GroupName = newTitle;
                                 grp.SortName = newTitle;
-                                repGroups.Save(grp, true, false);
+                                repGroups.Save(grp, true, true);
                             }
 
                             #endregion
@@ -8130,7 +8152,7 @@ namespace JMMServer
 
                 // create group user records and update group stats
                 foreach (AnimeGroup grp in repGroups.GetAll())
-                    grp.UpdateStatsFromTopLevel(true, true);
+                    grp.UpdateStatsFromTopLevel(true, true, true);
 
 
                 // un-pause queues
