@@ -957,10 +957,6 @@
     <Resource Include="ToDo.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Images\32_green_button.png" />
-    <Resource Include="Images\32_red_button.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Images\32_mail.png" />
   </ItemGroup>
   <ItemGroup>
@@ -1019,7 +1015,10 @@
     <Resource Include="Images\Flags\us.gif" />
     <Resource Include="Images\Flags\vi.gif" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="Images\16_green_button.png" />
+    <Resource Include="Images\16_red_button.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y
