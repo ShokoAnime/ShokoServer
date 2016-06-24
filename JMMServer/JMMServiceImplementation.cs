@@ -881,7 +881,7 @@ namespace JMMServer
 
             // Process the group
             GroupFilter gf;
-            if (contract.GroupFilterID.HasValue)
+            if (contract.GroupFilterID.HasValue && contract.GroupFilterID.Value!=0)
             {
                 gf = repGF.GetByID(contract.GroupFilterID.Value);
                 if (gf == null)

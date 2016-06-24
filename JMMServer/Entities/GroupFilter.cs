@@ -182,7 +182,7 @@ namespace JMMServer.Entities
                 contract.FilterConditions.Add(gfc.ToContract());
             contract.Groups = this.GroupsIds;
             contract.Series = this.SeriesIds;
-            contract.Childs = repo.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet();
+            contract.Childs = GroupFilterID==0 ? new HashSet<int>() : repo.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet();
             return contract;
         }
 
@@ -208,8 +208,8 @@ namespace JMMServer.Entities
                 conds.Add(cc);
             }
             gf.Conditions = conds;
-            gf.GroupsIds = gfc.Groups;
-            gf.SeriesIds = gfc.Series;
+            gf.GroupsIds = gfc.Groups ?? new Dictionary<int, HashSet<int>>();
+            gf.SeriesIds = gfc.Series ?? new Dictionary<int, HashSet<int>>();
             return gf;
         }
 
