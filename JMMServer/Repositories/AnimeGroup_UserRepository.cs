@@ -62,27 +62,30 @@ namespace JMMServer.Repositories
 
         public void Save(AnimeGroup_User obj)
         {
-            obj.UpdatePlexKodiContracts();
-            //Get The previous AnimeGroup_User from db for comparasion;
-            AnimeGroup_User old;
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (obj)
             {
-                old = session.Get<AnimeGroup_User>(obj.AnimeGroup_UserID);
-            }
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                HashSet<GroupFilterConditionType> types = AnimeGroup_User.GetConditionTypesChanged(old, obj);
-                using (var transaction = session.BeginTransaction())
+                obj.UpdatePlexKodiContracts();
+                //Get The previous AnimeGroup_User from db for comparasion;
+                AnimeGroup_User old;
+                using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    session.SaveOrUpdate(obj);
-                    transaction.Commit();
+                    old = session.Get<AnimeGroup_User>(obj.AnimeGroup_UserID);
                 }
-                logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Save: {0}",
-                    obj.AnimeGroupID);
-                obj.UpdateGroupFilter(types);
-            }
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    HashSet<GroupFilterConditionType> types = AnimeGroup_User.GetConditionTypesChanged(old, obj);
+                    using (var transaction = session.BeginTransaction())
+                    {
+                        session.SaveOrUpdate(obj);
+                        transaction.Commit();
+                    }
+                    logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Save: {0}",
+                        obj.AnimeGroupID);
+                    obj.UpdateGroupFilter(types);
+                }
 
-            Cache.Update(obj);
+                Cache.Update(obj);
+            }
         }
 
 

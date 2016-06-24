@@ -62,20 +62,22 @@ namespace JMMServer.Commands
             }
         }
 
-        private bool CanAccessFile(string fileName)
+        //Added size return, since symbolic links return 0, we use this function also to return the size of the file.
+        private long CanAccessFile(string fileName)
         {
             try
             {
-                using (FileStream fs = File.OpenRead(fileName))
+                using (FileStream fs = File.Open(fileName,FileMode.Open,FileAccess.Read,FileShare.None))
                 {
+                    long size = fs.Seek(0, SeekOrigin.End);
                     fs.Close();
-                    return true;
+                    return size;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                return false;
+                return 0;
             }
         }
 
@@ -96,8 +98,9 @@ namespace JMMServer.Commands
             }
 
             int numAttempts = 0;
+            long filesize = 0;
             // Wait 3 minutes seconds before giving up on trying to access the file
-            while (!CanAccessFile(FileName) && (numAttempts < 180))
+            while ((filesize=CanAccessFile(FileName))==0 && (numAttempts < 180))
             {
                 numAttempts++;
                 Thread.Sleep(1000);
@@ -127,7 +130,7 @@ namespace JMMServer.Commands
 
                 if (ForceHash)
                 {
-                    vlocal.FileSize = fi.Length;
+                    vlocal.FileSize = filesize;
                     vlocal.DateTimeUpdated = DateTime.Now;
                 }
             }
@@ -138,7 +141,7 @@ namespace JMMServer.Commands
                 vlocal.DateTimeUpdated = DateTime.Now;
                 vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
                 vlocal.FilePath = filePath;
-                vlocal.FileSize = fi.Length;
+                vlocal.FileSize = filesize;
                 vlocal.ImportFolderID = nshareID;
                 vlocal.Hash = "";
                 vlocal.CRC32 = "";

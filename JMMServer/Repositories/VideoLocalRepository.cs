@@ -63,29 +63,31 @@ namespace JMMServer.Repositories
 
         public void Save(VideoLocal obj, bool updateEpisodes)
         {
-            UpdateMediaContracts(obj);
-            if (obj.VideoLocalID == 0)
+            lock (obj)
             {
-                obj.Media = null;
+                if (obj.VideoLocalID == 0)
+                {
+                    obj.Media = null;
+                    using (var session = JMMService.SessionFactory.OpenSession())
+                    {
+                        // populate the database
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            session.SaveOrUpdate(obj);
+                            transaction.Commit();
+                        }
+                    }
+                }
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    // populate the database
+                    UpdateMediaContracts(obj);
                     using (var transaction = session.BeginTransaction())
                     {
                         session.SaveOrUpdate(obj);
                         transaction.Commit();
                     }
+                    Cache.Update(obj);
                 }
-            }
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                UpdateMediaContracts(obj);
-                using (var transaction = session.BeginTransaction())
-                {
-                    session.SaveOrUpdate(obj);
-                    transaction.Commit();
-                }
-                Cache.Update(obj);
             }
             if (updateEpisodes)
             {
@@ -277,7 +279,7 @@ namespace JMMServer.Repositories
             {
                 return
                     session.CreateQuery(
-                        "Select vl.VideoLocalID FROM VideoLocal vl.VideoLocalID WHERE vl.ImportFolderID NOT IN (select ImportFolderID from ImportFolder fldr)")
+                        "Select vl.VideoLocalID FROM VideoLocal vl WHERE vl.ImportFolderID NOT IN (select ImportFolderID from ImportFolder fldr)")
                         .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
             }
         }
@@ -351,32 +353,36 @@ namespace JMMServer.Repositories
 
         public void Delete(int id)
         {
+            
             VideoLocal cr = GetByID(id);
-            if (cr != null)
+            lock (cr)
             {
-                Cache.Remove(cr);
-                // delete video info record
-                VideoInfoRepository repVI = new VideoInfoRepository();
-                VideoInfo vi = cr.VideoInfo;
-                if (vi != null)
+                if (cr != null)
                 {
-                    repVI.Delete(vi.VideoInfoID);
-                }
-                // delete user records
-                VideoLocal_UserRepository repUsers = new VideoLocal_UserRepository();
-                foreach (VideoLocal_User viduser in repUsers.GetByVideoLocalID(id))
-                    repUsers.Delete(viduser.VideoLocal_UserID);
-            }
-
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                // populate the database
-                using (var transaction = session.BeginTransaction())
-                {
-                    if (cr != null)
+                    Cache.Remove(cr);
+                    // delete video info record
+                    VideoInfoRepository repVI = new VideoInfoRepository();
+                    VideoInfo vi = cr.VideoInfo;
+                    if (vi != null)
                     {
-                        session.Delete(cr);
-                        transaction.Commit();
+                        repVI.Delete(vi.VideoInfoID);
+                    }
+                    // delete user records
+                    VideoLocal_UserRepository repUsers = new VideoLocal_UserRepository();
+                    foreach (VideoLocal_User viduser in repUsers.GetByVideoLocalID(id))
+                        repUsers.Delete(viduser.VideoLocal_UserID);
+                }
+
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    // populate the database
+                    using (var transaction = session.BeginTransaction())
+                    {
+                        if (cr != null)
+                        {
+                            session.Delete(cr);
+                            transaction.Commit();
+                        }
                     }
                 }
             }

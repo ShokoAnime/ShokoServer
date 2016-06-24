@@ -20,23 +20,26 @@ namespace JMMServer.Repositories
 
         public void Save(ISession session, AniDB_Anime obj)
         {
-            if (obj.AniDB_AnimeID == 0)
+            lock (obj)
             {
-                obj.Contract = null;
+                if (obj.AniDB_AnimeID == 0)
+                {
+                    obj.Contract = null;
+                    using (var transaction = session.BeginTransaction())
+                    {
+                        session.SaveOrUpdate(obj);
+                        transaction.Commit();
+                    }
+                }
+
+                obj.UpdateContractDetailed(session);
+                // populate the database
+
                 using (var transaction = session.BeginTransaction())
                 {
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
                 }
-            }
-
-            obj.UpdateContractDetailed(session);
-            // populate the database
-
-            using (var transaction = session.BeginTransaction())
-            {
-                session.SaveOrUpdate(obj);
-                transaction.Commit();
             }
         }
 

@@ -61,17 +61,20 @@ namespace JMMServer.Repositories
 
         public void Save(AnimeEpisode_User obj)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            lock (obj)
             {
-                UpdateContract(session, obj);
-                // populate the database
-                using (var transaction = session.BeginTransaction())
+                using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    session.SaveOrUpdate(obj);
-                    transaction.Commit();
+                    UpdateContract(session, obj);
+                    // populate the database
+                    using (var transaction = session.BeginTransaction())
+                    {
+                        session.SaveOrUpdate(obj);
+                        transaction.Commit();
+                    }
                 }
+                Cache.Update(obj);
             }
-            Cache.Update(obj);
         }
 
         public AnimeEpisode_User GetByID(int id)

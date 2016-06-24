@@ -53,26 +53,31 @@ namespace JMMServer.Repositories
 
         public void Save(AnimeGroup grp, bool updategrpcontractstats, bool recursive, bool verifylockedFilters = true)
         {
+
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                if (grp.AnimeGroupID == 0)
-                    //We are creating one, and we need the AnimeGroupID before Update the contracts
+                HashSet<GroupFilterConditionType> types;
+                lock (grp)
                 {
-                    grp.Contract = null;
+                    if (grp.AnimeGroupID == 0)
+                    //We are creating one, and we need the AnimeGroupID before Update the contracts
+                    {
+                        grp.Contract = null;
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            session.SaveOrUpdate(grp);
+                            transaction.Commit();
+                        }
+                    }
+                    types = grp.UpdateContract(session, updategrpcontractstats);
+                    //Types will contains the affected GroupFilterConditionTypes
                     using (var transaction = session.BeginTransaction())
                     {
                         session.SaveOrUpdate(grp);
                         transaction.Commit();
                     }
+                    Cache.Update(grp);
                 }
-                HashSet<GroupFilterConditionType> types = grp.UpdateContract(session, updategrpcontractstats);
-                //Types will contains the affected GroupFilterConditionTypes
-                using (var transaction = session.BeginTransaction())
-                {
-                    session.SaveOrUpdate(grp);
-                    transaction.Commit();
-                }
-                Cache.Update(grp);
                 if (verifylockedFilters)
                 {
                     GroupFilterRepository.CreateOrVerifyTagsAndYearsFilters(false, grp.Contract.Stat_AllTags,grp.Contract.Stat_AirDate_Min);
