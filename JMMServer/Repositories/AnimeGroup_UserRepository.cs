@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
@@ -18,6 +19,7 @@ namespace JMMServer.Repositories
         private static PocoIndex<int, AnimeGroup_User, int> Users;
         private static PocoIndex<int, AnimeGroup_User, int, int> UsersGroups;
 
+        private static Dictionary<int, ChangeTracker<int>> Changes = new Dictionary<int, ChangeTracker<int>>();
         public static void InitCache()
         {
             string t = "AnimeGroups_User";
@@ -27,6 +29,11 @@ namespace JMMServer.Repositories
             Groups = Cache.CreateIndex(a => a.AnimeGroupID);
             Users = Cache.CreateIndex(a => a.JMMUserID);
             UsersGroups = Cache.CreateIndex(a => a.JMMUserID, a => a.AnimeGroupID);
+            foreach (int n in Cache.Values.Select(a => a.JMMUserID).Distinct())
+            {
+                Changes[n]=new ChangeTracker<int>();
+                Changes[n].AddOrUpdateRange(Users.GetMultiple(n).Select(a=>a.AnimeGroupID));
+            }
 
             int cnt = 0;
             List<AnimeGroup_User> grps =
@@ -79,12 +86,13 @@ namespace JMMServer.Repositories
                         session.SaveOrUpdate(obj);
                         transaction.Commit();
                     }
-                    logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Save: {0}",
-                        obj.AnimeGroupID);
+                    logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Save: {0}", obj.AnimeGroupID);
                     obj.UpdateGroupFilter(types);
                 }
-
                 Cache.Update(obj);
+                if (!Changes.ContainsKey(obj.JMMUserID))
+                    Changes[obj.JMMUserID] = new ChangeTracker<int>();
+                Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
             }
         }
 
@@ -124,7 +132,12 @@ namespace JMMServer.Repositories
             return Cache.Values.ToList();
         }
 
-
+        public static ChangeTracker<int> GetChangeTracker(int userid)
+        {
+            if (Changes.ContainsKey(userid))
+                return Changes[userid];
+            return new ChangeTracker<int>();
+        }
         public void Delete(int id)
         {
             AnimeGroup_User cr = null;
@@ -139,6 +152,9 @@ namespace JMMServer.Repositories
                         session.Delete(cr);
                         transaction.Commit();
                         Cache.Remove(cr);
+                        if (!Changes.ContainsKey(cr.JMMUserID))
+                            Changes[cr.JMMUserID] = new ChangeTracker<int>();
+                        Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
                         logger.Trace(
                             "Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}",
                             cr.AnimeGroupID);

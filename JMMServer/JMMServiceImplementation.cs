@@ -1062,6 +1062,8 @@ namespace JMMServer
             }
         }
 
+
+
         public Contract_AnimeSeries_SaveResponse SaveSeries(Contract_AnimeSeries_Save contract, int userID)
         {
             Contract_AnimeSeries_SaveResponse contractout = new Contract_AnimeSeries_SaveResponse();
@@ -2003,6 +2005,76 @@ namespace JMMServer
                 logger.ErrorException(ex.ToString(), ex);
             }
             return new List<Contract_AnimeSeries>();
+        }
+        public Contract_Changes<Contract_GroupFilter> GetGroupFilterChanges(DateTime date)
+        {
+            Contract_Changes<Contract_GroupFilter> c=new Contract_Changes<Contract_GroupFilter>();
+            try
+            {
+                Changes<int> changes = GroupFilterRepository.GetChangeTracker().GetChanges(date);
+                GroupFilterRepository gfrepo = new GroupFilterRepository();
+                c.ChangedItems = changes.ChangedItems.Select(a => gfrepo.GetByID(a).ToContract()).Where(a => a != null).ToList();
+                c.RemovedItems = changes.RemovedItems.ToList();
+                c.LastChange = changes.LastChange;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return c;
+        }
+
+        public Contract_MainChanges GetAllChanges(DateTime date, int userID)
+        {
+            Contract_MainChanges c=new Contract_MainChanges();
+            try
+            {
+                List<Changes<int>> changes = ChangeTracker<int>.GetChainedChanges(new List<ChangeTracker<int>>
+                {
+                    GroupFilterRepository.GetChangeTracker(),
+                    AnimeGroupRepository.GetChangeTracker(),
+                    AnimeGroup_UserRepository.GetChangeTracker(userID),
+                    AnimeSeriesRepository.GetChangeTracker(),
+                    AnimeSeries_UserRepository.GetChangeTracker(userID)
+                }, date);
+                GroupFilterRepository gfrepo=new GroupFilterRepository();
+                AnimeGroupRepository agrepo = new AnimeGroupRepository();
+                AnimeSeriesRepository asrepo=new AnimeSeriesRepository();
+                c.Filters=new Contract_Changes<Contract_GroupFilter>();
+                c.Filters.ChangedItems=changes[0].ChangedItems.Select(a=>gfrepo.GetByID(a).ToContract()).Where(a=>a!=null).ToList();
+                c.Filters.RemovedItems= changes[0].RemovedItems.ToList();
+                c.Filters.LastChange = changes[0].LastChange;
+                c.Groups=new Contract_Changes<Contract_AnimeGroup>();
+                logger.Info("Changes Original Groups Count : " + changes[1].ChangedItems.Count);
+                changes[1].ChangedItems.UnionWith(changes[2].ChangedItems);
+                changes[1].ChangedItems.UnionWith(changes[2].RemovedItems);
+                if (changes[2].LastChange > changes[1].LastChange)
+                    changes[1].LastChange = changes[2].LastChange;
+                logger.Info("Changes Groups Count : "+changes[1].ChangedItems.Count);
+                c.Groups.ChangedItems=changes[1].ChangedItems.Select(a=>agrepo.GetByID(a)).Where(a => a != null).Select(a=>a.GetUserContract(userID)).ToList();
+                c.Groups.RemovedItems = changes[1].RemovedItems.ToList();
+                c.Groups.LastChange = changes[1].LastChange;
+                c.Series=new Contract_Changes<Contract_AnimeSeries>();
+                logger.Info("Changes Original Series Count : " + changes[3].ChangedItems.Count);
+                changes[3].ChangedItems.UnionWith(changes[4].ChangedItems);
+                changes[3].ChangedItems.UnionWith(changes[4].RemovedItems);
+                if (changes[4].LastChange > changes[3].LastChange)
+                    changes[3].LastChange = changes[4].LastChange;
+                logger.Info("Changes Series Count : " + changes[3].ChangedItems.Count);
+                c.Series.ChangedItems = changes[3].ChangedItems.Select(a => asrepo.GetByID(a)).Where(a=>a!=null).Select(a=>a.GetUserContract(userID)).ToList();
+                c.Series.RemovedItems = changes[3].RemovedItems.ToList();
+                c.Series.LastChange = changes[3].LastChange;
+                c.LastChange = c.Filters.LastChange;
+                if (c.Groups.LastChange > c.LastChange)
+                    c.LastChange = c.Groups.LastChange;
+                if (c.Series.LastChange > c.LastChange)
+                    c.LastChange = c.Series.LastChange;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return c;
         }
 
         public Contract_AniDB_AnimeDetailed GetAnimeDetailed(int animeID)

@@ -176,6 +176,7 @@ namespace JMMServer.Databases
                 UpdateSchema_050(versionNumber);
                 UpdateSchema_051(versionNumber);
                 UpdateSchema_052(versionNumber);
+                UpdateSchema_053(versionNumber);
 
             }
             catch (Exception ex)
@@ -2047,6 +2048,25 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+        private static void UpdateSchema_053(int currentVersionNumber)
+        {
+            int thisVersion = 53;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            try
+            {
+                DatabaseFixes.Fixes.Add(DatabaseFixes.DeleteSerieUsersWithoutSeries);
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
+
+
         private static void ExecuteSQLCommands(List<string> cmds)
         {
             using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

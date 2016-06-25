@@ -200,6 +200,7 @@ namespace JMMServer.Databases
                 UpdateSchema_046(versionNumber);
                 UpdateSchema_047(versionNumber);
                 UpdateSchema_048(versionNumber);
+                UpdateSchema_049(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1826,6 +1827,16 @@ namespace JMMServer.Databases
                 }
             }
 
+            UpdateDatabaseVersion(thisVersion);
+        }
+        private static void UpdateSchema_049(int currentVersionNumber)
+        {
+            int thisVersion = 49;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            DatabaseFixes.Fixes.Add(DatabaseFixes.DeleteSerieUsersWithoutSeries);
             UpdateDatabaseVersion(thisVersion);
         }
         private static void ExecuteSQLCommands(List<string> cmds)

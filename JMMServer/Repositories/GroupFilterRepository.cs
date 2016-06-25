@@ -21,6 +21,7 @@ namespace JMMServer.Repositories
 
         private static BiDictionaryManyToMany<int, GroupFilterConditionType> Types;
 
+        private static ChangeTracker<int> Changes=new ChangeTracker<int>();
 
         public static List<GroupFilter> InitCache()
         {
@@ -32,6 +33,7 @@ namespace JMMServer.Repositories
             GroupFilterRepository repo = new GroupFilterRepository();
             List<GroupFilter> filters = repo.InternalGetAll();
             Cache = new PocoCache<int, GroupFilter>(filters, a => a.GroupFilterID);
+            Changes.AddOrUpdateRange(Cache.Keys);
             Parents = Cache.CreateIndex(a => a.ParentGroupFilterID ?? 0);
             Types =
                 new BiDictionaryManyToMany<int, GroupFilterConditionType>(Cache.Values.ToDictionary(
@@ -358,6 +360,7 @@ namespace JMMServer.Repositories
                 }
                 Cache.Update(obj);
                 Types[obj.GroupFilterID] = obj.Types;
+                Changes.AddOrUpdate(obj.GroupFilterID);
             }
         }
 
@@ -417,6 +420,10 @@ namespace JMMServer.Repositories
             return filters.Select(a => Cache.Get(a)).ToList();
         }
 
+        public static ChangeTracker<int> GetChangeTracker()
+        {
+            return Changes;
+        }
         public void Delete(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
@@ -428,6 +435,7 @@ namespace JMMServer.Repositories
                     if (cr != null)
                     {
                         Cache.Remove(cr);
+                        Changes.Remove(cr.GroupFilterID);
                         Types.Remove(cr.GroupFilterID);
                         session.Delete(cr);
                         transaction.Commit();

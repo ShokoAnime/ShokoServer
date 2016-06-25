@@ -12,10 +12,11 @@ namespace JMMServer.Repositories
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private static PocoCache<int, AnimeSeries> Cache;
+        internal static PocoCache<int, AnimeSeries> Cache;
         private static PocoIndex<int, AnimeSeries, int> AniDBIds;
         private static PocoIndex<int, AnimeSeries, int> Groups;
 
+        private static ChangeTracker<int> Changes = new ChangeTracker<int>();
 
         public static void InitCache()
         {
@@ -24,6 +25,7 @@ namespace JMMServer.Repositories
 
             AnimeSeriesRepository repo = new AnimeSeriesRepository();
             Cache = new PocoCache<int, AnimeSeries>(repo.InternalGetAll(), a => a.AnimeSeriesID);
+            Changes.AddOrUpdateRange(Cache.Keys);
             AniDBIds = Cache.CreateIndex(a => a.AniDB_ID);
             Groups = Cache.CreateIndex(a => a.AnimeGroupID);
             int cnt = 0;
@@ -63,7 +65,10 @@ namespace JMMServer.Repositories
         {
             Save(obj, true, onlyupdatestats);
         }
-
+        public static ChangeTracker<int> GetChangeTracker()
+        {
+            return Changes;
+        }
         public void Save(AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false)
         {
             bool newSeries = false;
@@ -122,6 +127,7 @@ namespace JMMServer.Repositories
                     obj.UpdateGroupFilters(types, null);
                 }
                 Cache.Update(obj);
+                Changes.AddOrUpdate(obj.AnimeSeriesID);
             }
             if (updateGroups)
             {
@@ -214,6 +220,11 @@ namespace JMMServer.Repositories
                     if (cr != null)
                     {
                         Cache.Remove(cr);
+                        // delete user records
+                        AnimeSeries_UserRepository repUsers = new AnimeSeries_UserRepository();
+                        foreach (AnimeSeries_User grpUser in repUsers.GetBySeriesID(id))
+                            repUsers.Delete(grpUser.AnimeSeries_UserID);
+                        Changes.Remove(cr.AnimeSeriesID);
                         oldGroupID = cr.AnimeGroupID;
                         session.Delete(cr);
                         transaction.Commit();

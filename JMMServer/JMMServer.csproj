@@ -484,6 +484,7 @@
     <Compile Include="Repositories\AniDB_MylistStatsRepository.cs" />
     <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
+    <Compile Include="Repositories\ChangeTracker.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TraktV2Repository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_Trakt_EpisodeRepository.cs" />
