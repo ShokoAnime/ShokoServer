@@ -322,6 +322,7 @@ namespace JMMServer.Entities
                 // only rename the group if it has one direct child Anime Series
                 if (list.Count == 1)
                 {
+					new AnimeSeriesRepository().Save(list[0], false);
                     string newTitle = list[0].GetSeriesName();
                     grp.GroupName = newTitle;
                     grp.SortName = newTitle;
@@ -351,42 +352,43 @@ namespace JMMServer.Entities
                         foreach (AnimeSeries ser in list)
                         {
                             if (ser == null) continue;
-                            if (series == null)
-                            {
                                 // Check all titles for custom naming, in case user changed language preferences
-                                if (ser.SeriesNameOverride.Equals(grp.GroupName))
+                            if (ser.SeriesNameOverride.Equals(grp.GroupName))
+                            {
+                                hasCustomName = false;
+                            }
+                            else
+                            {
+                                foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
                                 {
-                                    hasCustomName = false;
-                                }
-                                else
-                                {
-                                    foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
+                                    if (title.Title.Equals(grp.GroupName))
                                     {
-                                        if (title.Title.Equals(grp.GroupName))
-                                        {
-                                            hasCustomName = false;
-                                            break;
-                                        }
+                                        hasCustomName = false;
+                                        break;
                                     }
-									#region tvdb names
-									List<TvDB_Series> tvdbs = ser.GetTvDBSeries();
-									if(tvdbs != null && tvdbs.Count != 0)
+                                }
+								#region tvdb names
+								List<TvDB_Series> tvdbs = ser.GetTvDBSeries();
+								if(tvdbs != null && tvdbs.Count != 0)
+								{
+									foreach (TvDB_Series tvdbser in tvdbs)
 									{
-										foreach (TvDB_Series tvdbser in tvdbs)
+										if (tvdbser.SeriesName.Equals(grp.GroupName))
 										{
-											if (tvdbser.SeriesName.Equals(grp.GroupName))
-											{
-												hasCustomName = false;
-												break;
-											}
+											hasCustomName = false;
+											break;
 										}
 									}
-									#endregion
 								}
-								series = ser;
-                                continue;
-                            }
-                            if (ser.AirDate < series.AirDate) series = ser;
+								#endregion
+								new AnimeSeriesRepository().Save(ser, false);
+								if (series == null)
+								{
+									series = ser;
+									continue;
+								}
+								if (ser.AirDate < series.AirDate) series = ser;
+							}
                         }
                     }
                     if (series != null)
