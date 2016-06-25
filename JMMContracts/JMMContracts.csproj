@@ -100,6 +100,7 @@
     <Compile Include="Contract_Azure_CrossRef_AniDB_TvDB.cs" />
     <Compile Include="Contract_BookmarkedAnime.cs" />
     <Compile Include="Contract_BookmarkedAnime_SaveResponse.cs" />
+    <Compile Include="Contract_Changes.cs" />
     <Compile Include="Contract_CrossRef_AniDB_MAL.cs" />
     <Compile Include="Contract_CrossRef_AniDB_MALResult.cs" />
     <Compile Include="Contract_CrossRef_AniDB_Other.cs" />
@@ -129,6 +130,7 @@
     <Compile Include="Contract_ImportFolder_SaveResponse.cs" />
     <Compile Include="Contract_JMMUser.cs" />
     <Compile Include="Contract_LogMessage.cs" />
+    <Compile Include="Contract_MainChanges.cs" />
     <Compile Include="Contract_MALAnimeResponse.cs" />
     <Compile Include="Contract_MissingEpisode.cs" />
     <Compile Include="Contract_MissingFile.cs" />

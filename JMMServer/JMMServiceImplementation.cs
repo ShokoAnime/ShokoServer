@@ -2045,19 +2045,23 @@ namespace JMMServer
                 c.Filters.RemovedItems= changes[0].RemovedItems.ToList();
                 c.Filters.LastChange = changes[0].LastChange;
                 c.Groups=new Contract_Changes<Contract_AnimeGroup>();
+                logger.Info("Changes Original Groups Count : " + changes[1].ChangedItems.Count);
                 changes[1].ChangedItems.UnionWith(changes[2].ChangedItems);
                 changes[1].ChangedItems.UnionWith(changes[2].RemovedItems);
                 if (changes[2].LastChange > changes[1].LastChange)
                     changes[1].LastChange = changes[2].LastChange;
-                c.Groups.ChangedItems=changes[1].ChangedItems.Select(a=>agrepo.GetByID(a).GetUserContract(userID)).Where(a=>a!=null).ToList();
+                logger.Info("Changes Groups Count : "+changes[1].ChangedItems.Count);
+                c.Groups.ChangedItems=changes[1].ChangedItems.Select(a=>agrepo.GetByID(a)).Where(a => a != null).Select(a=>a.GetUserContract(userID)).ToList();
                 c.Groups.RemovedItems = changes[1].RemovedItems.ToList();
                 c.Groups.LastChange = changes[1].LastChange;
                 c.Series=new Contract_Changes<Contract_AnimeSeries>();
+                logger.Info("Changes Original Series Count : " + changes[3].ChangedItems.Count);
                 changes[3].ChangedItems.UnionWith(changes[4].ChangedItems);
-                changes[4].ChangedItems.UnionWith(changes[4].RemovedItems);
+                changes[3].ChangedItems.UnionWith(changes[4].RemovedItems);
                 if (changes[4].LastChange > changes[3].LastChange)
                     changes[3].LastChange = changes[4].LastChange;
-                c.Series.ChangedItems = changes[3].ChangedItems.Select(a => asrepo.GetByID(a).GetUserContract(userID)).Where(a => a != null).ToList();
+                logger.Info("Changes Series Count : " + changes[3].ChangedItems.Count);
+                c.Series.ChangedItems = changes[3].ChangedItems.Select(a => asrepo.GetByID(a)).Where(a=>a!=null).Select(a=>a.GetUserContract(userID)).ToList();
                 c.Series.RemovedItems = changes[3].RemovedItems.ToList();
                 c.Series.LastChange = changes[3].LastChange;
                 c.LastChange = c.Filters.LastChange;

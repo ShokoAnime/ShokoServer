@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ServiceModel;
 
 namespace JMMContracts
@@ -114,6 +115,12 @@ namespace JMMContracts
 
         [OperationContract]
         List<Contract_AnimeSeries> GetAllSeries(int userID);
+
+        [OperationContract]
+        Contract_MainChanges GetAllChanges(DateTime date, int userID);
+
+        [OperationContract]
+        Contract_Changes<Contract_GroupFilter> GetGroupFilterChanges(DateTime date);
 
         [OperationContract]
         Contract_AnimeSeries_SaveResponse SaveSeries(Contract_AnimeSeries_Save contract, int userID);
