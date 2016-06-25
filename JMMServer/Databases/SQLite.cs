@@ -146,6 +146,7 @@ namespace JMMServer.Databases
                 UpdateSchema_042(versionNumber);
                 UpdateSchema_043(versionNumber);
                 UpdateSchema_044(versionNumber);
+                UpdateSchema_045(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1447,8 +1448,19 @@ namespace JMMServer.Databases
 
             // Now do the migratiuon
         }
+        private static void UpdateSchema_045(int currentVersionNumber)
+        {
+            int thisVersion = 45;
+            if (currentVersionNumber >= thisVersion) return;
 
-  
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            DatabaseFixes.Fixes.Add(DatabaseFixes.DeleteSerieUsersWithoutSeries);
+
+            UpdateDatabaseVersion(thisVersion);
+
+        }
+
         //WE NEED TO DROP SOME SQL LITE COLUMNS...
 
         private static void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove, string createcommand, List<string> indexcommands)

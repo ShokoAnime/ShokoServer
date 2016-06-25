@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AniDBAPI;
 using JMMServer.Entities;
 using JMMServer.Repositories;
@@ -26,6 +27,14 @@ namespace JMMServer.Databases
             Fixes = new List<Action>();
         }
 
+        public static void DeleteSerieUsersWithoutSeries()
+        {
+            //DB Fix Series not deleting series_user
+            AnimeSeries_UserRepository seruserrepo=new AnimeSeries_UserRepository();
+            HashSet<int> list = new HashSet<int>(AnimeSeriesRepository.Cache.Keys);
+            foreach (AnimeSeries_User g in AnimeSeries_UserRepository.Cache.Values.Where(a => !list.Contains(a.AnimeSeriesID)).ToList())
+                seruserrepo.Delete(g.AnimeSeries_UserID);
+        }
         public static void FixHashes()
         {
             try

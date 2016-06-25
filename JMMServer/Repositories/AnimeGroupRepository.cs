@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
@@ -15,12 +16,15 @@ namespace JMMServer.Repositories
         private static PocoCache<int, AnimeGroup> Cache;
         private static PocoIndex<int, AnimeGroup, int> Parents;
 
+        private static ChangeTracker<int> Changes = new ChangeTracker<int>();
+
         public static void InitCache()
         {
             string t = "AnimeGroups";
             ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
             AnimeGroupRepository repo = new AnimeGroupRepository();
             Cache = new PocoCache<int, AnimeGroup>(repo.InternalGetAll(), a => a.AnimeGroupID);
+            Changes.AddOrUpdateRange(Cache.Keys);
             Parents = Cache.CreateIndex(a => a.AnimeGroupParentID ?? 0);
             List<AnimeGroup> grps = Cache.Values.Where(a => a.ContractVersion < AnimeGroup.CONTRACT_VERSION).ToList();
             int max = grps.Count;
@@ -76,6 +80,7 @@ namespace JMMServer.Repositories
                         session.SaveOrUpdate(grp);
                         transaction.Commit();
                     }
+                    Changes.AddOrUpdate(grp.AnimeGroupID);
                     Cache.Update(grp);
                 }
                 if (verifylockedFilters)
@@ -134,7 +139,10 @@ namespace JMMServer.Repositories
         {
             return GetAllTopLevelGroups();
         }
-
+        public static ChangeTracker<int> GetChangeTracker()
+        {
+            return Changes;
+        }
         public void Delete(int id)
         {
             AnimeGroup cr = GetByID(id);
@@ -146,6 +154,7 @@ namespace JMMServer.Repositories
                     repUsers.Delete(grpUser.AnimeGroup_UserID);
                 cr.DeleteFromFilters();
                 Cache.Remove(cr);
+                Changes.Remove(cr.AnimeGroupID);
             }
 
             int parentID = 0;

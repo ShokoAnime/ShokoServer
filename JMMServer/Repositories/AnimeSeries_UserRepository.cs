@@ -14,10 +14,11 @@ namespace JMMServer.Repositories
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private static PocoCache<int, AnimeSeries_User> Cache;
+        internal static PocoCache<int, AnimeSeries_User> Cache;
         private static PocoIndex<int, AnimeSeries_User, int> Users;
         private static PocoIndex<int, AnimeSeries_User, int> Series;
         private static PocoIndex<int, AnimeSeries_User, int, int> UsersSeries;
+        private static Dictionary<int, ChangeTracker<int>> Changes = new Dictionary<int, ChangeTracker<int>>();
 
         public static void InitCache()
         {
@@ -28,6 +29,11 @@ namespace JMMServer.Repositories
             Users = Cache.CreateIndex(a => a.JMMUserID);
             Series = Cache.CreateIndex(a => a.AnimeSeriesID);
             UsersSeries = Cache.CreateIndex(a => a.JMMUserID, a => a.AnimeSeriesID);
+            foreach (int n in Cache.Values.Select(a => a.JMMUserID).Distinct())
+            {
+                Changes[n] = new ChangeTracker<int>();
+                Changes[n].AddOrUpdateRange(Users.GetMultiple(n).Select(a => a.AnimeSeriesID));
+            }
             int cnt = 0;
             List<AnimeSeries_User> sers =
                 Cache.Values.Where(a => a.PlexContractVersion < AnimeGroup_User.PLEXCONTRACT_VERSION).ToList();
@@ -44,6 +50,8 @@ namespace JMMServer.Repositories
             }
             ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
                 " DbRegen - " + max + "/" + max);
+
+
         }
 
 
@@ -81,6 +89,9 @@ namespace JMMServer.Repositories
                     obj.UpdateGroupFilter(types);
                 }
                 Cache.Update(obj);
+                if (!Changes.ContainsKey(obj.JMMUserID))
+                    Changes[obj.JMMUserID] = new ChangeTracker<int>();
+                Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
             }
             //logger.Trace("Updating group stats by series from AnimeSeries_UserRepository.Save: {0}", obj.AnimeSeriesID);
             //StatsCache.Instance.UpdateUsingSeries(obj.AnimeSeriesID);
@@ -143,6 +154,12 @@ namespace JMMServer.Repositories
             return GetMostRecentlyWatched(userID);
         }
 
+        public static ChangeTracker<int> GetChangeTracker(int userid)
+        {
+            if (Changes.ContainsKey(userid))
+                return Changes[userid];
+            return new ChangeTracker<int>();
+        }
         public void Delete(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
@@ -154,6 +171,9 @@ namespace JMMServer.Repositories
                     if (cr != null)
                     {
                         Cache.Remove(cr);
+                        if (!Changes.ContainsKey(cr.JMMUserID))
+                            Changes[cr.JMMUserID] = new ChangeTracker<int>();
+                        Changes[cr.JMMUserID].Remove(cr.AnimeSeriesID);
                         session.Delete(cr);
                         transaction.Commit();
                         cr.DeleteFromFilters();
