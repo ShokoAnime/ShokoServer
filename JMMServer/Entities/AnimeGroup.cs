@@ -323,7 +323,8 @@ namespace JMMServer.Entities
                 if (list.Count == 1)
                 {
 					new AnimeSeriesRepository().Save(list[0], false);
-                    string newTitle = list[0].GetSeriesName();
+					list[0].UpdateStats(true, true, false);
+					string newTitle = list[0].GetSeriesName();
                     grp.GroupName = newTitle;
                     grp.SortName = newTitle;
                     repGroups.Save(grp, true, true);
@@ -382,6 +383,7 @@ namespace JMMServer.Entities
 								}
 								#endregion
 								new AnimeSeriesRepository().Save(ser, false);
+								series.UpdateStats(true, true, false);
 								if (series == null)
 								{
 									series = ser;

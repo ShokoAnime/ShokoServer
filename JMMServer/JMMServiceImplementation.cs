@@ -8172,6 +8172,9 @@ namespace JMMServer
 										}
 
                                         repSeries.Save(series, false);
+										// I didn't see this called anywhere, it should also fix the new issue with recreated
+										// groups missing all episodes
+										series.UpdateStats(true, true, false);
                                     }
                                 }
 

@@ -74,6 +74,7 @@ namespace JMMServer.Repositories
             bool newSeries = false;
             AnimeGroup oldGroup = null;
             AnimeGroupRepository repGroups = new AnimeGroupRepository();
+			bool isMigrating = false;
             lock (obj)
             {
                 if (obj.AnimeSeriesID == 0)
@@ -92,11 +93,14 @@ namespace JMMServer.Repositories
                         if (oldSeries.AnimeGroupID != obj.AnimeGroupID)
                         {
                             oldGroup = repGroups.GetByID(oldSeries.AnimeGroupID);
+							AnimeGroup newGroup = repGroups.GetByID(obj.AnimeGroupID);
+							if (newGroup != null && newGroup.GroupName.Equals("AAA Migrating Groups AAA"))
+								isMigrating = true;
                             newSeries = true;
                         }
                     }
                 }
-                if (newSeries)
+                if (newSeries && !isMigrating)
                 {
                     using (var session = JMMService.SessionFactory.OpenSession())
                     {
@@ -119,7 +123,7 @@ namespace JMMServer.Repositories
                         transaction.Commit();
                     }
                 }
-                if (!skipgroupfilters)
+                if (!skipgroupfilters && !isMigrating)
                 {
                     GroupFilterRepository.CreateOrVerifyTagsAndYearsFilters(false,
                         obj.Contract?.AniDBAnime?.AniDBAnime?.AllTags, obj.Contract?.AniDBAnime?.AniDBAnime?.AirDate);
@@ -129,7 +133,7 @@ namespace JMMServer.Repositories
                 Cache.Update(obj);
                 Changes.AddOrUpdate(obj.AnimeSeriesID);
             }
-            if (updateGroups)
+            if (updateGroups && !isMigrating)
             {
                 if (newSeries)
                 {
