@@ -2044,23 +2044,40 @@ namespace JMMServer
                 c.Filters.ChangedItems=changes[0].ChangedItems.Select(a=>gfrepo.GetByID(a).ToContract()).Where(a=>a!=null).ToList();
                 c.Filters.RemovedItems= changes[0].RemovedItems.ToList();
                 c.Filters.LastChange = changes[0].LastChange;
+
+                //Add Group Filter that one of his child changed.
+                bool end;
+                do
+                {
+                    end = true;
+                    foreach (Contract_GroupFilter ag in c.Filters.ChangedItems.Where(a => a.ParentGroupFilterID.HasValue && a.ParentGroupFilterID.Value != 0).ToList())
+                    {
+                        if (!c.Filters.ChangedItems.Any(a => a.GroupFilterID == ag.ParentGroupFilterID.Value))
+                        {
+                            end = false;
+                            Contract_GroupFilter cag = gfrepo.GetByID(ag.ParentGroupFilterID.Value).ToContract();
+                            if (cag != null)
+                                c.Filters.ChangedItems.Add(cag);
+                        }
+                    }
+                } while (!end);
+
                 c.Groups=new Contract_Changes<Contract_AnimeGroup>();
-                logger.Info("Changes Original Groups Count : " + changes[1].ChangedItems.Count);
                 changes[1].ChangedItems.UnionWith(changes[2].ChangedItems);
                 changes[1].ChangedItems.UnionWith(changes[2].RemovedItems);
                 if (changes[2].LastChange > changes[1].LastChange)
                     changes[1].LastChange = changes[2].LastChange;
-                logger.Info("Changes Groups Count : "+changes[1].ChangedItems.Count);
                 c.Groups.ChangedItems=changes[1].ChangedItems.Select(a=>agrepo.GetByID(a)).Where(a => a != null).Select(a=>a.GetUserContract(userID)).ToList();
+
+
+
                 c.Groups.RemovedItems = changes[1].RemovedItems.ToList();
                 c.Groups.LastChange = changes[1].LastChange;
                 c.Series=new Contract_Changes<Contract_AnimeSeries>();
-                logger.Info("Changes Original Series Count : " + changes[3].ChangedItems.Count);
                 changes[3].ChangedItems.UnionWith(changes[4].ChangedItems);
                 changes[3].ChangedItems.UnionWith(changes[4].RemovedItems);
                 if (changes[4].LastChange > changes[3].LastChange)
                     changes[3].LastChange = changes[4].LastChange;
-                logger.Info("Changes Series Count : " + changes[3].ChangedItems.Count);
                 c.Series.ChangedItems = changes[3].ChangedItems.Select(a => asrepo.GetByID(a)).Where(a=>a!=null).Select(a=>a.GetUserContract(userID)).ToList();
                 c.Series.RemovedItems = changes[3].RemovedItems.ToList();
                 c.Series.LastChange = changes[3].LastChange;

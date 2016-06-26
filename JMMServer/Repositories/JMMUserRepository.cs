@@ -78,19 +78,31 @@ namespace JMMServer.Repositories
         {
             lock (obj)
             {
+                bool isNew = false;
+                if (obj.JMMUserID == 0)
+                {
+                    isNew = true;
+                    using (var session = JMMService.SessionFactory.OpenSession())
+                    {
+                        obj.Contract = null;
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            session.SaveOrUpdate(obj);
+                            transaction.Commit();
+                        }
+                    }
+                }
                 GenerateContract(obj);
                 if (updateGroupFilters)
                 {
                     using (var session = JMMService.SessionFactory.OpenSession())
                     {
-                        JMMUser old = session.Get<JMMUser>(obj.JMMUserID);
+                        JMMUser old = isNew ? null : session.Get<JMMUser>(obj.JMMUserID);
                         updateGroupFilters = JMMUser.CompareUser(old?.Contract, obj.Contract);
                     }
                 }
-
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-
                     // populate the database
                     using (var transaction = session.BeginTransaction())
                     {
