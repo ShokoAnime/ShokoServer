@@ -83,20 +83,13 @@ namespace JMMServer.PlexAndKodi.Plex
             return Encoding.UTF8.GetString(raw);
         }
 
-        public System.IO.Stream GetStreamFromXmlObject<T>(T obj)
+        public void AddResponseHeaders()
         {
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(T));
-            Utf8StringWriter textWriter = new Utf8StringWriter();
-            XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
-            ns.Add("", "");
             if (WebOperationContext.Current != null)
             {
                 WebOperationContext.Current.OutgoingResponse.Headers.Add("X-Plex-Protocol", "1.0");
                 WebOperationContext.Current.OutgoingResponse.Headers.Add("Cache-Control", "no-cache");
-                WebOperationContext.Current.OutgoingResponse.ContentType = "application/xml";
             }
-            xmlSerializer.Serialize(textWriter, obj, ns);
-            return new MemoryStream(Encoding.UTF8.GetBytes(textWriter.ToString()));
         }
     }
 }

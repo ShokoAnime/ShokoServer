@@ -2381,15 +2381,15 @@ namespace JMMServer
         private static void StartPlexHost()
         {
             hostPlex = new WebServiceHost(typeof(PlexImplementation), baseAddressPlex);
-            AddCompressableEndpoint(hostPlex, typeof(IJMMServerPlex), new WebHttpBinding());
+            AddCompressableEndpoint(hostPlex, typeof(IJMMServerPlex));
             ServiceDebugBehavior stp = hostPlex.Description.Behaviors.Find<ServiceDebugBehavior>();
             stp.HttpHelpPageEnabled = false;
             hostPlex.Open();
         }
 
-        private static void AddCompressableEndpoint(ServiceHost host, Type t, Binding original, object address = null)
+        private static void AddCompressableEndpoint(ServiceHost host, Type t, object address = null)
         {
-            CustomBinding custom = new CustomBinding(original);
+            CustomBinding custom = new CustomBinding(new WebHttpBinding() { ContentTypeMapper = new MultiContentTypeMapper() });
             for (int i = 0; i < custom.Elements.Count; i++)
             {
                 if (custom.Elements[i] is WebMessageEncodingBindingElement)
@@ -2411,14 +2411,14 @@ namespace JMMServer
                 ep = host.AddServiceEndpoint(t, custom, addrurl);
             if (ep == null)
                 ep = host.AddServiceEndpoint(t, custom, "");
-            ep.EndpointBehaviors.Add(new WebHttpBehavior {HelpEnabled = true, AutomaticFormatSelectionEnabled = true});
+            ep.EndpointBehaviors.Add(new MultiBehavior {  HelpEnabled = true, AutomaticFormatSelectionEnabled = true});
             ep.EndpointBehaviors.Add(new CompressionSelectionEndpointBehavior());
         }
 
         private static void StartKodiHost()
         {
             hostKodi = new WebServiceHost(typeof(KodiImplementation), baseAddressKodi);
-            AddCompressableEndpoint(hostKodi, typeof(IJMMServerKodi), new WebHttpBinding());
+            AddCompressableEndpoint(hostKodi, typeof(IJMMServerKodi));
             ServiceDebugBehavior stp = hostKodi.Description.Behaviors.Find<ServiceDebugBehavior>();
             stp.HttpHelpPageEnabled = false;
             hostKodi.Open();

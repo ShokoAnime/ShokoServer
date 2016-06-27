@@ -29,6 +29,7 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseVSHostingProcess>true</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -112,6 +113,10 @@
     <Reference Include="NLog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\NLog.dll</HintPath>
+    </Reference>
+    <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
+      <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Remotion.Data.Linq">
       <HintPath>..\Dependencies\Remotion.Data.Linq.dll</HintPath>
@@ -730,6 +735,15 @@
     <Compile Include="WCFCompression\CompressionSelectionEndpointBehavior.cs" />
     <Compile Include="WCFCompression\CompressionSelectionMessageInspector.cs" />
     <Compile Include="WCFCompression\CompressionType.cs" />
+    <Compile Include="WCFCompression\ISerializer.cs" />
+    <Compile Include="WCFCompression\JsonSerializer.cs" />
+    <Compile Include="WCFCompression\MultiBehavior.cs" />
+    <Compile Include="WCFCompression\MultiBehaviorExtension.cs" />
+    <Compile Include="WCFCompression\MultiContentTypeMapper.cs" />
+    <Compile Include="WCFCompression\MultiDispatchFormatter.cs" />
+    <Compile Include="WCFCompression\ProtobufSerializer.cs" />
+    <Compile Include="WCFCompression\RawBodyWriter.cs" />
+    <Compile Include="WCFCompression\XmlSerializer.cs" />
     <Compile Include="WebCache\AniDB_FileRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_MALRequest.cs" />
     <Compile Include="WebCache\AddCrossRef_AniDB_OtherRequest.cs" />
