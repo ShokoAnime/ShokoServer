@@ -206,6 +206,16 @@ namespace JMMServer.PlexAndKodi
             o.Art = Helper.ReplaceSchemeHost(o.Art);
             o.ParentArt = Helper.ReplaceSchemeHost(o.ParentArt);
             o.GrandparentArt = Helper.ReplaceSchemeHost(o.GrandparentArt);
+            if (o.Roles != null)
+            {
+                foreach (RoleTag r in o.Roles)
+                {
+                    if (!string.IsNullOrEmpty(r.RolePicture))
+                        r.RolePicture = Helper.ReplaceSchemeHost(r.RolePicture);
+                    if (!string.IsNullOrEmpty(r.TagPicture))
+                        r.TagPicture = Helper.ReplaceSchemeHost(r.TagPicture);
+                }
+            }
         }
 
         public static T Clone<T>(this Video o) where T : Video, new()

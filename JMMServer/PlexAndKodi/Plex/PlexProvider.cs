@@ -82,7 +82,7 @@ namespace JMMServer.PlexAndKodi.Plex
             }
             return Encoding.UTF8.GetString(raw);
         }
-
+    
         public void AddResponseHeaders()
         {
             if (WebOperationContext.Current != null)

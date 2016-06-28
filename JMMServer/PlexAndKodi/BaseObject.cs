@@ -6,7 +6,7 @@ using JMMContracts.PlexAndKodi;
 
 namespace JMMServer.PlexAndKodi
 {
-    public class PlexObject
+    public class BaseObject
     {
         public static NameValueCollection QueryParameters
         {
@@ -81,7 +81,7 @@ namespace JMMServer.PlexAndKodi
             return MediaContainer;
         }
 
-        public PlexObject(MediaContainer m)
+        public BaseObject(MediaContainer m)
         {
             MediaContainer = m;
         }
