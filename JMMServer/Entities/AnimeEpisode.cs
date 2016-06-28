@@ -304,22 +304,27 @@ namespace JMMServer.Entities
             return contracts;
         }
 
+        private static object _lock = new object();
+
         public Contract_AnimeEpisode GetUserContract(int userid)
         {
-            AnimeEpisode_User rr = GetUserRecord(userid);
-            if (rr != null)
+            lock(_lock) //Make it atomic on creation
+            { 
+                AnimeEpisode_User rr = GetUserRecord(userid);
+                if (rr != null)
+                    return rr.Contract;
+                rr = new AnimeEpisode_User();
+                rr.PlayedCount = 0;
+                rr.StoppedCount = 0;
+                rr.WatchedCount = 0;
+                rr.AnimeEpisodeID = this.AnimeEpisodeID;
+                rr.AnimeSeriesID = this.AnimeSeriesID;
+                rr.JMMUserID = userid;
+                rr.WatchedDate = null;
+                AnimeEpisode_UserRepository repo = new AnimeEpisode_UserRepository();
+                repo.Save(rr);
                 return rr.Contract;
-            rr = new AnimeEpisode_User();
-            rr.PlayedCount = 0;
-            rr.StoppedCount = 0;
-            rr.WatchedCount = 0;
-            rr.AnimeEpisodeID = this.AnimeEpisodeID;
-            rr.AnimeSeriesID = this.AnimeSeriesID;
-            rr.JMMUserID = userid;
-            rr.WatchedDate = null;
-            AnimeEpisode_UserRepository repo = new AnimeEpisode_UserRepository();
-            repo.Save(rr);
-            return rr.Contract;
+            }
         }
 
         public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, int userID,

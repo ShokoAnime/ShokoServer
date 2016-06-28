@@ -63,6 +63,18 @@ namespace JMMServer.Repositories
         {
             lock (obj)
             {
+                if (obj.AnimeEpisode_UserID == 0)
+                {
+                    using (var session = JMMService.SessionFactory.OpenSession())
+                    {
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            session.SaveOrUpdate(obj);
+                            transaction.Commit();
+                        }
+                    }
+
+                }
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     UpdateContract(session, obj);
