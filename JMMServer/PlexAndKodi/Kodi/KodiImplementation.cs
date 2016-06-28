@@ -1,5 +1,6 @@
-﻿using System.IO;
-using JMMContracts;
+﻿using JMMContracts;
+using JMMContracts.PlexAndKodi;
+using Stream = System.IO.Stream;
 
 namespace JMMServer.PlexAndKodi.Kodi
 {
@@ -9,32 +10,33 @@ namespace JMMServer.PlexAndKodi.Kodi
         CommonImplementation _impl = new CommonImplementation();
 
 
-        public Stream GetFilters(string userid)
+        public MediaContainer GetFilters(string userid)
         {
+
             return _impl.GetFilters(_prov, userid);
         }
 
-        public Stream GetMetadata(string userid, string typeid, string id)
+        public MediaContainer GetMetadata(string userid, string typeid, string id)
         {
             return _impl.GetMetadata(_prov, userid, typeid, id, null);
         }
 
-        public Stream GetVersion()
+        public Response GetVersion()
         {
             return _impl.GetVersion(_prov);
         }
 
-        public Stream GetUsers()
+        public PlexContract_Users GetUsers()
         {
             return _impl.GetUsers(_prov);
         }
 
-        public Stream Search(string userid, string limit, string query)
+        public MediaContainer Search(string userid, string limit, string query)
         {
             return _impl.Search(_prov, userid, limit, query, false);
         }
 
-        public Stream SearchTag(string userid, string limit, string query)
+        public MediaContainer SearchTag(string userid, string limit, string query)
         {
             return _impl.Search(_prov, userid, limit, query, true);
         }
@@ -44,17 +46,17 @@ namespace JMMServer.PlexAndKodi.Kodi
             return _impl.GetSupportImage(name);
         }
 
-        public Stream ToggleWatchedStatusOnEpisode(string userid, string episodeid, string watchedstatus)
+        public Response ToggleWatchedStatusOnEpisode(string userid, string episodeid, string watchedstatus)
         {
             return _impl.ToggleWatchedStatusOnEpisode(_prov, userid, episodeid, watchedstatus);
         }
 
-        public Stream VoteAnime(string userid, string objectid, string votevalue, string votetype)
+        public Response VoteAnime(string userid, string objectid, string votevalue, string votetype)
         {
             return _impl.VoteAnime(_prov, userid, objectid, votevalue, votetype);
         }
 
-        public Stream TraktScrobble(string animeid, string type, string progress, string status)
+        public Response TraktScrobble(string animeid, string type, string progress, string status)
         {
             return _impl.TraktScrobble(_prov, animeid, type, progress, status);
         }

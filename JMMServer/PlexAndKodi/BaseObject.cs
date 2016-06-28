@@ -6,7 +6,7 @@ using JMMContracts.PlexAndKodi;
 
 namespace JMMServer.PlexAndKodi
 {
-    public class PlexObject
+    public class BaseObject
     {
         public static NameValueCollection QueryParameters
         {
@@ -55,7 +55,7 @@ namespace JMMServer.PlexAndKodi
         }
 
 
-        public System.IO.Stream GetStream(IProvider prov)
+        public MediaContainer GetStream(IProvider prov)
         {
             if (MediaContainer.Childrens.Count > 0 && MediaContainer.Childrens[0].Type == "movie")
             {
@@ -78,10 +78,10 @@ namespace JMMServer.PlexAndKodi
                 if (removeandroid)
                     a.Type = null;
             });
-            return prov.GetStreamFromXmlObject(MediaContainer);
+            return MediaContainer;
         }
 
-        public PlexObject(MediaContainer m)
+        public BaseObject(MediaContainer m)
         {
             MediaContainer = m;
         }

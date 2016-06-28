@@ -25,12 +25,12 @@ namespace JMMServer.PlexAndKodi
     {
         public static string ConstructVideoLocalStream(int userid, int vid, string extension, bool autowatch)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/file" + extension, PlexObject.IsExternalRequest);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/file" + extension, BaseObject.IsExternalRequest);
         }
 
         public static string ConstructFileStream(int userid, string file, bool autowatch)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + userid + "/" + (autowatch ? "1" : "0") +"/"+Base64EncodeUrl(file), PlexObject.IsExternalRequest);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + userid + "/" + (autowatch ? "1" : "0") +"/"+Base64EncodeUrl(file), BaseObject.IsExternalRequest);
         }
 
         public static string ConstructImageLink(int type, int id)

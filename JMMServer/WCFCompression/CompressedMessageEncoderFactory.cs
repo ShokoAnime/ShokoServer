@@ -41,7 +41,7 @@ namespace JMMServer.WCFCompression
 
             public override bool IsContentTypeSupported(string contentType)
             {
-                return innerEncoder.IsContentTypeSupported(contentType);
+                return true;
             }
 
             public override T GetProperty<T>()
