@@ -604,9 +604,10 @@ namespace JMMServer
             try
             {
                 CultureInfo ci = new CultureInfo(ul.Culture);
+                CultureInfo.DefaultThreadCurrentUICulture = ci;
                 CultureManager.UICulture = ci;
-
                 ServerSettings.Culture = ul.Culture;
+
             }
             catch (Exception ex)
             {
