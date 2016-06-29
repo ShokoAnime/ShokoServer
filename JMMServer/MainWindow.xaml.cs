@@ -2382,13 +2382,13 @@ namespace JMMServer
         private static void StartPlexHost()
         {
             hostPlex = new WebServiceHost(typeof(PlexImplementation), baseAddressPlex);
-            AddCompressableEndpoint(hostPlex, typeof(IJMMServerPlex));
+            AddCompressableEndpoint(hostPlex, typeof(IJMMServerPlex),SerializationFilter.Plex);
             ServiceDebugBehavior stp = hostPlex.Description.Behaviors.Find<ServiceDebugBehavior>();
             stp.HttpHelpPageEnabled = false;
             hostPlex.Open();
         }
 
-        private static void AddCompressableEndpoint(ServiceHost host, Type t, object address = null)
+        private static void AddCompressableEndpoint(ServiceHost host, Type t, SerializationFilter filter, object address = null)
         {
             CustomBinding custom = new CustomBinding(new WebHttpBinding() { ContentTypeMapper = new MultiContentTypeMapper() });
             for (int i = 0; i < custom.Elements.Count; i++)
@@ -2413,13 +2413,13 @@ namespace JMMServer
             if (ep == null)
                 ep = host.AddServiceEndpoint(t, custom, "");
             ep.EndpointBehaviors.Add(new MultiBehavior {  HelpEnabled = true, AutomaticFormatSelectionEnabled = true});
-            ep.EndpointBehaviors.Add(new CompressionSelectionEndpointBehavior());
+            ep.EndpointBehaviors.Add(new CompressionSelectionEndpointBehavior(filter));
         }
 
         private static void StartKodiHost()
         {
             hostKodi = new WebServiceHost(typeof(KodiImplementation), baseAddressKodi);
-            AddCompressableEndpoint(hostKodi, typeof(IJMMServerKodi));
+            AddCompressableEndpoint(hostKodi, typeof(IJMMServerKodi), SerializationFilter.Kodi);
             ServiceDebugBehavior stp = hostKodi.Description.Behaviors.Find<ServiceDebugBehavior>();
             stp.HttpHelpPageEnabled = false;
             hostKodi.Open();

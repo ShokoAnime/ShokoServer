@@ -23,7 +23,7 @@ namespace JMMServer.PlexAndKodi
 {
     public static class Helper
     {
-        public static string ConstructVideoLocalStream(int userid, int vid, string extension, bool autowatch)
+        public static string ConstructVideoLocalStream(int userid, string vid, string extension, bool autowatch)
         {
             return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/file" + extension, BaseObject.IsExternalRequest);
         }
@@ -215,10 +215,10 @@ namespace JMMServer.PlexAndKodi
 
         public static void AddLinksToAnimeEpisodeVideo(IProvider prov, Video v, int userid)
         {
-            if (v.AnimeType == JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode)
+            if (v.AnimeType == JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString())
                 v.Key = prov.ContructVideoUrl(userid, v.Id, JMMType.Episode);
             else if (v.Medias != null && v.Medias.Count > 0)
-                v.Key = prov.ContructVideoUrl(userid, int.Parse(v.Medias[0].Id), JMMType.File);
+                v.Key = prov.ContructVideoUrl(userid, v.Medias[0].Id, JMMType.File);
             if (v.Medias != null)
             {
                 foreach (Media m in v.Medias)
@@ -228,7 +228,7 @@ namespace JMMServer.PlexAndKodi
                         foreach (Part p in m.Parts)
                         {
                             string ff = Path.GetExtension(p.Extension);
-                            p.Key = ConstructVideoLocalStream(userid, int.Parse(m.Id), ff, prov.AutoWatch);
+                            p.Key = ConstructVideoLocalStream(userid, m.Id, ff, prov.AutoWatch);
                             if (p.Streams != null)
                             {
                                 foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
@@ -245,8 +245,8 @@ namespace JMMServer.PlexAndKodi
         public static Video VideoFromVideoLocal(IProvider prov, VideoLocal v, int userid)
         {
             Video l = new Video();
-            l.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeFile;
-            l.Id = v.VideoLocalID;
+            l.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeFile.ToString();
+            l.Id = v.VideoLocalID.ToString();
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
             l.Title = Path.GetFileNameWithoutExtension(v.FilePath);
@@ -311,8 +311,8 @@ namespace JMMServer.PlexAndKodi
                     Contract_CrossRef_AniDB_TvDBV2 c2 =
                         cross.FirstOrDefault(
                             a =>
-                                a.AniDBStartEpisodeType == v.EpisodeType &&
-                                a.AniDBStartEpisodeNumber <= v.EpisodeNumber);
+                                a.AniDBStartEpisodeType == int.Parse(v.EpisodeType) &&
+                                a.AniDBStartEpisodeNumber <= int.Parse(v.EpisodeNumber));
                     if (c2?.TvDBSeasonNumber > 0)
                         v.ParentIndex = c2.TvDBSeasonNumber.ToString();
                 }
@@ -327,8 +327,8 @@ namespace JMMServer.PlexAndKodi
             List<VideoLocal> vids = ep.GetVideoLocals();
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
-            l.Id = ep.AnimeEpisodeID;
-            l.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode;
+            l.Id = ep.AnimeEpisodeID.ToString();
+            l.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString();
             if (vids.Count > 0)
             {
                 l.Title = Path.GetFileNameWithoutExtension(vids[0].FilePath);
@@ -350,11 +350,11 @@ namespace JMMServer.PlexAndKodi
             AniDB_Episode aep = ep?.AniDB_Episode;
             if (aep != null)
             {
-                l.EpisodeNumber = aep.EpisodeNumber;
+                l.EpisodeNumber = aep.EpisodeNumber.ToString();
                 l.Index = aep.EpisodeNumber.ToString();
                 l.Title = aep.EnglishName;
                 l.OriginalTitle = aep.RomajiName;
-                l.EpisodeType = aep.EpisodeType;
+                l.EpisodeType = aep.EpisodeType.ToString();
                 l.Rating = float.Parse(aep.Rating, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
                 if (aep.AirDateAsDate.HasValue)
                 {
@@ -368,7 +368,7 @@ namespace JMMServer.PlexAndKodi
                 l.Thumb = contract.GenPoster();
                 l.Summary = contract.EpisodeOverview;
             }
-            l.Id = ep.AnimeEpisodeID;
+            l.Id = ep.AnimeEpisodeID.ToString();
             return l;
         }
 
@@ -418,8 +418,8 @@ namespace JMMServer.PlexAndKodi
             Directory pp = new Directory {Type = "show"};
             pp.Key = prov.ConstructFilterIdUrl(userid, gg.GroupFilterID);
             pp.Title = gg.GroupFilterName;
-            pp.Id = gg.GroupFilterID;
-            pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroupFilter;
+            pp.Id = gg.GroupFilterID.ToString();
+            pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroupFilter.ToString();
             if ((gg.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
                 GetValidVideoRecursive(repGroups, gg, userid, pp);
@@ -699,8 +699,8 @@ namespace JMMServer.PlexAndKodi
         private static Video FromGroup(Contract_AnimeGroup grp, Contract_AnimeSeries ser, int userid, int subgrpcnt)
         {
             Directory p = new Directory();
-            p.Id = grp.AnimeGroupID;
-            p.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroup;
+            p.Id = grp.AnimeGroupID.ToString();
+            p.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroup.ToString();
             p.Title = grp.GroupName;
             p.Summary = grp.Description;
             p.Type = "show";
@@ -754,8 +754,8 @@ namespace JMMServer.PlexAndKodi
             using (ISession session = JMMService.SessionFactory.OpenSession())
             {
                 Contract_AniDBAnime anime = ser.AniDBAnime.AniDBAnime;
-                p.Id = ser.AnimeSeriesID;
-                p.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeSerie;
+                p.Id = ser.AnimeSeriesID.ToString();
+                p.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeSerie.ToString();
                 if (ser.AniDBAnime.AniDBAnime.Restricted > 0)
                     p.ContentRating = "R";
                 p.Title = aser.GetSeriesName(session);

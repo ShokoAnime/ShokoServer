@@ -735,6 +735,7 @@
     <Compile Include="WCFCompression\CompressionSelectionEndpointBehavior.cs" />
     <Compile Include="WCFCompression\CompressionSelectionMessageInspector.cs" />
     <Compile Include="WCFCompression\CompressionType.cs" />
+    <Compile Include="WCFCompression\PlexKodiFilterInspector.cs" />
     <Compile Include="WCFCompression\ISerializer.cs" />
     <Compile Include="WCFCompression\JsonSerializer.cs" />
     <Compile Include="WCFCompression\MultiBehavior.cs" />

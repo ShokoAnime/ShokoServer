@@ -144,11 +144,11 @@ namespace JMMContracts.PlexAndKodi
 
         [XmlAttribute("GenericId")]
         [DataMember(EmitDefaultValue = false, Order = 20)]
-        public int Id { get; set; }
+        public string Id { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 21)]
         [XmlAttribute("AnimeType")]
-        public AnimeTypes AnimeType { get; set; }
+        public string AnimeType { get; set; }
 
 
         [DataMember(EmitDefaultValue = false, Order = 22)]
@@ -333,11 +333,11 @@ namespace JMMContracts.PlexAndKodi
 
         [DataMember(EmitDefaultValue = false, Order = 67)]
         [XmlAttribute]
-        public int EpisodeType { get; set; }
+        public string EpisodeType { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 68)]
         [XmlAttribute]
-        public int EpisodeNumber { get; set; }
+        public string EpisodeNumber { get; set; }
 
 
         [XmlIgnore]
@@ -403,7 +403,7 @@ namespace JMMContracts.PlexAndKodi
     {
         [DataMember(EmitDefaultValue = false, Order = 1)]
         [XmlAttribute("Code")]
-        public int Code { get; set; }
+        public string Code { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 2)]
         [XmlAttribute("Message")]
@@ -801,5 +801,15 @@ namespace JMMContracts.PlexAndKodi
         Playlist,
         [EnumMember]
         FakeIosThumb
+    }
+
+    public class Plex : Attribute
+    {
+        
+    }
+
+    public class Kodi : Attribute
+    {
+        
     }
 }
