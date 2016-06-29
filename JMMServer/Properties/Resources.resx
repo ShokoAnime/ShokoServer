@@ -740,9 +740,6 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Getting release group info from UDP API: {0}</value>
   </data>
-  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
-    <value>Getting release group info from UDP API: {0}</value>
-  </data>
   <data name="Command_SearchTMDb" xml:space="preserve">
     <value>Searching for anime on The MovieDB: {0}</value>
   </data>

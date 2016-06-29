@@ -1106,15 +1106,6 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Getting release group info from UDP API: {0}.
-        /// </summary>
-        internal static string Getting_release_group_info_from_UDP_API___0_ {
-            get {
-                return ResourceManager.GetString("Getting release group info from UDP API: {0}", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Clear all queued hash commands.
         /// </summary>
         internal static string Hash_Clear {
