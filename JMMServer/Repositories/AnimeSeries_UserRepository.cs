@@ -86,12 +86,12 @@ namespace JMMServer.Repositories
                         session.SaveOrUpdate(obj);
                         transaction.Commit();
                     }
+                    Cache.Update(obj);
+                    if (!Changes.ContainsKey(obj.JMMUserID))
+                        Changes[obj.JMMUserID] = new ChangeTracker<int>();
+                    Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
                     obj.UpdateGroupFilter(types);
                 }
-                Cache.Update(obj);
-                if (!Changes.ContainsKey(obj.JMMUserID))
-                    Changes[obj.JMMUserID] = new ChangeTracker<int>();
-                Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
             }
             //logger.Trace("Updating group stats by series from AnimeSeries_UserRepository.Save: {0}", obj.AnimeSeriesID);
             //StatsCache.Instance.UpdateUsingSeries(obj.AnimeSeriesID);

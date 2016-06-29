@@ -520,6 +520,8 @@ namespace JMMServer.PlexAndKodi
             List<Video> retGroups = new List<Video>();
             AnimeGroupRepository repGroups = new AnimeGroupRepository();
             AnimeGroup grp = repGroups.GetByID(groupID);
+            if (grp == null)
+                return new MediaContainer {ErrorString = "Invalid Group"};
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, grp.GroupName, false, true, info));
             if (!ret.Init())
