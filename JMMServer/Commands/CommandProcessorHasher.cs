@@ -23,25 +23,9 @@ namespace JMMServer.Commands
 
         public event QueueCountChangedHandler OnQueueCountChangedEvent;
 
-        protected void OQueueCountChanged(QueueCountEventArgs ev)
-        {
-            if (OnQueueCountChangedEvent != null)
-            {
-                OnQueueCountChangedEvent(ev);
-            }
-        }
-
         public delegate void QueueStateChangedHandler(QueueStateEventArgs ev);
 
         public event QueueStateChangedHandler OnQueueStateChangedEvent;
-
-        protected void OQueueStateChanged(QueueStateEventArgs ev)
-        {
-            if (OnQueueStateChangedEvent != null)
-            {
-                OnQueueStateChangedEvent(ev);
-            }
-        }
 
         private bool paused = false;
 
