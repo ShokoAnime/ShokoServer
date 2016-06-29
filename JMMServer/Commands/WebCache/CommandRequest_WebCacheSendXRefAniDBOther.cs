@@ -15,11 +15,11 @@ namespace JMMServer.Commands
             get { return CommandRequestPriority.Priority9; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
-                return string.Format("Sending cross ref for Anidb to Other from web cache: {0}", CrossRef_AniDB_OtherID);
+                return new QueueStateStruct() { queueState = QueueStateEnum.WebCacheSendXRefAniDBOther, extraParams = new string[] { CrossRef_AniDB_OtherID.ToString() } };
             }
         }
 

@@ -905,4 +905,34 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Update_Changelog" xml:space="preserve">
     <value>Changelog</value>
   </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to MAL from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to Other from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to Trakt from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Deleting cross ref for Anidb to TvDB from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
+    <value>Deleting cross ref for file to episode to web cache: {0}-{1}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBMAL" xml:space="preserve">
+    <value>Sending cross ref for Anidb to MAL from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBOther" xml:space="preserve">
+    <value>Sending cross ref for Anidb to Other from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTrakt" xml:space="preserve">
+    <value>Sending cross ref for Anidb to Trakt from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTvDB" xml:space="preserve">
+    <value>Sending cross ref for Anidb to TvDB from web cache: {0}</value>
+  </data>
+  <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
+    <value>Sending cross ref for file to episode to web cache: {0}</value>
+  </data>
 </root>

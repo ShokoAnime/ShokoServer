@@ -18,13 +18,11 @@ namespace JMMServer.Commands.Azure
             get { return CommandRequestPriority.Priority10; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
-                return string.Format(JMMServer.Properties.Resources.Command_SendAnimeAzure, AnimeID);
+                return new QueueStateStruct() { queueState = QueueStateEnum.SendAnimeAzure, extraParams = new string[] { AnimeID.ToString() } };
             }
         }
 

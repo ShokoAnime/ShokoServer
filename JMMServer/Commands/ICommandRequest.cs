@@ -7,6 +7,6 @@ namespace JMMServer.Commands
         void ProcessCommand();
         bool LoadFromDBCommand(CommandRequest cq);
         CommandRequestPriority DefaultPriority { get; }
-        string PrettyDescription { get; }
+        QueueStateStruct PrettyDescription { get; }
     }
 }

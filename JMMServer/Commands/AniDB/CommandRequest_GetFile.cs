@@ -23,16 +23,14 @@ namespace JMMServer.Commands
             get { return CommandRequestPriority.Priority3; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
                 if (vlocal != null)
-                    return string.Format(JMMServer.Properties.Resources.Command_GetFileInfo, vlocal.FullServerPath);
+                    return new QueueStateStruct() { queueState = QueueStateEnum.GetFileInfo, extraParams = new string[] { vlocal.FullServerPath } };
                 else
-                    return string.Format(JMMServer.Properties.Resources.Command_GetFileInfo, VideoLocalID);
+                    return new QueueStateStruct() { queueState = QueueStateEnum.GetFileInfo, extraParams = new string[] { VideoLocalID.ToString() } };
             }
         }
 

@@ -21,16 +21,14 @@ namespace JMMServer.Commands
             get { return CommandRequestPriority.Priority9; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
                 if (vid != null)
-                    return string.Format(JMMServer.Properties.Resources.AniDB_MyListAdd, vid.FullServerPath);
+                    return new QueueStateStruct() { queueState=QueueStateEnum.AniDB_MyListAdd, extraParams = new string[] { vid.FullServerPath  } };
                 else
-                    return string.Format(JMMServer.Properties.Resources.AniDB_MyListAdd, Hash);
+                    return new QueueStateStruct() { queueState = QueueStateEnum.AniDB_MyListAdd, extraParams = new string[] { Hash } };
             }
         }
 
