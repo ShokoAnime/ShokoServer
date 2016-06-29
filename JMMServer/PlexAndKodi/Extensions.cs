@@ -18,7 +18,7 @@ namespace JMMServer.PlexAndKodi
                 prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.GroupUnsort + "/0/");
         }
 
-        public static string ConstructGroupIdUrl(this IProvider prov, int userid, int gid)
+        public static string ConstructGroupIdUrl(this IProvider prov, int userid, string gid)
         {
             return Helper.ServerUrl(prov.ServicePort,
                 prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Group + "/" + gid);
@@ -30,7 +30,7 @@ namespace JMMServer.PlexAndKodi
                 prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Serie + "/" + sid);
         }
 
-        public static string ContructVideoUrl(this IProvider prov, int userid, int vid, JMMType type)
+        public static string ContructVideoUrl(this IProvider prov, int userid, string vid, JMMType type)
         {
             return Helper.ServerUrl(prov.ServicePort,
                 prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) type + "/" + vid);
@@ -139,13 +139,13 @@ namespace JMMServer.PlexAndKodi
 
         public static void GenerateKey(this Video v, IProvider prov, int userid)
         {
-            switch (v.AnimeType)
+            switch ((JMMContracts.PlexAndKodi.AnimeTypes)Enum.Parse(typeof(JMMContracts.PlexAndKodi.AnimeTypes),v.AnimeType, true))
             {
                 case JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroup:
                     v.Key = prov.ConstructGroupIdUrl(userid, v.Id);
                     break;
                 case JMMContracts.PlexAndKodi.AnimeTypes.AnimeSerie:
-                    v.Key = prov.ConstructSerieIdUrl(userid, v.Id.ToString());
+                    v.Key = prov.ConstructSerieIdUrl(userid, v.Id);
                     break;
                 case JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode:
                 case JMMContracts.PlexAndKodi.AnimeTypes.AnimeFile:
