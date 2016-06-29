@@ -31,7 +31,7 @@ namespace JMMServer.Entities
         public int SeriesIdsVersion { get; set; }
         public string SeriesIdsString { get; set; }
 
-        public const int GROUPFILTER_VERSION = 2;
+        public const int GROUPFILTER_VERSION = 3;
         public const int GROUPCONDITIONS_VERSION = 1;
         public const int SERIEFILTER_VERSION = 2;
 
@@ -48,7 +48,7 @@ namespace JMMServer.Entities
             {
                 return
                     new HashSet<GroupFilterConditionType>(
-                        _conditions.Select(a => a.ConditionType).Distinct().Cast<GroupFilterConditionType>());
+                        Conditions.Select(a => a.ConditionType).Distinct().Cast<GroupFilterConditionType>());
             }
         }
 
