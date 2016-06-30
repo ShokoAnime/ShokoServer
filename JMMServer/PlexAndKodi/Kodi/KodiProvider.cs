@@ -3,6 +3,7 @@ using System.ServiceModel.Web;
 using System.Text;
 using System.Xml.Serialization;
 using JMMContracts.PlexAndKodi;
+using System.Text.RegularExpressions;
 
 namespace JMMServer.PlexAndKodi.Kodi
 {
@@ -24,10 +25,12 @@ namespace JMMServer.PlexAndKodi.Kodi
 
         public string ShortUrl(string url)
         {
-            if (url.Contains(":" + ServicePort + "/"))
+            Match remove_this = Regex.Match(url, @"(\d+\.\d+\.\d+\.\d+):(\d+)");
+            if (remove_this.Success)
             {
                 //remove http, host, port because we already know whats that
-                return url.Substring(url.IndexOf(":" + ServicePort + "/") + ServicePort.ToString().Length + 2);
+                //return url.Substring(url.IndexOf(":" + ServicePort + "/") + ServicePort.ToString().Length + 2);
+                return url.Replace(remove_this.Groups[1].Value, "");
             }
             else
             {
