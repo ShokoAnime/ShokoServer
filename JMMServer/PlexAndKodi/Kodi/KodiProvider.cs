@@ -24,10 +24,10 @@ namespace JMMServer.PlexAndKodi.Kodi
 
         public string ShortUrl(string url)
         {
-            if (url.Contains("http://" + ServiceAddress + ":" + ServicePort + "/"))
+            if (url.Contains(":" + ServicePort + "/"))
             {
                 //remove http, host, port because we already know whats that
-                return url.Replace("http://" + ServiceAddress + ":" + ServicePort + "/", "");
+                return url.Substring(0, url.IndexOf(":" + ServicePort + "/") + ServicePort.ToString().Length + 2);
             }
             else
             {
