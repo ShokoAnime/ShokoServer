@@ -21,14 +21,17 @@ namespace JMMContracts.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 1)]
         public List<Video> Childrens { get; set; }
 
+        [Plex]
         [XmlAttribute("viewGroup")]
         [DataMember(EmitDefaultValue = false, Order = 2)]
         public string ViewGroup { get; set; }
 
+        [Plex]
         [XmlAttribute("viewMode")]
         [DataMember(EmitDefaultValue = false, Order = 3)]
         public string ViewMode { get; set; }
 
+        [Plex]
         [DataMember(EmitDefaultValue = false, Order = 4)]
         [XmlAttribute("contenttype")]
         public string ContentType { get; set; }
@@ -41,14 +44,17 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("identifier")]
         public string Identifier { get; set; }
 
+        [Plex]
         [DataMember(EmitDefaultValue = false, Order = 7)]
         [XmlAttribute("mediaTagPrefix")]
         public string MediaTagPrefix { get; set; }
 
+        [Plex]
         [DataMember(EmitDefaultValue = false, Order = 8)]
         [XmlAttribute("mediaTagVersion")]
         public string MediaTagVersion { get; set; }
 
+        [Plex]
         [DataMember(EmitDefaultValue = false, Order = 9)]
         [XmlAttribute("allowSync")]
         public string AllowSync { get; set; }
@@ -57,6 +63,7 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("totalSize")]
         public string TotalSize { get; set; }
 
+        [Plex]
         [DataMember(EmitDefaultValue = false, Order = 11)]
         [XmlAttribute("nocache")]
         public string NoCache { get; set; }
@@ -65,14 +72,17 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("offset")]
         public string Offset { get; set; }
 
+        [Plex]
         [DataMember(EmitDefaultValue = false, Order = 13)]
         [XmlAttribute("librarySectionUUID")]
         public string LibrarySectionUUID { get; set; }
 
+        [Plex]
         [DataMember(EmitDefaultValue = false, Order = 14)]
         [XmlAttribute("librarySectionTitle")]
         public string LibrarySectionTitle { get; set; }
 
+        [Plex]
         [DataMember(EmitDefaultValue = false, Order = 15)]
         [XmlAttribute("librarySectionID")]
         public string LibrarySectionID { get; set; }
@@ -149,7 +159,6 @@ namespace JMMContracts.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 21)]
         [XmlAttribute("AnimeType")]
         public string AnimeType { get; set; }
-
 
         [DataMember(EmitDefaultValue = false, Order = 22)]
         [XmlAttribute("art")]
@@ -338,7 +347,6 @@ namespace JMMContracts.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 68)]
         [XmlAttribute]
         public string EpisodeNumber { get; set; }
-
 
         [XmlIgnore]
         public Contract_AnimeGroup Group { get; set; }
@@ -622,7 +630,6 @@ namespace JMMContracts.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 20)]
         [XmlAttribute("codecID")]
         public string CodecID { get; set; }
-
 
         [DataMember(EmitDefaultValue = false, Order = 21)]
         [XmlAttribute("chromaSubsampling")]

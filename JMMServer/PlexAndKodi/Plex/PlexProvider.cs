@@ -64,6 +64,11 @@ namespace JMMServer.PlexAndKodi.Plex
             return "/video/jmm/proxy/" + ToHex(url);
         }
 
+        public string ShortUrl(string url)
+        {
+            return url;
+        }
+
         private static string ToHex(string ka)
         {
             byte[] ba = Encoding.UTF8.GetBytes(ka);
