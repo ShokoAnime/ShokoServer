@@ -27,7 +27,7 @@ namespace JMMServer.PlexAndKodi.Kodi
             if (url.Contains(":" + ServicePort + "/"))
             {
                 //remove http, host, port because we already know whats that
-                return url.Substring(0, url.IndexOf(":" + ServicePort + "/") + ServicePort.ToString().Length + 2);
+                return url.Substring(url.IndexOf(":" + ServicePort + "/") + ServicePort.ToString().Length + 2);
             }
             else
             {
