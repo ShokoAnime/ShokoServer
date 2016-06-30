@@ -756,7 +756,7 @@ namespace JMMServer.Entities
                     foreach (Part p in contract.Media?.Parts)
                     {
                         string ff = Path.GetExtension(p.Extension);
-                        p.Key = PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID, ff, false);
+                        p.Key = PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID.ToString(), ff, false);
                         if (p.Streams != null)
                         {
                             foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))

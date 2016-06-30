@@ -17,13 +17,11 @@ namespace JMMServer.Commands.AniDB
             get { return CommandRequestPriority.Priority10; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
-                return string.Format(JMMServer.Properties.Resources.Command_UpdateMyListStats);
+                return new QueueStateStruct() { queueState = QueueStateEnum.UpdateMyListStats, extraParams = new string[0] };
             }
         }
 

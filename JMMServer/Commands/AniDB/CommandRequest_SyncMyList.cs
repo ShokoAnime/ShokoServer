@@ -20,13 +20,11 @@ namespace JMMServer.Commands
             get { return CommandRequestPriority.Priority6; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
-                return string.Format(JMMServer.Properties.Resources.Command_SyncMyList);
+                return new QueueStateStruct() { queueState = QueueStateEnum.SyncMyList, extraParams = new string[0] };
             }
         }
 

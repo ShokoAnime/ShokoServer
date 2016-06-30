@@ -808,9 +808,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Command_SearchTvDB" xml:space="preserve">
     <value>Alla ricerca di anime su The TvDB: {0}</value>
   </data>
-  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
-    <value>Ottenere informazioni di gruppo di rilascio dall'API di UDP: {0}</value>
-  </data>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Aggiornamento AniDB Info</value>
   </data>
@@ -855,5 +852,35 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Update_Changelog" xml:space="preserve">
     <value>Changelog</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>L'eliminazione di croce ref per Anidb a MAL dalla cache web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>L'eliminazione Croce ref per Anidb altro dalla cache web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>L'eliminazione di croce ref per Anidb a Trakt dalla cache web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Eliminazione ref croce per Anidb a TvDB dalla cache web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
+    <value>L'eliminazione di croce ref per file all'episodio di cache web: {0}-{1}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBMAL" xml:space="preserve">
+    <value>Invio croce rif per Anidb a MAL da cache web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBOther" xml:space="preserve">
+    <value>Invio croce rif per Anidb altro dalla cache web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTrakt" xml:space="preserve">
+    <value>Invio croce rif per Anidb a Trakt da cache web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTvDB" xml:space="preserve">
+    <value>Invio croce rif per Anidb a TvDB da cache web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
+    <value>Invio croce rif per file all'episodio di cache web: {0}!</value>
   </data>
 </root>

@@ -782,6 +782,96 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Deleting cross ref for Anidb to MAL from web cache: {0}.
+        /// </summary>
+        internal static string Command_WebCacheDeleteXRefAniDBMAL {
+            get {
+                return ResourceManager.GetString("Command_WebCacheDeleteXRefAniDBMAL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deleting cross ref for Anidb to Other from web cache: {0}.
+        /// </summary>
+        internal static string Command_WebCacheDeleteXRefAniDBOther {
+            get {
+                return ResourceManager.GetString("Command_WebCacheDeleteXRefAniDBOther", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deleting cross ref for Anidb to Trakt from web cache: {0}.
+        /// </summary>
+        internal static string Command_WebCacheDeleteXRefAniDBTrakt {
+            get {
+                return ResourceManager.GetString("Command_WebCacheDeleteXRefAniDBTrakt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deleting cross ref for Anidb to TvDB from web cache: {0}.
+        /// </summary>
+        internal static string Command_WebCacheDeleteXRefAniDBTvDB {
+            get {
+                return ResourceManager.GetString("Command_WebCacheDeleteXRefAniDBTvDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deleting cross ref for file to episode to web cache: {0}-{1}.
+        /// </summary>
+        internal static string Command_WebCacheDeleteXRefFileEpisode {
+            get {
+                return ResourceManager.GetString("Command_WebCacheDeleteXRefFileEpisode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sending cross ref for Anidb to MAL from web cache: {0}.
+        /// </summary>
+        internal static string Command_WebCacheSendXRefAniDBMAL {
+            get {
+                return ResourceManager.GetString("Command_WebCacheSendXRefAniDBMAL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sending cross ref for Anidb to Other from web cache: {0}.
+        /// </summary>
+        internal static string Command_WebCacheSendXRefAniDBOther {
+            get {
+                return ResourceManager.GetString("Command_WebCacheSendXRefAniDBOther", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sending cross ref for Anidb to Trakt from web cache: {0}.
+        /// </summary>
+        internal static string Command_WebCacheSendXRefAniDBTrakt {
+            get {
+                return ResourceManager.GetString("Command_WebCacheSendXRefAniDBTrakt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sending cross ref for Anidb to TvDB from web cache: {0}.
+        /// </summary>
+        internal static string Command_WebCacheSendXRefAniDBTvDB {
+            get {
+                return ResourceManager.GetString("Command_WebCacheSendXRefAniDBTvDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sending cross ref for file to episode to web cache: {0}.
+        /// </summary>
+        internal static string Command_WebCacheSendXRefFileEpisode {
+            get {
+                return ResourceManager.GetString("Command_WebCacheSendXRefFileEpisode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Confirm.
         /// </summary>
         internal static string Confirm {
@@ -1012,15 +1102,6 @@ namespace JMMServer.Properties {
         internal static string General_Running {
             get {
                 return ResourceManager.GetString("General_Running", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Getting release group info from UDP API: {0}.
-        /// </summary>
-        internal static string Getting_release_group_info_from_UDP_API___0_ {
-            get {
-                return ResourceManager.GetString("Getting release group info from UDP API: {0}", resourceCulture);
             }
         }
         

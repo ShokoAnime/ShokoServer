@@ -80,19 +80,18 @@ namespace JMMServer.Repositories
                 }
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    HashSet<GroupFilterConditionType> types = AnimeGroup_User.GetConditionTypesChanged(old, obj);
+                    HashSet<GroupFilterConditionType> types = AnimeGroup_User.GetConditionTypesChanged(old, obj);                    
                     using (var transaction = session.BeginTransaction())
                     {
                         session.SaveOrUpdate(obj);
                         transaction.Commit();
                     }
-                    logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Save: {0}", obj.AnimeGroupID);
+                    Cache.Update(obj);
+                    if (!Changes.ContainsKey(obj.JMMUserID))
+                        Changes[obj.JMMUserID] = new ChangeTracker<int>();
+                    Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
                     obj.UpdateGroupFilter(types);
                 }
-                Cache.Update(obj);
-                if (!Changes.ContainsKey(obj.JMMUserID))
-                    Changes[obj.JMMUserID] = new ChangeTracker<int>();
-                Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
             }
         }
 

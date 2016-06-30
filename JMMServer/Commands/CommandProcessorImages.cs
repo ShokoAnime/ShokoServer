@@ -23,25 +23,9 @@ namespace JMMServer.Commands
 
         public event QueueCountChangedHandler OnQueueCountChangedEvent;
 
-        protected void OQueueCountChanged(QueueCountEventArgs ev)
-        {
-            if (OnQueueCountChangedEvent != null)
-            {
-                OnQueueCountChangedEvent(ev);
-            }
-        }
-
         public delegate void QueueStateChangedHandler(QueueStateEventArgs ev);
 
         public event QueueStateChangedHandler OnQueueStateChangedEvent;
-
-        protected void OQueueStateChanged(QueueStateEventArgs ev)
-        {
-            if (OnQueueStateChangedEvent != null)
-            {
-                OnQueueStateChangedEvent(ev);
-            }
-        }
 
         private bool paused = false;
 
@@ -63,12 +47,12 @@ namespace JMMServer.Commands
                     paused = value;
                     if (paused)
                     {
-                        QueueState = JMMServer.Properties.Resources.Command_Paused;
+                        QueueState = new QueueStateStruct() { queueState = QueueStateEnum.Paused, extraParams = new string[0] };
                         pauseTime = DateTime.Now;
                     }
                     else
                     {
-                        QueueState = JMMServer.Properties.Resources.Command_Idle;
+                        QueueState = new QueueStateStruct() { queueState = QueueStateEnum.Idle, extraParams = new string[0] };
                         pauseTime = null;
                     }
 
@@ -99,16 +83,14 @@ namespace JMMServer.Commands
             }
         }
 
-        private string queueState = JMMServer.Properties.Resources.Command_Idle;
+        private QueueStateStruct queueState = new QueueStateStruct() { queueState = QueueStateEnum.Idle, extraParams = new string[0] };
 
-        public string QueueState
+        public QueueStateStruct QueueState
         {
             get
             {
                 lock (lockQueueState)
                 {
-                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
                     return queueState;
                 }
             }
@@ -117,7 +99,7 @@ namespace JMMServer.Commands
                 lock (lockQueueState)
                 {
 
-                    queueState = string.IsNullOrEmpty(value) ? JMMServer.Properties.Resources.Command_Idle : value;
+                    queueState = value;
                     OnQueueStateChangedEvent(new QueueStateEventArgs(queueState));
                 }
             }
@@ -142,7 +124,7 @@ namespace JMMServer.Commands
 
             processingCommands = false;
             //logger.Trace("Stopping command worker (images)...");
-            QueueState = JMMServer.Properties.Resources.Command_Idle;
+            QueueState = new QueueStateStruct() { queueState = QueueStateEnum.Idle, extraParams = new string[0] };
             QueueCount = 0;
         }
 
@@ -152,7 +134,7 @@ namespace JMMServer.Commands
 
             processingCommands = true;
             //logger.Trace("Starting command worker (images)...");
-            QueueState = JMMServer.Properties.Resources.Command_StartingImages;
+            QueueState = new QueueStateStruct() { queueState = QueueStateEnum.StartingImages, extraParams = new string[0] };
             this.workerCommands.RunWorkerAsync();
         }
 

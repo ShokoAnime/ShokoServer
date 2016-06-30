@@ -86,7 +86,7 @@ namespace JMMServer.PlexAndKodi
                         Directory pp = new Directory() {Type = "show"};
                         pp.Key = prov.ConstructUnsortUrl(userid);
                         pp.Title = "Unsort";
-                        pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeUnsort;
+                        pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeUnsort.ToString();
                         pp.Thumb = Helper.ConstructSupportImageLink("plex_unsort.png");
                         pp.LeafCount = vids.Count.ToString();
                         pp.ViewedLeafCount = "0";
@@ -99,7 +99,7 @@ namespace JMMServer.PlexAndKodi
                         Directory pp = new Directory() {Type = "show"};
                         pp.Key = prov.ConstructPlaylistUrl(userid);
                         pp.Title = "Playlists";
-                        pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist;
+                        pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist.ToString();
                         pp.Thumb = Helper.ConstructSupportImageLink("plex_playlists.png");
                         pp.LeafCount = playlists.Count.ToString();
                         pp.ViewedLeafCount = "0";
@@ -178,8 +178,8 @@ namespace JMMServer.PlexAndKodi
                         var dir = new Directory();
                         dir.Key = prov.ConstructPlaylistIdUrl(userid, playlist.PlaylistID);
                         dir.Title = playlist.PlaylistName;
-                        dir.Id = playlist.PlaylistID;
-                        dir.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist;
+                        dir.Id = playlist.PlaylistID.ToString();
+                        dir.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist.ToString();
                         var episodeID = -1;
                         if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                         {
@@ -414,7 +414,7 @@ namespace JMMServer.PlexAndKodi
             Response rsp = new Response();
             try
             {
-                rsp.Code = 200;
+                rsp.Code = "200";
                 prov.AddResponseHeaders();
                 rsp.Message = System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString();
                 return rsp;
@@ -422,7 +422,7 @@ namespace JMMServer.PlexAndKodi
             catch (Exception e)
             {
                 logger.ErrorException(e.ToString(), e);
-                rsp.Code = 500;
+                rsp.Code = "500";
                 rsp.Message = "System Error, see JMMServer logs for more information";
             }
             return rsp;
@@ -520,6 +520,8 @@ namespace JMMServer.PlexAndKodi
             List<Video> retGroups = new List<Video>();
             AnimeGroupRepository repGroups = new AnimeGroupRepository();
             AnimeGroup grp = repGroups.GetByID(groupID);
+            if (grp == null)
+                return new MediaContainer {ErrorString = "Invalid Group"};
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, grp.GroupName, false, true, info));
             if (!ret.Init())
@@ -563,7 +565,7 @@ namespace JMMServer.PlexAndKodi
             prov.AddResponseHeaders();
 
             Response rsp = new Response();
-            rsp.Code = 400;
+            rsp.Code = "400";
             rsp.Message = "Bad Request";
             try
             {
@@ -581,18 +583,18 @@ namespace JMMServer.PlexAndKodi
                 AnimeEpisode ep = repEps.GetByID(aep);
                 if (ep == null)
                 {
-                    rsp.Code = 404;
+                    rsp.Code = "404";
                     rsp.Message = "Episode Not Found";
                     return rsp;
                 }
                 ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
                 ep.GetAnimeSeries().UpdateStats(true, false, true);
-                rsp.Code = 200;
+                rsp.Code = "200";
                 rsp.Message = null;
             }
             catch (Exception ex)
             {
-                rsp.Code = 500;
+                rsp.Code = "500";
                 rsp.Message = "Internal Error : " + ex;
                 logger.ErrorException(ex.ToString(), ex);
             }
@@ -605,7 +607,7 @@ namespace JMMServer.PlexAndKodi
             prov.AddResponseHeaders();
 
             Response rsp = new Response();
-            rsp.Code = 400;
+            rsp.Code = "400";
             rsp.Message = "Bad Request";
             try
             {
@@ -629,14 +631,14 @@ namespace JMMServer.PlexAndKodi
                         AnimeEpisode ep = repEpisodes.GetByID(session, objid);
                         if (ep == null)
                         {
-                            rsp.Code = 404;
+                            rsp.Code = "404";
                             rsp.Message = "Episode Not Found";
                             return rsp;
                         }
                         AniDB_Anime anime = ep.GetAnimeSeries().GetAnime();
                         if (anime == null)
                         {
-                            rsp.Code = 404;
+                            rsp.Code = "404";
                             rsp.Message = "Anime Not Found";
                             return rsp;
                         }
@@ -686,7 +688,7 @@ namespace JMMServer.PlexAndKodi
                         AniDB_Anime anime = ser.GetAnime();
                         if (anime == null)
                         {
-                            rsp.Code = 404;
+                            rsp.Code = "404";
                             rsp.Message = "Anime Not Found";
                             return rsp;
                         }
@@ -735,13 +737,13 @@ namespace JMMServer.PlexAndKodi
                             Convert.ToDecimal(vvalue));
                         cmdVote.Save();
                     }
-                    rsp.Code = 200;
+                    rsp.Code = "200";
                     rsp.Message = null;
                 }
             }
             catch (Exception ex)
             {
-                rsp.Code = 500;
+                rsp.Code = "500";
                 rsp.Message = "Internal Error : " + ex;
                 logger.ErrorException(ex.ToString(), ex);
             }
@@ -753,7 +755,7 @@ namespace JMMServer.PlexAndKodi
             string status)
         {
             Response rsp = new Response();
-            rsp.Code = 400;
+            rsp.Code = "400";
             rsp.Message = "Bad Request";
             try
             {
@@ -786,7 +788,7 @@ namespace JMMServer.PlexAndKodi
                     case (int) Providers.TraktTV.ScrobblePlayingType.movie:
                         rsp.Code = Providers.TraktTV.TraktTVHelper.Scrobble(
                             Providers.TraktTV.ScrobblePlayingType.movie, animeId,
-                            statusTraktV2, progressTrakt);
+                            statusTraktV2, progressTrakt).ToString();
                         rsp.Message = "Movie Scrobbled";
                         break;
                     //2
@@ -794,7 +796,7 @@ namespace JMMServer.PlexAndKodi
                         rsp.Code =
                             Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.episode,
                                 animeId,
-                                statusTraktV2, progressTrakt);
+                                statusTraktV2, progressTrakt).ToString();
                         rsp.Message = "Episode Scrobbled";
                         break;
                     //error
@@ -802,7 +804,7 @@ namespace JMMServer.PlexAndKodi
             }
             catch (Exception ex)
             {
-                rsp.Code = 500;
+                rsp.Code = "500";
                 rsp.Message = "Internal Error : " + ex;
                 logger.ErrorException(ex.ToString(), ex);
             }

@@ -16,9 +16,11 @@ namespace JMMServer.Commands.WebCache
             get { return CommandRequestPriority.Priority9; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
-            get { return string.Format("Deleting cross ref for Anidb to MAL from web cache: {0}", AnimeID); }
+            get {
+                return new QueueStateStruct() { queueState = QueueStateEnum.WebCacheDeleteXRefAniDBMAL, extraParams = new string[] { AnimeID.ToString() } };
+            }
         }
 
         public CommandRequest_WebCacheDeleteXRefAniDBMAL()
