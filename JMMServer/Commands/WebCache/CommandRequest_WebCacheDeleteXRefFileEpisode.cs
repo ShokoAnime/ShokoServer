@@ -14,11 +14,11 @@ namespace JMMServer.Commands
             get { return CommandRequestPriority.Priority9; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
-                return string.Format("Deleting cross ref for file to episode to web cache: {0}-{1}", Hash, EpisodeID);
+                return new QueueStateStruct() { queueState = QueueStateEnum.WebCacheDeleteXRefFileEpisode, extraParams = new string[] { Hash, EpisodeID.ToString() } };
             }
         }
 

@@ -21,13 +21,11 @@ namespace JMMServer.Commands
             get { return CommandRequestPriority.Priority8; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
-                return string.Format(JMMServer.Properties.Resources.Command_SearchTMDb, AnimeID);
+                return new QueueStateStruct() { queueState = QueueStateEnum.SearchTMDb, extraParams = new string[] { AnimeID.ToString() } };
             }
         }
 

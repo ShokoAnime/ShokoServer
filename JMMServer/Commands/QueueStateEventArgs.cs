@@ -4,9 +4,9 @@ namespace JMMServer.Commands
 {
     public class QueueStateEventArgs : EventArgs
     {
-        public readonly string QueueState;
+        public readonly QueueStateStruct QueueState;
 
-        public QueueStateEventArgs(string queueState)
+        public QueueStateEventArgs(QueueStateStruct queueState)
         {
             QueueState = queueState;
         }

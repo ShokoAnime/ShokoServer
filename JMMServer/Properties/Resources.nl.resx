@@ -808,9 +808,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Command_SearchTvDB" xml:space="preserve">
     <value>Op zoek naar anime op de TvDB: {0}</value>
   </data>
-  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
-    <value>Krijgen van groep versieinfo van UDP-API: {0}</value>
-  </data>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Update ANiDB informatie</value>
   </data>
@@ -855,5 +852,35 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="Update_Changelog" xml:space="preserve">
     <value>Changelog</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Cross-ref voor Anidb aan de MAL uit webcache verwijderen: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Cross-ref voor Anidb naar andere uit webcache verwijderen: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Cross-ref voor Anidb aan Trakt uit webcache verwijderen: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Cross-ref voor Anidb aan TvDB uit webcache verwijderen: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
+    <value>Cross-ref aflevering webcache-bestand verwijderen: {0}-{1}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBMAL" xml:space="preserve">
+    <value>Cross-ref voor Anidb vanaf naar stuurt MAL webcache: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBOther" xml:space="preserve">
+    <value>Cross-ref voor Anidb vanaf naar stuurt andere webcache: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTrakt" xml:space="preserve">
+    <value>Cross-ref voor Anidb vanaf naar stuurt Trakt webcache: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTvDB" xml:space="preserve">
+    <value>Cross-ref voor Anidb vanaf naar stuurt TvDB webcache: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
+    <value>Cross-ref voor aflevering webcache bestand verzenden: {0}!</value>
   </data>
 </root>

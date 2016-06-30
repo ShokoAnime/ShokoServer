@@ -808,9 +808,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Command_SearchTvDB" xml:space="preserve">
     <value>Busca anime en The TvDB: {0}</value>
   </data>
-  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
-    <value>Obtener información del grupo de lanzamiento del API de UDP: {0}</value>
-  </data>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Actualizar información de AniDB</value>
   </data>
@@ -855,5 +852,35 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Update_Changelog" xml:space="preserve">
     <value>Registro de cambios</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Eliminar referencia para Anidb de la Cruz a MAL de la memoria caché de web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Eliminar referencia para Anidb de la Cruz otro de caché web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Eliminar referencia para Anidb de la Cruz a Trakt de caché web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Eliminar referencia para Anidb de la Cruz a TvDB de caché web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
+    <value>Eliminar referencia a episodio para caché web archivo de la Cruz: {0}-{1}.</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBMAL" xml:space="preserve">
+    <value>Enviar referencia de la Cruz para Anidb a MAL de caché web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBOther" xml:space="preserve">
+    <value>Enviar referencia de la Cruz para Anidb otro de caché web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTrakt" xml:space="preserve">
+    <value>Enviar referencia de la Cruz para Anidb Trakt de caché web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTvDB" xml:space="preserve">
+    <value>Enviar referencia de la Cruz para Anidb TvDB de caché web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
+    <value>Enviar referencia de la Cruz a episodio para caché web archivo: {0}!</value>
   </data>
 </root>

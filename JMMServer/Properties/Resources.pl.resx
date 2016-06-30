@@ -808,9 +808,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Command_SearchTvDB" xml:space="preserve">
     <value>Wyszukiwanie anime na The TvDB: {0}</value>
   </data>
-  <data name="Getting release group info from UDP API: {0}" xml:space="preserve">
-    <value>Pobieranie informacji o grupie z UDP API: {0}</value>
-  </data>
   <data name="Settings_AniDB" xml:space="preserve">
     <value>Ustawienia konta AniDB</value>
   </data>
@@ -855,5 +852,35 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Update_Changelog" xml:space="preserve">
     <value>Lista zmian</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
+    <value>Usunięcie Krzyża ref do Anidb do MAL z pamięci podręcznej sieci web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBOther" xml:space="preserve">
+    <value>Usunięcie Krzyża ref do Anidb do innych z pamięci podręcznej sieci web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTrakt" xml:space="preserve">
+    <value>Usuwanie Krzyża ref do Anidb do Trakt z pamięci podręcznej sieci web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefAniDBTvDB" xml:space="preserve">
+    <value>Usunięcie Krzyża ref do Anidb do TvDB z pamięci podręcznej sieci web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheDeleteXRefFileEpisode" xml:space="preserve">
+    <value>Usunięcie Krzyża ref do odcinek do pamięci podręcznej sieci web pliku: {0}-{1}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBMAL" xml:space="preserve">
+    <value>Wysyłanie krzyż ref Anidb do MAL z pamięci podręcznej w sieci web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBOther" xml:space="preserve">
+    <value>Wysyłanie krzyż ref Anidb do innych z pamięci podręcznej w sieci web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTrakt" xml:space="preserve">
+    <value>Wysłanie krzyż ref do Anidb na Trakt z pamięci podręcznej w sieci web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefAniDBTvDB" xml:space="preserve">
+    <value>Wysyłanie krzyż ref do Anidb do TvDB z pamięci podręcznej w sieci web: {0}!</value>
+  </data>
+  <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
+    <value>Wysyłanie krzyż ref do odcinek do pamięci podręcznej sieci web pliku: {0}!</value>
   </data>
 </root>

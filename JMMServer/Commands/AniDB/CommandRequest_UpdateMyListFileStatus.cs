@@ -22,13 +22,11 @@ namespace JMMServer.Commands
             get { return CommandRequestPriority.Priority8; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
-                return string.Format(JMMServer.Properties.Resources.Command_UpdateMyListInfo, FullFileName);
+                return new QueueStateStruct() { queueState = QueueStateEnum.UpdateMyListInfo, extraParams = new string[] { FullFileName } };
             }
         }
 

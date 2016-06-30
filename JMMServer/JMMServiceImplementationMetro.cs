@@ -28,13 +28,19 @@ namespace JMMServer
             try
             {
                 contract.HashQueueCount = JMMService.CmdProcessorHasher.QueueCount;
-                contract.HashQueueState = JMMService.CmdProcessorHasher.QueueState;
+                contract.HashQueueState = JMMService.CmdProcessorHasher.QueueState.formatMessage(); //Deprecated since 3.6.0.0
+                contract.HashQueueStateId = (int)JMMService.CmdProcessorHasher.QueueState.queueState;
+                contract.HashQueueStateParams = JMMService.CmdProcessorHasher.QueueState.extraParams;
 
                 contract.GeneralQueueCount = JMMService.CmdProcessorGeneral.QueueCount;
-                contract.GeneralQueueState = JMMService.CmdProcessorGeneral.QueueState;
+                contract.GeneralQueueState = JMMService.CmdProcessorGeneral.QueueState.formatMessage(); //Deprecated since 3.6.0.0
+                contract.GeneralQueueStateId = (int)JMMService.CmdProcessorGeneral.QueueState.queueState;
+                contract.GeneralQueueStateParams = JMMService.CmdProcessorGeneral.QueueState.extraParams;
 
                 contract.ImagesQueueCount = JMMService.CmdProcessorImages.QueueCount;
-                contract.ImagesQueueState = JMMService.CmdProcessorImages.QueueState;
+                contract.ImagesQueueState = JMMService.CmdProcessorImages.QueueState.formatMessage(); //Deprecated since 3.6.0.0
+                contract.ImagesQueueStateId = (int)JMMService.CmdProcessorImages.QueueState.queueState;
+                contract.ImagesQueueStateParams = JMMService.CmdProcessorImages.QueueState.extraParams;
 
                 contract.IsBanned = JMMService.AnidbProcessor.IsBanned;
                 contract.BanReason = JMMService.AnidbProcessor.BanTime.ToString();

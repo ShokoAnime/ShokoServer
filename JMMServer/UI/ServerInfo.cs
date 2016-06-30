@@ -69,7 +69,7 @@ namespace JMMServer
 
         void CmdProcessorImages_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
         {
-            ImagesQueueState = ev.QueueState;
+            ImagesQueueState = ev.QueueState.formatMessage();
         }
 
         void CmdProcessorImages_OnQueueCountChangedEvent(Commands.QueueCountEventArgs ev)
@@ -79,7 +79,7 @@ namespace JMMServer
 
         void CmdProcessorHasher_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
         {
-            HasherQueueState = ev.QueueState;
+            HasherQueueState = ev.QueueState.formatMessage();
         }
 
         void CmdProcessorHasher_OnQueueCountChangedEvent(Commands.QueueCountEventArgs ev)
@@ -89,7 +89,7 @@ namespace JMMServer
 
         void CmdProcessorGeneral_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
         {
-            GeneralQueueState = ev.QueueState;
+            GeneralQueueState = ev.QueueState.formatMessage();
         }
 
         void CmdProcessorGeneral_OnQueueCountChangedEvent(Commands.QueueCountEventArgs ev)
