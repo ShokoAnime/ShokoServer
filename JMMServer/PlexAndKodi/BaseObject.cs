@@ -120,6 +120,15 @@ namespace JMMServer.PlexAndKodi
                         if (max < Size)
                             Size = max;
                     }
+                    if (
+    WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains(
+        "X-Plex-Container-Start"))
+                    {
+                        Start =
+                            int.Parse(
+                                WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[
+                                    "X-Plex-Container-Start"]);
+                    }
                 }
             }
             return true;
