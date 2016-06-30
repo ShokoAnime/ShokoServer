@@ -30,7 +30,7 @@ namespace JMMServer.PlexAndKodi.Kodi
             {
                 //remove http, host, port because we already know whats that
                 //return url.Substring(url.IndexOf(":" + ServicePort + "/") + ServicePort.ToString().Length + 2);
-                return url.Replace(remove_this.Groups[1].Value, "");
+                return url.Replace("http://","").Replace(remove_this.Groups[1].Value, "");
             }
             else
             {
