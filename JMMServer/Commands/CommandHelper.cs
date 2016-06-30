@@ -6,6 +6,150 @@ using JMMServer.Entities;
 
 namespace JMMServer.Commands
 {
+    public enum QueueStateEnum {
+        AnimeInfo=1, DeleteError, DownloadImage, DownloadMalWatched, DownloadTvDBImages, FileInfo, GetCalendar, GetEpisodeList, GetFileInfo, GetReleaseGroup,
+        GetReleaseInfo, GetReviewInfo, GettingTvDB, GetUpdatedAnime, HashingFile, Idle, Paused, Queued, ReadingMedia, Refresh, SearchMal, SearchTMDb, SearchTrakt,
+        SearchTvDB, SendAnimeAzure, SendAnimeFull, SendAnimeTitle, SendAnonymousData, StartingGeneral, StartingHasher, StartingImages, SyncMyList, SyncTrakt,
+        SyncTraktEpisodes, SyncTraktSeries, SyncVotes, TraktAddHistory, UpdateMALWatched, UpdateMyListInfo, UpdateMyListStats, UpdateTrakt, UpdateTraktData, UploadMALWatched,
+        VoteAnime, WebCacheDeleteXRefAniDBMAL, WebCacheDeleteXRefAniDBOther, WebCacheDeleteXRefAniDBTrakt, WebCacheDeleteXRefAniDBTvDB, WebCacheDeleteXRefFileEpisode, WebCacheSendXRefAniDBMAL,
+        WebCacheSendXRefAniDBOther, WebCacheSendXRefAniDBTrakt, WebCacheSendXRefAniDBTvDB, WebCacheSendXRefFileEpisode, AniDB_MyListAdd, AniDB_MyListDelete, AniDB_GetTitles, Actions_SyncVotes
+    };
+
+    public struct QueueStateStruct
+    {
+        public QueueStateEnum queueState;
+        public string[] extraParams;
+        public string formatMessage()
+        {
+            string formatString = getFormatString(queueState);
+            return string.Format(formatString, extraParams);
+        }
+        private string getFormatString(QueueStateEnum id)
+        {
+            switch (id) {
+                case QueueStateEnum.AnimeInfo:
+                    return JMMServer.Properties.Resources.Command_AnimeInfo;
+                case QueueStateEnum.DeleteError:
+                    return JMMServer.Properties.Resources.Command_DeleteError;
+                case QueueStateEnum.DownloadImage:
+                    return JMMServer.Properties.Resources.Command_DownloadImage;
+                case QueueStateEnum.DownloadMalWatched:
+                    return JMMServer.Properties.Resources.Command_DownloadMalWatched;
+                case QueueStateEnum.DownloadTvDBImages:
+                    return JMMServer.Properties.Resources.Command_DownloadTvDBImages;
+                case QueueStateEnum.FileInfo:
+                    return JMMServer.Properties.Resources.Command_FileInfo;
+                case QueueStateEnum.GetCalendar:
+                    return JMMServer.Properties.Resources.Command_GetCalendar;
+                case QueueStateEnum.GetEpisodeList:
+                    return JMMServer.Properties.Resources.Command_GetEpisodeList;
+                case QueueStateEnum.GetFileInfo:
+                    return JMMServer.Properties.Resources.Command_GetFileInfo;
+                case QueueStateEnum.GetReleaseGroup:
+                    return JMMServer.Properties.Resources.Command_GetReleaseGroup;
+                case QueueStateEnum.GetReleaseInfo:
+                    return JMMServer.Properties.Resources.Command_GetReleaseInfo;
+                case QueueStateEnum.GetReviewInfo:
+                    return JMMServer.Properties.Resources.Command_GetReviewInfo;
+                case QueueStateEnum.GettingTvDB:
+                    return JMMServer.Properties.Resources.Command_GettingTvDB;
+                case QueueStateEnum.GetUpdatedAnime:
+                    return JMMServer.Properties.Resources.Command_GetUpdatedAnime;
+                case QueueStateEnum.HashingFile:
+                    return JMMServer.Properties.Resources.Command_HashingFile;
+                case QueueStateEnum.Idle:
+                    return JMMServer.Properties.Resources.Command_Idle;
+                case QueueStateEnum.Paused:
+                    return JMMServer.Properties.Resources.Command_Paused;
+                case QueueStateEnum.Queued:
+                    return JMMServer.Properties.Resources.Command_Queued;
+                case QueueStateEnum.ReadingMedia:
+                    return JMMServer.Properties.Resources.Command_ReadingMedia;
+                case QueueStateEnum.Refresh:
+                    return JMMServer.Properties.Resources.Command_Refresh;
+                case QueueStateEnum.SearchMal:
+                    return JMMServer.Properties.Resources.Command_SearchMal;
+                case QueueStateEnum.SearchTMDb:
+                    return JMMServer.Properties.Resources.Command_SearchTMDb;
+                case QueueStateEnum.SearchTrakt:
+                    return JMMServer.Properties.Resources.Command_SearchTrakt;
+                case QueueStateEnum.SearchTvDB:
+                    return JMMServer.Properties.Resources.Command_SearchTvDB;
+                case QueueStateEnum.SendAnimeAzure:
+                    return JMMServer.Properties.Resources.Command_SendAnimeAzure;
+                case QueueStateEnum.SendAnimeFull:
+                    return JMMServer.Properties.Resources.Command_SendAnimeFull;
+                case QueueStateEnum.SendAnimeTitle:
+                    return JMMServer.Properties.Resources.Command_SendAnimeTitle;
+                case QueueStateEnum.SendAnonymousData:
+                    return JMMServer.Properties.Resources.Command_SendAnonymousData;
+                case QueueStateEnum.StartingGeneral:
+                    return JMMServer.Properties.Resources.Command_StartingGeneral;
+                case QueueStateEnum.StartingHasher:
+                    return JMMServer.Properties.Resources.Command_StartingHasher;
+                case QueueStateEnum.StartingImages:
+                    return JMMServer.Properties.Resources.Command_StartingImages;
+                case QueueStateEnum.SyncMyList:
+                    return JMMServer.Properties.Resources.Command_SyncMyList;
+                case QueueStateEnum.SyncTrakt:
+                    return JMMServer.Properties.Resources.Command_SyncTrakt;
+                case QueueStateEnum.SyncTraktEpisodes:
+                    return JMMServer.Properties.Resources.Command_SyncTraktEpisodes;
+                case QueueStateEnum.SyncTraktSeries:
+                    return JMMServer.Properties.Resources.Command_SyncTraktSeries;
+                case QueueStateEnum.SyncVotes:
+                    return JMMServer.Properties.Resources.Command_SyncVotes;
+                case QueueStateEnum.TraktAddHistory:
+                    return JMMServer.Properties.Resources.Command_TraktAddHistory;
+                case QueueStateEnum.UpdateMALWatched:
+                    return JMMServer.Properties.Resources.Command_UpdateMALWatched;
+                case QueueStateEnum.UpdateMyListInfo:
+                    return JMMServer.Properties.Resources.Command_UpdateMyListInfo;
+                case QueueStateEnum.UpdateMyListStats:
+                    return JMMServer.Properties.Resources.Command_UpdateMyListStats;
+                case QueueStateEnum.UpdateTrakt:
+                    return JMMServer.Properties.Resources.Command_UpdateTrakt;
+                case QueueStateEnum.UpdateTraktData:
+                    return JMMServer.Properties.Resources.Command_UpdateTraktData;
+                case QueueStateEnum.UploadMALWatched:
+                    return JMMServer.Properties.Resources.Command_UploadMALWatched;
+                case QueueStateEnum.VoteAnime:
+                    return JMMServer.Properties.Resources.Command_VoteAnime;
+                case QueueStateEnum.WebCacheDeleteXRefAniDBMAL:
+                    return JMMServer.Properties.Resources.Command_WebCacheDeleteXRefAniDBMAL;
+                case QueueStateEnum.WebCacheDeleteXRefAniDBOther:
+                    return JMMServer.Properties.Resources.Command_WebCacheDeleteXRefAniDBOther;
+                case QueueStateEnum.WebCacheDeleteXRefAniDBTrakt:
+                    return JMMServer.Properties.Resources.Command_WebCacheDeleteXRefAniDBTrakt;
+                case QueueStateEnum.WebCacheDeleteXRefAniDBTvDB:
+                    return JMMServer.Properties.Resources.Command_WebCacheDeleteXRefAniDBTvDB;
+                case QueueStateEnum.WebCacheDeleteXRefFileEpisode:
+                    return JMMServer.Properties.Resources.Command_WebCacheDeleteXRefFileEpisode;
+                case QueueStateEnum.WebCacheSendXRefAniDBMAL:
+                    return JMMServer.Properties.Resources.Command_WebCacheSendXRefAniDBMAL;
+                case QueueStateEnum.WebCacheSendXRefAniDBOther:
+                    return JMMServer.Properties.Resources.Command_WebCacheSendXRefAniDBOther;
+                case QueueStateEnum.WebCacheSendXRefAniDBTrakt:
+                    return JMMServer.Properties.Resources.Command_WebCacheSendXRefAniDBTrakt;
+                case QueueStateEnum.WebCacheSendXRefAniDBTvDB:
+                    return JMMServer.Properties.Resources.Command_WebCacheSendXRefAniDBTvDB;
+                case QueueStateEnum.WebCacheSendXRefFileEpisode:
+                    return JMMServer.Properties.Resources.Command_WebCacheSendXRefFileEpisode;
+                case QueueStateEnum.AniDB_MyListAdd:
+                    return JMMServer.Properties.Resources.AniDB_MyListAdd;
+                case QueueStateEnum.AniDB_MyListDelete:
+                    return JMMServer.Properties.Resources.AniDB_MyListDelete;
+                case QueueStateEnum.AniDB_GetTitles:
+                    return JMMServer.Properties.Resources.AniDB_GetTitles;
+                case QueueStateEnum.Actions_SyncVotes:
+                    return JMMServer.Properties.Resources.Actions_SyncVotes;
+                default:
+                    throw new System.Exception("Unknown queue state format string"); ;
+            }
+
+        }
+    }
+
     public class CommandHelper
     {
         // List of Default priorities for commands

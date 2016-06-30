@@ -354,6 +354,11 @@
     <Compile Include="PlexAndKodi\Helper.cs" />
     <Compile Include="PlexAndKodi\BaseObject.cs" />
     <Compile Include="PlexAndKodi\Utf8SringWriter.cs" />
+    <Compile Include="Properties\Resources.de.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.de.resx</DependentUpon>
+    </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

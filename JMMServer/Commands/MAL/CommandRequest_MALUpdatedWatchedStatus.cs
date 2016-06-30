@@ -19,13 +19,11 @@ namespace JMMServer.Commands.MAL
             get { return CommandRequestPriority.Priority9; }
         }
 
-        public string PrettyDescription
+        public QueueStateStruct PrettyDescription
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
-                return string.Format(JMMServer.Properties.Resources.Command_UpdateMALWatched, AnimeID);
+                return new QueueStateStruct() { queueState = QueueStateEnum.UpdateMALWatched, extraParams = new string[] { AnimeID.ToString() }  };
             }
         }
 
