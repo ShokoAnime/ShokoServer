@@ -84,7 +84,7 @@ namespace JMMServer.PlexAndKodi
                     if (vids.Count > 0)
                     {
                         Directory pp = new Directory() {Type = "show"};
-                        pp.Key = prov.ConstructUnsortUrl(userid);
+                        pp.Key = prov.ShortUrl(prov.ConstructUnsortUrl(userid));
                         pp.Title = "Unsort";
                         pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeUnsort.ToString();
                         pp.Thumb = Helper.ConstructSupportImageLink("plex_unsort.png");
@@ -97,7 +97,7 @@ namespace JMMServer.PlexAndKodi
                     if (playlists.Count > 0)
                     {
                         Directory pp = new Directory() {Type = "show"};
-                        pp.Key = prov.ConstructPlaylistUrl(userid);
+                        pp.Key = prov.ShortUrl(prov.ConstructPlaylistUrl(userid));
                         pp.Title = "Playlists";
                         pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist.ToString();
                         pp.Thumb = Helper.ConstructSupportImageLink("plex_playlists.png");
@@ -176,7 +176,7 @@ namespace JMMServer.PlexAndKodi
                     foreach (var playlist in playlists)
                     {
                         var dir = new Directory();
-                        dir.Key = prov.ConstructPlaylistIdUrl(userid, playlist.PlaylistID);
+                        dir.Key = prov.ShortUrl(prov.ConstructPlaylistIdUrl(userid, playlist.PlaylistID));
                         dir.Title = playlist.PlaylistName;
                         dir.Id = playlist.PlaylistID.ToString();
                         dir.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimePlaylist.ToString();
@@ -316,7 +316,7 @@ namespace JMMServer.PlexAndKodi
                         v2.Art ?? v2.ParentArt ?? v2.GrandparentArt));
             v2.ParentKey = null;
             if (prov.UseBreadCrumbs)
-                v2.Key = ret.MediaContainer.Key;
+                v2.Key = prov.ShortUrl(ret.MediaContainer.Key);
             ret.MediaContainer.Childrens = dirs;
             return ret.GetStream(prov);
         }
@@ -370,7 +370,7 @@ namespace JMMServer.PlexAndKodi
                             v.ParentKey = null;
                         }
                         if (prov.UseBreadCrumbs)
-                            v.Key = ret.MediaContainer.Key;
+                            v.Key = prov.ShortUrl(ret.MediaContainer.Key);
                         ret.MediaContainer.Art = Helper.ReplaceSchemeHost(nv.Art ?? nv.ParentArt ?? nv.GrandparentArt);
                     }
                     ret.MediaContainer.Childrens = dirs;
@@ -925,7 +925,7 @@ namespace JMMServer.PlexAndKodi
                             v.LeafCount = ee.Count.ToString();
                             v.ChildCount = v.LeafCount;
                             v.ViewedLeafCount = "0";
-                            v.Key = prov.ConstructSerieIdUrl(userid, ee.Type + "_" + ser.AnimeSeriesID);
+                            v.Key = prov.ShortUrl(prov.ConstructSerieIdUrl(userid, ee.Type + "_" + ser.AnimeSeriesID));
                             v.Thumb = Helper.ConstructSupportImageLink(ee.Image);
                             if ((ee.AnimeType == AnimeTypes.Movie) || (ee.AnimeType == AnimeTypes.OVA))
                             {

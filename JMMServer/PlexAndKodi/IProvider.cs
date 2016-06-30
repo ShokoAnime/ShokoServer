@@ -15,5 +15,6 @@ namespace JMMServer.PlexAndKodi
         bool ConstructFakeIosParent { get; }
         bool AutoWatch { get;  }
         string Proxyfy(string url);
+        string ShortUrl(string url);
     }
 }

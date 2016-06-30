@@ -22,6 +22,18 @@ namespace JMMServer.PlexAndKodi.Kodi
             return url;
         }
 
+        public string ShortUrl(string url)
+        {
+            if (url.Contains("http://" + ServiceAddress + ":" + ServicePort + "/"))
+            {
+                //remove http, host, port because we already know whats that
+                return url.Replace("http://" + ServiceAddress + ":" + ServicePort + "/", "");
+            }
+            else
+            {
+                return url;
+            }
+        }
 
         public MediaContainer NewMediaContainer(MediaContainerTypes type, string title = null, bool allowsync = false, bool nocache = false, BreadCrumbs info = null)
         {
