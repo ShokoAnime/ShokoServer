@@ -8,14 +8,14 @@ namespace JMMServer.PlexAndKodi.Kodi
 {
     public class KodiProvider : IProvider
     {
-        public const string MediaTagVersion = "1420942002";
+        //public const string MediaTagVersion = "1420942002";
 
         public string ServiceAddress => MainWindow.PathAddressKodi;
         public int ServicePort => int.Parse(ServerSettings.JMMServerPort);
-        public bool UseBreadCrumbs => false;
-        public int AddExtraItemForSearchButtonInGroupFilters => 0;
-        public bool ConstructFakeIosParent => false;
-        public bool AutoWatch => false;
+        public bool UseBreadCrumbs => false; // turn off breadcrumbs navigation (plex)
+        public int AddExtraItemForSearchButtonInGroupFilters => 0; // dont add item count for search (plex)
+        public bool ConstructFakeIosParent => false; //turn off plex workaround for ios (plex)
+        public bool AutoWatch => false; //turn off marking watched on stream side (plex)
 
         public string Proxyfy(string url)
         {
@@ -23,16 +23,16 @@ namespace JMMServer.PlexAndKodi.Kodi
         }
 
 
-        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title = null, bool allowsync = true,
-            bool nocache = true, BreadCrumbs info = null)
+        public MediaContainer NewMediaContainer(MediaContainerTypes type, string title = null, bool allowsync = false, bool nocache = false, BreadCrumbs info = null)
         {
             MediaContainer m = new MediaContainer();
             m.Title1 = m.Title2 = title;
-            m.AllowSync = allowsync ? "1" : "0";
-            m.NoCache = nocache ? "1" : "0";
-            m.ViewMode = "65592";
-            m.ViewGroup = "show";
-            m.MediaTagVersion = MediaTagVersion;
+            // not needed
+            //m.AllowSync = allowsync ? "1" : "0";
+            //m.NoCache = nocache ? "1" : "0";
+            //m.ViewMode = "65592";
+            //m.ViewGroup = "show";
+            //m.MediaTagVersion = MediaTagVersion;
             m.Identifier = "plugin.video.nakamori";
             return m;
         }
