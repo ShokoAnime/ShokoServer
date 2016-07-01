@@ -18,6 +18,9 @@ namespace JMMServer.PlexAndKodi.Kodi
         public bool ConstructFakeIosParent => false; //turn off plex workaround for ios (plex)
         public bool AutoWatch => false; //turn off marking watched on stream side (plex)
 
+
+        private static Regex _removeIp=new Regex(@"(\d+\.\d+\.\d+\.\d+):(\d+)",RegexOptions.Compiled);
+
         public string Proxyfy(string url)
         {
             return url;
@@ -25,7 +28,7 @@ namespace JMMServer.PlexAndKodi.Kodi
 
         public string ShortUrl(string url)
         {
-            Match remove_this = Regex.Match(url, @"(\d+\.\d+\.\d+\.\d+):(\d+)");
+            Match remove_this = _removeIp.Match(url);
             if (remove_this.Success)
             {
                 //remove http, host, port because we already know whats that
