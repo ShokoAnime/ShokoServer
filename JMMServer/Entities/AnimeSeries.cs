@@ -107,6 +107,68 @@ namespace JMMServer.Entities
             return seriesName;
         }
 
+        public string GetFormattedTitle(List<Contract_AnimeTitle> titles)
+        {
+            foreach (NamingLanguage nlan in Languages.PreferredNamingLanguages)
+            {
+                string thisLanguage = nlan.Language.Trim().ToUpper();
+
+                // Romaji and English titles will be contained in MAIN and/or OFFICIAL
+                // we won't use synonyms for these two languages
+                if (thisLanguage.Equals(Constants.AniDBLanguageType.Romaji) ||
+                    thisLanguage.Equals(Constants.AniDBLanguageType.English))
+                {
+                    foreach (Contract_AnimeTitle title in titles)
+                    {
+                        string titleType = title.TitleType.Trim().ToUpper();
+                        // first try the  Main title
+                        if (titleType == Constants.AnimeTitleType.Main.ToUpper() &&
+                            title.Language.Trim().ToUpper() == thisLanguage)
+                            return title.Title;
+                    }
+                }
+
+                // now try the official title
+                foreach (Contract_AnimeTitle title in titles)
+                {
+                    string titleType = title.TitleType.Trim().ToUpper();
+                    if (titleType == Constants.AnimeTitleType.Official.ToUpper() &&
+                        title.Language.Trim().ToUpper() == thisLanguage)
+                        return title.Title;
+                }
+
+                // try synonyms
+                if (ServerSettings.LanguageUseSynonyms)
+                {
+                    foreach (Contract_AnimeTitle title in titles)
+                    {
+                        string titleType = title.TitleType.Trim().ToUpper();
+                        if (titleType == Constants.AnimeTitleType.Synonym.ToUpper() &&
+                            title.Language.Trim().ToUpper() == thisLanguage)
+                            return title.Title;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public string GetSeriesNameFromContract(Contract_AnimeSeries con)
+        {
+            if (!string.IsNullOrEmpty(con.SeriesNameOverride))
+                return SeriesNameOverride;
+            if (ServerSettings.SeriesNameSource != DataSourceType.AniDB)
+            {
+                if (con.TvDB_Series != null && con.TvDB_Series.Count > 0 &&
+                    !string.IsNullOrEmpty(con.TvDB_Series[0].SeriesName) &&
+                    !con.TvDB_Series[0].SeriesName.ToUpper().Contains("**DUPLICATE"))
+                {
+                    return con.TvDB_Series[0].SeriesName;
+                }
+            }
+            return GetFormattedTitle(con.AniDBAnime.AnimeTitles) ?? con.AniDBAnime.AniDBAnime.MainTitle;
+        }
+
         public string GenresRaw
         {
             get
@@ -291,12 +353,16 @@ namespace JMMServer.Entities
                 if (!types.Contains(GroupFilterConditionType.HasWatchedEpisodes))
                     types.Add(GroupFilterConditionType.HasWatchedEpisodes);
             }
+            contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesNameFromContract(contract);
             return contract;
         }
 
         public Video GetPlexContract(int userid)
         {
-            return GetOrCreateUserRecord(userid).PlexContract;
+            Contract_AnimeSeries ser = GetUserContract(userid);
+            Video v = GetOrCreateUserRecord(userid).PlexContract;
+            v.Title = ser.AniDBAnime.AniDBAnime.FormattedTitle;
+            return v;
         }
 
         private AnimeSeries_User GetOrCreateUserRecord(int userid)
