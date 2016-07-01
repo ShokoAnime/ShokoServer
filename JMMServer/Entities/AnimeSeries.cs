@@ -342,6 +342,7 @@ namespace JMMServer.Entities
                 contract.PlayedCount = rr.PlayedCount;
                 contract.WatchedCount = rr.WatchedCount;
                 contract.StoppedCount = rr.StoppedCount;
+                contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesNameFromContract(contract);
                 return contract;
             }
             else if (types != null)
