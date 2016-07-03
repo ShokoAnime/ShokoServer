@@ -619,6 +619,7 @@ namespace JMMServer
                     result = System.Windows.Forms.MessageBox.Show(JMMServer.Properties.Resources.Language_Info, JMMServer.Properties.Resources.Language_Switch, System.Windows.Forms.MessageBoxButtons.OKCancel, System.Windows.Forms.MessageBoxIcon.Information);
                     if (result == System.Windows.Forms.DialogResult.OK)
                         shutdownServer();
+                    restartServer();
                 }
 
             }
@@ -1874,6 +1875,10 @@ namespace JMMServer
             this.Close();
             TippuTrayNotify.Visible = false;
             TippuTrayNotify.Dispose();
+        }
+
+        void restartServer()
+        {
             System.Windows.Forms.Application.Restart();
         }
 
