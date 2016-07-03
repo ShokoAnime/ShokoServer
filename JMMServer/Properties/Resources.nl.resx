@@ -853,4 +853,31 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Cross-ref voor aflevering webcache bestand verzenden: {0}!</value>
   </data>
+  <data name="Actions_RunImport" xml:space="preserve">
+    <value>Uitvoeren van Import</value>
+  </data>
+  <data name="Server_FillOutSettings" xml:space="preserve">
+    <value>Vul alle vereiste velden</value>
+  </data>
+  <data name="ImportFolders_Remove" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="ImportFolders_RemoveFolder" xml:space="preserve">
+    <value>Weet u zeker dat u wilt verwijderen van de volgende Import map: {0}?</value>
+  </data>
+  <data name="ImportFolders_ServerFolder" xml:space="preserve">
+    <value>Instellingen van de map importeren</value>
+  </data>
+  <data name="ImportFolders_BlankImport" xml:space="preserve">
+    <value>Het pad van de map importeren mag niet leeg zijn, voer een geldig pad.</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Krijgen van de lijst van bijgewerkte anime van UDP-API</value>
+  </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
+  <data name="Server_TraktInfoUpdate" xml:space="preserve">
+    <value>Bijwerken van alle Trakt info toegevoegd aan wachtrij</value>
+  </data>
 </root>

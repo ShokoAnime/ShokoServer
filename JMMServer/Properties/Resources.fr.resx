@@ -853,4 +853,31 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Envoi de croix Réf fichier épisode de cache web: {0} !</value>
   </data>
+  <data name="Actions_RunImport" xml:space="preserve">
+    <value>Exécuter l’importation</value>
+  </data>
+  <data name="Server_FillOutSettings" xml:space="preserve">
+    <value>Veuillez remplir tous les champs obligatoires</value>
+  </data>
+  <data name="ImportFolders_Remove" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="ImportFolders_RemoveFolder" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir supprimer le dossier d’importation suivants : {0} ?</value>
+  </data>
+  <data name="ImportFolders_ServerFolder" xml:space="preserve">
+    <value>Importer des paramètres de dossier</value>
+  </data>
+  <data name="ImportFolders_BlankImport" xml:space="preserve">
+    <value>Le chemin de dossier d’importation ne peut pas être vide, s’il vous plaît entrez un chemin d’accès valide.</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Obtenir la liste des mises à jour anime de UDP API</value>
+  </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
+  <data name="Server_TraktInfoUpdate" xml:space="preserve">
+    <value>Mise à jour toutes les infos Trakt ajouté à la file d’attente</value>
+  </data>
 </root>

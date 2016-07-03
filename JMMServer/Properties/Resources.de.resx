@@ -856,4 +856,28 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Actions_RunImport" xml:space="preserve">
     <value>Run Import</value>
   </data>
+  <data name="Server_FillOutSettings" xml:space="preserve">
+    <value>Bitte füllen Sie alle Pflichtfelder</value>
+  </data>
+  <data name="ImportFolders_Remove" xml:space="preserve">
+    <value>Entfernen</value>
+  </data>
+  <data name="ImportFolders_RemoveFolder" xml:space="preserve">
+    <value>Sind Sie sicher, dass Sie die folgenden Import-Ordner entfernen möchten: {0}?</value>
+  </data>
+  <data name="ImportFolders_ServerFolder" xml:space="preserve">
+    <value>Import-Ordner-Einstellungen</value>
+  </data>
+  <data name="ImportFolders_BlankImport" xml:space="preserve">
+    <value>Import-Ordner-Pfad darf nicht leer ist, geben Sie einen gültigen Pfad.</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Abrufen der Liste der aktualisierten Anime von UDP-API</value>
+  </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
+  <data name="Server_TraktInfoUpdate" xml:space="preserve">
+    <value>Aktualisierung alle Trakt Info hinzugefügt zur Warteschlange</value>
+  </data>
 </root>

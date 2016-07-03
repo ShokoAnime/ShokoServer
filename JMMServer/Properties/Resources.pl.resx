@@ -856,4 +856,28 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Wysyłanie krzyż ref do odcinek do pamięci podręcznej sieci web pliku: {0}!</value>
   </data>
+  <data name="Actions_RunImport" xml:space="preserve">
+    <value>Uruchom importowanie</value>
+  </data>
+  <data name="Server_FillOutSettings" xml:space="preserve">
+    <value>Proszę wypełnić wszystkie wymagane pola</value>
+  </data>
+  <data name="ImportFolders_Remove" xml:space="preserve">
+    <value>Usuń</value>
+  </data>
+  <data name="ImportFolders_RemoveFolder" xml:space="preserve">
+    <value>Czy na pewno chcesz usunąć następujący Folder importu: {0}?</value>
+  </data>
+  <data name="ImportFolders_ServerFolder" xml:space="preserve">
+    <value>Importowanie ustawień folderu</value>
+  </data>
+  <data name="ImportFolders_BlankImport" xml:space="preserve">
+    <value>Ścieżka folderu importowania nie może być puste, wpisz prawidłową ścieżkę.</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Pobieranie listy zaktualizowanych anime z UDP API</value>
+  </data>
+  <data name="Server_TraktInfoUpdate" xml:space="preserve">
+    <value>Aktualizowanie wszystkich Trakt informacje dodane do kolejki</value>
+  </data>
 </root>

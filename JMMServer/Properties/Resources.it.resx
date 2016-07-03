@@ -853,4 +853,31 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Invio croce rif per file all'episodio di cache web: {0}!</value>
   </data>
+  <data name="Actions_RunImport" xml:space="preserve">
+    <value>Eseguire Import</value>
+  </data>
+  <data name="Server_FillOutSettings" xml:space="preserve">
+    <value>Si prega di compilare tutti i campi obbligatori</value>
+  </data>
+  <data name="ImportFolders_Remove" xml:space="preserve">
+    <value>Rimuovere</value>
+  </data>
+  <data name="ImportFolders_RemoveFolder" xml:space="preserve">
+    <value>Sei sicuro di voler rimuovere la cartella di importazione seguente: {0}?</value>
+  </data>
+  <data name="ImportFolders_ServerFolder" xml:space="preserve">
+    <value>Importare le impostazioni di cartella</value>
+  </data>
+  <data name="ImportFolders_BlankImport" xml:space="preserve">
+    <value>Il percorso della cartella di importazione non può essere vuoto, immettere un percorso valido.</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Come ottenere l'elenco di anime aggiornato dall'API di UDP</value>
+  </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
+  <data name="Server_TraktInfoUpdate" xml:space="preserve">
+    <value>Aggiornare tutte le informazioni di Trakt aggiunto alla coda</value>
+  </data>
 </root>

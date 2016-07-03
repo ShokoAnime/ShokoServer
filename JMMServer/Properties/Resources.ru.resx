@@ -859,4 +859,25 @@
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Отправка перекрестные ссылки для эпизод в веб кэш файла: {0}!</value>
   </data>
+  <data name="Server_FillOutSettings" xml:space="preserve">
+    <value>Пожалуйста, заполните все необходимые поля</value>
+  </data>
+  <data name="ImportFolders_Remove" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="ImportFolders_RemoveFolder" xml:space="preserve">
+    <value>Вы уверены, что вы хотите удалить следующие папки импорта: {0}?</value>
+  </data>
+  <data name="ImportFolders_ServerFolder" xml:space="preserve">
+    <value>Импорт параметров папок</value>
+  </data>
+  <data name="ImportFolders_BlankImport" xml:space="preserve">
+    <value>Путь к папке импорта не может быть пустым, пожалуйста, введите допустимый путь.</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Получение списка Обновлено аниме от UDP API</value>
+  </data>
+  <data name="Server_TraktInfoUpdate" xml:space="preserve">
+    <value>Обновление всех тракт информация добавлена в очередь</value>
+  </data>
 </root>

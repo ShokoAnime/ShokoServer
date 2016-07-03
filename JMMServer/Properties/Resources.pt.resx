@@ -853,4 +853,31 @@
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Envio de cruz ref para arquivo episódio ao cache de web: {0}!</value>
   </data>
+  <data name="Actions_RunImport" xml:space="preserve">
+    <value>Executar a importação</value>
+  </data>
+  <data name="Server_FillOutSettings" xml:space="preserve">
+    <value>Por favor, preencha todos os campos obrigatórios</value>
+  </data>
+  <data name="ImportFolders_Remove" xml:space="preserve">
+    <value>Remover</value>
+  </data>
+  <data name="ImportFolders_RemoveFolder" xml:space="preserve">
+    <value>Tem certeza que deseja remover a pasta importação: {0}?</value>
+  </data>
+  <data name="ImportFolders_ServerFolder" xml:space="preserve">
+    <value>Importar configurações de pasta</value>
+  </data>
+  <data name="ImportFolders_BlankImport" xml:space="preserve">
+    <value>O caminho da pasta de importação não pode ser em branco, digite um caminho válido.</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Recebendo a lista de animes atualizada de UDP API</value>
+  </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
+  <data name="Server_TraktInfoUpdate" xml:space="preserve">
+    <value>Atualizar toda informação Trakt adicionado à fila</value>
+  </data>
 </root>
