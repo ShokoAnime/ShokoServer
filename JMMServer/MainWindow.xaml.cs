@@ -1874,6 +1874,7 @@ namespace JMMServer
             this.Close();
             TippuTrayNotify.Visible = false;
             TippuTrayNotify.Dispose();
+            System.Windows.Forms.Application.Restart();
         }
 
         #endregion
