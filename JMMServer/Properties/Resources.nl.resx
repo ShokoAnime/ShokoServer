@@ -120,20 +120,17 @@
   <data name="JMMServer" xml:space="preserve">
     <value>JMM Server</value>
   </data>
-  <data name="Actions_RunImport" xml:space="preserve">
-    <value>Uitvoeren van Import</value>
-  </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
-    <value>Ontbrekende bestanden verwijderen</value>
+    <value>Verwijder ontbrekende bestanden</value>
   </data>
   <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Mijn lijst synchroniseren</value>
+    <value>My List synchroniseren</value>
   </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
-    <value>Sync Trakt collectie</value>
+    <value>Trakt Collectie synchroniseren</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync stemmen</value>
+    <value>Votes Synchroniseren</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Alle AniDB serie Info bijwerken</value>
@@ -145,19 +142,19 @@
     <value>Alle Trakt Info bijwerken</value>
   </data>
   <data name="Actions_UpdateAllStats" xml:space="preserve">
-    <value>Alle Stats update</value>
+    <value>Alle Statistieken bijwerken</value>
   </data>
   <data name="Actions_UpdateAllMediaInfo" xml:space="preserve">
-    <value>Bijwerken van alle Media-Info</value>
+    <value>Alle media Info bijwerken</value>
   </data>
   <data name="Actions_UploadCache" xml:space="preserve">
-    <value>Upload alle Anime gegevens om de Cache van de Azure</value>
+    <value>Upload alle Anime gegevens naar Azure Cache</value>
   </data>
   <data name="Toolbar_Shutdown" xml:space="preserve">
     <value>Afsluiten</value>
   </data>
   <data name="Toolbar_About" xml:space="preserve">
-    <value>Over</value>
+    <value>Informatie</value>
   </data>
   <data name="Toolbar_Logs" xml:space="preserve">
     <value>Logboeken</value>
@@ -181,19 +178,19 @@
     <value>Starten met Windows</value>
   </data>
   <data name="Settings_Multiple" xml:space="preserve">
-    <value>Meerdere exemplaren toestaan</value>
+    <value>Meerdere exemplaren van JMMS toestaan</value>
   </data>
   <data name="Settings_Minimize" xml:space="preserve">
-    <value>Minimize on Startup</value>
+    <value>Start geminimaliseerd</value>
   </data>
   <data name="Settings_SelectFolder" xml:space="preserve">
     <value>Selecteer map</value>
   </data>
   <data name="Settings_ImagePath" xml:space="preserve">
-    <value>Afbeelding pad</value>
+    <value>Pad naar afbeeldingen</value>
   </data>
   <data name="Settings_Apply" xml:space="preserve">
-    <value>Toepassing</value>
+    <value>Toepassen</value>
   </data>
   <data name="Settings_ServerPort" xml:space="preserve">
     <value>Serverpoort</value>
@@ -214,7 +211,7 @@
     <value>Databasenaam</value>
   </data>
   <data name="Setup_SaveStart" xml:space="preserve">
-    <value>Opslaan en starten van Server</value>
+    <value>Opslaan en start Server</value>
   </data>
   <data name="SQLite" xml:space="preserve">
     <value>SQLite</value>
@@ -226,13 +223,13 @@
     <value>MySQL</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/sqlserver/</value>
+    <value>http://jmediamanager.org/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/MySQL/</value>
+    <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
   <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server is bedoeld voor gebruikers met een grote collectie die meer dan 200 serie die ook de snelle prestaties mogelijk willen overschrijdt. Uit de drie types van beschikbare database, SQL Server wordt beschouwd als de meest moeilijke in het opzetten van maar kan worden ingesteld met gemak wanneer u volgen naar de gids die we hebben gemaakt.</value>
+    <value>SQL Server is bedoeld voor gebruikers met een grote collectie van meer dan 200 shows, die ook de snelle prestaties willen hebben. Uit de drie types van beschikbare databases, wordt SQL Server  beschouwd als de meest moeilijke om op te zetten, maar kan met gemak worden ingesteld wanneer u de, door ons gemaakte, handleiding volgt.</value>
   </data>
   <data name="SQLite_Info" xml:space="preserve">
     <value>Terwijl SQLite de eenvoudigste van de drie databasetypen Setup met het één-klik installatie is. Als uw collectie 200 of meer reeksen bevat, zult u beginnen te ervaren van een heleboel kwesties met inbegrip van trage reactietijden en programma lockups wanneer JMM probeert te toegang tot uw collectie via uw SQLite database. Met betrekking tot hoe JMM maakt gebruik van de database, het gewoon niet ontworpen voor grote verzamelingen. SQLite heeft ook moeite met het verwerken van meerdere bewerkingen die toeneemt de wachttijd tussen de operaties die algemeen verhogen uw wacht tijd bij het benaderen van uw collectie.</value>
@@ -241,13 +238,13 @@
     <value>Meer weten over</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
-    <value>SQL Server kan gebruik maken van hele hijs zootje van opslageenheid</value>
+    <value>SQL Server kan bij grote collecties veel werkgeheugen in gebruik nemen.</value>
   </data>
   <data name="Language_Switch" xml:space="preserve">
     <value>Wissel taal</value>
   </data>
   <data name="Language_Info" xml:space="preserve">
-    <value>JMM Server moet opnieuw op te starten te wijzigen van de taal, klik op OK om de JMM Server opnieuw opstart of annuleren van de schakelaar van de taal.</value>
+    <value>JMM Server moet opnieuw opstarten om de taal te wijzigen, klik op OK om JMM Server opnieuw op te starten of Annuleren om handmatig op te starten.</value>
   </data>
   <data name="Images_Default" xml:space="preserve">
     <value>Standaard</value>
@@ -259,31 +256,31 @@
     <value>Vernieuwen</value>
   </data>
   <data name="Hash_Clear" xml:space="preserve">
-    <value>Wissen van alle in de wachtrij hash-opdrachten</value>
+    <value>Wis alle hash-opdrachten in de wachtrij</value>
   </data>
   <data name="Hash_Running" xml:space="preserve">
     <value>Hasher - actief</value>
   </data>
   <data name="Hash_Paused" xml:space="preserve">
-    <value>Hasher - onderbroken</value>
+    <value>Hasher - gepauseerd</value>
   </data>
   <data name="General_Clear" xml:space="preserve">
-    <value>Wissen van alle in de wachtrij algemene opdrachten</value>
+    <value>Wis alle algemene opdrachten in de wachtrij</value>
   </data>
   <data name="General_Running" xml:space="preserve">
     <value>Algemeen - actief</value>
   </data>
   <data name="General_Paused" xml:space="preserve">
-    <value>Algemeen - onderbroken</value>
+    <value>Algemeen - gepauseerd</value>
   </data>
   <data name="Images_Clear" xml:space="preserve">
-    <value>Duidelijk al in de wachtrij beeld opdrachten downloaden</value>
+    <value>Wis alle afbeeldingen download opdrachten in de wachtrij </value>
   </data>
   <data name="Images_Running" xml:space="preserve">
-    <value>Beelden - actief</value>
+    <value>Afbeeldingen - actief</value>
   </data>
   <data name="Images_Paused" xml:space="preserve">
-    <value>Beelden - onderbroken</value>
+    <value>Afbeeldingen - gepauseerd</value>
   </data>
   <data name="AniDB_Activity" xml:space="preserve">
     <value>AniDB activiteit</value>
@@ -295,37 +292,34 @@
     <value>Wat betekent dit?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#Banned-from-anidb</value>
+    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
-    <value>Al wordt JMM Server uitgevoerd. Controleer uw systematiek schenkblad (verkondiging zone).</value>
+    <value>JMM Server wordt al uitgevoerd. Controleer uw systeemvak.</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Fout</value>
   </data>
-  <data name="Server_FillOutSettings" xml:space="preserve">
-    <value>Vul alle instellingen</value>
-  </data>
   <data name="Server_FailedToStart" xml:space="preserve">
-    <value>Fout bij het instellen van start: </value>
+    <value>Fout bij het starten: </value>
   </data>
   <data name="Server_Complete" xml:space="preserve">
-    <value>Compleet!</value>
+    <value>Gereed!</value>
   </data>
   <data name="Server_Cleaning" xml:space="preserve">
-    <value>Schoonmaken van...</value>
+    <value>Bezig met het opruimen van de database...</value>
   </data>
   <data name="Server_Initializing" xml:space="preserve">
     <value>Initialiseren...</value>
   </data>
   <data name="Server_DatabaseSetup" xml:space="preserve">
-    <value>Het opzetten van database...</value>
+    <value>Bezig met het opzetten van de database...</value>
   </data>
   <data name="Server_DatabaseConfig" xml:space="preserve">
-    <value>Gelieve te selecteren en configureren van uw database.</value>
+    <value>Gelieve uw database te selecteren en te configureren.</value>
   </data>
   <data name="Server_DatabaseFail" xml:space="preserve">
-    <value>Kan niet worden gestart. Controleer de database instellingen.</value>
+    <value>Server kan niet worden gestart. Controleer de database instellingen.</value>
   </data>
   <data name="Server_InitializingSession" xml:space="preserve">
     <value>Initialiseren sessie fabriek...</value>
@@ -352,25 +346,22 @@
     <value>Voer een waarde</value>
   </data>
   <data name="Server_EnterCertainValue" xml:space="preserve">
-    <value>Voer een waarde tussen 1 en 65535</value>
+    <value>Voer een waarde in tussen 1 en 65535</value>
   </data>
   <data name="Server_ScanFolder" xml:space="preserve">
-    <value>Map scannen in progess</value>
+    <value>Bezig met map scannen</value>
   </data>
   <data name="Success" xml:space="preserve">
     <value>Succes</value>
   </data>
   <data name="Server_AniDBInfoUpdate" xml:space="preserve">
-    <value>Het bijwerken van alle reeksen AniDB info toegevoegd aan de wachtrij.</value>
+    <value>"bijwerken van AniDB info van alle series" toegevoegd aan de wachtrij.</value>
   </data>
   <data name="Server_TvDBInfoUpdate" xml:space="preserve">
-    <value>Het bijwerken van alle reeksen TvDB info toegevoegd aan de wachtrij.</value>
+    <value>Het bijwerken van alle series TvDB info toegevoegd aan de wachtrij.</value>
   </data>
   <data name="Server_StatsInfoUpdate" xml:space="preserve">
     <value>Bijwerken van alle serie info toegevoegd aan de wachtrij. </value>
-  </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Trakt serie info updates zijn toegevoegd aan de wachtrij.</value>
   </data>
   <data name="Server_SyncVotes" xml:space="preserve">
     <value>Synchroniseren lokale stemmen met AniDB en MyAnimeList toegevoegd aan de wachtrij. </value>
@@ -431,7 +422,7 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
     <value>Mappen importeren zijn de de basis locaties waar u uw anime houden. U moet ten minste één map toevoegen en selecteer vervolgens 'Importbewerking uitvoeren' op het tabblad acties</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://jmediamanager.org/JMM-server/Configuring-JMM-server/#import-folders</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
     <value>Correctie voor het gebruik van</value>
@@ -440,16 +431,13 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
     <value>JMM Server met gedeelde stations</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#JMM-shared-drive</value>
+    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
     <value>Gedetailleerde beschrijving van de opties</value>
   </data>
   <data name="ImportFolders_ServerPath" xml:space="preserve">
     <value>Serverpad</value>
-  </data>
-  <data name="ImportFolders_Delete" xml:space="preserve">
-    <value>Verwijderen</value>
   </data>
   <data name="ImportFolders_NewFolder" xml:space="preserve">
     <value>Nieuwe map</value>
@@ -460,14 +448,8 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Confirm" xml:space="preserve">
     <value>Bevestigen</value>
   </data>
-  <data name="ImportFolders_DeleteFolder" xml:space="preserve">
-    <value>Weet u zeker dat u wilt verwijderen van de map importeren: {0}?</value>
-  </data>
   <data name="ImportFolders_ImportFolder" xml:space="preserve">
     <value>Import map</value>
-  </data>
-  <data name="ImportFolders_ServerDetails" xml:space="preserve">
-    <value>Server Details</value>
   </data>
   <data name="ImportFolders_InputPath" xml:space="preserve">
     <value>Pad van de map importeren</value>
@@ -490,9 +472,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
     <value>Een map importeren kan niet zowel de neerzetbron en de daling van de bestemming.</value>
   </data>
-  <data name="ImportFolders_BlankImport" xml:space="preserve">
-    <value>De locatie van de map importeren mag niet leeg zijn. Geef een geldig pad op JMM Server.</value>
-  </data>
   <data name="About_UpdateCheck" xml:space="preserve">
     <value>Controleren op Updates</value>
   </data>
@@ -512,10 +491,10 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
     <value>Test Login</value>
   </data>
   <data name="InitialSetup_Get" xml:space="preserve">
-    <value>Nog geen AniDB account? Klik hier om te registreren voor een</value>
+    <value>Nog geen AniDB account? Klik hier om te registreren</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
-    <value>https://anidb.net/perl-bin/AnimeDB.pl?show=signup</value>
+    <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Initialiseren...</value>
@@ -546,9 +525,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="Update_DownloadPage" xml:space="preserve">
     <value>Download pagina</value>
-  </data>
-  <data name="Update_AboutPage" xml:space="preserve">
-    <value>Over pagina</value>
   </data>
   <data name="Update_YourVersion" xml:space="preserve">
     <value>Uw versie</value>
@@ -683,13 +659,13 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
     <value>Krijgen van afleveringen van The TvDB: {0}</value>
   </data>
   <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL is het mid-tier en aanbevolen databasetype voor JMM gebruikers met een grote collectie, die van plan zijn om te bouwen van een grote collectie of gewoon wilt een boost snelheden en prestaties bij het gebruik van JMM. Het is gemakkelijk om de installatie en het gebruik van onze gids u omhoog zult en uitgevoerd in een kwestie van minuten.</value>
+    <value>MySQL is de aanbevolen databasetype voor JMM gebruikers met reeds een grote collectie, die van plan zijn om een grote collectie te bouwen of gewoon een boost in snelheden en prestaties willen bij het gebruik van JMM. Installatie van MySQL zit qua moeilijkheid tussen SQLLite en SQL Server in en is bij gebruik van onze handleiding in een kwestie van minuten opgezet.</value>
   </data>
   <data name="Toolbar_Translate" xml:space="preserve">
     <value>Help vertalen JMM!</value>
   </data>
   <data name="Link_Translate" xml:space="preserve">
-    <value>http://jmediamanager.org/Translate</value>
+    <value>http://jmediamanager.org/translate</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Krijgen van groep versieinfo van UDP-API: {0}</value>
@@ -738,9 +714,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="Command_GetReviewInfo" xml:space="preserve">
     <value>Krijgen lees info van UDP-API voor Anime: {0}</value>
-  </data>
-  <data name="Command_GetUpdatedAnime" xml:space="preserve">
-    <value>Het krijgen van de lijst van bijgewerkte animes van UDP-API</value>
   </data>
   <data name="Command_SyncMyList" xml:space="preserve">
     <value>Synchroniseren MyList info van HTTP API</value>
@@ -849,9 +822,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Volledige verhaal</value>
-  </data>
-  <data name="Update_Changelog" xml:space="preserve">
-    <value>Changelog</value>
   </data>
   <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
     <value>Cross-ref voor Anidb aan de MAL uit webcache verwijderen: {0}!</value>

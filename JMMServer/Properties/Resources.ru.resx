@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="JMMServer" xml:space="preserve">
-    <value>Модель памяти JMM сервера</value>
+    <value>JMM сервер</value>
   </data>
   <data name="Actions_RunImport" xml:space="preserve">
     <value>Выполнить импорт</value>
@@ -130,7 +130,7 @@
     <value>Синхронизировать мой список</value>
   </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
-    <value>Синхронизация коллекции тракт</value>
+    <value>Синхронизация коллекции Trakt</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Синхронизация голосов</value>
@@ -139,16 +139,16 @@
     <value>Обновить все серии AniDB информация</value>
   </data>
   <data name="Actions_UpdateTvDB" xml:space="preserve">
-    <value>Обновить все TvDB информация</value>
+    <value>Обновить всю TvDB информацию</value>
   </data>
   <data name="Actions_UpdateTrakt" xml:space="preserve">
-    <value>Обновление всех Trakt информация</value>
+    <value>Обновить всю Trakt информацию</value>
   </data>
   <data name="Actions_UpdateAllStats" xml:space="preserve">
-    <value>Обновить все статистика</value>
+    <value>Обновить всю статистику</value>
   </data>
   <data name="Actions_UpdateAllMediaInfo" xml:space="preserve">
-    <value>Обновление всех СМИ информация</value>
+    <value>Обновление метаданных</value>
   </data>
   <data name="Actions_UploadCache" xml:space="preserve">
     <value>Загрузить все Аниме данных для кэширования Azure</value>
@@ -157,7 +157,7 @@
     <value>Завершение работы</value>
   </data>
   <data name="Toolbar_About" xml:space="preserve">
-    <value>О</value>
+    <value>О программе</value>
   </data>
   <data name="Toolbar_Logs" xml:space="preserve">
     <value>Журналы</value>
@@ -178,7 +178,7 @@
     <value>Установка</value>
   </data>
   <data name="Settings_Windows" xml:space="preserve">
-    <value>Начните с Windows</value>
+    <value>Запускать при старте Windows</value>
   </data>
   <data name="Settings_Multiple" xml:space="preserve">
     <value>Разрешить несколько экземпляров</value>
@@ -226,16 +226,16 @@
     <value>MySQL</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://JMediaManager.org/Setup/SQLServer/</value>
+    <value>http://jmediamanager.org/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://JMediaManager.org/Setup/MySQL/</value>
+    <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
   <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server предназначен для пользователей с большой коллекцией, которая превышает 200 серии, которые также хотят быстрой производительности возможно. Из трех типов доступных баз данных SQL Server считается самым сложным в настройке, но может быть настроена с легкостью, если вы будете следовать руководство, которую мы создали.</value>
+    <value>SQL Server предназначен для пользователей с большой коллекцией, которая превышает 200 сериалов и обеспечивает максимальную производительность. Из трех типов доступных баз данных SQL Server считается самым сложным в настройке, но может быть легко настроен при помощи нашего руководства.</value>
   </data>
   <data name="SQLite_Info" xml:space="preserve">
-    <value>В то время как SQLite является самым простым из трех баз данных типов установки с это одним нажатием кнопки установки. Если коллекция содержит серии 200 или больше, вы начнете испытывать много вопросов, включая медленной реакции и зависания программы при попытке получить доступ к коллекции через базы данных SQLite JMM. В отношении как модель памяти JMM использует базы данных он просто не предназначен для больших коллекций. SQLite также испытывает трудности с обработкой нескольких операций, который увеличивает время ожидания между операциями, который общее увеличение ваши ожидания времени при доступе к вашей коллекции.</value>
+    <value>SQLite является самой простой и настраивается одним нажатием. Если коллекция содержит более 200 сериалов возникнет множество проблем, включая медленную реакцию и зависания программы при попытке получить доступ к коллекции. JMM не оптимизирован для этой базы данных поэтому SQLite не предназначен для больших коллекций. SQLite также испытывает трудности с одновременной обработкой нескольких операций что увеличивает время ожидания между операциями, что в свою очередь увеличиваеи время ожидания при доступе к коллекции.</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Узнайте больше о</value>
@@ -247,7 +247,7 @@
     <value>Переключение языка</value>
   </data>
   <data name="Language_Info" xml:space="preserve">
-    <value>Модель памяти JMM сервер необходимо перезапустить, чтобы изменить язык, нажмите кнопку ОК, чтобы перезагрузить сервер JMM или отменить переключение языка.</value>
+    <value>Чтобы изменить язык JMM сервер необходимо перезапустить, нажмите кнопку ОК, чтобы перезагрузить сервер JMM или кнопку Отменить чтобы перезапустить вручную.</value>
   </data>
   <data name="Images_Default" xml:space="preserve">
     <value>По умолчанию</value>
@@ -259,16 +259,16 @@
     <value>Обновить</value>
   </data>
   <data name="Hash_Clear" xml:space="preserve">
-    <value>Очистить все очереди хэш команды</value>
+    <value>Очистить очередь хэш команд</value>
   </data>
   <data name="Hash_Running" xml:space="preserve">
-    <value>Hasher - работает</value>
+    <value>Хэширование - работает</value>
   </data>
   <data name="Hash_Paused" xml:space="preserve">
-    <value>Hasher - приостановлен</value>
+    <value>Хэширование - приостановлен</value>
   </data>
   <data name="General_Clear" xml:space="preserve">
-    <value>Очистить все очереди общие команды</value>
+    <value>Очистить очередь общих команд</value>
   </data>
   <data name="General_Running" xml:space="preserve">
     <value>Общие - работает</value>
@@ -277,7 +277,7 @@
     <value>Общие - приостановлен</value>
   </data>
   <data name="Images_Clear" xml:space="preserve">
-    <value>Очистить все очереди команд скачать</value>
+    <value>Очистить очередь фото</value>
   </data>
   <data name="Images_Running" xml:space="preserve">
     <value>Фото - работает</value>
@@ -295,22 +295,19 @@
     <value>Что это значит?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://JMediaManager.org/FAQ/#Banned-from-AniDB</value>
+    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
-    <value>Модель памяти JMM сервер уже запущен. Пожалуйста, проверьте ваш система поднос (извещение площадь).</value>
+    <value>JMM сервер уже запущен. Пожалуйста, проверьте область уведомлений.</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Ошибка</value>
-  </data>
-  <data name="Server_FillOutSettings" xml:space="preserve">
-    <value>Пожалуйста, заполните все параметры</value>
   </data>
   <data name="Server_FailedToStart" xml:space="preserve">
     <value>Не удалось задать начало: </value>
   </data>
   <data name="Server_Complete" xml:space="preserve">
-    <value>Полная!</value>
+    <value>Завершено!</value>
   </data>
   <data name="Server_Cleaning" xml:space="preserve">
     <value>Очистка...</value>
@@ -328,25 +325,25 @@
     <value>Не удалось запустить. Пожалуйста, просмотрите параметры базы данных.</value>
   </data>
   <data name="Server_InitializingSession" xml:space="preserve">
-    <value>Инициализация сессии фабрика...</value>
+    <value>Инициализация фабрики сессиий...</value>
   </data>
   <data name="Server_InitializingHosts" xml:space="preserve">
-    <value>Инициализация хозяева...</value>
+    <value>Инициализация серверов...</value>
   </data>
   <data name="Server_InitializingStats" xml:space="preserve">
-    <value>Инициализация статистика...</value>
+    <value>Инициализация статистики...</value>
   </data>
   <data name="Server_InitializingQueue" xml:space="preserve">
-    <value>Инициализация обработчики очереди...</value>
+    <value>Инициализация обработчиков очередей...</value>
   </data>
   <data name="Server_InitializingFile" xml:space="preserve">
-    <value>Инициализация файла зрителей...</value>
+    <value>Инициализация мониторинга файлов...</value>
   </data>
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
-    <value>Обновление всех файлов видео СМИ информация, добавлены в очередь.</value>
+    <value>Обновление метаданных всех видео файлов добавлено в очередь.</value>
   </data>
   <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Уже выполняется импорт</value>
+    <value>Импорт выполняется</value>
   </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Введите значение</value>
@@ -355,43 +352,40 @@
     <value>Пожалуйста, введите значение от 1 до 65535</value>
   </data>
   <data name="Server_ScanFolder" xml:space="preserve">
-    <value>Папки, сканирование в progess</value>
+    <value>Сканирование папок</value>
   </data>
   <data name="Success" xml:space="preserve">
-    <value>Успех</value>
+    <value>Завершено</value>
   </data>
   <data name="Server_AniDBInfoUpdate" xml:space="preserve">
-    <value>Обновление всех серий AniDB информация, добавлены в очередь.</value>
+    <value>Обновление всех серий AniDB добавлены в очередь.</value>
   </data>
   <data name="Server_TvDBInfoUpdate" xml:space="preserve">
-    <value>Обновление всех серий TvDB информация, добавлены в очередь.</value>
+    <value>Обновление всех серий TvDB добавлены в очередь.</value>
   </data>
   <data name="Server_StatsInfoUpdate" xml:space="preserve">
-    <value>Обновление всех серии информация добавлена в очередь. </value>
-  </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Тракт серии информация обновления были добавлены в очередь.</value>
+    <value>Обновление всех серий добавлена в очередь. </value>
   </data>
   <data name="Server_SyncVotes" xml:space="preserve">
-    <value>Синхронизация локального голосов с AniDB и MyAnimeList добавлены в очередь. </value>
+    <value>Синхронизация локальных голосов с AniDB и MyAnimeList добавлены в очередь. </value>
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
-    <value>Синхронизация коллекции метаданных с тракт добавлены в очередь. </value>
+    <value>Синхронизация коллекции метаданных с Trakt добавлены в очередь. </value>
   </data>
   <data name="Server_SyncMyList" xml:space="preserve">
     <value>Синхронизация коллекции метаданных с AniDB добавлены в очередь. </value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Сканирование для отсутствующих файлов, добавленных в очередь.</value>
+    <value>Сканирование отсутствующих файлов добавлено в очередь.</value>
   </data>
   <data name="Server_Import" xml:space="preserve">
-    <value>Сканирование для недавно добавлены файлы добавлены в очередь.</value>
+    <value>Сканирование новых файлов добавлено в очередь.</value>
   </data>
   <data name="Toolbar_Show" xml:space="preserve">
     <value>Показать</value>
   </data>
   <data name="Server_MinimizeInfo" xml:space="preserve">
-    <value>Модель памяти JMM сервер был свернут в системном трее. Чтобы открыть приложение, дважды щелкните значок в системном трее.</value>
+    <value>JMM сервер был свернут в область уведомлений. Чтобы открыть приложение, дважды щелкните значок в области уведомлений.</value>
   </data>
   <data name="About_Home" xml:space="preserve">
     <value>Домашняя страница</value>
@@ -400,56 +394,53 @@
     <value>Страница проекта</value>
   </data>
   <data name="About_Blog" xml:space="preserve">
-    <value>Модель памяти JMM блог</value>
+    <value>JMM блог</value>
   </data>
   <data name="Link_Home" xml:space="preserve">
-    <value>http://JMediaManager.org/</value>
+    <value>http://jmediamanager.org/</value>
   </data>
   <data name="Link_GitHub" xml:space="preserve">
-    <value>HTTPS://GitHub.com/japanesemediamanager</value>
+    <value>https://github.com/japanesemediamanager</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
-    <value>http://JMediaManager.org/blog</value>
+    <value>http://jmediamanager.org/blog</value>
   </data>
   <data name="Admin_AdminMessages" xml:space="preserve">
-    <value>Администратор сообщений</value>
+    <value>Сообщения администрации</value>
   </data>
   <data name="Admin_MoreInfo" xml:space="preserve">
     <value>Дополнительная информация</value>
   </data>
   <data name="Tooltip_DropSource" xml:space="preserve">
-    <value>Модель памяти JMM сервер будет контролировать эту папку и переместить все файлы, которые он обнаруживает в папке, выбранной в качестве назначения Drop. Кроме того модель памяти JMM сервер будет автоматически группы файлов, которые принадлежат к той же серии и создайте папку серии в Drop назначения, если она еще не существует.
+    <value>JMM сервер будет контролировать эту папку и перемещать все файлы, которые он обнаруживает в папку, выбранную в качестве папки назначения. Кроме того JMM сервер будет автоматически группировать файлы которые принадлежат к одному сериалу и автоматически создаст новую папку для них если она не существует.
 
-Вы можете иметь столько падение источников, как вы хотите, однако вы должны установить назначение Drop Drop источник.</value>
+Количество папок источников неограничено, однако для использования источников необходимо выбрать папку назначения.</value>
   </data>
   <data name="Tooltip_DropDestination" xml:space="preserve">
-    <value>Используется в сочетании с Drop источник, JMM сервер будет двигаться все файлы из источников источник/Drop Drop в выбранный пункт назначения, падение. 
+    <value>Используется в сочетании с папкой источником, JMM сервер будет перемещать все файлы из источников в папку назначения.
 
-Вы можете иметь только одну папку, перечисленных как Drop назначения.</value>
+Вы можете иметь только одну папку назначения.</value>
   </data>
   <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Импорт папки являются базовой места, где вы храните ваши аниме. Вам нужно будет добавить по крайней мере одну папку и затем на вкладке Действия выберите «Выполнить импорт»</value>
+    <value>Импорт папки являются основными местами хранения вашего аниме. Вам нужно будет добавить по крайней мере одну папку и затем на вкладке Действия выберать «Выполнить импорт»</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://JMediaManager.org/JMM-Server/Configuring-JMM-Server/#Import-Folders</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
     <value>Исправление с помощью</value>
   </data>
   <data name="ImportFolders_Shared" xml:space="preserve">
-    <value>Модель памяти JMM сервера с общими дисками</value>
+    <value>JMM сервер с общими дисками</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://JMediaManager.org/FAQ/#JMM-Shared-Drive</value>
+    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
     <value>Подробное объяснение параметров</value>
   </data>
   <data name="ImportFolders_ServerPath" xml:space="preserve">
     <value>Путь сервера</value>
-  </data>
-  <data name="ImportFolders_Delete" xml:space="preserve">
-    <value>Удалить</value>
   </data>
   <data name="ImportFolders_NewFolder" xml:space="preserve">
     <value>Новая папка</value>
@@ -460,26 +451,20 @@
   <data name="Confirm" xml:space="preserve">
     <value>Подтвердите</value>
   </data>
-  <data name="ImportFolders_DeleteFolder" xml:space="preserve">
-    <value>Вы уверены, что вы хотите удалить папки импорта: {0}?</value>
-  </data>
   <data name="ImportFolders_ImportFolder" xml:space="preserve">
     <value>Папка импорта</value>
   </data>
-  <data name="ImportFolders_ServerDetails" xml:space="preserve">
-    <value>Подробные сведения о сервере</value>
-  </data>
   <data name="ImportFolders_InputPath" xml:space="preserve">
-    <value>Путь к папке Импорт</value>
+    <value>Путь к папке импорта</value>
   </data>
   <data name="ImportFolders_DropSource" xml:space="preserve">
-    <value>Удалить источник</value>
+    <value>Папка источник</value>
   </data>
   <data name="ImportFolders_DropDestination" xml:space="preserve">
-    <value>Удаление назначения</value>
+    <value>Папка назначения</value>
   </data>
   <data name="ImportFolders_Watch" xml:space="preserve">
-    <value>Часы для новых файлов</value>
+    <value>Следить за новыми файлами</value>
   </data>
   <data name="Save" xml:space="preserve">
     <value>Сохранить</value>
@@ -488,10 +473,7 @@
     <value>Отмена</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
-    <value>Папка импорта не может быть падение источника и назначения перетаскивания.</value>
-  </data>
-  <data name="ImportFolders_BlankImport" xml:space="preserve">
-    <value>Местоположение папки импорта не может быть пустым. Введите допустимый путь на сервере JMM.</value>
+    <value>Папка импорта не может быть одновременно источником и назначением.</value>
   </data>
   <data name="About_UpdateCheck" xml:space="preserve">
     <value>Проверить наличие обновлений</value>
@@ -509,13 +491,13 @@
     <value>Порт клиента AniDB</value>
   </data>
   <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Тестовый вход</value>
+    <value>Проверить подключение</value>
   </data>
   <data name="InitialSetup_Get" xml:space="preserve">
-    <value>У вас нет учетной записи AniDB? Нажмите здесь, чтобы зарегистрироваться для одного</value>
+    <value>У вас нет учетной записи AniDB? Нажмите здесь, чтобы зарегистрироваться</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
-    <value>HTTPS://AniDB.NET/Perl-bin/animedb.pl?Show=signup</value>
+    <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Инициализация...</value>
@@ -530,7 +512,7 @@
     <value>Успешный вход! Выход из системы...</value>
   </data>
   <data name="InitialSetup_LoginPass2" xml:space="preserve">
-    <value>Успешный вход! Вышли из.</value>
+    <value>Успешный вход! Вышли из системы.</value>
   </data>
   <data name="InitialSetup_LoginFail" xml:space="preserve">
     <value>Ошибка входа в систему!</value>
@@ -547,9 +529,6 @@
   <data name="Update_DownloadPage" xml:space="preserve">
     <value>Страница загрузки</value>
   </data>
-  <data name="Update_AboutPage" xml:space="preserve">
-    <value>О странице</value>
-  </data>
   <data name="Update_YourVersion" xml:space="preserve">
     <value>Ваша версия</value>
   </data>
@@ -563,10 +542,10 @@
     <value>Доступно обновление</value>
   </data>
   <data name="Link_Download" xml:space="preserve">
-    <value>http://JMediaManager.org/downloads</value>
+    <value>http://jmediamanager.org/downloads</value>
   </data>
   <data name="Link_Changelog" xml:space="preserve">
-    <value>http://JMediaManager.org/changelog</value>
+    <value>http://jmediamanager.org/changelog</value>
   </data>
   <data name="Command_Paused" xml:space="preserve">
     <value>Приостановлено</value>
@@ -575,16 +554,16 @@
     <value>В очереди</value>
   </data>
   <data name="Command_Idle" xml:space="preserve">
-    <value>Холостого хода</value>
+    <value>Ожидание</value>
   </data>
   <data name="Command_StartingHasher" xml:space="preserve">
-    <value>Запуск команды работника (hasher)...</value>
+    <value>Запуск обрботчика команд (хэширование)...</value>
   </data>
   <data name="Command_StartingImages" xml:space="preserve">
-    <value>Запуск команды работника (изображения)...</value>
+    <value>Запуск обрботчика команд (изображения)...</value>
   </data>
   <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>Запуск команды работника (Общие)...</value>
+    <value>Запуск обрботчика команд (общие)...</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Фильм</value>
@@ -593,7 +572,7 @@
     <value>OVA</value>
   </data>
   <data name="AnimeType_Other" xml:space="preserve">
-    <value>Другие</value>
+    <value>Прочее</value>
   </data>
   <data name="AnimeType_TVSeries" xml:space="preserve">
     <value>Сериал</value>
@@ -605,10 +584,10 @@
     <value>Веб</value>
   </data>
   <data name="AniDB_ResponseWait" xml:space="preserve">
-    <value>Ожидая ответа...</value>
+    <value>Ожидание ответа...</value>
   </data>
   <data name="Database_Initializing" xml:space="preserve">
-    <value>Инициализация сессии фабрика...</value>
+    <value>Инициализация фабрики сессий...</value>
   </data>
   <data name="Database_CreateSchema" xml:space="preserve">
     <value>База данных - создание первоначальной схемы...</value>
@@ -623,34 +602,34 @@
     <value>Избранное</value>
   </data>
   <data name="Filter_MissingEpisodes" xml:space="preserve">
-    <value>Отсутствующие эпизодов</value>
+    <value>Отсутствующие эпизоды</value>
   </data>
   <data name="Filter_Airing" xml:space="preserve">
-    <value>Недавно проветривания серии</value>
+    <value>Недавно показанные сериалы</value>
   </data>
   <data name="Filter_Added" xml:space="preserve">
-    <value>Новые серии</value>
+    <value>Новые сериалы</value>
   </data>
   <data name="Filter_Votes" xml:space="preserve">
-    <value>Голосов, необходимых</value>
+    <value>Необходимо голосование</value>
   </data>
   <data name="Filter_RecentlyWatched" xml:space="preserve">
-    <value>Недавно смотрел</value>
+    <value>Недавно просмотренные</value>
   </data>
   <data name="Filter_LinkMissing" xml:space="preserve">
-    <value>TvDB/MovieDB ссылка отсутствует</value>
+    <value>Отсутствует TvDB/MovieDB ссылка </value>
   </data>
   <data name="Filter_Continue" xml:space="preserve">
-    <value>Продолжить просмотр (система)</value>
+    <value>Продолжить просмотр (системный)</value>
   </data>
   <data name="EpisodeType_Episodes" xml:space="preserve">
     <value>Эпизоды</value>
   </data>
   <data name="EpisodeType_Credits" xml:space="preserve">
-    <value>Кредит</value>
+    <value>Титры</value>
   </data>
   <data name="EpisodeType_Specials" xml:space="preserve">
-    <value>Специальные предложения</value>
+    <value>Специальные</value>
   </data>
   <data name="EpisodeType_Trailer" xml:space="preserve">
     <value>Трейлер</value>
@@ -659,55 +638,55 @@
     <value>Пародия</value>
   </data>
   <data name="EpisodeType_Other" xml:space="preserve">
-    <value>Другие</value>
+    <value>Прочее</value>
   </data>
   <data name="Command_Refresh" xml:space="preserve">
-    <value>Освежающий аниме Статистика: {0}</value>
+    <value>Обновление аниме статистики: {0}</value>
   </data>
   <data name="AniDB_GettingAnimeXML" xml:space="preserve">
     <value>Получение данных XML аниме от ANIDB: {0}</value>
   </data>
   <data name="AniDB_GotAnimeXML" xml:space="preserve">
-    <value>У аниме XML-данных ANIDB: {0} - {1} - {2}</value>
+    <value>Получены аниме XML-данные от ANIDB: {0} - {1} - {2}</value>
   </data>
   <data name="Command_AnimeInfo" xml:space="preserve">
-    <value>Получение HTTP API аниме информация: {0}</value>
+    <value>Получение информации от HTTP API: {0}</value>
   </data>
   <data name="Command_FileInfo" xml:space="preserve">
-    <value>Получение файла информация от UDP API: {0}</value>
+    <value>Получение информации от UDP API: {0}</value>
   </data>
   <data name="Command_ReadingMedia" xml:space="preserve">
-    <value>Чтение для файла СМИ информация: {0}</value>
+    <value>Чтение матаданных из файла: {0}</value>
   </data>
   <data name="Command_GettingTvDB" xml:space="preserve">
-    <value>Получение TvDB эпизоды: {0}</value>
+    <value>Получение эпизодов TvDB : {0}</value>
   </data>
   <data name="MySQL_Info" xml:space="preserve">
-    <value>MySQL является типом базы данных промежуточного уровня и рекомендуется для пользователей модели памяти JMM с большой коллекцией, которые намерены построить большой коллекции или просто хотите подталкивание скорости и производительности при использовании модели памяти JMM. Это легко для установки и использования нашего руководства, вы будете вверх и работает в считанные минуты.</value>
+    <value>MySQL является типом базы данных промежуточного уровня и рекомендуется для пользователей JMM с большой коллекцией либо тем кто планирует создать большую коллекцию или просто хочет улучшения  производительности при использовании JMM. Простой в установке, также при использовании нашего руководства сможете начать работу в считанные минуты.</value>
   </data>
   <data name="Toolbar_Translate" xml:space="preserve">
     <value>Помогите перевести JMM!</value>
   </data>
   <data name="Link_Translate" xml:space="preserve">
-    <value>http://JMediaManager.org/Translate</value>
+    <value>http://jmediamanager.org/translate</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Получать информацию о группе выпуска от UDP API: {0}</value>
   </data>
   <data name="Command_SearchTMDb" xml:space="preserve">
-    <value>Поиск для аниме на MovieDB: {0}</value>
+    <value>Поиск аниме на MovieDB: {0}</value>
   </data>
   <data name="AniDB_Paused" xml:space="preserve">
-    <value>Приостановлено коммуникаций для {0} секунд: {1} </value>
+    <value>Приостановлена связь с {0} на {1} секунд</value>
   </data>
   <data name="AniDB_ResponseWaitSeconds" xml:space="preserve">
-    <value>Ожидая ответа для {0} секунд...</value>
+    <value>Ожидание ответа в течении {0} секунд...</value>
   </data>
   <data name="AniDB_LastMessage" xml:space="preserve">
-    <value>Последнее сообщение, отправленное {0} секунд назад</value>
+    <value>Последнее сообщение отправлено {0} секунд назад</value>
   </data>
   <data name="Command_DownloadImage" xml:space="preserve">
-    <value>Загрузка изображений: {0}</value>
+    <value>Загрузка изображения: {0}</value>
   </data>
   <data name="Command_DeleteError" xml:space="preserve">
     <value>Ошибка при удалении изображения: ({0}) - {1}</value>
@@ -716,40 +695,37 @@
     <value>Хэширование файла: {0}</value>
   </data>
   <data name="AniDB_MyListAdd" xml:space="preserve">
-    <value>Добавление файла MyList: {0}</value>
+    <value>Добавление файла в MyList: {0}</value>
   </data>
   <data name="AniDB_MyListDelete" xml:space="preserve">
     <value>Удаление файла из MyList: {0} _ {1}</value>
   </data>
   <data name="AniDB_GetTitles" xml:space="preserve">
-    <value>Получение звания AniDB</value>
+    <value>Получение названия AniDB</value>
   </data>
   <data name="Command_GetCalendar" xml:space="preserve">
-    <value>Получение календаря информация от UDP API</value>
+    <value>Получение календаря от UDP API</value>
   </data>
   <data name="Command_GetEpisodeList" xml:space="preserve">
-    <value>Получать информацию эпизод от UDP API: {0}</value>
+    <value>Получение информации об эпизодах от UDP API: {0}</value>
   </data>
   <data name="Command_GetFileInfo" xml:space="preserve">
-    <value>Получение файла информация от UDP API: {0}</value>
+    <value>Получение информация о файле от UDP API: {0}</value>
   </data>
   <data name="Command_GetReleaseGroup" xml:space="preserve">
-    <value>Получать информацию о группе статус от UDP API для аниме: {0}</value>
+    <value>Получение информацию о статусе группы от UDP API для аниме: {0}</value>
   </data>
   <data name="Command_GetReviewInfo" xml:space="preserve">
-    <value>Получить обзор информация от UDP API для аниме: {0}</value>
-  </data>
-  <data name="Command_GetUpdatedAnime" xml:space="preserve">
-    <value>Получение списка Обновлено аниме от UDP API</value>
+    <value>Получение обзоров от UDP API для аниме: {0}</value>
   </data>
   <data name="Command_SyncMyList" xml:space="preserve">
-    <value>Синхронизация MyList информация от HTTP API</value>
+    <value>Синхронизация MyList через HTTP API</value>
   </data>
   <data name="Command_SyncVotes" xml:space="preserve">
-    <value>Синхронизация голосования информация от HTTP API</value>
+    <value>Синхронизация голосования через HTTP API</value>
   </data>
   <data name="Command_UpdateMyListInfo" xml:space="preserve">
-    <value>Обновление MyList информация от UDP API для файла: {0}</value>
+    <value>Обновление MyList через UDP API для файла: {0}</value>
   </data>
   <data name="Command_UpdateMyListStats" xml:space="preserve">
     <value>Обновление AniDB MyListStats</value>
@@ -758,40 +734,40 @@
     <value>Голосование: {0} - {1}</value>
   </data>
   <data name="Command_DownloadMalWatched" xml:space="preserve">
-    <value>Загрузка смотрел государства от MAL</value>
+    <value>Загрузка статуса просмотра из MAL</value>
   </data>
   <data name="Command_SearchMal" xml:space="preserve">
-    <value>Поиск для аниме на ТЗА: {0}</value>
+    <value>Поиск аниме на MAL: {0}</value>
   </data>
   <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Обновление статуса на ТЗА: {0}</value>
+    <value>Обновление статуса на MAL: {0}</value>
   </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
-    <value>Загрузка смотрел государства MAL</value>
+    <value>Загрузка статуса просмотра на MAL</value>
   </data>
   <data name="Command_SyncTraktEpisodes" xml:space="preserve">
-    <value>Синхронизация эпизод коллекцию на тракт: {0} - {1}</value>
+    <value>Синхронизация эпизодов с коллекцией Trakt: {0} - {1}</value>
   </data>
   <data name="Command_TraktAddHistory" xml:space="preserve">
-    <value>Добавить эпизод в истории на тракт: {0}</value>
+    <value>Добавить эпизод в историю на Trakt: {0}</value>
   </data>
   <data name="Command_SearchTrakt" xml:space="preserve">
-    <value>Поиск для аниме на Trakt.TV: {0}</value>
+    <value>Поиск аниме на Trakt.TV: {0}</value>
   </data>
   <data name="Command_SyncTrakt" xml:space="preserve">
-    <value>Синхронизация коллекции тракт</value>
+    <value>Синхронизация коллекции Trakt</value>
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
-    <value>Синхронизация коллекции тракт для серии: {0}</value>
+    <value>Синхронизация коллекции Trakt для сериала: {0}</value>
   </data>
   <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Обновление всех тракт серии информация</value>
+    <value>Обновление всех сериалов из Trakt </value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Обновление информация/изображений на Trakt.TV: {0}</value>
   </data>
   <data name="Command_SendAnimeFull" xml:space="preserve">
-    <value>Отправка аниме полный в azure: {0}</value>
+    <value>Отправка полного аниме в azure: {0}</value>
   </data>
   <data name="Command_SendAnimeTitle" xml:space="preserve">
     <value>Отправка название аниме в azure: {0}</value>
@@ -806,10 +782,10 @@
     <value>Получение изображений из TvDB: {0}</value>
   </data>
   <data name="Command_SearchTvDB" xml:space="preserve">
-    <value>Поиск для аниме на TvDB: {0}</value>
+    <value>Поиск аниме на TvDB: {0}</value>
   </data>
   <data name="Settings_AniDB" xml:space="preserve">
-    <value>Обновление информации о AniDB</value>
+    <value>Обновление информации из AniDB</value>
   </data>
   <data name="EnableKodi" xml:space="preserve">
     <value>Включить Kodi</value>
@@ -824,10 +800,10 @@
     <value>Приквел</value>
   </data>
   <data name="SeriesType_SameSetting" xml:space="preserve">
-    <value>Же настройки</value>
+    <value>Одинаковый сюжет</value>
   </data>
   <data name="SeriesType_AltSetting" xml:space="preserve">
-    <value>Альтернативная настройка</value>
+    <value>Альтернативная сюжет</value>
   </data>
   <data name="SeriesType_AltVersion" xml:space="preserve">
     <value>Альтернативная версия</value>
@@ -839,10 +815,10 @@
     <value>Персонаж</value>
   </data>
   <data name="SeriesType_SideStory" xml:space="preserve">
-    <value>История</value>
+    <value>Побочная история</value>
   </data>
   <data name="SeriesType_ParentStory" xml:space="preserve">
-    <value>Родительский история</value>
+    <value>Родительская история</value>
   </data>
   <data name="SeriesType_Summary" xml:space="preserve">
     <value>Резюме</value>
@@ -851,7 +827,7 @@
     <value>Полная история</value>
   </data>
   <data name="Update_Changelog" xml:space="preserve">
-    <value>История изменений</value>
+    <value>Список изменений</value>
   </data>
   <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
     <value>Удаление крест ref Anidb к MAL веб-кэша: {0}!</value>

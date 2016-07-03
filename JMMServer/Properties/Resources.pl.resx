@@ -120,9 +120,6 @@
   <data name="JMMServer" xml:space="preserve">
     <value>Serwer JMM</value>
   </data>
-  <data name="Actions_RunImport" xml:space="preserve">
-    <value>Uruchom Import</value>
-  </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Usuń brakujące pliki</value>
   </data>
@@ -226,10 +223,10 @@
     <value>MySQL/MariaDB</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/SqlServer/</value>
+    <value>http://jmediamanager.org/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/MySQL/</value>
+    <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>Microsoft SQL Server jest przeznaczony dla użytkowników posiadających dużą kolekcję, która przekracza ponad 200 serii. Z trzech dostępnych typów baz danych Microsoft SQL Server jest uważany za najtrudniejszy do uruchomienia, ale proces ten powinien być łatwiejszy, jeżeli korzystasz z przygotowanego przez nas poradnika.</value>
@@ -295,16 +292,13 @@
     <value>Co to oznacza?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#banned-from-anidb</value>
+    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
     <value>Serwer JMM jest już uruchomiony. Sprawdź czy serwer nie ukrywa się w obszarze powiadomień.</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Błąd</value>
-  </data>
-  <data name="Server_FillOutSettings" xml:space="preserve">
-    <value>Wypełnij wszystkie ustawienia</value>
   </data>
   <data name="Server_FailedToStart" xml:space="preserve">
     <value>Uruchomienie nie powiodło się: </value>
@@ -369,9 +363,6 @@
   <data name="Server_StatsInfoUpdate" xml:space="preserve">
     <value>Aktualizacja wszystkich statystyk o seriach.</value>
   </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Aktualizacja wszystkich informacji z Trakt.</value>
-  </data>
   <data name="Server_SyncVotes" xml:space="preserve">
     <value>Synchronizacja lokalnych głosów z AniDB i MyAnimeList. </value>
   </data>
@@ -431,7 +422,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
     <value>Ścieżka zasobu to katalog, w którym przechowujesz pliki z anime. Musisz dodać co najmniej jeden folder, a następnie wybierać 'Uruchom Import' na karcie akcje</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://jmediamanager.org/JMM-Server/Configuring-JMM-Server/#import-Folders</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
     <value>W przypadku problem z </value>
@@ -440,16 +431,13 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
     <value>Serwerem JMM i dyskami sieciowymi</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#JMM-Shared-Drive</value>
+    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
     <value>Szczegółowe wyjaśnienie</value>
   </data>
   <data name="ImportFolders_ServerPath" xml:space="preserve">
     <value>Ścieżka zasobu</value>
-  </data>
-  <data name="ImportFolders_Delete" xml:space="preserve">
-    <value>Usuń</value>
   </data>
   <data name="ImportFolders_NewFolder" xml:space="preserve">
     <value>Dodaj zasób</value>
@@ -460,14 +448,8 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Confirm" xml:space="preserve">
     <value>Potwierdzić</value>
   </data>
-  <data name="ImportFolders_DeleteFolder" xml:space="preserve">
-    <value>Czy na pewno chcesz usunąć zasób: {0}?</value>
-  </data>
   <data name="ImportFolders_ImportFolder" xml:space="preserve">
     <value>Zasób</value>
-  </data>
-  <data name="ImportFolders_ServerDetails" xml:space="preserve">
-    <value>Szczegóły zasobu</value>
   </data>
   <data name="ImportFolders_InputPath" xml:space="preserve">
     <value>Katalog do zasobu</value>
@@ -489,9 +471,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
     <value>Zasób nie może być jednocześnie folderem źródłowym i docelowym.</value>
-  </data>
-  <data name="ImportFolders_BlankImport" xml:space="preserve">
-    <value>Ścieżka zasobu nie może być pusta. Wprowadź poprawną ścieżkę.</value>
   </data>
   <data name="About_UpdateCheck" xml:space="preserve">
     <value>Sprawdź dostępność aktualizacji</value>
@@ -515,7 +494,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
     <value>Nie masz konta AniDB? Kliknij tutaj, aby utworzyć nowe konto</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
-    <value>https://anidb.net/perl-bin/AnimeDB.pl?show=signup</value>
+    <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Inicjowanie...</value>
@@ -546,9 +525,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Update_DownloadPage" xml:space="preserve">
     <value>Strona pobierania</value>
-  </data>
-  <data name="Update_AboutPage" xml:space="preserve">
-    <value>O stronie</value>
   </data>
   <data name="Update_YourVersion" xml:space="preserve">
     <value>Twoja wersja</value>
@@ -738,9 +714,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Command_GetReviewInfo" xml:space="preserve">
     <value>Pobieranie recenzji z UDP API dla Anime: {0}</value>
-  </data>
-  <data name="Command_GetUpdatedAnime" xml:space="preserve">
-    <value>Pobieranie listy aktualizowanych anime z UDP API</value>
   </data>
   <data name="Command_SyncMyList" xml:space="preserve">
     <value>Synchronizowanie MyList z HTTP API</value>

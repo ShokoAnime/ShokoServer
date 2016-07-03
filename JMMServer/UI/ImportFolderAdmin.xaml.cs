@@ -46,7 +46,7 @@ namespace JMMServer
 
                     MessageBoxResult res =
                         MessageBox.Show(
-                            string.Format(JMMServer.Properties.Resources.ImportFolders_DeleteFolder,
+                            string.Format(JMMServer.Properties.Resources.ImportFolders_RemoveFolder,
                                 ns.ImportFolderLocation),
                             JMMServer.Properties.Resources.Confirm, MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (res == MessageBoxResult.Yes)

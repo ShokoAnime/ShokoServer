@@ -120,9 +120,6 @@
   <data name="JMMServer" xml:space="preserve">
     <value>Servidor JMM</value>
   </data>
-  <data name="Actions_RunImport" xml:space="preserve">
-    <value>Ejecutar importación</value>
-  </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Eliminar archivos que faltan</value>
   </data>
@@ -226,10 +223,10 @@
     <value>MySQL</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/SQLServer/</value>
+    <value>http://jmediamanager.org/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/MySQL/</value>
+    <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server está diseñado para usuarios con una gran colección que supera los más de 200 series que también quieren el rápido desempeño posible. De los tres tipos de base de datos, SQL Server es considerada la más difícil en la creación, pero se puede configurar con facilidad si sigues a la guía que hemos creado.</value>
@@ -295,16 +292,13 @@
     <value>¿Qué significa esto?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#Banned-From-AniDB</value>
+    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
     <value>Servidor de JMM ya se está ejecutando. Por favor revise su bandeja de sistema (área de notificación).</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Error</value>
-  </data>
-  <data name="Server_FillOutSettings" xml:space="preserve">
-    <value>Por favor complete todos los ajustes</value>
   </data>
   <data name="Server_FailedToStart" xml:space="preserve">
     <value>Error al definir comienzo: </value>
@@ -369,9 +363,6 @@
   <data name="Server_StatsInfoUpdate" xml:space="preserve">
     <value>Actualizar toda la información serie añadido a la cola. </value>
   </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Actualizaciones de información de serie de Trakt se han añadido a la cola.</value>
-  </data>
   <data name="Server_SyncVotes" xml:space="preserve">
     <value>Sincronización locales votos con AniDB y MyAnimeList añadido a la cola. </value>
   </data>
@@ -431,7 +422,7 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
     <value>Carpetas de importación son el los lugares base donde guarda su anime. Usted necesitará agregar al menos una carpeta y seleccione 'Ejecutar Import' en la ficha acciones</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://jmediamanager.org/JMM-Server/Configuring-JMM-Server/#Import-folders</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
     <value>Fix para usar</value>
@@ -440,16 +431,13 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
     <value>Servidor de JMM con unidades compartidas</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#JMM-Shared-Drive</value>
+    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
     <value>Explicación detallada de opciones</value>
   </data>
   <data name="ImportFolders_ServerPath" xml:space="preserve">
     <value>Ruta del servidor</value>
-  </data>
-  <data name="ImportFolders_Delete" xml:space="preserve">
-    <value>Eliminar</value>
   </data>
   <data name="ImportFolders_NewFolder" xml:space="preserve">
     <value>Nueva carpeta</value>
@@ -460,14 +448,8 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Confirm" xml:space="preserve">
     <value>Confirmar</value>
   </data>
-  <data name="ImportFolders_DeleteFolder" xml:space="preserve">
-    <value>¿Está seguro que desea eliminar la carpeta de importación: {0}?</value>
-  </data>
   <data name="ImportFolders_ImportFolder" xml:space="preserve">
     <value>Carpeta de importación</value>
-  </data>
-  <data name="ImportFolders_ServerDetails" xml:space="preserve">
-    <value>Detalles servidor</value>
   </data>
   <data name="ImportFolders_InputPath" xml:space="preserve">
     <value>Ruta de la carpeta de importación</value>
@@ -489,9 +471,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
     <value>Una carpeta de importación no puede ser la fuente de la gota y el destino de la gota.</value>
-  </data>
-  <data name="ImportFolders_BlankImport" xml:space="preserve">
-    <value>La ubicación de carpeta de importación no puede ser en blanco. Introduzca una ruta válida en servidor de JMM.</value>
   </data>
   <data name="About_UpdateCheck" xml:space="preserve">
     <value>Buscar actualizaciones</value>
@@ -515,7 +494,7 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
     <value>¿No tiene una cuenta de AniDB? Haga clic aquí para registrarse en una</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
-    <value>https://AniDB.net/Perl-bin/animedb.pl?show=signup</value>
+    <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Inicializando...</value>
@@ -546,9 +525,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Update_DownloadPage" xml:space="preserve">
     <value>Página para descargar</value>
-  </data>
-  <data name="Update_AboutPage" xml:space="preserve">
-    <value>Sobre la página</value>
   </data>
   <data name="Update_YourVersion" xml:space="preserve">
     <value>Su versión</value>
@@ -738,9 +714,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Command_GetReviewInfo" xml:space="preserve">
     <value>Conseguir revisar información del API de UDP para Anime: {0}</value>
-  </data>
-  <data name="Command_GetUpdatedAnime" xml:space="preserve">
-    <value>Obtener lista de animes actualizados de API de UDP</value>
   </data>
   <data name="Command_SyncMyList" xml:space="preserve">
     <value>Sincronización de información de MyList del API HTTP</value>

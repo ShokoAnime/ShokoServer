@@ -503,7 +503,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Getting list of updated animes from UDP API.
+        ///   Looks up a localized string similar to Getting list of updated anime from UDP API.
         /// </summary>
         internal static string Command_GetUpdatedAnime {
             get {
@@ -1178,29 +1178,11 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The import folder location cannot be blank. Enter a valid path on JMM Server..
+        ///   Looks up a localized string similar to The import folder path cannot be blank, please enter a valid path..
         /// </summary>
         internal static string ImportFolders_BlankImport {
             get {
                 return ResourceManager.GetString("ImportFolders_BlankImport", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Delete.
-        /// </summary>
-        internal static string ImportFolders_Delete {
-            get {
-                return ResourceManager.GetString("ImportFolders_Delete", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to delete the Import Folder: {0}?.
-        /// </summary>
-        internal static string ImportFolders_DeleteFolder {
-            get {
-                return ResourceManager.GetString("ImportFolders_DeleteFolder", resourceCulture);
             }
         }
         
@@ -1268,6 +1250,24 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Remove.
+        /// </summary>
+        internal static string ImportFolders_Remove {
+            get {
+                return ResourceManager.GetString("ImportFolders_Remove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to remove the following Import Folder: {0}?.
+        /// </summary>
+        internal static string ImportFolders_RemoveFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_RemoveFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to An import folder cannot be both the drop source and the drop destination..
         /// </summary>
         internal static string ImportFolders_SameFolder {
@@ -1277,11 +1277,11 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Server Details.
+        ///   Looks up a localized string similar to Import Folder Settings.
         /// </summary>
-        internal static string ImportFolders_ServerDetails {
+        internal static string ImportFolders_ServerFolder {
             get {
-                return ResourceManager.GetString("ImportFolders_ServerDetails", resourceCulture);
+                return ResourceManager.GetString("ImportFolders_ServerFolder", resourceCulture);
             }
         }
         
@@ -1466,7 +1466,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to JMM Server needs to restart to change the language, click OK to restart JMM Server or Cancel the language switch..
+        ///   Looks up a localized string similar to JMM Server needs to restart to change the language, click OK to auto restart or Cancel to manually restart..
         /// </summary>
         internal static string Language_Info {
             get {
@@ -1967,7 +1967,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Please fill out all the settings.
+        ///   Looks up a localized string similar to Please fill in all of the required fields.
         /// </summary>
         internal static string Server_FillOutSettings {
             get {
@@ -1985,7 +1985,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Import is already running.
+        ///   Looks up a localized string similar to Import process added to queue.
         /// </summary>
         internal static string Server_ImportRunning {
             get {
@@ -2075,7 +2075,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Folder scanning in progess.
+        ///   Looks up a localized string similar to Folder scanning in progress.
         /// </summary>
         internal static string Server_ScanFolder {
             get {
@@ -2120,7 +2120,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Trakt series info updates have been added to the queue..
+        ///   Looks up a localized string similar to Updating all Trakt info added to queue.
         /// </summary>
         internal static string Server_TraktInfoUpdate {
             get {
@@ -2435,15 +2435,6 @@ namespace JMMServer.Properties {
         internal static string Tooltip_DropSource {
             get {
                 return ResourceManager.GetString("Tooltip_DropSource", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to About Page.
-        /// </summary>
-        internal static string Update_AboutPage {
-            get {
-                return ResourceManager.GetString("Update_AboutPage", resourceCulture);
             }
         }
         

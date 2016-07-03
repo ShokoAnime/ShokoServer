@@ -120,9 +120,6 @@
   <data name="JMMServer" xml:space="preserve">
     <value>JMM Server</value>
   </data>
-  <data name="Actions_RunImport" xml:space="preserve">
-    <value>Eseguire Import</value>
-  </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Rimuovere i file mancanti</value>
   </data>
@@ -226,10 +223,10 @@
     <value>MySQL</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/SqlServer/</value>
+    <value>http://jmediamanager.org/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/MySQL/</value>
+    <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server è pensato per gli utenti con una grande collezione che supera oltre 200 serie che vogliono anche le prestazioni veloce possibile. Fuori i tre tipi di disponibilità del database, SQL Server è considerato il più difficile nella creazione di ma può essere configurato con facilità se si segue la guida che abbiamo creato.</value>
@@ -295,16 +292,13 @@
     <value>Cosa significa?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#Banned-from-AniDB</value>
+    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
     <value>JMM Server è già in esecuzione. Si prega di controllare il tuo vassoio di sistema (area di notifica).</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Errore</value>
-  </data>
-  <data name="Server_FillOutSettings" xml:space="preserve">
-    <value>Si prega di compilare tutte le impostazioni</value>
   </data>
   <data name="Server_FailedToStart" xml:space="preserve">
     <value>Impossibile impostare inizio: </value>
@@ -369,9 +363,6 @@
   <data name="Server_StatsInfoUpdate" xml:space="preserve">
     <value>Aggiornare tutte le informazioni di serie aggiunto alla coda. </value>
   </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Trakt serie informazioni aggiornamenti sono stati aggiunti alla coda.</value>
-  </data>
   <data name="Server_SyncVotes" xml:space="preserve">
     <value>Sincronizzazione locali voti con AniDB e MyAnimeList aggiunto alla coda. </value>
   </data>
@@ -409,7 +400,7 @@
     <value>https://github.com/japanesemediamanager</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
-    <value>http://jmediamanager.org/Blog</value>
+    <value>http://jmediamanager.org/blog</value>
   </data>
   <data name="Admin_AdminMessages" xml:space="preserve">
     <value>Messaggi di admin</value>
@@ -431,7 +422,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
     <value>Importa cartelle sono i percorsi di base dove tieni il tuo anime. Sarà necessario aggiungere almeno una cartella e quindi selezionare 'Esegui importazione' nella scheda azioni</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://jmediamanager.org/JMM-server/Configuring-JMM-Server/#Import-Folders</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
     <value>Difficoltà per l'utilizzo</value>
@@ -440,16 +431,13 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
     <value>JMM Server con unità condivise</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#JMM-Shared-Drive</value>
+    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
     <value>Spiegazione dettagliata delle opzioni</value>
   </data>
   <data name="ImportFolders_ServerPath" xml:space="preserve">
     <value>Percorso del server</value>
-  </data>
-  <data name="ImportFolders_Delete" xml:space="preserve">
-    <value>Elimina</value>
   </data>
   <data name="ImportFolders_NewFolder" xml:space="preserve">
     <value>Nuova cartella</value>
@@ -460,14 +448,8 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Confirm" xml:space="preserve">
     <value>Confermare</value>
   </data>
-  <data name="ImportFolders_DeleteFolder" xml:space="preserve">
-    <value>Sei sicuro di voler eliminare la cartella di importazione: {0}?</value>
-  </data>
   <data name="ImportFolders_ImportFolder" xml:space="preserve">
     <value>Cartella di importazione</value>
-  </data>
-  <data name="ImportFolders_ServerDetails" xml:space="preserve">
-    <value>Dettagli server</value>
   </data>
   <data name="ImportFolders_InputPath" xml:space="preserve">
     <value>Percorso di cartella di importazione</value>
@@ -489,9 +471,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
     <value>Una cartella di importazione non può essere sia l'origine di trascinamento e la destinazione di trascinamento.</value>
-  </data>
-  <data name="ImportFolders_BlankImport" xml:space="preserve">
-    <value>Il percorso della cartella di importazione non può essere vuoto. Immettere un percorso valido sul Server di JMM.</value>
   </data>
   <data name="About_UpdateCheck" xml:space="preserve">
     <value>Controlla aggiornamenti</value>
@@ -515,7 +494,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
     <value>Non hai un account AniDB? Clicca qui per registrarti per uno</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
-    <value>https://AniDB.NET/perl-bin/AnimeDB.pl?Show=signup</value>
+    <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Inizializzazione...</value>
@@ -546,9 +525,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Update_DownloadPage" xml:space="preserve">
     <value>Pagina di download</value>
-  </data>
-  <data name="Update_AboutPage" xml:space="preserve">
-    <value>Sulla pagina</value>
   </data>
   <data name="Update_YourVersion" xml:space="preserve">
     <value>La versione</value>
@@ -739,9 +715,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Command_GetReviewInfo" xml:space="preserve">
     <value>Sempre rivedere informazioni dall'API di UDP per Anime: {0}</value>
   </data>
-  <data name="Command_GetUpdatedAnime" xml:space="preserve">
-    <value>Come ottenere l'elenco di animes aggiornato dall'API di UDP</value>
-  </data>
   <data name="Command_SyncMyList" xml:space="preserve">
     <value>Sincronizzare MyList info dall'API HTTP</value>
   </data>
@@ -849,9 +822,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="SeriesType_FullStory" xml:space="preserve">
     <value>Full Story</value>
-  </data>
-  <data name="Update_Changelog" xml:space="preserve">
-    <value>Changelog</value>
   </data>
   <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
     <value>L'eliminazione di croce ref per Anidb a MAL dalla cache web: {0}!</value>

@@ -344,7 +344,12 @@ namespace JMMServer
 
         private void BtnUpdateTraktInfo_Click(object sender, RoutedEventArgs e)
         {
+            this.Cursor = Cursors.Wait;
             TraktTVHelper.UpdateAllInfo();
+            this.Cursor = Cursors.Arrow;
+            MessageBox.Show(JMMServer.Properties.Resources.Command_UpdateTrakt,
+            JMMServer.Properties.Resources.Success,
+            MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         void workerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -952,14 +957,14 @@ namespace JMMServer
                 // timer for automatic updates
                 autoUpdateTimer = new System.Timers.Timer();
                 autoUpdateTimer.AutoReset = true;
-                autoUpdateTimer.Interval = 5*60*1000; // 5 * 60 seconds (5 minutes)
+                autoUpdateTimer.Interval = 5 * 60 * 1000; // 5 * 60 seconds (5 minutes)
                 autoUpdateTimer.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimer_Elapsed);
                 autoUpdateTimer.Start();
 
                 // timer for automatic updates
                 autoUpdateTimerShort = new System.Timers.Timer();
                 autoUpdateTimerShort.AutoReset = true;
-                autoUpdateTimerShort.Interval = 5*1000; // 5 seconds, later we set it to 30 seconds
+                autoUpdateTimerShort.Interval = 5 * 1000; // 5 seconds, later we set it to 30 seconds
                 autoUpdateTimerShort.Elapsed += new System.Timers.ElapsedEventHandler(autoUpdateTimerShort_Elapsed);
                 autoUpdateTimerShort.Start();
 
@@ -1689,10 +1694,10 @@ namespace JMMServer
 
                     verNew = verInfo.versions.ServerVersionAbs;
 
-                    verCurrent = an.Version.Revision*100 +
-                                 an.Version.Build*100*100 +
-                                 an.Version.Minor*100*100*100 +
-                                 an.Version.Major*100*100*100*100;
+                    verCurrent = an.Version.Revision * 100 +
+                                 an.Version.Build * 100 * 100 +
+                                 an.Version.Minor * 100 * 100 * 100 +
+                                 an.Version.Major * 100 * 100 * 100 * 100;
                 }
 
                 if (forceShowForm || verNew > verCurrent)
@@ -1719,7 +1724,7 @@ namespace JMMServer
             {
                 if (obj.GetType() == typeof(ImportFolder))
                 {
-                    ImportFolder fldr = (ImportFolder) obj;
+                    ImportFolder fldr = (ImportFolder)obj;
 
                     ScanFolder(fldr.ImportFolderID);
                     MessageBox.Show(JMMServer.Properties.Resources.Server_ScanFolder,
@@ -1873,7 +1878,7 @@ namespace JMMServer
             CheckForAdminMesages();
 
 
-            autoUpdateTimerShort.Interval = 30*1000; // 30 seconds
+            autoUpdateTimerShort.Interval = 30 * 1000; // 30 seconds
             autoUpdateTimerShort.Enabled = true;
         }
 
@@ -2183,7 +2188,7 @@ namespace JMMServer
             ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
             smb.HttpGetEnabled = true;
             smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
-            
+
             hostBinary.Description.Behaviors.Add(smb);
             hostBinary.AddServiceEndpoint(typeof(IJMMServer), binding, baseAddressBinary);
 
@@ -2382,7 +2387,7 @@ namespace JMMServer
         private static void StartPlexHost()
         {
             hostPlex = new WebServiceHost(typeof(PlexImplementation), baseAddressPlex);
-            AddCompressableEndpoint(hostPlex, typeof(IJMMServerPlex),SerializationFilter.Plex);
+            AddCompressableEndpoint(hostPlex, typeof(IJMMServerPlex), SerializationFilter.Plex);
             ServiceDebugBehavior stp = hostPlex.Description.Behaviors.Find<ServiceDebugBehavior>();
             stp.HttpHelpPageEnabled = false;
             hostPlex.Open();
@@ -2395,12 +2400,12 @@ namespace JMMServer
             {
                 if (custom.Elements[i] is WebMessageEncodingBindingElement)
                 {
-                    WebMessageEncodingBindingElement webBE = (WebMessageEncodingBindingElement) custom.Elements[i];
+                    WebMessageEncodingBindingElement webBE = (WebMessageEncodingBindingElement)custom.Elements[i];
                     custom.Elements[i] = new CompressedMessageEncodingBindingElement(webBE);
                 }
                 else if (custom.Elements[i] is TransportBindingElement)
                 {
-                    ((TransportBindingElement) custom.Elements[i]).MaxReceivedMessageSize = int.MaxValue;
+                    ((TransportBindingElement)custom.Elements[i]).MaxReceivedMessageSize = int.MaxValue;
                 }
             }
             ServiceEndpoint ep = null;
@@ -2412,7 +2417,7 @@ namespace JMMServer
                 ep = host.AddServiceEndpoint(t, custom, addrurl);
             if (ep == null)
                 ep = host.AddServiceEndpoint(t, custom, "");
-            ep.EndpointBehaviors.Add(new MultiBehavior {  HelpEnabled = true, AutomaticFormatSelectionEnabled = true});
+            ep.EndpointBehaviors.Add(new MultiBehavior { HelpEnabled = true, AutomaticFormatSelectionEnabled = true });
             ep.EndpointBehaviors.Add(new CompressionSelectionEndpointBehavior(filter));
         }
 
@@ -2431,7 +2436,7 @@ namespace JMMServer
             hostFile.Start();
             if (ServerSettings.ExperimentalUPnP)
                 FileServer.FileServer.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerFilePort));
-//                new MessagingServer(new ServiceFactory(), new MessagingServerConfiguration(new HttpMessageFactory()));
+            //                new MessagingServer(new ServiceFactory(), new MessagingServerConfiguration(new HttpMessageFactory()));
             //           hostFile.Start(new IPEndPoint(IPAddress.Any, int.Parse(ServerSettings.JMMServerFilePort)));
         }
 
@@ -2699,7 +2704,7 @@ namespace JMMServer
             {
                 sn = new ImportFolder();
                 sn.ImportFolderName = "Anime";
-                sn.ImportFolderType = (int) ImportFolderType.HDD;
+                sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderLocation = @"M:\[ Anime Test ]";
                 repImportFolders.Save(sn);
             }
@@ -2727,7 +2732,7 @@ namespace JMMServer
             if (sn == null)
             {
                 sn = new ImportFolder();
-                sn.ImportFolderType = (int) ImportFolderType.HDD;
+                sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime 2011";
                 sn.ImportFolderLocation = @"M:\[ Anime 2011 ]";
                 repNetShares.Save(sn);
@@ -2737,7 +2742,7 @@ namespace JMMServer
             if (sn == null)
             {
                 sn = new ImportFolder();
-                sn.ImportFolderType = (int) ImportFolderType.HDD;
+                sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime - DVD and Bluray IN PROGRESS";
                 sn.ImportFolderLocation = @"M:\[ Anime - DVD and Bluray IN PROGRESS ]";
                 repNetShares.Save(sn);
@@ -2747,7 +2752,7 @@ namespace JMMServer
             if (sn == null)
             {
                 sn = new ImportFolder();
-                sn.ImportFolderType = (int) ImportFolderType.HDD;
+                sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime - DVD and Bluray COMPLETE";
                 sn.ImportFolderLocation = @"M:\[ Anime - DVD and Bluray COMPLETE ]";
                 repNetShares.Save(sn);
@@ -2757,7 +2762,7 @@ namespace JMMServer
             if (sn == null)
             {
                 sn = new ImportFolder();
-                sn.ImportFolderType = (int) ImportFolderType.HDD;
+                sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime";
                 sn.ImportFolderLocation = @"M:\[ Anime ]";
                 repNetShares.Save(sn);
@@ -2775,7 +2780,7 @@ namespace JMMServer
             if (sn == null)
             {
                 sn = new ImportFolder();
-                sn.ImportFolderType = (int) ImportFolderType.HDD;
+                sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime1";
                 sn.ImportFolderLocation = @"F:\Anime1";
                 repNetShares.Save(sn);
@@ -2785,7 +2790,7 @@ namespace JMMServer
             if (sn == null)
             {
                 sn = new ImportFolder();
-                sn.ImportFolderType = (int) ImportFolderType.HDD;
+                sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime2";
                 sn.ImportFolderLocation = @"H:\Anime2";
                 repNetShares.Save(sn);
@@ -2795,7 +2800,7 @@ namespace JMMServer
             if (sn == null)
             {
                 sn = new ImportFolder();
-                sn.ImportFolderType = (int) ImportFolderType.HDD;
+                sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime3";
                 sn.ImportFolderLocation = @"G:\Anime3";
                 repNetShares.Save(sn);

@@ -247,7 +247,7 @@
     <value>Switch Language</value>
   </data>
   <data name="Language_Info" xml:space="preserve">
-    <value>JMM Server needs to restart to change the language, click OK to restart JMM Server or Cancel the language switch.</value>
+    <value>JMM Server needs to restart to change the language, click OK to auto restart or Cancel to manually restart.</value>
   </data>
   <data name="Images_Default" xml:space="preserve">
     <value>Default</value>
@@ -304,7 +304,7 @@
     <value>Error</value>
   </data>
   <data name="Server_FillOutSettings" xml:space="preserve">
-    <value>Please fill out all the settings</value>
+    <value>Please fill in all of the required fields</value>
   </data>
   <data name="Server_FailedToStart" xml:space="preserve">
     <value>Failed to set start: </value>
@@ -355,7 +355,7 @@
     <value>Please enter a value between 1 and 65535</value>
   </data>
   <data name="Server_ScanFolder" xml:space="preserve">
-    <value>Folder scanning in progess</value>
+    <value>Folder scanning in progress</value>
   </data>
   <data name="Success" xml:space="preserve">
     <value>Success</value>
@@ -368,9 +368,6 @@
   </data>
   <data name="Server_StatsInfoUpdate" xml:space="preserve">
     <value>Updating all series info added to queue. </value>
-  </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Trakt series info updates have been added to the queue.</value>
   </data>
   <data name="Server_SyncVotes" xml:space="preserve">
     <value>Syncing local votes with AniDB and MyAnimeList added to queue. </value>
@@ -448,8 +445,8 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="ImportFolders_ServerPath" xml:space="preserve">
     <value>Server Path</value>
   </data>
-  <data name="ImportFolders_Delete" xml:space="preserve">
-    <value>Delete</value>
+  <data name="ImportFolders_Remove" xml:space="preserve">
+    <value>Remove</value>
   </data>
   <data name="ImportFolders_NewFolder" xml:space="preserve">
     <value>New Folder</value>
@@ -460,14 +457,14 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Confirm" xml:space="preserve">
     <value>Confirm</value>
   </data>
-  <data name="ImportFolders_DeleteFolder" xml:space="preserve">
-    <value>Are you sure you want to delete the Import Folder: {0}?</value>
+  <data name="ImportFolders_RemoveFolder" xml:space="preserve">
+    <value>Are you sure you want to remove the following Import Folder: {0}?</value>
   </data>
   <data name="ImportFolders_ImportFolder" xml:space="preserve">
     <value>Import Folder</value>
   </data>
-  <data name="ImportFolders_ServerDetails" xml:space="preserve">
-    <value>Server Details</value>
+  <data name="ImportFolders_ServerFolder" xml:space="preserve">
+    <value>Import Folder Settings</value>
   </data>
   <data name="ImportFolders_InputPath" xml:space="preserve">
     <value>Import Folder Path</value>
@@ -491,7 +488,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>An import folder cannot be both the drop source and the drop destination.</value>
   </data>
   <data name="ImportFolders_BlankImport" xml:space="preserve">
-    <value>The import folder location cannot be blank. Enter a valid path on JMM Server.</value>
+    <value>The import folder path cannot be blank, please enter a valid path.</value>
   </data>
   <data name="About_UpdateCheck" xml:space="preserve">
     <value>Check for Updates</value>
@@ -546,9 +543,6 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Update_DownloadPage" xml:space="preserve">
     <value>Download Page</value>
-  </data>
-  <data name="Update_AboutPage" xml:space="preserve">
-    <value>About Page</value>
   </data>
   <data name="Update_YourVersion" xml:space="preserve">
     <value>Your Version</value>
@@ -740,7 +734,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Getting review info from UDP API for Anime: {0}</value>
   </data>
   <data name="Command_GetUpdatedAnime" xml:space="preserve">
-    <value>Getting list of updated animes from UDP API</value>
+    <value>Getting list of updated anime from UDP API</value>
   </data>
   <data name="Command_SyncMyList" xml:space="preserve">
     <value>Syncing MyList info from HTTP API</value>

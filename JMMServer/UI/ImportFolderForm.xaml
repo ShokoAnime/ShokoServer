@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:JMMServer"
         Title="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_ImportFolder}" Height="Auto"
         Width="Auto" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow"
-        SizeToContent="WidthAndHeight" Icon="/JMMServer;component/Images/32_folder.png">
+        SizeToContent="WidthAndHeight" Icon="/JMMServer;component/Images/24_folder.png">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -49,7 +49,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <Image Height="16" Width="16" Source="/Images/32_info.png" Margin="5,2,5,0" Grid.Column="0"
+                        <Image Height="16" Width="16" Source="/Images/16_info.png" Margin="5,2,5,0" Grid.Column="0"
                                VerticalAlignment="Top" />
 
                         <local:HyperLinkStandard Grid.Row="0" Grid.Column="1" VerticalAlignment="Center"
@@ -61,7 +61,7 @@
 
 
                 <TextBlock Grid.Column="0" Grid.Row="1" Margin="0,0,10,5" FontWeight="Bold" Padding="5"
-                           Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_ServerDetails}" />
+                           Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_ServerFolder}" />
 
                 <TextBlock Grid.Column="0" Grid.Row="2" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5"
                            Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_InputPath}" />
@@ -70,7 +70,7 @@
                 <Button Name="btnChooseFolder" Style="{DynamicResource RoundButtonStyle}" Margin="3" Grid.Column="2"
                         Grid.Row="2">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Image Height="16" Width="16" Source="/Images/32_Folder.png" Margin="0,0,0,0" />
+                        <Image Height="16" Width="16" Source="/Images/24_folder.png" Margin="0,0,0,0" />
                     </StackPanel>
                 </Button>
 
@@ -95,7 +95,7 @@
             <Button HorizontalAlignment="Left" Name="btnSave" Margin="0,0,0,0"
                     Style="{DynamicResource FlatButtonStyle}" Width="Auto">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Image Height="16" Width="16" Source="/Images/32_Save.png" Margin="0,0,5,0" />
+                    <Image Height="16" Width="16" Source="/Images/16_save.png" Margin="0,0,5,0" />
                     <TextBlock VerticalAlignment="Center"
                                Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Save}" Margin="0,0,5,0" />
                 </StackPanel>
@@ -104,7 +104,7 @@
             <Button HorizontalAlignment="Left" Name="btnCancel" Margin="10,0,0,0"
                     Style="{DynamicResource FlatButtonStyle}" Width="Auto">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Image Height="16" Width="16" Source="/Images/32_cancel.png" Margin="0,0,5,0" />
+                    <Image Height="16" Width="16" Source="/Images/16_cancel.png" Margin="0,0,5,0" />
                     <TextBlock VerticalAlignment="Center"
                                Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Cancel}" Margin="0,0,5,0" />
                 </StackPanel>
