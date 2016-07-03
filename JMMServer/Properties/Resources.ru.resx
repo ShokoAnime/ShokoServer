@@ -850,9 +850,6 @@
   <data name="Actions_SyncMyList" xml:space="preserve">
     <value>Синхронизация AniDB MyList</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Синхронизация местные голосов с AniDB и ТЗА добавлены в очередь.</value>
-  </data>
   <data name="Server_ImportRunning" xml:space="preserve">
     <value>Добавлено в очередь обработки файлов импорта</value>
   </data>
@@ -879,5 +876,8 @@
   </data>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Удаление всех отсутствующих файлов Добавлено в очередь</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Синхронизация голосов с AniDB и мал</value>
   </data>
 </root>

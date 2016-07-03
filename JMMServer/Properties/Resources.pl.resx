@@ -850,9 +850,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Actions_SyncMyList" xml:space="preserve">
     <value>Synchronizacja AniDB MyList</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Synchronizowanie lokalnych głosów z AniDB i MAL dodane do kolejki.</value>
-  </data>
   <data name="Server_ImportRunning" xml:space="preserve">
     <value>Przetwarzanie pliku importu dodany do kolejki</value>
   </data>
@@ -879,5 +876,8 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Usuwanie wszystkich brakujących plików dodawane do kolejki</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Sync głosów z AniDB i MAL</value>
   </data>
 </root>

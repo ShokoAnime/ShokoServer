@@ -179,7 +179,7 @@
     <value>Sync Trakt Collection</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Syncing local votes with AniDB and MAL added to the queue.</value>
+    <value>Sync Votes With AniDB And MAL</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Update All AniDB Series Info</value>

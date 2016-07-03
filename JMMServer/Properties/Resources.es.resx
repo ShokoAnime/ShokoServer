@@ -850,9 +850,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Actions_SyncMyList" xml:space="preserve">
     <value>Sync AniDB MyList</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sincronización locales votos con AniDB y MAL añadido a la cola.</value>
-  </data>
   <data name="Server_ImportRunning" xml:space="preserve">
     <value>Procesamiento de archivos de importación agrega a cola</value>
   </data>
@@ -879,5 +876,8 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Eliminar todos los archivos que faltan agrega a cola</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Votos de Sync con AniDB y MAL</value>
   </data>
 </root>

@@ -850,9 +850,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Actions_SyncMyList" xml:space="preserve">
     <value>Sync AniDB MyList</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Synchronisierung lokale stimmen mit AniDB und MAL hinzugefügt der Warteschlange.</value>
-  </data>
   <data name="Server_ImportRunning" xml:space="preserve">
     <value>Import-Datei-Verarbeitung zur Warteschlange hinzugefügt</value>
   </data>
@@ -879,5 +876,8 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Entfernen alle fehlende Dateien hinzugefügt zur Warteschlange</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Sync stimmen mit AniDB und MAL</value>
   </data>
 </root>

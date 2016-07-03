@@ -850,9 +850,6 @@
   <data name="Actions_SyncMyList" xml:space="preserve">
     <value>Sincronização AniDB MyList</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sincronização locais votos com AniDB e MAL adicionado à fila.</value>
-  </data>
   <data name="Server_ImportRunning" xml:space="preserve">
     <value>Adicionado à fila de processamento do arquivo de importação</value>
   </data>
@@ -879,5 +876,8 @@
   </data>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Remover todos os arquivos ausentes adicionado à fila</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Votos de sincronização com AniDB e MAL</value>
   </data>
 </root>

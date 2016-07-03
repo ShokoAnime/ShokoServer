@@ -850,9 +850,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Actions_SyncMyList" xml:space="preserve">
     <value>Sincronizzazione AniDB MyList</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sincronizzazione locali voti con AniDB e MAL aggiunto alla coda.</value>
-  </data>
   <data name="Server_ImportRunning" xml:space="preserve">
     <value>Elaborazione del file di importazione aggiunto alla coda</value>
   </data>
@@ -879,5 +876,8 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Rimuovere tutti i file mancanti aggiunta alla coda</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Voti di sincronizzazione con AniDB e MAL</value>
   </data>
 </root>

@@ -133,7 +133,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Syncing local votes with AniDB and MAL added to the queue..
+        ///   Looks up a localized string similar to Sync Votes With AniDB And MAL.
         /// </summary>
         internal static string Actions_SyncVotes {
             get {
