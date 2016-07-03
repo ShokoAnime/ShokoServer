@@ -605,6 +605,8 @@ namespace JMMServer
         {
             if (cboLanguages.SelectedItem == null) return;
             UserCulture ul = cboLanguages.SelectedItem as UserCulture;
+            bool isLanguageChanged = ServerSettings.Culture != ul.Culture;
+            System.Windows.Forms.DialogResult result;
 
             try
             {
@@ -612,6 +614,12 @@ namespace JMMServer
                 CultureInfo.DefaultThreadCurrentUICulture = ci;
                 CultureManager.UICulture = ci;
                 ServerSettings.Culture = ul.Culture;
+                if (isLanguageChanged)
+                {
+                    result = System.Windows.Forms.MessageBox.Show(JMMServer.Properties.Resources.Language_Info, JMMServer.Properties.Resources.Language_Switch, System.Windows.Forms.MessageBoxButtons.OKCancel, System.Windows.Forms.MessageBoxIcon.Information);
+                    if (result == System.Windows.Forms.DialogResult.OK)
+                        shutdownServer();
+                }
 
             }
             catch (Exception ex)
@@ -1856,6 +1864,11 @@ namespace JMMServer
         }
 
         void btnToolbarShutdown_Click(object sender, RoutedEventArgs e)
+        {
+            shutdownServer();
+        }
+
+        void shutdownServer()
         {
             isAppExiting = true;
             this.Close();
