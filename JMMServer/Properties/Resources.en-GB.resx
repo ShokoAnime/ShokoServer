@@ -877,4 +877,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Sending cross ref for file to episode to web cache: {0}!</value>
   </data>
+  <data name="Server_RemoveMissingFiles" xml:space="preserve">
+    <value>Removing all missing files added to queue</value>
+  </data>
 </root>

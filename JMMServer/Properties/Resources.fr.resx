@@ -847,4 +847,37 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Update_Changelog" xml:space="preserve">
     <value>Changelog</value>
   </data>
+  <data name="Actions_SyncMyList" xml:space="preserve">
+    <value>Sync AniDB MyList</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Synchronisation locales votes avec AniDB et MAL ajouté à la file d’attente.</value>
+  </data>
+  <data name="Server_ImportRunning" xml:space="preserve">
+    <value>Traitement du fichier ajouté à la file d’attente d’importation</value>
+  </data>
+  <data name="Server_SyncMyList" xml:space="preserve">
+    <value>Synchronisation des métadonnées de ce produit avec AniDB MyList ajouté à la file d’attente.</value>
+  </data>
+  <data name="InitialSetup_Login" xml:space="preserve">
+    <value>Exploitation forestière en...</value>
+  </data>
+  <data name="Command_StartingHasher" xml:space="preserve">
+    <value>Travailleur de commande départ hasher</value>
+  </data>
+  <data name="Command_StartingImages" xml:space="preserve">
+    <value>Image départ téléchargement travailleur de commande</value>
+  </data>
+  <data name="Command_StartingGeneral" xml:space="preserve">
+    <value>À partir de travailleur de commandement général</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Mise à jour regardé statut sur LTA : {0}</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Mise à jour toutes les infos de série Trakt, ajouté à la file d’attente</value>
+  </data>
+  <data name="Server_RemoveMissingFiles" xml:space="preserve">
+    <value>Supprimer tous les fichiers manquants ajoutés à la file d’attente</value>
+  </data>
 </root>

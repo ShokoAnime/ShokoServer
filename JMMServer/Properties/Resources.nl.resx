@@ -847,4 +847,37 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Update_Changelog" xml:space="preserve">
     <value>Changelog</value>
   </data>
+  <data name="Actions_SyncMyList" xml:space="preserve">
+    <value>Sync AniDB MyList</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Synchroniseren lokale stemmen met AniDB en MAL toegevoegd aan de wachtrij.</value>
+  </data>
+  <data name="Server_ImportRunning" xml:space="preserve">
+    <value>Verwerking van import bestand toegevoegd aan de wachtrij</value>
+  </data>
+  <data name="Server_SyncMyList" xml:space="preserve">
+    <value>Synchroniseren collectie metagegevens met AniDB MyList toegevoegd aan de wachtrij.</value>
+  </data>
+  <data name="InitialSetup_Login" xml:space="preserve">
+    <value>Inloggen...</value>
+  </data>
+  <data name="Command_StartingHasher" xml:space="preserve">
+    <value>Startende hasher opdracht werknemer</value>
+  </data>
+  <data name="Command_StartingImages" xml:space="preserve">
+    <value>Startende afbeelding opdracht werknemer downloaden</value>
+  </data>
+  <data name="Command_StartingGeneral" xml:space="preserve">
+    <value>Algemene opdracht werknemer starten</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Status op MAL bijwerken keek: {0}</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Bijwerken van alle Trakt serie info toegevoegd aan wachtrij</value>
+  </data>
+  <data name="Server_RemoveMissingFiles" xml:space="preserve">
+    <value>Het verwijderen van alle ontbrekende bestanden toegevoegd aan de wachtrij</value>
+  </data>
 </root>

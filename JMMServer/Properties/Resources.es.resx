@@ -847,4 +847,37 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Command_GetUpdatedAnime" xml:space="preserve">
     <value>Obtener lista de anime actualizada de API de UDP</value>
   </data>
+  <data name="Actions_SyncMyList" xml:space="preserve">
+    <value>Sync AniDB MyList</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Sincronización locales votos con AniDB y MAL añadido a la cola.</value>
+  </data>
+  <data name="Server_ImportRunning" xml:space="preserve">
+    <value>Procesamiento de archivos de importación agrega a cola</value>
+  </data>
+  <data name="Server_SyncMyList" xml:space="preserve">
+    <value>Sincronización de metadatos de colección con AniDB MyList añadido a la cola.</value>
+  </data>
+  <data name="InitialSetup_Login" xml:space="preserve">
+    <value>Registro en...</value>
+  </data>
+  <data name="Command_StartingHasher" xml:space="preserve">
+    <value>A partir de trabajador de comando hasher</value>
+  </data>
+  <data name="Command_StartingImages" xml:space="preserve">
+    <value>Imagen partida descarga trabajador de comando</value>
+  </data>
+  <data name="Command_StartingGeneral" xml:space="preserve">
+    <value>A partir de trabajador de comando general</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Actualización VI estado de MAL: {0}</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Actualización de toda información de serie de Trakt añadida a la cola</value>
+  </data>
+  <data name="Server_RemoveMissingFiles" xml:space="preserve">
+    <value>Eliminar todos los archivos que faltan agrega a cola</value>
+  </data>
 </root>

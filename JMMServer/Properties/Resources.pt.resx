@@ -847,4 +847,37 @@
   <data name="Update_Changelog" xml:space="preserve">
     <value>Changelog</value>
   </data>
+  <data name="Actions_SyncMyList" xml:space="preserve">
+    <value>Sincronização AniDB MyList</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Sincronização locais votos com AniDB e MAL adicionado à fila.</value>
+  </data>
+  <data name="Server_ImportRunning" xml:space="preserve">
+    <value>Adicionado à fila de processamento do arquivo de importação</value>
+  </data>
+  <data name="Server_SyncMyList" xml:space="preserve">
+    <value>Como sincronizar metadados coleção com AniDB MyList adicionado à fila.</value>
+  </data>
+  <data name="InitialSetup_Login" xml:space="preserve">
+    <value>Log em...</value>
+  </data>
+  <data name="Command_StartingHasher" xml:space="preserve">
+    <value>Trabalhador de comando partida ajudante</value>
+  </data>
+  <data name="Command_StartingImages" xml:space="preserve">
+    <value>Imagem inicial transferindo o trabalhador de comando</value>
+  </data>
+  <data name="Command_StartingGeneral" xml:space="preserve">
+    <value>Começando o trabalhador do comando geral</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Atualizando assisti status no MAL: {0}</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Atualizando todas as informações de série Trakt adicionada à fila</value>
+  </data>
+  <data name="Server_RemoveMissingFiles" xml:space="preserve">
+    <value>Remover todos os arquivos ausentes adicionado à fila</value>
+  </data>
 </root>
