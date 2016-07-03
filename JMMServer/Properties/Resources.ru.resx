@@ -126,14 +126,8 @@
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Удалить отсутствующие файлы</value>
   </data>
-  <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Синхронизировать мой список</value>
-  </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
     <value>Синхронизация коллекции Trakt</value>
-  </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Синхронизация голосов</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Обновить все серии AniDB информация</value>
@@ -342,9 +336,6 @@
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
     <value>Обновление метаданных всех видео файлов добавлено в очередь.</value>
   </data>
-  <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Импорт выполняется</value>
-  </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Введите значение</value>
   </data>
@@ -371,9 +362,6 @@
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Синхронизация коллекции метаданных с Trakt добавлены в очередь. </value>
-  </data>
-  <data name="Server_SyncMyList" xml:space="preserve">
-    <value>Синхронизация коллекции метаданных с AniDB добавлены в очередь. </value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
     <value>Сканирование отсутствующих файлов добавлено в очередь.</value>
@@ -502,9 +490,6 @@
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Инициализация...</value>
   </data>
-  <data name="InitialSetup_Login" xml:space="preserve">
-    <value>Вход...</value>
-  </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Утилизация...</value>
   </data>
@@ -555,15 +540,6 @@
   </data>
   <data name="Command_Idle" xml:space="preserve">
     <value>Ожидание</value>
-  </data>
-  <data name="Command_StartingHasher" xml:space="preserve">
-    <value>Запуск обрботчика команд (хэширование)...</value>
-  </data>
-  <data name="Command_StartingImages" xml:space="preserve">
-    <value>Запуск обрботчика команд (изображения)...</value>
-  </data>
-  <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>Запуск обрботчика команд (общие)...</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Фильм</value>
@@ -739,9 +715,6 @@
   <data name="Command_SearchMal" xml:space="preserve">
     <value>Поиск аниме на MAL: {0}</value>
   </data>
-  <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Обновление статуса на MAL: {0}</value>
-  </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
     <value>Загрузка статуса просмотра на MAL</value>
   </data>
@@ -759,9 +732,6 @@
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
     <value>Синхронизация коллекции Trakt для сериала: {0}</value>
-  </data>
-  <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Обновление всех сериалов из Trakt </value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Обновление информация/изображений на Trakt.TV: {0}</value>
@@ -876,8 +846,5 @@
   </data>
   <data name="Command_GetUpdatedAnime" xml:space="preserve">
     <value>Получение списка Обновлено аниме от UDP API</value>
-  </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Обновление всех тракт информация добавлена в очередь</value>
   </data>
 </root>

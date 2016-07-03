@@ -123,14 +123,8 @@
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Usuń brakujące pliki</value>
   </data>
-  <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Synchronizacja listy</value>
-  </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
     <value>Synchronizacja Trakt</value>
-  </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Synchronizacja ocen</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Aktualizacja wszystkich serii AniDB Info</value>
@@ -339,9 +333,6 @@
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
     <value>Aktualizacja wszystkich informacje o plików wideo</value>
   </data>
-  <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Importowanie jest już uruchomiony</value>
-  </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Podaj wartość</value>
   </data>
@@ -368,9 +359,6 @@
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Synchronizacja metadanych kolekcji z Trakt. </value>
-  </data>
-  <data name="Server_SyncMyList" xml:space="preserve">
-    <value>Synchronizacji metadanych kolekcja z AniDB. </value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
     <value>Skanowanie w poszukiwaniu brakujące pliki.</value>
@@ -499,9 +487,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Inicjowanie...</value>
   </data>
-  <data name="InitialSetup_Login" xml:space="preserve">
-    <value>Logowanie do systemu...</value>
-  </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Usuwania...</value>
   </data>
@@ -552,15 +537,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Command_Idle" xml:space="preserve">
     <value>Bezczynność</value>
-  </data>
-  <data name="Command_StartingHasher" xml:space="preserve">
-    <value>Uruchamianie polecenia (hasher)...</value>
-  </data>
-  <data name="Command_StartingImages" xml:space="preserve">
-    <value>Uruchamianie polecenia (grafika)...</value>
-  </data>
-  <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>Uruchamianie polecenia (ogólne)...</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Film</value>
@@ -736,9 +712,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Command_SearchMal" xml:space="preserve">
     <value>Wyszukiwanie anime na MAL: {0}</value>
   </data>
-  <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Aktualizacji statusu na MAL: {0}</value>
-  </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
     <value>Wysyłanie statusów obejrzenia do MAL</value>
   </data>
@@ -756,9 +729,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
     <value>Synchronizowanie z Trakt dla: {0}</value>
-  </data>
-  <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Aktualizowanie wszystkich informacji na temat serii z Trakt</value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Aktualizowanie informacji/grafik z Trakt.TV: {0}</value>
@@ -876,8 +846,5 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Command_GetUpdatedAnime" xml:space="preserve">
     <value>Pobieranie listy zaktualizowanych anime z UDP API</value>
-  </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Aktualizowanie wszystkich Trakt informacje dodane do kolejki</value>
   </data>
 </root>

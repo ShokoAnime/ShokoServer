@@ -173,13 +173,13 @@
     <value>Remove Missing Files</value>
   </data>
   <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Sync My List</value>
+    <value>Sync AniDB MyList</value>
   </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
     <value>Sync Trakt Collection</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync Votes</value>
+    <value>Syncing local votes with AniDB and MAL added to the queue.</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Update All AniDB Series Info</value>
@@ -395,7 +395,7 @@
     <value>Updating all files video media info added to queue.</value>
   </data>
   <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Import process added to queue</value>
+    <value>Import file processing added to queue</value>
   </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Please enter a value</value>
@@ -425,7 +425,7 @@
     <value>Syncing collection metadata with Trakt added to queue. </value>
   </data>
   <data name="Server_SyncMyList" xml:space="preserve">
-    <value>Syncing collection metadata with AniDB added to queue. </value>
+    <value>Syncing collection metadata with AniDB MyList added to queue.</value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
     <value>Scanning for missing files added to queue.</value>
@@ -567,7 +567,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Initializing...</value>
   </data>
   <data name="InitialSetup_Login" xml:space="preserve">
-    <value>Login...</value>
+    <value>Logging In...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Disposing...</value>
@@ -621,13 +621,13 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Idle</value>
   </data>
   <data name="Command_StartingHasher" xml:space="preserve">
-    <value>Starting command worker (hasher)...</value>
+    <value>Starting hasher command worker</value>
   </data>
   <data name="Command_StartingImages" xml:space="preserve">
-    <value>Starting command worker (images)...</value>
+    <value>Starting image downloading command worker</value>
   </data>
   <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>Starting command worker (general)...</value>
+    <value>Starting general command worker</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Movie</value>
@@ -705,13 +705,13 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Other</value>
   </data>
   <data name="Command_Refresh" xml:space="preserve">
-    <value>Refreshing Anime Stats: {0}</value>
+    <value>Refreshing anime stats: {0}</value>
   </data>
   <data name="AniDB_GettingAnimeXML" xml:space="preserve">
-    <value>Getting Anime XML Data From ANIDB: {0}</value>
+    <value>Getting anime XML data from AniDB: {0}</value>
   </data>
   <data name="AniDB_GotAnimeXML" xml:space="preserve">
-    <value>Got Anime XML Data From ANIDB: {0} - {1} - {2}</value>
+    <value>Got anime XML Data From AniDB: {0} - {1} - {2}</value>
   </data>
   <data name="Command_AnimeInfo" xml:space="preserve">
     <value>Getting anime info from HTTP API: {0}</value>
@@ -720,7 +720,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Getting file info from UDP API: {0}</value>
   </data>
   <data name="Command_ReadingMedia" xml:space="preserve">
-    <value>Reading Media Info for File: {0}</value>
+    <value>Reading media info for file: {0}</value>
   </data>
   <data name="Command_GettingTvDB" xml:space="preserve">
     <value>Getting episodes from The TvDB: {0}</value>
@@ -762,7 +762,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Deleting file from MyList: {0}_{1}</value>
   </data>
   <data name="AniDB_GetTitles" xml:space="preserve">
-    <value>Getting AniDB Titles</value>
+    <value>Getting AniDB titles</value>
   </data>
   <data name="Command_GetCalendar" xml:space="preserve">
     <value>Getting calendar info from UDP API</value>
@@ -786,13 +786,13 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Syncing MyList info from HTTP API</value>
   </data>
   <data name="Command_SyncVotes" xml:space="preserve">
-    <value>Syncing Vote info from HTTP API</value>
+    <value>Syncing vote info from HTTP API</value>
   </data>
   <data name="Command_UpdateMyListInfo" xml:space="preserve">
     <value>Updating MyList info from UDP API for File: {0}</value>
   </data>
   <data name="Command_UpdateMyListStats" xml:space="preserve">
-    <value>Updating AniDB MyListStats</value>
+    <value>Updating AniDB MyList Stats</value>
   </data>
   <data name="Command_VoteAnime" xml:space="preserve">
     <value>Voting: {0} - {1}</value>
@@ -804,7 +804,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Searching for anime on MAL: {0}</value>
   </data>
   <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Updating status on MAL: {0}</value>
+    <value>Updating watched status on MAL: {0}</value>
   </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
     <value>Uploading watched states to MAL</value>
@@ -819,19 +819,19 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Searching for anime on Trakt.TV: {0}</value>
   </data>
   <data name="Command_SyncTrakt" xml:space="preserve">
-    <value>Syncing Trakt Collection</value>
+    <value>Syncing Trakt collection</value>
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
-    <value>Syncing Trakt Collection for series: {0}</value>
+    <value>Syncing Trakt collection for series: {0}</value>
   </data>
   <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Updating all Trakt Series Info</value>
+    <value>Updating all Trakt series info added to queue</value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Updating info/images on Trakt.TV: {0}</value>
   </data>
   <data name="Command_SendAnimeFull" xml:space="preserve">
-    <value>Sending anime full to azure: {0}</value>
+    <value>Sending all anime info to azure: {0}</value>
   </data>
   <data name="Command_SendAnimeTitle" xml:space="preserve">
     <value>Sending anime title to azure: {0}</value>
@@ -926,7 +926,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Sending cross ref for file to episode to web cache: {0}</value>
   </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Updating all Trakt info added to queue</value>
+  <data name="Server_RemoveMissingFiles" xml:space="preserve">
+    <value>Removing all missing files added to queue</value>
   </data>
 </root>

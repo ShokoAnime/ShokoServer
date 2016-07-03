@@ -115,7 +115,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Sync My List.
+        ///   Looks up a localized string similar to Sync AniDB MyList.
         /// </summary>
         internal static string Actions_SyncMyList {
             get {
@@ -133,7 +133,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Sync Votes.
+        ///   Looks up a localized string similar to Syncing local votes with AniDB and MAL added to the queue..
         /// </summary>
         internal static string Actions_SyncVotes {
             get {
@@ -232,7 +232,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Getting Anime XML Data From ANIDB: {0}.
+        ///   Looks up a localized string similar to Getting anime XML data from AniDB: {0}.
         /// </summary>
         internal static string AniDB_GettingAnimeXML {
             get {
@@ -241,7 +241,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Getting AniDB Titles.
+        ///   Looks up a localized string similar to Getting AniDB titles.
         /// </summary>
         internal static string AniDB_GetTitles {
             get {
@@ -250,7 +250,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Got Anime XML Data From ANIDB: {0} - {1} - {2}.
+        ///   Looks up a localized string similar to Got anime XML Data From AniDB: {0} - {1} - {2}.
         /// </summary>
         internal static string AniDB_GotAnimeXML {
             get {
@@ -548,7 +548,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Reading Media Info for File: {0}.
+        ///   Looks up a localized string similar to Reading media info for file: {0}.
         /// </summary>
         internal static string Command_ReadingMedia {
             get {
@@ -557,7 +557,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Refreshing Anime Stats: {0}.
+        ///   Looks up a localized string similar to Refreshing anime stats: {0}.
         /// </summary>
         internal static string Command_Refresh {
             get {
@@ -611,7 +611,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Sending anime full to azure: {0}.
+        ///   Looks up a localized string similar to Sending all anime info to azure: {0}.
         /// </summary>
         internal static string Command_SendAnimeFull {
             get {
@@ -638,7 +638,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Starting command worker (general)....
+        ///   Looks up a localized string similar to Starting general command worker.
         /// </summary>
         internal static string Command_StartingGeneral {
             get {
@@ -647,7 +647,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Starting command worker (hasher)....
+        ///   Looks up a localized string similar to Starting hasher command worker.
         /// </summary>
         internal static string Command_StartingHasher {
             get {
@@ -656,7 +656,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Starting command worker (images)....
+        ///   Looks up a localized string similar to Starting image downloading command worker.
         /// </summary>
         internal static string Command_StartingImages {
             get {
@@ -674,7 +674,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Syncing Trakt Collection.
+        ///   Looks up a localized string similar to Syncing Trakt collection.
         /// </summary>
         internal static string Command_SyncTrakt {
             get {
@@ -692,7 +692,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Syncing Trakt Collection for series: {0}.
+        ///   Looks up a localized string similar to Syncing Trakt collection for series: {0}.
         /// </summary>
         internal static string Command_SyncTraktSeries {
             get {
@@ -701,7 +701,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Syncing Vote info from HTTP API.
+        ///   Looks up a localized string similar to Syncing vote info from HTTP API.
         /// </summary>
         internal static string Command_SyncVotes {
             get {
@@ -719,7 +719,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Updating status on MAL: {0}.
+        ///   Looks up a localized string similar to Updating watched status on MAL: {0}.
         /// </summary>
         internal static string Command_UpdateMALWatched {
             get {
@@ -737,7 +737,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Updating AniDB MyListStats.
+        ///   Looks up a localized string similar to Updating AniDB MyList Stats.
         /// </summary>
         internal static string Command_UpdateMyListStats {
             get {
@@ -746,7 +746,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Updating all Trakt Series Info.
+        ///   Looks up a localized string similar to Updating all Trakt series info added to queue.
         /// </summary>
         internal static string Command_UpdateTrakt {
             get {
@@ -1412,7 +1412,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Login....
+        ///   Looks up a localized string similar to Logging In....
         /// </summary>
         internal static string InitialSetup_Login {
             get {
@@ -1985,7 +1985,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Import process added to queue.
+        ///   Looks up a localized string similar to Import file processing added to queue.
         /// </summary>
         internal static string Server_ImportRunning {
             get {
@@ -2066,6 +2066,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Removing all missing files added to queue.
+        /// </summary>
+        internal static string Server_RemoveMissingFiles {
+            get {
+                return ResourceManager.GetString("Server_RemoveMissingFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to JMM Server is already running. Please check your system tray (notification area)..
         /// </summary>
         internal static string Server_Running {
@@ -2093,7 +2102,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Syncing collection metadata with AniDB added to queue. .
+        ///   Looks up a localized string similar to Syncing collection metadata with AniDB MyList added to queue..
         /// </summary>
         internal static string Server_SyncMyList {
             get {
@@ -2116,15 +2125,6 @@ namespace JMMServer.Properties {
         internal static string Server_SyncVotes {
             get {
                 return ResourceManager.GetString("Server_SyncVotes", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Updating all Trakt info added to queue.
-        /// </summary>
-        internal static string Server_TraktInfoUpdate {
-            get {
-                return ResourceManager.GetString("Server_TraktInfoUpdate", resourceCulture);
             }
         }
         

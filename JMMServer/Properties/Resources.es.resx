@@ -123,14 +123,8 @@
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Eliminar archivos que faltan</value>
   </data>
-  <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Sincronizar mi lista</value>
-  </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
     <value>Colección de Trakt Sync</value>
-  </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Votos de sincronización</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Actualizar toda la información serie AniDB</value>
@@ -339,9 +333,6 @@
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
     <value>Actualización de toda información de medios video de archivos añadida a la cola.</value>
   </data>
-  <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Importación ya se está ejecutando</value>
-  </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Por favor, introduzca un valor</value>
   </data>
@@ -368,9 +359,6 @@
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Sincronización de colección de metadatos con Trakt añadido a la cola. </value>
-  </data>
-  <data name="Server_SyncMyList" xml:space="preserve">
-    <value>Sincronización de colección de metadatos con AniDB añadido a la cola. </value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
     <value>Análisis falta archivos añadidos a la cola.</value>
@@ -499,9 +487,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Inicializando...</value>
   </data>
-  <data name="InitialSetup_Login" xml:space="preserve">
-    <value>Inicio de sesión...</value>
-  </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Eliminación...</value>
   </data>
@@ -552,15 +537,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Command_Idle" xml:space="preserve">
     <value>Marcha lenta</value>
-  </data>
-  <data name="Command_StartingHasher" xml:space="preserve">
-    <value>Trabajador a partir del comando (hasher)...</value>
-  </data>
-  <data name="Command_StartingImages" xml:space="preserve">
-    <value>Trabajador a partir del comando (imágenes)...</value>
-  </data>
-  <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>Arrancando el "worker" comando (general)...</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Película</value>
@@ -736,9 +712,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Command_SearchMal" xml:space="preserve">
     <value>Busca anime en MAL: {0}</value>
   </data>
-  <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Actualización de estado de MAL: {0}</value>
-  </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
     <value>Subir ver Estados de MAL</value>
   </data>
@@ -756,9 +729,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
     <value>Colección de Trakt de sincronización para serie: {0}</value>
-  </data>
-  <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Actualización de toda información de serie de Trakt</value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Actualización de información/imágenes de Trakt.TV: {0}</value>
@@ -876,8 +846,5 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Command_GetUpdatedAnime" xml:space="preserve">
     <value>Obtener lista de anime actualizada de API de UDP</value>
-  </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Actualizar toda la información Trakt añadido a la cola</value>
   </data>
 </root>

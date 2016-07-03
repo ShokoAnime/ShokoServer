@@ -123,14 +123,8 @@
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Entferne fehlende Dateien</value>
   </data>
-  <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Synchronisiere My List</value>
-  </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
     <value>Synchronisiere Trakt Sammlung</value>
-  </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Synchronisiere Votum</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Aktualisiere alle AniDB Serieninfos</value>
@@ -339,9 +333,6 @@
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
     <value>Aktualisierung der Media Infos aller Videodateien zur Warteschlange hinzugefügt.</value>
   </data>
-  <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Import läuft bereits</value>
-  </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Bitte gib einen Wert ein</value>
   </data>
@@ -368,9 +359,6 @@
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Beim Synchronisieren Auflistung Metadaten mit Trakt hinzugefügt zur Warteschlange. </value>
-  </data>
-  <data name="Server_SyncMyList" xml:space="preserve">
-    <value>Beim Synchronisieren Auflistung Metadaten mit AniDB hinzugefügt zur Warteschlange. </value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
     <value>Scannen nach verlorenen Dateien zur Warteschlange hinzugefügt.</value>
@@ -499,9 +487,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Wird initialisiert...</value>
   </data>
-  <data name="InitialSetup_Login" xml:space="preserve">
-    <value>Login...</value>
-  </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Entsorgung...</value>
   </data>
@@ -552,15 +537,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="Command_Idle" xml:space="preserve">
     <value>Leerlauf</value>
-  </data>
-  <data name="Command_StartingHasher" xml:space="preserve">
-    <value>Befehl-Arbeiter (Hasher) gestartet...</value>
-  </data>
-  <data name="Command_StartingImages" xml:space="preserve">
-    <value>Start Befehl Arbeiter (Bilder)...</value>
-  </data>
-  <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>Start Befehl Arbeiter (allgemein)...</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Film</value>
@@ -736,9 +712,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Command_SearchMal" xml:space="preserve">
     <value>Suche nach Anime auf MAL: {0}</value>
   </data>
-  <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Status auf MAL aktualisieren: {0}</value>
-  </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
     <value>Staaten von MAL sah hochladen</value>
   </data>
@@ -756,9 +729,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
     <value>Synchronisieren-Trakt Collection für Serie: {0}</value>
-  </data>
-  <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Aktualisierung alle Trakt Serie Info</value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Aktualisieren von Informationen/Bilder auf Trakt.TV: {0}</value>
@@ -876,8 +846,5 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="Update_Changelog" xml:space="preserve">
     <value>Changelog</value>
-  </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Aktualisierung alle Trakt Info hinzugefügt zur Warteschlange</value>
   </data>
 </root>

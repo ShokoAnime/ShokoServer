@@ -132,7 +132,7 @@
                             </StackPanel>
                         </Button>
 
-                        <!-- Sync MyList -->
+                        <!-- Sync AniDB MyList -->
                         <Button HorizontalAlignment="Left" Name="btnSyncMyList" Margin="0,0,0,0"
                                 Style="{DynamicResource FlatButtonStyle}" Width="Auto">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

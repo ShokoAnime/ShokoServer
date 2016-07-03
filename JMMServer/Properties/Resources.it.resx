@@ -123,14 +123,8 @@
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Rimuovere i file mancanti</value>
   </data>
-  <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Sincronizzare la mia lista</value>
-  </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
     <value>Collezione Trakt Sync</value>
-  </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Voti di sincronizzazione</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Aggiornare tutte le serie di AniDB Info</value>
@@ -339,9 +333,6 @@
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
     <value>L'aggiornamento di tutte le informazioni di media video file aggiunte alla coda.</value>
   </data>
-  <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Importazione è già in esecuzione</value>
-  </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Si prega di inserire un valore</value>
   </data>
@@ -368,9 +359,6 @@
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>La sincronizzazione metadati della raccolta con Trakt aggiunto alla coda. </value>
-  </data>
-  <data name="Server_SyncMyList" xml:space="preserve">
-    <value>La sincronizzazione metadati della raccolta con AniDB aggiunto alla coda. </value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
     <value>Scansione per i file aggiunti alla coda mancanti.</value>
@@ -499,9 +487,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Inizializzazione...</value>
   </data>
-  <data name="InitialSetup_Login" xml:space="preserve">
-    <value>Account di accesso...</value>
-  </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Smaltimento...</value>
   </data>
@@ -552,15 +537,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Command_Idle" xml:space="preserve">
     <value>Idle</value>
-  </data>
-  <data name="Command_StartingHasher" xml:space="preserve">
-    <value>A partire dell'operaio di comando (tuttofare)...</value>
-  </data>
-  <data name="Command_StartingImages" xml:space="preserve">
-    <value>A partire dell'operaio di comando (immagini)...</value>
-  </data>
-  <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>A partire dell'operaio di comando (generale)...</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Film</value>
@@ -736,9 +712,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Command_SearchMal" xml:space="preserve">
     <value>Alla ricerca di anime su MAL: {0}</value>
   </data>
-  <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Aggiornamento dello stato su MAL: {0}</value>
-  </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
     <value>Caricamento guardato agli Stati di MAL</value>
   </data>
@@ -756,9 +729,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
     <value>La sincronizzazione Trakt collezione per serie: {0}</value>
-  </data>
-  <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Aggiornare tutte le informazioni di serie Trakt</value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Aggiornamento di informazioni/immagini su Trakt.TV: {0}</value>
@@ -876,8 +846,5 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Update_Changelog" xml:space="preserve">
     <value>Changelog</value>
-  </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Aggiornare tutte le informazioni di Trakt aggiunto alla coda</value>
   </data>
 </root>

@@ -1821,7 +1821,7 @@ namespace JMMServer
         void btnRemoveMissingFiles_Click(object sender, RoutedEventArgs e)
         {
             RemoveMissingFiles();
-            MessageBox.Show(JMMServer.Properties.Resources.Server_SyncMyList, JMMServer.Properties.Resources.Success,
+            MessageBox.Show(JMMServer.Properties.Resources.Server_RemoveMissingFiles, JMMServer.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 

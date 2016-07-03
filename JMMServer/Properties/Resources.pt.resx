@@ -123,14 +123,8 @@
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Remover arquivos faltando</value>
   </data>
-  <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Sincronizar a minha lista</value>
-  </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
     <value>Sincronizar Coleção do Trakt</value>
-  </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sincronizar Votos</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Atualizar todas as informações de séries do AniDB</value>
@@ -342,9 +336,6 @@
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
     <value>Atualizando todas as informações de mídia dos arquivos de vídeo adicionados à fila.</value>
   </data>
-  <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Importação já está em execução</value>
-  </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Por favor, insira um valor</value>
   </data>
@@ -371,9 +362,6 @@
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Sincronizar metadados da coleção com Trakt adicionado à fila.</value>
-  </data>
-  <data name="Server_SyncMyList" xml:space="preserve">
-    <value>Sincronizar metadados da coleção com AniDB adicionado à fila.</value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
     <value>Escaneamento para arquivos faltando adicionado à fila.</value>
@@ -502,9 +490,6 @@
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Inicializando...</value>
   </data>
-  <data name="InitialSetup_Login" xml:space="preserve">
-    <value>Login...</value>
-  </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Ordenando...</value>
   </data>
@@ -555,15 +540,6 @@
   </data>
   <data name="Command_Idle" xml:space="preserve">
     <value>Desocupado</value>
-  </data>
-  <data name="Command_StartingHasher" xml:space="preserve">
-    <value>Iniciando o comando de trabalho (hasher)...</value>
-  </data>
-  <data name="Command_StartingImages" xml:space="preserve">
-    <value>Iniciando o comando de trabalho (imagens)...</value>
-  </data>
-  <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>Iniciando o comando de trabalho (geral)...</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Filme</value>
@@ -736,9 +712,6 @@
   <data name="Command_SearchMal" xml:space="preserve">
     <value>Buscando anime no MAL: {0}</value>
   </data>
-  <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Atualizando status no MAL: {0}</value>
-  </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
     <value>Enviando status de assistido para MAL</value>
   </data>
@@ -756,9 +729,6 @@
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
     <value>Sincronizando a coleção do Trakt para a série: {0}</value>
-  </data>
-  <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Atualizando todas as informações de série do Trakt</value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Atualizando informações/imagens no Trakt.TV: {0}</value>
@@ -876,8 +846,5 @@
   </data>
   <data name="Update_Changelog" xml:space="preserve">
     <value>Changelog</value>
-  </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Atualizar toda informação Trakt adicionado à fila</value>
   </data>
 </root>

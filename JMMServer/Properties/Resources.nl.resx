@@ -123,14 +123,8 @@
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Verwijder ontbrekende bestanden</value>
   </data>
-  <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>My List synchroniseren</value>
-  </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
     <value>Trakt Collectie synchroniseren</value>
-  </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Votes Synchroniseren</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Alle AniDB serie Info bijwerken</value>
@@ -339,9 +333,6 @@
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
     <value>Het bijwerken van alle bestanden video media info toegevoegd aan de wachtrij.</value>
   </data>
-  <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Import draait al</value>
-  </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Voer een waarde</value>
   </data>
@@ -368,9 +359,6 @@
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Synchroniseren collectie metagegevens met Trakt toegevoegd aan de wachtrij. </value>
-  </data>
-  <data name="Server_SyncMyList" xml:space="preserve">
-    <value>Synchroniseren collectie metagegevens met AniDB toegevoegd aan de wachtrij. </value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
     <value>Zoeken naar ontbrekende bestanden toegevoegd aan de wachtrij.</value>
@@ -499,9 +487,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Initialiseren...</value>
   </data>
-  <data name="InitialSetup_Login" xml:space="preserve">
-    <value>Inloggen...</value>
-  </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Verwijdering...</value>
   </data>
@@ -552,15 +537,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="Command_Idle" xml:space="preserve">
     <value>Idle</value>
-  </data>
-  <data name="Command_StartingHasher" xml:space="preserve">
-    <value>Startende opdracht werknemer (hasher)...</value>
-  </data>
-  <data name="Command_StartingImages" xml:space="preserve">
-    <value>Startende opdracht werknemer (beelden)...</value>
-  </data>
-  <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>Opdracht werknemer (generaal) te beginnen...</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Film</value>
@@ -736,9 +712,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Command_SearchMal" xml:space="preserve">
     <value>Op zoek naar anime op MAL: {0}</value>
   </data>
-  <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Bijwerken van status op MAL: {0}</value>
-  </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
     <value>Uploaden keek Staten MAL</value>
   </data>
@@ -756,9 +729,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
     <value>Syncing Trakt collectie voor serie: {0}</value>
-  </data>
-  <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Bijwerken van alle Trakt serie Info</value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Info/Foto's op Trakt.TV bijwerken: {0}</value>
@@ -876,8 +846,5 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="Update_Changelog" xml:space="preserve">
     <value>Changelog</value>
-  </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Bijwerken van alle Trakt info toegevoegd aan wachtrij</value>
   </data>
 </root>
