@@ -222,9 +222,6 @@
   <data name="Link_MySQL" xml:space="preserve">
     <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server è pensato per gli utenti con una grande collezione che supera oltre 200 serie che vogliono anche le prestazioni veloce possibile. Fuori i tre tipi di disponibilità del database, SQL Server è considerato il più difficile nella creazione di ma può essere configurato con facilità se si segue la guida che abbiamo creato.</value>
-  </data>
   <data name="SQLite_Info" xml:space="preserve">
     <value>Mentre SQLite è il più facile dei tipi tre database per l'installazione con impostazione one-click di esso. Se la raccolta contiene 200 o più serie, si inizierà a sperimentare un sacco di problemi tra cui tempi di risposta lenti e blocchi di programma quando JMM tenta di accedere la collezione tramite il database SQLite. Per quanto riguarda come JMM utilizza il database, non è semplicemente progettato per grandi collezioni. SQLite ha anche difficoltà con la gestione di più operazioni che aumenta il tempo di attesa tra le operazioni che nel complesso aumentare la vostra attesa tempo quando si accede a vostra collezione.</value>
   </data>
@@ -879,5 +876,65 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Voti di sincronizzazione con AniDB e MAL</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server è pensato per gli utenti con una grande collezione che supera oltre 200 serie che vogliono anche le prestazioni più veloci possibili. Fuori i tre tipi di disponibilità del database, SQL Server è considerato il più difficile nella creazione di ma può essere configurato con facilità se si segue la guida che abbiamo creato.</value>
+  </data>
+  <data name="Users_Default" xml:space="preserve">
+    <value>Impostazione predefinita</value>
+  </data>
+  <data name="Users_FamilyFriendly" xml:space="preserve">
+    <value>Adatto alle famiglie</value>
+  </data>
+  <data name="Rename_Default" xml:space="preserve">
+    <value>Impostazione predefinita</value>
+  </data>
+  <data name="Database_Cache" xml:space="preserve">
+    <value>Database Cache - cache - {0} {1}...</value>
+  </data>
+  <data name="Database_Users" xml:space="preserve">
+    <value>Database - popolamento dati (utenti)...</value>
+  </data>
+  <data name="Database_Filters" xml:space="preserve">
+    <value>Database - popolamento dati (gruppo filtri)...</value>
+  </data>
+  <data name="Database_LockFilters" xml:space="preserve">
+    <value>Database - popolamento dati (gruppo bloccato filtri)...</value>
+  </data>
+  <data name="Database_RenameScripts" xml:space="preserve">
+    <value>Database - popolamento dati (Rinomina Script)...</value>
+  </data>
+  <data name="Database_CustomTags" xml:space="preserve">
+    <value>Database - popolamento dati (tag personalizzati)...</value>
+  </data>
+  <data name="CustomTag_Dropped" xml:space="preserve">
+    <value>È sceso</value>
+  </data>
+  <data name="CustomTag_DroppedInfo" xml:space="preserve">
+    <value>Iniziato a guardare questa serie, ma da allora sono caduto</value>
+  </data>
+  <data name="CustomTag_Pinned" xml:space="preserve">
+    <value>Appuntato</value>
+  </data>
+  <data name="CustomTag_PinnedInfo" xml:space="preserve">
+    <value>Appuntato questa serie per qualsiasi motivo ti piace</value>
+  </data>
+  <data name="CustomTag_Ongoing" xml:space="preserve">
+    <value>In corso</value>
+  </data>
+  <data name="CustomTag_OngoingInfo" xml:space="preserve">
+    <value>Questa serie non ha una data di fine</value>
+  </data>
+  <data name="CustomTag_SeriesComplete" xml:space="preserve">
+    <value>In attesa del completamento di serie</value>
+  </data>
+  <data name="CustomTag_SeriesCompleteInfo" xml:space="preserve">
+    <value>Inizierà a guardare questo, una volta terminata questa serie</value>
+  </data>
+  <data name="CustomTag_BlurayComplete" xml:space="preserve">
+    <value>In attesa del completamento di Blu-ray</value>
+  </data>
+  <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
+    <value>Inizierà a guardare questo, una volta che tutti gli episodi sono disponibili in Blu-Ray</value>
   </data>
 </root>

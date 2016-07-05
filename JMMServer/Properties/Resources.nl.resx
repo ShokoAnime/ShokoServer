@@ -222,9 +222,6 @@
   <data name="Link_MySQL" xml:space="preserve">
     <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server is bedoeld voor gebruikers met een grote collectie van meer dan 200 shows, die ook de snelle prestaties willen hebben. Uit de drie types van beschikbare databases, wordt SQL Server  beschouwd als de meest moeilijke om op te zetten, maar kan met gemak worden ingesteld wanneer u de, door ons gemaakte, handleiding volgt.</value>
-  </data>
   <data name="SQLite_Info" xml:space="preserve">
     <value>Terwijl SQLite de eenvoudigste van de drie databasetypen Setup met het één-klik installatie is. Als uw collectie 200 of meer reeksen bevat, zult u beginnen te ervaren van een heleboel kwesties met inbegrip van trage reactietijden en programma lockups wanneer JMM probeert te toegang tot uw collectie via uw SQLite database. Met betrekking tot hoe JMM maakt gebruik van de database, het gewoon niet ontworpen voor grote verzamelingen. SQLite heeft ook moeite met het verwerken van meerdere bewerkingen die toeneemt de wachttijd tussen de operaties die algemeen verhogen uw wacht tijd bij het benaderen van uw collectie.</value>
   </data>
@@ -879,5 +876,65 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Sync stemmen met AniDB en MAL</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server is bedoeld voor gebruikers met een grote collectie die meer dan 200 serie die ook willen dat de snelste prestaties mogelijk overschrijdt. Uit de drie types van beschikbare database, SQL Server wordt beschouwd als de meest moeilijke in het opzetten van maar kan worden ingesteld met gemak wanneer u volgen naar de gids die we hebben gemaakt.</value>
+  </data>
+  <data name="Users_Default" xml:space="preserve">
+    <value>Standaard</value>
+  </data>
+  <data name="Users_FamilyFriendly" xml:space="preserve">
+    <value>Familie vriendelijk</value>
+  </data>
+  <data name="Rename_Default" xml:space="preserve">
+    <value>Standaard</value>
+  </data>
+  <data name="Database_Cache" xml:space="preserve">
+    <value>Database Cache - in het voorgeheugen onderbrengende - {0} {1}...</value>
+  </data>
+  <data name="Database_Users" xml:space="preserve">
+    <value>Database - gegevens (gebruikers) te vullen...</value>
+  </data>
+  <data name="Database_Filters" xml:space="preserve">
+    <value>Database - gegevens (groep Filters) vullen...</value>
+  </data>
+  <data name="Database_LockFilters" xml:space="preserve">
+    <value>Database - gegevens (vergrendelde groep Filters) vullen...</value>
+  </data>
+  <data name="Database_RenameScripts" xml:space="preserve">
+    <value>Database - gegevens (Rename Script) vullen...</value>
+  </data>
+  <data name="Database_CustomTags" xml:space="preserve">
+    <value>Database - gegevens (aangepaste Tags) vullen...</value>
+  </data>
+  <data name="CustomTag_Dropped" xml:space="preserve">
+    <value>Gedaald</value>
+  </data>
+  <data name="CustomTag_DroppedInfo" xml:space="preserve">
+    <value>Begonnen met kijken naar deze serie, maar sindsdien gedaald</value>
+  </data>
+  <data name="CustomTag_Pinned" xml:space="preserve">
+    <value>Vastgemaakt</value>
+  </data>
+  <data name="CustomTag_PinnedInfo" xml:space="preserve">
+    <value>Deze serie vastgemaakt om welke reden u graag</value>
+  </data>
+  <data name="CustomTag_Ongoing" xml:space="preserve">
+    <value>Lopende</value>
+  </data>
+  <data name="CustomTag_OngoingInfo" xml:space="preserve">
+    <value>Deze serie heeft geen een einddatum</value>
+  </data>
+  <data name="CustomTag_SeriesComplete" xml:space="preserve">
+    <value>Wachten op voltooiing van de reeks</value>
+  </data>
+  <data name="CustomTag_SeriesCompleteInfo" xml:space="preserve">
+    <value>Zal gaan kijken dit zodra deze serie is voltooid</value>
+  </data>
+  <data name="CustomTag_BlurayComplete" xml:space="preserve">
+    <value>Wachten op voltooiing van de Blu-ray</value>
+  </data>
+  <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
+    <value>Zal gaan kijken dit zodra alle afleveringen beschikbaar in Blu-Ray zijn</value>
   </data>
 </root>

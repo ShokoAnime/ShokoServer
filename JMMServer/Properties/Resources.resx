@@ -278,7 +278,7 @@
     <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
   <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fast performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we've created.</value>
+    <value>SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fastest performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we've created.</value>
   </data>
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL is the mid-tier and recommended database type for JMM users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using JMM. It is easy to setup and using our guide you’ll be up and running in a matter of minutes.</value>
@@ -290,7 +290,7 @@
     <value>Learn more about</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
-    <value>SQL Server can use quite a lot of memory</value>
+    <value>SQL Server can use quite a lot of memory.</value>
   </data>
   <data name="Language_Switch" xml:space="preserve">
     <value>Switch Language</value>
@@ -928,5 +928,62 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Removing all missing files added to queue</value>
+  </data>
+  <data name="Users_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Users_FamilyFriendly" xml:space="preserve">
+    <value>Family Friendly</value>
+  </data>
+  <data name="Rename_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Database_Cache" xml:space="preserve">
+    <value>Database Cache - Caching  - {0}{1}...</value>
+  </data>
+  <data name="Database_Users" xml:space="preserve">
+    <value>Database - Populating Data (Users)...</value>
+  </data>
+  <data name="Database_Filters" xml:space="preserve">
+    <value>Database - Populating Data (Group Filters)...</value>
+  </data>
+  <data name="Database_LockFilters" xml:space="preserve">
+    <value>Database - Populating Data (Locked Group Filters)...</value>
+  </data>
+  <data name="Database_RenameScripts" xml:space="preserve">
+    <value>Database - Populating Data (Rename Script)...</value>
+  </data>
+  <data name="Database_CustomTags" xml:space="preserve">
+    <value>Database - Populating Data (Custom Tags)...</value>
+  </data>
+  <data name="CustomTag_Dropped" xml:space="preserve">
+    <value>Dropped</value>
+  </data>
+  <data name="CustomTag_DroppedInfo" xml:space="preserve">
+    <value>Started watching this series, but have since dropped it</value>
+  </data>
+  <data name="CustomTag_Pinned" xml:space="preserve">
+    <value>Pinned</value>
+  </data>
+  <data name="CustomTag_PinnedInfo" xml:space="preserve">
+    <value>Pinned this series for whatever reason you like</value>
+  </data>
+  <data name="CustomTag_Ongoing" xml:space="preserve">
+    <value>Ongoing</value>
+  </data>
+  <data name="CustomTag_OngoingInfo" xml:space="preserve">
+    <value>This series does not have an end date</value>
+  </data>
+  <data name="CustomTag_SeriesComplete" xml:space="preserve">
+    <value>Waiting for Series Completion</value>
+  </data>
+  <data name="CustomTag_SeriesCompleteInfo" xml:space="preserve">
+    <value>Will start watching this once this series is finished</value>
+  </data>
+  <data name="CustomTag_BlurayComplete" xml:space="preserve">
+    <value>Waiting for Blu-ray Completion</value>
+  </data>
+  <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
+    <value>Will start watching this once all episodes are available in Blu-Ray</value>
   </data>
 </root>

@@ -222,9 +222,6 @@
   <data name="Link_MySQL" xml:space="preserve">
     <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server ist für Benutzer gedacht, die eine sehr große Sammlung mit mehr als 200 Serien haben und trotzdem die bestmögliche Leistung wünschen. Aus den drei verfügbaren Datenbanktypen gilt SQL Server als am schwierigsten bei der Einrichtung. Diese kann jedoch vereinfacht werden, indem man der Anleitung folgt, welche wir erstellt haben.</value>
-  </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Erfahren Sie mehr darüber</value>
   </data>
@@ -879,5 +876,65 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Sync stimmen mit AniDB und MAL</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server richtet sich an Benutzer mit einer großen Sammlung, die mehr als 200 Serie überschreitet, die wollen auch die schnellste Leistung möglich. Aus den drei verfügbaren Datenbanktypen SQL Server gilt als das schwierigste bei der Einrichtung aber kann sein Setup mit Leichtigkeit, wenn Sie der Anleitung folgen, die wir erstellt haben.</value>
+  </data>
+  <data name="Users_Default" xml:space="preserve">
+    <value>Standardpfad</value>
+  </data>
+  <data name="Users_FamilyFriendly" xml:space="preserve">
+    <value>Familienfreundlich</value>
+  </data>
+  <data name="Rename_Default" xml:space="preserve">
+    <value>Standardpfad</value>
+  </data>
+  <data name="Database_Cache" xml:space="preserve">
+    <value>Cache-Datenbank - Caching - {0} {1}...</value>
+  </data>
+  <data name="Database_Users" xml:space="preserve">
+    <value>Datenbank - Daten (Benutzer) auffüllen...</value>
+  </data>
+  <data name="Database_Filters" xml:space="preserve">
+    <value>Datenbank - Daten (Gruppenfilter) auffüllen...</value>
+  </data>
+  <data name="Database_LockFilters" xml:space="preserve">
+    <value>Datenbank - Daten (gesperrte Gruppenfilter) auffüllen...</value>
+  </data>
+  <data name="Database_RenameScripts" xml:space="preserve">
+    <value>Datenbank - Daten (Rename Script) auffüllen...</value>
+  </data>
+  <data name="Database_CustomTags" xml:space="preserve">
+    <value>Datenbank - Daten (benutzerdefinierte Tags) auffüllen...</value>
+  </data>
+  <data name="CustomTag_Dropped" xml:space="preserve">
+    <value>Fallen gelassen</value>
+  </data>
+  <data name="CustomTag_DroppedInfo" xml:space="preserve">
+    <value>Gerade dieser Serie gestartet, aber haben da ließ es</value>
+  </data>
+  <data name="CustomTag_Pinned" xml:space="preserve">
+    <value>Merken</value>
+  </data>
+  <data name="CustomTag_PinnedInfo" xml:space="preserve">
+    <value>Merken sich diese Serie aus welchem Grund Sie mögen</value>
+  </data>
+  <data name="CustomTag_Ongoing" xml:space="preserve">
+    <value>Laufende</value>
+  </data>
+  <data name="CustomTag_OngoingInfo" xml:space="preserve">
+    <value>Diese Serie muss kein Enddatum</value>
+  </data>
+  <data name="CustomTag_SeriesComplete" xml:space="preserve">
+    <value>Warten auf Beendigung der Serie</value>
+  </data>
+  <data name="CustomTag_SeriesCompleteInfo" xml:space="preserve">
+    <value>Gerade dieses Abschluss dieser Serie startet</value>
+  </data>
+  <data name="CustomTag_BlurayComplete" xml:space="preserve">
+    <value>Blu-Ray Vervollständigung</value>
+  </data>
+  <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
+    <value>Startet gerade dieses, sobald alle Episoden in Blu-Ray erhältlich sind</value>
   </data>
 </root>

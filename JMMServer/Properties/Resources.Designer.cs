@@ -881,11 +881,110 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Waiting for Blu-ray Completion.
+        /// </summary>
+        internal static string CustomTag_BlurayComplete {
+            get {
+                return ResourceManager.GetString("CustomTag_BlurayComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Will start watching this once all episodes are available in Blu-Ray.
+        /// </summary>
+        internal static string CustomTag_BlurayCompleteInfo {
+            get {
+                return ResourceManager.GetString("CustomTag_BlurayCompleteInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dropped.
+        /// </summary>
+        internal static string CustomTag_Dropped {
+            get {
+                return ResourceManager.GetString("CustomTag_Dropped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Started watching this series, but have since dropped it.
+        /// </summary>
+        internal static string CustomTag_DroppedInfo {
+            get {
+                return ResourceManager.GetString("CustomTag_DroppedInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ongoing.
+        /// </summary>
+        internal static string CustomTag_Ongoing {
+            get {
+                return ResourceManager.GetString("CustomTag_Ongoing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This series does not have an end date.
+        /// </summary>
+        internal static string CustomTag_OngoingInfo {
+            get {
+                return ResourceManager.GetString("CustomTag_OngoingInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pinned.
+        /// </summary>
+        internal static string CustomTag_Pinned {
+            get {
+                return ResourceManager.GetString("CustomTag_Pinned", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pinned this series for whatever reason you like.
+        /// </summary>
+        internal static string CustomTag_PinnedInfo {
+            get {
+                return ResourceManager.GetString("CustomTag_PinnedInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting for Series Completion.
+        /// </summary>
+        internal static string CustomTag_SeriesComplete {
+            get {
+                return ResourceManager.GetString("CustomTag_SeriesComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Will start watching this once this series is finished.
+        /// </summary>
+        internal static string CustomTag_SeriesCompleteInfo {
+            get {
+                return ResourceManager.GetString("CustomTag_SeriesCompleteInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Database - Applying Schema Patches....
         /// </summary>
         internal static string Database_ApplySchema {
             get {
                 return ResourceManager.GetString("Database_ApplySchema", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database Cache - Caching  - {0}{1}....
+        /// </summary>
+        internal static string Database_Cache {
+            get {
+                return ResourceManager.GetString("Database_Cache", resourceCulture);
             }
         }
         
@@ -908,11 +1007,56 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Database - Populating Data (Custom Tags)....
+        /// </summary>
+        internal static string Database_CustomTags {
+            get {
+                return ResourceManager.GetString("Database_CustomTags", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Populating Data (Group Filters)....
+        /// </summary>
+        internal static string Database_Filters {
+            get {
+                return ResourceManager.GetString("Database_Filters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Initializing Session Factory....
         /// </summary>
         internal static string Database_Initializing {
             get {
                 return ResourceManager.GetString("Database_Initializing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Populating Data (Locked Group Filters)....
+        /// </summary>
+        internal static string Database_LockFilters {
+            get {
+                return ResourceManager.GetString("Database_LockFilters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Populating Data (Rename Script)....
+        /// </summary>
+        internal static string Database_RenameScripts {
+            get {
+                return ResourceManager.GetString("Database_RenameScripts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database - Populating Data (Users)....
+        /// </summary>
+        internal static string Database_Users {
+            get {
+                return ResourceManager.GetString("Database_Users", resourceCulture);
             }
         }
         
@@ -1769,6 +1913,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Default.
+        /// </summary>
+        internal static string Rename_Default {
+            get {
+                return ResourceManager.GetString("Rename_Default", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Save.
         /// </summary>
         internal static string Save {
@@ -2300,7 +2453,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fast performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we&apos;ve created..
+        ///   Looks up a localized string similar to SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fastest performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we&apos;ve created..
         /// </summary>
         internal static string SQLServer_Info {
             get {
@@ -2309,7 +2462,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to SQL Server can use quite a lot of memory.
+        ///   Looks up a localized string similar to SQL Server can use quite a lot of memory..
         /// </summary>
         internal static string SQLServer_Memory {
             get {
@@ -2489,6 +2642,24 @@ namespace JMMServer.Properties {
         internal static string Update_YourVersion {
             get {
                 return ResourceManager.GetString("Update_YourVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Default.
+        /// </summary>
+        internal static string Users_Default {
+            get {
+                return ResourceManager.GetString("Users_Default", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Family Friendly.
+        /// </summary>
+        internal static string Users_FamilyFriendly {
+            get {
+                return ResourceManager.GetString("Users_FamilyFriendly", resourceCulture);
             }
         }
         

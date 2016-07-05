@@ -222,9 +222,6 @@
   <data name="Link_MySQL" xml:space="preserve">
     <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>Microsoft SQL Server jest przeznaczony dla użytkowników posiadających dużą kolekcję, która przekracza ponad 200 serii. Z trzech dostępnych typów baz danych Microsoft SQL Server jest uważany za najtrudniejszy do uruchomienia, ale proces ten powinien być łatwiejszy, jeżeli korzystasz z przygotowanego przez nas poradnika.</value>
-  </data>
   <data name="SQLite_Info" xml:space="preserve">
     <value>Podczas gdy SQLite jest najprostszą z trzech dostępnych baz danych do instalacji, gdyż odbywa się poprzez jedno kliknięcie. Jeśli kolekcja zawiera 200 lub więcej serii możesz zacząć odczuwać spowolnienia w działaniu, w tym wydłużają czas odpowiedzi i zawieszanie się programu, gdy JMM próbuje uzyskać dostęp do bazy danych SQLite. Korzystanie z tego typu bazy danych nie jest zalecane w przypadku posiadania dużych kolekcji.</value>
   </data>
@@ -879,5 +876,65 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Sync głosów z AniDB i MAL</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server jest przeznaczona dla użytkowników z dużą kolekcją, która przekracza ponad 200 serii, którzy również chcą możliwe największą wydajność. Spośród trzech typów dostępne bazy danych SQL Server jest uważany za najtrudniejszy w tworzeniu, ale to może być ustawiony z łatwością, jeśli możesz postępuj zgodnie z instrukcjami, które stworzyliśmy.</value>
+  </data>
+  <data name="Users_Default" xml:space="preserve">
+    <value>Domyślny</value>
+  </data>
+  <data name="Users_FamilyFriendly" xml:space="preserve">
+    <value>Rodzinny wyjazd</value>
+  </data>
+  <data name="Rename_Default" xml:space="preserve">
+    <value>Domyślny</value>
+  </data>
+  <data name="Database_Cache" xml:space="preserve">
+    <value>Bazy danych pamięci podręcznej - buforowania - {0} {1}...</value>
+  </data>
+  <data name="Database_Users" xml:space="preserve">
+    <value>Bazy danych - wypełnianie danych (Użytkownicy)...</value>
+  </data>
+  <data name="Database_Filters" xml:space="preserve">
+    <value>Bazy danych - wypełnianie danych (grupa filtrów)...</value>
+  </data>
+  <data name="Database_LockFilters" xml:space="preserve">
+    <value>Bazy danych - wypełnianie danych (zablokowanej grupy filtrów)...</value>
+  </data>
+  <data name="Database_RenameScripts" xml:space="preserve">
+    <value>Bazy danych - wypełnianie danych (Zmień nazwę skryptu)...</value>
+  </data>
+  <data name="Database_CustomTags" xml:space="preserve">
+    <value>Bazy danych - wypełnianie danych (niestandardowe tagi)...</value>
+  </data>
+  <data name="CustomTag_Dropped" xml:space="preserve">
+    <value>Porzucone</value>
+  </data>
+  <data name="CustomTag_DroppedInfo" xml:space="preserve">
+    <value>Zacząłem oglądać tej serii, ale od tego czasu spadła ona</value>
+  </data>
+  <data name="CustomTag_Pinned" xml:space="preserve">
+    <value>Przypięte</value>
+  </data>
+  <data name="CustomTag_PinnedInfo" xml:space="preserve">
+    <value>Przypięte tej serii z jakiegokolwiek powodu chcesz</value>
+  </data>
+  <data name="CustomTag_Ongoing" xml:space="preserve">
+    <value>Bieżące</value>
+  </data>
+  <data name="CustomTag_OngoingInfo" xml:space="preserve">
+    <value>Ta seria nie ma datę zakończenia</value>
+  </data>
+  <data name="CustomTag_SeriesComplete" xml:space="preserve">
+    <value>Oczekiwanie na ukończenie serii</value>
+  </data>
+  <data name="CustomTag_SeriesCompleteInfo" xml:space="preserve">
+    <value>Rozpocznie się, oglądając to po zakończeniu tej serii</value>
+  </data>
+  <data name="CustomTag_BlurayComplete" xml:space="preserve">
+    <value>Oczekiwanie na ukończenie Blu-ray</value>
+  </data>
+  <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
+    <value>Rozpocznie się, oglądając to, gdy wszystkie odcinki są już dostępne w Blu-Ray</value>
   </data>
 </root>

@@ -222,9 +222,6 @@
   <data name="Link_MySQL" xml:space="preserve">
     <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server é destinado para usuários com grandes coleções que ultrapassam 200 séries e que querem o melhor desempenho possível. Dos três tipos de bases de dados disponíveis, o SQL Server é considerado o de mais difícil instalação, mas pode ser configurado com facilidade se você seguir o guia que criamos.</value>
-  </data>
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL é o tipo de banco de dados intermediário e é recomendado para os usuários JMM com grandes coleções, os que pretendem construir uma coleção grande ou os que simplesmente querem um aumento de velocidade e desempenho do JMM. É de fácil instalação e usando nosso guia que você o terá funcionando em questão de minutos.</value>
   </data>
@@ -879,5 +876,65 @@
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Votos de sincronização com AniDB e MAL</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server é destinado a usuários com uma grande coleção que ultrapassa mais de 200 séries que também querem o desempenho mais rápido possível. Fora os três tipos de bases de dados disponíveis, do SQL Server é considerado o mais difícil na criação, mas pode ser configurado com facilidade se você seguir o guia que criamos.</value>
+  </data>
+  <data name="Users_Default" xml:space="preserve">
+    <value>Padrão</value>
+  </data>
+  <data name="Users_FamilyFriendly" xml:space="preserve">
+    <value>Família-amigável</value>
+  </data>
+  <data name="Rename_Default" xml:space="preserve">
+    <value>Padrão</value>
+  </data>
+  <data name="Database_Cache" xml:space="preserve">
+    <value>Banco de dados Cache - Cache - {0} {1}...</value>
+  </data>
+  <data name="Database_Users" xml:space="preserve">
+    <value>Banco de dados - preencher dados (usuários)...</value>
+  </data>
+  <data name="Database_Filters" xml:space="preserve">
+    <value>Banco de dados - preencher dados (filtros de grupo)...</value>
+  </data>
+  <data name="Database_LockFilters" xml:space="preserve">
+    <value>Banco de dados - preencher dados (filtros de grupo fechado)...</value>
+  </data>
+  <data name="Database_RenameScripts" xml:space="preserve">
+    <value>Banco de dados - preencher dados (Rename Script)...</value>
+  </data>
+  <data name="Database_CustomTags" xml:space="preserve">
+    <value>Banco de dados - preencher dados (Tags personalizados)...</value>
+  </data>
+  <data name="CustomTag_Dropped" xml:space="preserve">
+    <value>Deixei cair</value>
+  </data>
+  <data name="CustomTag_DroppedInfo" xml:space="preserve">
+    <value>Comecei a assistir a esta série, mas desde então tê-lo derrubado</value>
+  </data>
+  <data name="CustomTag_Pinned" xml:space="preserve">
+    <value>Preso</value>
+  </data>
+  <data name="CustomTag_PinnedInfo" xml:space="preserve">
+    <value>Preso nesta série por qualquer razão que você gosta</value>
+  </data>
+  <data name="CustomTag_Ongoing" xml:space="preserve">
+    <value>Em curso</value>
+  </data>
+  <data name="CustomTag_OngoingInfo" xml:space="preserve">
+    <value>Esta série não tem uma data de término</value>
+  </data>
+  <data name="CustomTag_SeriesComplete" xml:space="preserve">
+    <value>Aguardando conclusão de série</value>
+  </data>
+  <data name="CustomTag_SeriesCompleteInfo" xml:space="preserve">
+    <value>Vai começar a ver isto, uma vez que esta série é concluída</value>
+  </data>
+  <data name="CustomTag_BlurayComplete" xml:space="preserve">
+    <value>Aguardando conclusão de Blu-ray</value>
+  </data>
+  <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
+    <value>Vai começar a ver isto, uma vez que todos os episódios estão disponíveis em Blu-Ray</value>
   </data>
 </root>

@@ -225,9 +225,6 @@
   <data name="Link_MySQL" xml:space="preserve">
     <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server предназначен для пользователей с большой коллекцией, которая превышает 200 сериалов и обеспечивает максимальную производительность. Из трех типов доступных баз данных SQL Server считается самым сложным в настройке, но может быть легко настроен при помощи нашего руководства.</value>
-  </data>
   <data name="SQLite_Info" xml:space="preserve">
     <value>SQLite является самой простой и настраивается одним нажатием. Если коллекция содержит более 200 сериалов возникнет множество проблем, включая медленную реакцию и зависания программы при попытке получить доступ к коллекции. JMM не оптимизирован для этой базы данных поэтому SQLite не предназначен для больших коллекций. SQLite также испытывает трудности с одновременной обработкой нескольких операций что увеличивает время ожидания между операциями, что в свою очередь увеличиваеи время ожидания при доступе к коллекции.</value>
   </data>
@@ -879,5 +876,65 @@
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Синхронизация голосов с AniDB и мал</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server предназначен для пользователей с большой коллекцией, которая превышает 200 серии, которые также хотят наибольшую производительность, возможно. Из трех типов доступных баз данных SQL Server считается самым сложным в настройке, но может быть настроена с легкостью, если вы будете следовать руководство, которую мы создали.</value>
+  </data>
+  <data name="Users_Default" xml:space="preserve">
+    <value>По умолчанию</value>
+  </data>
+  <data name="Users_FamilyFriendly" xml:space="preserve">
+    <value>Семейные</value>
+  </data>
+  <data name="Rename_Default" xml:space="preserve">
+    <value>По умолчанию</value>
+  </data>
+  <data name="Database_Cache" xml:space="preserve">
+    <value>База данных кэш - кэширования - {0} {1}...</value>
+  </data>
+  <data name="Database_Users" xml:space="preserve">
+    <value>База данных - заполнение данных (пользователей)...</value>
+  </data>
+  <data name="Database_Filters" xml:space="preserve">
+    <value>База данных - заполнение данных (Группа фильтры)...</value>
+  </data>
+  <data name="Database_LockFilters" xml:space="preserve">
+    <value>База данных - заполнение данных (заблокированная группа фильтры)...</value>
+  </data>
+  <data name="Database_RenameScripts" xml:space="preserve">
+    <value>База данных - заполнение данных (переименовать сценарий)...</value>
+  </data>
+  <data name="Database_CustomTags" xml:space="preserve">
+    <value>База данных - заполнение данных (пользовательские теги)...</value>
+  </data>
+  <data name="CustomTag_Dropped" xml:space="preserve">
+    <value>Упал</value>
+  </data>
+  <data name="CustomTag_DroppedInfo" xml:space="preserve">
+    <value>Начал смотреть этой серии, но с тех пор упали</value>
+  </data>
+  <data name="CustomTag_Pinned" xml:space="preserve">
+    <value>Удержал</value>
+  </data>
+  <data name="CustomTag_PinnedInfo" xml:space="preserve">
+    <value>Закрепления этой серии по какой причине вы хотели</value>
+  </data>
+  <data name="CustomTag_Ongoing" xml:space="preserve">
+    <value>Текущие</value>
+  </data>
+  <data name="CustomTag_OngoingInfo" xml:space="preserve">
+    <value>Эта серия не имеют даты окончания</value>
+  </data>
+  <data name="CustomTag_SeriesComplete" xml:space="preserve">
+    <value>Ожидание завершения серии</value>
+  </data>
+  <data name="CustomTag_SeriesCompleteInfo" xml:space="preserve">
+    <value>Будет начать смотреть это после завершения этой серии</value>
+  </data>
+  <data name="CustomTag_BlurayComplete" xml:space="preserve">
+    <value>Ожидание завершения Blu-ray</value>
+  </data>
+  <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
+    <value>Будет начать смотреть это после того, как все эпизоды доступны в Blu-Ray</value>
   </data>
 </root>

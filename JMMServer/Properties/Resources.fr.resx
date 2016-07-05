@@ -631,9 +631,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Command_GettingTvDB" xml:space="preserve">
     <value>Obtenir les épisodes de The TvDB : {0}</value>
   </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server est destiné aux utilisateurs avec une grande collection qui dépasse de plus de 200 séries qui souhaitent aussi l'exécution rapide possible. Sur les trois types de base de données, SQL Server est considéré comme le plus difficile à mettre en place mais peut être configuré avec une facilité si vous suivez le guide, que nous avons créé.</value>
-  </data>
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL est le type de base de données de niveau intermédiaire et recommandée pour les utilisateurs JMM avec une grande collection, ayant l'intention de construire une grande collection ou tout simplement un coup de pouce de vitesse et les performances lorsque vous utilisez JMM. Il est facile à installer et à l'aide de notre guide, que vous serez vers le haut et en cours d'exécution en quelques minutes.</value>
   </data>
@@ -879,5 +876,65 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Voix pour Sync et AniDB et MAL</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server est destiné aux utilisateurs avec une grande collection qui dépasse de plus de 200 séries qui souhaitent aussi le rendement le plus rapide possible. Sur les trois types de base de données, SQL Server est considéré comme le plus difficile à mettre en place mais peut être configuré avec une facilité si vous suivez le guide, que nous avons créé.</value>
+  </data>
+  <data name="Users_Default" xml:space="preserve">
+    <value>Par défaut</value>
+  </data>
+  <data name="Users_FamilyFriendly" xml:space="preserve">
+    <value>Environnement familial</value>
+  </data>
+  <data name="Rename_Default" xml:space="preserve">
+    <value>Par défaut</value>
+  </data>
+  <data name="Database_Cache" xml:space="preserve">
+    <value>Base de données de Cache - cache - {0} {1}...</value>
+  </data>
+  <data name="Database_Users" xml:space="preserve">
+    <value>Base de données - remplissage de données (utilisateurs)...</value>
+  </data>
+  <data name="Database_Filters" xml:space="preserve">
+    <value>Base de données - remplissage de données (filtres de groupe)...</value>
+  </data>
+  <data name="Database_LockFilters" xml:space="preserve">
+    <value>Base de données - remplissage de données (filtres de groupe verrouillé)...</value>
+  </data>
+  <data name="Database_RenameScripts" xml:space="preserve">
+    <value>Base de données - remplissage de données (Script de changement de nom)...</value>
+  </data>
+  <data name="Database_CustomTags" xml:space="preserve">
+    <value>Base de données - remplissage de données (balises personnalisées)...</value>
+  </data>
+  <data name="CustomTag_Dropped" xml:space="preserve">
+    <value>A chuté</value>
+  </data>
+  <data name="CustomTag_DroppedInfo" xml:space="preserve">
+    <value>Commencé à regarder cette série, mais ont chuté depuis il</value>
+  </data>
+  <data name="CustomTag_Pinned" xml:space="preserve">
+    <value>Épinglés</value>
+  </data>
+  <data name="CustomTag_PinnedInfo" xml:space="preserve">
+    <value>Le tombé sur cette série pour une raison quelconque vous aimez</value>
+  </data>
+  <data name="CustomTag_Ongoing" xml:space="preserve">
+    <value>En cours</value>
+  </data>
+  <data name="CustomTag_OngoingInfo" xml:space="preserve">
+    <value>Cette série n’a pas une date de fin</value>
+  </data>
+  <data name="CustomTag_SeriesComplete" xml:space="preserve">
+    <value>En attente de l’achèvement de la série</value>
+  </data>
+  <data name="CustomTag_SeriesCompleteInfo" xml:space="preserve">
+    <value>Va commencer à regarder cela, une fois cette série terminée</value>
+  </data>
+  <data name="CustomTag_BlurayComplete" xml:space="preserve">
+    <value>En attente de l’achèvement de Blu-ray</value>
+  </data>
+  <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
+    <value>Va commencer à regarder cela, une fois que tous les épisodes sont disponibles en Blu-Ray</value>
   </data>
 </root>
