@@ -451,7 +451,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Save" xml:space="preserve">
     <value>Salva</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Annulla</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
@@ -936,5 +936,14 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
     <value>Inizierà a guardare questo, una volta che tutti gli episodi sono disponibili in Blu-Ray</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>Ok</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Sì</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>No</value>
   </data>
 </root>

@@ -454,7 +454,7 @@
   <data name="Save" xml:space="preserve">
     <value>Salvar</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Cancelar</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
@@ -936,5 +936,14 @@
   </data>
   <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
     <value>Vai começar a ver isto, uma vez que todos os episódios estão disponíveis em Blu-Ray</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>Okey</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Sim</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>N</value>
   </data>
 </root>

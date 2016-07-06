@@ -451,7 +451,7 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Save" xml:space="preserve">
     <value>Guardar</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Cancelar</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
@@ -936,5 +936,14 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
     <value>Empieza viendo esto una vez todos los episodios están disponibles en Blu-Ray</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>Vale</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Sí</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>No</value>
   </data>
 </root>

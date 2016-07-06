@@ -377,15 +377,6 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cancel.
-        /// </summary>
-        internal static string Cancel {
-            get {
-                return ResourceManager.GetString("Cancel", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Getting anime info from HTTP API: {0}.
         /// </summary>
         internal static string Command_AnimeInfo {
@@ -1741,6 +1732,42 @@ namespace JMMServer.Properties {
         internal static string Link_Translate {
             get {
                 return ResourceManager.GetString("Link_Translate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        internal static string MessageBox_Cancel {
+            get {
+                return ResourceManager.GetString("MessageBox_Cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No.
+        /// </summary>
+        internal static string MessageBox_No {
+            get {
+                return ResourceManager.GetString("MessageBox_No", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OK.
+        /// </summary>
+        internal static string MessageBox_OK {
+            get {
+                return ResourceManager.GetString("MessageBox_OK", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Yes.
+        /// </summary>
+        internal static string MessageBox_Yes {
+            get {
+                return ResourceManager.GetString("MessageBox_Yes", resourceCulture);
             }
         }
         

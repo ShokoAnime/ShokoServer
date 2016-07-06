@@ -481,7 +481,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Save" xml:space="preserve">
     <value>Save</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
@@ -936,5 +936,14 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
     <value>Will start watching this once all episodes are available in Blu-Ray</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>No</value>
   </data>
 </root>

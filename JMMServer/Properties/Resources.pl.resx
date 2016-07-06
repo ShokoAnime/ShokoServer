@@ -451,7 +451,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Save" xml:space="preserve">
     <value>Zapisz</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Anuluj</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
@@ -936,5 +936,14 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
     <value>Rozpocznie się, oglądając to, gdy wszystkie odcinki są już dostępne w Blu-Ray</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>Ok</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Tak</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>Nr</value>
   </data>
 </root>

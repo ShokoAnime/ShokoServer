@@ -454,7 +454,7 @@
   <data name="Save" xml:space="preserve">
     <value>Сохранить</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Отмена</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
@@ -936,5 +936,14 @@
   </data>
   <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
     <value>Будет начать смотреть это после того, как все эпизоды доступны в Blu-Ray</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>Хорошо</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Да</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>Нет</value>
   </data>
 </root>

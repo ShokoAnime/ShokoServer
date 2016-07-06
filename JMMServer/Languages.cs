@@ -136,7 +136,7 @@ namespace JMMServer
                 case "ZH-HANT":
                     return @"/Images/Flags/cn.gif"; // Chinese (Traditional)
                 default:
-                    return @"/Images/32_warning.png";
+                    return @"/Images/16_warning.png";
             }
         }
 

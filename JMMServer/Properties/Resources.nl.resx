@@ -451,7 +451,7 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Save" xml:space="preserve">
     <value>Opslaan</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Annuleren</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
@@ -936,5 +936,14 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
     <value>Zal gaan kijken dit zodra alle afleveringen beschikbaar in Blu-Ray zijn</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Ja</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>No</value>
   </data>
 </root>

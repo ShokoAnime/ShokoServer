@@ -451,7 +451,7 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Save" xml:space="preserve">
     <value>Enregistrer</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Annuler</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
@@ -936,5 +936,14 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
     <value>Va commencer à regarder cela, une fois que tous les épisodes sont disponibles en Blu-Ray</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>Bien</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Oui</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>N°</value>
   </data>
 </root>

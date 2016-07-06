@@ -451,7 +451,7 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Save" xml:space="preserve">
     <value>Sie sparen</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Abbrechen</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
@@ -936,5 +936,14 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
     <value>Startet gerade dieses, sobald alle Episoden in Blu-Ray erhältlich sind</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>Okay</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Ja</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>Nein</value>
   </data>
 </root>
