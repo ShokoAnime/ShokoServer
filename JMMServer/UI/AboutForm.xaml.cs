@@ -11,7 +11,7 @@ namespace JMMServer.UI
         {
             InitializeComponent();
 
-            btnUpdates.Click += new RoutedEventHandler(btnUpdates_Click);
+            //btnUpdates.Click += new RoutedEventHandler(btnUpdates_Click);
         }
 
         void btnUpdates_Click(object sender, RoutedEventArgs e)

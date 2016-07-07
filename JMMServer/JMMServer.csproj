@@ -888,20 +888,7 @@
     <None Include="Resources\plex_webclips.bin" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Images\32_add.png" />
-    <Resource Include="Images\32_down.png" />
-    <Resource Include="Images\32_folder.png" />
-    <Resource Include="Images\32_folder_add.png" />
-    <Resource Include="Images\32_folder_down.png" />
-    <Resource Include="Images\32_folder_edit.png" />
-    <Resource Include="Images\32_folder_up.png" />
-    <Resource Include="Images\32_import.png" />
-    <Resource Include="Images\32_pause.png" />
-    <Resource Include="Images\32_play.png" />
-    <Resource Include="Images\32_settings.png" />
-    <Resource Include="Images\32_settings2.png" />
     <Resource Include="Images\32_sync.png" />
-    <Resource Include="Images\32_WebDatabase.png" />
     <Resource Include="Images\db.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -918,61 +905,16 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Images\16_server_connect.png" />
-    <Resource Include="Images\16_server_hash.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_cancel.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_help.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_info.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_save.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_delete.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_arrow45.png" />
-    <Resource Include="Images\16_exclamation.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_image.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\48_new.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_warning.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_Refresh.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_folder_find.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Images\32_new.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\16_key.png" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Images\anidb.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="PostBuild1.txt" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\16_tick.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Pause.png" />
-    <Resource Include="Images\Play.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="ToDo.txt" />
@@ -1039,6 +981,54 @@
   <ItemGroup>
     <Resource Include="Images\16_green_button.png" />
     <Resource Include="Images\16_red_button.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_logs.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_add.png" />
+    <Resource Include="Images\16_delete.png" />
+    <Resource Include="Images\16_folder_video.png" />
+    <Resource Include="Images\16_image.png" />
+    <Resource Include="Images\16_pause.png" />
+    <Resource Include="Images\16_update_data.png" />
+    <Resource Include="Images\24_folder_down.png" />
+    <Resource Include="Images\24_folder_up.png" />
+    <Resource Include="Images\32_task.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_link.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\24_folder_find.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_cancel.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_save.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\24_folder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_resume.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\anidb.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_server_connect.png" />
+    <Resource Include="Images\16_server_hash.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_refresh.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_warning.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_info.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

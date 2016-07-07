@@ -9,6 +9,7 @@ using JMMServer.Entities;
 using JMMServer.Repositories;
 using NHibernate;
 using NLog;
+using System.Globalization;
 
 namespace JMMServer.Databases
 {
@@ -77,6 +78,8 @@ namespace JMMServer.Databases
                         Thread.Sleep(3000);
                     }
 
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
                     JMMService.CloseSessionFactory();
                     ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Initializing;
                     ISessionFactory temp = JMMService.SessionFactory;
@@ -95,6 +98,8 @@ namespace JMMServer.Databases
                 }
                 else if (ServerSettings.DatabaseType.Trim().ToUpper() == "SQLITE")
                 {
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
                     ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateDatabase;
                     SQLite.CreateDatabase();
 
@@ -116,6 +121,8 @@ namespace JMMServer.Databases
                 }
                 else if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL")
                 {
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
                     logger.Trace("Database - Creating Database...");
                     ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateDatabase;
                     MySQL.CreateDatabase();
@@ -205,25 +212,26 @@ namespace JMMServer.Databases
             GC.Collect();
         }
 
-        //TO be translated
-        public static string InitCacheTitle = "Database Cache - Caching  - {0}{1}...";
+        public static string InitCacheTitle = JMMServer.Properties.Resources.Database_Cache;
 
         public static void PopulateInitialData()
         {
-            ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Users)...";
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+            ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Users;
             CreateInitialUsers();
 
-            ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Group Filters)...";
+            ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Filters;
             CreateInitialGroupFilters();
 
-            ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Locked Group Filters)...";
+            ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_LockFilters;
             CreateOrVerifyLockedFilters();
 
 
-            ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Rename Script)...";
+            ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_RenameScripts;
             CreateInitialRenameScript();
 
-            ServerState.Instance.CurrentSetupStatus = "Database - Populating Data (Custom Tags)...";
+            ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CustomTags;
             DatabaseHelper.CreateInitialCustomTags();
         }
 
@@ -239,16 +247,18 @@ namespace JMMServer.Databases
 
             if (repFilters.GetAll().Count() > 0) return;
 
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
             // Favorites
             GroupFilter gf = new GroupFilter();
-            gf.GroupFilterName = "Favorites";
+            gf.GroupFilterName = JMMServer.Properties.Resources.Filter_Favorites;
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
             GroupFilterCondition gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.Favourite;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Include;
+            gfc.ConditionType = (int)GroupFilterConditionType.Favourite;
+            gfc.ConditionOperator = (int)GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -261,10 +271,10 @@ namespace JMMServer.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.MissingEpisodesCollecting;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Include;
+            gfc.ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting;
+            gfc.ConditionOperator = (int)GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -278,10 +288,10 @@ namespace JMMServer.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.SeriesCreatedDate;
-            gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
+            gfc.ConditionType = (int)GroupFilterConditionType.SeriesCreatedDate;
+            gfc.ConditionOperator = (int)GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "10";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -294,10 +304,10 @@ namespace JMMServer.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.AirDate;
-            gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
+            gfc.ConditionType = (int)GroupFilterConditionType.AirDate;
+            gfc.ConditionOperator = (int)GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "30";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -310,20 +320,20 @@ namespace JMMServer.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.CompletedSeries;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Include;
+            gfc.ConditionType = (int)GroupFilterConditionType.CompletedSeries;
+            gfc.ConditionOperator = (int)GroupFilterOperator.Include;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.HasUnwatchedEpisodes;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
+            gfc.ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes;
+            gfc.ConditionOperator = (int)GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.UserVotedAny;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
+            gfc.ConditionType = (int)GroupFilterConditionType.UserVotedAny;
+            gfc.ConditionOperator = (int)GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -336,10 +346,10 @@ namespace JMMServer.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.EpisodeWatchedDate;
-            gfc.ConditionOperator = (int) GroupFilterOperator.LastXDays;
+            gfc.ConditionType = (int)GroupFilterConditionType.EpisodeWatchedDate;
+            gfc.ConditionOperator = (int)GroupFilterOperator.LastXDays;
             gfc.ConditionParameter = "10";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -352,10 +362,10 @@ namespace JMMServer.Databases
             gf.ApplyToSeries = 0;
             gf.BaseCondition = 1;
             gf.Locked = 0;
-            gf.FilterType = (int) GroupFilterType.UserDefined;
+            gf.FilterType = (int)GroupFilterType.UserDefined;
             gfc = new GroupFilterCondition();
-            gfc.ConditionType = (int) GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
-            gfc.ConditionOperator = (int) GroupFilterOperator.Exclude;
+            gfc.ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
+            gfc.ConditionOperator = (int)GroupFilterOperator.Exclude;
             gfc.ConditionParameter = "";
             gf.Conditions.Add(gfc);
             gf.EvaluateAnimeGroups();
@@ -369,6 +379,8 @@ namespace JMMServer.Databases
 
             if (repUsers.GetAll().Count() > 0) return;
 
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
             JMMUser defaultUser = new JMMUser();
             defaultUser.CanEditServerSettings = 1;
             defaultUser.HideCategories = "";
@@ -376,7 +388,7 @@ namespace JMMServer.Databases
             defaultUser.IsAniDBUser = 1;
             defaultUser.IsTraktUser = 1;
             defaultUser.Password = "";
-            defaultUser.Username = "Default";
+            defaultUser.Username = JMMServer.Properties.Resources.Users_Default;
             repUsers.Save(defaultUser, true);
 
             JMMUser familyUser = new JMMUser();
@@ -386,7 +398,7 @@ namespace JMMServer.Databases
             familyUser.IsAniDBUser = 1;
             familyUser.IsTraktUser = 1;
             familyUser.Password = "";
-            familyUser.Username = "Family Friendly";
+            familyUser.Username = JMMServer.Properties.Resources.Users_FamilyFriendly;
             repUsers.Save(familyUser, true);
         }
 
@@ -398,7 +410,9 @@ namespace JMMServer.Databases
 
             RenameScript initialScript = new RenameScript();
 
-            initialScript.ScriptName = "Default";
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+            initialScript.ScriptName = JMMServer.Properties.Resources.Rename_Default;
             initialScript.IsEnabledOnImport = 0;
             initialScript.Script =
                 "// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv" +
@@ -434,7 +448,7 @@ namespace JMMServer.Databases
                 "DO REPLACE '<' '('" + Environment.NewLine +
                 "DO REPLACE '>' ')'" + Environment.NewLine +
                 "DO REPLACE ':' '-'" + Environment.NewLine +
-                "DO REPLACE '" + ((Char) 34).ToString() + "' '`'" + Environment.NewLine +
+                "DO REPLACE '" + ((Char)34).ToString() + "' '`'" + Environment.NewLine +
                 "DO REPLACE '/' '_'" + Environment.NewLine +
                 "DO REPLACE '/' '_'" + Environment.NewLine +
                 "DO REPLACE '\\' '_'" + Environment.NewLine +
@@ -515,34 +529,36 @@ namespace JMMServer.Databases
 
                 if (repTags.GetAll().Count() > 0) return;
 
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
                 // Dropped
                 CustomTag tag = new CustomTag();
-                tag.TagName = "Dropped";
-                tag.TagDescription = "Started watching this series, but have since dropped it";
+                tag.TagName = JMMServer.Properties.Resources.CustomTag_Dropped;
+                tag.TagDescription = JMMServer.Properties.Resources.CustomTag_DroppedInfo;
                 repTags.Save(tag);
 
                 // Pinned
                 tag = new CustomTag();
-                tag.TagName = "Pinned";
-                tag.TagDescription = "Pinned this series for whatever reason you like";
+                tag.TagName = JMMServer.Properties.Resources.CustomTag_Pinned;
+                tag.TagDescription = JMMServer.Properties.Resources.CustomTag_PinnedInfo;
                 repTags.Save(tag);
 
                 // Ongoing
                 tag = new CustomTag();
-                tag.TagName = "Ongoing";
-                tag.TagDescription = "This series does not have an end date";
+                tag.TagName = JMMServer.Properties.Resources.CustomTag_Ongoing;
+                tag.TagDescription = JMMServer.Properties.Resources.CustomTag_OngoingInfo;
                 repTags.Save(tag);
 
                 // Waiting for Series Completion
                 tag = new CustomTag();
-                tag.TagName = "Waiting for Series Completion";
-                tag.TagDescription = "Will start watching this once this series is finished";
+                tag.TagName = JMMServer.Properties.Resources.CustomTag_SeriesComplete;
+                tag.TagDescription = JMMServer.Properties.Resources.CustomTag_SeriesCompleteInfo;
                 repTags.Save(tag);
 
                 // Waiting for Bluray Completion
                 tag = new CustomTag();
-                tag.TagName = "Waiting for Bluray Completion";
-                tag.TagDescription = "Will start watching this once I have all episodes in bluray";
+                tag.TagName = JMMServer.Properties.Resources.CustomTag_BlurayComplete;
+                tag.TagDescription = JMMServer.Properties.Resources.CustomTag_BlurayCompleteInfo;
                 repTags.Save(tag);
             }
             catch (Exception ex)

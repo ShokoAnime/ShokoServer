@@ -78,7 +78,7 @@
         <Border Grid.Row="0" Grid.Column="0" Margin="0" Padding="5" Background="White" BorderBrush="LightGray"
                 BorderThickness="1">
             <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                <Image Height="24" Width="24" Source="/Images/32_WebDatabase.png" Margin="0,0,5,0" />
+                <Image Height="24" Width="24" Source="/Images/db.ico" Margin="0,0,5,0" />
 
                 <TextBlock Margin="5,0,0,0" FontWeight="DemiBold"
                            Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Admin_AdminMessages}" FontSize="20"

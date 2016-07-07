@@ -120,23 +120,14 @@
   <data name="JMMServer" xml:space="preserve">
     <value>Serveur JMM</value>
   </data>
-  <data name="Actions_RunImport" xml:space="preserve">
-    <value>Exécuter l'importation</value>
-  </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Supprimer les fichiers manquants</value>
-  </data>
-  <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Synchroniser ma liste</value>
   </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
     <value>Sync Trakt Collection</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync Votes</value>
-  </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
-    <value>Mise à jour toutes les infos de la série AniDB</value>
+    <value>Mise à jour de toutes les Infos Séries AniDB</value>
   </data>
   <data name="Actions_UpdateTvDB" xml:space="preserve">
     <value>Mise à jour de tous les TvDB d'informations</value>
@@ -151,13 +142,13 @@
     <value>Mise à jour de tous les médias d'informations</value>
   </data>
   <data name="Actions_UploadCache" xml:space="preserve">
-    <value>Télécharger Anime toutes les données en Cache de Azure</value>
+    <value>Envoyer toutes les données des Anime sur le Cache Azure</value>
   </data>
   <data name="Toolbar_Shutdown" xml:space="preserve">
-    <value>Shutdown</value>
+    <value>Fermeture</value>
   </data>
   <data name="Toolbar_About" xml:space="preserve">
-    <value>Sur</value>
+    <value>À propos...</value>
   </data>
   <data name="Toolbar_Logs" xml:space="preserve">
     <value>Journaux</value>
@@ -169,19 +160,19 @@
     <value>Actions</value>
   </data>
   <data name="Tab_ImportFolders" xml:space="preserve">
-    <value>Importer les dossiers</value>
+    <value>Dossiers d'importation</value>
   </data>
   <data name="Tab_Settings" xml:space="preserve">
     <value>Paramètres</value>
   </data>
   <data name="Tab_Setup" xml:space="preserve">
-    <value>Programme d'installation</value>
+    <value>Installation</value>
   </data>
   <data name="Settings_Windows" xml:space="preserve">
     <value>Démarrer avec Windows</value>
   </data>
   <data name="Settings_Multiple" xml:space="preserve">
-    <value>Permettre à plusieurs Instances</value>
+    <value>Permettre plusieurs Instances</value>
   </data>
   <data name="Settings_Minimize" xml:space="preserve">
     <value>Réduire au démarrage</value>
@@ -193,7 +184,7 @@
     <value>Chemin de l'image</value>
   </data>
   <data name="Settings_Apply" xml:space="preserve">
-    <value>S'appliquent</value>
+    <value>Appliquer</value>
   </data>
   <data name="Settings_ServerPort" xml:space="preserve">
     <value>Port du serveur</value>
@@ -226,10 +217,10 @@
     <value>MySQL</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/SqlServer/</value>
+    <value>http://jmediamanager.org/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/MySQL/</value>
+    <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
   <data name="SQLite_Info" xml:space="preserve">
     <value>Alors qu'il est plus facile des types de configuration avec la configuration d'un seul clic c' est trois de base de données SQLite. Si votre collection contient 200 ou plusieurs séries, vous allez commencer à éprouver un grand nombre de questions, notamment les temps de réponse lent et blocages du programme quand JMM tente d'accéder à votre collection par l'intermédiaire de votre base de données SQLite. En ce qui concerne comment JMM utilise la base de données, il n'est simplement pas conçu pour de grandes collections. SQLite aussi a du mal à gérer plusieurs opérations qui augmente le temps d'attente entre les opérations qui globalement augmenter votre attente du temps lorsque vous accédez à votre collection.</value>
@@ -292,16 +283,13 @@
     <value>Que cela signifie-t-il ?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#Banned-from-anidb</value>
+    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
     <value>JMM serveur est déjà en cours d'exécution. S'il vous plaît vérifier votre plateau de système (secteur d'avis).</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Erreur</value>
-  </data>
-  <data name="Server_FillOutSettings" xml:space="preserve">
-    <value>Merci de remplir tous les paramètres</value>
   </data>
   <data name="Server_FailedToStart" xml:space="preserve">
     <value>Impossible de définir le début : </value>
@@ -342,9 +330,6 @@
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
     <value>Mise à jour toutes les infos de fichiers média vidéo ajoutée à la file d'attente.</value>
   </data>
-  <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Import est déjà en cours d'exécution</value>
-  </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Veuillez entrer une valeur</value>
   </data>
@@ -366,17 +351,11 @@
   <data name="Server_StatsInfoUpdate" xml:space="preserve">
     <value>Mise à jour toutes les infos de la série ajoutée à la file d'attente. </value>
   </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Mises à jour de Trakt série d'informations ont été ajoutées à la file d'attente.</value>
-  </data>
   <data name="Server_SyncVotes" xml:space="preserve">
     <value>Synchronisation locales votes avec AniDB et MyAnimeList ajouté à la file d'attente. </value>
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Les métadonnées de collection synchronisation avec Trakt ajouté à la file d'attente. </value>
-  </data>
-  <data name="Server_SyncMyList" xml:space="preserve">
-    <value>Métadonnées de collection synchronisation avec AniDB ajouté à la file d'attente. </value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
     <value>Balayage pour manque de fichiers ajoutés à la file d'attente.</value>
@@ -428,7 +407,7 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>Importer les dossiers sont la les emplacements de base où vous gardez votre anime. Vous devez ajouter au moins un dossier, puis sélectionnez 'Exécuter Import' dans l'onglet Actions</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://jmediamanager.org/JMM-Server/Configuring-JMM-Server/#Import-Folders</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
     <value>Difficulté d'utilisation</value>
@@ -437,16 +416,13 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>JMM serveur avec des lecteurs partagés</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#JMM-Shared-Drive</value>
+    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
     <value>Explication détaillée des options</value>
   </data>
   <data name="ImportFolders_ServerPath" xml:space="preserve">
     <value>Chemin du serveur</value>
-  </data>
-  <data name="ImportFolders_Delete" xml:space="preserve">
-    <value>Supprimer</value>
   </data>
   <data name="ImportFolders_NewFolder" xml:space="preserve">
     <value>Nouveau dossier</value>
@@ -457,14 +433,8 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Confirm" xml:space="preserve">
     <value>Confirmer</value>
   </data>
-  <data name="ImportFolders_DeleteFolder" xml:space="preserve">
-    <value>Êtes-vous sûr de vouloir supprimer le dossier d'importation: {0} ?</value>
-  </data>
   <data name="ImportFolders_ImportFolder" xml:space="preserve">
     <value>Dossier d'importation</value>
-  </data>
-  <data name="ImportFolders_ServerDetails" xml:space="preserve">
-    <value>Details du serveur</value>
   </data>
   <data name="ImportFolders_InputPath" xml:space="preserve">
     <value>Chemin de dossier d'importation</value>
@@ -481,14 +451,11 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Save" xml:space="preserve">
     <value>Enregistrer</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Annuler</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
     <value>Un dossier d'importation ne peut pas être aussi bien la source de déplacement et la destination de la goutte.</value>
-  </data>
-  <data name="ImportFolders_BlankImport" xml:space="preserve">
-    <value>L'emplacement du dossier import ne peut pas être vide. Entrez un chemin d'accès valide sur le serveur de JMM.</value>
   </data>
   <data name="About_UpdateCheck" xml:space="preserve">
     <value>Check for Updates</value>
@@ -512,13 +479,10 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>N'avez pas un compte AniDB ? Cliquez ici pour vous inscrire à un</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
-    <value>https://anidb.net/perl-bin/aNimeDB.pl?Show=signup</value>
+    <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Initialisation...</value>
-  </data>
-  <data name="InitialSetup_Login" xml:space="preserve">
-    <value>Ouverture de session...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Disposer...</value>
@@ -543,9 +507,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="Update_DownloadPage" xml:space="preserve">
     <value>Page de téléchargement</value>
-  </data>
-  <data name="Update_AboutPage" xml:space="preserve">
-    <value>Sur la Page</value>
   </data>
   <data name="Update_YourVersion" xml:space="preserve">
     <value>Votre Version</value>
@@ -574,20 +535,11 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Command_Idle" xml:space="preserve">
     <value>Idle</value>
   </data>
-  <data name="Command_StartingHasher" xml:space="preserve">
-    <value>À partir de travailleur (hasher) de la commande...</value>
-  </data>
-  <data name="Command_StartingImages" xml:space="preserve">
-    <value>À partir de travailleur (images) de la commande...</value>
-  </data>
-  <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>À partir de travailleur (général) de la commande...</value>
-  </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Film</value>
   </data>
   <data name="AnimeType_OVA" xml:space="preserve">
-    <value>OVULES</value>
+    <value>OVA</value>
   </data>
   <data name="AnimeType_Other" xml:space="preserve">
     <value>Autres</value>
@@ -596,7 +548,7 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>Série TV</value>
   </data>
   <data name="AnimeType_TVSpecial" xml:space="preserve">
-    <value>Émission spéciale</value>
+    <value>TV Spécial</value>
   </data>
   <data name="AnimeType_Web" xml:space="preserve">
     <value>Web</value>
@@ -623,13 +575,13 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>Épisodes manquants</value>
   </data>
   <data name="Filter_Airing" xml:space="preserve">
-    <value>Nouvelle série de diffusion</value>
+    <value>Nouvelle série en diffusion</value>
   </data>
   <data name="Filter_Added" xml:space="preserve">
-    <value>Nouvellement ajouté série</value>
+    <value>Série nouvellement ajoutée</value>
   </data>
   <data name="Filter_Votes" xml:space="preserve">
-    <value>Voix nécessaires</value>
+    <value>Votes nécessaires</value>
   </data>
   <data name="Filter_RecentlyWatched" xml:space="preserve">
     <value>Récemment regardé</value>
@@ -644,13 +596,13 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>Épisodes</value>
   </data>
   <data name="EpisodeType_Credits" xml:space="preserve">
-    <value>Crédit</value>
+    <value>Crédits</value>
   </data>
   <data name="EpisodeType_Specials" xml:space="preserve">
-    <value>Offres spéciales</value>
+    <value>Spéciales</value>
   </data>
   <data name="EpisodeType_Trailer" xml:space="preserve">
-    <value>Remorque</value>
+    <value>Trailer</value>
   </data>
   <data name="EpisodeType_Parody" xml:space="preserve">
     <value>Parodie</value>
@@ -659,7 +611,7 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>Autres</value>
   </data>
   <data name="Command_Refresh" xml:space="preserve">
-    <value>Rafraîchissant Anime Stats : {0}</value>
+    <value>Rafraîchissement Anime Stats : {0}</value>
   </data>
   <data name="AniDB_GettingAnimeXML" xml:space="preserve">
     <value>Obtenir des données XML de l'Anime de ANIDB : {0}</value>
@@ -668,10 +620,10 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>Obtenu des données XML de l'Anime de ANIDB : {0} - {1} - {2}</value>
   </data>
   <data name="Command_AnimeInfo" xml:space="preserve">
-    <value>Trouver de l'info de l'anime de l'API HTTP: {0}</value>
+    <value>Recherche de l'info sur l'anime par l'API HTTP: {0}</value>
   </data>
   <data name="Command_FileInfo" xml:space="preserve">
-    <value>Obtenir des informations sur le fichier de UDP API: {0}</value>
+    <value>Recherche des informations sur le fichier par l'UDP API: {0}</value>
   </data>
   <data name="Command_ReadingMedia" xml:space="preserve">
     <value>Lecture des médias d'informations fichier : {0}</value>
@@ -679,14 +631,11 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Command_GettingTvDB" xml:space="preserve">
     <value>Obtenir les épisodes de The TvDB : {0}</value>
   </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server est destiné aux utilisateurs avec une grande collection qui dépasse de plus de 200 séries qui souhaitent aussi l'exécution rapide possible. Sur les trois types de base de données, SQL Server est considéré comme le plus difficile à mettre en place mais peut être configuré avec une facilité si vous suivez le guide, que nous avons créé.</value>
-  </data>
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL est le type de base de données de niveau intermédiaire et recommandée pour les utilisateurs JMM avec une grande collection, ayant l'intention de construire une grande collection ou tout simplement un coup de pouce de vitesse et les performances lorsque vous utilisez JMM. Il est facile à installer et à l'aide de notre guide, que vous serez vers le haut et en cours d'exécution en quelques minutes.</value>
   </data>
   <data name="Toolbar_Translate" xml:space="preserve">
-    <value>Aider à traduire les JMM !</value>
+    <value>Aider à traduire JMM !</value>
   </data>
   <data name="Link_Translate" xml:space="preserve">
     <value>http://jmediamanager.org/translate</value>
@@ -739,9 +688,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Command_GetReviewInfo" xml:space="preserve">
     <value>Se revoir info de UDP API pour l'Anime : {0}</value>
   </data>
-  <data name="Command_GetUpdatedAnime" xml:space="preserve">
-    <value>Obtenir la liste des animes mise à jour de UDP API</value>
-  </data>
   <data name="Command_SyncMyList" xml:space="preserve">
     <value>Synchronisation de MyList info de l'API HTTP</value>
   </data>
@@ -763,9 +709,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Command_SearchMal" xml:space="preserve">
     <value>Vous cherchez une anime sur LTA : {0}</value>
   </data>
-  <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Mise à jour de statut sur le MAL : {0}</value>
-  </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
     <value>Téléchargement de regardé des États de MAL</value>
   </data>
@@ -783,9 +726,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
     <value>Trakt Collection de synchronisation pour la série : {0}</value>
-  </data>
-  <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Mise à jour toutes les infos de série Trakt</value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Mise à jour d'informations/images sur Trakt.TV : {0}</value>
@@ -824,10 +764,10 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>Préquelle</value>
   </data>
   <data name="SeriesType_SameSetting" xml:space="preserve">
-    <value>Même paramètre</value>
+    <value>Same Setting</value>
   </data>
   <data name="SeriesType_AltSetting" xml:space="preserve">
-    <value>Paramètre de remplacement</value>
+    <value>Alternative Setting</value>
   </data>
   <data name="SeriesType_AltVersion" xml:space="preserve">
     <value>Version alternative</value>
@@ -842,16 +782,13 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
     <value>Side Story</value>
   </data>
   <data name="SeriesType_ParentStory" xml:space="preserve">
-    <value>Histoire de parent</value>
+    <value>Série Parent</value>
   </data>
   <data name="SeriesType_Summary" xml:space="preserve">
     <value>Résumé</value>
   </data>
   <data name="SeriesType_FullStory" xml:space="preserve">
-    <value>Lire l'article</value>
-  </data>
-  <data name="Update_Changelog" xml:space="preserve">
-    <value>Changelog</value>
+    <value>Résumé détaillé</value>
   </data>
   <data name="Command_WebCacheDeleteXRefAniDBMAL" xml:space="preserve">
     <value>Suppression de croix ref pour Anidb pour MAL de cache web: {0} !</value>
@@ -882,5 +819,131 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Envoi de croix Réf fichier épisode de cache web: {0} !</value>
+  </data>
+  <data name="Actions_RunImport" xml:space="preserve">
+    <value>Exécuter l’importation</value>
+  </data>
+  <data name="Server_FillOutSettings" xml:space="preserve">
+    <value>Veuillez remplir tous les champs obligatoires</value>
+  </data>
+  <data name="ImportFolders_Remove" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="ImportFolders_RemoveFolder" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir supprimer le dossier d’importation suivants : {0} ?</value>
+  </data>
+  <data name="ImportFolders_ServerFolder" xml:space="preserve">
+    <value>Importer des paramètres de dossier</value>
+  </data>
+  <data name="ImportFolders_BlankImport" xml:space="preserve">
+    <value>Le chemin de dossier d’importation ne peut pas être vide, s’il vous plaît entrez un chemin d’accès valide.</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Obtenir la liste des mises à jour anime de UDP API</value>
+  </data>
+  <data name="Update_Changelog" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
+  <data name="Actions_SyncMyList" xml:space="preserve">
+    <value>Sync AniDB MyList</value>
+  </data>
+  <data name="Server_ImportRunning" xml:space="preserve">
+    <value>Traitement du fichier ajouté à la file d’attente d’importation</value>
+  </data>
+  <data name="Server_SyncMyList" xml:space="preserve">
+    <value>Synchronisation des métadonnées de ce produit avec AniDB MyList ajouté à la file d’attente.</value>
+  </data>
+  <data name="InitialSetup_Login" xml:space="preserve">
+    <value>Exploitation forestière en...</value>
+  </data>
+  <data name="Command_StartingHasher" xml:space="preserve">
+    <value>Travailleur de commande départ hasher</value>
+  </data>
+  <data name="Command_StartingImages" xml:space="preserve">
+    <value>Image départ téléchargement travailleur de commande</value>
+  </data>
+  <data name="Command_StartingGeneral" xml:space="preserve">
+    <value>À partir de travailleur de commandement général</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Mise à jour regardé statut sur LTA : {0}</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Mise à jour toutes les infos de série Trakt, ajouté à la file d’attente</value>
+  </data>
+  <data name="Server_RemoveMissingFiles" xml:space="preserve">
+    <value>Supprimer tous les fichiers manquants ajoutés à la file d’attente</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Voix pour Sync et AniDB et MAL</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server est destiné aux utilisateurs avec une grande collection qui dépasse de plus de 200 séries qui souhaitent aussi le rendement le plus rapide possible. Sur les trois types de base de données, SQL Server est considéré comme le plus difficile à mettre en place mais peut être configuré avec une facilité si vous suivez le guide, que nous avons créé.</value>
+  </data>
+  <data name="Users_Default" xml:space="preserve">
+    <value>Par défaut</value>
+  </data>
+  <data name="Users_FamilyFriendly" xml:space="preserve">
+    <value>Environnement familial</value>
+  </data>
+  <data name="Rename_Default" xml:space="preserve">
+    <value>Par défaut</value>
+  </data>
+  <data name="Database_Cache" xml:space="preserve">
+    <value>Base de données de Cache - cache - {0} {1}...</value>
+  </data>
+  <data name="Database_Users" xml:space="preserve">
+    <value>Base de données - remplissage de données (utilisateurs)...</value>
+  </data>
+  <data name="Database_Filters" xml:space="preserve">
+    <value>Base de données - remplissage de données (filtres de groupe)...</value>
+  </data>
+  <data name="Database_LockFilters" xml:space="preserve">
+    <value>Base de données - remplissage de données (filtres de groupe verrouillé)...</value>
+  </data>
+  <data name="Database_RenameScripts" xml:space="preserve">
+    <value>Base de données - remplissage de données (Script de changement de nom)...</value>
+  </data>
+  <data name="Database_CustomTags" xml:space="preserve">
+    <value>Base de données - remplissage de données (balises personnalisées)...</value>
+  </data>
+  <data name="CustomTag_Dropped" xml:space="preserve">
+    <value>A chuté</value>
+  </data>
+  <data name="CustomTag_DroppedInfo" xml:space="preserve">
+    <value>Commencé à regarder cette série, mais ont chuté depuis il</value>
+  </data>
+  <data name="CustomTag_Pinned" xml:space="preserve">
+    <value>Épinglés</value>
+  </data>
+  <data name="CustomTag_PinnedInfo" xml:space="preserve">
+    <value>Le tombé sur cette série pour une raison quelconque vous aimez</value>
+  </data>
+  <data name="CustomTag_Ongoing" xml:space="preserve">
+    <value>En cours</value>
+  </data>
+  <data name="CustomTag_OngoingInfo" xml:space="preserve">
+    <value>Cette série n’a pas une date de fin</value>
+  </data>
+  <data name="CustomTag_SeriesComplete" xml:space="preserve">
+    <value>En attente de l’achèvement de la série</value>
+  </data>
+  <data name="CustomTag_SeriesCompleteInfo" xml:space="preserve">
+    <value>Va commencer à regarder cela, une fois cette série terminée</value>
+  </data>
+  <data name="CustomTag_BlurayComplete" xml:space="preserve">
+    <value>En attente de l’achèvement de Blu-ray</value>
+  </data>
+  <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
+    <value>Va commencer à regarder cela, une fois que tous les épisodes sont disponibles en Blu-Ray</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>Bien</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Oui</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>N°</value>
   </data>
 </root>

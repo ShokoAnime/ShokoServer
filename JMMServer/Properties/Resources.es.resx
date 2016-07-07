@@ -120,20 +120,11 @@
   <data name="JMMServer" xml:space="preserve">
     <value>Servidor JMM</value>
   </data>
-  <data name="Actions_RunImport" xml:space="preserve">
-    <value>Ejecutar importación</value>
-  </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Eliminar archivos que faltan</value>
   </data>
-  <data name="Actions_SyncMyList" xml:space="preserve">
-    <value>Sincronizar mi lista</value>
-  </data>
   <data name="Actions_SyncTrakt" xml:space="preserve">
     <value>Colección de Trakt Sync</value>
-  </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Votos de sincronización</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Actualizar toda la información serie AniDB</value>
@@ -226,13 +217,10 @@
     <value>MySQL</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/SQLServer/</value>
+    <value>http://jmediamanager.org/setup/sqlserver/</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>http://jmediamanager.org/Setup/MySQL/</value>
-  </data>
-  <data name="SQLServer_Info" xml:space="preserve">
-    <value>SQL Server está diseñado para usuarios con una gran colección que supera los más de 200 series que también quieren el rápido desempeño posible. De los tres tipos de base de datos, SQL Server es considerada la más difícil en la creación, pero se puede configurar con facilidad si sigues a la guía que hemos creado.</value>
+    <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
   <data name="SQLite_Info" xml:space="preserve">
     <value>Mientras que SQLite es la más fácil de los tipos de tres bases de datos para configurar con la configuración de un solo clic. Si la colección contiene serie 200 o más, usted comenzará a experimentar un montón de cuestiones incluyendo tiempos de respuesta lentos y bloqueos de programa cuando JMM intenta obtener acceso a su colección a través de su base de datos SQLite. En cuanto a cómo JMM utiliza la base de datos, simplemente no está diseñado para grandes colecciones. SQLite también tiene dificultad con el manejo de varias operaciones que aumenta el tiempo de espera entre las operaciones que en general aumentar la espera tiempo al acceder a tu colección.</value>
@@ -295,16 +283,13 @@
     <value>¿Qué significa esto?</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#Banned-From-AniDB</value>
+    <value>http://jmediamanager.org/faq/#banned-from-anidb</value>
   </data>
   <data name="Server_Running" xml:space="preserve">
     <value>Servidor de JMM ya se está ejecutando. Por favor revise su bandeja de sistema (área de notificación).</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Error</value>
-  </data>
-  <data name="Server_FillOutSettings" xml:space="preserve">
-    <value>Por favor complete todos los ajustes</value>
   </data>
   <data name="Server_FailedToStart" xml:space="preserve">
     <value>Error al definir comienzo: </value>
@@ -345,9 +330,6 @@
   <data name="Serrver_VideoMediaUpdate" xml:space="preserve">
     <value>Actualización de toda información de medios video de archivos añadida a la cola.</value>
   </data>
-  <data name="Server_ImportRunning" xml:space="preserve">
-    <value>Importación ya se está ejecutando</value>
-  </data>
   <data name="Server_EnterAnyValue" xml:space="preserve">
     <value>Por favor, introduzca un valor</value>
   </data>
@@ -369,17 +351,11 @@
   <data name="Server_StatsInfoUpdate" xml:space="preserve">
     <value>Actualizar toda la información serie añadido a la cola. </value>
   </data>
-  <data name="Server_TraktInfoUpdate" xml:space="preserve">
-    <value>Actualizaciones de información de serie de Trakt se han añadido a la cola.</value>
-  </data>
   <data name="Server_SyncVotes" xml:space="preserve">
     <value>Sincronización locales votos con AniDB y MyAnimeList añadido a la cola. </value>
   </data>
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Sincronización de colección de metadatos con Trakt añadido a la cola. </value>
-  </data>
-  <data name="Server_SyncMyList" xml:space="preserve">
-    <value>Sincronización de colección de metadatos con AniDB añadido a la cola. </value>
   </data>
   <data name="Server_RemoveMising" xml:space="preserve">
     <value>Análisis falta archivos añadidos a la cola.</value>
@@ -431,7 +407,7 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
     <value>Carpetas de importación son el los lugares base donde guarda su anime. Usted necesitará agregar al menos una carpeta y seleccione 'Ejecutar Import' en la ficha acciones</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>http://jmediamanager.org/JMM-Server/Configuring-JMM-Server/#Import-folders</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
   <data name="ImportFolders_Fix" xml:space="preserve">
     <value>Fix para usar</value>
@@ -440,16 +416,13 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
     <value>Servidor de JMM con unidades compartidas</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>http://jmediamanager.org/FAQ/#JMM-Shared-Drive</value>
+    <value>http://jmediamanager.org/faq/#jmm-shared-drive</value>
   </data>
   <data name="DetailedExplanation" xml:space="preserve">
     <value>Explicación detallada de opciones</value>
   </data>
   <data name="ImportFolders_ServerPath" xml:space="preserve">
     <value>Ruta del servidor</value>
-  </data>
-  <data name="ImportFolders_Delete" xml:space="preserve">
-    <value>Eliminar</value>
   </data>
   <data name="ImportFolders_NewFolder" xml:space="preserve">
     <value>Nueva carpeta</value>
@@ -460,14 +433,8 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Confirm" xml:space="preserve">
     <value>Confirmar</value>
   </data>
-  <data name="ImportFolders_DeleteFolder" xml:space="preserve">
-    <value>¿Está seguro que desea eliminar la carpeta de importación: {0}?</value>
-  </data>
   <data name="ImportFolders_ImportFolder" xml:space="preserve">
     <value>Carpeta de importación</value>
-  </data>
-  <data name="ImportFolders_ServerDetails" xml:space="preserve">
-    <value>Detalles servidor</value>
   </data>
   <data name="ImportFolders_InputPath" xml:space="preserve">
     <value>Ruta de la carpeta de importación</value>
@@ -484,14 +451,11 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Save" xml:space="preserve">
     <value>Guardar</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+  <data name="MessageBox_Cancel" xml:space="preserve">
     <value>Cancelar</value>
   </data>
   <data name="ImportFolders_SameFolder" xml:space="preserve">
     <value>Una carpeta de importación no puede ser la fuente de la gota y el destino de la gota.</value>
-  </data>
-  <data name="ImportFolders_BlankImport" xml:space="preserve">
-    <value>La ubicación de carpeta de importación no puede ser en blanco. Introduzca una ruta válida en servidor de JMM.</value>
   </data>
   <data name="About_UpdateCheck" xml:space="preserve">
     <value>Buscar actualizaciones</value>
@@ -515,13 +479,10 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
     <value>¿No tiene una cuenta de AniDB? Haga clic aquí para registrarse en una</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
-    <value>https://AniDB.net/Perl-bin/animedb.pl?show=signup</value>
+    <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="InitialSetup_Initializing" xml:space="preserve">
     <value>Inicializando...</value>
-  </data>
-  <data name="InitialSetup_Login" xml:space="preserve">
-    <value>Inicio de sesión...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Eliminación...</value>
@@ -546,9 +507,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Update_DownloadPage" xml:space="preserve">
     <value>Página para descargar</value>
-  </data>
-  <data name="Update_AboutPage" xml:space="preserve">
-    <value>Sobre la página</value>
   </data>
   <data name="Update_YourVersion" xml:space="preserve">
     <value>Su versión</value>
@@ -576,15 +534,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Command_Idle" xml:space="preserve">
     <value>Marcha lenta</value>
-  </data>
-  <data name="Command_StartingHasher" xml:space="preserve">
-    <value>Trabajador a partir del comando (hasher)...</value>
-  </data>
-  <data name="Command_StartingImages" xml:space="preserve">
-    <value>Trabajador a partir del comando (imágenes)...</value>
-  </data>
-  <data name="Command_StartingGeneral" xml:space="preserve">
-    <value>Arrancando el "worker" comando (general)...</value>
   </data>
   <data name="AnimeType_Movie" xml:space="preserve">
     <value>Película</value>
@@ -739,9 +688,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Command_GetReviewInfo" xml:space="preserve">
     <value>Conseguir revisar información del API de UDP para Anime: {0}</value>
   </data>
-  <data name="Command_GetUpdatedAnime" xml:space="preserve">
-    <value>Obtener lista de animes actualizados de API de UDP</value>
-  </data>
   <data name="Command_SyncMyList" xml:space="preserve">
     <value>Sincronización de información de MyList del API HTTP</value>
   </data>
@@ -763,9 +709,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Command_SearchMal" xml:space="preserve">
     <value>Busca anime en MAL: {0}</value>
   </data>
-  <data name="Command_UpdateMALWatched" xml:space="preserve">
-    <value>Actualización de estado de MAL: {0}</value>
-  </data>
   <data name="Command_UploadMALWatched" xml:space="preserve">
     <value>Subir ver Estados de MAL</value>
   </data>
@@ -783,9 +726,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Command_SyncTraktSeries" xml:space="preserve">
     <value>Colección de Trakt de sincronización para serie: {0}</value>
-  </data>
-  <data name="Command_UpdateTrakt" xml:space="preserve">
-    <value>Actualización de toda información de serie de Trakt</value>
   </data>
   <data name="Command_UpdateTraktData" xml:space="preserve">
     <value>Actualización de información/imágenes de Trakt.TV: {0}</value>
@@ -882,5 +822,128 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Command_WebCacheSendXRefFileEpisode" xml:space="preserve">
     <value>Enviar referencia de la Cruz a episodio para caché web archivo: {0}!</value>
+  </data>
+  <data name="Actions_RunImport" xml:space="preserve">
+    <value>Ejecutar importación</value>
+  </data>
+  <data name="Server_FillOutSettings" xml:space="preserve">
+    <value>Por favor, rellene todos los campos requeridos</value>
+  </data>
+  <data name="ImportFolders_Remove" xml:space="preserve">
+    <value>Quitar</value>
+  </data>
+  <data name="ImportFolders_RemoveFolder" xml:space="preserve">
+    <value>¿Está seguro que desea eliminar la siguiente carpeta de importación: {0}?</value>
+  </data>
+  <data name="ImportFolders_ServerFolder" xml:space="preserve">
+    <value>Configuración de carpeta de importación</value>
+  </data>
+  <data name="ImportFolders_BlankImport" xml:space="preserve">
+    <value>La ruta de la carpeta de importación no puede ser en blanco, escriba una ruta válida.</value>
+  </data>
+  <data name="Command_GetUpdatedAnime" xml:space="preserve">
+    <value>Obtener lista de anime actualizada de API de UDP</value>
+  </data>
+  <data name="Actions_SyncMyList" xml:space="preserve">
+    <value>Sync AniDB MyList</value>
+  </data>
+  <data name="Server_ImportRunning" xml:space="preserve">
+    <value>Procesamiento de archivos de importación agrega a cola</value>
+  </data>
+  <data name="Server_SyncMyList" xml:space="preserve">
+    <value>Sincronización de metadatos de colección con AniDB MyList añadido a la cola.</value>
+  </data>
+  <data name="InitialSetup_Login" xml:space="preserve">
+    <value>Registro en...</value>
+  </data>
+  <data name="Command_StartingHasher" xml:space="preserve">
+    <value>A partir de trabajador de comando hasher</value>
+  </data>
+  <data name="Command_StartingImages" xml:space="preserve">
+    <value>Imagen partida descarga trabajador de comando</value>
+  </data>
+  <data name="Command_StartingGeneral" xml:space="preserve">
+    <value>A partir de trabajador de comando general</value>
+  </data>
+  <data name="Command_UpdateMALWatched" xml:space="preserve">
+    <value>Actualización VI estado de MAL: {0}</value>
+  </data>
+  <data name="Command_UpdateTrakt" xml:space="preserve">
+    <value>Actualización de toda información de serie de Trakt añadida a la cola</value>
+  </data>
+  <data name="Server_RemoveMissingFiles" xml:space="preserve">
+    <value>Eliminar todos los archivos que faltan agrega a cola</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Votos de Sync con AniDB y MAL</value>
+  </data>
+  <data name="SQLServer_Info" xml:space="preserve">
+    <value>SQL Server está diseñado para usuarios con una gran colección que supera los más de 200 series que también quieren las mejores prestaciones posibles. De los tres tipos de base de datos, SQL Server es considerada la más difícil en la creación, pero se puede configurar con facilidad si sigues a la guía que hemos creado.</value>
+  </data>
+  <data name="Users_Default" xml:space="preserve">
+    <value>Por defecto</value>
+  </data>
+  <data name="Users_FamilyFriendly" xml:space="preserve">
+    <value>Hotel familiar</value>
+  </data>
+  <data name="Rename_Default" xml:space="preserve">
+    <value>Por defecto</value>
+  </data>
+  <data name="Database_Cache" xml:space="preserve">
+    <value>Base de datos Cache - caché - {0} {1}...</value>
+  </data>
+  <data name="Database_Users" xml:space="preserve">
+    <value>Base de datos - rellenar datos (usuarios)...</value>
+  </data>
+  <data name="Database_Filters" xml:space="preserve">
+    <value>Base de datos - rellenar datos (Grupo filtros)...</value>
+  </data>
+  <data name="Database_LockFilters" xml:space="preserve">
+    <value>Base de datos - rellenar datos (filtros de grupo bloqueado)...</value>
+  </data>
+  <data name="Database_RenameScripts" xml:space="preserve">
+    <value>Base de datos - rellenar datos (escritura de cambio de nombre)...</value>
+  </data>
+  <data name="Database_CustomTags" xml:space="preserve">
+    <value>Base de datos - rellenar datos (etiquetas personalizadas)...</value>
+  </data>
+  <data name="CustomTag_Dropped" xml:space="preserve">
+    <value>Cayó</value>
+  </data>
+  <data name="CustomTag_DroppedInfo" xml:space="preserve">
+    <value>Comenzó viendo esta serie, pero desde entonces han caído</value>
+  </data>
+  <data name="CustomTag_Pinned" xml:space="preserve">
+    <value>Cubrió a</value>
+  </data>
+  <data name="CustomTag_PinnedInfo" xml:space="preserve">
+    <value>Cubrió esta serie es por lo que te gusta</value>
+  </data>
+  <data name="CustomTag_Ongoing" xml:space="preserve">
+    <value>Curso</value>
+  </data>
+  <data name="CustomTag_OngoingInfo" xml:space="preserve">
+    <value>Esta serie no tiene una fecha de finalización</value>
+  </data>
+  <data name="CustomTag_SeriesComplete" xml:space="preserve">
+    <value>A la espera de la finalización de la serie</value>
+  </data>
+  <data name="CustomTag_SeriesCompleteInfo" xml:space="preserve">
+    <value>Empieza viendo esto una vez terminada esta serie</value>
+  </data>
+  <data name="CustomTag_BlurayComplete" xml:space="preserve">
+    <value>A la espera de la finalización de Blu-ray</value>
+  </data>
+  <data name="CustomTag_BlurayCompleteInfo" xml:space="preserve">
+    <value>Empieza viendo esto una vez todos los episodios están disponibles en Blu-Ray</value>
+  </data>
+  <data name="MessageBox_OK" xml:space="preserve">
+    <value>Vale</value>
+  </data>
+  <data name="MessageBox_Yes" xml:space="preserve">
+    <value>Sí</value>
+  </data>
+  <data name="MessageBox_No" xml:space="preserve">
+    <value>No</value>
   </data>
 </root>
