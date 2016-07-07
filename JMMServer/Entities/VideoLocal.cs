@@ -748,28 +748,34 @@ namespace JMMServer.Entities
                 contract.IsWatched = 1;
                 contract.WatchedDate = userRecord.WatchedDate;
             }
+            contract.Media = GetMediaFromUser(userID);
+           
+            return contract;
+        }
+        public Media GetMediaFromUser(int userID)
+        {
+            Media n = null;
             if (Media != null)
             {
-                contract.Media = (Media) Media.DeepCopy();
-                if (contract.Media?.Parts != null)
+                n = (Media)Media.DeepCopy();
+                if (n?.Parts != null)
                 {
-                    foreach (Part p in contract.Media?.Parts)
+                    foreach (Part p in n?.Parts)
                     {
-                        string ff = Path.GetExtension(p.Extension);
-                        p.Key = PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID.ToString(), ff, false);
+                        string ff = Path.GetExtension(FilePath);
+                        p.Key = PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID.ToString(), ff, false));
                         if (p.Streams != null)
                         {
                             foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
                             {
-                                s.Key = PlexAndKodi.Helper.ConstructFileStream(userID, s.File, false);
+                                s.Key = PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructFileStream(userID, s.File, false));
                             }
                         }
                     }
                 }
             }
-            return contract;
+            return n;
         }
-
         public Contract_VideoDetailed ToContractDetailed(int userID)
         {
             Contract_VideoDetailed contract = new Contract_VideoDetailed();
@@ -879,7 +885,7 @@ namespace JMMServer.Entities
                 contract.ReleaseGroup = relGroup.ToContract();
             else
                 contract.ReleaseGroup = null;
-
+            contract.Media = GetMediaFromUser(userID);
             return contract;
         }
 
