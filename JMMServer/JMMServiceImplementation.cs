@@ -6887,6 +6887,7 @@ namespace JMMServer
             {
                 bool existingUser = false;
                 bool updateStats = false;
+                bool updateGf = false;
                 JMMUser jmmUser = null;
                 if (user.JMMUserID.HasValue)
                 {
@@ -6898,12 +6899,16 @@ namespace JMMServer
                 {
                     jmmUser = new JMMUser();
                     updateStats = true;
+                    updateGf = true;
                 }
 
                 if (existingUser && jmmUser.IsAniDBUser != user.IsAniDBUser)
                     updateStats = true;
 
-                jmmUser.HideCategories = string.Join(",", user.HideCategories);
+                string hcat = string.Join(",", user.HideCategories);
+                if (jmmUser.HideCategories != hcat)
+                    updateGf = true;
+                jmmUser.HideCategories = hcat;
                 jmmUser.IsAniDBUser = user.IsAniDBUser;
                 jmmUser.IsTraktUser = user.IsTraktUser;
                 jmmUser.IsAdmin = user.IsAdmin;
@@ -6934,7 +6939,7 @@ namespace JMMServer
                     if (!adminExists) return "At least one user must be an administrator";
                 }
 
-                repUsers.Save(jmmUser, updateStats);
+                repUsers.Save(jmmUser, updateGf);
 
                 // update stats
                 if (updateStats)

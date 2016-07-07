@@ -1,4 +1,5 @@
 ﻿using System;
+using JMMContracts.PlexAndKodi;
 
 namespace JMMContracts
 {
@@ -70,5 +71,7 @@ namespace JMMContracts
         public string LanguagesSubtitle { get; set; }
 
         public Contract_ReleaseGroup ReleaseGroup { get; set; }
+
+        public Media Media { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.ServiceModel;
 using System.ServiceModel.Web;
 using System.Text;
 using System.Xml.Serialization;
@@ -27,6 +28,8 @@ namespace JMMServer.PlexAndKodi
         {
             return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/file" + extension, BaseObject.IsExternalRequest);
         }
+
+
 
         public static string ConstructFileStream(int userid, string file, bool autowatch)
         {
@@ -188,18 +191,22 @@ namespace JMMServer.PlexAndKodi
         {
             if (str == null)
                 return null;
-            if (WebOperationContext.Current == null)
-                return null;
-            string host = WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host;
+            string host="127.0.0.1";
+            string scheme = "http";
+            if (WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri?.Host != null)
+            {
+                host = WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host;
+                scheme = WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme;
+            }
+            else if (OperationContext.Current?.RequestContext?.RequestMessage?.Headers?.To?.Host != null)
+                host = OperationContext.Current.RequestContext.RequestMessage.Headers.To.Host;
             if (externalip)
             {
                 IPAddress ip = FileServer.FileServer.GetExternalAddress();
                 if (ip != null)
                     host = ip.ToString();
             }
-            return
-                str.Replace("{SCHEME}", WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme)
-                    .Replace("{HOST}", host);
+            return str.Replace("{SCHEME}", scheme).Replace("{HOST}", host);
         }
 
         public static bool RefreshIfMediaEmpty(VideoLocal vl, Video v)

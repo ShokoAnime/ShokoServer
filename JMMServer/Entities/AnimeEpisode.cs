@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using AniDBAPI;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
 using NHibernate;
+using Stream = JMMContracts.PlexAndKodi.Stream;
 
 namespace JMMServer.Entities
 {
@@ -296,6 +299,7 @@ namespace JMMServer.Entities
                     else
                         contract.ReleaseGroup = null;
 
+                    contract.Media = vid.GetMediaFromUser(userID);
                     contracts.Add(contract);
                 }
             }
