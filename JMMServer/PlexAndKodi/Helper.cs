@@ -24,9 +24,9 @@ namespace JMMServer.PlexAndKodi
 {
     public static class Helper
     {
-        public static string ConstructVideoLocalStream(int userid, string vid, string extension, bool autowatch)
+        public static string ConstructVideoLocalStream(int userid, string vid, string name, bool autowatch)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/file" + extension, BaseObject.IsExternalRequest);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/" + name, BaseObject.IsExternalRequest);
         }
 
 
@@ -234,7 +234,7 @@ namespace JMMServer.PlexAndKodi
                     {
                         foreach (Part p in m.Parts)
                         {
-                            string ff = Path.GetExtension(p.Extension);
+                            string ff = "file." + p.Container;
                             p.Key = ConstructVideoLocalStream(userid, m.Id, ff, prov.AutoWatch);
                             if (p.Streams != null)
                             {
@@ -507,7 +507,6 @@ namespace JMMServer.PlexAndKodi
                 foreach (Part p in m.Parts)
                 {
                     p.Id = null;
-                    p.Extension = Path.GetExtension(v.FullServerPath);
                     p.Accessible = "1";
                     p.Exists = "1";
                     bool vid = false;
