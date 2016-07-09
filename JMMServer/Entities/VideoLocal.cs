@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using AniDBAPI;
 using BinaryNorthwest;
 using FluentNHibernate.Utils;
@@ -752,6 +753,8 @@ namespace JMMServer.Entities
            
             return contract;
         }
+        private static Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]", RegexOptions.Compiled);
+
         public Media GetMediaFromUser(int userID)
         {
             Media n = null;
@@ -762,8 +765,8 @@ namespace JMMServer.Entities
                 {
                     foreach (Part p in n?.Parts)
                     {
-                        string ff = Path.GetExtension(FilePath);
-                        p.Key = PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID.ToString(), ff, false));
+                        string name = UrlSafe.Replace(Path.GetFileName(FilePath)," ").Replace("  "," ").Replace("  "," ").Trim().Replace(" ","_");
+                        p.Key = PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
                         if (p.Streams != null)
                         {
                             foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
