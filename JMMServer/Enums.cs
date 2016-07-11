@@ -462,4 +462,12 @@ namespace JMMServer
         LastOneHundred = 3,
         ED2KHash = 4
     }
+
+    public enum FileHashType
+    {
+        ED2K = 0,
+        MD5 = 1,
+        SHA1 = 2,
+        CRC32 = 3
+    }
 }
