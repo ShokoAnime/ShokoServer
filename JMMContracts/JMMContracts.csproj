@@ -70,6 +70,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="API\API_MediaContainer.cs" />
     <Compile Include="Contract_AdminMessage.cs" />
     <Compile Include="Contract_AniDBAnime.cs" />
     <Compile Include="Contract_AniDBReleaseGroup.cs" />

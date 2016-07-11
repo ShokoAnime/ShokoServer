@@ -240,8 +240,7 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
-    <Compile Include="API\API_General.cs" />
-    <Compile Include="API\API_GroupFilter.cs" />
+    <Compile Include="API\API_Calls.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="LZ4\CompressionHelper.cs" />

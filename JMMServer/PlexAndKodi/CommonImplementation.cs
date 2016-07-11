@@ -24,7 +24,6 @@ namespace JMMServer.PlexAndKodi
     {
         public static Logger logger = LogManager.GetCurrentClassLogger();
 
-
         public System.IO.Stream GetSupportImage(string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -293,7 +292,6 @@ namespace JMMServer.PlexAndKodi
             return ret.GetStream(prov);
         }
 
-
         private MediaContainer GetFromFile(IProvider prov, int userid, string Id, BreadCrumbs info)
         {
             int id;
@@ -383,7 +381,6 @@ namespace JMMServer.PlexAndKodi
             }
             return new MediaContainer() {ErrorString = "Episode Not Found"};
         }
-
 
         public PlexContract_Users GetUsers(IProvider prov)
         {
@@ -508,7 +505,6 @@ namespace JMMServer.PlexAndKodi
             ret.MediaContainer.Childrens = Helper.ConvertToDirectory(ls);
             return ret.GetStream(prov);
         }
-
 
         public MediaContainer GetItemsFromGroup(IProvider prov, int userid, string GroupId, BreadCrumbs info)
         {
@@ -749,7 +745,6 @@ namespace JMMServer.PlexAndKodi
             }
             return rsp;
         }
-
 
         public Response TraktScrobble(IProvider prov, string animeId, string type, string progress,
             string status)
