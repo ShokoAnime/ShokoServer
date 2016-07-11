@@ -337,8 +337,9 @@ namespace JMMServer.Commands
                 vinfo.VideoResolution = string.IsNullOrEmpty(mInfo.VideoResolution) ? "" : mInfo.VideoResolution;
                 vinfo.FullInfo = string.IsNullOrEmpty(mInfo.FullInfo) ? "" : mInfo.FullInfo;
                 repVidInfo.Save(vinfo);
+                //Resave videolocal, since it do not have media populated (videinfo was not created).
+                repVidLocal.Save(vlocal,true);
             }
-
             // now add a command to process the file
             CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);
             cr_procfile.Save();
