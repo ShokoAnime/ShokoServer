@@ -32,9 +32,28 @@ namespace JMMContracts.API
         public static explicit operator API_MediaContainer(JMMContracts.PlexAndKodi.MediaContainer old)
         {
             API_MediaContainer api = new API_MediaContainer();
-            foreach (PlexAndKodi.Video video in old.Childrens)
+            if (old.Childrens != null)
             {
-                api.Childrens.Add((API_Video)video);
+                Type t = old.Childrens[0].GetType();
+                if (t.Equals(typeof(PlexAndKodi.Video)))
+                {
+                    api.Childrens = new List<API_Video>();
+                    foreach (PlexAndKodi.Video video in old.Childrens)
+                    {
+                        api.Childrens.Add((API_Video)video);
+                    }
+                }
+                else
+                {
+                    if (t.Equals(typeof(PlexAndKodi.Directory)))
+                    {
+                        api.Childrens = new List<API_Video>();
+                        foreach (PlexAndKodi.Directory video in old.Childrens)
+                        {
+                            api.Childrens.Add((API_Video)video);
+                        }
+                    }
+                }
             }
             api.Size = old.Size;
             api.Identifier = old.Identifier;
@@ -163,30 +182,182 @@ namespace JMMContracts.API
             api.EpisodeType = old.EpisodeType;
             api.EpisodeNumber = old.EpisodeNumber;
             api.Group = old.Group;
-            foreach (PlexAndKodi.Media media in old.Medias)
+
+            if (old.Extras != null)
             {
-                api.Medias.Add((API_Media)media);
+                api.Extras = (API_Extras)old.Extras;
             }
-            foreach (PlexAndKodi.RoleTag role in old.Roles)
+
+            if (old.Medias != null)
             {
-                api.Roles.Add((API_RoleTag)role);
+                api.Medias = new List<API_Media>();
+                foreach (PlexAndKodi.Media media in old.Medias)
+                {
+                    api.Medias.Add((API_Media)media);
+                }
             }
-            api.Extras = (API_Extras)old.Extras;
-            foreach (PlexAndKodi.Hub hub in old.Related)
+
+            if (old.Roles != null)
             {
-                api.Related.Add((API_Hub)hub);
+                api.Roles = new List<API_RoleTag>();
+                foreach (PlexAndKodi.RoleTag role in old.Roles)
+                {
+                    api.Roles.Add((API_RoleTag)role);
+                }
             }
-            foreach (PlexAndKodi.Tag tag in old.Tags)
+
+            if (old.Related != null)
             {
-                api.Tags.Add((API_Tag)tag);
+                api.Related = new List<API_Hub>();
+                foreach (PlexAndKodi.Hub hub in old.Related)
+                {
+                    api.Related.Add((API_Hub)hub);
+                }
             }
-            foreach (PlexAndKodi.Tag genr in old.Genres)
+
+            if (old.Tags != null)
             {
-                api.Genres.Add((API_Tag)genr);
+                api.Tags = new List<API_Tag>();
+                foreach (PlexAndKodi.Tag tag in old.Tags)
+                {
+                    api.Tags.Add((API_Tag)tag);
+                }
             }
-            foreach (PlexAndKodi.AnimeTitle animetitle in old.Titles)
+
+            if (old.Genres != null)
             {
-                api.Titles.Add((API_AnimeTitle)animetitle);
+                api.Genres = new List<API_Tag>();
+                foreach (PlexAndKodi.Tag genr in old.Genres)
+                {
+                    api.Genres.Add((API_Tag)genr);
+                }
+            }
+
+            if (old.Titles != null)
+            {
+                api.Titles = new List<API_AnimeTitle>();
+                foreach (PlexAndKodi.AnimeTitle animetitle in old.Titles)
+                {
+                    api.Titles.Add((API_AnimeTitle)animetitle);
+                }
+            }
+
+            return api;
+        }
+
+        public static explicit operator API_Video(JMMContracts.PlexAndKodi.Directory old)
+        {
+            API_Video api = new API_Video();
+            api.AirDate = old.AirDate;
+            api.IsMovie = old.IsMovie;
+            api.Id = old.Id;
+            api.AnimeType = old.AnimeType;
+            api.Art = old.Art;
+            api.Url = old.Url;
+            api.Thumb = old.Thumb;
+            api.ParentThumb = old.ParentThumb;
+            api.GrandparentThumb = old.GrandparentThumb;
+            api.ParentArt = old.ParentArt;
+            api.GrandparentArt = old.GrandparentArt;
+            api.RatingKey = old.RatingKey;
+            api.ParentRatingKey = old.ParentRatingKey;
+            api.GrandparentRatingKey = old.GrandparentRatingKey;
+            api.Key = old.Key;
+            api.ParentKey = old.ParentKey;
+            api.GrandparentKey = old.GrandparentKey;
+            api.Index = old.Index;
+            api.ParentIndex = old.ParentIndex;
+            api.Guid = old.Guid;
+            api.Type = old.Type;
+            api.Title = old.Title;
+            api.Title1 = old.Title1;
+            api.Title2 = old.Title2;
+            api.ParentTitle = old.ParentTitle;
+            api.GrandparentTitle = old.GrandparentTitle;
+            api.Summary = old.Summary;
+            api.Year = old.Year;
+            api.Duration = old.Duration;
+            api.EpisodeCount = old.EpisodeCount;
+            api.UpdatedAt = old.UpdatedAt;
+            api.AddedAt = old.AddedAt;
+            api.LastViewedAt = old.LastViewedAt;
+            api.OriginallyAvailableAt = old.OriginallyAvailableAt;
+            api.LeafCount = old.LeafCount;
+            api.ChildCount = old.ChildCount;
+            api.ViewedLeafCount = old.ViewedLeafCount;
+            api.OriginalTitle = old.OriginalTitle;
+            api.SourceTitle = old.SourceTitle;
+            api.Rating = old.Rating;
+            api.Season = old.Season;
+            api.ViewCount = old.ViewCount;
+            api.ViewOffset = old.ViewOffset;
+            api.PrimaryExtraKey = old.PrimaryExtraKey;
+            api.ChapterSource = old.ChapterSource;
+            api.Tagline = old.Tagline;
+            api.ContentRating = old.ContentRating;
+            api.Studio = old.Studio;
+            api.ExtraType = old.ExtraType;
+            api.EpisodeType = old.EpisodeType;
+            api.EpisodeNumber = old.EpisodeNumber;
+            api.Group = old.Group;
+
+            if (old.Extras != null)
+            {
+                api.Extras = (API_Extras)old.Extras;
+            }
+
+            if (old.Medias != null)
+            {
+                api.Medias = new List<API_Media>();
+                foreach (PlexAndKodi.Media media in old.Medias)
+                {
+                    api.Medias.Add((API_Media)media);
+                }
+            }
+
+            if (old.Roles != null)
+            {
+                api.Roles = new List<API_RoleTag>();
+                foreach (PlexAndKodi.RoleTag role in old.Roles)
+                {
+                    api.Roles.Add((API_RoleTag)role);
+                }
+            }
+
+            if (old.Related != null)
+            {
+                api.Related = new List<API_Hub>();
+                foreach (PlexAndKodi.Hub hub in old.Related)
+                {
+                    api.Related.Add((API_Hub)hub);
+                }
+            }
+
+            if (old.Tags != null)
+            {
+                api.Tags = new List<API_Tag>();
+                foreach (PlexAndKodi.Tag tag in old.Tags)
+                {
+                    api.Tags.Add((API_Tag)tag);
+                }
+            }
+
+            if (old.Genres != null)
+            {
+                api.Genres = new List<API_Tag>();
+                foreach (PlexAndKodi.Tag genr in old.Genres)
+                {
+                    api.Genres.Add((API_Tag)genr);
+                }
+            }
+
+            if (old.Titles != null)
+            {
+                api.Titles = new List<API_AnimeTitle>();
+                foreach (PlexAndKodi.AnimeTitle animetitle in old.Titles)
+                {
+                    api.Titles.Add((API_AnimeTitle)animetitle);
+                }
             }
 
             return api;
@@ -227,9 +398,13 @@ namespace JMMContracts.API
         {
             API_Media api = new API_Media();
 
-            foreach (PlexAndKodi.Part parts in old.Parts)
+            if (old.Parts != null)
             {
-                api.Parts.Add((API_Part)parts);
+                api.Parts = new List<API_Part>();
+                foreach (PlexAndKodi.Part parts in old.Parts)
+                {
+                    api.Parts.Add((API_Part)parts);
+                }
             }
 
             api.Duration = old.Duration;
@@ -293,9 +468,13 @@ namespace JMMContracts.API
             API_Part api = new API_Part();
             api.Accessible = old.Accessible;
             api.Exists = old.Exists;
-            foreach (PlexAndKodi.Stream stream in old.Streams)
+            if (old.Streams != null)
             {
-                api.Streams.Add((API_Stream)stream);
+                api.Streams = new List<API_Stream>();
+                foreach (PlexAndKodi.Stream stream in old.Streams)
+                {
+                    api.Streams.Add((API_Stream)stream);
+                }
             }
             api.Size = old.Size;
             api.Duration = old.Duration;
@@ -520,9 +699,13 @@ namespace JMMContracts.API
         {
             API_Extras api = new API_Extras();
             api.Size = old.Size;
-            foreach (PlexAndKodi.Video video in old.Videos)
+            if (old.Videos != null)
             {
-                api.Videos.Add((API_Video)video);
+                api.Videos = new List<API_Video>();
+                foreach (PlexAndKodi.Video video in old.Videos)
+                {
+                    api.Videos.Add((API_Video)video);
+                }
             }
             return api;
         }
@@ -586,6 +769,10 @@ namespace JMMContracts.API
             api.Title = old.Title;
             return api;
         }
+    }
+
+    public class API_Directory : API_Video
+    {
     }
 
     public enum JMMType
