@@ -878,5 +878,68 @@ namespace JMMServer.Providers.Azure
         }
 
         #endregion
+
+        #region File Hashes
+
+
+        public static void Send_FileHash(List<AniDB_File> aniFiles)
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            string uri = string.Format(@"http://{0}/api/FileHash", azureHostBaseAddress);
+
+            List<FileHashInput> inputs = new List<FileHashInput>();
+            // send a max of 25 at a time
+            foreach (AniDB_File aniFile in aniFiles)
+            {
+                FileHashInput input = new FileHashInput(aniFile);
+                if (inputs.Count < 25)
+                    inputs.Add(input);
+                else
+                {
+                    string json = JSONHelper.Serialize<List<FileHashInput>>(inputs);
+                    SendData(uri, json, "POST");
+                    inputs.Clear();
+                }
+            }
+
+            if (inputs.Count > 0)
+            {
+                string json = JSONHelper.Serialize<List<FileHashInput>>(inputs);
+                SendData(uri, json, "POST");
+            }
+
+        }
+
+        /// <summary>
+        /// Get File hash details from the web cache
+        /// When the hash type is a CRC, the hash details value should be a combination of the CRC and the FileSize with an under score in between
+        /// e.g. CRC32 = 8b4b52f4, File Size = 380580947.......hashDetails = 8b4b52f4_380580947
+        /// </summary>
+        /// <param name="hashType"></param>
+        /// <param name="hashDetails"></param>
+        /// <returns></returns>
+        public static List<FileHash> Get_FileHash(FileHashType hashType, string hashDetails)
+        {
+            
+            string uri = string.Format(@"http://{0}/api/FileHash/{1}?p={2}", azureHostBaseAddress, (int)hashType,
+                hashDetails);
+            string msg = string.Format("Getting File Hash From Cache: {0} - {1}", hashType, hashDetails);
+
+            DateTime start = DateTime.Now;
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+
+            string json = GetDataJson(uri);
+
+            TimeSpan ts = DateTime.Now - start;
+            msg = string.Format("Got File Hash From Cache: {0} - {1}", hashDetails, ts.TotalMilliseconds);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+
+            List<FileHash> hashes = JSONHelper.Deserialize<List<FileHash>>(json);
+
+            return hashes;
+        }
+
+        #endregion
     }
 }

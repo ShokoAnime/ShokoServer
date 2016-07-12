@@ -424,6 +424,8 @@
     <Compile Include="Providers\Azure\Azure_CrossRef_File_Episode.cs" />
     <Compile Include="Providers\Azure\Azure_CrossRef_File_EpisodeInput.cs" />
     <Compile Include="Providers\Azure\Azure_UserInfo.cs" />
+    <Compile Include="Providers\Azure\FileHash.cs" />
+    <Compile Include="Providers\Azure\FileHashInput.cs" />
     <Compile Include="Providers\JMMAutoUpdates\JMMAutoUpdatesHelper.cs" />
     <Compile Include="Providers\JMMAutoUpdates\JMMVersions.cs" />
     <Compile Include="Providers\JMMAutoUpdates\Update.cs" />
@@ -889,7 +891,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_sync.png" />
-    <Resource Include="Images\db.ico" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="db.ico" />
@@ -906,9 +907,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_new.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_key.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="PostBuild1.txt" />
@@ -1029,6 +1027,12 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_info.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_key.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\db.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
