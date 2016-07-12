@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using AniDBAPI;
-using BinaryNorthwest;
+
 using FluentNHibernate.Utils;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
@@ -568,10 +568,7 @@ namespace JMMServer.Entities
                 string newFullPath = "";
 
                 // sort the episodes by air date, so that we will move the file to the location of the latest episode
-                List<AnimeEpisode> allEps = series.GetAnimeEpisodes();
-                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("AniDB_EpisodeID", true, SortType.eInteger));
-                allEps = Sorting.MultiSort<AnimeEpisode>(allEps, sortCriteria);
+                List<AnimeEpisode> allEps = series.GetAnimeEpisodes().OrderByDescending(a=>a.AniDB_EpisodeID).ToList();
 
                 AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
                 CrossRef_File_EpisodeRepository repFileEpXref = new CrossRef_File_EpisodeRepository();

@@ -636,9 +636,6 @@
     <Compile Include="Mappings\VideoInfoMap.cs" />
     <Compile Include="Mappings\VideoLocalMap.cs" />
     <Compile Include="Mappings\VideoLocal_UserMap.cs" />
-    <Compile Include="MultiSortLib\MultiSort.cs" />
-    <Compile Include="MultiSortLib\SortSearchCriteria.cs" />
-    <Compile Include="MultiSortLib\ValueComparison.cs" />
     <Compile Include="NamingLanguage.cs" />
     <Compile Include="Repositories\AdhocRepository.cs" />
     <Compile Include="Repositories\AniDB_AnimeRepository.cs" />
