@@ -1,5 +1,8 @@
 ﻿using System;
 using Nancy;
+using System.Dynamic;
+using System.Collections.Generic;
+using JMMContracts.API;
 
 namespace JMMServer.API
 {
@@ -11,7 +14,7 @@ namespace JMMServer.API
             // CommonImplementation
             Get["/"] = parameter => { return IndexPage; };
             Get["/GetSupportImage/{name}"] = parameter => { return GetSupportImage(parameter.name); };
-            Get["/GetFilters/{uid}"] = parameter => { return GetFilters(parameter.id); };
+            Get["/GetFilters/{uid}"] = parameter => { return GetFilters(parameter.uid); };
             Get["/GetMetadata/{uid}/{type}/{id}/{historyinfo}"] = parameter => { return GetMetadata(parameter.uid, parameter.type, parameter.id, parameter.historyinfo); };
             Get["/GetUsers"] = parameter => { return GetUsers(); };
             Get["/GetVersion"] = parameter => { return GetVersion(); };
@@ -41,6 +44,7 @@ namespace JMMServer.API
         System.IO.Stream image;
         JMMContracts.PlexAndKodi.Response respond;
         Response response;
+        dynamic moe = new ExpandoObject();
         //TODO API: do we need BreadCrumbs ?
         PlexAndKodi.BreadCrumbs info;
 
@@ -48,8 +52,41 @@ namespace JMMServer.API
         {
             media = _impl.GetFilters(_prov, uid.ToString());
             api_media = (JMMContracts.API.API_MediaContainer)media;
+
+            dynamic MediaCont = new ExpandoObject();
+            List<ExpandoObject> Medias = new List<ExpandoObject>();
+
+            foreach (API_Video vid in api_media.Childrens)
+            {
+                moe = new ExpandoObject();
+                moe.id = vid.Id;
+                moe.title = vid.Title;
+                moe.key = vid.Key;
+                moe.count = vid.LeafCount;
+                dynamic art = new ExpandoObject();
+                if (vid.Thumb != null)
+                {
+                    art.thumb = vid.Thumb;
+                }
+                if (vid.Art != null)
+                {
+                    art.fanart = vid.Art;
+                }
+                //TODO API: Posters
+                moe.art = art;
+                Medias.Add(moe);
+            }
+
+            MediaCont.count = api_media.TotalSize;
+            MediaCont.groups = Medias;
+            
+            
+
+
+
             response = new Response();
-            response = Response.AsJson<JMMContracts.API.API_MediaContainer>(api_media);
+            //response = Response.AsJson<JMMContracts.API.API_MediaContainer>(api_media);
+            response = Response.AsJson((ExpandoObject)MediaCont);
             response.ContentType = "application/json";
             return response;
         }
@@ -66,8 +103,87 @@ namespace JMMServer.API
         {
             media = _impl.GetMetadata(_prov, uid, typeid, id, historyinfo);
             api_media = (JMMContracts.API.API_MediaContainer)media;
+
+            dynamic Series = new ExpandoObject();
+            List<ExpandoObject> series = new List<ExpandoObject>();
+            foreach (API_Video vid in api_media.Childrens)
+            {
+                moe = new ExpandoObject();
+                moe.id = vid.Id;
+                moe.count_local = vid.ChildCount;
+                dynamic tags = new List<ExpandoObject>();
+                if (vid.Tags != null)
+                {
+                    foreach (API_Tag tag in vid.Tags)
+                    {
+                        tags.Add(tag);
+                    }
+                }
+                moe.tag = tags;
+
+                dynamic Role = new List<ExpandoObject>();
+                dynamic moe_tag = new ExpandoObject();
+                if (vid.Roles != null)
+                {
+                    foreach (API_RoleTag role in vid.Roles)
+                    {
+                        moe_tag.actor = role.Value;
+                        moe_tag.actorpic = role.TagPicture;
+                        moe_tag.role = role.Role;
+                        moe_tag.roledesc = role.RoleDescription;
+                        moe_tag.rolepic = role.RolePicture;
+                        Role.Add(moe_tag);                    
+                    }
+                }
+                moe.cast = Role;
+                moe.title = vid.Title;
+                moe.year = vid.Year;
+                moe.episode = vid.LeafCount;
+                moe.season = vid.Season;
+                moe.rating = vid.Rating;
+                //votes
+                //my_rating
+                moe.datastart = vid.AirDate;
+                //datastop
+                moe.plot = vid.Summary;
+                //moe.status = vid
+                moe.dateadded = vid.AddedAt;
+                moe.key = vid.Key;
+
+                dynamic art = new ExpandoObject();
+                if (vid.Thumb != null)
+                {
+                    art.thumb = vid.Thumb;
+                }
+                if (vid.Art != null)
+                {
+                    art.fanart = vid.Art;
+                }
+                //poster
+                moe.art = art;
+                //source?
+                moe.source = vid.SourceTitle;
+                moe.watched = vid.ViewedLeafCount;
+                dynamic Genre = new List<string>();
+                if (vid.Genres != null)
+                {
+                    foreach (API_Tag genre in vid.Genres)
+                    {
+                        Genre.Add(genre.Value);
+                    }
+                }
+                moe.genre = Genre;
+
+                series.Add(moe);
+            }
+
+
+            Series.count = media.LeafCount;
+            Series.series = series;
+
             response = new Response();
-            response = Response.AsJson<JMMContracts.API.API_MediaContainer>(api_media);
+            //response = Response.AsJson<JMMContracts.API.API_MediaContainer>(api_media);
+            response = Response.AsJson((ExpandoObject)Series);
             response.ContentType = "application/json";
             return response;
         }
@@ -75,8 +191,18 @@ namespace JMMServer.API
         private object GetUsers()
         {
             JMMContracts.PlexAndKodi.PlexContract_Users plexUsers =_impl.GetUsers(_prov);
+            List<ExpandoObject> Users = new List<ExpandoObject>();
+            foreach (JMMContracts.PlexAndKodi.PlexContract_User user in plexUsers.Users)
+            {
+                moe = new ExpandoObject();
+                moe.id = user.id;
+                moe.name = user.name;
+                Users.Add(moe);
+            }
+
             response = new Response();
-            response = Response.AsJson<JMMContracts.PlexAndKodi.PlexContract_Users>(plexUsers);
+            //response = Response.AsJson<JMMContracts.PlexAndKodi.PlexContract_Users>(plexUsers);
+            response = Response.AsJson((List<ExpandoObject>)Users);
             response.ContentType = "application/json";
             return response;
         }
