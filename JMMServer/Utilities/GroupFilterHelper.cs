@@ -181,7 +181,7 @@ namespace JMMServer
                     sortFieldType = SortType.eDateTime;
                     break;
                 case GroupFilterSorting.EpisodeAirDate:
-                    sortColumn = "AirDate";
+                    sortColumn = "LatestEpisodeAirDate";
                     sortFieldType = SortType.eDateTime;
                     break;
                 case GroupFilterSorting.EpisodeWatchedDate:
