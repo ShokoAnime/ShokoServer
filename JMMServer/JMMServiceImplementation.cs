@@ -4711,6 +4711,10 @@ namespace JMMServer
                     repDefaults.Save(img);
                 }
 
+                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                repAnime.Save(anime);
+
 
                 return "";
             }
