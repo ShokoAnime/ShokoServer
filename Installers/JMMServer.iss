@@ -61,6 +61,7 @@ Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\TMDbLib.dll"; DestDir
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\TMDbLib.pdb"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\RestSharp.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Newtonsoft.Json.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Infralution.Localization.Wpf.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\Config\JMMServer.exe.Config"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\hasher.dll"; DestDir: "{app}\x64"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\MediaInfo.dll"; DestDir: "{app}\x64"; Flags: ignoreversion
@@ -68,6 +69,14 @@ Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\SQLite.Interop.dl
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\hasher.dll"; DestDir: "{app}\x86"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\MediaInfo.dll"; DestDir: "{app}\x86"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\SQLite.Interop.dll"; DestDir: "{app}\x86"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\en-gb\*"; DestDir: "{app}\en-gb"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\fr\*"; DestDir: "{app}\fr"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\it\*"; DestDir: "{app}\it"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\nl\*"; DestDir: "{app}\nl"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\pl\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\ru\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
