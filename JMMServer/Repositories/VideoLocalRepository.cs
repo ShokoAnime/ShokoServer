@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
@@ -28,11 +29,21 @@ namespace JMMServer.Repositories
             Ignored = new PocoIndex<int, VideoLocal, int>(Cache, a => a.IsIgnored);
             ImportFolders = new PocoIndex<int, VideoLocal, int>(Cache, a => a.ImportFolderID);
             int cnt = 0;
-            List<VideoLocal> grps = Cache.Values.Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION).ToList();
+            List<VideoLocal> grps = Cache.Values.Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaBlob==null).ToList();
             int max = grps.Count;
             foreach (VideoLocal g in grps)
             {
-                repo.Save(g, false);
+                try
+                {
+                    if (File.Exists(g.FullServerPath))
+                    {
+                        repo.Save(g, false);
+                    }
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
                 cnt++;
                 if (cnt%10 == 0)
                 {
