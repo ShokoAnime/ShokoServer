@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
-using BinaryNorthwest;
+
 using JMMContracts;
 using JMMServer.Commands;
 using JMMServer.ImageDownload;
@@ -225,13 +225,7 @@ namespace JMMServer.Entities
             {
                 tvDBEpisodes.AddRange(repEps.GetBySeriesID(session, xref.TvDBID));
             }
-
-            List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-            sortCriteria.Add(new SortPropOrFieldAndDirection("SeasonNumber", false, SortType.eInteger));
-            sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-            tvDBEpisodes = Sorting.MultiSort<TvDB_Episode>(tvDBEpisodes, sortCriteria);
-
-            return tvDBEpisodes;
+            return tvDBEpisodes.OrderBy(a=>a.SeasonNumber).ThenBy(a=>a.EpisodeNumber).ToList();
         }
 
         private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;

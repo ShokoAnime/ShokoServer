@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using AniDBAPI;
-using BinaryNorthwest;
+
 using FluentNHibernate.Utils;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
@@ -568,10 +568,7 @@ namespace JMMServer.Entities
                 string newFullPath = "";
 
                 // sort the episodes by air date, so that we will move the file to the location of the latest episode
-                List<AnimeEpisode> allEps = series.GetAnimeEpisodes();
-                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("AniDB_EpisodeID", true, SortType.eInteger));
-                allEps = Sorting.MultiSort<AnimeEpisode>(allEps, sortCriteria);
+                List<AnimeEpisode> allEps = series.GetAnimeEpisodes().OrderByDescending(a=>a.AniDB_EpisodeID).ToList();
 
                 AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
                 CrossRef_File_EpisodeRepository repFileEpXref = new CrossRef_File_EpisodeRepository();
@@ -754,18 +751,28 @@ namespace JMMServer.Entities
             return contract;
         }
         private static Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]", RegexOptions.Compiled);
-
+        private static Regex UrlSafe2 = new Regex("[^0-9a-zA-Z_\\.\\s]", RegexOptions.Compiled);
         public Media GetMediaFromUser(int userID)
         {
             Media n = null;
+            if (Media == null)
+            {
+                if (File.Exists(FullServerPath))
+                {
+                    VideoLocalRepository repo=new VideoLocalRepository();
+                    repo.Save(this, false);
+                }
+            }
             if (Media != null)
             {
+
                 n = (Media)Media.DeepCopy();
                 if (n?.Parts != null)
                 {
                     foreach (Part p in n?.Parts)
                     {
-                        string name = UrlSafe.Replace(Path.GetFileName(FilePath)," ").Replace("  "," ").Replace("  "," ").Trim().Replace(" ","_");
+                        string name = UrlSafe.Replace(Path.GetFileName(FilePath)," ").Replace("  "," ").Replace("  "," ").Trim();
+                        name = UrlSafe2.Replace(name, string.Empty).Trim().Replace("..",".").Replace("..",".").Replace("__","_").Replace("__","_").Replace(" ", "_");
                         p.Key = PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
                         if (p.Streams != null)
                         {
