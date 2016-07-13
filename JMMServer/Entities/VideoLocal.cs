@@ -751,18 +751,28 @@ namespace JMMServer.Entities
             return contract;
         }
         private static Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]", RegexOptions.Compiled);
-
+        private static Regex UrlSafe2 = new Regex("[^0-9a-zA-Z_\\.\\s]", RegexOptions.Compiled);
         public Media GetMediaFromUser(int userID)
         {
             Media n = null;
+            if (Media == null)
+            {
+                if (File.Exists(FullServerPath))
+                {
+                    VideoLocalRepository repo=new VideoLocalRepository();
+                    repo.Save(this, false);
+                }
+            }
             if (Media != null)
             {
+
                 n = (Media)Media.DeepCopy();
                 if (n?.Parts != null)
                 {
                     foreach (Part p in n?.Parts)
                     {
-                        string name = UrlSafe.Replace(Path.GetFileName(FilePath)," ").Replace("  "," ").Replace("  "," ").Trim().Replace(" ","_");
+                        string name = UrlSafe.Replace(Path.GetFileName(FilePath)," ").Replace("  "," ").Replace("  "," ").Trim();
+                        name = UrlSafe2.Replace(name, string.Empty).Trim().Replace("..",".").Replace("..",".").Replace("__","_").Replace("__","_").Replace(" ", "_");
                         p.Key = PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
                         if (p.Streams != null)
                         {
