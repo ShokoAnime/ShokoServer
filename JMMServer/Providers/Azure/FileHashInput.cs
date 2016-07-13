@@ -20,7 +20,11 @@ namespace JMMServer.Providers.Azure
 
         public FileHashInput()
         {
+            this.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                this.Username = Constants.AnonWebCacheUsername;
 
+            this.AuthGUID = string.Empty;
         }
 
         public FileHashInput(AniDB_File anifile)
