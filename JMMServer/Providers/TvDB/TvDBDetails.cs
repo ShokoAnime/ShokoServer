@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using BinaryNorthwest;
+using System.Linq;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using NLog;
@@ -152,15 +152,7 @@ namespace JMMServer.Providers.TvDB
             try
             {
                 TvDB_EpisodeRepository repTvEps = new TvDB_EpisodeRepository();
-                tvDBEpisodes = repTvEps.GetBySeriesID(TvDBID);
-
-                if (tvDBEpisodes.Count > 0)
-                {
-                    List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("SeasonNumber", false, SortType.eInteger));
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-                    tvDBEpisodes = Sorting.MultiSort<TvDB_Episode>(tvDBEpisodes, sortCriteria);
-                }
+                tvDBEpisodes = repTvEps.GetBySeriesID(TvDBID).OrderBy(a=>a.SeasonNumber).ThenBy(a=>a.EpisodeNumber).ToList();
             }
             catch (Exception ex)
             {

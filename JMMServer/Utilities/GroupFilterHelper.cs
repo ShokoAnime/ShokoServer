@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using BinaryNorthwest;
+using System.Linq;
+using FluentNHibernate.MappingModel.Collections;
+using JMMContracts;
 using JMMServer.Entities;
+using NHibernate;
+using NHibernate.Persister.Entity;
 
 namespace JMMServer
 {
@@ -153,13 +157,75 @@ namespace JMMServer
             return aDate.ToString("dd MMM yyyy", Globals.Culture);
         }
 
+        public static IEnumerable<Contract_AnimeGroup> Sort(IEnumerable<Contract_AnimeGroup> groups, GroupFilter gf)
+        {
+            bool isfirst = true;
+            IEnumerable<Contract_AnimeGroup> query = groups;
+            foreach (GroupFilterSortingCriteria gfsc in gf.SortCriteriaList)
+            {
+                query = Order(query, gfsc, isfirst);
+                isfirst = false;
+            }
+            return query;
+        }
+
+        public static IOrderedEnumerable<Contract_AnimeGroup> Order(IEnumerable<Contract_AnimeGroup> groups,
+            GroupFilterSortingCriteria gfsc, bool isfirst)
+        {
+
+            switch (gfsc.SortType)
+            {
+                case GroupFilterSorting.Year:
+                    if (gfsc.SortDirection == GroupFilterSortDirection.Asc)
+                        return Order(groups, a => a.Stat_AirDate_Min,gfsc.SortDirection,isfirst);
+                    return Order(groups, a => a.Stat_AirDate_Max, gfsc.SortDirection, isfirst);
+                case GroupFilterSorting.AniDBRating:
+                    return Order(groups, a=>a.Stat_AniDBRating,gfsc.SortDirection,isfirst);
+                case GroupFilterSorting.EpisodeAddedDate:
+                    return Order(groups, a => a.EpisodeAddedDate, gfsc.SortDirection, isfirst);
+                case GroupFilterSorting.EpisodeAirDate:
+                    return Order(groups, a => a.LatestEpisodeAirDate, gfsc.SortDirection, isfirst);
+                case GroupFilterSorting.EpisodeWatchedDate:
+                    return Order(groups, a => a.WatchedDate, gfsc.SortDirection, isfirst);
+                case GroupFilterSorting.MissingEpisodeCount:
+                    return Order(groups, a => a.MissingEpisodeCount, gfsc.SortDirection, isfirst);
+                case GroupFilterSorting.SeriesAddedDate:
+                    return Order(groups, a => a.Stat_SeriesCreatedDate, gfsc.SortDirection, isfirst);
+                case GroupFilterSorting.SeriesCount:
+                    return Order(groups, a => a.Stat_SeriesCount, gfsc.SortDirection, isfirst);
+                case GroupFilterSorting.SortName:
+                    return Order(groups, a => a.SortName, gfsc.SortDirection, isfirst);
+                case GroupFilterSorting.UnwatchedEpisodeCount:
+                    return Order(groups, a => a.UnwatchedEpisodeCount, gfsc.SortDirection, isfirst);
+                case GroupFilterSorting.UserRating:
+                    return Order(groups, a => a.Stat_UserVoteOverall, gfsc.SortDirection, isfirst);
+                case GroupFilterSorting.GroupName:
+                default:
+                    return Order(groups, a => a.GroupName, gfsc.SortDirection, isfirst);
+            }
+        }
+
+        private static IOrderedEnumerable<Contract_AnimeGroup> Order<T>(IEnumerable<Contract_AnimeGroup> groups, Func<Contract_AnimeGroup, T> o,
+            GroupFilterSortDirection direc, bool isfirst)
+        {
+            if (isfirst)
+            {
+                if (direc == GroupFilterSortDirection.Asc)
+                    return groups.OrderBy(o);
+                return groups.OrderByDescending(o);
+            }
+            else
+            {
+                if (direc == GroupFilterSortDirection.Asc)
+                    return ((IOrderedEnumerable<Contract_AnimeGroup>) groups).ThenBy(o);
+                return ((IOrderedEnumerable<Contract_AnimeGroup>)groups).ThenByDescending(o);
+            }
+        }
+        /*
         public static List<SortPropOrFieldAndDirection> GetSortDescriptions(GroupFilter gf)
         {
             List<SortPropOrFieldAndDirection> sortlist = new List<SortPropOrFieldAndDirection>();
-            foreach (GroupFilterSortingCriteria gfsc in gf.SortCriteriaList)
-            {
-                sortlist.Add(GetSortDescription(gfsc.SortType, gfsc.SortDirection));
-            }
+
             return sortlist;
         }
 
@@ -181,7 +247,7 @@ namespace JMMServer
                     sortFieldType = SortType.eDateTime;
                     break;
                 case GroupFilterSorting.EpisodeAirDate:
-                    sortColumn = "AirDate";
+                    sortColumn = "LatestEpisodeAirDate";
                     sortFieldType = SortType.eDateTime;
                     break;
                 case GroupFilterSorting.EpisodeWatchedDate:
@@ -233,5 +299,6 @@ namespace JMMServer
 
             return new SortPropOrFieldAndDirection(sortColumn, sortDescending, sortFieldType);
         }
+        */
     }
 }

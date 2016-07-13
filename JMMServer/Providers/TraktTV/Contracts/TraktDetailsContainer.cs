@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using BinaryNorthwest;
+using System.Linq;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using NLog;
@@ -158,15 +158,7 @@ namespace JMMServer.Providers.TraktTV
                 if (Show == null) return;
 
                 Trakt_EpisodeRepository repTvEps = new Trakt_EpisodeRepository();
-                traktEpisodes = repTvEps.GetByShowID(Show.Trakt_ShowID);
-
-                if (traktEpisodes.Count > 0)
-                {
-                    List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("Season", false, SortType.eInteger));
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-                    traktEpisodes = Sorting.MultiSort<Trakt_Episode>(traktEpisodes, sortCriteria);
-                }
+                traktEpisodes = repTvEps.GetByShowID(Show.Trakt_ShowID).OrderBy(a=>a.Season).ThenBy(a=>a.EpisodeNumber).ToList();
             }
             catch (Exception ex)
             {

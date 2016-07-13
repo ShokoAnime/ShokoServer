@@ -8,7 +8,7 @@ using System.ServiceModel;
 using System.Threading;
 using AniDBAPI;
 using AniDBAPI.Commands;
-using BinaryNorthwest;
+
 using JMMContracts;
 using JMMServer.Commands;
 using JMMServer.Commands.AniDB;
@@ -2220,11 +2220,7 @@ namespace JMMServer
 
                 foreach (AniDB_Episode ep in aniEpList)
                     eps.Add(ep.ToContract());
-
-                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
-                sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-                eps = Sorting.MultiSort<Contract_AniDB_Episode>(eps, sortCriteria);
+                eps = eps.OrderBy(a => a.EpisodeType).ThenBy(a => a.EpisodeNumber).ToList();
             }
             catch (Exception ex)
             {
@@ -6100,15 +6096,11 @@ namespace JMMServer
 
                 if (candidateEps.Count == 0) return null;
 
-                // sort by episode type and number to find the next episode
-                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
-                sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-                candidateEps = Sorting.MultiSort<Contract_AnimeEpisode>(candidateEps, sortCriteria);
+
 
                 // this will generate a lot of queries when the user doesn have files
                 // for these episodes
-                foreach (Contract_AnimeEpisode canEp in candidateEps)
+                foreach (Contract_AnimeEpisode canEp in candidateEps.OrderBy(a=>a.EpisodeType).ThenBy(a=>a.EpisodeNumber))
                 {
                     // now refresh from the database to get file count
                     AnimeEpisode epFresh = repEps.GetByID(canEp.AnimeEpisodeID);
@@ -6229,11 +6221,8 @@ namespace JMMServer
                 AnimeGroup grp = repGroups.GetByID(animeGroupID);
                 if (grp == null) return null;
 
-                List<AnimeSeries> allSeries = grp.GetAllSeries();
+                List<AnimeSeries> allSeries = grp.GetAllSeries().OrderBy(a=>a.AirDate).ToList();
 
-                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("AirDate", false, SortType.eDateTime));
-                allSeries = Sorting.MultiSort<AnimeSeries>(allSeries, sortCriteria);
 
                 foreach (AnimeSeries ser in allSeries)
                 {
@@ -6282,26 +6271,20 @@ namespace JMMServer
                     if ((gf == null) || !gf.GroupsIds.ContainsKey(userID))
                         return retEps;
                     AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                    List<Contract_AnimeGroup> comboGroups =
+                    IEnumerable<Contract_AnimeGroup> comboGroups =
                         gf.GroupsIds[userID].Select(a => repGroups.GetByID(a))
                             .Where(a => a != null)
-                            .Select(a => a.GetUserContract(userID))
-                            .ToList();
+                            .Select(a => a.GetUserContract(userID));
+                            
 
 
                     // apply sorting
-                    List<SortPropOrFieldAndDirection> sortCriteria = GroupFilterHelper.GetSortDescriptions(gf);
-                    comboGroups = Sorting.MultiSort<Contract_AnimeGroup>(comboGroups, sortCriteria);
+                    comboGroups = GroupFilterHelper.Sort(comboGroups, gf);
 
                     AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                     foreach (Contract_AnimeGroup grp in comboGroups)
                     {
-                        List<AnimeSeries> sers = repSeries.GetByGroupID(session, grp.AnimeGroupID);
-
-                        // sort the series by air date
-                        List<SortPropOrFieldAndDirection> sortCriteria2 = new List<SortPropOrFieldAndDirection>();
-                        sortCriteria2.Add(new SortPropOrFieldAndDirection("AirDate", false, SortType.eDateTime));
-                        sers = Sorting.MultiSort<AnimeSeries>(sers, sortCriteria2);
+                        List<AnimeSeries> sers = repSeries.GetByGroupID(session, grp.AnimeGroupID).OrderBy(a=>a.AirDate).ToList();
 
                         List<int> seriesWatching = new List<int>();
 
@@ -7126,13 +7109,9 @@ namespace JMMServer
 
 
                 // find all the series which the user has rated
-                List<AniDB_Vote> allVotes = repVotes.GetAll();
+                List<AniDB_Vote> allVotes = repVotes.GetAll().OrderByDescending(a=>a.VoteValue).ToList();
                 if (allVotes.Count == 0) return recs;
 
-                // sort by the highest rated
-                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("VoteValue", true, SortType.eInteger));
-                allVotes = Sorting.MultiSort<AniDB_Vote>(allVotes, sortCriteria);
 
                 Dictionary<int, Contract_Recommendation> dictRecs = new Dictionary<int, Contract_Recommendation>();
 
@@ -7149,11 +7128,8 @@ namespace JMMServer
                     if (anime == null) continue;
 
                     // get similar anime
-                    List<AniDB_Anime_Similar> simAnime = anime.GetSimilarAnime();
+                    List<AniDB_Anime_Similar> simAnime = anime.GetSimilarAnime().OrderByDescending(a=>a.ApprovalPercentage).ToList();
                     // sort by the highest approval
-                    sortCriteria = new List<SortPropOrFieldAndDirection>();
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("ApprovalPercentage", true, SortType.eDoubleOrFloat));
-                    simAnime = Sorting.MultiSort<AniDB_Anime_Similar>(simAnime, sortCriteria);
 
                     foreach (AniDB_Anime_Similar link in simAnime)
                     {
@@ -7228,12 +7204,9 @@ namespace JMMServer
                     tempRecs.Add(rec);
 
                 // sort by the highest score
-                sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("Score", true, SortType.eDoubleOrFloat));
-                tempRecs = Sorting.MultiSort<Contract_Recommendation>(tempRecs, sortCriteria);
 
                 int numRecs = 0;
-                foreach (Contract_Recommendation rec in tempRecs)
+                foreach (Contract_Recommendation rec in tempRecs.OrderByDescending(a=>a.Score))
                 {
                     if (numRecs == maxResults) break;
                     recs.Add(rec);
@@ -7517,14 +7490,7 @@ namespace JMMServer
                         }
                     }
                 }
-
-                if (contracts.Count > 0)
-                {
-                    List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("AnimeTitle", false, SortType.eString));
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeID", false, SortType.eInteger));
-                    contracts = Sorting.MultiSort<Contract_MissingFile>(contracts, sortCriteria);
-                }
+                contracts = contracts.OrderBy(a => a.AnimeTitle).ThenBy(a => a.EpisodeID).ToList();
             }
             catch (Exception ex)
             {
@@ -7734,12 +7700,7 @@ namespace JMMServer
                         //logger.Debug(msg2);
                     }
                 }
-
-                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("AnimeTitle", false, SortType.eString));
-                sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
-                sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-                contracts = Sorting.MultiSort<Contract_MissingEpisode>(contracts, sortCriteria);
+                contracts = contracts.OrderBy(a=>a.AnimeTitle).ThenBy(a=>a.EpisodeType).ThenBy(a=>a.EpisodeNumber).ToList();
             }
             catch (Exception ex)
             {

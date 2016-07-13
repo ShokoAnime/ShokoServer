@@ -636,9 +636,6 @@
     <Compile Include="Mappings\VideoInfoMap.cs" />
     <Compile Include="Mappings\VideoLocalMap.cs" />
     <Compile Include="Mappings\VideoLocal_UserMap.cs" />
-    <Compile Include="MultiSortLib\MultiSort.cs" />
-    <Compile Include="MultiSortLib\SortSearchCriteria.cs" />
-    <Compile Include="MultiSortLib\ValueComparison.cs" />
     <Compile Include="NamingLanguage.cs" />
     <Compile Include="Repositories\AdhocRepository.cs" />
     <Compile Include="Repositories\AniDB_AnimeRepository.cs" />
@@ -891,7 +888,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_sync.png" />
-    <Resource Include="Images\db.ico" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="db.ico" />
@@ -908,9 +904,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_new.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_key.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="PostBuild1.txt" />
@@ -1031,6 +1024,12 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_info.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\32_key.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\db.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using AniDBAPI;
-using BinaryNorthwest;
+
 using JMMServer.Commands;
 using JMMServer.Entities;
 using JMMServer.Providers.TraktTV.Contracts;
@@ -452,13 +452,7 @@ namespace JMMServer.Providers.TraktTV
                 // create a dictionary of absolute episode numbers for trakt episodes
                 // sort by season and episode number
                 // ignore season 0, which is used for specials
-                List<Trakt_Episode> eps = repEps.GetByShowID(show.Trakt_ShowID);
-
-                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("Season", false, SortType.eInteger));
-                sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-                eps = Sorting.MultiSort<Trakt_Episode>(eps, sortCriteria);
-
+                List<Trakt_Episode> eps = repEps.GetByShowID(show.Trakt_ShowID).OrderBy(a=>a.Season).ThenBy(a=>a.EpisodeNumber).ToList();
                 int i = 1;
                 int iSpec = 1;
                 int lastSeason = -999;
@@ -558,11 +552,8 @@ namespace JMMServer.Providers.TraktTV
                     {
                         // find the xref that is right
                         // relies on the xref's being sorted by season number and then episode number (desc)
-                        List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                        sortCriteria.Add(new SortPropOrFieldAndDirection("AniDBStartEpisodeNumber", true,
-                            SortType.eInteger));
                         List<CrossRef_AniDB_TraktV2> traktCrossRef =
-                            Sorting.MultiSort<CrossRef_AniDB_TraktV2>(traktSummary.CrossRefTraktV2, sortCriteria);
+                            traktSummary.CrossRefTraktV2.OrderByDescending(a => a.AniDBStartEpisodeNumber).ToList();
 
                         bool foundStartingPoint = false;
                         CrossRef_AniDB_TraktV2 xrefBase = null;
@@ -619,11 +610,9 @@ namespace JMMServer.Providers.TraktTV
                 {
                     // find the xref that is right
                     // relies on the xref's being sorted by season number and then episode number (desc)
-                    List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("AniDBStartEpisodeNumber", true, SortType.eInteger));
-                    List<CrossRef_AniDB_TraktV2> traktCrossRef = Sorting.MultiSort<CrossRef_AniDB_TraktV2>(
-                        traktSummary.CrossRefTraktV2, sortCriteria);
-
+                    List<CrossRef_AniDB_TraktV2> traktCrossRef =
+                        traktSummary.CrossRefTraktV2.OrderByDescending(a => a.AniDBStartEpisodeNumber).ToList();
+                    
                     bool foundStartingPoint = false;
                     CrossRef_AniDB_TraktV2 xrefBase = null;
                     foreach (CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)

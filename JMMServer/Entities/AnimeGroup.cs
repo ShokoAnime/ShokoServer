@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using AniDBAPI;
-using BinaryNorthwest;
+
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.LZ4;
@@ -611,13 +611,8 @@ namespace JMMServer.Entities
                         }
                     }
 
-                    // now sort it by the weighting
-                    List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("Weight", true, SortType.eInteger));
-                    animeTags = Sorting.MultiSort<AniDB_Anime_Tag>(animeTags, sortCriteria);
-
                     AniDB_TagRepository repTag = new AniDB_TagRepository();
-                    foreach (AniDB_Anime_Tag animeTag in animeTags)
+                    foreach (AniDB_Anime_Tag animeTag in animeTags.OrderByDescending(a=>a.Weight))
                     {
                         AniDB_Tag tag = repTag.GetByTagID(animeTag.TagID, session);
                         if (tag != null) tags.Add(tag);
@@ -668,12 +663,7 @@ namespace JMMServer.Entities
                     }
                 }
 
-                // now sort it by the tag name
-                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("TagName", false, SortType.eString));
-                tags = Sorting.MultiSort<CustomTag>(tags, sortCriteria);
-
-                return tags;
+                return tags.OrderBy(a=>a.TagName).ToList();
             }
         }
 
