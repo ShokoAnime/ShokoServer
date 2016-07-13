@@ -6,7 +6,7 @@ using System.Linq;
 using System.ServiceModel.Web;
 using System.Text;
 using AniDBAPI;
-using BinaryNorthwest;
+
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
@@ -906,13 +906,10 @@ namespace JMMServer.PlexAndKodi
                                 episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
                             eps.Add(k2);
                         }
-                        List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                        sortCriteria.Add(new SortPropOrFieldAndDirection("Name", SortType.eString));
-                        eps = Sorting.MultiSort(eps, sortCriteria);
                         List<Video> dirs = new List<Video>();
                         //bool converttoseason = true;
 
-                        foreach (PlexEpisodeType ee in  eps)
+                        foreach (PlexEpisodeType ee in  eps.OrderBy(a=>a.Name))
                         {
                             Video v = new Directory();
                             v.Art = nv.Art;
@@ -959,11 +956,7 @@ namespace JMMServer.PlexAndKodi
                         //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
                     }
                 }
-
-                List<SortPropOrFieldAndDirection> sortCriteria2 = new List<SortPropOrFieldAndDirection>();
-                sortCriteria2.Add(new SortPropOrFieldAndDirection("EpisodeNumber", SortType.eInteger));
-                vids = Sorting.MultiSort(vids, sortCriteria2);
-                ret.Childrens = vids;
+                ret.Childrens = vids.OrderBy(a => a.EpisodeNumber).ToList();
                 return ret.GetStream(prov);
             }
         }
@@ -1031,19 +1024,8 @@ namespace JMMServer.PlexAndKodi
                         }
                     }
                     ret.MediaContainer.RandomizeArt(retGroups);
-                    List<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group).ToList();
-
-                    if (gf.SortCriteriaList.Count != 0)
-                    {
-                        List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                        foreach (GroupFilterSortingCriteria g in gf.SortCriteriaList)
-                        {
-                            sortCriteria.Add(GroupFilterHelper.GetSortDescription(g.SortType, g.SortDirection));
-                        }
-                        grps = Sorting.MultiSort(grps, sortCriteria);
-                    }
-                    else
-                        grps = grps.OrderBy(a => a.GroupName).ToList();
+                    IEnumerable<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group);
+                    grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
                     ret.Childrens = grps.Select(a => order[a]).ToList();
                     return ret.GetStream(prov);
                 }

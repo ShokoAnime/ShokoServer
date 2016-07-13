@@ -336,6 +336,7 @@ namespace JMMServer.PlexAndKodi
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
             l.Id = ep.AnimeEpisodeID.ToString();
             l.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString();
+            VideoLocalRepository repo = new VideoLocalRepository();
             if (vids.Count > 0)
             {
                 l.Title = Path.GetFileNameWithoutExtension(vids[0].FilePath);
@@ -347,6 +348,13 @@ namespace JMMServer.PlexAndKodi
                 foreach (VideoLocal v in vids)
                 {
                     Media m = v.Media;
+                    if (m == null)
+                    {
+                        if (File.Exists(v.FullServerPath))
+                        {
+                            repo.Save(v, false);
+                        }
+                    }
                     if (m != null)
                     {
                         l.Medias.Add(m);

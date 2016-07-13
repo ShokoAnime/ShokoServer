@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using AniDBAPI;
-using BinaryNorthwest;
+
 using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.Entities;
@@ -433,16 +433,14 @@ namespace JMMServer
                     if ((gf == null) || !gf.GroupsIds.ContainsKey(jmmuserID))
                         return retAnime;
                     AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                    List<Contract_AnimeGroup> comboGroups =
+                    IEnumerable<Contract_AnimeGroup> comboGroups =
                         gf.GroupsIds[jmmuserID].Select(a => repGroups.GetByID(a))
                             .Where(a => a != null)
-                            .Select(a => a.GetUserContract(jmmuserID))
-                            .ToList();
+                            .Select(a => a.GetUserContract(jmmuserID));
 
                     // apply sorting
-                    List<SortPropOrFieldAndDirection> sortCriteria = GroupFilterHelper.GetSortDescriptions(gf);
-                    comboGroups = Sorting.MultiSort<Contract_AnimeGroup>(comboGroups, sortCriteria);
-
+                    comboGroups= GroupFilterHelper.Sort(comboGroups, gf);
+                    
                     AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                     foreach (Contract_AnimeGroup grp in comboGroups)
                     {
@@ -740,15 +738,11 @@ namespace JMMServer
                             tvSummary.Populate(ser.AniDB_ID);
 
                             // sort by episode type and number to find the next episode
-                            List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                            sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
-                            sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-                            candidateEps = Sorting.MultiSort<Contract_AnimeEpisode>(candidateEps, sortCriteria);
 
                             // this will generate a lot of queries when the user doesn have files
                             // for these episodes
                             int cnt = 0;
-                            foreach (Contract_AnimeEpisode canEp in candidateEps)
+                            foreach (Contract_AnimeEpisode canEp in candidateEps.OrderBy(a=>a.EpisodeType).ThenBy(a=>a.EpisodeNumber))
                             {
                                 if (dictAniEps.ContainsKey(canEp.AniDB_EpisodeID))
                                 {
@@ -914,11 +908,8 @@ namespace JMMServer
                 {
                     // find the xref that is right
                     // relies on the xref's being sorted by season number and then episode number (desc)
-                    List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                    sortCriteria.Add(new SortPropOrFieldAndDirection("AniDBStartEpisodeNumber", true, SortType.eInteger));
-                    List<CrossRef_AniDB_TvDBV2> tvDBCrossRef =
-                        Sorting.MultiSort<CrossRef_AniDB_TvDBV2>(tvSummary.CrossRefTvDBV2,
-                            sortCriteria);
+                    List<CrossRef_AniDB_TvDBV2> tvDBCrossRef = tvSummary.CrossRefTvDBV2.OrderByDescending(a=>a.AniDBStartEpisodeNumber).ToList();
+
 
                     bool foundStartingPoint = false;
                     CrossRef_AniDB_TvDBV2 xrefBase = null;
@@ -990,11 +981,8 @@ namespace JMMServer
             {
                 // find the xref that is right
                 // relies on the xref's being sorted by season number and then episode number (desc)
-                List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                sortCriteria.Add(new SortPropOrFieldAndDirection("AniDBStartEpisodeNumber", true, SortType.eInteger));
-                List<CrossRef_AniDB_TvDBV2> tvDBCrossRef =
-                    Sorting.MultiSort<CrossRef_AniDB_TvDBV2>(tvSummary.CrossRefTvDBV2,
-                        sortCriteria);
+
+                List<CrossRef_AniDB_TvDBV2> tvDBCrossRef = tvSummary.CrossRefTvDBV2.OrderByDescending(a=>a.AniDBStartEpisodeNumber).ToList();
 
                 bool foundStartingPoint = false;
                 CrossRef_AniDB_TvDBV2 xrefBase = null;
@@ -1167,13 +1155,7 @@ namespace JMMServer
 
                         if (cnt == maxRecords) break;
                     }
-
-                    if (comments.Count > 0)
-                    {
-                        List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-                        sortCriteria.Add(new SortPropOrFieldAndDirection("ShoutDate", false, SortType.eDateTime));
-                        comments = Sorting.MultiSort<MetroContract_Comment>(comments, sortCriteria);
-                    }
+                    comments = comments.OrderBy(a => a.CommentDate).ToList();
                 }
             }
             catch (Exception ex)
