@@ -357,9 +357,6 @@
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Sincronización de colección de metadatos con Trakt añadido a la cola. </value>
   </data>
-  <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Análisis falta archivos añadidos a la cola.</value>
-  </data>
   <data name="Server_Import" xml:space="preserve">
     <value>Exploración para recién añadido archivos añadidos a la cola.</value>
   </data>
@@ -480,9 +477,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
-  </data>
-  <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Inicializando...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Eliminación...</value>
