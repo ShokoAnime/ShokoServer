@@ -772,7 +772,11 @@ namespace JMMServer.Entities
                     foreach (Part p in n?.Parts)
                     {
                         string name = UrlSafe.Replace(Path.GetFileName(FilePath)," ").Replace("  "," ").Replace("  "," ").Trim();
-                        name = UrlSafe2.Replace(name, string.Empty).Trim().Replace("..",".").Replace("..",".").Replace("__","_").Replace("__","_").Replace(" ", "_");
+                        name = UrlSafe2.Replace(name, string.Empty).Trim().Replace("..",".").Replace("..",".").Replace("__","_").Replace("__","_").Replace(" ", "_").Replace("_.",".");
+                        while (name.StartsWith("_"))
+                            name = name.Substring(1);
+                        while (name.StartsWith("."))
+                            name = name.Substring(1);
                         p.Key = PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
                         if (p.Streams != null)
                         {
