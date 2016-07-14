@@ -357,9 +357,6 @@
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>La sincronizzazione metadati della raccolta con Trakt aggiunto alla coda. </value>
   </data>
-  <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Scansione per i file aggiunti alla coda mancanti.</value>
-  </data>
   <data name="Server_Import" xml:space="preserve">
     <value>Scansione per appena aggiunto i file aggiunti alla coda.</value>
   </data>
@@ -480,9 +477,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
-  </data>
-  <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Inizializzazione...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Smaltimento...</value>

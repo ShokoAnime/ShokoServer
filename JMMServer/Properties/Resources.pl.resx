@@ -357,9 +357,6 @@
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Synchronizacja metadanych kolekcji z Trakt. </value>
   </data>
-  <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Skanowanie w poszukiwaniu brakujące pliki.</value>
-  </data>
   <data name="Server_Import" xml:space="preserve">
     <value>Skanowania nowo dodanych plików.</value>
   </data>
@@ -480,9 +477,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
-  </data>
-  <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Inicjowanie...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Usuwania...</value>

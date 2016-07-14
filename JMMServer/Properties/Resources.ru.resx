@@ -360,9 +360,6 @@
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Синхронизация коллекции метаданных с Trakt добавлены в очередь. </value>
   </data>
-  <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Сканирование отсутствующих файлов добавлено в очередь.</value>
-  </data>
   <data name="Server_Import" xml:space="preserve">
     <value>Сканирование новых файлов добавлено в очередь.</value>
   </data>
@@ -483,9 +480,6 @@
   </data>
   <data name="Link_AniDB" xml:space="preserve">
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
-  </data>
-  <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Инициализация...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Утилизация...</value>
