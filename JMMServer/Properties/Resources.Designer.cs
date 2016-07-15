@@ -1538,15 +1538,6 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Initializing....
-        /// </summary>
-        internal static string InitialSetup_Initializing {
-            get {
-                return ResourceManager.GetString("InitialSetup_Initializing", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Initial Setup.
         /// </summary>
         internal static string InitialSetup_InitialSetup {
@@ -2242,15 +2233,6 @@ namespace JMMServer.Properties {
         internal static string Server_MinimizeInfo {
             get {
                 return ResourceManager.GetString("Server_MinimizeInfo", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Scanning for missing files added to queue..
-        /// </summary>
-        internal static string Server_RemoveMising {
-            get {
-                return ResourceManager.GetString("Server_RemoveMising", resourceCulture);
             }
         }
         

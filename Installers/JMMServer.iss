@@ -76,6 +76,7 @@ Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\fr\*"; DestDir: "{app
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\it\*"; DestDir: "{app}\it"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\nl\*"; DestDir: "{app}\nl"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\pl\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\pt\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\ru\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 

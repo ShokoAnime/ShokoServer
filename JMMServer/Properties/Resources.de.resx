@@ -357,9 +357,6 @@
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Beim Synchronisieren Auflistung Metadaten mit Trakt hinzugefügt zur Warteschlange. </value>
   </data>
-  <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Scannen nach verlorenen Dateien zur Warteschlange hinzugefügt.</value>
-  </data>
   <data name="Server_Import" xml:space="preserve">
     <value>Scannen nach neu hinzugefügt Dateien zur Warteschlange hinzugefügt.</value>
   </data>
@@ -480,9 +477,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
-  </data>
-  <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Wird initialisiert...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Entsorgung...</value>
