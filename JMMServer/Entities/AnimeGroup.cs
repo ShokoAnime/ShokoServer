@@ -1236,16 +1236,17 @@ namespace JMMServer.Entities
 	            {
 		            try
 		            {
-			            contract.Stat_AniDBRating = Decimal.Parse(series[0].Rating);
+			            AniDB_Anime anidbAnime = series[0].GetAnime();
+			            contract.Stat_AniDBRating = anidbAnime.AniDBRating;
 			            contract.Stat_AllTags =
 				            new HashSet<string>(
-					            series[0].GetAnime().AllTags.Split(new char[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
+					            anidbAnime.AllTags.Split(new char[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
 						            .Select(a => a.Trim())
 						            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
 					            StringComparer.InvariantCultureIgnoreCase);
 			            contract.Stat_AllTitles =
 				            new HashSet<string>(
-					            series[0].GetAnime().AllTitles.Split(new char[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
+					            anidbAnime.AllTitles.Split(new char[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
 						            .Select(a => a.Trim())
 						            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
 					            StringComparer.InvariantCultureIgnoreCase);
