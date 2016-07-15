@@ -6,7 +6,7 @@ using System.Linq;
 using System.ServiceModel.Web;
 using System.Text;
 using AniDBAPI;
-
+using FluentNHibernate.Conventions;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
@@ -551,6 +551,19 @@ namespace JMMServer.PlexAndKodi
                         v.GenerateKey(prov, userid);
                         retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
+                        if (basegrp.Stat_AniDBRating <= 0 || basegrp.Stat_AllTags == null || basegrp.Stat_AllTags.IsEmpty())
+                        {
+                        	try
+                        	{
+                        		basegrp.Stat_AniDBRating = Decimal.Parse(v.Rating);
+		                        if(basegrp.Stat_AllTags == null) basegrp.Stat_AllTags = new HashSet<string>();
+		                        foreach (Tag tag in v.Tags)
+		                        {
+			                        basegrp.Stat_AllTags.Add(tag.Value);
+		                        }
+	                        }
+                        	catch (Exeption e) { }
+                        }
                     }
                 }
             }
