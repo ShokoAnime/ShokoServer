@@ -556,11 +556,8 @@ namespace JMMServer.PlexAndKodi
                         	try
                         	{
                         		basegrp.Stat_AniDBRating = Decimal.Parse(v.Rating);
-		                        if(basegrp.Stat_AllTags == null) basegrp.Stat_AllTags = new HashSet<string>();
-		                        foreach (Tag tag in v.Tags)
-		                        {
-			                        basegrp.Stat_AllTags.Add(tag.Value);
-		                        }
+		                        basegrp.Stat_AllTags = new HashSet<string>(v.Tags.Select(a => a.Value).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
+		                        basegrp.Stat_AllTitles = new HashSet<string>(v.Titles.Select(a => a.Title).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
 	                        }
                         	catch (Exeption e) { }
                         }
