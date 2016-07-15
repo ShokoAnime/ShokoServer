@@ -551,16 +551,6 @@ namespace JMMServer.PlexAndKodi
                         v.GenerateKey(prov, userid);
                         retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
-                        if (basegrp.Stat_AniDBRating <= 0 || basegrp.Stat_AllTags == null || basegrp.Stat_AllTags.IsEmpty())
-                        {
-                        	try
-                        	{
-                        		basegrp.Stat_AniDBRating = Decimal.Parse(v.Rating);
-		                        basegrp.Stat_AllTags = new HashSet<string>(v.Tags.Select(a => a.Value).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
-		                        basegrp.Stat_AllTitles = new HashSet<string>(v.Titles.Select(a => a.Title).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
-	                        }
-                        	catch (Exeption e) { }
-                        }
                     }
                 }
             }

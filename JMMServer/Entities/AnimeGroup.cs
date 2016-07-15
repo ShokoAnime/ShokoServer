@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using AniDBAPI;
-
+using FluentNHibernate.Conventions;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.LZ4;
@@ -1231,6 +1231,29 @@ namespace JMMServer.Entities
                 contract.Stat_AudioLanguages = audioLanguages;
                 contract.Stat_SubtitleLanguages = subtitleLanguages;
                 contract.LatestEpisodeAirDate = LatestEpisodeAirDate;
+
+	            if (contract.Stat_AniDBRating <= 0 || contract.Stat_AllTags == null || contract.Stat_AllTags.IsEmpty())
+	            {
+		            try
+		            {
+			            contract.Stat_AniDBRating = Decimal.Parse(series[0].Rating);
+			            contract.Stat_AllTags =
+				            new HashSet<string>(
+					            series[0].GetAnime().AllTags.Split(new char[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
+						            .Select(a => a.Trim())
+						            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
+					            StringComparer.InvariantCultureIgnoreCase);
+			            contract.Stat_AllTitles =
+				            new HashSet<string>(
+					            series[0].GetAnime().AllTitles.Split(new char[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
+						            .Select(a => a.Trim())
+						            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
+					            StringComparer.InvariantCultureIgnoreCase);
+		            }
+		            catch (Exception e)
+		            {
+		            }
+	            }
             }
             HashSet<GroupFilterConditionType> types = GetConditionTypesChanged(Contract, contract);
             Contract = contract;
