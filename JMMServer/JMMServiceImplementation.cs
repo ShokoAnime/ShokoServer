@@ -3124,7 +3124,10 @@ namespace JMMServer
         {
             MainWindow.RunImport();
         }
-
+        public void SyncHashes()
+        {
+            MainWindow.SyncHashes();
+        }
         public void ScanDropFolders()
         {
             Importer.RunImport_DropFolders();
