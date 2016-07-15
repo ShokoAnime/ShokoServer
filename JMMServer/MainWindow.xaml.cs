@@ -89,6 +89,9 @@ namespace JMMServer
         private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
         private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
+        private static BackgroundWorker workerSyncHashes= new BackgroundWorker();
+
+
         private static BackgroundWorker workerSetupDB = new BackgroundWorker();
 
         private static System.Timers.Timer autoUpdateTimer = null;
@@ -226,6 +229,7 @@ namespace JMMServer
 
             btnRemoveMissingFiles.Click += new RoutedEventHandler(btnRemoveMissingFiles_Click);
             btnRunImport.Click += new RoutedEventHandler(btnRunImport_Click);
+            btnSyncHashes.Click += BtnSyncHashes_Click;
             btnSyncMyList.Click += new RoutedEventHandler(btnSyncMyList_Click);
             btnSyncVotes.Click += new RoutedEventHandler(btnSyncVotes_Click);
             btnUpdateTvDBInfo.Click += new RoutedEventHandler(btnUpdateTvDBInfo_Click);
@@ -268,6 +272,12 @@ namespace JMMServer
             workerScanDropFolders.WorkerReportsProgress = true;
             workerScanDropFolders.WorkerSupportsCancellation = true;
             workerScanDropFolders.DoWork += new DoWorkEventHandler(workerScanDropFolders_DoWork);
+
+
+            workerSyncHashes.WorkerReportsProgress = true;
+            workerSyncHashes.WorkerSupportsCancellation = true;
+            workerSyncHashes.DoWork += WorkerSyncHashes_DoWork;
+
 
             workerRemoveMissing.WorkerReportsProgress = true;
             workerRemoveMissing.WorkerSupportsCancellation = true;
@@ -344,6 +354,25 @@ namespace JMMServer
             }
         }
 
+
+        private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
+        {
+            SyncHashes();
+            MessageBox.Show(JMMServer.Properties.Resources.Server_SyncHashesRunning, JMMServer.Properties.Resources.Success,
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
+        {
+            try
+            {
+                Importer.SyncHashes();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.Message, ex);
+            }
+        }
 
         private void ChkEnablePlex_Click(object sender, RoutedEventArgs e)
         {
@@ -2092,7 +2121,11 @@ namespace JMMServer
             if (!workerScanDropFolders.IsBusy)
                 workerScanDropFolders.RunWorkerAsync();
         }
-
+        public static void SyncHashes()
+        {
+            if (!workerSyncHashes.IsBusy)
+                workerSyncHashes.RunWorkerAsync();
+        }
         public static void ScanFolder(int importFolderID)
         {
             if (!workerScanFolder.IsBusy)

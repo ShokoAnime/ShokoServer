@@ -115,6 +115,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Sync Hashes.
+        /// </summary>
+        internal static string Actions_SyncHashes {
+            get {
+                return ResourceManager.GetString("Actions_SyncHashes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Sync AniDB MyList.
         /// </summary>
         internal static string Actions_SyncMyList {
@@ -2260,6 +2269,15 @@ namespace JMMServer.Properties {
         internal static string Server_StatsInfoUpdate {
             get {
                 return ResourceManager.GetString("Server_StatsInfoUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Synchronizing Hashes with the WebCache Running.
+        /// </summary>
+        internal static string Server_SyncHashesRunning {
+            get {
+                return ResourceManager.GetString("Server_SyncHashesRunning", resourceCulture);
             }
         }
         

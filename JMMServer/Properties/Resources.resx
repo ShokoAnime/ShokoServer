@@ -989,4 +989,10 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="MessageBox_No" xml:space="preserve">
     <value>No</value>
   </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Sync Hashes</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Synchronizing Hashes with the WebCache Running</value>
+  </data>
 </root>
