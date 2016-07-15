@@ -44,39 +44,43 @@ namespace JMMServer.WCFCompression
 
         public static void NullPropertiesWithAttribute(this object obj, Type attrtype)
         {
-            if (obj == null)
-                return;
-            Type objType = obj.GetType();
-            PropertyInfo[] properties = objType.GetProperties();
-            foreach (PropertyInfo property in properties)
+            try
             {
-                object propValue = property.GetValue(obj, null);
-                IList list = propValue as IList;
-                if (list != null)
+                if (obj == null)
+                    return;
+                Type objType = obj.GetType();
+                PropertyInfo[] properties = objType.GetProperties();
+                foreach (PropertyInfo property in properties)
                 {
-                    foreach (object item in list)
+                    object propValue = property.GetValue(obj, null);
+                    IList list = propValue as IList;
+                    if (list != null)
                     {
-                        item.NullPropertiesWithAttribute(attrtype);
-                    }
-                }
-                else
-                {
-                    if (property.PropertyType.Assembly == objType.Assembly)
-                    {
-                        propValue.NullPropertiesWithAttribute(attrtype);
+                        foreach (object item in list)
+                        {
+                            item.NullPropertiesWithAttribute(attrtype);
+                        }
                     }
                     else
                     {
-                        if (Attribute.IsDefined(property, attrtype))
+                        if (property.PropertyType.Assembly == objType.Assembly)
                         {
-                            if (propValue.IsNullable())
+                            propValue.NullPropertiesWithAttribute(attrtype);
+                        }
+                        else
+                        {
+                            if (Attribute.IsDefined(property, attrtype))
                             {
-                                property.SetValue(obj,null);
+                                if (propValue.IsNullable())
+                                {
+                                    property.SetValue(obj, null);
+                                }
                             }
                         }
                     }
                 }
             }
+            catch { }
         }
     }
 }
