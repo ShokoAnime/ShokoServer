@@ -6,7 +6,7 @@ using System.Linq;
 using System.ServiceModel.Web;
 using System.Text;
 using AniDBAPI;
-using FluentNHibernate.Conventions;
+
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
