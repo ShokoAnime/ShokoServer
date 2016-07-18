@@ -7,8 +7,8 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}
 AppName=JMM Server
-AppVersion=3.5.0.1
-;AppVerName=JMM Server 3.5.0.1
+AppVersion=3.6.0.1
+;AppVerName=JMM Server 3.6.0.1
 AppPublisher=JMM
 AppPublisherURL=https://github.com/japanesemediamanager
 AppSupportURL=https://github.com/japanesemediamanager
@@ -29,10 +29,47 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
 
 [Files]
-Source: "..\JMMServer\bin\Release\*"; Excludes: "JMMServer.exe.Config"; DestDir: "{app}"; Flags: ignoreversion 
-Source: "..\JMMServer\bin\Release\JMMServer.exe.Config"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
-Source: "..\JMMServer\bin\Release\x64\*"; DestDir: "{app}\x64"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\x86\*"; DestDir: "{app}\x86"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.exe"; DestDir: "{app}"; Flags: ignoreversion 
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Antlr3.Runtime.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Castle.Core.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\FluentNHibernate.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\FluentNHibernate.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\HibernatingRhinos.Profiler.Appender.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\ICSharpCode.SharpZipLib.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Iesi.Collections.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Iesi.Collections.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMContracts.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMContracts.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMFileHelper.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMFileHelper.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.vshost.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\JMMServer.vshost.exe.manifest"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.ConnectionInfo.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.Management.Sdk.Sfc.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.Smo.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Microsoft.SqlServer.SqlEnum.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\MySql.Data.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.ByteCode.Castle.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.ByteCode.Castle.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NHibernate.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\NLog.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Remotion.Data.Linq.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\System.Data.SQLite.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\TMDbLib.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\TMDbLib.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\RestSharp.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Newtonsoft.Json.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Infralution.Localization.Wpf.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\Config\JMMServer.exe.Config"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\hasher.dll"; DestDir: "{app}\x64"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\MediaInfo.dll"; DestDir: "{app}\x64"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\SQLite.Interop.dll"; DestDir: "{app}\x64"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\hasher.dll"; DestDir: "{app}\x86"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\MediaInfo.dll"; DestDir: "{app}\x86"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\SQLite.Interop.dll"; DestDir: "{app}\x86"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\languages\*"; DestDir: "{app}\languages"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

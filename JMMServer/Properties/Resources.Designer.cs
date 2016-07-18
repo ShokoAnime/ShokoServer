@@ -115,6 +115,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Sync Hashes.
+        /// </summary>
+        internal static string Actions_SyncHashes {
+            get {
+                return ResourceManager.GetString("Actions_SyncHashes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Sync AniDB MyList.
         /// </summary>
         internal static string Actions_SyncMyList {
@@ -1529,15 +1538,6 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Initializing....
-        /// </summary>
-        internal static string InitialSetup_Initializing {
-            get {
-                return ResourceManager.GetString("InitialSetup_Initializing", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Initial Setup.
         /// </summary>
         internal static string InitialSetup_InitialSetup {
@@ -2237,15 +2237,6 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Scanning for missing files added to queue..
-        /// </summary>
-        internal static string Server_RemoveMising {
-            get {
-                return ResourceManager.GetString("Server_RemoveMising", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Removing all missing files added to queue.
         /// </summary>
         internal static string Server_RemoveMissingFiles {
@@ -2278,6 +2269,15 @@ namespace JMMServer.Properties {
         internal static string Server_StatsInfoUpdate {
             get {
                 return ResourceManager.GetString("Server_StatsInfoUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Synchronizing Hashes with the WebCache Running.
+        /// </summary>
+        internal static string Server_SyncHashesRunning {
+            get {
+                return ResourceManager.GetString("Server_SyncHashesRunning", resourceCulture);
             }
         }
         

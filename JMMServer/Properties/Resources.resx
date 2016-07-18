@@ -427,9 +427,6 @@
   <data name="Server_SyncMyList" xml:space="preserve">
     <value>Syncing collection metadata with AniDB MyList added to queue.</value>
   </data>
-  <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Scanning for missing files added to queue.</value>
-  </data>
   <data name="Server_Import" xml:space="preserve">
     <value>Scanning for newly added files added to queue.</value>
   </data>
@@ -562,9 +559,6 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
-  </data>
-  <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Initializing...</value>
   </data>
   <data name="InitialSetup_Login" xml:space="preserve">
     <value>Logging In...</value>
@@ -994,5 +988,11 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>No</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Sync Hashes</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Synchronizing Hashes with the WebCache Running</value>
   </data>
 </root>

@@ -3124,7 +3124,10 @@ namespace JMMServer
         {
             MainWindow.RunImport();
         }
-
+        public void SyncHashes()
+        {
+            MainWindow.SyncHashes();
+        }
         public void ScanDropFolders()
         {
             Importer.RunImport_DropFolders();
@@ -4711,10 +4714,9 @@ namespace JMMServer
                     repDefaults.Save(img);
                 }
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
-                repAnime.Save(anime);
-
+                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                AnimeSeries series = repSeries.GetByAnimeID(animeID);
+                repSeries.Save(series,false);
 
                 return "";
             }
