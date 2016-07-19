@@ -173,7 +173,9 @@ namespace JMMServer.PlexAndKodi
             if ((WebOperationContext.Current == null) ||
                 (WebOperationContext.Current.IncomingRequest.UriTemplateMatch == null))
             {
-                return "{SCHEME}://{HOST}:" + port + "/" + path;
+                //return "{SCHEME}://{HOST}:" + port + "/" + path;
+                //APIv2 tweak: we already know ip and port so we only need path
+                return "/" + path;
             }
             string host = WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host;
             if (externalip)
@@ -206,7 +208,10 @@ namespace JMMServer.PlexAndKodi
                 if (ip != null)
                     host = ip.ToString();
             }
-            return str.Replace("{SCHEME}", scheme).Replace("{HOST}", host);
+            //return str.Replace("{SCHEME}", scheme).Replace("{HOST}", host);
+            //TODO APIv2: hack to resolve most image name issues (path change)
+            if (str.Contains("JMMServerREST")) { str = str.Replace("JMMServerREST","api"); }
+            return str.Replace("{SCHEME}://{HOST}:8111", "");
         }
 
         public static bool RefreshIfMediaEmpty(VideoLocal vl, Video v)

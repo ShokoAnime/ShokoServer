@@ -15,7 +15,7 @@ namespace JMMServer
                 {
                     if (pid.Name == pis.Name)
                         pid.GetSetMethod().Invoke(d, new[] {pis.GetGetMethod().Invoke(s, null)});
-                }
+                 }
             }
             ;
         }

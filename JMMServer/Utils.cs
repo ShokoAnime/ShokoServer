@@ -135,7 +135,7 @@ namespace JMMServer
                         string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerMetroImage", 8111));
                     BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerPlex",
                         8111));
-                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerKodi",
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/api",
                         8111));
                     BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerREST",
                         8111));
@@ -184,7 +184,7 @@ namespace JMMServer
                     BatchFileStream.WriteLine(
                         string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerPlex user=everyone", Port));
                     BatchFileStream.WriteLine(
-                        string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerKodi user=everyone", Port));
+                        string.Format(@"netsh http add urlacl url=http://+:{0}/api user=everyone", Port));
                     BatchFileStream.WriteLine(
                         string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerREST user=everyone", Port));
                     BatchFileStream.WriteLine(string.Format(
@@ -218,7 +218,7 @@ namespace JMMServer
                         string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerMetroImage", oldPort));
                     BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerPlex",
                         oldPort));
-                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerKodi",
+                    BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/api",
                         oldPort));
                     BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMServerREST",
                         oldPort));

@@ -65,7 +65,7 @@ namespace JMMServer
 
         public static string PathAddressREST = "JMMServerREST";
         public static string PathAddressPlex = "JMMServerPlex";
-        public static string PathAddressKodi = "JMMServerKodi";
+        public static string PathAddressKodi = "api";
 
         //private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
         //private static ServiceHost host = null;
@@ -331,7 +331,7 @@ namespace JMMServer
 
             InitCulture();
 
-            var nancyHost = new Nancy.Hosting.Self.NancyHost(new Uri("http://localhost:1234"));
+            var nancyHost = new Nancy.Hosting.Self.NancyHost(new Uri("http://localhost:8111"));
             nancyHost.Start();
         }
 
@@ -2579,7 +2579,6 @@ namespace JMMServer
 
             if (hostREST != null)
                 hostREST.Close();
-
 
             if (hostStreaming != null)
                 hostStreaming.Close();

@@ -55,6 +55,18 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Nancy, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.1.4.1\lib\net40\Nancy.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nancy.Serialization.JsonNet, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Serialization.JsonNet.1.4.1\lib\net40\Nancy.Serialization.JsonNet.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=3.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.3.5.8\lib\35\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
       <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
       <Private>True</Private>
@@ -70,7 +82,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="API\API_MediaContainer.cs" />
+    <Compile Include="API\Models\Art.cs" />
+    <Compile Include="API\Models\Extras.cs" />
+    <Compile Include="API\Models\Filter.cs" />
+    <Compile Include="API\Models\Filters.cs" />
+    <Compile Include="API\Models\Hub.cs" />
+    <Compile Include="API\Models\Media.cs" />
+    <Compile Include="API\Models\Metadatas.cs" />
+    <Compile Include="API\Models\Metadata.cs" />
+    <Compile Include="API\Models\Part.cs" />
+    <Compile Include="API\Models\RoleTag.cs" />
+    <Compile Include="API\Models\Serie.cs" />
+    <Compile Include="API\Models\Series.cs" />
+    <Compile Include="API\Models\Stream.cs" />
+    <Compile Include="API\Models\Tag.cs" />
+    <Compile Include="API\Models\Title.cs" />
+    <Compile Include="API\Models\User.cs" />
+    <Compile Include="API\Models\Users.cs" />
+    <Compile Include="API\Models\Version.cs" />
+    <Compile Include="API\Models\Video.cs" />
     <Compile Include="Contract_AdminMessage.cs" />
     <Compile Include="Contract_AniDBAnime.cs" />
     <Compile Include="Contract_AniDBReleaseGroup.cs" />
@@ -195,8 +225,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>
