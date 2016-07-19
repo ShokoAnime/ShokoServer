@@ -1,17 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using JMMContracts;
 using JMMFileHelper;
 using JMMServer.Commands;
 using JMMServer.Commands.AniDB;
 using JMMServer.Commands.Azure;
 using JMMServer.Entities;
+using JMMServer.Providers.Azure;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
 using NLog;
+using CrossRef_File_Episode = JMMServer.Entities.CrossRef_File_Episode;
 
 namespace JMMServer
 {
@@ -131,6 +135,90 @@ namespace JMMServer
                 }
             }
         }
+
+        public static void SyncHashes()
+        {
+            VideoLocalRepository repVidLocals = new VideoLocalRepository();
+            AniDB_FileRepository repFiles=new AniDB_FileRepository();
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                List<VideoLocal> allfiles = repVidLocals.GetAll().ToList();
+                List<VideoLocal> missfiles = allfiles.Where(
+                            a =>
+                                string.IsNullOrEmpty(a.CRC32) || string.IsNullOrEmpty(a.SHA1) ||
+                                string.IsNullOrEmpty(a.MD5) || a.SHA1== "0000000000000000000000000000000000000000" || a.MD5== "00000000000000000000000000000000")
+                        .ToList();
+                List<VideoLocal> withfiles = allfiles.Except(missfiles).ToList();
+                //Check if we can populate md5,sha and crc from AniDB_Files
+                foreach (VideoLocal v in missfiles.ToList())
+                {
+                    AniDB_File file = repFiles.GetByHash(session,v.ED2KHash);
+                    if (file != null)
+                    {
+                        if (!string.IsNullOrEmpty(file.CRC) && !string.IsNullOrEmpty(file.SHA1) &&
+                            !string.IsNullOrEmpty(file.MD5))
+                        {
+                            v.CRC32 = file.CRC;
+                            v.MD5 = file.MD5;
+                            v.SHA1 = file.SHA1;
+                            repVidLocals.Save(v,false);
+                            missfiles.Remove(v);
+                            withfiles.Add(v);
+                        }
+                    }
+                }
+                //Try obtain missing hashes
+                foreach (VideoLocal v in missfiles.ToList())
+                {
+                    List<FileHash> ls=AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
+                    if (ls != null)
+                    {
+                        ls=ls.Where(
+                            a =>
+                                !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) &&
+                                !string.IsNullOrEmpty(a.SHA1)).ToList();
+                        if (ls.Count > 0)
+                        {
+                            v.CRC32 = ls[0].CRC32.ToUpperInvariant();
+                            v.MD5 = ls[0].MD5.ToUpperInvariant();
+                            v.SHA1 = ls[0].SHA1.ToUpperInvariant();
+                            repVidLocals.Save(v, false);
+                            missfiles.Remove(v);
+                        }
+                    }
+                }
+                //We need to recalculate the sha1, md5 and crc32 of the missing ones.
+                List<VideoLocal> tosend=new List<VideoLocal>();
+                foreach (VideoLocal v in missfiles)
+                {
+                    try
+                    {
+                        if (File.Exists(v.FullServerPath))
+                        {
+                            Hashes h = FileHashHelper.GetHashInfo(v.FullServerPath, true, MainWindow.OnHashProgress, true,
+                                true,
+                                true);
+
+                            v.Hash = h.ed2k;
+                            v.CRC32 = h.crc32;
+                            v.MD5 = h.md5;
+                            v.SHA1 = h.sha1;
+                            v.HashSource = (int)HashSource.DirectHash;
+                            withfiles.Add(v);
+                        }
+                    }
+                    catch 
+                    {
+                        //Ignored
+                    }
+
+                }
+                //Send the hashes
+                AzureWebAPI.Send_FileHash(withfiles);
+                logger.Info("Sync Hashes Complete");
+            }
+        }
+
 
         public static void RunImport_ScanFolder(int importFolderID)
         {
