@@ -183,6 +183,7 @@ namespace JMMServer.Databases
         public static void InitCache()
         {
             JMMUserRepository.InitCache();
+            ImportFolderRepository.InitCache();
             AniDB_AnimeRepository.InitCache();
             VideoInfoRepository.InitCache();
             VideoLocalRepository.InitCache();

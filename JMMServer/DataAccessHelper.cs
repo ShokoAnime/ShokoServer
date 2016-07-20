@@ -13,18 +13,18 @@ namespace JMMServer
             importFolderID = -1;
             foreach (ImportFolder ifolder in shares)
             {
-                string importLocation = ifolder.ImportFolderLocation;
-                string importLocationFull = importLocation.TrimEnd('\\');
+                string importLocation = ifolder.ImportFolderLocation.Replace("\\","/");
+                string importLocationFull = importLocation.TrimEnd('/');
 
                 // add back the trailing back slashes
-                importLocationFull = importLocationFull + "\\";
+                importLocationFull = importLocationFull + "/";
 
-                importLocation = importLocation.TrimEnd('\\');
+                importLocation = importLocation.TrimEnd('/');
                 if (fileName.StartsWith(importLocationFull))
                 {
                     importFolderID = ifolder.ImportFolderID;
                     filePath = fileName.Replace(importLocation, "");
-                    filePath = filePath.TrimStart('\\');
+                    filePath = filePath.TrimStart('/');
                     break;
                 }
             }

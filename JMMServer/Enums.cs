@@ -226,7 +226,8 @@ namespace JMMServer
     public enum ImportFolderType
     {
         HDD = 1, // files stored on a "permanent" hard drive
-        DVD = 2 // files stored on a cd/dvd 
+        DVD = 2, // files stored on a cd/dvd 
+        Cloud = 3 // files stored in the cloud 
     }
 
     public enum ScheduledUpdateType

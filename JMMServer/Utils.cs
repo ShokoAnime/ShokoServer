@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using NLog;
+using NutzCode.CloudFileSystem;
 
 namespace JMMServer
 {
@@ -829,16 +830,16 @@ namespace JMMServer
         public static List<string> GetPossibleSubtitleFiles(string fileName)
         {
             List<string> subtileFiles = new List<string>();
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".srt"));
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".ass"));
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".ssa"));
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".idx"));
-            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + ".sub"));
+            subtileFiles.Add(CloudPath.Combine(CloudPath.GetDirectoryName(fileName),
+                CloudPath.GetFileNameWithoutExtension(fileName) + ".srt"));
+            subtileFiles.Add(CloudPath.Combine(CloudPath.GetDirectoryName(fileName),
+                CloudPath.GetFileNameWithoutExtension(fileName) + ".ass"));
+            subtileFiles.Add(CloudPath.Combine(CloudPath.GetDirectoryName(fileName),
+                CloudPath.GetFileNameWithoutExtension(fileName) + ".ssa"));
+            subtileFiles.Add(CloudPath.Combine(CloudPath.GetDirectoryName(fileName),
+                CloudPath.GetFileNameWithoutExtension(fileName) + ".idx"));
+            subtileFiles.Add(CloudPath.Combine(CloudPath.GetDirectoryName(fileName),
+                CloudPath.GetFileNameWithoutExtension(fileName) + ".sub"));
 
             return subtileFiles;
         }

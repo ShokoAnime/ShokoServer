@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using AniDBAPI;
 
 using FluentNHibernate.Utils;
@@ -15,6 +16,7 @@ using JMMServer.LZ4;
 using JMMServer.Repositories;
 using NHibernate;
 using NLog;
+using NutzCode.CloudFileSystem;
 using Directory = System.IO.Directory;
 using Stream = JMMContracts.PlexAndKodi.Stream;
 
@@ -27,6 +29,7 @@ namespace JMMServer.Entities
         public int VideoLocalID { get; private set; }
         public string FilePath { get; set; }
         public int ImportFolderID { get; set; }
+        public int ImportFolderType { get; set; }
         public string Hash { get; set; }
         public string CRC32 { get; set; }
         public string MD5 { get; set; }
@@ -126,10 +129,7 @@ namespace JMMServer.Entities
             }
         }
 
-        public string FullServerPath
-        {
-            get { return Path.Combine(ImportFolder.ImportFolderLocation, FilePath); }
-        }
+        public string FullServerPath => CloudPath.Combine(ImportFolder.ImportFolderLocation, FilePath);
 
         public AniDB_File GetAniDBFile()
         {
@@ -442,6 +442,8 @@ namespace JMMServer.Entities
             return string.Format("{0} --- {1}", FullServerPath, Hash);
         }
 
+
+
         public void RenameFile(string renameScript)
         {
             string renamed = RenameFileHelper.GetNewFileName(this, renameScript);
@@ -449,20 +451,26 @@ namespace JMMServer.Entities
 
             ImportFolderRepository repFolders = new ImportFolderRepository();
             VideoLocalRepository repVids = new VideoLocalRepository();
-
+            IFileSystem filesys = ImportFolder.FileSystem;
+            if (filesys == null)
+                return;
             // actually rename the file
             string fullFileName = this.FullServerPath;
 
             // check if the file exists
-            if (!File.Exists(fullFileName))
+
+
+
+            FileSystemResult<IObject> re = filesys.Resolve(fullFileName);
+            if ((re==null) || (!re.IsOk))
             {
                 logger.Error("Error could not find the original file for renaming: " + fullFileName);
                 return;
             }
-
+            IObject file = re.Result;
             // actually rename the file
-            string path = Path.GetDirectoryName(fullFileName);
-            string newFullName = Path.Combine(path, renamed);
+            string path = CloudPath.GetDirectoryName(fullFileName);
+            string newFullName = CloudPath.Combine(path, renamed);
 
             try
             {
@@ -470,21 +478,25 @@ namespace JMMServer.Entities
 
                 if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    logger.Info(string.Format("Renaming file SKIPPED, no change From ({0}) to ({1})", fullFileName,
-                        newFullName));
+                    logger.Info(string.Format("Renaming file SKIPPED, no change From ({0}) to ({1})", fullFileName, newFullName));
                 }
                 else
                 {
-                    File.Move(fullFileName, newFullName);
-                    logger.Info(string.Format("Renaming file SUCCESS From ({0}) to ({1})", fullFileName, newFullName));
+                    FileSystemResult r = file.Rename(renamed);
+                    if (r.IsOk)
+                    {
+                        logger.Info(string.Format("Renaming file SUCCESS From ({0}) to ({1})", fullFileName, newFullName));
 
-                    string newPartialPath = "";
-                    int folderID = this.ImportFolderID;
-
-                    DataAccessHelper.GetShareAndPath(newFullName, repFolders.GetAll(), ref folderID, ref newPartialPath);
-
-                    this.FilePath = newPartialPath;
-                    repVids.Save(this, true);
+                        string newPartialPath = "";
+                        int folderID = this.ImportFolderID;
+                        DataAccessHelper.GetShareAndPath(newFullName, repFolders.GetAll(), ref folderID, ref newPartialPath);
+                        this.FilePath = newPartialPath;
+                        repVids.Save(this, true);
+                    }
+                    else
+                    {
+                        logger.Info(string.Format("Renaming file FAIL From ({0}) to ({1}) - {2}", fullFileName, newFullName, r.Error));
+                    }
                 }
             }
             catch (Exception ex)
@@ -521,22 +533,35 @@ namespace JMMServer.Entities
 
                 // check if this file is in the drop folder
                 // otherwise we don't need to move it
-                if (this.ImportFolder.IsDropSource == 0)
+                if (ImportFolder.IsDropSource == 0)
                 {
                     logger.Trace("Not moving file as it is NOT in the drop folder: {0}", this.FullServerPath);
                     return;
                 }
+                IFileSystem f = this.ImportFolder.FileSystem;
+                if (f == null)
+                {
+                    logger.Trace("Unable to move, filesystem not working: {0}", this.FullServerPath);
+                    return;
 
-                if (!File.Exists(this.FullServerPath))
+                }
+
+                FileSystemResult<IObject> fsrresult = f.Resolve(FullServerPath);
+                if (fsrresult == null || !fsrresult.IsOk)
                 {
                     logger.Error("Could not find the file to move: {0}", this.FullServerPath);
                     return;
                 }
-
+                IFile source_file = fsrresult.Result as IFile;
+                if (source_file == null)
+                {
+                    logger.Error("Could not find the file to move: {0}", this.FullServerPath);
+                    return;
+                }
                 // find the default destination
                 ImportFolder destFolder = null;
                 ImportFolderRepository repFolders = new ImportFolderRepository();
-                foreach (ImportFolder fldr in repFolders.GetAll())
+                foreach (ImportFolder fldr in repFolders.GetAll().Where(a=>a.CloudID==ImportFolder.CloudID))
                 {
                     if (fldr.IsDropDestination == 1)
                     {
@@ -547,7 +572,9 @@ namespace JMMServer.Entities
 
                 if (destFolder == null) return;
 
-                if (!System.IO.Directory.Exists(destFolder.ImportFolderLocation)) return;
+                FileSystemResult<IObject> re = f.Resolve(destFolder.ImportFolderLocation);
+                if (re==null || !re.IsOk)
+                    return;
 
                 // keep the original drop folder for later (take a copy, not a reference)
                 ImportFolder dropFolder = this.ImportFolder;
@@ -572,6 +599,7 @@ namespace JMMServer.Entities
 
                 AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
                 CrossRef_File_EpisodeRepository repFileEpXref = new CrossRef_File_EpisodeRepository();
+                IDirectory destination=null;
 
                 foreach (AnimeEpisode ep in allEps)
                 {
@@ -592,7 +620,7 @@ namespace JMMServer.Entities
                     }
                     if (crossOver) continue;
 
-                    foreach (VideoLocal vid in ep.GetVideoLocals())
+                    foreach (VideoLocal vid in ep.GetVideoLocals().Where(a=>a.ImportFolder.CloudID==destFolder.CloudID))
                     {
                         if (vid.VideoLocalID != this.VideoLocalID)
                         {
@@ -602,8 +630,10 @@ namespace JMMServer.Entities
                             string thisFileName = vid.FullServerPath;
                             string folderName = Path.GetDirectoryName(thisFileName);
 
-                            if (Directory.Exists(folderName))
+                            FileSystemResult<IObject> dir = f.Resolve(folderName);
+                            if (dir != null && dir.IsOk)
                             {
+                                destination = (IDirectory)dir.Result;
                                 newFullPath = folderName;
                                 foundLocation = true;
                                 break;
@@ -617,29 +647,45 @@ namespace JMMServer.Entities
                 {
                     // we need to create a new folder
                     string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().MainTitle);
-                    newFullPath = Path.Combine(destFolder.ImportFolderLocation, newFolderName);
-                    if (!Directory.Exists(newFullPath))
-                        Directory.CreateDirectory(newFullPath);
+                    newFullPath = CloudPath.Combine(destFolder.ImportFolderLocation, newFolderName);
+                    FileSystemResult<IObject> dirn = f.Resolve(newFullPath);
+                    if (dirn == null || !dirn.IsOk)
+                    {
+                        dirn = Task.Run(async () => await f.ResolveAsync(destFolder.ImportFolderLocation)).Result;
+                        if (dirn != null && dirn.IsOk)
+                        {
+                            IDirectory d = (IDirectory) dirn.Result;
+                            FileSystemResult<IDirectory> d2=Task.Run(async () => await d.CreateDirectoryAsync(newFolderName, null)).Result;
+                            destination = d2.Result;
+
+                        }
+                    }
+                    else if (dirn.Result is IFile)
+                    {
+                        logger.Error("Destination folder is a file: {0}", newFolderName);
+                    }
                 }
 
                 int newFolderID = 0;
                 string newPartialPath = "";
-                string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
+                string newFullServerPath = CloudPath.Combine(newFullPath, CloudPath.GetFileName(this.FullServerPath));
 
-                DataAccessHelper.GetShareAndPath(newFullServerPath, repFolders.GetAll(), ref newFolderID,
-                    ref newPartialPath);
+                DataAccessHelper.GetShareAndPath(newFullServerPath, repFolders.GetAll(), ref newFolderID, ref newPartialPath);
                 logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
 
-                if (File.Exists(newFullServerPath))
+                FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
+                if (dst!=null && dst.IsOk)
                 {
-                    logger.Trace(
-                        "Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
+                    logger.Trace("Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
                         this.FullServerPath, newFullServerPath);
 
                     // if the file already exists, we can just delete the source file instead
                     // this is safer than deleting and moving
-                    File.Delete(this.FullServerPath);
-
+                    FileSystemResult fr = source_file.Delete(true);
+                    if (fr==null || !fr.IsOk)
+                    {
+                        logger.Warn("Unable to delete file: {0} error {1}", this.FullServerPath,fr?.Error ?? String.Empty);
+                    }
                     this.ImportFolderID = newFolderID;
                     this.FilePath = newPartialPath;
                     VideoLocalRepository repVids = new VideoLocalRepository();
@@ -647,11 +693,14 @@ namespace JMMServer.Entities
                 }
                 else
                 {
+                    FileSystemResult fr = source_file.Move(destination);
+                    if (fr == null || !fr.IsOk)
+                    {
+                        logger.Error("Unable to move file: {0} to {1} error {2)", this.FullServerPath, newFullServerPath, fr?.Error ?? String.Empty);
+                        return;
+                    }
                     string originalFileName = this.FullServerPath;
-                    FileInfo fi = new FileInfo(originalFileName);
 
-                    // now move the file
-                    File.Move(this.FullServerPath, newFullServerPath);
 
                     this.ImportFolderID = newFolderID;
                     this.FilePath = newPartialPath;
@@ -663,18 +712,29 @@ namespace JMMServer.Entities
                         // move any subtitle files
                         foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
                         {
-                            if (File.Exists(subtitleFile))
+                            FileSystemResult<IObject> src = f.Resolve(subtitleFile);
+                            if (src != null && src.IsOk && src.Result is IFile)
                             {
-                                FileInfo fiSub = new FileInfo(subtitleFile);
-                                string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath), fiSub.Name);
-                                if (File.Exists(newSubPath))
+                                    string newSubPath = CloudPath.Combine(CloudPath.GetDirectoryName(newFullServerPath), ((IFile)src).Name);
+                                    dst = f.Resolve(newSubPath);
+                                if (dst != null && dst.IsOk && dst.Result is IFile)
                                 {
-                                    // if the file already exists, we can just delete the source file instead
-                                    // this is safer than deleting and moving
-                                    File.Delete(newSubPath);
+                                    FileSystemResult fr2 = src.Result.Delete(true);
+                                    if (fr2 == null || !fr2.IsOk)
+                                    {
+                                        logger.Warn("Unable to delete file: {0} error {1}", subtitleFile,
+                                            fr2?.Error ?? String.Empty);
+                                    }
                                 }
                                 else
-                                    File.Move(subtitleFile, newSubPath);
+                                {
+                                    FileSystemResult fr2 = ((IFile) src).Move(destination);
+                                    if (fr2 == null || !fr2.IsOk)
+                                    {
+                                        logger.Error("Unable to move file: {0} to {1} error {2)", subtitleFile,
+                                            newSubPath, fr2?.Error ?? String.Empty);
+                                    }
+                                }
                             }
                         }
                     }
@@ -687,26 +747,9 @@ namespace JMMServer.Entities
                     // only for the drop folder
                     if (dropFolder.IsDropSource == 1)
                     {
-                        foreach (
-                            string folderName in
-                                Directory.GetDirectories(dropFolder.ImportFolderLocation, "*",
-                                    SearchOption.AllDirectories))
-                        {
-                            if (Directory.Exists(folderName))
-                            {
-                                if (Directory.GetFiles(folderName, "*", SearchOption.AllDirectories).Length == 0)
-                                {
-                                    try
-                                    {
-                                        Directory.Delete(folderName, true);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        logger.ErrorException(ex.ToString(), ex);
-                                    }
-                                }
-                            }
-                        }
+                        FileSystemResult<IObject> dd=f.Resolve(dropFolder.ImportFolderLocation);
+                        if (dd!=null && dd.IsOk && dd.Result is IDirectory)
+                            RecursiveDeleteEmptyDirectories((IDirectory)dd.Result);
                     }
                 }
             }
@@ -717,6 +760,29 @@ namespace JMMServer.Entities
             }
         }
 
+        private void RecursiveDeleteEmptyDirectories(IDirectory dir)
+        {
+            FileSystemResult fr = dir.Populate();
+            if (fr != null && fr.IsOk)
+            {
+                if (dir.Files.Count > 0)
+                    return;
+                foreach (IDirectory d in dir.Directories)
+                    RecursiveDeleteEmptyDirectories(d);
+            }
+            fr = dir.Refresh();
+            if (fr != null && fr.IsOk)
+            {
+                if (dir.Files.Count == 0 && dir.Directories.Count == 0)
+                {
+                    fr = dir.Delete(true);
+                    if (fr == null || !fr.IsOk)
+                    {
+                        logger.Warn("Unable to delete directory: {0} error {1}", dir.FullName, fr?.Error ?? String.Empty);
+                    }
+                }
+            }
+        }
 
         public Contract_VideoLocal ToContract(int userID)
         {
@@ -757,8 +823,10 @@ namespace JMMServer.Entities
             Media n = null;
             if (Media == null)
             {
-                if (File.Exists(FullServerPath))
-                {
+                IFileSystem f = this.ImportFolder.FileSystem;
+                FileSystemResult<IObject> src = f.Resolve(FullServerPath);
+                if (src != null && src.IsOk && src.Result is IFile)
+                { 
                     VideoLocalRepository repo=new VideoLocalRepository();
                     repo.Save(this, false);
                 }

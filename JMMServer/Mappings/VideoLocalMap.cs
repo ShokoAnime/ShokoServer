@@ -22,6 +22,7 @@ namespace JMMServer.Mappings
             Map(x => x.ImportFolderID).Not.Nullable();
             Map(x => x.IsIgnored).Not.Nullable();
             Map(x => x.IsVariation).Not.Nullable();
+            Map(x => x.ImportFolderType).Not.Nullable();
             Map(x => x.MediaVersion).Not.Nullable();
             Map(x => x.MediaBlob).Nullable().CustomType("BinaryBlob");
             Map(x => x.MediaSize).Not.Nullable();

@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>JMMServer</RootNamespace>
     <AssemblyName>JMMServer</AssemblyName>
-    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -228,6 +228,7 @@
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
+    <Compile Include="Entities\CloudAccount.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="LZ4\CompressionHelper.cs" />
     <Compile Include="LZ4\LZ4Codec.cs" />
@@ -241,6 +242,7 @@
     <Compile Include="LZ4\LZ4Codec.Unsafe32HC.Dirty.cs" />
     <Compile Include="LZ4\LZ4Codec.Unsafe64.Dirty.cs" />
     <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
+    <Compile Include="Mappings\CloudAccountMap.cs" />
     <Compile Include="ObjectExtensions.cs" />
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiImplementation.cs" />
@@ -497,6 +499,7 @@
     <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\ChangeTracker.cs" />
+    <Compile Include="Repositories\CloudAccountRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TraktV2Repository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_Trakt_EpisodeRepository.cs" />
@@ -900,6 +903,26 @@
     <ProjectReference Include="..\JMMFileHelper\JMMFileHelper.csproj">
       <Project>{73E4CFC4-291B-47A2-ACAA-78096CEBB7DF}</Project>
       <Name>JMMFileHelper</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.OAuth.Windows.WinForms\NutzCode.CloudFileSystem.OAuth.Windows.WinForms.csproj">
+      <Project>{dec4bfb0-14cd-4622-b1e0-ac97aca64f8f}</Project>
+      <Name>NutzCode.CloudFileSystem.OAuth.Windows.WinForms</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj">
+      <Project>{d202b61e-a658-4208-83fc-745e04f43bde}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj">
+      <Project>{964a62e6-2dae-4723-926d-d3e9597b5213}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.GoogleDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj">
+      <Project>{2a705c96-21d4-4061-876f-1bb954e39d25}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.LocalFileSystem</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj">
+      <Project>{29861d1a-968c-49ca-a637-88b391aa5063}</Project>
+      <Name>NutzCode.CloudFileSystem</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -9,5 +9,6 @@
         public int IsDropSource { get; set; }
         public int IsDropDestination { get; set; }
         public int IsWatched { get; set; }
+        public int? CloudID { get; set; }
     }
 }
