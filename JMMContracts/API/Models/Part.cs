@@ -23,6 +23,11 @@ namespace JMMContracts.API.Models
         public string container;
 
         /// <summary>
+        /// content size
+        /// </summary>
+        public string size;
+
+        /// <summary>
         /// Stream list
         /// </summary>
         public List<Stream> Streams { get; set; }
@@ -42,6 +47,7 @@ namespace JMMContracts.API.Models
         {
             key = part.Key;
             container = part.Container;
+            size = part.Size;
 
             Streams = new List<Stream>();
             foreach (JMMContracts.PlexAndKodi.Stream stream in part.Streams)
@@ -56,6 +62,7 @@ namespace JMMContracts.API.Models
 
             part_out.container = part_in.Container;
             part_out.key = part_in.Key;
+            part_out.size = part_in.Size;
 
             if (part_in.Streams != null)
             {

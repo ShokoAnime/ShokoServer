@@ -41,6 +41,18 @@ namespace JMMContracts.API.Models
         public List<JMMContracts.API.Models.Serie> series { get; set; }
 
         /// <summary>
+        /// Hold video list
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<JMMContracts.API.Models.Tag> genres { get; set; }
+
+        /// <summary>
+        /// Hold video list
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<JMMContracts.API.Models.RoleTag> roles { get; set; }
+
+        /// <summary>
         /// Parametraless constructor for XML Serialization
         /// </summary>
         public Metadatas()
@@ -60,35 +72,50 @@ namespace JMMContracts.API.Models
             count = res;
             if (mc.Childrens != null)
             {
-                metadatas = new List<Metadata>();
-                series = new List<Serie>();
-                videos = new List<Video>();
-                foreach (PlexAndKodi.Video video in mc.Childrens)
+                switch (type)
                 {
-                    switch (type)
-                    {
-                        //inside serie
-                        case "3":
+                    //series detail info
+                    case "3":
+                        videos = new List<Video>();
+                        genres = new List<Tag>();
+                        roles = new List<RoleTag>();
+                        foreach (PlexAndKodi.Video video in mc.Childrens)
+                        {
                             videos.Add(new Video(video));
-                            break;
-                        //series
-                        case "0":
-                        //series that are included in filter
-                        case "5":
+                            if (genres.Count == 0)
+                            {
+                                foreach (Tag tag in video.Genres)
+                                {
+                                    genres.Add(tag);
+                                }
+                            }
+                            if (roles.Count ==0 )
+                            {
+                                foreach (RoleTag tag in video.Roles)
+                                {
+                                    roles.Add(tag);
+                                }
+                            }
+                        }
+                        break;
+                    //series
+                    case "0":
+                    //series that are included in filter
+                    case "5":
+                        series = new List<Serie>();
+                        foreach (PlexAndKodi.Video video in mc.Childrens)
+                        {
                             series.Add(new Serie(video));
-                            break;
-                        default:
+                        }
+                        break;
+
+                    default:
+                        metadatas = new List<Metadata>();
+                        foreach (PlexAndKodi.Video video in mc.Childrens)
+                        {
                             metadatas.Add(new Metadata(video));
-                            break;
-                    }
-                }
-                if (metadatas.Count == 0)
-                {
-                    metadatas = null;
-                }
-                if (series.Count == 0)
-                {
-                    series = null;
+                        }
+                        break;
                 }
             }
         }

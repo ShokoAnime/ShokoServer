@@ -92,7 +92,7 @@ namespace JMMContracts.API.Models
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Related { get; set; }
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public List<RoleTag> Roles { get; set; }
+        public List<RoleTag> roles { get; set; }
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Season { get; set; }
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -204,10 +204,10 @@ namespace JMMContracts.API.Models
             //Related = video.Related;
             if (video.Roles != null)
             {
-                Roles = new List<RoleTag>();
+                roles = new List<RoleTag>();
                 foreach (JMMContracts.PlexAndKodi.RoleTag rt in video.Roles)
                 {
-                    Roles.Add(new RoleTag(rt));
+                    roles.Add(new RoleTag(rt));
                 }
             }
             Season = video.Season;

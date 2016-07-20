@@ -85,7 +85,7 @@ namespace JMMContracts.API.Models
         /// <summary>
         /// RoleTags
         /// </summary>
-        public List<RoleTag> cast { get; set; }
+        public List<RoleTag> roles { get; set; }
 
         /// <summary>
         /// Genre
@@ -148,10 +148,10 @@ namespace JMMContracts.API.Models
 
             if (video.Roles != null)
             {
-                cast = new List<RoleTag>();
+                roles = new List<RoleTag>();
                 foreach (JMMContracts.PlexAndKodi.RoleTag roletag in video.Roles)
                 {
-                    cast.Add(new RoleTag(roletag));
+                    roles.Add(new RoleTag(roletag));
                 }
             }
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,11 +17,9 @@ namespace JMMContracts.API.Models
 
         public string AnimeType { get; set; }
 
-        public string Art { get; set; }
+        public Art Arts { get; set; }
 
         public string Url { get; set; }
-
-        public string Thumb { get; set; }
 
         public string ParentThumb { get; set; }
 
@@ -60,6 +59,7 @@ namespace JMMContracts.API.Models
 
         public string GrandparentTitle { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Summary { get; set; }
 
         public string Year { get; set; }
@@ -88,10 +88,12 @@ namespace JMMContracts.API.Models
 
         public string Rating { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Season { get; set; }
 
         public string ViewCount { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string ViewOffset { get; set; }
 
         public string PrimaryExtraKey { get; set; }
@@ -114,15 +116,15 @@ namespace JMMContracts.API.Models
 
         public List<Media> Medias { get; set; }
 
-        public List<RoleTag> Roles { get; set; }
+        // public List<RoleTag> Roles { get; set; }
 
         public Extras Extras { get; set; }
 
         public List<Hub> Related { get; set; }
 
-        public List<Tag> Tags { get; set; }
+        // public List<Tag> Tags { get; set; }
 
-        public List<Tag> Genres { get; set; }
+        // public List<Tag> Genres { get; set; }
 
         public List<Title> Titles { get; set; }
 
@@ -141,11 +143,14 @@ namespace JMMContracts.API.Models
 
             AnimeType = video.AnimeType;
 
-            Art = video.Art;
-
-            Url = video.Url;
-
-            Thumb = video.Thumb;
+            if (video.Art != null || video.Thumb !=null)
+            {
+                Arts = new Art();
+                Arts.fanart = video.Art;
+                Arts.thumb = video.Thumb;
+            }
+          
+            Url = video.Url;         
 
             ParentThumb = video.ParentThumb;
 
@@ -246,14 +251,14 @@ namespace JMMContracts.API.Models
                 }
             }
 
-            if (video.Roles != null)
-            {
-                Roles = new List<RoleTag>();
-                foreach (JMMContracts.PlexAndKodi.RoleTag role in video.Roles)
-                {
-                    Roles.Add((RoleTag)role);
-                }
-            }
+            //if (video.Roles != null)
+            //{
+            //    Roles = new List<RoleTag>();
+            //    foreach (JMMContracts.PlexAndKodi.RoleTag role in video.Roles)
+            //    {
+            //        Roles.Add((RoleTag)role);
+            //    }
+            //}
 
             if (video.Extras != null)
             {
@@ -269,23 +274,23 @@ namespace JMMContracts.API.Models
                 }
             }
 
-            if (video.Tags != null)
-            {
-                Tags = new List<Tag>();
-                foreach (JMMContracts.PlexAndKodi.Tag tag in video.Tags)
-                {
-                    Tags.Add((Tag)tag);
-                }
-            }
+            //if (video.Tags != null)
+            //{
+            //    Tags = new List<Tag>();
+            //    foreach (JMMContracts.PlexAndKodi.Tag tag in video.Tags)
+            //    {
+            //        Tags.Add((Tag)tag);
+            //    }
+            //}
 
-            if (video.Genres != null)
-            {
-                Genres = new List<Tag>();
-                foreach (JMMContracts.PlexAndKodi.Tag tag in video.Genres)
-                {
-                    Genres.Add((Tag)tag);
-                }
-            }
+            //if (video.Genres != null)
+            //{
+            //    Genres = new List<Tag>();
+            //    foreach (JMMContracts.PlexAndKodi.Tag tag in video.Genres)
+            //    {
+            //        Genres.Add((Tag)tag);
+            //    }
+            //}
 
             if (video.Titles != null)
             {
@@ -304,9 +309,13 @@ namespace JMMContracts.API.Models
             api.IsMovie = old.IsMovie;
             api.Id = old.Id;
             api.AnimeType = old.AnimeType;
-            api.Art = old.Art;
+            if (old.Art != null || old.Thumb != null)
+            {
+                api.Arts = new Art();
+                api.Arts.fanart = old.Art;
+                api.Arts.thumb = old.Thumb;
+            }
             api.Url = old.Url;
-            api.Thumb = old.Thumb;
             api.ParentThumb = old.ParentThumb;
             api.GrandparentThumb = old.GrandparentThumb;
             api.ParentArt = old.ParentArt;
@@ -367,14 +376,14 @@ namespace JMMContracts.API.Models
                 }
             }
 
-            if (old.Roles != null)
-            {
-                api.Roles = new List<RoleTag>();
-                foreach (PlexAndKodi.RoleTag role in old.Roles)
-                {
-                    api.Roles.Add((RoleTag)role);
-                }
-            }
+            //if (old.Roles != null)
+            //{
+            //    api.Roles = new List<RoleTag>();
+            //    foreach (PlexAndKodi.RoleTag role in old.Roles)
+            //    {
+            //        api.Roles.Add((RoleTag)role);
+            //    }
+            //}
 
             if (old.Related != null)
             {
@@ -385,23 +394,23 @@ namespace JMMContracts.API.Models
                 }
             }
 
-            if (old.Tags != null)
-            {
-                api.Tags = new List<Tag>();
-                foreach (PlexAndKodi.Tag tag in old.Tags)
-                {
-                    api.Tags.Add((Tag)tag);
-                }
-            }
+            //if (old.Tags != null)
+            //{
+            //    api.Tags = new List<Tag>();
+            //    foreach (PlexAndKodi.Tag tag in old.Tags)
+            //    {
+            //        api.Tags.Add((Tag)tag);
+            //    }
+            //}
 
-            if (old.Genres != null)
-            {
-                api.Genres = new List<Tag>();
-                foreach (PlexAndKodi.Tag genr in old.Genres)
-                {
-                    api.Genres.Add((Tag)genr);
-                }
-            }
+            //if (old.Genres != null)
+            //{
+            //    api.Genres = new List<Tag>();
+            //    foreach (PlexAndKodi.Tag genr in old.Genres)
+            //    {
+            //        api.Genres.Add((Tag)genr);
+            //    }
+            //}
 
             if (old.Titles != null)
             {
