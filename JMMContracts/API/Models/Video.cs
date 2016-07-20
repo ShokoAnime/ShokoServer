@@ -62,6 +62,7 @@ namespace JMMContracts.API.Models
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Summary { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Year { get; set; }
 
         public string Duration { get; set; }
@@ -74,6 +75,7 @@ namespace JMMContracts.API.Models
 
         public string LastViewedAt { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string OriginallyAvailableAt { get; set; }
 
         public string LeafCount { get; set; }
@@ -86,6 +88,7 @@ namespace JMMContracts.API.Models
 
         public string SourceTitle { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Rating { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -102,8 +105,10 @@ namespace JMMContracts.API.Models
 
         public string Tagline { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string ContentRating { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Studio { get; set; }
 
         public string ExtraType { get; set; }
@@ -126,6 +131,7 @@ namespace JMMContracts.API.Models
 
         // public List<Tag> Genres { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public List<Title> Titles { get; set; }
 
         public Video()

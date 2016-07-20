@@ -855,7 +855,7 @@ namespace JMMServer.PlexAndKodi
 
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                if (serieID == -1)
+                 if (serieID == -1)
                     return new MediaContainer() { ErrorString = "Invalid Serie Id" };
                 AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                 AnimeSeries ser = repSeries.GetByID(session, serieID);
@@ -932,7 +932,10 @@ namespace JMMServer.PlexAndKodi
                 List<Video> vids = new List<Video>();
                 if (eptype.HasValue)
                 {
-                    info.ParentKey = info.GrandParentKey;
+                    if (info != null)
+                    {
+                        info.ParentKey = info.GrandParentKey;
+                    }
                 }
                 foreach (KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep in episodes)
                 {

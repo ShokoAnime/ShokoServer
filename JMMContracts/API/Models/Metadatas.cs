@@ -84,16 +84,22 @@ namespace JMMContracts.API.Models
                             videos.Add(new Video(video));
                             if (genres.Count == 0)
                             {
-                                foreach (Tag tag in video.Genres)
+                                if (video.Genres != null)
                                 {
-                                    genres.Add(tag);
+                                    foreach (Tag tag in video.Genres)
+                                    {
+                                        genres.Add(tag);
+                                    }
                                 }
                             }
-                            if (roles.Count ==0 )
+                            if (roles.Count == 0 )
                             {
-                                foreach (RoleTag tag in video.Roles)
+                                if (video.Roles != null)
                                 {
-                                    roles.Add(tag);
+                                    foreach (RoleTag tag in video.Roles)
+                                    {
+                                        roles.Add(tag);
+                                    }
                                 }
                             }
                         }
