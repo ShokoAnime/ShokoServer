@@ -110,8 +110,7 @@ namespace JMMServer.Repositories
                 GroupFilter cwatching =
                     lockedGFs.FirstOrDefault(
                         a =>
-                            a.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching,
-                                StringComparison.InvariantCultureIgnoreCase));
+                            a.FilterType == (int)GroupFilterType.ContinueWatching);
                 if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
                 {
                     ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " Creating Continue Watching filter");
