@@ -24,6 +24,7 @@ using JMMServer.Repositories;
 using JMMServer.WebCache;
 using NHibernate;
 using NLog;
+using JMMServer.Commands.TvDB;
 
 namespace JMMServer
 {
@@ -5145,9 +5146,11 @@ namespace JMMServer
                     return msg;
                 }
 
-                return TvDBHelper.LinkAniDBTvDB(animeID, (enEpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
-                    tvEpNumber,
-                    false);
+                CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(animeID, (enEpisodeType)aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
+                    tvEpNumber,false);
+                cmdRequest.Save();
+
+                return "";
             }
             catch (Exception ex)
             {

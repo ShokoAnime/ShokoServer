@@ -530,6 +530,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Updating Changed TvDB association: {0}.
+        /// </summary>
+        internal static string Command_LinkAniDBTvDB {
+            get {
+                return ResourceManager.GetString("Command_LinkAniDBTvDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Paused.
         /// </summary>
         internal static string Command_Paused {
