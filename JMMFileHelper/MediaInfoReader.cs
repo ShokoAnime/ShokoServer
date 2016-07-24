@@ -6,6 +6,7 @@ using System.Text;
 using System.Xml.Serialization;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
+using JMMFileHelper.Subtitles;
 using NLog;
 using Stream = JMMContracts.PlexAndKodi.Stream;
 
@@ -29,15 +30,10 @@ namespace JMMFileHelper
             return sb.ToString();
         }
 
-        public static bool ReadMediaInfo(string fileNameFull, bool forceRefresh, ref MediaInfoResult info)
+        public static bool ReadMediaInfo(string fileNameFull, ref MediaInfoResult info)
         {
             try
             {
-                if (!forceRefresh)
-                {
-                    // if we have populated the full info, we have already read the data
-                    if (!string.IsNullOrEmpty(info.FullInfo)) return false;
-                }
 
                 try
                 {
@@ -69,7 +65,42 @@ namespace JMMFileHelper
                             if (!string.IsNullOrEmpty(aparts[0].Bitrate))
                                 info.AudioBitrate = aparts[0].Bitrate;
                         }
-                        info.FullInfo = xml;
+                        info.Media = m;
+                        if (m != null)
+                        {
+                            m.Id = v.VideoLocalID.ToString();
+                            List<Stream> subs = SubtitleHelper.GetSubtitleStreams(fileNameFull);
+                            if (subs.Count > 0)
+                            {
+                                m.Parts[0].Streams.AddRange(subs);
+                            }
+                            foreach (Part p in m.Parts)
+                            {
+                                p.Id = null;
+                                p.Accessible = "1";
+                                p.Exists = "1";
+                                bool vid = false;
+                                bool aud = false;
+                                bool txt = false;
+                                foreach (Stream ss in p.Streams.ToArray())
+                                {
+                                    if ((ss.StreamType == "1") && !vid)
+                                    {
+                                        vid = true;
+                                    }
+                                    if ((ss.StreamType == "2") && !aud)
+                                    {
+                                        aud = true;
+                                        ss.Selected = "1";
+                                    }
+                                    if ((ss.StreamType == "3") && !txt)
+                                    {
+                                        txt = true;
+                                        ss.Selected = "1";
+                                    }
+                                }
+                            }
+                        }
                     }
                     else
                     {

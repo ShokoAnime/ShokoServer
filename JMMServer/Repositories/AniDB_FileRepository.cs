@@ -53,7 +53,22 @@ namespace JMMServer.Repositories
                 .UniqueResult<AniDB_File>();
             return cr;
         }
-
+        public AniDB_File GetBySHA1(ISession session, string hash)
+        {
+            AniDB_File cr = session
+                .CreateCriteria(typeof(AniDB_File))
+                .Add(Restrictions.Eq("SHA1", hash))
+                .UniqueResult<AniDB_File>();
+            return cr;
+        }
+        public AniDB_File GetByMD5(ISession session, string hash)
+        {
+            AniDB_File cr = session
+                .CreateCriteria(typeof(AniDB_File))
+                .Add(Restrictions.Eq("MD5", hash))
+                .UniqueResult<AniDB_File>();
+            return cr;
+        }
         public AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

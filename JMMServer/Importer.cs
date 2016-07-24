@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JMMContracts;
-using JMMFileHelper;
 using JMMServer.Commands;
 using JMMServer.Commands.AniDB;
 using JMMServer.Commands.Azure;
 using JMMServer.Entities;
+using JMMServer.FileHelper;
 using JMMServer.Providers.Azure;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Providers.MyAnimeList;
@@ -15,6 +15,7 @@ using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
 using NLog;
+using NutzCode.CloudFileSystem;
 using CrossRef_File_Episode = JMMServer.Entities.CrossRef_File_Episode;
 
 namespace JMMServer
@@ -30,12 +31,12 @@ namespace JMMServer
             AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
             AniDB_AnimeRepository repAniAnime = new AniDB_AnimeRepository();
 
-
+            /*
             // files which don't have a valid import folder
             List<VideoLocal> filesToDelete = repVidLocals.GetVideosWithoutImportFolder();
             foreach (VideoLocal vl in filesToDelete)
                 repVidLocals.Delete(vl.VideoLocalID);
-
+            */
 
             // files which have not been hashed yet
             // or files which do not have a VideoInfo record
@@ -44,8 +45,12 @@ namespace JMMServer
             foreach (VideoLocal vl in filesToHash)
             {
                 dictFilesToHash[vl.VideoLocalID] = vl;
-                CommandRequest_HashFile cmd = new CommandRequest_HashFile(vl.FullServerPath, false);
-                cmd.Save();
+                VideoLocal_Place p = vl.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                if (p != null)
+                {
+                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(p.FullServerPath, false);
+                    cmd.Save();
+                }
             }
 
             List<VideoLocal> filesToRehash = repVidLocals.GetVideosWithoutVideoInfo();
@@ -58,8 +63,12 @@ namespace JMMServer
                 {
                     try
                     {
-                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(vl.FullServerPath, false);
-                        cmd.Save();
+                        VideoLocal_Place p = vl.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                        if (p != null)
+                        {
+                            CommandRequest_HashFile cmd = new CommandRequest_HashFile(p.FullServerPath, false);
+                            cmd.Save();
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -71,36 +80,19 @@ namespace JMMServer
             }
 
             // files which have been hashed, but don't have an associated episode
-            List<VideoLocal> filesWithoutEpisode = repVidLocals.GetVideosWithoutEpisode();
-            Dictionary<int, VideoLocal> dictFilesWithoutEpisode = new Dictionary<int, VideoLocal>();
-            foreach (VideoLocal vl in filesWithoutEpisode)
-                dictFilesWithoutEpisode[vl.VideoLocalID] = vl;
+            foreach(VideoLocal v in repVidLocals.GetVideosWithoutEpisode().Where(a => !string.IsNullOrEmpty(a.Hash)))
+            {
+                CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(v.VideoLocalID, false);
+                cmd.Save();
+                continue;
+            }
+
+
 
 
             // check that all the episode data is populated
-            List<VideoLocal> filesAll = repVidLocals.GetAll();
-            Dictionary<string, VideoLocal> dictFilesAllExisting = new Dictionary<string, VideoLocal>();
-            foreach (VideoLocal vl in filesAll)
+            foreach (VideoLocal vl in repVidLocals.GetAll().Where(a=>!string.IsNullOrEmpty(a.Hash)))
             {
-                try
-                {
-                    dictFilesAllExisting[vl.FullServerPath] = vl;
-                }
-                catch (Exception ex)
-                {
-                    string msg = string.Format("Error RunImport_IntegrityCheck XREF: {0} - {1}", vl.ToStringDetailed(),
-                        ex.ToString());
-                    logger.Error(msg);
-                    continue;
-                }
-
-                // check if it has an episode
-                if (dictFilesWithoutEpisode.ContainsKey(vl.VideoLocalID))
-                {
-                    CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, false);
-                    cmd.Save();
-                    continue;
-                }
 
                 // if the file is not manually associated, then check for AniDB_File info
                 AniDB_File aniFile = repAniFile.GetByHash(vl.Hash);
@@ -193,9 +185,10 @@ namespace JMMServer
                 {
                     try
                     {
-                        if (File.Exists(v.FullServerPath))
+                        VideoLocal_Place p = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                        if (p!=null && p.ImportFolder.CloudID==0)
                         {
-                            Hashes h = FileHashHelper.GetHashInfo(v.FullServerPath, true, MainWindow.OnHashProgress, true,
+                            Hashes h = FileHashHelper.GetHashInfo(p.FullServerPath, true, MainWindow.OnHashProgress, true,
                                 true,
                                 true);
 
@@ -234,10 +227,13 @@ namespace JMMServer
                 if (fldr == null) return;
 
                 VideoLocalRepository repVidLocals = new VideoLocalRepository();
+                VideoLocal_PlaceRepository repPlace=new VideoLocal_PlaceRepository();
                 // first build a list of files that we already know about, as we don't want to process them again
-                List<VideoLocal> filesAll = repVidLocals.GetAll();
-                Dictionary<string, VideoLocal> dictFilesExisting = new Dictionary<string, VideoLocal>();
-                foreach (VideoLocal vl in filesAll)
+
+
+                List<VideoLocal_Place> filesAll = repPlace.GetByImportFolder(fldr.ImportFolderID);
+                Dictionary<string,VideoLocal_Place> dictFilesExisting = new Dictionary<string, VideoLocal_Place>();
+                foreach (VideoLocal_Place vl in filesAll)
                 {
                     try
                     {
@@ -245,7 +241,7 @@ namespace JMMServer
                     }
                     catch (Exception ex)
                     {
-                        string msg = string.Format("Error RunImport_ScanFolder XREF: {0} - {1}", vl.ToStringDetailed(),
+                        string msg = string.Format("Error RunImport_ScanFolder XREF: {0} - {1}", vl.FullServerPath,
                             ex.ToString());
                         logger.Info(msg);
                     }
@@ -254,7 +250,7 @@ namespace JMMServer
 
                 logger.Debug("ImportFolder: {0} || {1}", fldr.ImportFolderName, fldr.ImportFolderLocation);
 
-                Utils.GetFilesForImportFolder(fldr.ImportFolderLocation, ref fileList);
+                Utils.GetFilesForImportFolder(fldr.FileSystem, ref fileList);
 
                 // get a list of all files in the share
                 foreach (string fileName in fileList)
@@ -263,18 +259,8 @@ namespace JMMServer
 
                     if (dictFilesExisting.ContainsKey(fileName))
                     {
-                        if (fldr.IsDropSource != 1)
-                            continue;
-                        else
-                        {
-                            // if this is a file in a drop source, try moving it
-                            string filePath = string.Empty;
-                            int nshareID = 0;
-                            DataAccessHelper.GetShareAndPath(fileName, repFolders.GetAll(), ref nshareID, ref filePath);
-                            List<VideoLocal> filesSearch = repVidLocals.GetByName(filePath);
-                            foreach (VideoLocal vid in filesSearch)
-                                vid.MoveFileIfRequired();
-                        }
+                        if (fldr.IsDropSource == 1)
+                            dictFilesExisting[fileName].MoveFileIfRequired();
                     }
 
                     filesFound++;
@@ -308,7 +294,7 @@ namespace JMMServer
 
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 
-                Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
+                Utils.GetFilesForImportFolder(share.FileSystem, ref fileList);
             }
 
             // get a list of all the shares we are looking at
@@ -336,11 +322,11 @@ namespace JMMServer
         public static void RunImport_NewFiles()
         {
             VideoLocalRepository repVidLocals = new VideoLocalRepository();
-
+            VideoLocal_PlaceRepository repPlaces=new VideoLocal_PlaceRepository();
             // first build a list of files that we already know about, as we don't want to process them again
-            List<VideoLocal> filesAll = repVidLocals.GetAll();
-            Dictionary<string, VideoLocal> dictFilesExisting = new Dictionary<string, VideoLocal>();
-            foreach (VideoLocal vl in filesAll)
+            List<VideoLocal_Place> filesAll = repPlaces.GetAll();
+            Dictionary<string, VideoLocal_Place> dictFilesExisting = new Dictionary<string, VideoLocal_Place>();
+            foreach (VideoLocal_Place vl in filesAll)
             {
                 try
                 {
@@ -348,7 +334,7 @@ namespace JMMServer
                 }
                 catch (Exception ex)
                 {
-                    string msg = string.Format("Error RunImport_NewFiles XREF: {0} - {1}", vl.ToStringDetailed(),
+                    string msg = string.Format("Error RunImport_NewFiles XREF: {0} - {1}", vl.FullServerPath,
                         ex.ToString());
                     logger.Info(msg);
                     //throw;
@@ -369,7 +355,7 @@ namespace JMMServer
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 try
                 {
-                    Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
+                    Utils.GetFilesForImportFolder(share.FileSystem, ref fileList);
                 }
                 catch (Exception ex)
                 {
@@ -803,22 +789,32 @@ namespace JMMServer
 
         public static void RemoveRecordsWithoutPhysicalFiles()
         {
-            VideoLocalRepository repVidLocals = new VideoLocalRepository();
-            CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
-
+            VideoLocal_PlaceRepository repPlace = new VideoLocal_PlaceRepository();
+            VideoLocalRepository repVid=new VideoLocalRepository();
             // get a full list of files
-            List<VideoLocal> filesAll = repVidLocals.GetAll();
-            foreach (VideoLocal vl in filesAll)
+            Dictionary<ImportFolder, List<VideoLocal_Place>> filesAll = repPlace.GetAll().GroupBy(a => a.ImportFolder).ToDictionary(a => a.Key, a => a.ToList());
+            foreach (ImportFolder folder in filesAll.Keys)
             {
-                if (!File.Exists(vl.FullServerPath))
-                {
-                    // delete video local record
-                    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
-                    repVidLocals.Delete(vl.VideoLocalID);
+                IFileSystem fs = folder.FileSystem;
 
-                    CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vl.Hash,
-                        vl.FileSize);
-                    cmdDel.Save();
+                foreach (VideoLocal_Place vl in filesAll[folder])
+                {
+                    FileSystemResult<IObject> obj = fs.Resolve(vl.FullServerPath);
+                    if (!obj.IsOk || obj.Result is IDirectory)
+                    {
+                        VideoLocal v = vl.VideoLocal;
+                        // delete video local record
+                        logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
+                        if (v.Places.Count == 1)
+                        {
+                            repPlace.Delete(vl.VideoLocal_Place_ID);
+                            repVid.Delete(v.VideoLocalID);
+                            CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                            cmdDel.Save();
+                        }
+                        else
+                            repPlace.Delete(vl.VideoLocal_Place_ID);
+                    }
                 }
             }
 
@@ -839,21 +835,30 @@ namespace JMMServer
                 Dictionary<int, AnimeSeries> affectedSeries = new Dictionary<int, AnimeSeries>();
 
                 VideoLocalRepository repVids = new VideoLocalRepository();
-                foreach (VideoLocal vid in repVids.GetByImportFolder(importFolderID))
+                VideoLocal_PlaceRepository repPlace=new VideoLocal_PlaceRepository();
+                foreach (VideoLocal_Place vid in repPlace.GetByImportFolder(importFolderID))
                 {
                     //Thread.Sleep(5000);
                     logger.Info("Deleting video local record: {0}", vid.FullServerPath);
 
                     AnimeSeries ser = null;
-                    List<AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
+                    List<AnimeEpisode> animeEpisodes = vid.VideoLocal.GetAnimeEpisodes();
                     if (animeEpisodes.Count > 0)
                     {
                         ser = animeEpisodes[0].GetAnimeSeries();
                         if (ser != null && !affectedSeries.ContainsKey(ser.AnimeSeriesID))
                             affectedSeries.Add(ser.AnimeSeriesID, ser);
                     }
-
-                    repVids.Delete(vid.VideoLocalID);
+                    VideoLocal v = vid.VideoLocal;
+                    // delete video local record
+                    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
+                    if (v.Places.Count == 1)
+                    {
+                        repPlace.Delete(vid.VideoLocal_Place_ID);
+                        repVids.Delete(v.VideoLocalID);
+                    }
+                    else
+                        repPlace.Delete(vid.VideoLocal_Place_ID);
                 }
 
                 // delete any duplicate file records which reference this folder

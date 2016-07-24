@@ -7,8 +7,7 @@ namespace JMMContracts
     public class Contract_VideoLocal
     {
         public int VideoLocalID { get; set; }
-        public string FilePath { get; set; }
-        public int ImportFolderID { get; set; }
+        public string FileName { get; set; }
         public string Hash { get; set; }
         public string CRC32 { get; set; }
         public string MD5 { get; set; }
@@ -20,9 +19,7 @@ namespace JMMContracts
         public DateTime? WatchedDate { get; set; }
         public DateTime DateTimeUpdated { get; set; }
         public int IsVariation { get; set; }
-
-        public Contract_ImportFolder ImportFolder { get; set; }
-
+        public List<Contract_VideoLocal_Place> Places { get; set; }        
         public Media Media { get; set; }
     }
 }

@@ -11,9 +11,9 @@ using System.Xml.Serialization;
 using AniDBAPI;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
-using JMMFileHelper;
-using JMMFileHelper.Subtitles;
 using JMMServer.Entities;
+using JMMServer.FileHelper;
+using JMMServer.FileHelper.Subtitles;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
 using NHibernate;
@@ -256,7 +256,7 @@ namespace JMMServer.PlexAndKodi
             l.Id = v.VideoLocalID.ToString();
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
-            l.Title = Path.GetFileNameWithoutExtension(v.FilePath);
+            l.Title = Path.GetFileNameWithoutExtension(v.FileName);
             l.AddedAt = v.DateTimeCreated.ToUnixTime();
             l.UpdatedAt = v.DateTimeUpdated.ToUnixTime();
             l.OriginallyAvailableAt = v.DateTimeCreated.ToPlexDate();
@@ -285,19 +285,20 @@ namespace JMMServer.PlexAndKodi
             Video v = (Video) e.Key.PlexContract?.Clone<Video>();
             if (v?.Thumb != null)
                 v.Thumb = ReplaceSchemeHost(v.Thumb);
+            VideoLocalRepository lrepo = new VideoLocalRepository();
+            AnimeEpisodeRepository erepo = new AnimeEpisodeRepository();
             if (v != null && (v.Medias == null || v.Medias.Count == 0))
             {
-                List<VideoLocal> locals = e.Key.GetVideoLocals();
-                if (locals.Count > 0)
+                foreach (VideoLocal vl in e.Key.GetVideoLocals())
                 {
-                    VideoLocalRepository lrepo = new VideoLocalRepository();
-                    AnimeEpisodeRepository erepo = new AnimeEpisodeRepository();
-                    foreach (VideoLocal n in locals)
+                    VideoLocal_Place pl = vl.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                    if (pl != null)
                     {
-                        lrepo.Save(n, false);
+                        if (pl.RefreshMediaInfo())
+                            lrepo.Save(vl,true);
                     }
-                    erepo.Save(e.Key);
                 }
+                erepo.Save(e.Key);
                 v = (Video) e.Key.PlexContract?.Clone<Video>();
             }
             if (v != null)
@@ -339,27 +340,31 @@ namespace JMMServer.PlexAndKodi
             VideoLocalRepository repo = new VideoLocalRepository();
             if (vids.Count > 0)
             {
-                l.Title = Path.GetFileNameWithoutExtension(vids[0].FilePath);
+                List<string> hashes = vids.Select(a => a.Hash).Distinct().ToList();
+                l.Title = Path.GetFileNameWithoutExtension(vids[0].FileName);
                 l.AddedAt = vids[0].DateTimeCreated.ToUnixTime();
                 l.UpdatedAt = vids[0].DateTimeUpdated.ToUnixTime();
                 l.OriginallyAvailableAt = vids[0].DateTimeCreated.ToPlexDate();
                 l.Year = vids[0].DateTimeCreated.Year.ToString();
                 l.Medias = new List<Media>();
+                bool refresh = false;
                 foreach (VideoLocal v in vids)
                 {
-                    Media m = v.Media;
-                    if (m == null)
+                    if (v.Media == null)
                     {
-                        if (File.Exists(v.FullServerPath))
+                        VideoLocal_Place pl = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                        if (pl != null)
                         {
-                            repo.Save(v, false);
+                            if (pl.RefreshMediaInfo())
+                            {
+                                repo.Save(v,true);
+                                refresh = true;
+                            }
                         }
                     }
-                    if (m != null)
-                    {
-                        l.Medias.Add(m);
-                        l.Duration = m.Duration;
-                    }
+                    if (v.Media != null)
+                        l.Medias.Add(v.Media);
+
                 }
             }
             AniDB_Episode aep = ep?.AniDB_Episode;
@@ -463,84 +468,7 @@ namespace JMMServer.PlexAndKodi
             return pp;
         }
 
-        public static Media GenerateMediaFromVideoLocal(VideoLocal v)
-        {
-            VideoInfo info = v.VideoInfo;
-            Media m = null;
-            if (info != null)
-            {
-                if (!string.IsNullOrEmpty(info.FullInfo))
-                {
-                    try
-                    {
-                        m = XmlDeserializeFromString<Media>(info.FullInfo);
-                    }
-                    catch (Exception)
-                    {
-                        info.FullInfo = null;
-                    }
-                }
-                if (string.IsNullOrEmpty(info.FullInfo))
-                {
-                    try
-                    {
-                        VideoInfoRepository repo = new VideoInfoRepository();
-                        MediaInfoResult mInfo = FileHashHelper.GetMediaInfo(v.FullServerPath, true);
-                        info.AudioBitrate = string.IsNullOrEmpty(mInfo.AudioBitrate) ? "" : mInfo.AudioBitrate;
-                        info.AudioCodec = string.IsNullOrEmpty(mInfo.AudioCodec) ? "" : mInfo.AudioCodec;
-                        info.Duration = mInfo.Duration;
-                        info.VideoBitrate = string.IsNullOrEmpty(mInfo.VideoBitrate) ? "" : mInfo.VideoBitrate;
-                        info.VideoBitDepth = string.IsNullOrEmpty(mInfo.VideoBitDepth) ? "" : mInfo.VideoBitDepth;
-                        info.VideoCodec = string.IsNullOrEmpty(mInfo.VideoCodec) ? "" : mInfo.VideoCodec;
-                        info.VideoFrameRate = string.IsNullOrEmpty(mInfo.VideoFrameRate) ? "" : mInfo.VideoFrameRate;
-                        info.VideoResolution = string.IsNullOrEmpty(mInfo.VideoResolution) ? "" : mInfo.VideoResolution;
-                        info.FullInfo = string.IsNullOrEmpty(mInfo.FullInfo) ? "" : mInfo.FullInfo;
-                        repo.Save(info);
-                        m = XmlDeserializeFromString<Media>(info.FullInfo);
-                    }
-                    catch (Exception)
-                    {
-                        //FILE DO NOT EXIST
-                    }
-                }
-            }
-            if (m != null)
-            {
-                m.Id = v.VideoLocalID.ToString();
-                List<Stream> subs = SubtitleHelper.GetSubtitleStreams(v.FullServerPath);
-                if (subs.Count > 0)
-                {
-                    m.Parts[0].Streams.AddRange(subs);
-                }
-                foreach (Part p in m.Parts)
-                {
-                    p.Id = null;
-                    p.Accessible = "1";
-                    p.Exists = "1";
-                    bool vid = false;
-                    bool aud = false;
-                    bool txt = false;
-                    foreach (Stream ss in p.Streams.ToArray())
-                    {
-                        if ((ss.StreamType == "1") && !vid)
-                        {
-                            vid = true;
-                        }
-                        if ((ss.StreamType == "2") && !aud)
-                        {
-                            aud = true;
-                            ss.Selected = "1";
-                        }
-                        if ((ss.StreamType == "3") && !txt)
-                        {
-                            txt = true;
-                            ss.Selected = "1";
-                        }
-                    }
-                }
-            }
-            return m;
-        }
+        
 
         public static void AddInformationFromMasterSeries(Video v, Contract_AnimeSeries cserie, Video nv)
         {

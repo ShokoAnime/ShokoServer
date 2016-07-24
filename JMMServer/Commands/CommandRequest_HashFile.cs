@@ -2,12 +2,16 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Xml;
 using JMMContracts;
-using JMMFileHelper;
 using JMMServer.Entities;
+using JMMServer.FileHelper;
+using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
+using NutzCode.CloudFileSystem;
+using CrossRef_File_Episode = JMMServer.Entities.CrossRef_File_Episode;
 
 namespace JMMServer.Commands
 {
@@ -48,10 +52,9 @@ namespace JMMServer.Commands
         {
             logger.Info("Hashing File: {0}", FileName);
 
-            VideoLocal vlocal = null;
             try
             {
-                vlocal = ProcessFile_LocalInfo();
+                ProcessFile_LocalInfo();
             }
             catch (Exception ex)
             {
@@ -79,51 +82,77 @@ namespace JMMServer.Commands
             }
         }
 
-        private VideoLocal ProcessFile_LocalInfo()
+        private VideoLocal_Place ProcessFile_LocalInfo()
         {
             // hash and read media info for file
             int nshareID = -1;
             string filePath = "";
 
-            ImportFolderRepository repNS = new ImportFolderRepository();
-            List<ImportFolder> shares = repNS.GetAll();
-            DataAccessHelper.GetShareAndPath(FileName, shares, ref nshareID, ref filePath);
 
-            if (!File.Exists(FileName))
+            Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
+            if (tup == null)
             {
-                logger.Error("File does not exist: {0}", FileName);
+                logger.Error($"Unable to locate file {FileName} inside the import folders");
                 return null;
             }
-
-            int numAttempts = 0;
-            long filesize = 0;
-            // Wait 3 minutes seconds before giving up on trying to access the file
-            while ((filesize=CanAccessFile(FileName))==0 && (numAttempts < 180))
+            ImportFolder folder = tup.Item1;
+            filePath = tup.Item2;
+            IFileSystem f = tup.Item1.FileSystem;
+            if (f == null)
             {
-                numAttempts++;
-                Thread.Sleep(1000);
-                Console.WriteLine("Attempt # " + numAttempts.ToString());
+                logger.Error("Unable to open filesystem for : {0}", FileName);
+                return null;
+            }
+            long filesize = 0;
+            if (folder.CloudID == null) // Local Access
+            {
+                if (!File.Exists(FileName))
+                {
+                    logger.Error("File does not exist: {0}", FileName);
+                    return null;
+                }
+
+                int numAttempts = 0;
+    
+                // Wait 3 minutes seconds before giving up on trying to access the file
+                while ((filesize = CanAccessFile(FileName)) == 0 && (numAttempts < 180))
+                {
+                    numAttempts++;
+                    Thread.Sleep(1000);
+                    Console.WriteLine("Attempt # " + numAttempts.ToString());
+                }
+
+                // if we failed to access the file, get ouuta here
+                if (numAttempts == 180)
+                {
+                    logger.Error("Could not access file: " + FileName);
+                    return null;
+                }
             }
 
-            // if we failed to access the file, get ouuta here
-            if (numAttempts == 180)
+
+            FileSystemResult<IObject> source = f.Resolve(FileName);
+            if (source == null || !source.IsOk || (!(source.Result is IFile)))
             {
                 logger.Error("Could not access file: " + FileName);
                 return null;
             }
-
-
+            IFile source_file = (IFile) source.Result;
+            if (folder.CloudID.HasValue)
+                filesize = source_file.Size;
             // check if we have already processed this file
-            VideoLocal vlocal = null;
             VideoLocalRepository repVidLocal = new VideoLocalRepository();
             FileNameHashRepository repFNHash = new FileNameHashRepository();
+            VideoLocal_PlaceRepository repPlaces=new VideoLocal_PlaceRepository();
+            
 
-            List<VideoLocal> vidLocals = repVidLocal.GetByFilePathAndShareID(filePath, nshareID);
-            FileInfo fi = new FileInfo(FileName);
 
-            if (vidLocals.Count > 0)
+            VideoLocal_Place vlocalplace = repPlaces.GetByFilePathAndShareID(filePath, nshareID);
+            VideoLocal vlocal;
+
+            if (vlocalplace!=null)
             {
-                vlocal = vidLocals[0];
+                vlocal = vlocalplace.VideoLocal;
                 logger.Trace("VideoLocal record found in database: {0}", vlocal.VideoLocalID);
 
                 if (ForceHash)
@@ -138,15 +167,18 @@ namespace JMMServer.Commands
                 vlocal = new VideoLocal();
                 vlocal.DateTimeUpdated = DateTime.Now;
                 vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
-                vlocal.FilePath = filePath;
+                vlocal.FileName = Path.GetFileName(filePath);
                 vlocal.FileSize = filesize;
-                vlocal.ImportFolderID = nshareID;
-                vlocal.Hash = "";
-                vlocal.CRC32 = "";
-                vlocal.MD5 = "";
-                vlocal.SHA1 = "";
+                vlocal.Hash = string.Empty;
+                vlocal.CRC32 = string.Empty;
+                vlocal.MD5 = source_file.MD5 ?? string.Empty;
+                vlocal.SHA1 = source_file.SHA1 ?? string.Empty;
                 vlocal.IsIgnored = 0;
                 vlocal.IsVariation = 0;
+                vlocalplace=new VideoLocal_Place();
+                vlocalplace.FilePath = filePath;
+                vlocalplace.ImportFolderID = nshareID;
+                vlocalplace.ImportFolderType = folder.ImportFolderType;
             }
 
             // check if we need to get a hash this file
@@ -157,9 +189,7 @@ namespace JMMServer.Commands
                 if (!ForceHash)
                 {
                     CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
-                    List<CrossRef_File_Episode> crossRefs =
-                        repCrossRefs.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath),
-                            vlocal.FileSize);
+                    List<CrossRef_File_Episode> crossRefs = repCrossRefs.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
                     if (crossRefs.Count == 1)
                     {
                         vlocal.Hash = crossRefs[0].Hash;
@@ -170,8 +200,7 @@ namespace JMMServer.Commands
                 // try getting the hash from the LOCAL cache
                 if (!ForceHash && string.IsNullOrEmpty(vlocal.Hash))
                 {
-                    List<FileNameHash> fnhashes = repFNHash.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath),
-                        vlocal.FileSize);
+                    List<FileNameHash> fnhashes = repFNHash.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
                     if (fnhashes != null && fnhashes.Count > 1)
                     {
                         // if we have more than one record it probably means there is some sort of corruption
@@ -189,20 +218,24 @@ namespace JMMServer.Commands
                         vlocal.HashSource = (int) HashSource.WebCacheFileName;
                     }
                 }
-
+                if (string.IsNullOrEmpty(vlocal.Hash))
+                    FillVideoHashes(vlocal);
+                if (string.IsNullOrEmpty(vlocal.Hash) && folder.CloudID.HasValue)
+                {
+                    //Cloud and no hash, Nothing to do
+                    repVidLocal.Save(vlocal,false);
+                    vlocalplace.VideoLocalID = vlocal.VideoLocalID;
+                    repPlaces.Save(vlocalplace);
+                }
                 // hash the file
                 if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
                 {
                     DateTime start = DateTime.Now;
                     logger.Trace("Calculating hashes for: {0}", FileName);
-                    // update the VideoLocal record with the Hash
-                    hashes = FileHashHelper.GetHashInfo(FileName, true, MainWindow.OnHashProgress,
-                        ServerSettings.Hash_CRC32,
-                        ServerSettings.Hash_MD5, ServerSettings.Hash_SHA1);
+                    // update the VideoLocal record with the Hash, since cloud support we calculate everything
+                    hashes = FileHashHelper.GetHashInfo(FileName.Replace("/","\\"), true, MainWindow.OnHashProgress, true, true, true);
                     TimeSpan ts = DateTime.Now - start;
-                    logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName,
-                        Utils.FormatByteSize(vlocal.FileSize));
-
+                    logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName, Utils.FormatByteSize(vlocal.FileSize));
                     vlocal.Hash = hashes.ed2k;
                     vlocal.CRC32 = hashes.crc32;
                     vlocal.MD5 = hashes.md5;
@@ -212,52 +245,50 @@ namespace JMMServer.Commands
 
                 // We should have a hash by now
                 // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
-                VideoLocal vidTemp = repVidLocal.GetByHash(vlocal.Hash);
-                if (vidTemp != null)
+
+                VideoLocal tlocal = repVidLocal.GetByHash(vlocal.Hash);
+                VideoLocal_Place prep= tlocal.Places.FirstOrDefault(a => a.ImportFolder.CloudID == folder.CloudID && vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
+                if (prep!=null)
                 {
-                    // don't delete it, if it is actually the same record
-                    if (vidTemp.VideoLocalID != vlocal.VideoLocalID)
+                    // delete the VideoLocal record
+                    logger.Warn("Deleting duplicate video file record");
+                    logger.Warn("---------------------------------------------");
+                    logger.Warn($"Keeping record for: {vlocalplace.FullServerPath}");
+                    logger.Warn($"Deleting record for: {prep.FullServerPath}");
+                    logger.Warn("---------------------------------------------");
+
+                    // check if we have a record of this in the database, if not create one
+                    DuplicateFileRepository repDups = new DuplicateFileRepository();
+                    List<DuplicateFile> dupFiles = repDups.GetByFilePathsAndImportFolder(vlocalplace.FilePath,
+                        prep.FilePath,
+                        vlocalplace.ImportFolderID, prep.ImportFolderID);
+                    if (dupFiles.Count == 0)
+                        dupFiles = repDups.GetByFilePathsAndImportFolder(prep.FilePath, vlocalplace.FilePath, prep.ImportFolderID, vlocalplace.ImportFolderID);
+
+                    if (dupFiles.Count == 0)
                     {
-                        // delete the VideoLocal record
-                        logger.Warn("Deleting duplicate video file record");
-                        logger.Warn("---------------------------------------------");
-                        logger.Warn("Keeping record for: {0}", vlocal.FullServerPath);
-                        logger.Warn("Deleting record for: {0}", vidTemp.FullServerPath);
-                        logger.Warn("---------------------------------------------");
-
-                        // check if we have a record of this in the database, if not create one
-                        DuplicateFileRepository repDups = new DuplicateFileRepository();
-                        List<DuplicateFile> dupFiles = repDups.GetByFilePathsAndImportFolder(vlocal.FilePath,
-                            vidTemp.FilePath,
-                            vlocal.ImportFolderID, vidTemp.ImportFolderID);
-                        if (dupFiles.Count == 0)
-                            dupFiles = repDups.GetByFilePathsAndImportFolder(vidTemp.FilePath, vlocal.FilePath,
-                                vidTemp.ImportFolderID,
-                                vlocal.ImportFolderID);
-
-                        if (dupFiles.Count == 0)
-                        {
-                            DuplicateFile dup = new DuplicateFile();
-                            dup.DateTimeUpdated = DateTime.Now;
-                            dup.FilePathFile1 = vlocal.FilePath;
-                            dup.FilePathFile2 = vidTemp.FilePath;
-                            dup.ImportFolderIDFile1 = vlocal.ImportFolderID;
-                            dup.ImportFolderIDFile2 = vidTemp.ImportFolderID;
-                            dup.Hash = vlocal.Hash;
-                            repDups.Save(dup);
-                        }
-
-                        repVidLocal.Delete(vidTemp.VideoLocalID);
+                        DuplicateFile dup = new DuplicateFile();
+                        dup.DateTimeUpdated = DateTime.Now;
+                        dup.FilePathFile1 = vlocalplace.FilePath;
+                        dup.FilePathFile2 = prep.FilePath;
+                        dup.ImportFolderIDFile1 = vlocalplace.ImportFolderID;
+                        dup.ImportFolderIDFile2 = prep.ImportFolderID;
+                        dup.Hash = vlocal.Hash;
+                        repDups.Save(dup);
                     }
+                    //Notify duplicate, don't delete
                 }
 
+
+
                 repVidLocal.Save(vlocal, true);
+                vlocalplace.VideoLocalID = vlocal.VideoLocalID;
+                repPlaces.Save(vlocalplace);
 
                 // also save the filename to hash record
                 // replace the existing records just in case it was corrupt
                 FileNameHash fnhash = null;
-                List<FileNameHash> fnhashes2 = repFNHash.GetByFileNameAndSize(Path.GetFileName(vlocal.FilePath),
-                    vlocal.FileSize);
+                List<FileNameHash> fnhashes2 = repFNHash.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
                 if (fnhashes2 != null && fnhashes2.Count > 1)
                 {
                     // if we have more than one record it probably means there is some sort of corruption
@@ -273,7 +304,7 @@ namespace JMMServer.Commands
                 else
                     fnhash = new FileNameHash();
 
-                fnhash.FileName = Path.GetFileName(vlocal.FilePath);
+                fnhash.FileName = vlocal.FileName;
                 fnhash.FileSize = vlocal.FileSize;
                 fnhash.Hash = vlocal.Hash;
                 fnhash.DateTimeUpdated = DateTime.Now;
@@ -281,71 +312,82 @@ namespace JMMServer.Commands
             }
 
 
-            // now check if we have stored a VideoInfo record
-            bool refreshMediaInfo = false;
-
-            VideoInfoRepository repVidInfo = new VideoInfoRepository();
-            VideoInfo vinfo = repVidInfo.GetByHash(vlocal.Hash);
-
-            if (vinfo == null)
+            if ((vlocal.Media == null) || vlocal.MediaVersion < VideoLocal.MEDIA_VERSION)
             {
-                refreshMediaInfo = true;
-
-                vinfo = new VideoInfo();
-                vinfo.Hash = vlocal.Hash;
-
-                vinfo.Duration = 0;
-                vinfo.FileSize = fi.Length;
-                vinfo.DateTimeUpdated = DateTime.Now;
-                vinfo.FileName = filePath;
-
-                vinfo.AudioBitrate = "";
-                vinfo.AudioCodec = "";
-                vinfo.VideoBitrate = "";
-                vinfo.VideoBitDepth = "";
-                vinfo.VideoCodec = "";
-                vinfo.VideoFrameRate = "";
-                vinfo.VideoResolution = "";
-
-                repVidInfo.Save(vinfo);
+                if (vlocalplace.RefreshMediaInfo()) 
+                    repVidLocal.Save(vlocalplace.VideoLocal,true);
             }
-            else
-            {
-                // check if we need to update the media info
-                if (vinfo.VideoCodec.Trim().Length == 0) refreshMediaInfo = true;
-                else refreshMediaInfo = false;
-            }
-
-
-            if (refreshMediaInfo)
-            {
-                logger.Trace("Getting media info for: {0}", FileName);
-                MediaInfoResult mInfo = FileHashHelper.GetMediaInfo(FileName, true);
-
-                vinfo.AudioBitrate = string.IsNullOrEmpty(mInfo.AudioBitrate) ? "" : mInfo.AudioBitrate;
-                vinfo.AudioCodec = string.IsNullOrEmpty(mInfo.AudioCodec) ? "" : mInfo.AudioCodec;
-
-                vinfo.DateTimeUpdated = vlocal.DateTimeUpdated;
-                vinfo.Duration = mInfo.Duration;
-                vinfo.FileName = filePath;
-                vinfo.FileSize = fi.Length;
-
-                vinfo.VideoBitrate = string.IsNullOrEmpty(mInfo.VideoBitrate) ? "" : mInfo.VideoBitrate;
-                vinfo.VideoBitDepth = string.IsNullOrEmpty(mInfo.VideoBitDepth) ? "" : mInfo.VideoBitDepth;
-                vinfo.VideoCodec = string.IsNullOrEmpty(mInfo.VideoCodec) ? "" : mInfo.VideoCodec;
-                vinfo.VideoFrameRate = string.IsNullOrEmpty(mInfo.VideoFrameRate) ? "" : mInfo.VideoFrameRate;
-                vinfo.VideoResolution = string.IsNullOrEmpty(mInfo.VideoResolution) ? "" : mInfo.VideoResolution;
-                vinfo.FullInfo = string.IsNullOrEmpty(mInfo.FullInfo) ? "" : mInfo.FullInfo;
-                repVidInfo.Save(vinfo);
-            }
-            //Resave videolocal, since it do not have media populated (videinfo was not created).
-            repVidLocal.Save(vlocal, true);
             // now add a command to process the file
             CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);
             cr_procfile.Save();
 
-            return vlocal;
+            return vlocalplace;
         }
+
+        private void FillVideoHashes(VideoLocal v)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                VideoLocalRepository vlrepo = new VideoLocalRepository();
+                AniDB_FileRepository frepo = new AniDB_FileRepository();
+                if (!string.IsNullOrEmpty(v.SHA1))
+                {
+                    VideoLocal n = vlrepo.GetBySHA1(v.SHA1);
+                    if (n != null)
+                    {
+                        v.CRC32 = n.CRC32;
+                        v.MD5 = n.MD5;
+                        v.ED2KHash = n.ED2KHash;
+                        return;
+                    }
+                    AniDB_File f = frepo.GetBySHA1(session, v.SHA1);
+                    if (f != null)
+                    {
+                        v.CRC32 = f.CRC;
+                        v.ED2KHash = f.Hash;
+                        v.MD5 = f.MD5;
+                        return;
+                    }
+                    List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.SHA1, v.SHA1);
+                    ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5)).ToList();
+                    if (ls.Count > 0)
+                    {
+                        v.ED2KHash = ls[0].ED2K;
+                        v.CRC32 = ls[0].CRC32;
+                        v.MD5 = ls[0].MD5;
+                        return;
+                    }
+                }
+                if (!string.IsNullOrEmpty(v.MD5))
+                {
+                    VideoLocal n = vlrepo.GetByMD5(v.MD5);
+                    if (n != null)
+                    {
+                        v.CRC32 = n.CRC32;
+                        v.SHA1 = n.SHA1;
+                        v.ED2KHash = n.ED2KHash;
+                        return;
+                    }
+                    AniDB_File f = frepo.GetByMD5(session, v.MD5);
+                    if (f != null)
+                    {
+                        v.CRC32 = f.CRC;
+                        v.ED2KHash = f.Hash;
+                        v.SHA1 = f.SHA1;
+                        return;
+                    }
+                    List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.MD5, v.MD5);
+                    ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.SHA1)).ToList();
+                    if (ls.Count > 0)
+                    {
+                        v.ED2KHash = ls[0].ED2K;
+                        v.CRC32 = ls[0].CRC32;
+                        v.SHA1 = ls[0].SHA1;
+                    }
+                }
+            }
+        }
+
 
         /// <summary>
         /// This should generate a unique key for a command
@@ -353,7 +395,7 @@ namespace JMMServer.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_HashFile_{0}", this.FileName);
+            this.CommandID = $"CommandRequest_HashFile_{FileName}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)

@@ -1045,8 +1045,10 @@ namespace JMMServer.Entities
 
                     Dictionary<string, VideoLocal> dictVids = new Dictionary<string, VideoLocal>();
                     foreach (VideoLocal vid in vidsTemp)
+                    {
+                        //Hashes may be repeated from multiple locations but we don't care
                         dictVids[vid.Hash] = vid;
-
+                    }
                     // All Video Quality Episodes
                     // Try to determine if this anime has all the episodes available at a certain video quality
                     // e.g.  the series has all episodes in blu-ray

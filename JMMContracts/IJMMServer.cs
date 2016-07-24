@@ -290,7 +290,7 @@ namespace JMMContracts
         List<Contract_GroupVideoQuality> GetGroupVideoQualitySummary(int animeID);
 
         [OperationContract]
-        string DeleteVideoLocalAndFile(int videoLocalID);
+        string DeleteVideoLocalPlaceAndFile(int videoplaceid);
 
         [OperationContract]
         void RescanUnlinkedFiles();

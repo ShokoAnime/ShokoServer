@@ -17,11 +17,11 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Infralution.Localization.Wpf;
 using JMMContracts;
-using JMMFileHelper;
 using JMMServer.Commands;
 using JMMServer.Commands.Azure;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.FileHelper;
 using JMMServer.ImageDownload;
 using JMMServer.MyAnime2Helper;
 using JMMServer.PlexAndKodi.Kodi;
@@ -1117,7 +1117,7 @@ namespace JMMServer
                 List<VideoLocal> vids = repVids.GetVideosWithoutEpisode();
                 ma2Progress.TotalFiles = vids.Count;
 
-                foreach (VideoLocal vid in vids)
+                foreach (VideoLocal vid in vids.Where(a=>!string.IsNullOrEmpty(a.Hash)))
                 {
                     ma2Progress.CurrentFile = ma2Progress.CurrentFile + 1;
                     workerMyAnime2.ReportProgress(0, ma2Progress);
@@ -1214,9 +1214,11 @@ namespace JMMServer
                             }
 
                             repXRefs.Save(xref);
-
-                            vid.RenameIfRequired();
-                            vid.MoveFileIfRequired();
+                            vid.Places.ForEach(a =>
+                            {
+                                a.RenameIfRequired();
+                                a.MoveFileIfRequired();
+                            });
 
                             // update stats for groups and series
                             if (ser != null)
@@ -2553,7 +2555,7 @@ namespace JMMServer
             {
                 logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 
-                Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
+                Utils.GetFilesForImportFolder(share.FileSystem, ref fileList);
             }
 
 

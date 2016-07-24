@@ -62,7 +62,7 @@ namespace JMMServer.Databases
                     if (fixedHash)
                     {
                         repVids.Save(vid, false);
-                        logger.Info("Fixed hashes on file: {0}", vid.FullServerPath);
+                        logger.Info("Fixed hashes on file: {0}", vid.FileName);
                     }
                 }
             }

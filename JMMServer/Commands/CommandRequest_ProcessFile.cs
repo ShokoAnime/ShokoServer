@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
 using JMMServer.Commands.AniDB;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using NutzCode.CloudFileSystem;
 
 namespace JMMServer.Commands
 {
@@ -29,7 +31,7 @@ namespace JMMServer.Commands
             get
             {
                 if (vlocal != null)
-                    return new QueueStateStruct() { queueState = QueueStateEnum.FileInfo, extraParams = new string[] { vlocal.FullServerPath } };
+                    return new QueueStateStruct() { queueState = QueueStateEnum.FileInfo, extraParams = new string[] { vlocal.FileName } };
                 else
                     return new QueueStateStruct() { queueState = QueueStateEnum.FileInfo, extraParams = new string[] { VideoLocalID.ToString() } };
             }
@@ -77,7 +79,7 @@ namespace JMMServer.Commands
 
         private void ProcessFile_AniDB(VideoLocal vidLocal)
         {
-            logger.Trace("Checking for AniDB_File record for: {0} --- {1}", vidLocal.Hash, vidLocal.FilePath);
+            logger.Trace("Checking for AniDB_File record for: {0} --- {1}", vidLocal.Hash, vidLocal.FileName);
             // check if we already have this AniDB_File info in the database
 
             AniDB_FileRepository repAniFile = new AniDB_FileRepository();
@@ -116,7 +118,7 @@ namespace JMMServer.Commands
                     aniFile.Populate(fileInfo);
 
                     //overwrite with local file name
-                    string localFileName = Path.GetFileName(vidLocal.FilePath);
+                    string localFileName = vidLocal.FileName;
                     aniFile.FileName = localFileName;
 
                     repAniFile.Save(aniFile, false);
@@ -170,7 +172,7 @@ namespace JMMServer.Commands
                             {
                                 CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode();
                                 xrefEnt.Hash = vidLocal.ED2KHash;
-                                xrefEnt.FileName = Path.GetFileName(vidLocal.FullServerPath);
+                                xrefEnt.FileName = vidLocal.FileName;
                                 xrefEnt.FileSize = vidLocal.FileSize;
                                 xrefEnt.CrossRefSource = (int) JMMServer.CrossRefSource.WebCache;
                                 xrefEnt.AnimeID = xref.AnimeID;
@@ -294,9 +296,12 @@ namespace JMMServer.Commands
                     repGroups.Save(grp, true, false);
                 }
             }
+            vidLocal.Places.ForEach(a =>
+            {
+                a.RenameIfRequired();
+                a.MoveFileIfRequired();
 
-            vidLocal.RenameIfRequired();
-            vidLocal.MoveFileIfRequired();
+            });
 
 
             // update stats for groups and series
@@ -322,7 +327,7 @@ namespace JMMServer.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_ProcessFile_{0}", this.VideoLocalID);
+            this.CommandID = $"CommandRequest_ProcessFile_{VideoLocalID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)

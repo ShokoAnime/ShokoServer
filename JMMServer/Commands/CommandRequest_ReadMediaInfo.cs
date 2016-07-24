@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Xml;
 using JMMContracts;
-using JMMFileHelper;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 
@@ -51,70 +51,14 @@ namespace JMMServer.Commands
             {
                 VideoLocalRepository repVids = new VideoLocalRepository();
                 VideoLocal vlocal = repVids.GetByID(VideoLocalID);
-                if (vlocal == null)
+                VideoLocal_Place place = vlocal?.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                if (vlocal == null || place==null)
                 {
                     logger.Error("Cound not find Video: {0}", VideoLocalID);
                     return;
                 }
-
-                if (!File.Exists(vlocal.FullServerPath))
-                {
-                    logger.Error("Cound not find physical file: {0}", vlocal.FullServerPath);
-                    return;
-                }
-
-                int nshareID = -1;
-
-                VideoInfoRepository repVidInfo = new VideoInfoRepository();
-                VideoInfo vinfo = repVidInfo.GetByHash(vlocal.Hash);
-
-                ImportFolderRepository repNS = new ImportFolderRepository();
-                List<ImportFolder> shares = repNS.GetAll();
-
-                string fileName = vlocal.FullServerPath;
-                string filePath = "";
-                DataAccessHelper.GetShareAndPath(fileName, shares, ref nshareID, ref filePath);
-
-                FileInfo fi = new FileInfo(fileName);
-
-                if (vinfo == null)
-                {
-                    vinfo = new VideoInfo();
-                    vinfo.Hash = vlocal.Hash;
-
-                    vinfo.Duration = 0;
-                    vinfo.FileSize = fi.Length;
-                    vinfo.DateTimeUpdated = DateTime.Now;
-                    vinfo.FileName = filePath;
-
-                    vinfo.AudioBitrate = "";
-                    vinfo.AudioCodec = "";
-                    vinfo.VideoBitrate = "";
-                    vinfo.VideoBitDepth = "";
-                    vinfo.VideoCodec = "";
-                    vinfo.VideoFrameRate = "";
-                    vinfo.VideoResolution = "";
-                }
-
-
-                logger.Trace("Getting media info for: {0}", fileName);
-                MediaInfoResult mInfo = FileHashHelper.GetMediaInfo(fileName, true);
-
-                vinfo.AudioBitrate = string.IsNullOrEmpty(mInfo.AudioBitrate) ? "" : mInfo.AudioBitrate;
-                vinfo.AudioCodec = string.IsNullOrEmpty(mInfo.AudioCodec) ? "" : mInfo.AudioCodec;
-
-                vinfo.DateTimeUpdated = vlocal.DateTimeUpdated;
-                vinfo.Duration = mInfo.Duration;
-                vinfo.FileName = filePath;
-                vinfo.FileSize = fi.Length;
-
-                vinfo.VideoBitrate = string.IsNullOrEmpty(mInfo.VideoBitrate) ? "" : mInfo.VideoBitrate;
-                vinfo.VideoBitDepth = string.IsNullOrEmpty(mInfo.VideoBitDepth) ? "" : mInfo.VideoBitDepth;
-                vinfo.VideoCodec = string.IsNullOrEmpty(mInfo.VideoCodec) ? "" : mInfo.VideoCodec;
-                vinfo.VideoFrameRate = string.IsNullOrEmpty(mInfo.VideoFrameRate) ? "" : mInfo.VideoFrameRate;
-                vinfo.VideoResolution = string.IsNullOrEmpty(mInfo.VideoResolution) ? "" : mInfo.VideoResolution;
-                vinfo.FullInfo = string.IsNullOrEmpty(mInfo.FullInfo) ? "" : mInfo.FullInfo;
-                repVidInfo.Save(vinfo);
+                if (place.RefreshMediaInfo())
+                    repVids.Save(place.VideoLocal,true);
             }
             catch (Exception ex)
             {
@@ -130,7 +74,7 @@ namespace JMMServer.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            this.CommandID = string.Format("CommandRequest_ReadMediaInfo_{0}", this.VideoLocalID);
+            this.CommandID = $"CommandRequest_ReadMediaInfo_{this.VideoLocalID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)

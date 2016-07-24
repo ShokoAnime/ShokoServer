@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
@@ -93,7 +94,7 @@ namespace JMMServer.Commands
                         dictAniFiles[anifile.Hash] = anifile;
 
                     int missingFiles = 0;
-                    foreach (VideoLocal vid in repVidLocals.GetAll())
+                    foreach (VideoLocal vid in repVidLocals.GetAll().Where(a=>!string.IsNullOrEmpty(a.Hash)))
                     {
                         if (!dictAniFiles.ContainsKey(vid.Hash)) continue;
 
@@ -193,10 +194,7 @@ namespace JMMServer.Commands
                                         }
                                     }
 
-                                    string msg =
-                                        string.Format(
-                                            "MYLISTDIFF:: File {0} - Local Status = {1}, AniDB Status = {2} --- {3}",
-                                            vl.FullServerPath, localStatus, myitem.IsWatched, action);
+                                    string msg = $"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}";
                                     logger.Info(msg);
                                 }
                             }

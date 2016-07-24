@@ -175,6 +175,7 @@
     <Compile Include="Contract_VideoLocal.cs" />
     <Compile Include="Contract_VideoLocalManualLink.cs" />
     <Compile Include="Contract_VideoLocalRenamed.cs" />
+    <Compile Include="Contract_VideoLocal_Place.cs" />
     <Compile Include="Hashes.cs" />
     <Compile Include="IJMMServer.cs" />
     <Compile Include="IJMMServerImage.cs" />

@@ -1002,8 +1002,10 @@ namespace JMMServer.Entities
 
             Dictionary<string, VideoLocal> dictVids = new Dictionary<string, VideoLocal>();
             foreach (VideoLocal vid in vidsTemp)
+            {
+                //Hashes may be repeated from multiple locations but we don't care
                 dictVids[vid.Hash] = vid;
-
+            }
             TimeSpan tsVids = DateTime.Now - startVids;
             logger.Trace("Got video locals for SERIES {0} in {1}ms", this.ToString(), tsVids.TotalMilliseconds);
 

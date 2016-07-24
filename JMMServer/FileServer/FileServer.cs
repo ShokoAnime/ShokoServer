@@ -6,10 +6,11 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using JMMFileHelper.Subtitles;
 using JMMServer.Entities;
+using JMMServer.FileHelper.Subtitles;
 using JMMServer.Repositories;
 using NLog;
+using NutzCode.CloudFileSystem;
 using UPnP;
 
 namespace JMMServer.FileServer
@@ -174,7 +175,7 @@ namespace JMMServer.FileServer
         public FileServer(int port, int maxthreads = 100)
         {
             _listener = new HttpListener();
-            _listener.Prefixes.Add(String.Format(@"http://*:{0}/", port));
+            _listener.Prefixes.Add($@"http://*:{port}/");
             _listener.Start();
         }
 
@@ -216,7 +217,14 @@ namespace JMMServer.FileServer
                         obj.Response.StatusDescription = "Stream Id not found.";
                         return;
                     }
-                    fullname = loc.FullServerPath;
+                    VideoLocal_Place place = loc.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                    if (place == null)
+                    {
+                        obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                        obj.Response.StatusDescription = "Stream Id not found.";
+                        return;
+                    }
+                    fullname = place.FullServerPath;
                 }
                 else if (cmd == "file")
                 {
@@ -230,22 +238,29 @@ namespace JMMServer.FileServer
                 }
 
                 bool range = false;
-
-                try
+                Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
+                if (tup == null)
                 {
-                    if (!File.Exists(fullname))
-                    {
-                        obj.Response.StatusCode = (int) HttpStatusCode.NotFound;
-                        obj.Response.StatusDescription = "File '" + fullname + "' not found.";
-                        return;
-                    }
-                }
-                catch (Exception)
-                {
-                    obj.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
-                    obj.Response.StatusDescription = "Unable to access File '" + fullname + "'.";
+                    obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    obj.Response.StatusDescription = "File '" + fullname + "' not found.";
                     return;
                 }
+                IFileSystem fs = tup.Item1.FileSystem;
+                if (fs == null)
+                {
+                    obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    obj.Response.StatusDescription = "Unable to access filesystem for File '" + fullname + "'";
+                    return;
+                }
+                FileSystemResult<IObject> fobj=fs.Resolve(fullname);
+                if (fobj == null || !fobj.IsOk || fobj is IDirectory)
+                {
+                    obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    obj.Response.StatusDescription = "File '" + fullname + "' not found.";
+                    return;
+                }
+                IFile file = (IFile)fobj.Result;
+
                 obj.Response.ContentType = GetMime(fullname);
                 obj.Response.AddHeader("Accept-Ranges", "bytes");
                 obj.Response.AddHeader("X-Plex-Protocol", "1.0");
@@ -267,7 +282,14 @@ namespace JMMServer.FileServer
 
                 if (obj.Request.HttpMethod != "HEAD")
                 {
-                    org = new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    FileSystemResult<Stream> fr = file.OpenRead();
+                    if (fr == null || !fr.IsOk)
+                    {
+                        obj.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                        obj.Response.StatusDescription = "Unable to open '" + fullname + "' "+fr?.Error ?? string.Empty;
+                        return;
+                    }
+                    org = fr.Result;
                     long totalsize = org.Length;
                     long start = 0;
                     long end = 0;

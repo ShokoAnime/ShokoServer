@@ -185,7 +185,7 @@ namespace JMMServer.Databases
             JMMUserRepository.InitCache();
             ImportFolderRepository.InitCache();
             AniDB_AnimeRepository.InitCache();
-            VideoInfoRepository.InitCache();
+            VideoLocal_PlaceRepository.InitCache();
             VideoLocalRepository.InitCache();
             VideoLocal_UserRepository.InitCache();
             List<GroupFilter> recalc = GroupFilterRepository.InitCache();

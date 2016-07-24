@@ -378,6 +378,7 @@ namespace JMMContracts.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 106)]
         [XmlElement("AnimeTitle")]
         public List<AnimeTitle> Titles { get; set; }
+
     }
 
     [Serializable]

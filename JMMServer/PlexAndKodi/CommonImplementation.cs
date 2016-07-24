@@ -303,7 +303,7 @@ namespace JMMServer.PlexAndKodi
             VideoLocal vi = repVids.GetByID(id);
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.File,
-                    Path.GetFileNameWithoutExtension(vi.FilePath ?? ""),
+                    Path.GetFileNameWithoutExtension(vi.FileName ?? ""),
                     true, false, info));
             Video v2 = Helper.VideoFromVideoLocal(prov, vi, userid);
             List<Video> dirs = new List<Video>();

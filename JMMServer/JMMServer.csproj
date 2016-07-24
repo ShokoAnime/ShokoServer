@@ -227,9 +227,22 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Entities\CloudAccount.cs" />
+    <Compile Include="Entities\VideoLocal_Place.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="FileHelper\Crc32.cs" />
+    <Compile Include="FileHelper\FileHashHelper.cs" />
+    <Compile Include="FileHelper\Hasher.cs" />
+    <Compile Include="FileHelper\MD4Managed.cs" />
+    <Compile Include="FileHelper\MediaInfoReader.cs" />
+    <Compile Include="FileHelper\MediaInfo\Convert.cs" />
+    <Compile Include="FileHelper\MediaInfo\MediaInfoDLL.cs" />
+    <Compile Include="FileHelper\Subtitles\ISubtitles.cs" />
+    <Compile Include="FileHelper\Subtitles\SubtitleHelper.cs" />
+    <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
+    <Compile Include="FileHelper\Subtitles\VobSubSubtitles.cs" />
     <Compile Include="LZ4\CompressionHelper.cs" />
     <Compile Include="LZ4\LZ4Codec.cs" />
     <Compile Include="LZ4\LZ4Codec.Safe.cs" />
@@ -243,6 +256,7 @@
     <Compile Include="LZ4\LZ4Codec.Unsafe64.Dirty.cs" />
     <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
     <Compile Include="Mappings\CloudAccountMap.cs" />
+    <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
     <Compile Include="ObjectExtensions.cs" />
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiImplementation.cs" />
@@ -312,7 +326,6 @@
     <Compile Include="Commands\QueueStateEventArgs.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="CustomHttpBinding.cs" />
-    <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseHelper.cs" />
     <Compile Include="Databases\MySQL.cs" />
     <Compile Include="Entities\AniDB_MylistStats.cs" />
@@ -328,7 +341,6 @@
     <Compile Include="Entities\FileFfdshowPreset.cs" />
     <Compile Include="Entities\Playlist.cs" />
     <Compile Include="Entities\RenameScript.cs" />
-    <Compile Include="FileRenamer.cs" />
     <Compile Include="FileServer\FileServer.cs" />
     <Compile Include="FileServer\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
@@ -510,6 +522,7 @@
     <Compile Include="Repositories\FileFfdshowPresetRepository.cs" />
     <Compile Include="Repositories\PlaylistRepository.cs" />
     <Compile Include="Repositories\RenameScriptRepository.cs" />
+    <Compile Include="Repositories\VideoLocal_PlaceRepository.cs" />
     <Compile Include="Security\CRC32.cs" />
     <Compile Include="Security\Digest.cs" />
     <Compile Include="MyAnime2Helper\MA2Progress.cs" />
@@ -570,7 +583,6 @@
     <Compile Include="Entities\TvDB_ImageWideBanner.cs" />
     <Compile Include="Entities\TvDB_Series.cs" />
     <Compile Include="Entities\Versions.cs" />
-    <Compile Include="Entities\VideoInfo.cs" />
     <Compile Include="Entities\VideoLocal.cs" />
     <Compile Include="Entities\VideoLocal_User.cs" />
     <Compile Include="Enums.cs" />
@@ -636,7 +648,6 @@
     <Compile Include="Mappings\TvDB_ImageWideBannerMap.cs" />
     <Compile Include="Mappings\TvDB_SeriesMap.cs" />
     <Compile Include="Mappings\VersionsMap.cs" />
-    <Compile Include="Mappings\VideoInfoMap.cs" />
     <Compile Include="Mappings\VideoLocalMap.cs" />
     <Compile Include="Mappings\VideoLocal_UserMap.cs" />
     <Compile Include="NamingLanguage.cs" />
@@ -696,7 +707,6 @@
     <Compile Include="Repositories\TvDB_ImageWideBannerRepository.cs" />
     <Compile Include="Repositories\TvDB_SeriesRepository.cs" />
     <Compile Include="Repositories\VersionsRepository.cs" />
-    <Compile Include="Repositories\VideoInfoRepository.cs" />
     <Compile Include="Repositories\VideoLocalRepository.cs" />
     <Compile Include="Repositories\VideoLocal_UserRepository.cs" />
     <Compile Include="Security\StringTools.cs" />
@@ -899,10 +909,6 @@
     <ProjectReference Include="..\JMMContracts\JMMContracts.csproj">
       <Project>{D777636B-F927-4C7D-9D00-4A7858E75F3E}</Project>
       <Name>JMMContracts</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\JMMFileHelper\JMMFileHelper.csproj">
-      <Project>{73E4CFC4-291B-47A2-ACAA-78096CEBB7DF}</Project>
-      <Name>JMMFileHelper</Name>
     </ProjectReference>
     <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.OAuth.Windows.WinForms\NutzCode.CloudFileSystem.OAuth.Windows.WinForms.csproj">
       <Project>{dec4bfb0-14cd-4622-b1e0-ac97aca64f8f}</Project>

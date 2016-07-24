@@ -7,6 +7,7 @@ using AniDBAPI;
 using JMMServer.Commands.AniDB;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using NutzCode.CloudFileSystem;
 
 namespace JMMServer.Commands
 {
@@ -28,7 +29,7 @@ namespace JMMServer.Commands
             get
             {
                 if (vlocal != null)
-                    return new QueueStateStruct() { queueState = QueueStateEnum.GetFileInfo, extraParams = new string[] { vlocal.FullServerPath } };
+                    return new QueueStateStruct() { queueState = QueueStateEnum.GetFileInfo, extraParams = new string[] { vlocal.FileName } };
                 else
                     return new QueueStateStruct() { queueState = QueueStateEnum.GetFileInfo, extraParams = new string[] { VideoLocalID.ToString() } };
             }
@@ -96,7 +97,7 @@ namespace JMMServer.Commands
                     aniFile.Populate(fileInfo);
 
                     //overwrite with local file name
-                    string localFileName = Path.GetFileName(vlocal.FilePath);
+                    string localFileName = vlocal.FileName;
                     aniFile.FileName = localFileName;
 
                     repAniFile.Save(aniFile, false);

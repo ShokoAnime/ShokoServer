@@ -367,7 +367,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestZ(string test, VideoLocal vid, VideoInfo vi)
+        private static bool EvaluateTestZ(string test, VideoLocal vid)
         {
             try
             {
@@ -384,7 +384,7 @@ namespace JMMServer
                 int.TryParse(test, out testBitDepth);
 
                 int vidBitDepth = 0;
-                int.TryParse(vi.VideoBitDepth, out vidBitDepth);
+                int.TryParse(vid.VideoBitDepth, out vidBitDepth);
 
                 bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -437,7 +437,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestW(string test, VideoLocal vid, AniDB_File aniFile, VideoInfo vi)
+        private static bool EvaluateTestW(string test, VideoLocal vid, AniDB_File aniFile)
         {
             try
             {
@@ -450,7 +450,7 @@ namespace JMMServer
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
                     ref lessThan, ref lessThanEqual);
 
-                if (vi == null) return false;
+                if (vid == null) return false;
 
                 int testWidth = 0;
                 int.TryParse(test, out testWidth);
@@ -461,7 +461,7 @@ namespace JMMServer
                     width = Utils.GetVideoWidth(aniFile.File_VideoResolution);
 
                 if (width == 0)
-                    width = Utils.GetVideoWidth(vi.VideoResolution);
+                    width = Utils.GetVideoWidth(vid.VideoResolution);
 
                 bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -514,7 +514,7 @@ namespace JMMServer
             }
         }
 
-        private static bool EvaluateTestU(string test, VideoLocal vid, AniDB_File aniFile, VideoInfo vi)
+        private static bool EvaluateTestU(string test, VideoLocal vid, AniDB_File aniFile)
         {
             try
             {
@@ -527,7 +527,7 @@ namespace JMMServer
                 ProcessNumericalOperators(ref test, ref notCondition, ref greaterThan, ref greaterThanEqual,
                     ref lessThan, ref lessThanEqual);
 
-                if (vi == null) return false;
+                if (vid == null) return false;
 
                 int testHeight = 0;
                 int.TryParse(test, out testHeight);
@@ -537,7 +537,7 @@ namespace JMMServer
                     height = Utils.GetVideoHeight(aniFile.File_VideoResolution);
 
                 if (height == 0)
-                    height = Utils.GetVideoHeight(vi.VideoResolution);
+                    height = Utils.GetVideoHeight(vid.VideoResolution);
 
                 bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -1099,7 +1099,7 @@ namespace JMMServer
         /// <param name="anime"></param>
         /// <returns></returns>
         private static bool EvaluateTestI(string test, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes,
-            AniDB_Anime anime, VideoInfo vi)
+            AniDB_Anime anime)
         {
             try
             {
@@ -1530,8 +1530,8 @@ namespace JMMServer
                     if (aniFile != null)
                         vidRes = aniFile.File_VideoResolution;
 
-                    if (string.IsNullOrEmpty(vidRes) && vi != null)
-                        vidRes = vi.VideoResolution;
+                    if (string.IsNullOrEmpty(vidRes) && vid != null)
+                        vidRes = vid.VideoResolution;
 
                     if (string.IsNullOrEmpty(vidRes))
                     {
@@ -1594,12 +1594,12 @@ namespace JMMServer
                 if (test.Trim().Equals(tagVideoBitDepth, StringComparison.InvariantCultureIgnoreCase))
                 {
                     bool bitDepthExists = false;
-                    if (vi != null)
+                    if (vid != null)
                     {
-                        if (!string.IsNullOrEmpty(vi.VideoBitDepth))
+                        if (!string.IsNullOrEmpty(vid.VideoBitDepth))
                         {
                             int bitDepth = 0;
-                            int.TryParse(vi.VideoBitDepth, out bitDepth);
+                            int.TryParse(vid.VideoBitDepth, out bitDepth);
                             if (bitDepth > 0) bitDepthExists = true;
                         }
                     }
@@ -1727,8 +1727,7 @@ namespace JMMServer
             List<AniDB_Episode> episodes = new List<AniDB_Episode>();
             AniDB_Anime anime = null;
 
-            VideoInfo vi = vid.VideoInfo;
-            if (vi == null) return string.Empty;
+            if (vid == null) return string.Empty;
 
             // get all the data so we don't need to get multiple times
             AniDB_File aniFile = vid.GetAniDBFile();
@@ -1768,13 +1767,13 @@ namespace JMMServer
                 if (thisLine.StartsWith(Constants.FileRenameReserved.Do, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string action = GetAction(thisLine);
-                    PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime, vi);
+                    PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime);
                 }
                 else
                 {
                     try
                     {
-                        if (EvaluateTest(thisLine, vid, aniFile, episodes, anime, vi))
+                        if (EvaluateTest(thisLine, vid, aniFile, episodes, anime))
                         {
                             Debug.WriteLine(string.Format("Line passed: {0}", thisLine));
                             // if the line has passed the tests, then perform the action
@@ -1787,7 +1786,7 @@ namespace JMMServer
                                 .Equals(Constants.FileRenameReserved.Fail, StringComparison.InvariantCultureIgnoreCase))
                                 return string.Empty;
 
-                            PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime, vi);
+                            PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime);
                         }
                         else
                         {
@@ -1805,11 +1804,11 @@ namespace JMMServer
 
             // finally add back the extension
 
-            return string.Format("{0}{1}", newFileName.Replace("`", "'"), Path.GetExtension(vid.FullServerPath));
+            return string.Format("{0}{1}", newFileName.Replace("`", "'"), Path.GetExtension(vid.FileName));
         }
 
         private static void PerformActionOnFileName(ref string newFileName, string action, VideoLocal vid,
-            AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime, VideoInfo vi)
+            AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime)
         {
             // find the first test
             int posStart = action.IndexOf(" ");
@@ -1823,11 +1822,11 @@ namespace JMMServer
                 // action is to add the the new file name
                 if (actionType.Trim()
                     .Equals(Constants.FileRenameReserved.Add, StringComparison.InvariantCultureIgnoreCase))
-                    PerformActionOnFileNameADD(ref newFileName, parameter, vid, aniFile, episodes, anime, vi);
+                    PerformActionOnFileNameADD(ref newFileName, parameter, vid, aniFile, episodes, anime);
 
                 if (actionType.Trim()
                     .Equals(Constants.FileRenameReserved.Replace, StringComparison.InvariantCultureIgnoreCase))
-                    PerformActionOnFileNameREPLACE(ref newFileName, parameter, vid, aniFile, episodes, anime, vi);
+                    PerformActionOnFileNameREPLACE(ref newFileName, parameter, vid, aniFile, episodes, anime);
             }
             catch (Exception ex)
             {
@@ -1836,7 +1835,7 @@ namespace JMMServer
         }
 
         private static void PerformActionOnFileNameREPLACE(ref string newFileName, string action, VideoLocal vid,
-            AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime, VideoInfo vi)
+            AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime)
         {
             try
             {
@@ -1867,7 +1866,7 @@ namespace JMMServer
         }
 
         private static void PerformActionOnFileNameADD(ref string newFileName, string action, VideoLocal vid,
-            AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime, VideoInfo vi)
+            AniDB_File aniFile, List<AniDB_Episode> episodes, AniDB_Anime anime)
         {
             // TODO Remove illegal characters
             // TODO check for double episodes
@@ -2135,7 +2134,7 @@ namespace JMMServer
 
             if (action.Trim().Contains(Constants.FileRenameTag.VideoBitDepth))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.VideoBitDepth, vi.VideoBitDepth);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.VideoBitDepth, vid.VideoBitDepth);
             }
 
             #endregion
@@ -2179,7 +2178,7 @@ namespace JMMServer
                 if (!hasResolution)
                 {
                     // try the video info
-                    if (vi != null) res = vi.VideoResolution;
+                    if (vid != null) res = vid.VideoResolution;
                 }
 
                 newFileName = newFileName.Replace(Constants.FileRenameTag.Resolution, res.Trim());
@@ -2271,7 +2270,7 @@ namespace JMMServer
         }
 
         private static bool EvaluateTest(string line, VideoLocal vid, AniDB_File aniFile, List<AniDB_Episode> episodes,
-            AniDB_Anime anime, VideoInfo vi)
+            AniDB_Anime anime)
         {
             line = line.Trim();
             // determine if this line has a test
@@ -2288,7 +2287,7 @@ namespace JMMServer
                     if (posEnd < posStart) return false;
 
                     string condition = line.Substring(posStart + 1, posEnd - posStart - 1);
-                    bool passed = EvaluateTest(c, condition, vid, aniFile, episodes, anime, vi);
+                    bool passed = EvaluateTest(c, condition, vid, aniFile, episodes, anime);
 
                     // check for OR's and AND's
                     bool foundAND = false;
@@ -2307,7 +2306,7 @@ namespace JMMServer
                             int posEndNew = thisLineRemainder.IndexOf(')');
                             condition = thisLineRemainder.Substring(posStartNew + 1, posEndNew - posStartNew - 1);
 
-                            bool thisPassed = EvaluateTest(thisTest, condition, vid, aniFile, episodes, anime, vi);
+                            bool thisPassed = EvaluateTest(thisTest, condition, vid, aniFile, episodes, anime);
 
                             if (!passed || !thisPassed) return false;
 
@@ -2336,7 +2335,7 @@ namespace JMMServer
                                 int posEndNew = thisLineRemainder.IndexOf(')');
                                 condition = thisLineRemainder.Substring(posStartNew + 1, posEndNew - posStartNew - 1);
 
-                                bool thisPassed = EvaluateTest(thisTest, condition, vid, aniFile, episodes, anime, vi);
+                                bool thisPassed = EvaluateTest(thisTest, condition, vid, aniFile, episodes, anime);
 
                                 if (thisPassed) return true;
 
@@ -2351,7 +2350,7 @@ namespace JMMServer
         }
 
         private static bool EvaluateTest(char testChar, string testCondition, VideoLocal vid, AniDB_File aniFile,
-            List<AniDB_Episode> episodes, AniDB_Anime anime, VideoInfo vi)
+            List<AniDB_Episode> episodes, AniDB_Anime anime)
         {
             testCondition = testCondition.Trim();
 
@@ -2370,7 +2369,7 @@ namespace JMMServer
                 case 'R':
                     return EvaluateTestR(testCondition, vid, aniFile);
                 case 'Z':
-                    return EvaluateTestZ(testCondition, vid, vi);
+                    return EvaluateTestZ(testCondition, vid);
                 case 'T':
                     return EvaluateTestT(testCondition, vid, anime);
                 case 'Y':
@@ -2386,11 +2385,11 @@ namespace JMMServer
                 case 'J':
                     return EvaluateTestJ(testCondition, vid, aniFile);
                 case 'I':
-                    return EvaluateTestI(testCondition, vid, aniFile, episodes, anime, vi);
+                    return EvaluateTestI(testCondition, vid, aniFile, episodes, anime);
                 case 'W':
-                    return EvaluateTestW(testCondition, vid, aniFile, vi);
+                    return EvaluateTestW(testCondition, vid, aniFile);
                 case 'U':
-                    return EvaluateTestU(testCondition, vid, aniFile, vi);
+                    return EvaluateTestU(testCondition, vid, aniFile);
                 case 'M':
                     return EvaluateTestM(testCondition, aniFile, episodes);
                 case 'N':

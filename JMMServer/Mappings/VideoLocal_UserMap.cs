@@ -13,6 +13,7 @@ namespace JMMServer.Mappings
             Map(x => x.JMMUserID).Not.Nullable();
             Map(x => x.VideoLocalID).Not.Nullable();
             Map(x => x.WatchedDate);
+            Map(x => x.ResumePosition).Not.Nullable();
         }
     }
 }

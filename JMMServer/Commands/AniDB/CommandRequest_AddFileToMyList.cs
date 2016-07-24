@@ -26,7 +26,7 @@ namespace JMMServer.Commands
             get
             {
                 if (vid != null)
-                    return new QueueStateStruct() { queueState=QueueStateEnum.AniDB_MyListAdd, extraParams = new string[] { vid.FullServerPath  } };
+                    return new QueueStateStruct() { queueState=QueueStateEnum.AniDB_MyListAdd, extraParams = new string[] { vid.FileName  } };
                 else
                     return new QueueStateStruct() { queueState = QueueStateEnum.AniDB_MyListAdd, extraParams = new string[] { Hash } };
             }
