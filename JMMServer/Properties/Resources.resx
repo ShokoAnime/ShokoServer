@@ -995,4 +995,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Server_SyncHashesRunning" xml:space="preserve">
     <value>Synchronizing Hashes with the WebCache Running</value>
   </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Updating Changed TvDB association: {0}</value>
+  </data>
 </root>
