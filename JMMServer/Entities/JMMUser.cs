@@ -1,11 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using JMMContracts;
 using JMMServer.Repositories;
+using Nancy.Security;
 using NHibernate;
 
 namespace JMMServer.Entities
 {
-    public class JMMUser
+    public class JMMUser: Nancy.Security.IUserIdentity
     {
         public int JMMUserID { get; private set; }
         public string Username { get; set; }
@@ -30,6 +32,9 @@ namespace JMMServer.Entities
             }
             set { _contract = value; }
         }
+
+        public string UserName { get { return Username; } internal set { Username = value; } }
+        public IEnumerable<string> Claims { get; internal set; }
 
         /// <summary>
         /// Returns whether a user is allowed to view this series
