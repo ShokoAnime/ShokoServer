@@ -38,34 +38,29 @@ namespace JMMServer.PlexAndKodi
 
         public static string ConstructImageLink(int type, int id)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetImage/" + type + "/" + id);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/" + type + "/" + id);
         }
 
         public static string ConstructSupportImageLink(string name)
         {
             double relation = GetRelation();
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetSupportImage/" + name + "/" + relation);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetSupportImage/" + name + "/" + relation);
         }
 
         public static string ConstructSupportImageLinkTV(string name)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetSupportImage/" + name);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetSupportImage/" + name);
         }
 
         public static string ConstructThumbLink(int type, int id)
         {
             double relation = GetRelation();
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/" + relation);
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/" + relation);
         }
 
         public static string ConstructTVThumbLink(int type, int id)
         {
-            return ServerUrl(int.Parse(ServerSettings.JMMServerPort),
-                MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/1.3333");
+            return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetThumb/" + type + "/" + id + "/1.3333");
         }
 
         public static string ConstructCharacterImage(int id)
@@ -170,33 +165,34 @@ namespace JMMServer.PlexAndKodi
 
         public static string ServerUrl(int port, string path, bool externalip = false)
         {
-            if ((WebOperationContext.Current == null) ||
-                (WebOperationContext.Current.IncomingRequest.UriTemplateMatch == null))
+            //TODO APIv2: 1: this should be deprecated because clients knows best what ip address:port they asked this is unnecessary and would clean up code
+            if (API.API_Calls.request.Url == null)
             {
                 return "{SCHEME}://{HOST}:" + port + "/" + path;
             }
-            string host = WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host;
+            string host = API.API_Calls.request.Url.HostName;
             if (externalip)
             {
                 IPAddress ip = FileServer.FileServer.GetExternalAddress();
                 if (ip != null)
                     host = ip.ToString();
             }
-            return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme + "://" +
+            return API.API_Calls.request.Url.Scheme + "://" +
                    host + ":" + port + "/" +
                    path;
         }
 
         public static string ReplaceSchemeHost(string str, bool externalip = false)
         {
+            //TODO APIv2: 2: this should be deprecated because clients knows best what ip address:port they asked this is unnecessary and would clean up code
             if (str == null)
                 return null;
             string host="127.0.0.1";
             string scheme = "http";
-            if (WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch?.RequestUri?.Host != null)
+            if (API.API_Calls.request?.Url?.HostName != null)
             {
-                host = WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Host;
-                scheme = WebOperationContext.Current.IncomingRequest.UriTemplateMatch.RequestUri.Scheme;
+                host = API.API_Calls.request.Url.HostName;
+                scheme = API.API_Calls.request.Url.Scheme;
             }
             else if (OperationContext.Current?.RequestContext?.RequestMessage?.Headers?.To?.Host != null)
                 host = OperationContext.Current.RequestContext.RequestMessage.Headers.To.Host;

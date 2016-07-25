@@ -13,11 +13,11 @@ using NLog;
 
 namespace JMMServer
 {
-    public class JMMServiceImplementationREST : IJMMServerREST
+    public class JMMServiceImplementationREST
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public System.IO.Stream GetImage(string ImageType, string ImageID)
+        public System.IO.Stream GetImage(string ImageType, string ImageID, bool thumnbnailOnly)
         {
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
             TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
@@ -146,16 +146,33 @@ namespace JMMServer
                     TvDB_ImageFanart fanart = repFanart.GetByID(int.Parse(ImageID));
                     if (fanart == null) return null;
 
-                    if (File.Exists(fanart.FullImagePath))
+                    if (thumnbnailOnly)
                     {
-                        FileStream fs = File.OpenRead(fanart.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
-                        return fs;
+                        if (File.Exists(fanart.FullThumbnailPath))
+                        {
+                            FileStream fs = File.OpenRead(fanart.FullThumbnailPath);
+                            WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
+                            return fs;
+                        }
+                        else
+                        {
+                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullThumbnailPath);
+                            return null;
+                        }
                     }
                     else
                     {
-                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullImagePath);
-                        return BlankImage();
+                        if (File.Exists(fanart.FullImagePath))
+                        {
+                            FileStream fs = File.OpenRead(fanart.FullImagePath);
+                            WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
+                            return fs;
+                        }
+                        else
+                        {
+                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullImagePath);
+                            return BlankImage();
+                        }
                     }
 
                 case JMMImageType.MovieDB_Poster:
@@ -593,7 +610,7 @@ namespace JMMServer
 
         public System.IO.Stream GetThumb(string ImageType, string ImageID, string Ratio)
         {
-            using (Stream m = GetImage(ImageType, ImageID))
+            using (Stream m = GetImage(ImageType, ImageID, false))
             {
                 if (m != null)
                 {
