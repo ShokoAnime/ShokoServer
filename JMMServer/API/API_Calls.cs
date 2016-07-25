@@ -4,18 +4,13 @@ using JMMServer.PlexAndKodi;
 using JMMServer.PlexAndKodi.Plex;
 using JMMServer.PlexAndKodi.Kodi;
 using JMMContracts.PlexAndKodi;
-using static JMMServer.API.JMMToken;
-using JWT;
-using Nancy.ModelBinding;
-using System.Security.Claims;
-using System.Collections.Generic;
 
 namespace JMMServer.API
 {
     //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
     public class API_Calls : Nancy.NancyModule
     {
-        public API_Calls(IConfigProvider configProvider, IJwtWrapper jwtWrapper) : base("/")
+        public API_Calls() : base("/")
         {
             // CommonImplementation
             Get["/"] = _ => { return IndexPage; };
@@ -51,45 +46,7 @@ namespace JMMServer.API
             Get["JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
             Get["JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
 
-            // Auth
-            Get["/login"] = _ => View["Login"];
-
-            Post["/login"] = _ =>
-            {
-                var user = this.Bind<UserCredentials>();
-                //Verify user/pass
-                if (user.User != "jmm" && user.Password != "jmm")
-                {
-                    return 401;
-                }
-
-                var jwttoken = new JwtToken()
-                {
-                    Issuer = "http://issuer.com",
-                    Audience = "http://mycoolwebsite.com",
-                    Claims =
-                        new List<Claim>(new[]
-                        {
-                            new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", "Administrator"),
-                            new Claim(ClaimTypes.Name, "Fred")
-                        }),
-                    Expiry = DateTime.UtcNow.AddDays(7)
-                };
-
-                var token = jwtWrapper.Encode(jwttoken, configProvider.GetAppSetting("securekey"), JwtHashAlgorithm.HS256);
-                return Negotiate.WithModel(token);
-            };
-
-            Get["/"] = _ => "Hello Secure World!";
-
-        }
-
-        public class UserCredentials
-        {
-            public string User { get; set; }
-
-            public string Password { get; set; }
-        }
+    }
 
 
         CommonImplementation _impl = new CommonImplementation();
@@ -375,4 +332,5 @@ namespace JMMServer.API
             }
         }
     }
+ 
 }

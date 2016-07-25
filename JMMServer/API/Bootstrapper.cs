@@ -1,9 +1,7 @@
 ﻿using Nancy;
+using Nancy.Authentication.Forms;
 using Nancy.Bootstrapper;
 using Nancy.TinyIoc;
-using Nancy.Owin;
-using System.Linq;
-using System.Security.Claims;
 
 namespace JMMServer.API
 {
@@ -15,19 +13,38 @@ namespace JMMServer.API
             get { return Nancy.Bootstrapper.NancyInternalConfiguration.WithOverrides(c => c.Serializers.Insert(0, typeof(Nancy.Serialization.JsonNet.JsonNetSerializer))); }
         }
 
-        protected virtual void RequestStartup(TinyIoCContainer container, IPipelines pipelines, NancyContext context)
+        protected override void ConfigureApplicationContainer(TinyIoCContainer container)
         {
-            base.RequestStartup(container, pipelines, context);
-            var owinEnvironment = context.GetOwinEnvironment();
-            var user = owinEnvironment["server.User"] as ClaimsPrincipal;
-            if (user != null)
-            {
-                context.CurrentUser = new JMMServer.Entities.JMMUser()
+            // We don't call "base" here to prevent auto-discovery of
+            // types/dependencies
+        }
+
+        protected override void ConfigureRequestContainer(TinyIoCContainer container, NancyContext context)
+        {
+            base.ConfigureRequestContainer(container, context);
+
+            // Here we register our user mapper as a per-request singleton.
+            // As this is now per-request we could inject a request scoped
+            // database "context" or other request scoped services.
+            container.Register<IUserMapper, UserDatabase>();
+        }
+
+        protected override void RequestStartup(TinyIoCContainer requestContainer, IPipelines pipelines, NancyContext context)
+        {
+            // At request startup we modify the request pipelines to
+            // include forms authentication - passing in our now request
+            // scoped user name mapper.
+            //
+            // The pipelines passed in here are specific to this request,
+            // so we can add/remove/update items in them as we please.
+            var formsAuthConfiguration =
+                new FormsAuthenticationConfiguration()
                 {
-                    UserName = user.Identity.Name,
-                    Claims = user.Claims.Where(x => x.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role").Select(x => x.Value)
+                    RedirectUrl = "~/auth/login",
+                    UserMapper = requestContainer.Resolve<IUserMapper>(),
                 };
-            }
+
+            FormsAuthentication.Enable(pipelines, formsAuthConfiguration);
         }
     }
 }
