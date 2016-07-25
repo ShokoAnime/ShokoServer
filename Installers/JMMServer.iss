@@ -62,6 +62,7 @@ Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\TMDbLib.pdb"; DestDir
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\RestSharp.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Newtonsoft.Json.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Infralution.Localization.Wpf.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\Pri.LongPath.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\Config\JMMServer.exe.Config"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\hasher.dll"; DestDir: "{app}\x64"; Flags: ignoreversion
 Source: "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\MediaInfo.dll"; DestDir: "{app}\x64"; Flags: ignoreversion
