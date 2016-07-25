@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using JMMContracts;
 using NLog;
+using Path = Pri.LongPath.Path;
 
 namespace JMMFileHelper
 {

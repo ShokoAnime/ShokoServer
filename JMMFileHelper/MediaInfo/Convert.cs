@@ -6,6 +6,8 @@ using System.Linq;
 using JMMContracts.PlexAndKodi;
 using MediaInfoLib;
 using Stream = JMMContracts.PlexAndKodi.Stream;
+using File = Pri.LongPath.File;
+
 
 namespace PlexMediaInfo
 {

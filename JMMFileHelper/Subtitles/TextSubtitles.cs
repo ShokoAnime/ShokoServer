@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using System.Text.RegularExpressions;
 using Stream = JMMContracts.PlexAndKodi.Stream;
+using Path = Pri.LongPath.Path;
+using File = Pri.LongPath.File;
 
 namespace JMMFileHelper.Subtitles
 {
