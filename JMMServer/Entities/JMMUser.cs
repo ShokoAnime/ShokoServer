@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using JMMContracts;
 using JMMServer.Repositories;
 using NHibernate;
 
 namespace JMMServer.Entities
 {
-    public class JMMUser
+    public class JMMUser: Nancy.Security.IUserIdentity
     {
         public int JMMUserID { get; private set; }
         public string Username { get; set; }
@@ -29,6 +30,45 @@ namespace JMMServer.Entities
                 return _contract;
             }
             set { _contract = value; }
+        }
+
+        public string UserName
+        {
+            get
+            {
+                return Username;
+            }
+        }
+
+        public IEnumerable<string> Claims { get; set; }
+
+        public Guid guid { get; set; }
+
+        public JMMUser()
+        {
+
+        }
+
+        public JMMUser(string username)
+        {
+            JMMUserRepository repUsers = new JMMUserRepository();
+            foreach (JMMUser us in repUsers.GetAll())
+            {
+                if (us.Username == username)
+                {
+                    JMMUserID = us.JMMUserID;
+                    Username = us.Username;
+                    Password = us.Password;
+                    IsAdmin = us.IsAdmin;
+                    IsAniDBUser = us.IsAniDBUser;
+                    IsTraktUser = us.IsTraktUser;
+                    HideCategories = us.HideCategories;
+                    CanEditServerSettings = us.CanEditServerSettings;
+                    PlexUsers = us.PlexUsers;
+                    _contract = us._contract;
+                    Claims = us.Claims;
+                }
+            }
         }
 
         /// <summary>

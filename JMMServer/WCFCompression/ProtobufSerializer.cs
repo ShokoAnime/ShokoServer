@@ -25,7 +25,6 @@ namespace JMMServer.WCFCompression
                 ProtoBuf.Serializer.Serialize(ms,result);
                 body = ms.ToArray();
             }
-            WebOperationContext.Current.OutgoingResponse.Format = null;
             System.ServiceModel.Channels.Message replyMessage = System.ServiceModel.Channels.Message.CreateMessage(version, operation.Messages[1].Action, new RawBodyWriter(body));
             replyMessage.Properties.Add(WebBodyFormatMessageProperty.Name, new WebBodyFormatMessageProperty(WebContentFormat.Raw));
             var respProp = new HttpResponseMessageProperty();

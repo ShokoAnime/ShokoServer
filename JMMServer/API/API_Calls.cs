@@ -46,7 +46,8 @@ namespace JMMServer.API
             Get["JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
             Get["JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
 
-        }
+    }
+
 
         CommonImplementation _impl = new CommonImplementation();
         IProvider _prov_kodi = new KodiProvider();
@@ -331,4 +332,5 @@ namespace JMMServer.API
             }
         }
     }
+ 
 }
