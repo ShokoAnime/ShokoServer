@@ -30,7 +30,6 @@ using JMMServer.WCFCompression;
 using Microsoft.SqlServer.Management.Smo;
 using NHibernate;
 using NLog;
-using Nancy;
 
 namespace JMMServer
 {
@@ -324,15 +323,6 @@ namespace JMMServer
             cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
 
             InitCulture();
-        }
-
-        public class Bootstrapper : Nancy.DefaultNancyBootstrapper
-        {
-            protected virtual Nancy.Bootstrapper.NancyInternalConfiguration InternalConfiguration
-            {
-                //overwrite bootsrapper to use different json implementation
-                get { return Nancy.Bootstrapper.NancyInternalConfiguration.WithOverrides(c => c.Serializers.Insert(0, typeof(Nancy.Serialization.JsonNet.JsonNetSerializer))); }
-            }
         }
 
         private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
