@@ -10,6 +10,10 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using NLog;
+using Path = Pri.LongPath.Path;
+using Directory = Pri.LongPath.Directory;
+using DirectoryInfo = Pri.LongPath.DirectoryInfo;
+using File = Pri.LongPath.File;
 
 namespace JMMServer
 {
