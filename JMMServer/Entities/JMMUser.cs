@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using JMMContracts;
 using JMMServer.Repositories;
-using Nancy.Security;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -33,8 +32,44 @@ namespace JMMServer.Entities
             set { _contract = value; }
         }
 
-        public string UserName { get { return Username; } internal set { Username = value; } }
-        public IEnumerable<string> Claims { get; internal set; }
+        public string UserName
+        {
+            get
+            {
+                return Username;
+            }
+        }
+
+        public IEnumerable<string> Claims { get; set; }
+
+        public Guid guid { get; set; }
+
+        public JMMUser()
+        {
+
+        }
+
+        public JMMUser(string username)
+        {
+            JMMUserRepository repUsers = new JMMUserRepository();
+            foreach (JMMUser us in repUsers.GetAll())
+            {
+                if (us.Username == username)
+                {
+                    JMMUserID = us.JMMUserID;
+                    Username = us.Username;
+                    Password = us.Password;
+                    IsAdmin = us.IsAdmin;
+                    IsAniDBUser = us.IsAniDBUser;
+                    IsTraktUser = us.IsTraktUser;
+                    HideCategories = us.HideCategories;
+                    CanEditServerSettings = us.CanEditServerSettings;
+                    PlexUsers = us.PlexUsers;
+                    _contract = us._contract;
+                    Claims = us.Claims;
+                }
+            }
+        }
 
         /// <summary>
         /// Returns whether a user is allowed to view this series
