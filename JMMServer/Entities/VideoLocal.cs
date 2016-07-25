@@ -15,8 +15,12 @@ using JMMServer.LZ4;
 using JMMServer.Repositories;
 using NHibernate;
 using NLog;
-using Directory = System.IO.Directory;
 using Stream = JMMContracts.PlexAndKodi.Stream;
+
+using Path = Pri.LongPath.Path;
+using Directory = Pri.LongPath.Directory;
+using File = Pri.LongPath.File;
+using FileInfo = Pri.LongPath.FileInfo;
 
 namespace JMMServer.Entities
 {

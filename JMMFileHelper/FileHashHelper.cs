@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
-using System.IO;
 using JMMContracts;
 using NLog;
+
+using Path = Pri.LongPath.Path;
 
 namespace JMMFileHelper
 {
