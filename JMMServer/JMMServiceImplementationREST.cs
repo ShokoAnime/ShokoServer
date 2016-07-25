@@ -45,7 +45,6 @@ namespace JMMServer
                     if (File.Exists(anime.PosterPath))
                     {
                         FileStream fs = File.OpenRead(anime.PosterPath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -63,7 +62,6 @@ namespace JMMServer
                     if (File.Exists(chr.PosterPath))
                     {
                         FileStream fs = File.OpenRead(chr.PosterPath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -81,7 +79,6 @@ namespace JMMServer
                     if (File.Exists(creator.PosterPath))
                     {
                         FileStream fs = File.OpenRead(creator.PosterPath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -98,7 +95,6 @@ namespace JMMServer
                     if (File.Exists(poster.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(poster.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -115,7 +111,6 @@ namespace JMMServer
                     if (File.Exists(wideBanner.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(wideBanner.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -132,7 +127,6 @@ namespace JMMServer
                     if (File.Exists(ep.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(ep.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -151,7 +145,6 @@ namespace JMMServer
                         if (File.Exists(fanart.FullThumbnailPath))
                         {
                             FileStream fs = File.OpenRead(fanart.FullThumbnailPath);
-                            WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                             return fs;
                         }
                         else
@@ -165,7 +158,6 @@ namespace JMMServer
                         if (File.Exists(fanart.FullImagePath))
                         {
                             FileStream fs = File.OpenRead(fanart.FullImagePath);
-                            WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                             return fs;
                         }
                         else
@@ -187,7 +179,6 @@ namespace JMMServer
                     if (File.Exists(mPoster.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(mPoster.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -207,7 +198,6 @@ namespace JMMServer
                     if (File.Exists(mFanart.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(mFanart.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -224,7 +214,6 @@ namespace JMMServer
                     if (File.Exists(tFanart.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(tFanart.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -241,7 +230,6 @@ namespace JMMServer
                     if (File.Exists(tPoster.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(tPoster.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -259,7 +247,6 @@ namespace JMMServer
                     if (File.Exists(tEpisode.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(tEpisode.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -277,7 +264,6 @@ namespace JMMServer
         public System.IO.Stream BlankImage()
         {
             byte[] dta = Resources.blank;
-            WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
             return ms;
@@ -467,7 +453,6 @@ namespace JMMServer
             if (File.Exists(serverImagePath))
             {
                 FileStream fs = File.OpenRead(serverImagePath);
-                WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                 return fs;
             }
             else
@@ -542,8 +527,6 @@ namespace JMMServer
                 byte[] dta = (byte[]) man.GetObject(name);
                 if ((dta == null) || (dta.Length == 0))
                     return new MemoryStream();
-                if (WebOperationContext.Current != null)
-                    WebOperationContext.Current.OutgoingResponse.ContentType = "image/png";
                 //Little hack
                 MemoryStream ms = new MemoryStream(dta);
                 ms.Seek(0, SeekOrigin.Begin);
