@@ -7,7 +7,7 @@ namespace JMMServer.PlexAndKodi
         MediaContainer NewMediaContainer(MediaContainerTypes type, string title = null, bool allowsync = true,
             bool nocache = true, BreadCrumbs info = null);
 
-        void AddResponseHeaders();
+        //void AddResponseHeaders();
         string ServiceAddress { get; }
         int ServicePort { get; }
         bool UseBreadCrumbs { get; }

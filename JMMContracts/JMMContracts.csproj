@@ -55,6 +55,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
       <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
       <Private>True</Private>
@@ -177,11 +178,7 @@
     <Compile Include="Contract_VideoLocalRenamed.cs" />
     <Compile Include="Hashes.cs" />
     <Compile Include="IJMMServer.cs" />
-    <Compile Include="IJMMServerImage.cs" />
     <Compile Include="IJMMServerMetro.cs" />
-    <Compile Include="IJMMServerKodi.cs" />
-    <Compile Include="IJMMServerPlex.cs" />
-    <Compile Include="IJMMServerREST.cs" />
     <Compile Include="IJMMServerStreaming.cs" />
     <Compile Include="MediaInfoResult.cs" />
     <Compile Include="MetroContract_AniDB_Character.cs" />
