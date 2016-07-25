@@ -472,9 +472,6 @@
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
     <value>Порт клиента AniDB</value>
   </data>
-  <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Проверить подключение</value>
-  </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>У вас нет учетной записи AniDB? Нажмите здесь, чтобы зарегистрироваться</value>
   </data>
@@ -939,5 +936,23 @@
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>Нет</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Синхронизация хэшей</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Синхронизация с управлением WebCache хэшей</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Обновление изменилась TvDB ассоциация: {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>Учетных данных AniDB</value>
+  </data>
+  <data name="InitialSetup_Test" xml:space="preserve">
+    <value>Проверить и сохранить Логин</value>
   </data>
 </root>

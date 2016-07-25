@@ -386,6 +386,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Close.
+        /// </summary>
+        internal static string Close {
+            get {
+                return ResourceManager.GetString("Close", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Getting anime info from HTTP API: {0}.
         /// </summary>
         internal static string Command_AnimeInfo {
@@ -1565,6 +1574,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AniDB Login Credentials.
+        /// </summary>
+        internal static string InitialSetup_LoginCredentials {
+            get {
+                return ResourceManager.GetString("InitialSetup_LoginCredentials", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Login FAILED!.
         /// </summary>
         internal static string InitialSetup_LoginFail {
@@ -1592,7 +1610,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Test Login.
+        ///   Looks up a localized string similar to Test And Save Login.
         /// </summary>
         internal static string InitialSetup_Test {
             get {

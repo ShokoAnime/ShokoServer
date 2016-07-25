@@ -469,9 +469,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
     <value>Puerto de cliente AniDB</value>
   </data>
-  <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Inicio de sesión de prueba</value>
-  </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>¿No tiene una cuenta de AniDB? Haga clic aquí para registrarse en una</value>
   </data>
@@ -939,5 +936,23 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>No</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Hashes de sincronización</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Sincronización de Hashes con el WebCache funcionando</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Actualización cambiado TvDB Asociación: {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>AniDB credenciales</value>
+  </data>
+  <data name="InitialSetup_Test" xml:space="preserve">
+    <value>Probar y guardar inicio de sesión</value>
   </data>
 </root>

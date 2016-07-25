@@ -552,7 +552,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>AniDB Client Port</value>
   </data>
   <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Test Login</value>
+    <value>Test And Save Login</value>
   </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>Don't have an AniDB account? Click here to register for one</value>
@@ -997,5 +997,11 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Command_LinkAniDBTvDB" xml:space="preserve">
     <value>Updating Changed TvDB association: {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>AniDB Login Credentials</value>
   </data>
 </root>

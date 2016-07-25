@@ -469,9 +469,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
     <value>Port Client AniDB</value>
   </data>
-  <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Test de connexion</value>
-  </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>N'avez pas un compte AniDB ? Cliquez ici pour vous inscrire à un</value>
   </data>
@@ -939,5 +936,23 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>N°</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Hachages de synchronisation</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Synchronisation des hachages avec le WebCache en cours d’exécution</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Mise à jour changé TvDB association : {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>Références de connexion AniDB</value>
+  </data>
+  <data name="InitialSetup_Test" xml:space="preserve">
+    <value>Tester et enregistrer Login</value>
   </data>
 </root>
