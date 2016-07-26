@@ -1,10 +1,10 @@
-﻿using Nancy;
-using Nancy.Authentication.Forms;
-using Nancy.Bootstrapper;
-using Nancy.TinyIoc;
-
-namespace JMMServer.API
+﻿namespace JMMServer.API
 {
+    using Nancy;
+    using Nancy.Authentication.Stateless;
+    using Nancy.Bootstrapper;
+    using Nancy.TinyIoc;
+
     public class Bootstrapper : DefaultNancyBootstrapper
     {
         protected virtual Nancy.Bootstrapper.NancyInternalConfiguration InternalConfiguration
@@ -13,38 +13,30 @@ namespace JMMServer.API
             get { return Nancy.Bootstrapper.NancyInternalConfiguration.WithOverrides(c => c.Serializers.Insert(0, typeof(Nancy.Serialization.JsonNet.JsonNetSerializer))); }
         }
 
-        protected override void ConfigureApplicationContainer(TinyIoCContainer container)
-        {
-            // We don't call "base" here to prevent auto-discovery of
-            // types/dependencies
-        }
-
-        protected override void ConfigureRequestContainer(TinyIoCContainer container, NancyContext context)
-        {
-            base.ConfigureRequestContainer(container, context);
-
-            // Here we register our user mapper as a per-request singleton.
-            // As this is now per-request we could inject a request scoped
-            // database "context" or other request scoped services.
-            container.Register<IUserMapper, UserDatabase>();
-        }
-
+        /// <summary>
+        /// This function override the RequestStartup which is used each time a request came to Nancy
+        /// </summary>
         protected override void RequestStartup(TinyIoCContainer requestContainer, IPipelines pipelines, NancyContext context)
         {
-            // At request startup we modify the request pipelines to
-            // include forms authentication - passing in our now request
-            // scoped user name mapper.
-            //
-            // The pipelines passed in here are specific to this request,
-            // so we can add/remove/update items in them as we please.
-            var formsAuthConfiguration =
-                new FormsAuthenticationConfiguration()
+            var configuration =
+                new StatelessAuthenticationConfiguration(nancyContext =>
                 {
-                    RedirectUrl = "~/auth/login",
-                    UserMapper = requestContainer.Resolve<IUserMapper>(),
-                };
+                    //take out value of "apikey" from query that was pass in request
+                    var apiKey = (string)nancyContext.Request.Query.apikey.Value;
+                    return UserDatabase.GetUserFromApiKey(apiKey);
+                });
 
-            FormsAuthentication.Enable(pipelines, formsAuthConfiguration);
+            //AllowAccessToConsumingSite(pipelines);
+            StatelessAuthentication.Enable(pipelines, configuration);
         }
+
+        //static void AllowAccessToConsumingSite(IPipelines pipelines)
+        //{
+        //    pipelines.AfterRequest.AddItemToEndOfPipeline(x =>
+        //    {
+        //        x.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+        //        x.Response.Headers.Add("Access-Control-Allow-Methods", "POST,GET,DELETE,PUT,OPTIONS");
+        //    });
+        //}
     }
 }
