@@ -578,64 +578,15 @@ namespace JMMServer.Providers.MyAnimeList
 
                 string animeValuesXMLString =
                     string.Format(
-                        "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score><downloaded_episodes>{3}</downloaded_episodes><fansub_group>{4}</fansub_group></entry>",
-                        lastEpisodeWatched, status, score, downloadedEps, fanSubs);
+                        "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
+                        lastEpisodeWatched, status, score);
 
                 res =
                     SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/add/" + animeId + ".xml" +
                                                 animeValuesXMLString);
-
-                return true;
-            }
-            catch (WebException)
-            {
-                return false;
-            }
-        }
-
-        public static bool ModifyAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps,
-            string fanSubs)
-        {
-            try
-            {
-                string res = "";
-
-                string animeValuesXMLString =
-                    string.Format(
-                        "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score><downloaded_episodes>{3}</downloaded_episodes><fansub_group>{4}</fansub_group></entry>",
-                        lastEpisodeWatched, status, score, downloadedEps, fanSubs);
-
-                res =
-                    SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/update/" + animeId + ".xml" +
-                                                animeValuesXMLString);
-
-                return true;
-            }
-            catch (WebException)
-            {
-                return false;
-            }
-        }
-
-        // status: 1/watching, 2/completed, 3/onhold, 4/dropped, 6/plantowatch
-        public static bool UpdateAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps,
-            string fanSubs)
-        {
-            try
-            {
-                string res = "";
-                try
+                if (res.Contains("<title>201 Created</title>") == false)
                 {
-                    // now modify back to proper status
-                    if (!AddAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs))
-                    {
-                        ModifyAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs);
-                    }
-                }
-                catch (WebException)
-                {
-                    // if nothing good happens
-                    logger.Error("MAL update anime failed: " + res);
+                    logger.Error("MAL AddAnime failed: " + res);
                     return false;
                 }
 
@@ -646,6 +597,46 @@ namespace JMMServer.Providers.MyAnimeList
                 logger.ErrorException(ex.ToString(), ex);
                 return false;
             }
+        }
+
+        public static bool ModifyAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps,
+            string fanSubs)
+        {
+            try
+            {
+                string res = "";
+                string animeValuesXMLString =
+                    string.Format(
+                        "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
+                        lastEpisodeWatched, status, score);
+
+                res =
+                    SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/update/" + animeId + ".xml" +
+                                                animeValuesXMLString);
+                if (res.Equals("Updated", StringComparison.InvariantCultureIgnoreCase) == false)
+                {
+                    logger.Error("MAL ModifyAnime failed: " + res);
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return false;
+            }
+        }
+
+        // status: 1/watching, 2/completed, 3/onhold, 4/dropped, 6/plantowatch
+        public static bool UpdateAnime(int animeId, int lastEpisodeWatched, int status, int score, int downloadedEps,
+            string fanSubs)
+        {
+            // now modify back to proper status
+            if (!ModifyAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs))
+            {
+                return AddAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs);
+            }
+            return true;
         }
     }
 
