@@ -255,6 +255,7 @@
     <Compile Include="API\UserDatabase.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
+    <Compile Include="Entities\AuthTokens.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="LZ4\CompressionHelper.cs" />
     <Compile Include="LZ4\LZ4Codec.cs" />
@@ -268,6 +269,7 @@
     <Compile Include="LZ4\LZ4Codec.Unsafe32HC.Dirty.cs" />
     <Compile Include="LZ4\LZ4Codec.Unsafe64.Dirty.cs" />
     <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
+    <Compile Include="Mappings\AuthTokensMap.cs" />
     <Compile Include="ObjectExtensions.cs" />
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
@@ -520,6 +522,7 @@
     <Compile Include="Providers\TvDB\TvDBSummary.cs" />
     <Compile Include="Repositories\AniDB_MylistStatsRepository.cs" />
     <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
+    <Compile Include="Repositories\AuthTokensRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\ChangeTracker.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />

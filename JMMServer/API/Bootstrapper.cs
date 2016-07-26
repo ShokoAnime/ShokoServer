@@ -21,22 +21,11 @@
             var configuration =
                 new StatelessAuthenticationConfiguration(nancyContext =>
                 {
-                    //take out value of "apikey" from query that was pass in request
+                    //take out value of "apikey" from query that was pass in request and check for User
                     var apiKey = (string)nancyContext.Request.Query.apikey.Value;
                     return UserDatabase.GetUserFromApiKey(apiKey);
                 });
-
-            //AllowAccessToConsumingSite(pipelines);
             StatelessAuthentication.Enable(pipelines, configuration);
         }
-
-        //static void AllowAccessToConsumingSite(IPipelines pipelines)
-        //{
-        //    pipelines.AfterRequest.AddItemToEndOfPipeline(x =>
-        //    {
-        //        x.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-        //        x.Response.Headers.Add("Access-Control-Allow-Methods", "POST,GET,DELETE,PUT,OPTIONS");
-        //    });
-        //}
     }
 }
