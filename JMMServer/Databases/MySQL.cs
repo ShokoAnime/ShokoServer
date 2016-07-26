@@ -177,6 +177,7 @@ namespace JMMServer.Databases
                 UpdateSchema_051(versionNumber);
                 UpdateSchema_052(versionNumber);
                 UpdateSchema_053(versionNumber);
+                UpdateSchema_054(versionNumber);
 
             }
             catch (Exception ex)
@@ -1963,6 +1964,7 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+
         private static void UpdateSchema_051(int currentVersionNumber)
         {
             int thisVersion = 51;
@@ -2017,6 +2019,7 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+
         private static void UpdateSchema_052(int currentVersionNumber)
         {
             int thisVersion = 52;
@@ -2048,6 +2051,7 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+
         private static void UpdateSchema_053(int currentVersionNumber)
         {
             int thisVersion = 53;
@@ -2064,6 +2068,46 @@ namespace JMMServer.Databases
             {
                 logger.Error(ex.Message);
             }
+        }
+
+        private static void UpdateSchema_054(int currentVersionNumber)
+        {
+            int thisVersion = 54;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE `AuthTokens` ( " +
+                                   " `AuthID` INT NOT NULL AUTO_INCREMENT, " +
+                                   " `UserID` int NOT NULL, " +
+                                   " `DeviceName` text character set utf8, " +
+                                   " `Token` text character set utf8 " +
+                                   " PRIMARY KEY (`AuthID`) ) ; ");
+
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
         }
 
 
