@@ -4,14 +4,17 @@ using JMMServer.PlexAndKodi;
 using JMMServer.PlexAndKodi.Plex;
 using JMMServer.PlexAndKodi.Kodi;
 using JMMContracts.PlexAndKodi;
+using Nancy.Security;
 
 namespace JMMServer.API
 {
     //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
-    public class API_Calls : Nancy.NancyModule
+    public class API_Module : Nancy.NancyModule
     {
-        public API_Calls() : base("/")
+        public API_Module() : base("/")
         {
+            this.RequiresAuthentication();
+
             // CommonImplementation
             Get["/"] = _ => { return IndexPage; };
 
