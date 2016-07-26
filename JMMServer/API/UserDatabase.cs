@@ -9,21 +9,29 @@ namespace JMMServer.API
     /// </summary>
     public class UserDatabase
     {
-        static readonly List<Tuple<string, string>> ActiveApiKeys = new List<Tuple<string, string>>();
-        private static readonly List<Tuple<string, string>> Users = new List<Tuple<string, string>>();
+        //ActiveApiKeys: userid, device, apikey
+        static readonly List<Tuple<int, string, string>> ActiveApiKeys = new List<Tuple<int, string, string>>();
+        //Users: userid, username, password
+        private static readonly List<Tuple<int, string, string>> Users = new List<Tuple<int, string, string>>();
 
         static UserDatabase()
         {
-            JMMServer.Repositories.JMMUserRepository repUsers = new JMMServer.Repositories.JMMUserRepository();
-            foreach (JMMServer.Entities.JMMUser us in repUsers.GetAll())
+            Repositories.JMMUserRepository repUsers = new Repositories.JMMUserRepository();
+            foreach (Entities.JMMUser us in repUsers.GetAll())
             {
-                Users.Add(new Tuple<string, string>(us.Username, us.Password));
+                Users.Add(new Tuple<int, string, string>(us.JMMUserID, us.Username, us.Password));
+            }
+
+            Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
+            foreach (Entities.AuthTokens at in authRepo.GetAll())
+            {
+                ActiveApiKeys.Add(new Tuple<int, string, string>(at.UserID, at.DeviceName, at.Token));
             }
         }
 
-        public static JMMServer.Entities.JMMUser GetUserFromApiKey(string apiKey)
+        public static Entities.JMMUser GetUserFromApiKey(string apiKey)
         {
-            var activeKey = ActiveApiKeys.FirstOrDefault(x => x.Item2 == apiKey);
+            var activeKey = ActiveApiKeys.FirstOrDefault(x => x.Item3 == apiKey);
 
             if (activeKey == null)
             {
@@ -31,34 +39,31 @@ namespace JMMServer.API
             }
 
             var userRecord = Users.First(u => u.Item1 == activeKey.Item1);
-            return new JMMServer.Entities.JMMUser(userRecord.Item1);
+            return new Entities.JMMUser(userRecord.Item2);
         }
 
-        public static string ValidateUser(string username, string password)
+        public static string ValidateUser(string username, string password, string device)
         {
-            var userRecord = Users.FirstOrDefault(u => u.Item1 == username && u.Item2 == password);
+            var userRecord = Users.FirstOrDefault(u => u.Item2 == username && u.Item3 == password);
 
             if (userRecord == null)
             {
                 return null;
             }
-                        
+
+            int uid = new Entities.JMMUser(username).JMMUserID;
             var apiKey = Guid.NewGuid().ToString();
-            ActiveApiKeys.Add(new Tuple<string, string>(username, apiKey));
+            ActiveApiKeys.Add(new Tuple<int, string, string>(uid, device, apiKey));
             return apiKey;
         }
 
         public static void RemoveApiKey(string apiKey)
         {
-            var apiKeyToRemove = ActiveApiKeys.First(x => x.Item2 == apiKey);
+            var apiKeyToRemove = ActiveApiKeys.First(x => x.Item3 == apiKey);
             ActiveApiKeys.Remove(apiKeyToRemove);
-        }
-
-        public static Tuple<string, string> CreateUser(string username, string password)
-        {
-            var user = new Tuple<string, string>(username, password);
-            Users.Add(user);
-            return user;
+            //remove auth from repository/database
+            Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
+            authRepo.Delete(apiKeyToRemove.Item1);
         }
     }
 }
