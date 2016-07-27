@@ -48,7 +48,10 @@ namespace JMMServer.Repositories
         {
             return Cache.Values.ToList();
         }
-
+        public List<ImportFolder> GetByCloudId(int cloudid)
+        {
+            return Cache.Values.Where(a=>a.CloudID.HasValue && a.CloudID.Value==cloudid).ToList();
+        }
         public List<ImportFolder> InternalGetAll()
         {
             using (var session = JMMService.SessionFactory.OpenSession())

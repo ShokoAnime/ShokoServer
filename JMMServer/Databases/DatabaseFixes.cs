@@ -94,6 +94,28 @@ namespace JMMServer.Databases
             }
         }
 
+        public static void DeprecateVideoInfo()
+        {
+            VideoLocalRepository lr = new VideoLocalRepository();
+             
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                Dictionary<string, VideoInfo> infos = session.CreateCriteria(typeof(VideoInfo)).List<VideoInfo>().ToDictionary(a => a.Hash, a => a);
+                List<VideoLocal> locals = lr.GetAll();
+                foreach (VideoLocal v in locals)
+                {
+                    if (infos.ContainsKey(v.Hash))
+                    {
+                        VideoInfo vi = infos[v.Hash];
+
+                    }
+                }
+                foreach (VideoInfo v in infos)
+                {
+                    
+                }
+            }
+        }
         public static void FixContinueWatchingGroupFilter_20160406()
         {
             // group filters

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.OAuth.Windows.WinForms;
 
@@ -15,8 +17,7 @@ namespace JMMServer.Entities
         public string Provider { get; set; }
         public string Name { get; set; }
 
-        public virtual Bitmap Icon { get; private set; }
-
+        public BitmapImage Icon { get; private set; }
         private IFileSystem _fileSystem;
         public virtual IFileSystem FileSystem
         {
@@ -28,6 +29,8 @@ namespace JMMServer.Entities
             }
         }
 
+
+
         public void Connect()
         {
             if (string.IsNullOrEmpty(Provider))
@@ -38,12 +41,13 @@ namespace JMMServer.Entities
             ICloudPlugin plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == Provider);
             if (plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
-            Icon = plugin.Icon;
-            FileSystemResult<IFileSystem> res =
-                Task.Run(async () => await plugin.InitAsync(Name, new AuthProvider(), auth, ConnectionString)).Result;
+            Icon = plugin.CreateIconImage();
+            FileSystemResult<IFileSystem> res = plugin.Init(Name, new AuthProvider(), auth, ConnectionString);
             if (!res.IsOk)
                 throw new Exception("Unable to connect to '" + Provider + "'");
             _fileSystem = res.Result;
         }
+
+
     }
 }

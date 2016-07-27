@@ -51,8 +51,8 @@ namespace JMMServer.Commands
             {
                 VideoLocalRepository repVids = new VideoLocalRepository();
                 VideoLocal vlocal = repVids.GetByID(VideoLocalID);
-                VideoLocal_Place place = vlocal?.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
-                if (vlocal == null || place==null)
+                VideoLocal_Place place = vlocal?.GetBestVideoLocalPlace();
+                if (place==null)
                 {
                     logger.Error("Cound not find Video: {0}", VideoLocalID);
                     return;

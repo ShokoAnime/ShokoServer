@@ -201,6 +201,7 @@ namespace JMMServer.Databases
                 UpdateSchema_047(versionNumber);
                 UpdateSchema_048(versionNumber);
                 UpdateSchema_049(versionNumber);
+                UpdateSchema_050(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1839,6 +1840,30 @@ namespace JMMServer.Databases
             DatabaseFixes.Fixes.Add(DatabaseFixes.DeleteSerieUsersWithoutSeries);
             UpdateDatabaseVersion(thisVersion);
         }
+
+        private static void UpdateSchema_050(int currentVersionNumber)
+        {
+            int thisVersion = 50;
+            if (currentVersionNumber >= thisVersion) return;
+
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("CREATE TABLE VideoLocal_Place ( VideoLocal_Place_ID int IDENTITY(1,1) NOT NULL, VideoLocalID int NOT NULL, FilePath nvarchar(MAX) NOT NULL,  ImportFolderID int NOT NULL, ImportFolderType int NOT NULL, CONSTRAINT [PK_VideoLocal_Place] PRIMARY KEY CLUSTERED (  VideoLocal_Place_ID ASC  ) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]");
+            cmds.Add("ALTER TABLE VideoLocal ADD FileName nvarchar(max) NOT NULL DEFAULT(''), VideoCodec varchar(max) NOT NULL DEFAULT(''), VideoBitrate varchar(max) NOT NULL DEFAULT(''), VideoBitDepth varchar(max) NOT NULL DEFAULT(''), VideoFrameRate varchar(max) NOT NULL DEFAULT(''), VideoResolution varchar(max) NOT NULL DEFAULT(''), AudioCodec varchar(max) NOT NULL DEFAULT(''), AudioBitrate varchar(max) NOT NULL DEFAULT(''),Duration bigint NOT NULL DEFAULT(0)");
+            cmds.Add("INSERT INTO VideoLocal_Place (VideoLocalID, FilePath, ImportFolderID, ImportFolderType) SELECT VideoLocalID, FilePath, ImportFolderID, 1 as ImportFolderType FROM VideoLocal");
+            cmds.Add("ALTER TABLE VideoLocal DROP COLUMN FilePath, ImportFolderID");
+            cmds.Add("UPDATE VideoLocal SET VideoLocal.FileName=VideoInfo.FileName, VideoLocal.VideoCodec=VideoInfo.VideoCodec, VideoLocal.VideoBitrate=VideoInfo.VideoBitrate, VideoLocal.VideoBitDepth=VideoInfo.VideoBitDepth, VideoLocal.VideoFrameRate=VideoInfo.VideoFrameRate,VideoLocal.VideoResolution=VideoInfo.VideoResolution,VideoLocal.AudioCodec=VideoInfo.AudioCodec,VideoLocal.AudioBitrate=VideoInfo.AudioBitrate, VideoLocal.Duration=VideoInfo.Duration FROM VideoLocal INNER JOIN VideoInfo ON VideoLocal.Hash=VideoInfo.Hash");
+            cmds.Add("CREATE TABLE CloudAccount (  CloudID int IDENTITY(1,1) NOT NULL, ConnectionString nvarchar(MAX) NOT NULL,  Provider nvarchar(MAX) NOT NULL, Name nvarchar(MAX) NOT NULL,  CONSTRAINT [PK_CloudAccount] PRIMARY KEY CLUSTERED   ( CloudID ASC ) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]) ON [PRIMARY]");
+            cmds.Add("ALTER TABLE ImportFolder ADD CloudID int NULL");
+            cmds.Add("ALTER TABLE VideoLocal_User ALTER COLUMN WatchedDate datetime NULL");
+            cmds.Add("ALTER TABLE VideoLocal_User ADD ResumePosition bigint NOT NULL DEFAULT (0)");
+            cmds.Add("DROP TABLE VideoInfo");
+            UpdateDatabaseVersion(thisVersion);
+        }
+
         private static void ExecuteSQLCommands(List<string> cmds)
         {
             using (

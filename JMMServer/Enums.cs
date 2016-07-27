@@ -206,12 +206,7 @@ namespace JMMServer
         English = 2
     }
 
-    public enum Storage
-    {
-        Unknown = 1,
-        HDD = 2,
-        CD = 3
-    }
+
 
     public enum AnimeTypes
     {
@@ -226,8 +221,9 @@ namespace JMMServer
     public enum ImportFolderType
     {
         HDD = 1, // files stored on a "permanent" hard drive
-        DVD = 2, // files stored on a cd/dvd 
-        Cloud = 3 // files stored in the cloud 
+        NAS = 2, // file are stored on a "nas" hard drive
+        Cloud = 3, // files stored in the cloud 
+        DVD = 4, // files stored on a cd/dvd 
     }
 
     public enum ScheduledUpdateType

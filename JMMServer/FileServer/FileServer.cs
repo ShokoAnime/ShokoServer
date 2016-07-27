@@ -179,6 +179,8 @@ namespace JMMServer.FileServer
             _listener.Start();
         }
 
+
+
         private void Process(System.Net.HttpListenerContext obj)
         {
             Stream org = null;
@@ -193,12 +195,13 @@ namespace JMMServer.FileServer
                 string user = dta[1];
                 string aw = dta[2];
                 string arg = dta[3];
-                string fullname;
+                string fullname=string.Empty;
                 int userid = 0;
                 int autowatch = 0;
                 int.TryParse(user, out userid);
                 int.TryParse(aw, out autowatch);
                 VideoLocal loc = null;
+                IFile file=null;
                 if (cmd == "videolocal")
                 {
                     int sid = 0;
@@ -217,18 +220,25 @@ namespace JMMServer.FileServer
                         obj.Response.StatusDescription = "Stream Id not found.";
                         return;
                     }
-                    VideoLocal_Place place = loc.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
-                    if (place == null)
+                    file = loc.GetBestFileLink();
+                    if (file == null)
                     {
                         obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
                         obj.Response.StatusDescription = "Stream Id not found.";
                         return;
                     }
-                    fullname = place.FullServerPath;
+                    fullname = file.FullName;
                 }
                 else if (cmd == "file")
                 {
                     fullname = Base64DecodeUrl(arg);
+                    file = VideoLocal.ResolveFile(fullname);
+                    if (file == null)
+                    {
+                        obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                        obj.Response.StatusDescription = "File not found.";
+                        return;
+                    }
                 }
                 else
                 {
@@ -238,29 +248,6 @@ namespace JMMServer.FileServer
                 }
 
                 bool range = false;
-                Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
-                if (tup == null)
-                {
-                    obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                    obj.Response.StatusDescription = "File '" + fullname + "' not found.";
-                    return;
-                }
-                IFileSystem fs = tup.Item1.FileSystem;
-                if (fs == null)
-                {
-                    obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                    obj.Response.StatusDescription = "Unable to access filesystem for File '" + fullname + "'";
-                    return;
-                }
-                FileSystemResult<IObject> fobj=fs.Resolve(fullname);
-                if (fobj == null || !fobj.IsOk || fobj is IDirectory)
-                {
-                    obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                    obj.Response.StatusDescription = "File '" + fullname + "' not found.";
-                    return;
-                }
-                IFile file = (IFile)fobj.Result;
-
                 obj.Response.ContentType = GetMime(fullname);
                 obj.Response.AddHeader("Accept-Ranges", "bytes");
                 obj.Response.AddHeader("X-Plex-Protocol", "1.0");
@@ -374,10 +361,8 @@ namespace JMMServer.FileServer
             }
             finally
             {
-                if (org != null)
-                    org.Close();
-                if ((obj != null) && (obj.Response != null) && (obj.Response.OutputStream != null))
-                    obj.Response.OutputStream.Close();
+                org?.Close();
+                obj?.Response.OutputStream?.Close();
             }
         }
 

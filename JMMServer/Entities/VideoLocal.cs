@@ -210,6 +210,42 @@ namespace JMMServer.Entities
                     repVidUsers.Delete(vidUserRecord.VideoLocal_UserID);
             }
         }
+        public static IFile ResolveFile(string fullname)
+        {
+            Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
+            IFileSystem fs = tup?.Item1.FileSystem;
+            FileSystemResult<IObject> fobj = fs?.Resolve(fullname);
+            if (!fobj.IsOk || fobj is IDirectory)
+                return null;
+            return fobj.Result as IFile;
+        }
+        public IFile GetBestFileLink()
+        {
+            IFile file=null;
+            foreach (VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
+            {
+                if (p != null)
+                {
+                    file = ResolveFile(p.FullServerPath);
+                    if (file != null)
+                        break;
+                }
+            }
+            return file;
+        }
+        public VideoLocal_Place GetBestVideoLocalPlace()
+        {
+            foreach (VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
+            {
+                if (p != null)
+                {
+                    if (GetFile(p.FullServerPath) != null)
+                        return p;
+                }
+            }
+            return null;
+        }
+
 
         public void ToggleWatchedStatus(bool watched, int userID)
         {
@@ -465,7 +501,7 @@ namespace JMMServer.Entities
             Media n = null;
             if (Media == null)
             {
-                VideoLocal_Place pl = Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                VideoLocal_Place pl = GetBestVideoLocalPlace();
                 if (pl != null)
                 {
                     IFileSystem f = pl.ImportFolder.FileSystem;

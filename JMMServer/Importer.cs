@@ -45,7 +45,7 @@ namespace JMMServer
             foreach (VideoLocal vl in filesToHash)
             {
                 dictFilesToHash[vl.VideoLocalID] = vl;
-                VideoLocal_Place p = vl.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                VideoLocal_Place p = vl.GetBestVideoLocalPlace();
                 if (p != null)
                 {
                     CommandRequest_HashFile cmd = new CommandRequest_HashFile(p.FullServerPath, false);
@@ -63,7 +63,7 @@ namespace JMMServer
                 {
                     try
                     {
-                        VideoLocal_Place p = vl.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                        VideoLocal_Place p = vl.GetBestVideoLocalPlace();
                         if (p != null)
                         {
                             CommandRequest_HashFile cmd = new CommandRequest_HashFile(p.FullServerPath, false);
@@ -185,7 +185,7 @@ namespace JMMServer
                 {
                     try
                     {
-                        VideoLocal_Place p = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                        VideoLocal_Place p = v.GetBestVideoLocalPlace();
                         if (p!=null && p.ImportFolder.CloudID==0)
                         {
                             Hashes h = FileHashHelper.GetHashInfo(p.FullServerPath, true, MainWindow.OnHashProgress, true,
@@ -821,6 +821,19 @@ namespace JMMServer
             UpdateAllStats();
         }
 
+        public static string DeleteCloudAccount(int cloudaccountID)
+        {
+            CloudAccountRepository repo=new CloudAccountRepository();
+            CloudAccount cl = repo.GetByID(cloudaccountID);
+            if (cl == null) return "Could not find Cloud Account ID: " + cloudaccountID;
+            foreach (ImportFolder f in new ImportFolderRepository().GetByCloudId(cl.CloudID))
+            {
+                string r = DeleteImportFolder(f.ImportFolderID);
+                if (!string.IsNullOrEmpty(r))
+                    return r;
+            }
+            return string.Empty;
+        }
 
         public static string DeleteImportFolder(int importFolderID)
         {

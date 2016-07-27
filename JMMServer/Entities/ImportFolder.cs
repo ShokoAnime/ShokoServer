@@ -72,6 +72,15 @@ namespace JMMServer.Entities
             }
         }
 
+        public string CloudAccountName
+        {
+            get
+            {
+                if (CloudID.HasValue)
+                    return CloudAccount.Name;
+                return "Local FileSystem";
+            }
+        }
         private Boolean folderIsWatched = true;
 
         public Boolean FolderIsWatched

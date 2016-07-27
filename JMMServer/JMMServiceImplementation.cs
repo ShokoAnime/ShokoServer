@@ -3306,7 +3306,7 @@ namespace JMMServer
 
             if (vl != null)
             {
-                VideoLocal_Place pl = vl.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
                 if (pl == null)
                 {
                     logger.Error("Unable to hash videolocal with id = {videLocalID}, it has no assigned place");

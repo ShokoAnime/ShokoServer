@@ -72,7 +72,7 @@ namespace JMMServer.Repositories
         {
             if (obj.Media == null || obj.MediaVersion < VideoLocal.MEDIA_VERSION)
             {
-                VideoLocal_Place place = obj.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                VideoLocal_Place place = obj.GetBestVideoLocalPlace();
                 place?.RefreshMediaInfo();
             }
         }

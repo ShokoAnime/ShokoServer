@@ -1,8 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using NutzCode.CloudFileSystem;
 
 namespace JMMServer
 {
@@ -32,6 +37,18 @@ namespace JMMServer
         {
             return list.Contains(item, StringComparer.InvariantCultureIgnoreCase);
         }
-
+        public static BitmapImage CreateIconImage(this ICloudPlugin plugin)
+        {
+            if (plugin?.Icon == null)
+                return null;
+            MemoryStream ms = new MemoryStream();
+            plugin.Icon.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
+            BitmapImage icon = new BitmapImage();
+            icon.BeginInit();
+            ms.Seek(0, SeekOrigin.Begin);
+            icon.StreamSource = ms;
+            icon.EndInit();
+            return icon;
+        }
     }
 }

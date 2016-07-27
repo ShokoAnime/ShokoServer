@@ -386,6 +386,78 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Add Account.
+        /// </summary>
+        internal static string CloudAccounts_Add {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Add", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add Cloud Account.
+        /// </summary>
+        internal static string CloudAccounts_AddCloudAccount {
+            get {
+                return ResourceManager.GetString("CloudAccounts_AddCloudAccount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fill the required information about cloud accounts here.
+        /// </summary>
+        internal static string CloudAccounts_Info {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Name.
+        /// </summary>
+        internal static string CloudAccounts_Name {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove.
+        /// </summary>
+        internal static string CloudAccounts_Remove {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Remove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to remove the following the Cloud Account &apos;{0}&apos; from {1}? Any Import Folder using this account will be deleted, and every file link associated with those import folders will be also deleted..
+        /// </summary>
+        internal static string CloudAccounts_RemoveMessage {
+            get {
+                return ResourceManager.GetString("CloudAccounts_RemoveMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select Service Provider.
+        /// </summary>
+        internal static string CloudAccounts_Service {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Service", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cloud Accounts.
+        /// </summary>
+        internal static string CloudAccounts_Title {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Getting anime info from HTTP API: {0}.
         /// </summary>
         internal static string Command_AnimeInfo {
@@ -1660,6 +1732,15 @@ namespace JMMServer.Properties {
         internal static string Link_Changelog {
             get {
                 return ResourceManager.GetString("Link_Changelog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://localhost.
+        /// </summary>
+        internal static string Link_CloudAccounts {
+            get {
+                return ResourceManager.GetString("Link_CloudAccounts", resourceCulture);
             }
         }
         

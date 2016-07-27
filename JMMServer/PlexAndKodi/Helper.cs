@@ -291,7 +291,7 @@ namespace JMMServer.PlexAndKodi
             {
                 foreach (VideoLocal vl in e.Key.GetVideoLocals())
                 {
-                    VideoLocal_Place pl = vl.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                    VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
                     if (pl != null)
                     {
                         if (pl.RefreshMediaInfo())
@@ -352,7 +352,7 @@ namespace JMMServer.PlexAndKodi
                 {
                     if (v.Media == null)
                     {
-                        VideoLocal_Place pl = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+                        VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                         if (pl != null)
                         {
                             if (pl.RefreshMediaInfo())

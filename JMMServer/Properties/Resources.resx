@@ -995,4 +995,31 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Server_SyncHashesRunning" xml:space="preserve">
     <value>Synchronizing Hashes with the WebCache Running</value>
   </data>
+  <data name="CloudAccounts_Add" xml:space="preserve">
+    <value>Add Account</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Fill the required information about cloud accounts here</value>
+  </data>
+  <data name="CloudAccounts_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="CloudAccounts_Title" xml:space="preserve">
+    <value>Cloud Accounts</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://localhost</value>
+  </data>
+  <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
+    <value>Add Cloud Account</value>
+  </data>
+  <data name="CloudAccounts_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
+    <value>Are you sure you want to remove the following the Cloud Account '{0}' from {1}? Any Import Folder using this account will be deleted, and every file link associated with those import folders will be also deleted.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Select Service Provider</value>
+  </data>
 </root>

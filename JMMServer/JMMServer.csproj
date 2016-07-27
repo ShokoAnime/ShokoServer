@@ -720,6 +720,12 @@
     <Compile Include="UI\AdminMessagesForm.xaml.cs">
       <DependentUpon>AdminMessagesForm.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\CloudAccountAdmin.xaml.cs">
+      <DependentUpon>CloudAccountAdmin.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\CloudAccountForm.xaml.cs">
+      <DependentUpon>CloudAccountForm.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\HyperLinkStandard.xaml.cs">
       <DependentUpon>HyperLinkStandard.xaml</DependentUpon>
     </Compile>
@@ -791,6 +797,14 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\AdminMessagesForm.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\CloudAccountAdmin.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\CloudAccountForm.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -1059,6 +1073,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\db.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\24_cloud.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
