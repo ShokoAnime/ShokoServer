@@ -250,6 +250,7 @@
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="API\API_Module.cs" />
     <Compile Include="API\Auth_Module.cs" />
+    <Compile Include="API\Binnary_Module.cs" />
     <Compile Include="API\Bootstrapper.cs" />
     <Compile Include="API\Model\AuthUser.cs" />
     <Compile Include="API\Secret_Module.cs" />

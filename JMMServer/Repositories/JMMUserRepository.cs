@@ -131,12 +131,20 @@ namespace JMMServer.Repositories
 
         public JMMUser GetByUsername(string username)
         {
-            foreach (JMMUser user in Cache.Values)
+            try
             {
-                if (user.UserName.ToLower() == username.ToLower())
-                    return user;
+                return Cache.Values.First<JMMUser>(x => x.Username.ToLower() == username.ToLower());
             }
-            return null;
+            catch
+            {
+                return null;
+            }
+            //foreach (JMMUser user in Cache.Values)
+            //{
+            //    if (user.UserName.ToLower() == username.ToLower())
+            //        return user;
+            //}
+            //return null;
         }
 
         public List<JMMUser> GetAll()
