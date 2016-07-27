@@ -251,6 +251,7 @@
     <Compile Include="API\API_Module.cs" />
     <Compile Include="API\Auth_Module.cs" />
     <Compile Include="API\Bootstrapper.cs" />
+    <Compile Include="API\Model\AuthUser.cs" />
     <Compile Include="API\Secret_Module.cs" />
     <Compile Include="API\UserDatabase.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
@@ -1061,7 +1062,6 @@
     <Resource Include="Images\db.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="API\Model\" />
     <Folder Include="API\Views\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

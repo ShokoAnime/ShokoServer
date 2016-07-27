@@ -52,8 +52,18 @@ namespace JMMServer.API
             }
 
             int uid = new Entities.JMMUser(username).JMMUserID;
-            var apiKey = Guid.NewGuid().ToString();
-            ActiveApiKeys.Add(new Tuple<int, string, string>(uid, device, apiKey));
+            string apiKey = "";
+            try
+            {
+                var apiKeys = ActiveApiKeys.First(u => u.Item1 == uid && u.Item2 == device);
+                apiKey = apiKeys.Item3;
+            }
+            catch
+            {
+                apiKey = Guid.NewGuid().ToString();
+                ActiveApiKeys.Add(new Tuple<int, string, string>(uid, device, apiKey));
+            }
+
             return apiKey;
         }
 
