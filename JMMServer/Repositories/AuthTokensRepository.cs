@@ -27,7 +27,7 @@ namespace JMMServer.Repositories
             }
         }
 
-        public AuthTokens GetByAnimeID(int authID)
+        public AuthTokens GetByAuthID(int authID)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
