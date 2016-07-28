@@ -52,6 +52,7 @@ namespace JMMServer.API
 
 
             //REST Interface for everyone
+            Get["/api/MyID"] = x => { return REST_MyID(x.apikey); };
             Get["/api/GetSupportImage/{name}"] = x => { return GetSupportImage(x.name); };
             Get["/api/GetFilters"] = _ => { return REST_GetFilters(); };
             Get["/api/GetMetadata/{type}/{id}"] = x => { return REST_GetMetadata(x.type, x.id); };
@@ -342,6 +343,21 @@ namespace JMMServer.API
         }
 
         //REST Interface for everyone
+
+        //return userid as it can be needed in legacy implementation
+        private object REST_MyID(string s)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            if (user != null)
+            {
+                return " { \"userid\":\"" + user.JMMUserID.ToString() +"\" }";
+            }
+            else
+            {
+                return null;
+            }
+        }
 
         private object REST_GetFilters()
         {
