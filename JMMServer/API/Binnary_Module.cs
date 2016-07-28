@@ -12,246 +12,247 @@ namespace JMMServer.API
             Get["/Admin_GetRandomLinkForApproval/{type}"] = x => { return Admin_GetRandomLinkForApproval((int)x.type); };
             Get["/ApproveTraktCrossRefWebCache/{id}"] = x => { return ApproveTraktCrossRefWebCache((int)x.id); };
             Get["/ApproveTVDBCrossRefWebCache/{id}"] = x => { return ApproveTVDBCrossRefWebCache((int)x.id); };
-            Get["/AssociateMultipleFiles"] = x => { return AssociateMultipleFiles(); };
             Get["/AssociateSingleFile/{a}/{b}"] = x => { return AssociateSingleFile((int)x.a, (int)x.b); };
             Get["/AssociateSingleFileWithMultipleEpisodes/{a}/{b}/{c}/{d}"] = x => { return AssociateSingleFileWithMultipleEpisodes((int)x.a, (int)x.b,(int)x.c, (int)x.d); };
             Get["/AuthenticateUser/{a}/{b}"] = x => { return AuthenticateUser(x.a, x.b); };
             Get["/ChangePassword/{a}/{b}"] = x => { return ChangePassword((int)x.a, x.b); };
-
-            Get["/CheckTraktLinkValidity"] = x => { return CheckTraktLinkValidity(); };
+            Get["/CheckTraktLinkValidity/{a}/{b}"] = x => { return CheckTraktLinkValidity(x.a, (bool)x.b); };
             Get["/ClearGeneralQueue"] = x => { return ClearGeneralQueue(); };
             Get["/ClearHasherQueue"] = x => { return ClearHasherQueue(); };
             Get["/ClearImagesQueue"] = x => { return ClearImagesQueue(); };
-            Get["/CreateSeriesFromAnime"] = x => { return CreateSeriesFromAnime(); };
-            Get["/DeleteAnimeGroup"] = x => { return DeleteAnimeGroup(); };
-            Get["/DeleteAnimeSeries"] = x => { return DeleteAnimeSeries(); };
-            Get["/DeleteBookmarkedAnime"] = x => { return DeleteBookmarkedAnime(); };
-            Get["/DeleteCustomTag"] = x => { return DeleteCustomTag(); };
-            Get["/DeleteCustomTagCrossRef"] = x => { return DeleteCustomTagCrossRef(); };
-            Get["/DeleteCustomTagCrossRefByID"] = x => { return DeleteCustomTagCrossRefByID(); };
-            Get["/DeleteDuplicateFile"] = x => { return DeleteDuplicateFile(); };
-            Get["/DeleteFFDPreset"] = x => { return DeleteFFDPreset(); };
-            Get["/DeleteFileFromMyList"] = x => { return DeleteFileFromMyList(); };
-            Get["/DeleteGroupFilter"] = x => { return DeleteGroupFilter(); };
-            Get["/DeleteImportFolder"] = x => { return DeleteImportFolder(); };
-            Get["/DeletePlaylist"] = x => { return DeletePlaylist(); };
-            Get["/DeleteRenameScript"] = x => { return DeleteRenameScript(); };
-            Get["/DeleteUser"] = x => { return DeleteUser(); };
-            Get["/DeleteVideoLocalAndFile"] = x => { return DeleteVideoLocalAndFile(); };
-            Get["/EnableDisableImage"] = x => { return EnableDisableImage(); };
-            Get["/EnterTraktPIN"] = x => { return EnterTraktPIN(); };
-            Get["/EvaluateGroupFilter"] = x => { return EvaluateGroupFilter(); };
-            Get["/ForceAddFileToMyList"] = x => { return ForceAddFileToMyList(); };
+            Get["/CreateSeriesFromAnime/{a}/{b}/{c}"] = x => { return CreateSeriesFromAnime(x.a,x.b,x.c); };
+            Get["/DeleteAnimeGroup/{a}/{b}"] = x => { return DeleteAnimeGroup(x.a, (bool)x.b); };
+            Get["/DeleteAnimeSeries/{a}/{b}/{c}/{d}"] = x => { return DeleteAnimeSeries(x.a, (bool)x.b, (bool)x.c); };
+            Get["/DeleteBookmarkedAnime/{a}"] = x => { return DeleteBookmarkedAnime((int)x.a); };
+            Get["/DeleteCustomTag/{a}"] = x => { return DeleteCustomTag((int)x.a); };
+            Get["/DeleteCustomTagCrossRef/{a}/{b}/{c}"] = x => { return DeleteCustomTagCrossRef((int)x.a, (int)x.b, (int)x.c); };
+            Get["/DeleteCustomTagCrossRefByID/{a}"] = x => { return DeleteCustomTagCrossRefByID((int)x.a); };
+            Get["/DeleteDuplicateFile/{a}/{b}"] = x => { return DeleteDuplicateFile((int)x.a, (int)x.b); };
+            Get["/DeleteFFDPreset/{a}"] = x => { return DeleteFFDPreset((int)x.a); };
+            Get["/DeleteFileFromMyList/{a}"] = x => { return DeleteFileFromMyList((int)x.a); };
+            Get["/DeleteGroupFilter/{a}"] = x => { return DeleteGroupFilter((int)x.a); };
+            Get["/DeleteImportFolder/{a}"] = x => { return DeleteImportFolder((int)x.a); };
+            Get["/DeletePlaylist/{a}"] = x => { return DeletePlaylist((int)x.a); };
+            Get["/DeleteRenameScript/{a}"] = x => { return DeleteRenameScript((int)x.a); };
+            Get["/DeleteUser/{a}"] = x => { return DeleteUser((int)x.a); };
+            Get["/DeleteVideoLocalAndFile/{a}"] = x => { return DeleteVideoLocalAndFile((int)x.a); };
+            Get["/EnableDisableImage/{a}/{b}/{c}"] = x => { return EnableDisableImage((bool)x.a, (int)x.b, (int)x.c); };
+            Get["/EnterTraktPIN/{a}"] = x => { return EnterTraktPIN(x.a); };
+            Get["/ForceAddFileToMyList/{a}"] = x => { return ForceAddFileToMyList(x.a); };
             Get["/GetAdminMessages"] = x => { return GetAdminMessages(); };
             Get["/GetAllAnime"] = x => { return GetAllAnime(); };
             Get["/GetAllAnimeDetailed"] = x => { return GetAllAnimeDetailed(); };
             Get["/GetAllBookmarkedAnime"] = x => { return GetAllBookmarkedAnime(); };
-            Get["/GetAllChanges"] = x => { return GetAllChanges(); };
+            Get["/GetAllChanges/{a}/{b}"] = x => { return GetAllChanges((DateTime)x.a, (int)x.b); };
             Get["/GetAllCustomTags"] = x => { return GetAllCustomTags(); };
             Get["/GetAllDuplicateFiles"] = x => { return GetAllDuplicateFiles(); };
-            Get["/GetAllEpisodesWithMultipleFiles"] = x => { return GetAllEpisodesWithMultipleFiles(); };
+            Get["/GetAllEpisodesWithMultipleFiles/{a}/{b}/{c}"] = x => { return GetAllEpisodesWithMultipleFiles((int)x.a, (bool)x.b, (bool)x.c); };
             Get["/GetAllGroupFilters"] = x => { return GetAllGroupFilters(); };
-            Get["/GetAllGroupFiltersExtended"] = x => { return GetAllGroupFiltersExtended(); };
-            Get["/GetAllGroups"] = x => { return GetAllGroups(); };
-            Get["/GetAllGroupsAboveGroupInclusive"] = x => { return GetAllGroupsAboveGroupInclusive(); };
-            Get["/GetAllGroupsAboveSeries"] = x => { return GetAllGroupsAboveSeries(); };
-            Get["/GetAllManuallyLinkedFiles"] = x => { return GetAllManuallyLinkedFiles(); };
-            Get["/GetAllMovieDBFanart"] = x => { return GetAllMovieDBFanart(); };
-            Get["/GetAllMovieDBPosters"] = x => { return GetAllMovieDBPosters(); };
+            Get["/GetAllGroupFiltersExtended/{a}"] = x => { return GetAllGroupFiltersExtended((int)x.a); };
+            Get["/GetAllGroups/{a}"] = x => { return GetAllGroups((int)x.a); };
+            Get["/GetAllGroupsAboveGroupInclusive/{a}/{b}"] = x => { return GetAllGroupsAboveGroupInclusive((int)x.a, (int)x.b); };
+            Get["/GetAllGroupsAboveSeries/{a}/{b}"] = x => { return GetAllGroupsAboveSeries((int)x.a, (int)x.b); };
+            Get["/GetAllManuallyLinkedFiles/{a}"] = x => { return GetAllManuallyLinkedFiles((int)x.a); };
+            Get["/GetAllMovieDBFanart/{a}"] = x => { return GetAllMovieDBFanart((int)x.a); };
+            Get["/GetAllMovieDBPosters/{a}"] = x => { return GetAllMovieDBPosters((int)x.a); };
             Get["/GetAllPlaylists"] = x => { return GetAllPlaylists(); };
             Get["/GetAllRenameScripts"] = x => { return GetAllRenameScripts(); };
-            Get["/GetAllSeries"] = x => { return GetAllSeries(); };
+            Get["/GetAllSeries/{a}"] = x => { return GetAllSeries((int)x.a); };
             Get["/GetAllTagNames"] = x => { return GetAllTagNames(); };
             Get["/GetAllTraktCrossRefs"] = x => { return GetAllTraktCrossRefs(); };
-            Get["/GetAllTraktEpisodes"] = x => { return GetAllTraktEpisodes(); };
-            Get["/GetAllTraktEpisodesByTraktID"] = x => { return GetAllTraktEpisodesByTraktID(); };
-            Get["/GetAllTraktFanart"] = x => { return GetAllTraktFanart(); };
-            Get["/GetAllTraktPosters"] = x => { return GetAllTraktPosters(); };
-            Get["/GetAllTvDBEpisodes"] = x => { return GetAllTvDBEpisodes(); };
-            Get["/GetAllTvDBFanart"] = x => { return GetAllTvDBFanart(); };
-            Get["/GetAllTvDBPosters"] = x => { return GetAllTvDBPosters(); };
-            Get["/GetAllTvDBWideBanners"] = x => { return GetAllTvDBWideBanners(); };
+            Get["/GetAllTraktEpisodes/{a}"] = x => { return GetAllTraktEpisodes((int)x.a); };
+            Get["/GetAllTraktEpisodesByTraktID/{a}"] = x => { return GetAllTraktEpisodesByTraktID(x.a); };
+            Get["/GetAllTraktFanart/{a}"] = x => { return GetAllTraktFanart((int)x.a); };
+            Get["/GetAllTraktPosters/{a}"] = x => { return GetAllTraktPosters((int)x.a); };
+            Get["/GetAllTvDBEpisodes/{a}"] = x => { return GetAllTvDBEpisodes((int)x.a); };
+            Get["/GetAllTvDBFanart/{a}"] = x => { return GetAllTvDBFanart((int)x.a); };
+            Get["/GetAllTvDBPosters/{a}"] = x => { return GetAllTvDBPosters((int)x.a); };
+            Get["/GetAllTvDBWideBanners/{a}"] = x => { return GetAllTvDBWideBanners((int)x.a); };
             Get["/GetAllUniqueAudioLanguages"] = x => { return GetAllUniqueAudioLanguages(); };
             Get["/GetAllUniqueSubtitleLanguages"] = x => { return GetAllUniqueSubtitleLanguages(); };
             Get["/GetAllUniqueVideoQuality"] = x => { return GetAllUniqueVideoQuality(); };
-            Get["/GetAllUnwatchedEpisodes"] = x => { return GetAllUnwatchedEpisodes(); };
+            Get["/GetAllUnwatchedEpisodes/{a}/{b}"] = x => { return GetAllUnwatchedEpisodes((int)x.a, (int)x.b); };
             Get["/GetAllUsers"] = x => { return GetAllUsers(); };
-            Get["/GetAniDBEpisodesForAnime"] = x => { return GetAniDBEpisodesForAnime(); };
-            Get["/GetAniDBRecommendations"] = x => { return GetAniDBRecommendations(); };
-            Get["/GetAniDBSeiyuu"] = x => { return GetAniDBSeiyuu(); };
-            Get["/GetAnime"] = x => { return GetAnime(); };
-            Get["/GetAnimeDetailed"] = x => { return GetAnimeDetailed(); };
-            Get["/GetAnimeForMonth"] = x => { return GetAnimeForMonth(); };
-            Get["/GetAnimeGroupsForFilter"] = x => { return GetAnimeGroupsForFilter(); };
-            Get["/GetAnimeRatings"] = x => { return GetAnimeRatings(); };
+            Get["/GetAniDBEpisodesForAnime/{a}"] = x => { return GetAniDBEpisodesForAnime((int)x.a); };
+            Get["/GetAniDBRecommendations/{a}"] = x => { return GetAniDBRecommendations((int)x.a); };
+            Get["/GetAniDBSeiyuu/{a}"] = x => { return GetAniDBSeiyuu((int)x.a); };
+            Get["/GetAnime/{a}"] = x => { return GetAnime((int)x.a); };
+            Get["/GetAnimeDetailed/{a}"] = x => { return GetAnimeDetailed((int)x.a); };
+            Get["/GetAnimeForMonth/{a}/{b}/{c}"] = x => { return GetAnimeForMonth((int)x.a, (int)x.b, (int)x.c); };
+            Get["/GetAnimeGroupsForFilter/{a}/{b}/{c}"] = x => { return GetAnimeGroupsForFilter((int)x.a, (int)x.b, (bool)x.c); };
+            Get["/GetAnimeRatings/{a}/{b}/{c}/{d}"] = x => { return GetAnimeRatings((int)x.a, (int)x.b, (int)x.c, (int)x.d); };
             Get["/GetAppVersions"] = x => { return GetAppVersions(); };
-            Get["/GetBookmarkedAnime"] = x => { return GetBookmarkedAnime(); };
-            Get["/GetCharactersForAnime"] = x => { return GetCharactersForAnime(); };
-            Get["/GetCharactersForSeiyuu"] = x => { return GetCharactersForSeiyuu(); };
-            Get["/GetContinueWatchingFilter"] = x => { return GetContinueWatchingFilter(); };
-            Get["/GetCrossRefDetails"] = x => { return GetCrossRefDetails(); };
-            Get["/GetCustomTag"] = x => { return GetCustomTag(); };
-            Get["/GetEpisode"] = x => { return GetEpisode(); };
-            Get["/GetEpisodeByAniDBEpisodeID"] = x => { return GetEpisodeByAniDBEpisodeID(); };
-            Get["/GetEpisodesForFile"] = x => { return GetEpisodesForFile(); };
-            Get["/GetEpisodesForSeries"] = x => { return GetEpisodesForSeries(); };
-            Get["/GetEpisodesForSeriesOld"] = x => { return GetEpisodesForSeriesOld(); };
-            Get["/GetEpisodesRecentlyAdded"] = x => { return GetEpisodesRecentlyAdded(); };
-            Get["/GetEpisodesRecentlyAddedSummary"] = x => { return GetEpisodesRecentlyAddedSummary(); };
-            Get["/GetEpisodesRecentlyWatched"] = x => { return GetEpisodesRecentlyWatched(); };
-            Get["/GetEpisodesToWatch_RecentlyWatched"] = x => { return GetEpisodesToWatch_RecentlyWatched(); };
-            Get["/GetFFDPreset"] = x => { return GetFFDPreset(); };
-            Get["/GetFilesByGroup"] = x => { return GetFilesByGroup(); };
-            Get["/GetFilesByGroupAndResolution"] = x => { return GetFilesByGroupAndResolution(); };
-            Get["/GetFilesForEpisode"] = x => { return GetFilesForEpisode(); };
-            Get["/GetGroup"] = x => { return GetGroup(); };
-            Get["/GetGroupFileSummary"] = x => { return GetGroupFileSummary(); };
-            Get["/GetGroupFilter"] = x => { return GetGroupFilter(); };
-            Get["/GetGroupFilterChanges"] = x => { return GetGroupFilterChanges(); };
-            Get["/GetGroupFilterExtended"] = x => { return GetGroupFilterExtended(); };
-            Get["/GetGroupFilters"] = x => { return GetGroupFilters(); };
-            Get["/GetGroupFiltersExtended"] = x => { return GetGroupFiltersExtended(); };
-            Get["/GetGroupVideoQualitySummary"] = x => { return GetGroupVideoQualitySummary(); };
+            Get["/GetBookmarkedAnime/{a}"] = x => { return GetBookmarkedAnime((int)x.a); };
+            Get["/GetCharactersForAnime/{a}"] = x => { return GetCharactersForAnime((int)x.a); };
+            Get["/GetCharactersForSeiyuu/{a}"] = x => { return GetCharactersForSeiyuu((int)x.a); };
+            Get["/GetContinueWatchingFilter/{a}/{b}"] = x => { return GetContinueWatchingFilter((int)x.a,(int)x.b); };
+            Get["/GetCrossRefDetails/{a}"] = x => { return GetCrossRefDetails((int)x.a); };
+            Get["/GetCustomTag/{a}"] = x => { return GetCustomTag((int)x.a); };
+            Get["/GetEpisode/{a}/{b}"] = x => { return GetEpisode((int)x.a, (int)x.b); };
+            Get["/GetEpisodeByAniDBEpisodeID/{a}/{b}"] = x => { return GetEpisodeByAniDBEpisodeID((int)x.a, (int)x.b); };
+            Get["/GetEpisodesForFile/{a}/{b}"] = x => { return GetEpisodesForFile((int)x.a, (int)x.b); };
+            Get["/GetEpisodesForSeries/{a}/{b}"] = x => { return GetEpisodesForSeries((int)x.a, (int)x.b); };
+            Get["/GetEpisodesForSeriesOld/{a}"] = x => { return GetEpisodesForSeriesOld((int)x.a); };
+            Get["/GetEpisodesRecentlyAdded/{a}/{b}"] = x => { return GetEpisodesRecentlyAdded((int)x.a, (int)x.b); };
+            Get["/GetEpisodesRecentlyAddedSummary/{a}/{b}"] = x => { return GetEpisodesRecentlyAddedSummary((int)x.a, (int)x.b); };
+            Get["/GetEpisodesRecentlyWatched/{a}/{b}"] = x => { return GetEpisodesRecentlyWatched((int)x.a, (int)x.b); };
+            Get["/GetEpisodesToWatch_RecentlyWatched/{a}/{b}"] = x => { return GetEpisodesToWatch_RecentlyWatched((int)x.a, (int)x.b); };
+            Get["/GetFFDPreset/{a}"] = x => { return GetFFDPreset((int)x.a); };
+            Get["/GetFilesByGroup/{a}/{b}"] = x => { return GetFilesByGroup((int)x.a, x.b, (int)x.c); };
+            Get["/GetFilesByGroupAndResolution/{a}/{b}/{c}/{d}/{e}/{f}"] = x => { return GetFilesByGroupAndResolution((int)x.a, x.b, x.c, x.d, (int)x.e, (int)x.f); };
+            Get["/GetFilesForEpisode/{a}/{b}"] = x => { return GetFilesForEpisode((int)x.a, (int)x.b); };
+            Get["/GetGroup/{a}/{b}"] = x => { return GetGroup((int)x.a, (int)x.b); };
+            Get["/GetGroupFileSummary/{a}"] = x => { return GetGroupFileSummary((int)x.a); };
+            Get["/GetGroupFilter/{a}"] = x => { return GetGroupFilter((int)x.a); };
+            Get["/GetGroupFilterChanges/{a}"] = x => { return GetGroupFilterChanges((DateTime)x.a); };
+            Get["/GetGroupFilterExtended/{a}/{b}"] = x => { return GetGroupFilterExtended((int)x.a, (int)x.b); };
+            Get["/GetGroupFilters/{a}"] = x => { return GetGroupFilters((int)x.a); };
+            Get["/GetGroupFiltersExtended/{a}"] = x => { return GetGroupFiltersExtended((int)x.a); };
+            Get["/GetGroupVideoQualitySummary/{a}"] = x => { return GetGroupVideoQualitySummary((int)x.a); };
             Get["/GetHashCode"] = x => { return GetHashCode(); };
-            Get["/GetIgnoredAnime"] = x => { return GetIgnoredAnime(); };
-            Get["/GetIgnoredFiles"] = x => { return GetIgnoredFiles(); };
+            Get["/GetIgnoredAnime/{a}"] = x => { return GetIgnoredAnime((int)x.a); };
+            Get["/GetIgnoredFiles/{a}"] = x => { return GetIgnoredFiles((int)x.a); };
             Get["/GetImportFolders"] = x => { return GetImportFolders(); };
-            Get["/GetLastWatchedEpisodeForSeries"] = x => { return GetLastWatchedEpisodeForSeries(); };
-            Get["/GetMALCrossRefWebCache"] = x => { return GetMALCrossRefWebCache(); };
-            Get["/GetManuallyLinkedFiles"] = x => { return GetManuallyLinkedFiles(); };
-            Get["/GetMiniCalendar"] = x => { return GetMiniCalendar(); };
-            Get["/GetMissingEpisodes"] = x => { return GetMissingEpisodes(); };
-            Get["/GetMyListFilesForRemoval"] = x => { return GetMyListFilesForRemoval(); };
-            Get["/GetMyReleaseGroupsForAniDBEpisode"] = x => { return GetMyReleaseGroupsForAniDBEpisode(); };
-            Get["/GetNextUnwatchedEpisode"] = x => { return GetNextUnwatchedEpisode(); };
-            Get["/GetNextUnwatchedEpisodeForGroup"] = x => { return GetNextUnwatchedEpisodeForGroup(); };
-            Get["/GetOtherAnimeCrossRef"] = x => { return GetOtherAnimeCrossRef(); };
-            Get["/GetOtherAnimeCrossRefWebCache"] = x => { return GetOtherAnimeCrossRefWebCache(); };
-            Get["/GetPlaylist"] = x => { return GetPlaylist(); };
-            Get["/GetPreviousEpisodeForUnwatched"] = x => { return GetPreviousEpisodeForUnwatched(); };
-            Get["/GetRecommendations"] = x => { return GetRecommendations(); };
-            Get["/GetRelatedAnimeLinks"] = x => { return GetRelatedAnimeLinks(); };
-            Get["/GetReleaseGroupsForAnime"] = x => { return GetReleaseGroupsForAnime(); };
-            Get["/GetSeasonNumbersForSeries"] = x => { return GetSeasonNumbersForSeries(); };
-            Get["/GetSeasonNumbersForTrakt"] = x => { return GetSeasonNumbersForTrakt(); };
-            Get["/GetSeries"] = x => { return GetSeries(); };
-            Get["/GetSeriesExistingForAnime"] = x => { return GetSeriesExistingForAnime(); };
-            Get["/GetSeriesForAnime"] = x => { return GetSeriesForAnime(); };
-            Get["/GetSeriesForGroup"] = x => { return GetSeriesForGroup(); };
-            Get["/GetSeriesForGroupRecursive"] = x => { return GetSeriesForGroupRecursive(); };
-            Get["/GetSeriesRecentlyAdded"] = x => { return GetSeriesRecentlyAdded(); };
-            Get["/GetSeriesWithMissingEpisodes"] = x => { return GetSeriesWithMissingEpisodes(); };
-            Get["/GetSeriesWithoutAnyFiles"] = x => { return GetSeriesWithoutAnyFiles(); };
+            Get["/GetLastWatchedEpisodeForSeries/{a}/{b}"] = x => { return GetLastWatchedEpisodeForSeries((int)x.a, (int)x.b); };
+            Get["/GetMALCrossRefWebCache/{a}"] = x => { return GetMALCrossRefWebCache((int)x.a); };
+            Get["/GetManuallyLinkedFiles/{a}"] = x => { return GetManuallyLinkedFiles((int)x.a); };
+            Get["/GetMiniCalendar/{a}/{b}"] = x => { return GetMiniCalendar((int)x.a, (int)x.b); };
+            Get["/GetMissingEpisodes/{a}/{b}/{c}/{d}"] = x => { return GetMissingEpisodes((int)x.a, (bool)x.b, (bool)x.c,(int)x.d); };
+            Get["/GetMyListFilesForRemoval/{a}"] = x => { return GetMyListFilesForRemoval((int)x.a); };
+            Get["/GetMyReleaseGroupsForAniDBEpisode/{a}"] = x => { return GetMyReleaseGroupsForAniDBEpisode((int)x.a); };
+            Get["/GetNextUnwatchedEpisode/{a}/{b}"] = x => { return GetNextUnwatchedEpisode((int)x.a, (int)x.b); };
+            Get["/GetNextUnwatchedEpisodeForGroup/{a}/{b}"] = x => { return GetNextUnwatchedEpisodeForGroup((int)x.a, (int)x.b); };
+            Get["/GetOtherAnimeCrossRef/{a}/{b}"] = x => { return GetOtherAnimeCrossRef((int)x.a, (int)x.b); };
+            Get["/GetOtherAnimeCrossRefWebCache/{a}/{b}"] = x => { return GetOtherAnimeCrossRefWebCache((int)x.a, (int)x.b); };
+            Get["/GetPlaylist/{a}"] = x => { return GetPlaylist((int)x.a); };
+            Get["/GetPreviousEpisodeForUnwatched/{a}/{b}"] = x => { return GetPreviousEpisodeForUnwatched((int)x.a, (int)x.b); };
+            Get["/GetRecommendations/{a}/{b}/{c}"] = x => { return GetRecommendations((int)x.a, (int)x.b, (int)x.c); };
+            Get["/GetRelatedAnimeLinks/{a}/{b}"] = x => { return GetRelatedAnimeLinks((int)x.a, (int)x.b); };
+            Get["/GetReleaseGroupsForAnime/{a}"] = x => { return GetReleaseGroupsForAnime((int)x.a); };
+            Get["/GetSeasonNumbersForSeries/{a}"] = x => { return GetSeasonNumbersForSeries((int)x.a); };
+            Get["/GetSeasonNumbersForTrakt/{a}"] = x => { return GetSeasonNumbersForTrakt(x.a); };
+            Get["/GetSeries/{a}/{b}"] = x => { return GetSeries((int)x.a, (int)x.b); };
+            Get["/GetSeriesExistingForAnime/{a}"] = x => { return GetSeriesExistingForAnime((int)x.a); };
+            Get["/GetSeriesForAnime/{a}/{b}"] = x => { return GetSeriesForAnime((int)x.a, (int)x.b); };
+            Get["/GetSeriesForGroupRecursive/{a}/{b}"] = x => { return GetSeriesForGroupRecursive((int)x.a, (int)x.b); };
+            Get["/GetSeriesRecentlyAdded/{a}/{b}"] = x => { return GetSeriesRecentlyAdded((int)x.a, (int)x.b); };
+            Get["/GetSeriesWithMissingEpisodes/{a}/{b}"] = x => { return GetSeriesWithMissingEpisodes((int)x.a, (int)x.b); };
+            Get["/GetSeriesWithoutAnyFiles/{a}"] = x => { return GetSeriesWithoutAnyFiles((int)x.a); };
             Get["/GetServerSettings"] = x => { return GetServerSettings(); };
             Get["/GetServerStatus"] = x => { return GetServerStatus(); };
-            Get["/GetSimilarAnimeLinks"] = x => { return GetSimilarAnimeLinks(); };
-            Get["/GetSubGroupsForGroup"] = x => { return GetSubGroupsForGroup(); };
-            Get["/GetTopLevelGroupForSeries"] = x => { return GetTopLevelGroupForSeries(); };
-            Get["/GetTraktCommentsForAnime"] = x => { return GetTraktCommentsForAnime(); };
-            Get["/GetTraktCrossRefEpisode"] = x => { return GetTraktCrossRefEpisode(); };
-            Get["/GetTraktCrossRefV2"] = x => { return GetTraktCrossRefV2(); };
-            Get["/GetTraktCrossRefWebCache"] = x => { return GetTraktCrossRefWebCache(); };
-            Get["/GetTVDBCrossRefEpisode"] = x => { return GetTVDBCrossRefEpisode(); };
-            Get["/GetTVDBCrossRefV2"] = x => { return GetTVDBCrossRefV2(); };
-            Get["/GetTVDBCrossRefWebCache"] = x => { return GetTVDBCrossRefWebCache(); };
+            Get["/GetSimilarAnimeLinks/{a}/{b}"] = x => { return GetSimilarAnimeLinks((int)x.a, (int)x.b); };
+            Get["/GetSubGroupsForGroup/{a}/{b}"] = x => { return GetSubGroupsForGroup((int)x.a, (int)x.b); };
+            Get["/GetTopLevelGroupForSeries/{a}/{b}"] = x => { return GetTopLevelGroupForSeries((int)x.a, (int)x.b); };
+            Get["/GetTraktCommentsForAnime/{a}"] = x => { return GetTraktCommentsForAnime((int)x.a); };
+            Get["/GetTraktCrossRefEpisode/{a}"] = x => { return GetTraktCrossRefEpisode((int)x.a); };
+            Get["/GetTraktCrossRefV2/{a}"] = x => { return GetTraktCrossRefV2((int)x.a); };
+            Get["/GetTraktCrossRefWebCache/{a}/{b}"] = x => { return GetTraktCrossRefWebCache((int)x.a, (bool)x.b); };
+            Get["/GetTVDBCrossRefEpisode/{a}"] = x => { return GetTVDBCrossRefEpisode((int)x.a); };
+            Get["/GetTVDBCrossRefV2/{a}"] = x => { return GetTVDBCrossRefV2((int)x.a); };
+            Get["/GetTVDBCrossRefWebCache/{a}/{b}"] = x => { return GetTVDBCrossRefWebCache((int)x.a, (bool)x.b); };
             Get["/GetTvDBLanguages"] = x => { return GetTvDBLanguages(); };
-            Get["/GetUnrecognisedFiles"] = x => { return GetUnrecognisedFiles(); };
-            Get["/GetUserVote"] = x => { return GetUserVote(); };
-            Get["/GetVideoDetailed"] = x => { return GetVideoDetailed(); };
-            Get["/GetVideoLocalsForAnime"] = x => { return GetVideoLocalsForAnime(); };
-            Get["/GetVideoLocalsForEpisode"] = x => { return GetVideoLocalsForEpisode(); };
-            Get["/IgnoreAnime"] = x => { return IgnoreAnime(); };
-            Get["/IncrementEpisodeStats"] = x => { return IncrementEpisodeStats(); };
+            Get["/GetUnrecognisedFiles/{a}"] = x => { return GetUnrecognisedFiles((int)x.a); };
+            Get["/GetUserVote/{a}"] = x => { return GetUserVote((int)x.a); };
+            Get["/GetVideoDetailed/{a}/{b}"] = x => { return GetVideoDetailed((int)x.a, (int)x.b); };
+            Get["/GetVideoLocalsForAnime/{a}/{b}"] = x => { return GetVideoLocalsForAnime((int)x.a, (int)x.b); };
+            Get["/GetVideoLocalsForEpisode/{a}/{b}"] = x => { return GetVideoLocalsForEpisode((int)x.a, (int)x.b); };
+            Get["/IgnoreAnime/{a}/{b}/{c}"] = x => { return IgnoreAnime((int)x.a, (int)x.b, (int)x.c); };
+            Get["/IncrementEpisodeStats/{a}/{b}/{c}"] = x => { return IncrementEpisodeStats((int)x.a, (int)x.b, (int)x.c); };
             Get["/IsWebCacheAdmin"] = x => { return IsWebCacheAdmin(); };
-            Get["/LinkAniDBMAL"] = x => { return LinkAniDBMAL(); };
-            Get["/LinkAniDBMALUpdated"] = x => { return LinkAniDBMALUpdated(); };
-            Get["/LinkAniDBOther"] = x => { return LinkAniDBOther(); };
-            Get["/LinkAniDBTrakt"] = x => { return LinkAniDBTrakt(); };
-            Get["/LinkAniDBTvDB"] = x => { return LinkAniDBTvDB(); };
-            Get["/LinkAniDBTvDBEpisode"] = x => { return LinkAniDBTvDBEpisode(); };
-            Get["/MoveSeries"] = x => { return MoveSeries(); };
-            Get["/OnlineAnimeTitleSearch"] = x => { return OnlineAnimeTitleSearch(); };
-            Get["/PostTraktCommentShow"] = x => { return PostTraktCommentShow(); };
-            Get["/RandomFileRenamePreview"] = x => { return RandomFileRenamePreview(); };
+            Get["/LinkAniDBMAL/{a}/{b}/{c}/{d}/{e}"] = x => { return LinkAniDBMAL((int)x.a, (int)x.b, x.c, (int)x.d, (int)x.e); };
+            Get["/LinkAniDBMALUpdated/{a}/{b}/{c}/{d}/{e}/{f}/{g}"] = x => { return LinkAniDBMALUpdated((int)x.a, (int)x.b, x.c, (int)x.d, (int)x.e, (int)x.f, (int)x.g); };
+            Get["/LinkAniDBOther/{a}/{b}/{c}"] = x => { return LinkAniDBOther((int)x.a, (int)x.b, (int)x.c); };
+            Get["/LinkAniDBTrakt/{a}/{b}/{c}/{d}/{e}/{f}/{g}"] = x => { return LinkAniDBTrakt((int)x.a, (int)x.b, (int)x.c, x.d, (int)x.e, (int)x.f, (int)x.g); };
+            Get["/LinkAniDBTvDB/{a}/{b}/{c}/{d}/{e}/{f}/{g}"] = x => { return LinkAniDBTvDB((int)x.a, (int)x.b, (int)x.c, (int)x.d, (int)x.e, (int)x.f, (int)x.g); };
+            Get["/LinkAniDBTvDBEpisode/{a}/{b}/{c}"] = x => { return LinkAniDBTvDBEpisode((int)x.a, (int)x.b, (int)x.c); };
+            Get["/MoveSeries/{a}/{b}/{c}"] = x => { return MoveSeries((int)x.a, (int)x.b, (int)x.c); };
+            Get["/OnlineAnimeTitleSearch/{a}"] = x => { return OnlineAnimeTitleSearch(x.a); };
+            Get["/PostTraktCommentShow/{a}/{b}/{c}/{d}"] = x => { return PostTraktCommentShow(x.a, x.b, (bool)x.c, x.d); };
+            Get["/RandomFileRenamePreview/{a}/{b}"] = x => { return RandomFileRenamePreview((int)x.a, (int)x.b); };
             Get["/RecreateAllGroups"] = x => { return RecreateAllGroups(); };
             Get["/ReevaluateDuplicateFiles"] = x => { return ReevaluateDuplicateFiles(); };
             Get["/RefreshAllMediaInfo"] = x => { return RefreshAllMediaInfo(); };
-            Get["/RehashFile"] = x => { return RehashFile(); };
-            Get["/RemoveAssociationOnFile"] = x => { return RemoveAssociationOnFile(); };
-            Get["/RemoveDefaultSeriesForGroup"] = x => { return RemoveDefaultSeriesForGroup(); };
-            Get["/RemoveIgnoreAnime"] = x => { return RemoveIgnoreAnime(); };
-            Get["/RemoveLinkAniDBMAL"] = x => { return RemoveLinkAniDBMAL(); };
-            Get["/RemoveLinkAniDBOther"] = x => { return RemoveLinkAniDBOther(); };
-            Get["/RemoveLinkAniDBTrakt"] = x => { return RemoveLinkAniDBTrakt(); };
-            Get["/RemoveLinkAniDBTraktForAnime"] = x => { return RemoveLinkAniDBTraktForAnime(); };
-            Get["/RemoveLinkAniDBTvDB"] = x => { return RemoveLinkAniDBTvDB(); };
-            Get["/RemoveLinkAniDBTvDBEpisode"] = x => { return RemoveLinkAniDBTvDBEpisode(); };
-            Get["/RemoveLinkAniDBTvDBForAnime"] = x => { return RemoveLinkAniDBTvDBForAnime(); };
-            Get["/RemoveMissingFiles"] = x => { return RemoveMissingFiles(); };
-            Get["/RemoveMissingMyListFiles"] = x => { return RemoveMissingMyListFiles(); };
+            Get["/RehashFile/{a}"] = x => { return RehashFile((int)x.a); };
+            Get["/RemoveAssociationOnFile/{a}/{b}"] = x => { return RemoveAssociationOnFile((int)x.a, (int)x.b); };
+            Get["/RemoveDefaultSeriesForGroup/{a}"] = x => { return RemoveDefaultSeriesForGroup((int)x.a); };
+            Get["/RemoveIgnoreAnime/{a}"] = x => { return RemoveIgnoreAnime((int)x.a); };
+            Get["/RemoveLinkAniDBMAL/{a}/{b}/{c}"] = x => { return RemoveLinkAniDBMAL((int)x.a, (int)x.b, (int)x.c); };
+            Get["/RemoveLinkAniDBOther/{a}/{b}"] = x => { return RemoveLinkAniDBOther((int)x.a, (int)x.b); };
+            Get["/RemoveLinkAniDBTrakt/{a}/{b}/{c}/{d}/{e}/{f}"] = x => { return RemoveLinkAniDBTrakt((int)x.a, (int)x.b, (int)x.c, x.d, (int)x.e, (int)x.f); };
+            Get["/RemoveLinkAniDBTraktForAnime/{a}"] = x => { return RemoveLinkAniDBTraktForAnime((int)x.a); };
+            Get["/RemoveLinkAniDBTvDB/{a}/{b}/{c}/{d}/{e}/{f}"] = x => { return RemoveLinkAniDBTvDB((int)x.a, (int)x.b, (int)x.c, (int)x.d, (int)x.e, (int)x.f); };
+            Get["/RemoveLinkAniDBTvDBEpisode/{a}"] = x => { return RemoveLinkAniDBTvDBEpisode((int)x.a); };
+            Get["/RemoveLinkAniDBTvDBForAnime/{a}"] = x => { return RemoveLinkAniDBTvDBForAnime((int)x.a); };
+            Get["/RemoveMissingFiles/{a}"] = x => { return RemoveMissingFiles((int)x.a); };
             Get["/RenameAllGroups"] = x => { return RenameAllGroups(); };
-            Get["/RenameFile"] = x => { return RenameFile(); };
-            Get["/RenameFilePreview"] = x => { return RenameFilePreview(); };
-            Get["/RenameFiles"] = x => { return RenameFiles(); };
-            Get["/RescanFile"] = x => { return RescanFile(); };
+            Get["/RenameFile/{a}/{b}"] = x => { return RenameFile((int)x.a,x.b); };
+            Get["/RenameFilePreview/{a}/{b}"] = x => { return RenameFilePreview((int)x.a,x.b); };
+            Get["/RescanFile/{a}"] = x => { return RescanFile((int)x.a); };
             Get["/RescanManuallyLinkedFiles"] = x => { return RescanManuallyLinkedFiles(); };
             Get["/RescanUnlinkedFiles"] = x => { return RescanUnlinkedFiles(); };
-            Get["/RevokeTraktCrossRefWebCache"] = x => { return RevokeTraktCrossRefWebCache(); };
-            Get["/RevokeTVDBCrossRefWebCache"] = x => { return RevokeTVDBCrossRefWebCache(); };
+            Get["/RevokeTraktCrossRefWebCache/{a}"] = x => { return RevokeTraktCrossRefWebCache((int)x.a); };
+            Get["/RevokeTVDBCrossRefWebCache/{a}"] = x => { return RevokeTVDBCrossRefWebCache((int)x.a); };
             Get["/RunImport"] = x => { return RunImport(); };
-            Get["/SaveBookmarkedAnime"] = x => { return SaveBookmarkedAnime(); };
-            Get["/SaveCustomTag"] = x => { return SaveCustomTag(); };
-            Get["/SaveCustomTagCrossRef"] = x => { return SaveCustomTagCrossRef(); };
-            Get["/SaveFFDPreset"] = x => { return SaveFFDPreset(); };
-            Get["/SaveGroup"] = x => { return SaveGroup(); };
-            Get["/SaveGroupFilter"] = x => { return SaveGroupFilter(); };
-            Get["/SaveImportFolder"] = x => { return SaveImportFolder(); };
-            Get["/SavePlaylist"] = x => { return SavePlaylist(); };
-            Get["/SaveRenameScript"] = x => { return SaveRenameScript(); };
-            Get["/SaveSeries"] = x => { return SaveSeries(); };
-            Get["/SaveServerSettings"] = x => { return SaveServerSettings(); };
-            Get["/SaveUser"] = x => { return SaveUser(); };
             Get["/ScanDropFolders"] = x => { return ScanDropFolders(); };
-            Get["/ScanFolder"] = x => { return ScanFolder(); };
-            Get["/SearchForFiles"] = x => { return SearchForFiles(); };
-            Get["/SearchMAL"] = x => { return SearchMAL(); };
-            Get["/SearchTheMovieDB"] = x => { return SearchTheMovieDB(); };
-            Get["/SearchTheTvDB"] = x => { return SearchTheTvDB(); };
-            Get["/SearchTrakt"] = x => { return SearchTrakt(); };
-            Get["/SetCommandProcessorGeneralPaused"] = x => { return SetCommandProcessorGeneralPaused(); };
-            Get["/SetCommandProcessorHasherPaused"] = x => { return SetCommandProcessorHasherPaused(); };
-            Get["/SetCommandProcessorImagesPaused"] = x => { return SetCommandProcessorImagesPaused(); };
-            Get["/SetDefaultImage"] = x => { return SetDefaultImage(); };
-            Get["/SetDefaultSeriesForGroup"] = x => { return SetDefaultSeriesForGroup(); };
-            Get["/SetIgnoreStatusOnFile"] = x => { return SetIgnoreStatusOnFile(); };
-            Get["/SetVariationStatusOnFile"] = x => { return SetVariationStatusOnFile(); };
-            Get["/SetWatchedStatusOnSeries"] = x => { return SetWatchedStatusOnSeries(); };
+            Get["/ScanFolder/{a}"] = x => { return ScanFolder((int)x.a); };
+            Get["/SearchForFiles/{a}/{b}/{c}"] = x => { return SearchForFiles((int)x.a,x.b, (int)x.c); };
+            Get["/SearchMAL/{a}"] = x => { return SearchMAL(x.a); };
+            Get["/SearchTheMovieDB/{a}"] = x => { return SearchTheMovieDB(x.a); };
+            Get["/SearchTheTvDB/{a}"] = x => { return SearchTheTvDB(x.a); };
+            Get["/SearchTrakt/{a}"] = x => { return SearchTrakt(x.a); };
+            Get["/SetCommandProcessorGeneralPaused/{a}"] = x => { return SetCommandProcessorGeneralPaused((bool)x.a); };
+            Get["/SetCommandProcessorHasherPaused/{a}"] = x => { return SetCommandProcessorHasherPaused((bool)x.a); };
+            Get["/SetCommandProcessorImagesPaused/{a}"] = x => { return SetCommandProcessorImagesPaused((bool)x.a); };
+            Get["/SetDefaultImage/{a}/{b}/{c}/{d}/{e}"] = x => { return SetDefaultImage((bool)x.a, (int)x.b, (int)x.c, (int)x.d, (int)x.e); };
+            Get["/SetDefaultSeriesForGroup/{a}/{b}"] = x => { return SetDefaultSeriesForGroup((int)x.a, (int)x.b); };
+            Get["/SetIgnoreStatusOnFile/{a}/{b}"] = x => { return SetIgnoreStatusOnFile((int)x.a, (bool)x.b); };
+            Get["/SetVariationStatusOnFile/{a}/{b}"] = x => { return SetVariationStatusOnFile((int)x.a, (bool)x.b); };
+            Get["/SetWatchedStatusOnSeries/{a}/{b}/{c}/{d}/{e}"] = x => { return SetWatchedStatusOnSeries((int)x.a, (bool)x.b, (int)x.c, (int)x.d, (int)x.e); };
             Get["/SyncHashes"] = x => { return SyncHashes(); };
             Get["/SyncMALDownload"] = x => { return SyncMALDownload(); };
             Get["/SyncMALUpload"] = x => { return SyncMALUpload(); };
             Get["/SyncMyList"] = x => { return SyncMyList(); };
-            Get["/SyncTraktSeries"] = x => { return SyncTraktSeries(); };
+            Get["/SyncTraktSeries/{a}"] = x => { return SyncTraktSeries((int)x.a); };
             Get["/SyncVotes"] = x => { return SyncVotes(); };
             Get["/TestAniDBConnection"] = x => { return TestAniDBConnection(); };
             Get["/TestMALLogin"] = x => { return TestMALLogin(); };
-            Get["/ToggleWatchedStatusOnEpisode"] = x => { return ToggleWatchedStatusOnEpisode(); };
-            Get["/ToggleWatchedStatusOnVideo"] = x => { return ToggleWatchedStatusOnVideo(); };
-            Get["/ToString"] = x => { return ToString(); };
-            Get["/TraktFriendRequestApprove"] = x => { return TraktFriendRequestApprove(); };
-            Get["/TraktFriendRequestDeny"] = x => { return TraktFriendRequestDeny(); };
-            Get["/UpdateAniDBFileData"] = x => { return UpdateAniDBFileData(); };
-            Get["/UpdateAnimeData"] = x => { return UpdateAnimeData(); };
-            Get["/UpdateAnimeDisableExternalLinksFlag"] = x => { return UpdateAnimeDisableExternalLinksFlag(); };
+            Get["/ToggleWatchedStatusOnEpisode/{a}/{b}/{c}"] = x => { return ToggleWatchedStatusOnEpisode((int)x.a, (bool)x.b, (int)x.c); };
+            Get["/ToggleWatchedStatusOnVideo/{a}/{b}/{c}"] = x => { return ToggleWatchedStatusOnVideo((int)x.a, (bool)x.b, (int)x.c); };
+            Get["/TraktFriendRequestApprove/{a}/{b}"] = x => { return TraktFriendRequestApprove(x.a,x.b); };
+            Get["/TraktFriendRequestDeny/{a}/{b}"] = x => { return TraktFriendRequestDeny(x.a,x.b); };
+            Get["/UpdateAniDBFileData/{a}/{b}/{c}"] = x => { return UpdateAniDBFileData((bool)x.a, (bool)x.b, (bool)x.c); };
+            Get["/UpdateAnimeData/{a}"] = x => { return UpdateAnimeData((int)x.a); };
+            Get["/UpdateAnimeDisableExternalLinksFlag/{a}/{b}"] = x => { return UpdateAnimeDisableExternalLinksFlag((int)x.a, (int)x.b); };
             Get["/UpdateCalendarData"] = x => { return UpdateCalendarData(); };
-            Get["/UpdateEpisodeData"] = x => { return UpdateEpisodeData(); };
-            Get["/UpdateFileData"] = x => { return UpdateFileData(); };
-            Get["/UpdateMovieDBData"] = x => { return UpdateMovieDBData(); };
-            Get["/UpdateTraktData"] = x => { return UpdateTraktData(); };
-            Get["/UpdateTvDBData"] = x => { return UpdateTvDBData(); };
-            Get["/UseMyTraktLinksWebCache"] = x => { return UseMyTraktLinksWebCache(); };
-            Get["/UseMyTvDBLinksWebCache"] = x => { return UseMyTvDBLinksWebCache(); };
-            Get["/VoteAnime"] = x => { return VoteAnime(); };
-            Get["/VoteAnimeRevoke"] = x => { return VoteAnimeRevoke(); };
+            Get["/UpdateEpisodeData/{a}"] = x => { return UpdateEpisodeData((int)x.a); };
+            Get["/UpdateFileData/{a}"] = x => { return UpdateFileData((int)x.a); };
+            Get["/UpdateMovieDBData/{a}"] = x => { return UpdateMovieDBData((int)x.a); };
+            Get["/UpdateTraktData/{a}"] = x => { return UpdateTraktData(x.a); };
+            Get["/UpdateTvDBData/{a}"] = x => { return UpdateTvDBData((int)x.a); };
+            Get["/UseMyTraktLinksWebCache"] = x => { return UseMyTraktLinksWebCache((int)x.a); };
+            Get["/UseMyTvDBLinksWebCache"] = x => { return UseMyTvDBLinksWebCache((int)x.a); };
+            Get["/VoteAnime/{a}/{b}/{c}"] = x => { return VoteAnime((int)x.a,(decimal)x.b, (int)x.c); };
+            Get["/VoteAnimeRevoke/{a}"] = x => { return VoteAnimeRevoke((int)x.a); };
+
+            //im unsure how to start this, probably need to be redone or not needed
+            //some of them need to be POST so you can capture body request as object
+            Get["/RemoveMissingMyListFiles/{a}"] = x => { return RemoveMissingMyListFiles(x.a); };
+            Get["/RenameFiles/{a}/{b}"] = x => { return RenameFiles(x.a, x.b); };
+            //Get["/GetSeriesForGroup/{a}"] = x => { return GetSeriesForGroup(x.a); };
+            Get["/AssociateMultipleFiles/{a}/{b}/{c}/{d}"] = x => { return AssociateMultipleFiles(x.a, (int)x.a, (int)x.c, (bool)x.d); };
+            Get["/EvaluateGroupFilter/{a}"] = x => { return EvaluateGroupFilter(x.a); };
+            Get["/SaveBookmarkedAnime/{a}"] = x => { return SaveBookmarkedAnime(x.a); };
+            Get["/SaveCustomTag/{a}"] = x => { return SaveCustomTag(x.a); };
+            Get["/SaveCustomTagCrossRef/{a}"] = x => { return SaveCustomTagCrossRef(x.a); };
+            Get["/SaveFFDPreset/{a}"] = x => { return SaveFFDPreset(x.a); };
+            Get["/SaveGroup/{a}/{b}"] = x => { return SaveGroup(x.a, (int)x.b); };
+            Get["/SaveGroupFilter/{a}"] = x => { return SaveGroupFilter(x.a); };
+            Get["/SaveImportFolder/{a}"] = x => { return SaveImportFolder(x.a); };
+            Get["/SavePlaylist/{a}"] = x => { return SavePlaylist(x.a); };
+            Get["/SaveRenameScript/{a}"] = x => { return SaveRenameScript(x.a); };
+            Get["/SaveSeries/{a}/{b}"] = x => { return SaveSeries(x.a, (int)x.b); };
+            Get["/SaveServerSettings/{a}"] = x => { return SaveServerSettings(x.a); };
+            Get["/SaveUser/{a}"] = x => { return SaveUser(x.a); };
         }
 
         JMMServiceImplementation _impl = new JMMServiceImplementation();
@@ -1406,73 +1407,69 @@ namespace JMMServer.API
             return "ok"; 
         }
 
-
-
-
-
-
         //Not using simple parameters
-        private object GetSeriesForGroup(int a)
-        {
-            return _impl.GetSeriesForGroup(a);
-        }
+        //private object GetSeriesForGroup(int a, List<Entities.AnimeSeries> b)
+        //{
+        //    return _impl.GetSeriesForGroup(a,b);
+        //}
 
-        private object SaveBookmarkedAnime(int a)
+        private object SaveBookmarkedAnime(JMMContracts.Contract_BookmarkedAnime a)
         {
             return _impl.SaveBookmarkedAnime(a);
         }
 
-        private object SaveCustomTag(int a)
+        private object SaveCustomTag(JMMContracts.Contract_CustomTag a)
         {
             return _impl.SaveCustomTag(a);
         }
 
-        private object SaveCustomTagCrossRef(int a)
+        private object SaveCustomTagCrossRef(JMMContracts.Contract_CrossRef_CustomTag a)
         {
             return _impl.SaveCustomTagCrossRef(a);
         }
 
-        private object SaveFFDPreset(int a)
+        private object SaveFFDPreset(JMMContracts.Contract_FileFfdshowPreset a)
         {
-            return _impl.SaveFFDPreset(a);
+             _impl.SaveFFDPreset(a);
+            return "ok";
         }
 
-        private object SaveGroup(int a)
+        private object SaveGroup(JMMContracts.Contract_AnimeGroup_Save a, int b)
         {
-            return _impl.SaveGroup(a);
+            return _impl.SaveGroup(a,b);
         }
 
-        private object SaveGroupFilter(int a)
+        private object SaveGroupFilter(JMMContracts.Contract_GroupFilter a)
         {
             return _impl.SaveGroupFilter(a);
         }
 
-        private object SaveImportFolder(int a)
+        private object SaveImportFolder(JMMContracts.Contract_ImportFolder a)
         {
             return _impl.SaveImportFolder(a);
         }
 
-        private object SavePlaylist(int a)
+        private object SavePlaylist(JMMContracts.Contract_Playlist a)
         {
             return _impl.SavePlaylist(a);
         }
 
-        private object SaveRenameScript(int a)
+        private object SaveRenameScript(JMMContracts.Contract_RenameScript a)
         {
             return _impl.SaveRenameScript(a);
         }
 
-        private object SaveSeries(int a)
+        private object SaveSeries(JMMContracts.Contract_AnimeSeries_Save a, int b)
         {
-            return _impl.SaveSeries(a);
+            return _impl.SaveSeries(a,b);
         }
 
-        private object SaveServerSettings(int a)
+        private object SaveServerSettings(JMMContracts.Contract_ServerSettings a)
         {
             return _impl.SaveServerSettings(a);
         }
 
-        private object SaveUser(int a)
+        private object SaveUser(JMMContracts.Contract_JMMUser a)
         {
             return _impl.SaveUser(a);
         }
@@ -1481,23 +1478,26 @@ namespace JMMServer.API
         {
             return _impl.RenameFile(a, b);
         }
-        private object RenameFiles(int a)
+
+        private object RenameFiles(List<int> a, string b)
         {
-            return _impl.RenameFiles(a);
+            return _impl.RenameFiles(a,b);
         }
 
-        private object RemoveMissingMyListFiles(int a)
+        private object RemoveMissingMyListFiles(List<JMMContracts.Contract_MissingFile> a)
         {
-            return _impl.RemoveMissingMyListFiles(a);
+            _impl.RemoveMissingMyListFiles(a);
+            return "ok";
         }
 
-        private object AssociateMultipleFiles()
+        private object AssociateMultipleFiles(List<int> a, int b, int c , bool d)
         {
-            _impl.AssociateMultipleFiles();
+            return _impl.AssociateMultipleFiles(a, b, c, d);
         }
-        private object EvaluateGroupFilter()
+
+        private object EvaluateGroupFilter(JMMContracts.Contract_GroupFilter a)
         {
-            return _impl.EvaluateGroupFilter();
+            return _impl.EvaluateGroupFilter(a);
         }
     }
 }
