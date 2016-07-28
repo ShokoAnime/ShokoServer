@@ -5,6 +5,7 @@ using JMMServer.PlexAndKodi.Plex;
 using JMMServer.PlexAndKodi.Kodi;
 using JMMContracts.PlexAndKodi;
 using Nancy.Security;
+using JMMServer.API;
 
 namespace JMMServer.API
 {
@@ -13,10 +14,10 @@ namespace JMMServer.API
     {
         public API_Module() : base("/")
         {
-            this.RequiresAuthentication();
-
             // CommonImplementation
             Get["/"] = _ => { return IndexPage; };
+
+            this.RequiresAuthentication();
 
             // KodiImplementation
             Get["/JMMServerKodi/GetSupportImage/{name}"] = parameter => { return GetSupportImage(parameter.name); };
@@ -49,7 +50,12 @@ namespace JMMServer.API
             Get["JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
             Get["JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
 
-    }
+
+            //REST Interface for everyone
+            Get["/api/GetSupportImage/{name}"] = x => { return GetSupportImage(x.name); };
+            Get["/api/GetFilters"] = _ => { return REST_GetFilters(); };
+            Get["/api/GetMetadata/{type}/{id}"] = x => { return REST_GetMetadata(x.type, x.id); };
+        }
 
 
         CommonImplementation _impl = new CommonImplementation();
@@ -332,6 +338,36 @@ namespace JMMServer.API
                 response = new Nancy.Response();
                 response = Response.FromStream(image, "image/png");
                 return response;
+            }
+        }
+
+        //REST Interface for everyone
+
+        private object REST_GetFilters()
+        {
+            request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            if (user != null)
+            {
+                return _impl.GetFilters(_prov_kodi, user.JMMUserID.ToString());
+            }
+            else
+            {
+                return new JMMContracts.PlexAndKodi.Response();
+            }
+        }
+
+        private object REST_GetMetadata(string typeid, string id)
+        {
+            request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            if (user != null)
+            {
+                return _impl.GetMetadata(_prov_kodi, user.JMMUserID.ToString(), typeid, id, null);
+            }
+            else
+            {
+                return new JMMContracts.PlexAndKodi.Response();
             }
         }
     }

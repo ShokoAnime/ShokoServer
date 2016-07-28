@@ -1,4 +1,7 @@
-﻿using Nancy;
+﻿using JMMServer.API.Model;
+using Nancy;
+using Nancy.Extensions;
+using Nancy.ModelBinding;
 
 namespace JMMServer.API
 {
@@ -7,16 +10,20 @@ namespace JMMServer.API
         /// <summary>
         /// Authentication module
         /// </summary>
-        public Auth_Module() : base("/auth")
+        public Auth_Module() : base("/api/auth")
         {
-            //you pass those value as ?user=xxx&device=yyy$oass=zzz
+            //you pass those value as ?user=xxx&device=yyy&pass=zzz
+            // or 
+            // as Request Body (safer) { "user":"usrname", "pass":"password", "device":"device name" }
             //return apikey=yzx
             Post["/"] = x =>
             {
-                var apiKey = UserDatabase.ValidateUser(
-                    (string)this.Request.Query.user,
-                    (string)this.Request.Query.pass,
-                    (string)this.Request.Query.device);
+                string apiKey = "";
+
+                //Bind POST body
+                AuthUser auth = this.Bind();
+                //create new token for authenticated user or return known one
+                apiKey = UserDatabase.ValidateUser(auth.user, auth.pass, auth.device);
 
                 if (string.IsNullOrEmpty(apiKey))
                 {
@@ -24,20 +31,19 @@ namespace JMMServer.API
                 }
                 else
                 {
-                    //create new token for authenticated user
                     //get user knowing his username
                     Repositories.JMMUserRepository userRepo = new Repositories.JMMUserRepository();
-                    int uid = userRepo.GetByUsername((string)this.Request.Query.user).JMMUserID;
-                    Entities.AuthTokens token = new Entities.AuthTokens(uid, ((string)this.Request.Query.device).ToLower(), apiKey);
+                    int uid = userRepo.GetByUsername(auth.user).JMMUserID;
+                    Entities.AuthTokens token = new Entities.AuthTokens(uid, (auth.device).ToLower(), apiKey);
                     //save token for auth user
-                    Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
-                    authRepo.Save(token);
+                    Auth.authRepo.Save(token);
 
                     return this.Response.AsJson(new { apikey = apiKey });
                 }
             };
 
             //remove apikey from database
+            //pass it as ?apikey=xyz
             Delete["/"] = x =>
             {
                 var apiKey = (string)this.Request.Query.apikey;
@@ -46,4 +52,13 @@ namespace JMMServer.API
             };
         }
     }
+
+    /// <summary>
+    /// Static class so AuthRepo dont have to be recreate
+    /// </summary>
+    public static class Auth
+    {
+        public static Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
+    }
+    
 }
