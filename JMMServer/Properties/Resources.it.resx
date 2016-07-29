@@ -225,9 +225,6 @@
   <data name="SQLite_Info" xml:space="preserve">
     <value>Mentre SQLite è il più facile dei tipi tre database per l'installazione con impostazione one-click di esso. Se la raccolta contiene 200 o più serie, si inizierà a sperimentare un sacco di problemi tra cui tempi di risposta lenti e blocchi di programma quando JMM tenta di accedere la collezione tramite il database SQLite. Per quanto riguarda come JMM utilizza il database, non è semplicemente progettato per grandi collezioni. SQLite ha anche difficoltà con la gestione di più operazioni che aumenta il tempo di attesa tra le operazioni che nel complesso aumentare la vostra attesa tempo quando si accede a vostra collezione.</value>
   </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>Ulteriori informazioni su</value>
-  </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server può utilizzare molta memoria</value>
   </data>
@@ -399,9 +396,6 @@
     <value>Utilizzato in combinazione con Drop Source, JMM Server spostare tutti i file dalle tue fonti di origine/Drop Drop nella destinazione selezionata Drop. 
 
 Si può avere solo una cartella elencata come una destinazione di Drop.</value>
-  </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Importa cartelle sono i percorsi di base dove tieni il tuo anime. Sarà necessario aggiungere almeno una cartella e quindi selezionare 'Esegui importazione' nella scheda azioni</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
@@ -954,5 +948,50 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="InitialSetup_Test" xml:space="preserve">
     <value>Prova e salvare Login</value>
+  </data>
+  <data name="Tooltip_ScanFolder" xml:space="preserve">
+    <value>Scansione cartella</value>
+  </data>
+  <data name="Filter_CreatingTag" xml:space="preserve">
+    <value>Creazione di Tag</value>
+  </data>
+  <data name="Filter_Filter" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Creazione di un filtro di continuare a guardare</value>
+  </data>
+  <data name="Filter_All" xml:space="preserve">
+    <value>Tutti i</value>
+  </data>
+  <data name="Filter_CreateAll" xml:space="preserve">
+    <value>Creazione di tutti i filtri</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Tag</value>
+  </data>
+  <data name="Filter_Years" xml:space="preserve">
+    <value>Anni</value>
+  </data>
+  <data name="Filter_Recalc" xml:space="preserve">
+    <value>Recalc filtro</value>
+  </data>
+  <data name="Filter_CreatingYear" xml:space="preserve">
+    <value>Anno di creazione</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Qui di seguito può aggiungere una cartella di importazione, selezionare la posizione e il tipo di cartella di importazione e quindi fare clic su Salva per aggiungere la cartella di importazione.</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Ogni cartella di importazione è un percorso dove sono conservati i file di anime che viene utilizzato per costruire la vostra collezione. Avrai bisogno di almeno una cartella di importazione per iniziare a costruire la vostra collezione.</value>
+  </data>
+  <data name="Tooltip_Watch" xml:space="preserve">
+    <value>JMM Server controllerà questa cartella e aggiungere qualsiasi file che rileva alla tua collezione. Può essere utilizzato in combinazione con Drop fonte e/o destinazione Drop controllato. </value>
+  </data>
+  <data name="ImportFolders_LearnMore" xml:space="preserve">
+    <value>Ulteriori informazioni sulle cartelle di importazione</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Ulteriori informazioni su</value>
   </data>
 </root>

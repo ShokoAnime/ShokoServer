@@ -286,8 +286,8 @@
   <data name="SQLite_Info" xml:space="preserve">
     <value>While SQLite is the easiest of the three database types to setup with it's one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when JMM attempts to access your collection via your SQLite database. In regards to how JMM uses the database, it's simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations which overall increase your wait time when accessing your collection.</value>
   </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>Learn more about</value>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Below you can add an import folder, select the location and the import folder's type and then click Save to add the import folder.</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server can use quite a lot of memory.</value>
@@ -471,7 +471,7 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
 You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Import folders are the the base locations where you keep your anime. You will need to add at least one folder and then select 'Run Import' on the Actions tab</value>
+    <value>Each import folder is a location where your anime files are kept that's used to build your collection. You'll need at least one import folder to start building your collection.</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
@@ -552,7 +552,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>AniDB Client Port</value>
   </data>
   <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Test And Save Login</value>
+    <value>Test and Save Login</value>
   </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>Don't have an AniDB account? Click here to register for one</value>
@@ -1003,5 +1003,44 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="InitialSetup_LoginCredentials" xml:space="preserve">
     <value>AniDB Login Credentials</value>
+  </data>
+  <data name="Tooltip_ScanFolder" xml:space="preserve">
+    <value>Scan Folder</value>
+  </data>
+  <data name="Filter_CreatingTag" xml:space="preserve">
+    <value>Creating Tag</value>
+  </data>
+  <data name="Filter_Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Creating Continue Watching filter</value>
+  </data>
+  <data name="Filter_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Filter_CreateAll" xml:space="preserve">
+    <value>Creating All filter</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Filter_Years" xml:space="preserve">
+    <value>Years</value>
+  </data>
+  <data name="Filter_Recalc" xml:space="preserve">
+    <value>Recalc Filter</value>
+  </data>
+  <data name="Filter_CreatingYear" xml:space="preserve">
+    <value>Creating Year</value>
+  </data>
+  <data name="Tooltip_Watch" xml:space="preserve">
+    <value>JMM Server will monitor this folder and add any files it detects to your collection. Can be used in conjunction with Drop Source and/or Drop Destination checked. </value>
+  </data>
+  <data name="ImportFolders_LearnMore" xml:space="preserve">
+    <value>Learn more about import folders</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Learn more about</value>
   </data>
 </root>

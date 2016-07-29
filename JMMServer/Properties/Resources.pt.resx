@@ -228,9 +228,6 @@
   <data name="SQLite_Info" xml:space="preserve">
     <value>O SQLite é o mais fácil de configurar dos três tipos de banco de dados e pode ser instalado com apenas um clique. Mas, se sua coleção contém 200 séries ou mais, você vai começar a experimentar muitos problemas, incluindo o tempo de resposta lento e travamentos do programa quando o JMM tenta acessar sua coleção através do SQLite. A maneira como o JMM usa este banco de dados, simplesmente não se destina a grandes coleções. O SQLite também tem dificuldade com a manipulação de várias operações, o que aumenta o tempo entre operações e que pode aumentar seu tempo de espera ao acessar sua coleção.</value>
   </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>Saiba mais</value>
-  </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>O SQL Server pode usar muita memória</value>
   </data>
@@ -402,9 +399,6 @@
     <value>Usado em conjunto com a pasta fonte, o servidor JMM moverá todos os arquivos de suas pastas fonte para a pasta destino selecionada. 
  
  Você só pode ter uma pasta listada como um pasta destino.</value>
-  </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Pastas de importação são os locais onde você guarda seus animes. Você precisará adicionar pelo menos uma pasta e então selecionar 'Executar importação' na guia Ações</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
@@ -954,5 +948,50 @@
   </data>
   <data name="InitialSetup_Test" xml:space="preserve">
     <value>Testar e salvar Login</value>
+  </data>
+  <data name="Tooltip_ScanFolder" xml:space="preserve">
+    <value>Varredura da pasta</value>
+  </data>
+  <data name="Filter_CreatingTag" xml:space="preserve">
+    <value>Criação de marca</value>
+  </data>
+  <data name="Filter_Filter" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Criando o filtro continuar assistindo</value>
+  </data>
+  <data name="Filter_All" xml:space="preserve">
+    <value>Todos os</value>
+  </data>
+  <data name="Filter_CreateAll" xml:space="preserve">
+    <value>Criando o filtro todos os</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Etiquetas</value>
+  </data>
+  <data name="Filter_Years" xml:space="preserve">
+    <value>Anos</value>
+  </data>
+  <data name="Filter_Recalc" xml:space="preserve">
+    <value>Recalc filtro</value>
+  </data>
+  <data name="Filter_CreatingYear" xml:space="preserve">
+    <value>Ano de criação</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Abaixo você pode adicionar uma pasta de importação, selecione a localização e o tipo de importação da pasta e clique em salvar para adicionar a pasta de importação.</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Cada pasta de importação é um local onde ficam seus arquivos de anime que é usado para criar sua coleção. Você precisará de pelo menos uma pasta de importação para começar a construir sua coleção.</value>
+  </data>
+  <data name="Tooltip_Watch" xml:space="preserve">
+    <value>JMM servidor irá monitorar esta pasta e adicionar quaisquer arquivos que detecta a sua coleção. Pode ser usado em conjunto com a fonte larga e/ou destino Drop verificado. </value>
+  </data>
+  <data name="ImportFolders_LearnMore" xml:space="preserve">
+    <value>Saiba mais sobre pastas de importação</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Saiba mais sobre</value>
   </data>
 </root>
