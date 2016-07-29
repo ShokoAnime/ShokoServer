@@ -859,9 +859,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Usuwanie wszystkich brakujących plików dodawane do kolejki</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync głosów z AniDB i MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server jest przeznaczona dla użytkowników z dużą kolekcją, która przekracza ponad 200 serii, którzy również chcą możliwe największą wydajność. Spośród trzech typów dostępne bazy danych SQL Server jest uważany za najtrudniejszy w tworzeniu, ale to może być ustawiony z łatwością, jeśli możesz postępuj zgodnie z instrukcjami, które stworzyliśmy.</value>
   </data>
@@ -993,5 +990,8 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
     <value>Wypełnij poniższy formularz, aby dodać folder importu. Wybierz lokalizację folderu i zaimportować typu i następnie kliknij przycisk Zapisz, aby dodać folder importu.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Przesyłanie lokalnych głosów do AniDB i MAL</value>
   </data>
 </root>

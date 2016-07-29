@@ -859,9 +859,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Supprimer tous les fichiers manquants ajoutés à la file d’attente</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Voix pour Sync et AniDB et MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server est destiné aux utilisateurs avec une grande collection qui dépasse de plus de 200 séries qui souhaitent aussi le rendement le plus rapide possible. Sur les trois types de base de données, SQL Server est considéré comme le plus difficile à mettre en place mais peut être configuré avec une facilité si vous suivez le guide, que nous avons créé.</value>
   </data>
@@ -993,5 +990,8 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
     <value>Remplissez le formulaire ci-dessous pour ajouter un dossier d’importation. Sélectionnez l’emplacement du dossier et importer type et puis cliquez sur Enregistrer pour ajouter le dossier d’importation.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Télécharger voix locales sur AniDB et MAL</value>
   </data>
 </root>

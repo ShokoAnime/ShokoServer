@@ -133,7 +133,7 @@
     <value>Sync Trakt Collection</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync Votes With AniDB And MAL</value>
+    <value>Upload Local Votes To AniDB And MAL</value>
   </data>
   <data name="Actions_UpdateAniDB" xml:space="preserve">
     <value>Update All AniDB Series Info</value>

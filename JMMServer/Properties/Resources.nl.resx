@@ -859,9 +859,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Het verwijderen van alle ontbrekende bestanden toegevoegd aan de wachtrij</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync stemmen met AniDB en MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server is bedoeld voor gebruikers met een grote collectie die meer dan 200 serie die ook willen dat de snelste prestaties mogelijk overschrijdt. Uit de drie types van beschikbare database, SQL Server wordt beschouwd als de meest moeilijke in het opzetten van maar kan worden ingesteld met gemak wanneer u volgen naar de gids die we hebben gemaakt.</value>
   </data>
@@ -993,5 +990,8 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
     <value>Vul het onderstaande formulier om een import map toevoegen. Selecteer de locatie van de map en importeren van type en klik op Opslaan om toe te voegen de import map.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Lokale stemmen uploaden naar AniDB en MAL</value>
   </data>
 </root>

@@ -859,9 +859,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Rimuovere tutti i file mancanti aggiunta alla coda</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Voti di sincronizzazione con AniDB e MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server è pensato per gli utenti con una grande collezione che supera oltre 200 serie che vogliono anche le prestazioni più veloci possibili. Fuori i tre tipi di disponibilità del database, SQL Server è considerato il più difficile nella creazione di ma può essere configurato con facilità se si segue la guida che abbiamo creato.</value>
   </data>
@@ -993,5 +990,8 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
     <value>Compila il modulo qui sotto per aggiungere una cartella di importazione. Selezionare il percorso della cartella e importa tipo e quindi fare clic su Salva per aggiungere la cartella di importazione.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Carica locale voti su AniDB e MAL</value>
   </data>
 </root>

@@ -859,9 +859,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Eliminar todos los archivos que faltan agrega a cola</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Votos de Sync con AniDB y MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server está diseñado para usuarios con una gran colección que supera los más de 200 series que también quieren las mejores prestaciones posibles. De los tres tipos de base de datos, SQL Server es considerada la más difícil en la creación, pero se puede configurar con facilidad si sigues a la guía que hemos creado.</value>
   </data>
@@ -993,5 +990,8 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
     <value>Rellene el siguiente formulario para agregar una carpeta de importación. Seleccione la ubicación de la carpeta y tipo de importación y haga clic en guardar para agregar la carpeta de importación.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Cargar las consultas locales en AniDB y MAL</value>
   </data>
 </root>

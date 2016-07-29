@@ -859,9 +859,6 @@
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Удаление всех отсутствующих файлов Добавлено в очередь</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Синхронизация голосов с AniDB и мал</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server предназначен для пользователей с большой коллекцией, которая превышает 200 серии, которые также хотят наибольшую производительность, возможно. Из трех типов доступных баз данных SQL Server считается самым сложным в настройке, но может быть настроена с легкостью, если вы будете следовать руководство, которую мы создали.</value>
   </data>
@@ -993,5 +990,8 @@
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
     <value>Заполните форму ниже, чтобы добавить папку импорта. Выберите расположение папки и тип импорта и затем нажмите кнопку Сохранить, чтобы добавить в папку импорта.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Местные голоса передать AniDB и мал</value>
   </data>
 </root>

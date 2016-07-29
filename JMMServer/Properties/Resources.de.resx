@@ -859,9 +859,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Entfernen alle fehlende Dateien hinzugefügt zur Warteschlange</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync stimmen mit AniDB und MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server richtet sich an Benutzer mit einer großen Sammlung, die mehr als 200 Serie überschreitet, die wollen auch die schnellste Leistung möglich. Aus den drei verfügbaren Datenbanktypen SQL Server gilt als das schwierigste bei der Einrichtung aber kann sein Setup mit Leichtigkeit, wenn Sie der Anleitung folgen, die wir erstellt haben.</value>
   </data>
@@ -993,5 +990,8 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
     <value>Füllen Sie das Formular unten, um eine Importordner hinzufügen. Wählen Sie den Speicherort des Ordners und Importtyp und klicken Sie dann auf speichern, um den Importordner hinzufügen.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Lokale Stimmen auf AniDB und MAL hochladen</value>
   </data>
 </root>

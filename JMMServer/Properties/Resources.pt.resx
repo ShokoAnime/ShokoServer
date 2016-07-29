@@ -859,9 +859,6 @@
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Remover todos os arquivos ausentes adicionado à fila</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Votos de sincronização com AniDB e MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server é destinado a usuários com uma grande coleção que ultrapassa mais de 200 séries que também querem o desempenho mais rápido possível. Fora os três tipos de bases de dados disponíveis, do SQL Server é considerado o mais difícil na criação, mas pode ser configurado com facilidade se você seguir o guia que criamos.</value>
   </data>
@@ -993,5 +990,8 @@
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
     <value>Preencha o formulário abaixo para adicionar uma pasta de importação. Selecione a localização da pasta e importar o tipo e clique em salvar para adicionar a pasta de importação.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Upload de votos locais para AniDB e MAL</value>
   </data>
 </root>
