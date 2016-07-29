@@ -983,7 +983,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Creating Year</value>
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
-    <value>Below you can add an import folder, select the location and the import folder's type and then click Save to add the import folder.</value>
+    <value>Fill out the form below to add an import folder. Select the folder's location and import type and then click Save to add the import folder.</value>
   </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM Server will monitor this folder and add any files it detects to your collection. Can be used in conjunction with Drop Source and/or Drop Destination checked. </value>

@@ -979,9 +979,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Année de création</value>
   </data>
-  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
-    <value>Ci-dessous, vous pouvez ajouter un dossier d’importation, sélectionnez l’emplacement et le type du dossier import et puis cliquez sur Enregistrer pour ajouter le dossier d’importation.</value>
-  </data>
   <data name="ImportFolders_Info" xml:space="preserve">
     <value>Chaque dossier d’importation est un endroit où vos fichiers anime sont conservés qui permet de créer votre collection. Vous aurez besoin d’au moins un dossier d’importation pour commencer à construire votre collection.</value>
   </data>
@@ -993,5 +990,8 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>En savoir plus sur</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Remplissez le formulaire ci-dessous pour ajouter un dossier d’importation. Sélectionnez l’emplacement du dossier et importer type et puis cliquez sur Enregistrer pour ajouter le dossier d’importation.</value>
   </data>
 </root>

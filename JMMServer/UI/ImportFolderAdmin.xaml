@@ -40,26 +40,21 @@
                                Margin="0,0,5,0"
                                Visibility="{Binding Path=FolderIsDropSource, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Image.ToolTip>
-                                <TextBlock
-                                    Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropSource}"
-                                    TextWrapping="Wrap" Width="250" />
+                                <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropSource}" TextWrapping="Wrap" Width="250" />
                             </Image.ToolTip>
                         </Image>
                         <Image Height="22" Width="23" Source="/Images/24_folder_up.png" VerticalAlignment="Center"
                                Margin="0,0,5,0"
                                Visibility="{Binding Path=FolderIsDropDestination, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Image.ToolTip>
-                                <TextBlock
-                                    Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropDestination}"
-                                    TextWrapping="Wrap" Width="250" />
+                                <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropDestination}" TextWrapping="Wrap" Width="250" />
                             </Image.ToolTip>
                         </Image>
                         <Image Height="22" Width="23" Source="/Images/24_folder_find.png" VerticalAlignment="Center"
                                Margin="0,0,5,0"
                                Visibility="{Binding Path=FolderIsWatched, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Image.ToolTip>
-                                <TextBlock
-                                    Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_Watch}" />
+                                <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_Watch}" TextWrapping="Wrap" Width="250" />
                             </Image.ToolTip>
                         </Image>
                     </StackPanel>

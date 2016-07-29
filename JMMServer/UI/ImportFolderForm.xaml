@@ -70,15 +70,27 @@
 
                 <TextBlock Grid.Column="0" Grid.Row="3" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5"
                            Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_DropSource}" />
-                <CheckBox Name="chkDropSource" Grid.Column="1" Grid.Row="3" VerticalAlignment="Center" />
+                <CheckBox Name="chkDropSource" Grid.Column="1" Grid.Row="3" VerticalAlignment="Center">
+                    <CheckBox.ToolTip>
+                        <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropSource}" TextWrapping="Wrap" Width="250" />
+                    </CheckBox.ToolTip>
+                </CheckBox> 
 
                 <TextBlock Grid.Column="0" Grid.Row="4" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5"
                            Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_DropDestination}" />
-                <CheckBox Name="chkDropDestination" Grid.Column="1" Grid.Row="4" VerticalAlignment="Center" />
+                <CheckBox Name="chkDropDestination" Grid.Column="1" Grid.Row="4" VerticalAlignment="Center">
+                    <CheckBox.ToolTip>
+                        <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropDestination}" TextWrapping="Wrap" Width="250" />
+                    </CheckBox.ToolTip>
+                </CheckBox>
 
                 <TextBlock Grid.Column="0" Grid.Row="5" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5"
                            Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_Watch}" />
-                <CheckBox Name="chkIsWatched" Grid.Column="1" Grid.Row="5" VerticalAlignment="Center" />
+                <CheckBox Name="chkIsWatched" Grid.Column="1" Grid.Row="5" VerticalAlignment="Center">
+                    <CheckBox.ToolTip>
+                        <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_Watch}" TextWrapping="Wrap" Width="250" />
+                    </CheckBox.ToolTip>
+                </CheckBox>
 
             </Grid>
 

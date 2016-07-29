@@ -979,9 +979,6 @@
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Создание год</value>
   </data>
-  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
-    <value>Ниже можно добавить папку импорта, выберите расположение и тип импорта папки и затем нажмите кнопку Сохранить, чтобы добавить в папку импорта.</value>
-  </data>
   <data name="ImportFolders_Info" xml:space="preserve">
     <value>Каждая папка импорта является местом, где хранятся ваши файлы аниме, используемый для построения вашей коллекции. Вам нужно по крайней мере одна папка импорта, чтобы начать строительство вашей коллекции.</value>
   </data>
@@ -993,5 +990,8 @@
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Узнайте больше о</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Заполните форму ниже, чтобы добавить папку импорта. Выберите расположение папки и тип импорта и затем нажмите кнопку Сохранить, чтобы добавить в папку импорта.</value>
   </data>
 </root>

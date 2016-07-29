@@ -979,9 +979,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Año de creación</value>
   </data>
-  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
-    <value>A continuación puede añadir una carpeta de importación, seleccione la ubicación y el tipo de carpeta de importación y luego haga clic en guardar para agregar la carpeta de importación.</value>
-  </data>
   <data name="ImportFolders_Info" xml:space="preserve">
     <value>Cada carpeta de importación es un lugar donde se guardan los archivos de anime que se utiliza para crear su colección. Necesitarás al menos una carpeta de importación para comenzar a construir su colección.</value>
   </data>
@@ -993,5 +990,8 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Más información sobre</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Rellene el siguiente formulario para agregar una carpeta de importación. Seleccione la ubicación de la carpeta y tipo de importación y haga clic en guardar para agregar la carpeta de importación.</value>
   </data>
 </root>

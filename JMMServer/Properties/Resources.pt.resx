@@ -979,9 +979,6 @@
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Ano de criação</value>
   </data>
-  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
-    <value>Abaixo você pode adicionar uma pasta de importação, selecione a localização e o tipo de importação da pasta e clique em salvar para adicionar a pasta de importação.</value>
-  </data>
   <data name="ImportFolders_Info" xml:space="preserve">
     <value>Cada pasta de importação é um local onde ficam seus arquivos de anime que é usado para criar sua coleção. Você precisará de pelo menos uma pasta de importação para começar a construir sua coleção.</value>
   </data>
@@ -993,5 +990,8 @@
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Saiba mais sobre</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Preencha o formulário abaixo para adicionar uma pasta de importação. Selecione a localização da pasta e importar o tipo e clique em salvar para adicionar a pasta de importação.</value>
   </data>
 </root>

@@ -1421,7 +1421,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Below you can add an import folder, select the location and the import folder&apos;s type and then click Save to add the import folder..
+        ///   Looks up a localized string similar to Fill out the form below to add an import folder. Select the folder&apos;s location and import type and then click Save to add the import folder..
         /// </summary>
         internal static string ImportFolders_AddImportFolder {
             get {

@@ -979,9 +979,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Tworzenie rok</value>
   </data>
-  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
-    <value>Poniżej można dodać folder importu, wybierz lokalizację i typ folderu import i następnie kliknij przycisk Zapisz, aby dodać folder importu.</value>
-  </data>
   <data name="ImportFolders_Info" xml:space="preserve">
     <value>Każdy folder importu jest miejsce gdzie przechowywane są pliki anime, który jest używany do tworzenia kolekcji. Musisz mieć co najmniej jeden folder importu, aby rozpocząć budowę swojej kolekcji.</value>
   </data>
@@ -993,5 +990,8 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Dowiedz się więcej o</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Wypełnij poniższy formularz, aby dodać folder importu. Wybierz lokalizację folderu i zaimportować typu i następnie kliknij przycisk Zapisz, aby dodać folder importu.</value>
   </data>
 </root>

@@ -287,7 +287,7 @@
     <value>While SQLite is the easiest of the three database types to setup with it's one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when JMM attempts to access your collection via your SQLite database. In regards to how JMM uses the database, it's simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations which overall increase your wait time when accessing your collection.</value>
   </data>
   <data name="ImportFolders_AddImportFolder" xml:space="preserve">
-    <value>Below you can add an import folder, select the location and the import folder's type and then click Save to add the import folder.</value>
+    <value>Fill out the form below to add an import folder. Select the folder's location and import type and then click Save to add the import folder.</value>
   </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server can use quite a lot of memory.</value>

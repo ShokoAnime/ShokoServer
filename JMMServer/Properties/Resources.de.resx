@@ -979,9 +979,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Gründungsjahr</value>
   </data>
-  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
-    <value>Unten können Sie einen Importordner hinzufügen, wählen Sie den Speicherort und den Importordner aus und klicken Sie dann auf speichern, um den Importordner hinzufügen.</value>
-  </data>
   <data name="ImportFolders_Info" xml:space="preserve">
     <value>Jeder Importordner ist ein Ort, wo Ihre Anime-Dateien aufbewahrt werden, der verwendet wird, um Ihre Sammlung zu bauen. Sie benötigen mindestens einen Importordner, mit dem Bau Ihrer Sammlung.</value>
   </data>
@@ -993,5 +990,8 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Erfahren Sie mehr über</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Füllen Sie das Formular unten, um eine Importordner hinzufügen. Wählen Sie den Speicherort des Ordners und Importtyp und klicken Sie dann auf speichern, um den Importordner hinzufügen.</value>
   </data>
 </root>
