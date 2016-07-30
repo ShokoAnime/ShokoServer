@@ -404,6 +404,24 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The Selected Cloud Account Name already exists.
+        /// </summary>
+        internal static string CloudAccounts_CloudNameAlreadyExists {
+            get {
+                return ResourceManager.GetString("CloudAccounts_CloudNameAlreadyExists", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connect.
+        /// </summary>
+        internal static string CloudAccounts_Connect {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Connect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Fill the required information about cloud accounts here.
         /// </summary>
         internal static string CloudAccounts_Info {
@@ -1466,6 +1484,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Provider.
+        /// </summary>
+        internal static string ImportFolders_Provider {
+            get {
+                return ResourceManager.GetString("ImportFolders_Provider", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Remove.
         /// </summary>
         internal static string ImportFolders_Remove {
@@ -1489,6 +1516,15 @@ namespace JMMServer.Properties {
         internal static string ImportFolders_SameFolder {
             get {
                 return ResourceManager.GetString("ImportFolders_SameFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select Cloud Folder....
+        /// </summary>
+        internal static string ImportFolders_SelectCloudFolder {
+            get {
+                return ResourceManager.GetString("ImportFolders_SelectCloudFolder", resourceCulture);
             }
         }
         
@@ -1822,6 +1858,15 @@ namespace JMMServer.Properties {
         internal static string MessageBox_Cancel {
             get {
                 return ResourceManager.GetString("MessageBox_Cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to New Folder.
+        /// </summary>
+        internal static string MessageBox_NewFolder {
+            get {
+                return ResourceManager.GetString("MessageBox_NewFolder", resourceCulture);
             }
         }
         

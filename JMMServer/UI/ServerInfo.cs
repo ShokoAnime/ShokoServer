@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Windows.Media;
 using JMMServer.Entities;
@@ -47,6 +48,7 @@ namespace JMMServer
             CloudAccounts=new ObservableCollection<CloudAccount>();
             AdminMessages = new ObservableCollection<AdminMessage>();
             CloudProviders = new ObservableCollection<CloudProvider>();
+            FolderProviders = new ObservableCollection<CloudAccount>();
         }
 
         private void Init()
@@ -421,7 +423,7 @@ namespace JMMServer
 
         public ObservableCollection<ImportFolder> ImportFolders { get; set; }
 
-        public ObservableCollection<CloudAccount> CloudAccounts { get; set; }
+        public ObservableCollection<CloudAccount> FolderProviders { get; set; }
 
         public ObservableCollection<CloudProvider> CloudProviders { get; set; }
 
@@ -433,6 +435,7 @@ namespace JMMServer
         }
 
 
+        public ObservableCollection<CloudAccount> CloudAccounts { get; set; }
         public void RefreshImportFolders()
         {
             ImportFolders.Clear();
@@ -458,6 +461,14 @@ namespace JMMServer
             {
                 Utils.ShowErrorMessage(ex);
             }
+        }
+
+        public void RefreshFolderProviders()
+        {
+            FolderProviders.Clear();
+            ICloudPlugin plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == "Local File System");
+            FolderProviders.Add(new CloudAccount {Icon = plugin.CreateIconImage(), Name = "Local File System", Provider = "NA"});
+            new ImportFolderRepository().GetAll().ForEach(a => ImportFolders.Add(a));
         }
         #endregion
     }

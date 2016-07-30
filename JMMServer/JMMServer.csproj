@@ -726,6 +726,9 @@
     <Compile Include="UI\CloudAccountForm.xaml.cs">
       <DependentUpon>CloudAccountForm.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\CloudFolderBrowser.xaml.cs">
+      <DependentUpon>CloudFolderBrowser.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\HyperLinkStandard.xaml.cs">
       <DependentUpon>HyperLinkStandard.xaml</DependentUpon>
     </Compile>
@@ -805,6 +808,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\CloudAccountForm.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\CloudFolderBrowser.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -1076,6 +1083,12 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\24_cloud.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_connect.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_folder.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

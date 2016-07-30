@@ -17,21 +17,29 @@ namespace JMMServer.Entities
         public string Provider { get; set; }
         public string Name { get; set; }
 
-        public BitmapImage Icon { get; private set; }
-        private IFileSystem _fileSystem;
+        public BitmapImage Icon { get;  set; }
+
         public virtual IFileSystem FileSystem
         {
             get
             {
-                if (_fileSystem == null)
-                    Connect();
-                return _fileSystem;
+                if (!ServerState.Instance.ConnectedFileSystems.ContainsKey(Name))
+                    ServerState.Instance.ConnectedFileSystems[Name]=Connect();
+                return ServerState.Instance.ConnectedFileSystems[Name];
+            }
+            set
+            {
+                if (value!=null)
+                    ServerState.Instance.ConnectedFileSystems[Name] = value;
+                else if (ServerState.Instance.ConnectedFileSystems.ContainsKey(Name))
+                    ServerState.Instance.ConnectedFileSystems.Remove(Name);
+                    
             }
         }
 
 
 
-        public void Connect()
+        public IFileSystem Connect()
         {
             if (string.IsNullOrEmpty(Provider))
                 throw new Exception("Empty provider supplied");
@@ -42,11 +50,15 @@ namespace JMMServer.Entities
             if (plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
             Icon = plugin.CreateIconImage();
-            FileSystemResult<IFileSystem> res = plugin.Init(Name, new AuthProvider(), auth, ConnectionString);
+            FileSystemResult<IFileSystem> res = plugin.Init(Name, new AuthProvider(), auth, ConnectionString);            
             if (!res.IsOk)
                 throw new Exception("Unable to connect to '" + Provider + "'");
-            _fileSystem = res.Result;
+            string userauth = res.Result.GetUserAuthorization();
+            if (ConnectionString != userauth)
+                ConnectionString = userauth;
+            return res.Result;
         }
+
 
 
     }

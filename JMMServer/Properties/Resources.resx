@@ -1022,4 +1022,19 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="CloudAccounts_Service" xml:space="preserve">
     <value>Select Service Provider</value>
   </data>
+  <data name="CloudAccounts_Connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="CloudAccounts_CloudNameAlreadyExists" xml:space="preserve">
+    <value>The Selected Cloud Account Name already exists</value>
+  </data>
+  <data name="ImportFolders_Provider" xml:space="preserve">
+    <value>Provider</value>
+  </data>
+  <data name="ImportFolders_SelectCloudFolder" xml:space="preserve">
+    <value>Select Cloud Folder...</value>
+  </data>
+  <data name="MessageBox_NewFolder" xml:space="preserve">
+    <value>New Folder</value>
+  </data>
 </root>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using JMMContracts;
 using JMMServer.Entities;
@@ -24,21 +25,52 @@ namespace JMMServer
             btnCancel.Click += new RoutedEventHandler(btnCancel_Click);
             btnSave.Click += new RoutedEventHandler(btnSave_Click);
             btnChooseFolder.Click += new RoutedEventHandler(btnChooseFolder_Click);
+            comboProvider.SelectionChanged += ComboProvider_SelectionChanged;
+        }
+
+        private void ComboProvider_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (comboProvider.SelectedIndex < 0)
+                return;
+            if (comboProvider.SelectedIndex == 0)
+                importFldr.CloudID = null;
+            else
+                importFldr.CloudID = ((CloudAccount)comboProvider.SelectedItem).CloudID;
         }
 
         void btnChooseFolder_Click(object sender, RoutedEventArgs e)
         {
-            System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
-
-            if (!string.IsNullOrEmpty(txtImportFolderLocation.Text) && Directory.Exists(txtImportFolderLocation.Text))
-                dialog.SelectedPath = txtImportFolderLocation.Text;
-
-            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            if (comboProvider.SelectedIndex == 0)
             {
-                txtImportFolderLocation.Text = dialog.SelectedPath;
+                System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
+
+                if (!string.IsNullOrEmpty(txtImportFolderLocation.Text) &&
+                    Directory.Exists(txtImportFolderLocation.Text))
+                    dialog.SelectedPath = txtImportFolderLocation.Text;
+
+                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    txtImportFolderLocation.Text = dialog.SelectedPath;
+                }
+            }
+            else
+            {
+                ImportFolderForm frm=new ImportFolderForm();
+                frm.Owner = GetTopParent();
+                frm.Init(importFldr);
+                frm.ShowDialog();
             }
         }
+        private Window GetTopParent()
+        {
+            DependencyObject dpParent = Parent;
+            do
+            {
+                dpParent = LogicalTreeHelper.GetParent(dpParent);
+            } while (dpParent.GetType().BaseType != typeof(Window));
 
+            return dpParent as Window;
+        }
         void btnSave_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -74,7 +106,10 @@ namespace JMMServer
                 contract.IsDropDestination = chkDropDestination.IsChecked.Value ? 1 : 0;
                 contract.IsDropSource = chkDropSource.IsChecked.Value ? 1 : 0;
                 contract.IsWatched = chkIsWatched.IsChecked.Value ? 1 : 0;
-
+                if (comboProvider.SelectedIndex == 0)
+                    contract.CloudID = null;
+                else
+                    contract.CloudID = ((CloudAccount) comboProvider.SelectedItem).CloudID;
                 JMMServiceImplementation imp = new JMMServiceImplementation();
                 Contract_ImportFolder_SaveResponse response = imp.SaveImportFolder(contract);
                 if (!string.IsNullOrEmpty(response.ErrorMessage))
@@ -102,13 +137,16 @@ namespace JMMServer
         {
             try
             {
+                ServerInfo.Instance.RefreshCloudAccounts();
                 importFldr = ifldr;
-
                 txtImportFolderLocation.Text = importFldr.ImportFolderLocation;
                 chkDropDestination.IsChecked = importFldr.IsDropDestination == 1;
                 chkDropSource.IsChecked = importFldr.IsDropSource == 1;
                 chkIsWatched.IsChecked = importFldr.IsWatched == 1;
-
+                if (ifldr.CloudID.HasValue)
+                    comboProvider.SelectedItem = ServerInfo.Instance.CloudAccounts.FirstOrDefault(a => a.CloudID == ifldr.CloudID.Value);
+                else
+                    comboProvider.SelectedIndex = 0;
                 txtImportFolderLocation.Focus();
             }
             catch (Exception ex)

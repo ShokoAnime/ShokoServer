@@ -1,5 +1,7 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using NLog;
+using NutzCode.CloudFileSystem;
 
 namespace JMMServer
 {
@@ -312,6 +314,12 @@ namespace JMMServer
                 OnPropertyChanged(new PropertyChangedEventArgs("VLCLocation"));
             }
         }
+
+
+
+        public Dictionary<string, IFileSystem> ConnectedFileSystems => new Dictionary<string, IFileSystem>();
+
+
 
         public void LoadSettings()
         {

@@ -14,7 +14,7 @@ namespace JMMServer.UI
         public CloudAccounts()
         {
             InitializeComponent();
-
+            ServerInfo.Instance.RefreshCloudAccounts();
             btnAddCloudAccount.Click += btnAddCloudAccount_Click;
             btnDeleteCloudAccount.Click += btnDeleteCloudAccount_Click;
             lbCloudAccounts.MouseDoubleClick += lbCloudAccount_MouseDoubleClick;
@@ -41,10 +41,7 @@ namespace JMMServer.UI
                 {
                     CloudAccount ns = (CloudAccount)obj;
 
-                    MessageBoxResult res =
-                        MessageBox.Show(string.Format(Properties.Resources.CloudAccounts_RemoveMessage,
-                                ns.Name,ns.Provider),
-                            Properties.Resources.Confirm, MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    MessageBoxResult res = MessageBox.Show(string.Format(Properties.Resources.CloudAccounts_RemoveMessage, ns.Name,ns.Provider), Properties.Resources.Confirm, MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (res == MessageBoxResult.Yes)
                     {
                         Cursor = Cursors.Wait;
@@ -73,7 +70,7 @@ namespace JMMServer.UI
         {
             try
             {
-                EditAccount(new CloudAccount());
+                EditAccount(null);
             }
             catch (Exception ex)
             {

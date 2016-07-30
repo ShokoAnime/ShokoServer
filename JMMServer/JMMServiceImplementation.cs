@@ -3099,6 +3099,7 @@ namespace JMMServer
                 ns.IsDropDestination = contract.IsDropDestination;
                 ns.IsDropSource = contract.IsDropSource;
                 ns.IsWatched = contract.IsWatched;
+                ns.CloudID = contract.CloudID;
                 repNS.Save(ns);
 
                 response.ImportFolder = ns.ToContract();

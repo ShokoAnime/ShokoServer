@@ -239,7 +239,7 @@ namespace JMMServer.Entities
             {
                 if (p != null)
                 {
-                    if (GetFile(p.FullServerPath) != null)
+                    if (ResolveFile(p.FullServerPath) != null)
                         return p;
                 }
             }
