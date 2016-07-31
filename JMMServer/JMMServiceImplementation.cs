@@ -2758,6 +2758,24 @@ namespace JMMServer
             return contract;
         }
 
+        public string SetResumePositionOnVideo(int videoLocalID, long resumeposition, int userID)
+        {
+            try
+            {
+                VideoLocalRepository repVids = new VideoLocalRepository();
+                VideoLocal vid = repVids.GetByID(videoLocalID);
+                if (vid == null)
+                    return "Could not find video local record";
+                vid.SetResumePosition(resumeposition, userID);
+                return "";
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return ex.Message;
+            }
+
+        }
         public string ToggleWatchedStatusOnVideo(int videoLocalID, bool watchedStatus, int userID)
         {
             try

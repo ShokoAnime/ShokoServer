@@ -163,7 +163,7 @@ namespace JMMServer.Commands
                                 // doesn't matter which anidb user we use
                                 jmmUserID = juser.JMMUserID;
                                 VideoLocal_User userRecord = vl.GetUserRecord(juser.JMMUserID);
-                                if (userRecord != null) localStatus = true;
+                                if (userRecord != null) localStatus = userRecord.WatchedDate.HasValue;
 
                                 string action = "";
                                 if (localStatus != myitem.IsWatched)

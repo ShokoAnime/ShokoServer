@@ -166,6 +166,9 @@ namespace JMMContracts
         Contract_ServerSettings_SaveResponse SaveServerSettings(Contract_ServerSettings contractIn);
 
         [OperationContract]
+        string SetResumePositionOnVideo(int videoLocalID, long resumeposition, int userID);
+
+        [OperationContract]
         string ToggleWatchedStatusOnVideo(int videoLocalID, bool watchedStatus, int userID);
 
         [OperationContract]

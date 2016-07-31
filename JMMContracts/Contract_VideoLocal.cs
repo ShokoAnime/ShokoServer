@@ -17,6 +17,7 @@ namespace JMMContracts
         public int IsWatched { get; set; }
         public int IsIgnored { get; set; }
         public DateTime? WatchedDate { get; set; }
+        public long ResumePosition { get; set; }
         public DateTime DateTimeUpdated { get; set; }
         public int IsVariation { get; set; }
         public List<Contract_VideoLocal_Place> Places { get; set; }        

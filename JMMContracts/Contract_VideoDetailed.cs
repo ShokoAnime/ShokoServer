@@ -27,7 +27,6 @@ namespace JMMContracts
         public string VideoLocal_SHA1 { get; set; }
         public int VideoLocal_HashSource { get; set; }
         public int VideoLocal_IsVariation { get; set; }
-
         public List<Contract_VideoLocal_Place> Places { get; set; }
 
 

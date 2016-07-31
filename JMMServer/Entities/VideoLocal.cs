@@ -181,14 +181,14 @@ namespace JMMServer.Entities
                 return rep.GetByHash(Hash);
             }
         }
-
+        
         private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
         {
             VideoLocal_UserRepository repVidUsers = new VideoLocal_UserRepository();
             VideoLocal_User vidUserRecord = this.GetUserRecord(userID);
             if (watched)
             {
-                if (vidUserRecord == null)
+                if (vidUserRecord?.WatchedDate == null)
                 {
                     vidUserRecord = new VideoLocal_User();
                     vidUserRecord.WatchedDate = DateTime.Now;
@@ -207,7 +207,11 @@ namespace JMMServer.Entities
             else
             {
                 if (vidUserRecord != null)
-                    repVidUsers.Delete(vidUserRecord.VideoLocal_UserID);
+                {
+                    vidUserRecord.WatchedDate = null;
+                    repVidUsers.Save(vidUserRecord);
+
+                }
             }
         }
         public static IFile ResolveFile(string fullname)
@@ -246,6 +250,18 @@ namespace JMMServer.Entities
             return null;
         }
 
+        public void SetResumePosition(long resumeposition, int userID)
+        {
+            VideoLocal_User vuser = GetUserRecord(userID);
+            if (vuser == null)
+            {
+                vuser=new VideoLocal_User();
+                vuser.JMMUserID = userID;
+                vuser.VideoLocalID = VideoLocalID;
+                vuser.ResumePosition = resumeposition;
+            }
+            new VideoLocal_UserRepository().Save(vuser);
+        }
 
         public void ToggleWatchedStatus(bool watched, int userID)
         {
@@ -345,7 +361,7 @@ namespace JMMServer.Entities
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
                     {
                         VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
-                        if (vidUser != null)
+                        if (vidUser != null && vidUser.WatchedDate.HasValue)
                         {
                             // if not null means it is watched
                             epPercentWatched += filexref.Percentage;
@@ -405,7 +421,7 @@ namespace JMMServer.Entities
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
                     {
                         VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
-                        if (vidUser != null)
+                        if (vidUser != null && vidUser.WatchedDate.HasValue)
                             epPercentWatched += filexref.Percentage;
 
                         if (epPercentWatched > 95) break;
@@ -481,7 +497,7 @@ namespace JMMServer.Entities
             contract.VideoLocalID = this.VideoLocalID;
             contract.Places = Places.Select(a => a.ToContract()).ToList();
             VideoLocal_User userRecord = this.GetUserRecord(userID);
-            if (userRecord == null)
+            if (userRecord?.WatchedDate == null)
             {
                 contract.IsWatched = 0;
                 contract.WatchedDate = null;
@@ -491,6 +507,8 @@ namespace JMMServer.Entities
                 contract.IsWatched = 1;
                 contract.WatchedDate = userRecord.WatchedDate;
             }
+            if (userRecord != null)
+                contract.ResumePosition = userRecord.ResumePosition;
             contract.Media = GetMediaFromUser(userID);           
             return contract;
         }
@@ -569,7 +587,7 @@ namespace JMMServer.Entities
             contract.VideoLocal_HashSource = this.HashSource;
 
             VideoLocal_User userRecord = this.GetUserRecord(userID);
-            if (userRecord == null)
+            if (userRecord?.WatchedDate == null)
             {
                 contract.VideoLocal_IsWatched = 0;
                 contract.VideoLocal_WatchedDate = null;
@@ -579,8 +597,9 @@ namespace JMMServer.Entities
             {
                 contract.VideoLocal_IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
                 contract.VideoLocal_WatchedDate = userRecord.WatchedDate;
-                contract.VideoLocal_ResumePosition = userRecord.ResumePosition;
             }
+            if (userRecord!=null)
+                contract.VideoLocal_ResumePosition = userRecord.ResumePosition;
             contract.VideoInfo_AudioBitrate = AudioBitrate;
             contract.VideoInfo_AudioCodec = AudioCodec;
             contract.VideoInfo_Duration = Duration;
@@ -665,7 +684,7 @@ namespace JMMServer.Entities
             contract.Places = Places.Select(a => a.ToContract()).ToList();
 
             VideoLocal_User userRecord = this.GetUserRecord(userID);
-            if (userRecord == null)
+            if (userRecord?.WatchedDate == null)
             {
                 contract.IsWatched = 0;
                 contract.WatchedDate = null;
@@ -675,9 +694,9 @@ namespace JMMServer.Entities
             {
                 contract.IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
                 contract.WatchedDate = userRecord.WatchedDate;
-                contract.ResumePosition = userRecord.ResumePosition;
             }
-
+            if (userRecord!=null)
+                contract.ResumePosition = userRecord.ResumePosition;
             return contract;
         }
     }
