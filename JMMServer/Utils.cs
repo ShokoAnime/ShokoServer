@@ -280,7 +280,7 @@ namespace JMMServer
         }
 
 
-        public static string DownloadWebPage(string url)
+        public static string DownloadWebPage(string url, Encoding forceEncoding = null)
         {
             try
             {
@@ -301,6 +301,8 @@ namespace JMMServer
                     encoding = Encoding.GetEncoding(WebResponse.CharacterSet);
                 if (encoding == null)
                     encoding = Encoding.Default;
+                if (forceEncoding != null)
+                    encoding = forceEncoding;
                 StreamReader Reader = new StreamReader(responseStream, encoding);
 
                 string output = Reader.ReadToEnd();
