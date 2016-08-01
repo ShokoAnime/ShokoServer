@@ -994,4 +994,7 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Lokale Stimmen auf AniDB und MAL hochladen</value>
   </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Bitte beachten Sie, dass die Aktualisierung Ihrer Drop-Ziel nur Auswirkungen auf neue Serie hinzugefügt wird. Serie, die Sie bereits importiert haben, bleiben unberührt.</value>
+  </data>
 </root>

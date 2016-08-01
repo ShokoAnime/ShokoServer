@@ -994,4 +994,7 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Lokale stemmen uploaden naar AniDB en MAL</value>
   </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Houd er rekening mee, bijwerken van uw bestemming daling zal alleen van invloed op nieuwe serie wordt toegevoegd. Serie die u al hebt geïmporteerd, zal niet worden beïnvloed.</value>
+  </data>
 </root>

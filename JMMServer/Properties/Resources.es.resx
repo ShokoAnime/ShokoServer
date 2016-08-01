@@ -994,4 +994,7 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Cargar las consultas locales en AniDB y MAL</value>
   </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Tenga en cuenta que actualizar su destino de caída sólo afectará la nueva serie se añade. Series que ya has importado no será afectados.</value>
+  </data>
 </root>

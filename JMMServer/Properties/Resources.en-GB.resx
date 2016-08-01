@@ -994,4 +994,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="LearnMore" xml:space="preserve">
     <value>Learn more about</value>
   </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Please note, updating your drop destination will only affect new series being added. Series you've already imported will not be affected.</value>
+  </data>
 </root>

@@ -1439,6 +1439,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Please note, updating your drop destination will only affect new series being added. Series you&apos;ve already imported will not be affected..
+        /// </summary>
+        internal static string ImportFolders_DDNote {
+            get {
+                return ResourceManager.GetString("ImportFolders_DDNote", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Drop Destination.
         /// </summary>
         internal static string ImportFolders_DropDestination {

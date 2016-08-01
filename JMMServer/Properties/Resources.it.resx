@@ -994,4 +994,7 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Carica locale voti su AniDB e MAL</value>
   </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Siete pregati di notare che l'aggiornamento destinazione goccia influirà solo nuova serie viene aggiunto. Serie che hai già importato non ne risentiranno.</value>
+  </data>
 </root>

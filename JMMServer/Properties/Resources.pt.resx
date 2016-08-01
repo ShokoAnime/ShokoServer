@@ -994,4 +994,7 @@
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Upload de votos locais para AniDB e MAL</value>
   </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Por favor note, atualizar seu destino de soltar afetará apenas a nova série a ser adicionado. Série que já tenha importado não será afetado.</value>
+  </data>
 </root>

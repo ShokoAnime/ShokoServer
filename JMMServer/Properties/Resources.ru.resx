@@ -994,4 +994,7 @@
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Местные голоса передать AniDB и мал</value>
   </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Обратите внимание, что обновление вашего назначения перетаскивания будет влиять только на новой серии добавляются. Серии, которые вы уже импортированы не будут затронуты.</value>
+  </data>
 </root>

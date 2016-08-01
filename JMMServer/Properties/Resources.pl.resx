@@ -994,4 +994,7 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Przesyłanie lokalnych głosów do AniDB i MAL</value>
   </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Uwaga: aktualizowanie miejsca docelowego upuszczania wpłynie tylko na nowa seria dodawana. Nie wpływają na serii, które już zostały zaimportowane.</value>
+  </data>
 </root>

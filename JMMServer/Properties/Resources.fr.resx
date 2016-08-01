@@ -994,4 +994,7 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Télécharger voix locales sur AniDB et MAL</value>
   </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>S’il vous plaît noter, mise à jour de votre destination de goutte ne touchent que nouvelle série ajoutée. Ne souffrira pas série que vous avez déjà importé.</value>
+  </data>
 </root>
