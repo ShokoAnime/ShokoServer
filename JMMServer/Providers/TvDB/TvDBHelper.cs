@@ -353,9 +353,10 @@ namespace JMMServer.Providers.TvDB
                 logger.Trace("GetLanguages: {0}", url);
 
                 // Search for a series
-                string xmlSeries = Utils.DownloadWebPage(url);
+                string xmlSeries = Utils.DownloadWebPage(url, Encoding.UTF8);
 
                 XmlDocument docLanguages = new XmlDocument();
+                
                 docLanguages.LoadXml(xmlSeries);
 
                 XmlNodeList lanItems = docLanguages["Languages"].GetElementsByTagName("Language");

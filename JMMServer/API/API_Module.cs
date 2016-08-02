@@ -9,14 +9,11 @@ using JMMServer.API;
 
 namespace JMMServer.API
 {
-    //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
+    //Legacy module, unitil all client are moved to APIv2 this need to stay
     public class API_Module : Nancy.NancyModule
     {
         public API_Module() : base("/")
         {
-            // CommonImplementation
-            Get["/"] = _ => { return IndexPage; };
-
             this.RequiresAuthentication();
 
             // KodiImplementation
@@ -49,13 +46,6 @@ namespace JMMServer.API
             // JMMServerImage
             Get["JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
             Get["JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
-
-
-            //REST Interface for everyone
-            Get["/api/MyID"] = x => { return REST_MyID(x.apikey); };
-            Get["/api/GetSupportImage/{name}"] = x => { return GetSupportImage(x.name); };
-            Get["/api/GetFilters"] = _ => { return REST_GetFilters(); };
-            Get["/api/GetMetadata/{type}/{id}"] = x => { return REST_GetMetadata(x.type, x.id); };
         }
 
 
@@ -65,8 +55,6 @@ namespace JMMServer.API
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
         Nancy.Response response;
         public static Nancy.Request request;
-
-        const String IndexPage = @"<html><body><h1>JMMServer is running</h1></body></html>";
 
         //Common
 
@@ -342,50 +330,7 @@ namespace JMMServer.API
             }
         }
 
-        //REST Interface for everyone
-
-        //return userid as it can be needed in legacy implementation
-        private object REST_MyID(string s)
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            if (user != null)
-            {
-                return " { \"userid\":\"" + user.JMMUserID.ToString() +"\" }";
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        private object REST_GetFilters()
-        {
-            request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            if (user != null)
-            {
-                return _impl.GetFilters(_prov_kodi, user.JMMUserID.ToString());
-            }
-            else
-            {
-                return new JMMContracts.PlexAndKodi.Response();
-            }
-        }
-
-        private object REST_GetMetadata(string typeid, string id)
-        {
-            request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            if (user != null)
-            {
-                return _impl.GetMetadata(_prov_kodi, user.JMMUserID.ToString(), typeid, id, null);
-            }
-            else
-            {
-                return new JMMContracts.PlexAndKodi.Response();
-            }
-        }
+        
     }
  
 }
