@@ -1991,7 +1991,13 @@ namespace JMMServer
 
         void MainWindow_StateChanged(object sender, EventArgs e)
         {
-            if (this.WindowState == System.Windows.WindowState.Minimized) this.Hide();
+            if (this.WindowState == System.Windows.WindowState.Minimized)
+            {
+                this.Hide();
+            } else
+            {
+                this.Show();
+            }
         }
 
         void TippuTrayNotify_MouseDoubleClick(object sender, System.Windows.Forms.MouseEventArgs e)
