@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using JMMContracts;
 using JMMFileHelper;
@@ -16,6 +15,8 @@ using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
 using NLog;
 using CrossRef_File_Episode = JMMServer.Entities.CrossRef_File_Episode;
+
+using File = Pri.LongPath.File;
 
 namespace JMMServer
 {

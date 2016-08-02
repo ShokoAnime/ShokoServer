@@ -10,6 +10,10 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using NLog;
+using Path = Pri.LongPath.Path;
+using Directory = Pri.LongPath.Directory;
+using DirectoryInfo = Pri.LongPath.DirectoryInfo;
+using File = Pri.LongPath.File;
 
 namespace JMMServer
 {
@@ -276,7 +280,7 @@ namespace JMMServer
         }
 
 
-        public static string DownloadWebPage(string url)
+        public static string DownloadWebPage(string url, Encoding forceEncoding = null)
         {
             try
             {
@@ -297,6 +301,8 @@ namespace JMMServer
                     encoding = Encoding.GetEncoding(WebResponse.CharacterSet);
                 if (encoding == null)
                     encoding = Encoding.Default;
+                if (forceEncoding != null)
+                    encoding = forceEncoding;
                 StreamReader Reader = new StreamReader(responseStream, encoding);
 
                 string output = Reader.ReadToEnd();

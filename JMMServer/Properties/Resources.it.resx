@@ -225,9 +225,6 @@
   <data name="SQLite_Info" xml:space="preserve">
     <value>Mentre SQLite è il più facile dei tipi tre database per l'installazione con impostazione one-click di esso. Se la raccolta contiene 200 o più serie, si inizierà a sperimentare un sacco di problemi tra cui tempi di risposta lenti e blocchi di programma quando JMM tenta di accedere la collezione tramite il database SQLite. Per quanto riguarda come JMM utilizza il database, non è semplicemente progettato per grandi collezioni. SQLite ha anche difficoltà con la gestione di più operazioni che aumenta il tempo di attesa tra le operazioni che nel complesso aumentare la vostra attesa tempo quando si accede a vostra collezione.</value>
   </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>Ulteriori informazioni su</value>
-  </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server può utilizzare molta memoria</value>
   </data>
@@ -400,9 +397,6 @@
 
 Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Importa cartelle sono i percorsi di base dove tieni il tuo anime. Sarà necessario aggiungere almeno una cartella e quindi selezionare 'Esegui importazione' nella scheda azioni</value>
-  </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
@@ -468,9 +462,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
     <value>Porta del Client AniDB</value>
-  </data>
-  <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Login di prova</value>
   </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>Non hai un account AniDB? Clicca qui per registrarti per uno</value>
@@ -868,9 +859,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Rimuovere tutti i file mancanti aggiunta alla coda</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Voti di sincronizzazione con AniDB e MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server è pensato per gli utenti con una grande collezione che supera oltre 200 serie che vogliono anche le prestazioni più veloci possibili. Fuori i tre tipi di disponibilità del database, SQL Server è considerato il più difficile nella creazione di ma può essere configurato con facilità se si segue la guida che abbiamo creato.</value>
   </data>
@@ -939,5 +927,74 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>No</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Hash di sincronizzazione</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>La sincronizzazione di hash con la WebCache in esecuzione</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>L'aggiornamento ha cambiato TvDB associazione: {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Chiudere</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>Credenziali di accesso di AniDB</value>
+  </data>
+  <data name="InitialSetup_Test" xml:space="preserve">
+    <value>Prova e salvare Login</value>
+  </data>
+  <data name="Tooltip_ScanFolder" xml:space="preserve">
+    <value>Scansione cartella</value>
+  </data>
+  <data name="Filter_CreatingTag" xml:space="preserve">
+    <value>Creazione di Tag</value>
+  </data>
+  <data name="Filter_Filter" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Creazione di un filtro di continuare a guardare</value>
+  </data>
+  <data name="Filter_All" xml:space="preserve">
+    <value>Tutti i</value>
+  </data>
+  <data name="Filter_CreateAll" xml:space="preserve">
+    <value>Creazione di tutti i filtri</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Tag</value>
+  </data>
+  <data name="Filter_Years" xml:space="preserve">
+    <value>Anni</value>
+  </data>
+  <data name="Filter_Recalc" xml:space="preserve">
+    <value>Recalc filtro</value>
+  </data>
+  <data name="Filter_CreatingYear" xml:space="preserve">
+    <value>Anno di creazione</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Ogni cartella di importazione è un percorso dove sono conservati i file di anime che viene utilizzato per costruire la vostra collezione. Avrai bisogno di almeno una cartella di importazione per iniziare a costruire la vostra collezione.</value>
+  </data>
+  <data name="Tooltip_Watch" xml:space="preserve">
+    <value>JMM Server controllerà questa cartella e aggiungere qualsiasi file che rileva alla tua collezione. Può essere utilizzato in combinazione con Drop fonte e/o destinazione Drop controllato. </value>
+  </data>
+  <data name="ImportFolders_LearnMore" xml:space="preserve">
+    <value>Ulteriori informazioni sulle cartelle di importazione</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Ulteriori informazioni su</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Compila il modulo qui sotto per aggiungere una cartella di importazione. Selezionare il percorso della cartella e importa tipo e quindi fare clic su Salva per aggiungere la cartella di importazione.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Carica locale voti su AniDB e MAL</value>
+  </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Siete pregati di notare che l'aggiornamento destinazione goccia influirà solo nuova serie viene aggiunto. Serie che hai già importato non ne risentiranno.</value>
   </data>
 </root>
