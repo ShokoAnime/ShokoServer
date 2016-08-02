@@ -48,8 +48,13 @@ namespace JMMServer
 
         void hlURL_Click(object sender, RoutedEventArgs e)
         {
-            Uri uri = new Uri(URL);
-            Process.Start(new ProcessStartInfo(uri.AbsoluteUri));
+            try
+            {
+                Uri uri = new Uri(URL);
+                Process.Start(new ProcessStartInfo(uri.AbsoluteUri));
+            }
+            catch { }
+
             e.Handled = true;
         }
     }
