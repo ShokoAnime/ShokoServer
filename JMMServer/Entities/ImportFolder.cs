@@ -6,7 +6,7 @@ namespace JMMServer.Entities
 {
     public class ImportFolder : INotifyPropertyChanged
     {
-        public int ImportFolderID { get; private set; }
+        public int ImportFolderID { get; set; }
         public int ImportFolderType { get; set; }
         public string ImportFolderName { get; set; }
         public string ImportFolderLocation { get; set; }

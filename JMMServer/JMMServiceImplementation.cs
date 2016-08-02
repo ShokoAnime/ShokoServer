@@ -3026,7 +3026,7 @@ namespace JMMServer
             {
                 ImportFolderRepository repNS = new ImportFolderRepository();
                 ImportFolder ns = null;
-                if (contract.ImportFolderID.HasValue)
+                if (contract.ImportFolderID.HasValue && contract.ImportFolderID != 0)
                 {
                     // update
                     ns = repNS.GetByID(contract.ImportFolderID.Value);
