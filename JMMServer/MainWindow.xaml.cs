@@ -318,7 +318,8 @@ namespace JMMServer
             btnMinOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
             btnLogs.Click += new RoutedEventHandler(btnLogs_Click);
             btnChooseVLCLocation.Click += new RoutedEventHandler(btnChooseVLCLocation_Click);
-            btnJMMStartWithWindows.Click += new RoutedEventHandler(btnJMMStartWithWindows_Click);
+            btnJMMEnableStartWithWindows.Click += new RoutedEventHandler(btnJMMEnableStartWithWindows_Click);
+            btnJMMDisableStartWithWindows.Click += new RoutedEventHandler(btnJMMDisableStartWithWindows_Click);
             btnUpdateAniDBLogin.Click += new RoutedEventHandler(btnUpdateAniDBLogin_Click);
 
 
@@ -586,10 +587,46 @@ namespace JMMServer
 		}
         */
 
-        void btnJMMStartWithWindows_Click(object sender, RoutedEventArgs e)
+        void btnJMMEnableStartWithWindows_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Process.Start(
-                "http://jmediamanager.org/jmm-server/configuring-jmm-server/#jmm-start-with-windows");
+            ServerState state = ServerState.Instance;
+            if (state.IsAutostartEnabled)
+            {
+                return;
+            }
+
+            try
+            {
+                state.autostartRegistryKey.SetValue(state.autostartKey, '"'+System.Reflection.Assembly.GetExecutingAssembly().Location+'"');
+
+                //Reload from registry
+                state.LoadSettings();
+            }
+            catch (Exception ex)
+            {
+                logger.DebugException("Creating autostart key", ex);
+            }
+        }
+
+        void btnJMMDisableStartWithWindows_Click(object sender, RoutedEventArgs e)
+        {
+            ServerState state = ServerState.Instance;
+            if (!state.IsAutostartEnabled)
+            {
+                return;
+            }
+
+            try
+            {
+                state.autostartRegistryKey.DeleteValue(state.autostartKey, false);
+
+                //Reload from registry
+                state.LoadSettings();
+            }
+            catch (Exception ex)
+            {
+                logger.DebugException("Deleting autostart key", ex);
+            }
         }
 
         void btnUpdateAniDBLogin_Click(object sender, RoutedEventArgs e)
