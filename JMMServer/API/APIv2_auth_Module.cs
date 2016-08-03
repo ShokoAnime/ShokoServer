@@ -4,12 +4,12 @@ using Nancy.ModelBinding;
 
 namespace JMMServer.API
 {
-    public class Auth_Module : NancyModule
+    public class APIv2_auth_Module : NancyModule
     {
         /// <summary>
         /// Authentication module
         /// </summary>
-        public Auth_Module() : base("/api/auth")
+        public APIv2_auth_Module() : base("/api/auth")
         {
             //you pass those value as ?user=xxx&device=yyy&pass=zzz
             // or 

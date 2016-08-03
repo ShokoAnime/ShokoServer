@@ -10,9 +10,9 @@ using JMMServer.API;
 namespace JMMServer.API
 {
     //Legacy module, unitil all client are moved to APIv2 this need to stay
-    public class API_Module : Nancy.NancyModule
+    public class APIv1_Legacy_Module : Nancy.NancyModule
     {
-        public API_Module() : base("/")
+        public APIv1_Legacy_Module() : base("/")
         {
             this.RequiresAuthentication();
 
