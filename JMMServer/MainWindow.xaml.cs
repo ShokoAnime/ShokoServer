@@ -2241,7 +2241,8 @@ namespace JMMServer
                 Importer.RunImport_NewFiles();
                 Importer.RunImport_IntegrityCheck();
 
-                // TODO drop folder
+				// drop folder
+				Importer.RunImport_DropFolders();
 
                 // TvDB association checks
                 Importer.RunImport_ScanTvDB();
