@@ -254,6 +254,9 @@
     <Compile Include="API\Binnary_Module.cs" />
     <Compile Include="API\Bootstrapper.cs" />
     <Compile Include="API\Model\AuthUser.cs" />
+    <Compile Include="API\Model\Creditentials.cs" />
+    <Compile Include="API\Model\Database.cs" />
+    <Compile Include="API\Model\ImagePath.cs" />
     <Compile Include="API\Secret_Module.cs" />
     <Compile Include="API\UserDatabase.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />

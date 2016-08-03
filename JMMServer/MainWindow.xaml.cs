@@ -90,7 +90,7 @@ namespace JMMServer
         private static BackgroundWorker workerSyncHashes= new BackgroundWorker();
 
 
-        private static BackgroundWorker workerSetupDB = new BackgroundWorker();
+        internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
 
         private static System.Timers.Timer autoUpdateTimer = null;
         private static System.Timers.Timer autoUpdateTimerShort = null;
@@ -186,7 +186,7 @@ namespace JMMServer
             TippuTrayNotify.Icon = new System.Drawing.Icon(iconStream);
             iconStream.Dispose();
 
-            //show the Tray Notify Icon
+            //show the Tray Notify IconbtnRemoveMissingFiles.Click
             TippuTrayNotify.Visible = true;
 
 
