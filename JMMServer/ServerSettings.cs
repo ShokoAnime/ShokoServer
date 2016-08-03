@@ -1152,6 +1152,8 @@ namespace JMMServer
             set { UpdateSetting("Trakt_IsEnabled", value.ToString()); }
         }
 
+        public static string Trakt_PIN { get; set; }
+
         public static string Trakt_AuthToken
         {
             get

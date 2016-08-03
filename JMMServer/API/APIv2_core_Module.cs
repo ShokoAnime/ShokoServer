@@ -1,6 +1,4 @@
 ﻿using Nancy;
-using JMMServer.PlexAndKodi;
-using JMMServer.PlexAndKodi.Kodi;
 using Nancy.Security;
 using System;
 using JMMServer.API.Model;
@@ -11,32 +9,24 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Globalization;
 using JMMServer.Commands;
+using JMMServer.PlexAndKodi;
+using JMMServer.Repositories;
 
 namespace JMMServer.API
 {
     //As responds for this API we throw object that will be converted to json/xml or standard http codes (HttpStatusCode)
-    public class APIv2_Module : Nancy.NancyModule
+    public class APIv2_core_Module : Nancy.NancyModule
     {
+        static int version = 1;
         //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
         //routes are named with twitter api style
         //every function with summary is implemented 
-        public APIv2_Module() : base("/api/")
+        public APIv2_core_Module() : base("/api/")
         {
             Get["/"] = _ => { return IndexPage; };
+            Get["/version"] = _ => { return GetVersion(); };
 
             this.RequiresAuthentication();
-
-            Get["/MyID"] = x => { return MyID(x.apikey); };
-            Get["/GetFilters"] = _ => { return GetFilters(); };
-            Get["/GetMetadata/{type}/{id}"] = x => { return GetMetadata(x.type, x.id); };
-
-            // Images
-            Get["/get_image/{type}/{id}"] = parameter => { return GetImage(parameter.type, parameter.id); };
-            Get["/get_image/{type}/{id}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
-            Get["/get_thumb/{type}/{id}/{ratio}"] = parameter => { return GetThumb(parameter.type, parameter.id, parameter.ratio); };
-            Get["/get_support_image/{name}"] = parameter => { return GetSupportImage(parameter.name); };
-            Get["/get_support_image/{name}/{ratio}"] = parameter => { return GetSupportImage(parameter.name, parameter.ratio); };
-            Get["/get_image_using_path/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
 
             // Operations on collection
             Get["/folder/list"] = x => { return ListFolders(); };
@@ -58,9 +48,9 @@ namespace JMMServer.API
             Post["/mal/set"] = _ => { return SetMAL(); };
             Get["/mal/get"] = _ => { return GetMAL(); };
             Get["/mal/test"] = _ => { return TestMAL(); };
-            Post["/trakt/set"] = _ => { return SetTrakt(); };
+            Post["/trakt/set"] = _ => { return SetTraktPIN(); };
             Get["/trakt/get"] = _ => { return GetTrakt(); };
-            Get["/trakt/test"] = _ => { return TestTrakt(); };
+            Get["/trakt/create"] = _ => { return CreateTrakt(); };
 
             // Setup
             Post["/db/set"] = _ => { return SetupDB(); };
@@ -76,141 +66,32 @@ namespace JMMServer.API
             Get["/anidb/votes/sync"] = _ => { return SyncAniDBVotes(); };
             Get["/anidb/list/sync"] = _ => { return SyncAniDBList(); };
             Get["/anidb/update"] = _ => { return UpdateAllAniDB(); };
-            Get["/mal/votes/sync"] = _ => { return SyncMALVotes(); };            
+            //Get["/mal/votes/sync"] = _ => { return SyncMALVotes(); }; <-- not implemented as CommandRequest
             Get["/tvdb/update"] = _ => { return UpdateAllTvDB(); };
 
             // Misc
-            Get["/version"] = _ => { return GetVersion(); };
-        }
+            Get["/MyID"] = x => { return MyID(x.apikey); };
+            Get["/users/get"] = _ => { return GetUsers(); };
 
-        CommonImplementation _impl = new CommonImplementation();
-        IProvider _prov_kodi = new KodiProvider();
-        JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
+            // Queue
+            Get["/queue/get"] = _ => { return GetQueue(); };
+            Get["/queue/pause"] = _ => { return PauseQueue(); };
+            Get["/queue/start"] = _ => { return StartQueue(); };
+            Get["/queue/hash/get"] = _ => { return GetHasherQueue(); };
+            Get["/queue/hash/pause"] = _ => { return PauseHasherQueue(); };
+            Get["/queue/hash/start"] = _ => { return StartHasherQueue(); };
+            Get["/queue/hash/clear"] = _ => { return ClearHasherQueue(); };
+            Get["/queue/general/get"] = _ => { return GetGeneralQueue(); };
+            Get["/queue/general/pause"] = _ => { return PauseGeneralQueue(); };
+            Get["/queue/general/start"] = _ => { return StartGeneralQueue(); };
+            Get["/queue/general/clear"] = _ => { return ClearGeneralQueue(); };
+            Get["/queue/images/get"] = _ => { return GetImagesQueue(); };
+            Get["/queue/images/pause"] = _ => { return PauseImagesQueue(); };
+            Get["/queue/images/start"] = _ => { return StartImagesQueue(); };
+            Get["/queue/images/clear"] = _ => { return ClearImagesQueue(); };
+        }
 
         const String IndexPage = @"<html><body><h1>JMMServer is running</h1></body></html>";
-
-        private object GetFilters()
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            if (user != null)
-            {
-                return _impl.GetFilters(_prov_kodi, user.JMMUserID.ToString());
-            }
-            else
-            {
-                return new JMMContracts.PlexAndKodi.Response();
-            }
-        }
-
-        private object GetMetadata(string typeid, string id)
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            if (user != null)
-            {
-                return _impl.GetMetadata(_prov_kodi, user.JMMUserID.ToString(), typeid, id, null);
-            }
-            else
-            {
-                return new JMMContracts.PlexAndKodi.Response();
-            }
-        }
-
-        #region Images
-
-        /// <summary>
-        ///  Return image that is used as support image, images are build-in 
-        /// </summary>
-        /// <param name="name">name of image inside resource</param>
-        /// <returns></returns>
-        private object GetSupportImage(string name)
-        {
-            using (System.IO.Stream image = _impl.GetSupportImage(name))
-            {
-                Nancy.Response response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
-                return response;
-            }
-        }
-
-        /// <summary>
-        /// Return image that is used as support image, images are build-in with given ratio
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="ratio"></param>
-        /// <returns></returns>
-        private object GetSupportImage(string name, string ratio)
-        {
-            using (System.IO.Stream image = _rest.GetSupportImage(name, ratio))
-            {
-                Nancy.Response response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
-                return response;
-            }
-        }
-
-        /// <summary>
-        /// Return image with given path
-        /// </summary>
-        /// <param name="path"></param>
-        /// <returns></returns>
-        private object GetImageUsingPath(string path)
-        {
-            using (System.IO.Stream image = _rest.GetImageUsingPath(path))
-            {
-                Nancy.Response response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
-                return response;
-            }
-        }
-
-        /// <summary>
-        /// Return image with given type and id
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        private object GetImage(string type, string id)
-        {
-            return GetImage(type, id, false);
-        }
-
-        /// <summary>
-        /// Return image with given type, id and if this should be a thumbnail
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="type"></param>
-        /// <param name="thumb"></param>
-        /// <returns></returns>
-        private object GetImage(string type, string id, bool thumb)
-        {
-            using (System.IO.Stream image = _rest.GetImage(type, id, thumb))
-            {
-                Nancy.Response response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
-                return response;
-            }
-        }
-
-        /// <summary>
-        /// Return thumbnail from given type and id with ratio
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="id"></param>
-        /// <param name="ratio"></param>
-        /// <returns></returns>
-        private object GetThumb(string type, string id, string ratio)
-        {
-            using (System.IO.Stream image = _rest.GetThumb(type, id, ratio))
-            {
-                Nancy.Response response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
-                return response;
-            }
-        }
-
-        #endregion
 
         #region Operations on collection
 
@@ -288,19 +169,24 @@ namespace JMMServer.API
 
         private object ListUPNP()
         {
-            //TODO APIv2: implement this
-            throw new NotImplementedException();
+            UPNPLib.UPnPDeviceFinder discovery = new UPNPLib.UPnPDeviceFinder();
+            UPnPFinderCallback call = new UPnPFinderCallback();
+            discovery.StartAsyncFind(discovery.CreateAsyncFind("urn:schemas-upnp-org:device:MediaServer:1", 0, call));
+
+            //TODO APIv2 ListUPNP: Need a tweak as this now should return it as list?
+
+            return call;
         }
 
         private object AddUPNP()
         {
-            //TODO APIv2: implement this
+            //TODO APIv2 AddUPNP: implement this
             throw new NotImplementedException();
         }
 
         private object DeleteUPNP()
         {
-            //TODO APIv2: implement this
+            //TODO APIv2 DeleteUPN: implement this
             throw new NotImplementedException();
         }
 
@@ -431,7 +317,7 @@ namespace JMMServer.API
             }
             else
             {
-                return HttpStatusCode.Forbidden;
+                return HttpStatusCode.Unauthorized;
             }
         }
 
@@ -496,15 +382,15 @@ namespace JMMServer.API
         }
 
         /// <summary>
-        /// Set Trakt Token
+        /// Set Trakt PIN
         /// </summary>
         /// <returns></returns>
-        private object SetTrakt()
+        private object SetTraktPIN()
         {
             Creditentials cred = this.Bind();
             if (!String.IsNullOrEmpty(cred.token) && cred.token != "")
             {
-                ServerSettings.Trakt_AuthToken = cred.token;
+                ServerSettings.Trakt_PIN = cred.token;
                 return HttpStatusCode.OK;
             }
             else
@@ -513,10 +399,13 @@ namespace JMMServer.API
             }
         }
 
-        private object TestTrakt()
+        /// <summary>
+        /// Create AuthToken and RefreshToken from PIN
+        /// </summary>
+        /// <returns></returns>
+        private object CreateTrakt()
         {
-            //TODO APIv2: TEST TRAKT TEST AS IT COULD BE WRONG
-            if (Providers.TraktTV.TraktTVHelper.EnterTraktPIN(ServerSettings.Trakt_AuthToken) == "Success")
+            if (Providers.TraktTV.TraktTVHelper.EnterTraktPIN(ServerSettings.Trakt_PIN) == "Success")
             {
                 return HttpStatusCode.OK;
             }
@@ -534,6 +423,7 @@ namespace JMMServer.API
         {
             Creditentials cred = new Creditentials();
             cred.token = ServerSettings.Trakt_AuthToken;
+            cred.refresh_token = ServerSettings.Trakt_RefreshToken;
             return cred;
         }
 
@@ -616,7 +506,7 @@ namespace JMMServer.API
             else
             {
                 return HttpStatusCode.BadRequest;
-            }       
+            }
         }
 
         #endregion
@@ -723,17 +613,13 @@ namespace JMMServer.API
             return HttpStatusCode.OK;
         }
 
-        /// <summary>
-        /// Sync votes bettween Local and AniDB and only upload to MAL
-        /// </summary>
-        /// <returns></returns>
-        private object SyncMALVotes()
-        {
-            //TODO APIv2: Command should be split into AniDb/MAL sepereate
-            CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
-            cmdVotes.Save();
-            return HttpStatusCode.OK;
-        }
+        //This is not implemented  yet/or its deep inside code
+        //private object SyncMALVotes()
+        //{
+        //    CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
+        //    cmdVotes.Save();
+        //    return HttpStatusCode.OK;
+        //}
 
         /// <summary>
         /// Update all information from TvDB
@@ -775,9 +661,235 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetVersion()
         {
-            return "{\"version\":\"" + System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString() + "\"}";
+            return "{\"version\":\"" + System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString() + "\", \"api\":" + version.ToString() + "}";
+        }
+
+        /// <summary>
+        /// return List of PlexContract_Users
+        /// </summary>
+        /// <returns></returns>
+        private object GetUsers()
+        {
+            return new CommonImplementation().GetUsers(null);
         }
 
         #endregion
+
+        #region Queue
+
+        /// <summary>
+        /// Return current information about Queues (hash, general, images)
+        /// </summary>
+        /// <returns></returns>
+        private object GetQueue()
+        {
+            return "{\"hash\": " + GetHasherQueue() + "," +
+                "\"general\":" + GetGeneralQueue() + "," +
+                "\"images\":" + GetImagesQueue() + "}";
+        }
+
+        /// <summary>
+        /// Pause all running Queues
+        /// </summary>
+        /// <returns></returns>
+        private object PauseQueue()
+        {
+            JMMService.CmdProcessorHasher.Paused = true;
+            JMMService.CmdProcessorGeneral.Paused = true;
+            JMMService.CmdProcessorImages.Paused = true;
+            return HttpStatusCode.OK;
+        }
+
+        /// <summary>
+        /// Start all queues that are pasued
+        /// </summary>
+        /// <returns></returns>
+        private object StartQueue()
+        {
+            JMMService.CmdProcessorHasher.Paused = false;
+            JMMService.CmdProcessorGeneral.Paused = false;
+            JMMService.CmdProcessorImages.Paused = false;
+            return HttpStatusCode.OK;
+        }
+
+        /// <summary>
+        /// Return information about Hasher queue
+        /// </summary>
+        /// <returns></returns>
+        private object GetHasherQueue()
+        {
+            return "{\"hash\":{\"count\":" + ServerInfo.Instance.HasherQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.HasherQueueState + "\",\"isrunning\":" + ServerInfo.Instance.HasherQueueRunning.ToString() + ", \"ispause\":" + ServerInfo.Instance.HasherQueuePaused + "\"}";
+        }
+
+        /// <summary>
+        /// Return information about General queue
+        /// </summary>
+        /// <returns></returns>
+        private object GetGeneralQueue()
+        {
+            return "{\"count\":" + ServerInfo.Instance.GeneralQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.GeneralQueueState + "\",\"isrunning\":" + ServerInfo.Instance.GeneralQueueRunning.ToString() + ", \"ispause\":" + ServerInfo.Instance.GeneralQueuePaused + "\"}";
+        }
+
+        /// <summary>
+        /// Return information about Images queue
+        /// </summary>
+        /// <returns></returns>
+        private object GetImagesQueue()
+        {
+            return "{\"count\":" + ServerInfo.Instance.ImagesQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.ImagesQueueState + "\",\"isrunning\":" + ServerInfo.Instance.ImagesQueueRunning.ToString() + ", \"ispause\":" + ServerInfo.Instance.ImagesQueuePaused + "\"}";
+        }
+
+        /// <summary>
+        /// Pause Queue
+        /// </summary>
+        /// <returns></returns>
+        private object PauseHasherQueue()
+        {
+            JMMService.CmdProcessorHasher.Paused = true;
+            return HttpStatusCode.OK;
+        }
+
+        /// <summary>
+        /// Pause Queue
+        /// </summary>
+        /// <returns></returns>
+        private object PauseGeneralQueue()
+        {
+            JMMService.CmdProcessorGeneral.Paused = true;
+            return HttpStatusCode.OK;
+        }
+
+        /// <summary>
+        /// Pause Queue
+        /// </summary>
+        /// <returns></returns>
+        private object PauseImagesQueue()
+        {
+            JMMService.CmdProcessorImages.Paused = true;
+            return HttpStatusCode.OK;
+        }
+
+        /// <summary>
+        /// Start Queue from Pause state
+        /// </summary>
+        /// <returns></returns>
+        private object StartHasherQueue()
+        {
+            JMMService.CmdProcessorHasher.Paused = false;
+            return HttpStatusCode.OK;
+        }
+
+        /// <summary>
+        /// Start Queue from Pause state
+        /// </summary>
+        /// <returns></returns>
+        private object StartGeneralQueue()
+        {
+            JMMService.CmdProcessorGeneral.Paused = false;
+            return HttpStatusCode.OK;
+        }
+
+        /// <summary>
+        /// Start Queue from Pause state
+        /// </summary>
+        /// <returns></returns>
+        private object StartImagesQueue()
+        {
+            JMMService.CmdProcessorImages.Paused = false;
+            return HttpStatusCode.OK;
+        }
+
+        /// <summary>
+        /// Clear Queue and Restart it
+        /// </summary>
+        /// <returns></returns>
+        private object ClearHasherQueue()
+        {
+            try
+            {
+                JMMService.CmdProcessorHasher.Stop();
+
+                while (JMMService.CmdProcessorHasher.ProcessingCommands)
+                {
+                    Thread.Sleep(200);
+                }
+                Thread.Sleep(200);
+
+                CommandRequestRepository repCR = new CommandRequestRepository();
+                foreach (CommandRequest cr in repCR.GetAllCommandRequestHasher())
+                    repCR.Delete(cr.CommandRequestID);
+
+                JMMService.CmdProcessorHasher.Init();
+
+                return HttpStatusCode.OK;
+            }
+            catch
+            {
+                return HttpStatusCode.InternalServerError;
+            }
+        }
+
+        /// <summary>
+        /// Clear Queue and Restart it
+        /// </summary>
+        /// <returns></returns>
+        private object ClearGeneralQueue()
+        {
+            try
+            {
+                JMMService.CmdProcessorGeneral.Stop();
+
+                while (JMMService.CmdProcessorGeneral.ProcessingCommands)
+                {
+                    Thread.Sleep(200);
+                }
+                Thread.Sleep(200);
+
+                CommandRequestRepository repCR = new CommandRequestRepository();
+                foreach (CommandRequest cr in repCR.GetAllCommandRequestGeneral())
+                    repCR.Delete(cr.CommandRequestID);
+
+                JMMService.CmdProcessorGeneral.Init();
+
+                return HttpStatusCode.OK;
+            }
+            catch
+            {
+                return HttpStatusCode.InternalServerError;
+            }
+        }
+
+        /// <summary>
+        /// Clear Queue and Restart it
+        /// </summary>
+        /// <returns></returns>
+        private object ClearImagesQueue()
+        {
+            try
+            {
+                JMMService.CmdProcessorImages.Stop();
+
+                while (JMMService.CmdProcessorImages.ProcessingCommands)
+                {
+                    Thread.Sleep(200);
+                }
+                Thread.Sleep(200);
+
+                CommandRequestRepository repCR = new CommandRequestRepository();
+                foreach (CommandRequest cr in repCR.GetAllCommandRequestImages())
+                    repCR.Delete(cr.CommandRequestID);
+
+                JMMService.CmdProcessorImages.Init();
+
+                return HttpStatusCode.OK;
+            }
+            catch
+            {
+                return HttpStatusCode.InternalServerError;
+            }
+        }
     }
+
+
+    #endregion
 }

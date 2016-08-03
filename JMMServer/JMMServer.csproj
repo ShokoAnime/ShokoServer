@@ -248,9 +248,10 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
-    <Compile Include="API\APIv2_Module.cs" />
-    <Compile Include="API\API_Module.cs" />
-    <Compile Include="API\Auth_Module.cs" />
+    <Compile Include="API\APIv2_core_Module.cs" />
+    <Compile Include="API\APIv1_Legacy_Module.cs" />
+    <Compile Include="API\APIv2_auth_Module.cs" />
+    <Compile Include="API\APIv2_common_Module.cs" />
     <Compile Include="API\Binnary_Module.cs" />
     <Compile Include="API\Bootstrapper.cs" />
     <Compile Include="API\Model\AuthUser.cs" />
