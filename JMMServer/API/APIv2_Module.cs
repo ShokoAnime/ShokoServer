@@ -53,11 +53,14 @@ namespace JMMServer.API
             Post["/imagepath/set"] = _ => { return SetImagepath(); };
             Get["/imagepath/get"] = _ => { return GetImagepath(); };
             Post["/anidb/set"] = _ => { return SetAniDB(); };
-            Get["/anidb/get"] = _ => { return TestAniDB(); };
+            Get["/anidb/get"] = _ => { return GetAniDB(); };
+            Get["/anidb/test"] = _ => { return TestAniDB(); };
             Post["/mal/set"] = _ => { return SetMAL(); };
-            Get["/mal/get"] = _ => { return TestMAL(); };
+            Get["/mal/get"] = _ => { return GetMAL(); };
+            Get["/mal/test"] = _ => { return TestMAL(); };
             Post["/trakt/set"] = _ => { return SetTrakt(); };
-            Get["/trakt/get"] = _ => { return TestTrakt(); };
+            Get["/trakt/get"] = _ => { return GetTrakt(); };
+            Get["/trakt/test"] = _ => { return TestTrakt(); };
 
             // Setup
             Post["/db/set"] = _ => { return SetupDB(); };
@@ -75,6 +78,9 @@ namespace JMMServer.API
             Get["/anidb/update"] = _ => { return UpdateAllAniDB(); };
             Get["/mal/votes/sync"] = _ => { return SyncMALVotes(); };            
             Get["/tvdb/update"] = _ => { return UpdateAllTvDB(); };
+
+            // Misc
+            Get["/version"] = _ => { return GetVersion(); };
         }
 
         CommonImplementation _impl = new CommonImplementation();
@@ -82,21 +88,6 @@ namespace JMMServer.API
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
 
         const String IndexPage = @"<html><body><h1>JMMServer is running</h1></body></html>";
-
-        //return userid as it can be needed in legacy implementation
-        private object MyID(string s)
-        {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            if (user != null)
-            {
-                return " { \"userid\":\"" + user.JMMUserID.ToString() + "\" }";
-            }
-            else
-            {
-                return null;
-            }
-        }
 
         private object GetFilters()
         {
@@ -351,7 +342,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetPort()
         {
-            return ServerSettings.JMMServerPort;
+            return "{ \"port\":" + ServerSettings.JMMServerPort.ToString() + "}";
         }
 
         /// <summary>
@@ -445,6 +436,19 @@ namespace JMMServer.API
         }
 
         /// <summary>
+        /// Return login/password/port of used AniDB
+        /// </summary>
+        /// <returns></returns>
+        private object GetAniDB()
+        {
+            Creditentials cred = new Creditentials();
+            cred.login = ServerSettings.AniDB_Username;
+            cred.password = ServerSettings.AniDB_Password;
+            cred.port = int.Parse(ServerSettings.AniDB_ClientPort);
+            return cred;
+        }
+
+        /// <summary>
         /// Set MAL account with login, password
         /// </summary>
         /// <returns></returns>
@@ -463,10 +467,32 @@ namespace JMMServer.API
             }
         }
 
+        /// <summary>
+        /// Return current used MAL Creditentials
+        /// </summary>
+        /// <returns></returns>
+        private object GetMAL()
+        {
+            Creditentials cred = new Creditentials();
+            cred.login = ServerSettings.MAL_Username;
+            cred.password = ServerSettings.MAL_Password;
+            return cred;
+        }
+
+        /// <summary>
+        /// Test MAL Creditionals against MAL
+        /// </summary>
+        /// <returns></returns>
         private object TestMAL()
         {
-            //TODO APIv2: implement this
-            throw new NotImplementedException();
+            if (Providers.MyAnimeList.MALHelper.VerifyCredentials())
+            {
+                return HttpStatusCode.OK;
+            }
+            else
+            {
+                return HttpStatusCode.Unauthorized;
+            }
         }
 
         /// <summary>
@@ -489,8 +515,26 @@ namespace JMMServer.API
 
         private object TestTrakt()
         {
-            //TODO APIv2: implement this
-            throw new NotImplementedException();
+            //TODO APIv2: TEST TRAKT TEST AS IT COULD BE WRONG
+            if (Providers.TraktTV.TraktTVHelper.EnterTraktPIN(ServerSettings.Trakt_AuthToken) == "Success")
+            {
+                return HttpStatusCode.OK;
+            }
+            else
+            {
+                return HttpStatusCode.Unauthorized;
+            }
+        }
+
+        /// <summary>
+        /// Return trakt authtoken
+        /// </summary>
+        /// <returns></returns>
+        private object GetTrakt()
+        {
+            Creditentials cred = new Creditentials();
+            cred.token = ServerSettings.Trakt_AuthToken;
+            return cred;
         }
 
         #endregion
@@ -567,7 +611,7 @@ namespace JMMServer.API
                         break;
                 }
 
-                return db;
+                return HttpStatusCode.OK;
             }
             else
             {
@@ -701,6 +745,38 @@ namespace JMMServer.API
             return HttpStatusCode.OK;
         }
 
+
+        #endregion
+
+        #region Misc
+
+        /// <summary>
+        /// return userid as it can be needed in legacy implementation
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        private object MyID(string s)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            if (user != null)
+            {
+                return " { \"userid\":\"" + user.JMMUserID.ToString() + "\" }";
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Return current version of JMMServer
+        /// </summary>
+        /// <returns></returns>
+        private object GetVersion()
+        {
+            return "{\"version\":\"" + System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString() + "\"}";
+        }
 
         #endregion
     }
