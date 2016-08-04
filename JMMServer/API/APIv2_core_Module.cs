@@ -68,7 +68,10 @@ namespace JMMServer.API
 
             // Misc
             Get["/MyID"] = x => { return MyID(x.apikey); };
-            Get["/users/get"] = _ => { return GetUsers(); };
+            Get["/user/list"] = _ => { return GetUsers(); };
+            Post["/user/create"] = _ => { return CreateUser(); };
+            Post["/user/delete"] = _ => { return DeleteUser(); };
+            Post["/user/password"] = _ => { return ChangePassword(); };
 
             // Queue
             Get["/queue/get"] = _ => { return GetQueue(); };
@@ -657,6 +660,68 @@ namespace JMMServer.API
         private object GetUsers()
         {
             return new CommonImplementation().GetUsers(null);
+        }
+
+        /// <summary>
+        /// Create user from Contract_JMMUser
+        /// </summary>
+        /// <returns></returns>
+        private object CreateUser()
+        {
+            Contract_JMMUser user = this.Bind();
+            user.Password = Digest.Hash(user.Password);
+
+            if (new JMMServiceImplementation().SaveUser(user) == "")
+            {
+                return HttpStatusCode.OK;
+            }
+            else
+            {
+                return HttpStatusCode.InternalServerError;
+            }
+        }
+
+        /// <summary>
+        ///  change current user password
+        /// </summary>
+        /// <returns></returns>
+        private object ChangePassword()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            if (user != null)
+            {
+                JMMUser _user = this.Bind();
+                if (new JMMServiceImplementation().ChangePassword(user.JMMUserID, _user.Password) =="")
+                {
+                    return HttpStatusCode.OK;
+                }
+                else
+                {
+                    return HttpStatusCode.InternalServerError;
+                }
+            }
+            else
+            {
+                return HttpStatusCode.Unauthorized;
+            }            
+        }
+
+        /// <summary>
+        /// Delete user from his ID
+        /// </summary>
+        /// <returns></returns>
+        private object DeleteUser()
+        {
+            JMMUser user = this.Bind();
+            if (new JMMServiceImplementation().DeleteUser(user.JMMUserID) == "")
+            {
+                return HttpStatusCode.OK;
+            }
+            else
+            {
+                return HttpStatusCode.InternalServerError;
+            }
         }
 
         #endregion

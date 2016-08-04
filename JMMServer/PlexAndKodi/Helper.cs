@@ -166,6 +166,10 @@ namespace JMMServer.PlexAndKodi
         public static string ServerUrl(int port, string path, bool externalip = false)
         {
             //TODO APIv2: 1: this should be deprecated because clients knows best what ip address:port they asked this is unnecessary and would clean up code
+            if (API.APIv1_Legacy_Module.request == null)
+            {
+                return "{SCHEME}://{HOST}:" + port + "/" + path;
+            }
             if (API.APIv1_Legacy_Module.request.Url == null)
             {
                 return "{SCHEME}://{HOST}:" + port + "/" + path;
