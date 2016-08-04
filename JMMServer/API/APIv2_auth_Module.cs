@@ -22,7 +22,7 @@ namespace JMMServer.API
                 //Bind POST body
                 AuthUser auth = this.Bind();
                 //create new token for authenticated user or return known one
-                apiKey = UserDatabase.ValidateUser(auth.user, auth.pass, auth.device);
+                apiKey = UserDatabase.ValidateUser(auth.user, Digest.Hash(auth.pass), auth.device);
 
                 if (string.IsNullOrEmpty(apiKey))
                 {
