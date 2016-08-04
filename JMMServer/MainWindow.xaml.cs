@@ -340,8 +340,9 @@ namespace JMMServer
             cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
 
             InitCulture();
+            Instance = this;
         }
-
+        public static MainWindow Instance { get; private set; }
         private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
         {
             SyncHashes();
@@ -835,7 +836,7 @@ namespace JMMServer
             if (setupComplete)
             {
                 ServerInfo.Instance.RefreshImportFolders();
-
+                ServerInfo.Instance.RefreshCloudAccounts();
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_Complete;
                 ServerState.Instance.ServerOnline = true;
 
@@ -1685,7 +1686,7 @@ namespace JMMServer
 
             if (ServerSettings.MinimizeOnStartup) MinimizeToTray();
 
-            tabControl1.SelectedIndex = 4; // setup
+            tabControl1.SelectedIndex = 5; // setup
 
             if (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
                 ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase))
@@ -2059,7 +2060,8 @@ namespace JMMServer
             {
                 try
                 {
-                    if (Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
+                   
+                    if (share.CloudID==null && Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
                     {
                         logger.Info("Watching ImportFolder: {0} || {1}", share.ImportFolderName,
                             share.ImportFolderLocation);
@@ -2555,7 +2557,7 @@ namespace JMMServer
             {
                 logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 
-                Utils.GetFilesForImportFolder(share.FileSystem, ref fileList);
+                Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
             }
 
 

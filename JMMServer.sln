@@ -13,8 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NutzCode.CloudFilesystem", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NutzCode.CloudFileSystem", "NutzCode.CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj", "{29861D1A-968C-49CA-A637-88B391AA5063}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NutzCode.CloudFileSystem.OAuth.Windows.WinForms", "NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.OAuth.Windows.WinForms\NutzCode.CloudFileSystem.OAuth.Windows.WinForms.csproj", "{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive", "NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj", "{D202B61E-A658-4208-83FC-745E04F43BDE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NutzCode.CloudFileSystem.Plugins.GoogleDrive", "NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj", "{964A62E6-2DAE-4723-926D-D3E9597B5213}"
@@ -22,6 +20,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NutzCode.CloudFileSystem.Plugins.LocalFileSystem", "NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj", "{2A705C96-21D4-4061-876F-1BB954E39D25}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NutzCode.Libraries.Web", "NutzCode.CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj", "{865C8B13-EB43-439E-9D69-CE7B54DCA4FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NutzCode.CloudFileSystem.OAuth.Windows.WPF", "..\..\NET\NutzCode\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.OAuth.Windows.WPF\NutzCode.CloudFileSystem.OAuth.Windows.WPF.csproj", "{83727F74-6684-4B11-9158-B0BA1A60D8BE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -90,22 +90,6 @@ Global
 		{29861D1A-968C-49CA-A637-88B391AA5063}.Release|Win32.Build.0 = Release|Any CPU
 		{29861D1A-968C-49CA-A637-88B391AA5063}.Release|x64.ActiveCfg = Release|Any CPU
 		{29861D1A-968C-49CA-A637-88B391AA5063}.Release|x64.Build.0 = Release|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Debug|Win32.Build.0 = Debug|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Debug|x64.Build.0 = Debug|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Release|Win32.ActiveCfg = Release|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Release|Win32.Build.0 = Release|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Release|x64.ActiveCfg = Release|Any CPU
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F}.Release|x64.Build.0 = Release|Any CPU
 		{D202B61E-A658-4208-83FC-745E04F43BDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D202B61E-A658-4208-83FC-745E04F43BDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D202B61E-A658-4208-83FC-745E04F43BDE}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
@@ -170,17 +154,33 @@ Global
 		{865C8B13-EB43-439E-9D69-CE7B54DCA4FF}.Release|Win32.Build.0 = Release|Any CPU
 		{865C8B13-EB43-439E-9D69-CE7B54DCA4FF}.Release|x64.ActiveCfg = Release|Any CPU
 		{865C8B13-EB43-439E-9D69-CE7B54DCA4FF}.Release|x64.Build.0 = Release|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Debug|Win32.Build.0 = Debug|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Debug|x64.Build.0 = Debug|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Release|Win32.ActiveCfg = Release|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Release|Win32.Build.0 = Release|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Release|x64.ActiveCfg = Release|Any CPU
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{29861D1A-968C-49CA-A637-88B391AA5063} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
-		{DEC4BFB0-14CD-4622-B1E0-AC97ACA64F8F} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
 		{D202B61E-A658-4208-83FC-745E04F43BDE} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
 		{964A62E6-2DAE-4723-926D-D3E9597B5213} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
 		{2A705C96-21D4-4061-876F-1BB954E39D25} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
 		{865C8B13-EB43-439E-9D69-CE7B54DCA4FF} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
+		{83727F74-6684-4B11-9158-B0BA1A60D8BE} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		RESX_ExcelExportMode = MultipleSheets

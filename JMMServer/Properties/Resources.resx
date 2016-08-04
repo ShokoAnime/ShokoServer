@@ -1037,4 +1037,13 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="MessageBox_NewFolder" xml:space="preserve">
     <value>New Folder</value>
   </data>
+  <data name="Tab_CloudAccounts" xml:space="preserve">
+    <value>Cloud Accounts</value>
+  </data>
+  <data name="CloudAccount_Connected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="CloudAccount_NotConnected" xml:space="preserve">
+    <value>Not Connected</value>
+  </data>
 </root>

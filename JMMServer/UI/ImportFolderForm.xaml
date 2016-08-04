@@ -18,10 +18,10 @@
                 <StackPanel Orientation="Horizontal" Height="25">
                     <Image Height="22" Width="22" Source="{Binding Path=Icon}" VerticalAlignment="Center"
                                Margin="0,0,5,0"/>
-                    <TextBlock Margin="5,0,10,0" Text="{Binding Path=Provider}"
+                    <TextBlock Margin="5,0,10,0" Text="{Binding Path=Name}"
                                    VerticalAlignment="Center" FontWeight="DemiBold" />
                     <TextBlock Margin="0,0,2,0" Text="(" VerticalAlignment="Center" />
-                    <TextBlock Margin="0,0,2,0" Text="{Binding Path=Name}" VerticalAlignment="Center" />
+                    <TextBlock Margin="0,0,2,0" Text="{Binding Path=Provider}" VerticalAlignment="Center" />
                     <TextBlock Margin="0,0,5,0" Text=")" VerticalAlignment="Center" />
                 </StackPanel>
             </DataTemplate>
@@ -78,7 +78,7 @@
 
                 <TextBlock Grid.Column="0" Grid.Row="2" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5"
                            Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_Provider}" />
-                <ComboBox x:Name="comboProvider" ItemsSource="{Binding Source={x:Static local:ServerInfo.Instance},Path=CloudAccounts}" Grid.Column="1" HorizontalAlignment="Left"  Grid.Row="2" ItemTemplate="{StaticResource cmbTemplate}" VerticalAlignment="Center" Width="400" SelectedIndex="0"/>
+                <ComboBox x:Name="comboProvider" ItemsSource="{Binding Source={x:Static local:ServerInfo.Instance},Path=FolderProviders}" Grid.Column="1" HorizontalAlignment="Left"  Grid.Row="2" ItemTemplate="{StaticResource cmbTemplate}" VerticalAlignment="Center" Width="400" SelectedIndex="0"/>
 
                 <TextBlock Grid.Column="0" Grid.Row="3" Margin="0,0,10,5" FontWeight="DemiBold" Padding="5"
                            Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_InputPath}" />

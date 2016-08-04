@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Globalization;
-using System.IO;
-using System.Threading;
+
 using System.Xml;
 using AniDBAPI;
 using JMMServer.Commands.AniDB;

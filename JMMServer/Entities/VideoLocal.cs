@@ -17,7 +17,6 @@ using JMMServer.Repositories;
 using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
-using Directory = System.IO.Directory;
 using Stream = JMMContracts.PlexAndKodi.Stream;
 
 namespace JMMServer.Entities
@@ -41,13 +40,13 @@ namespace JMMServer.Entities
         public byte[] MediaBlob { get; set; }
         public int MediaSize { get; set; }
 
-        public string VideoCodec { get; set; }
-        public string VideoBitrate { get; set; }
-        public string VideoBitDepth { get; set; }
-        public string VideoFrameRate { get; set; }
-        public string VideoResolution { get; set; }
-        public string AudioCodec { get; set; }
-        public string AudioBitrate { get; set; }
+        public string VideoCodec { get; set; } = string.Empty;
+        public string VideoBitrate { get; set; } = string.Empty;
+        public string VideoBitDepth { get; set; } = string.Empty;
+        public string VideoFrameRate { get; set; } = string.Empty;
+        public string VideoResolution { get; set; } = string.Empty;
+        public string AudioCodec { get; set; } = string.Empty;
+        public string AudioBitrate { get; set; } = string.Empty;
         public long Duration { get; set; }
         public string FileName { get; set; }
 
@@ -218,8 +217,10 @@ namespace JMMServer.Entities
         {
             Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
             IFileSystem fs = tup?.Item1.FileSystem;
+            if (fs == null)
+                return null;
             FileSystemResult<IObject> fobj = fs?.Resolve(fullname);
-            if (!fobj.IsOk || fobj is IDirectory)
+            if (!fobj.IsOk || fobj.Result is IDirectory)
                 return null;
             return fobj.Result as IFile;
         }

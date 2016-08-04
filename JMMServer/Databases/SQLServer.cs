@@ -1861,6 +1861,27 @@ namespace JMMServer.Databases
             cmds.Add("ALTER TABLE VideoLocal_User ALTER COLUMN WatchedDate datetime NULL");
             cmds.Add("ALTER TABLE VideoLocal_User ADD ResumePosition bigint NOT NULL DEFAULT (0)");
             cmds.Add("DROP TABLE VideoInfo");
+            using (
+             SqlConnection tmpConn =
+                 new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
+                     ServerSettings.DatabaseServer,
+                     ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception e)
+                        {
+                        }
+                    }
+                }
+            }
             UpdateDatabaseVersion(thisVersion);
         }
 

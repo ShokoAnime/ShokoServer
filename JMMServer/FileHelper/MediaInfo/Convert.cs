@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using JMMContracts.PlexAndKodi;
 using MediaInfoLib;
+using NutzCode.CloudFileSystem;
 using Stream = JMMContracts.PlexAndKodi.Stream;
 
 namespace JMMServer.FileHelper.MediaInfo
@@ -442,14 +443,12 @@ namespace JMMServer.FileHelper.MediaInfo
             return 0.0F;
         }
 
-        public static Media Convert(string filename)
+        public static Media Convert(string filename, IFile file)
         {
             int ex = 0;
+            if (file == null)
+                return null;
             MediaInfoLib.MediaInfo mi = new MediaInfoLib.MediaInfo();
-            if (mi == null)
-                return null;
-            if (!File.Exists(filename))
-                return null;
             try
             {
                 mi.Open(filename);
@@ -652,7 +651,10 @@ namespace JMMServer.FileHelper.MediaInfo
                     p.OptimizedForStreaming = "0";
                     m.OptimizedForStreaming = "0";
                     byte[] buffer = new byte[8];
-                    FileStream fs = File.OpenRead(filename);
+                    FileSystemResult<System.IO.Stream> fsr = file.OpenRead();
+                    if (!fsr.IsOk)
+                        return null;
+                    System.IO.Stream fs = fsr.Result;
                     fs.Read(buffer, 0, 4);
                     int siz = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
                     fs.Seek(siz, SeekOrigin.Begin);

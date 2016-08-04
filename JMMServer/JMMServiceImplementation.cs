@@ -3074,7 +3074,7 @@ namespace JMMServer
                     return response;
                 }
 
-                if (!Directory.Exists(contract.ImportFolderLocation))
+                if (contract.CloudID==null && !Directory.Exists(contract.ImportFolderLocation))
                 {
                     response.ErrorMessage = "Cannot find Import Folder location";
                     return response;
@@ -3117,6 +3117,7 @@ namespace JMMServer
                 ns.IsDropDestination = contract.IsDropDestination;
                 ns.IsDropSource = contract.IsDropSource;
                 ns.IsWatched = contract.IsWatched;
+                ns.ImportFolderType = contract.ImportFolderType;
                 ns.CloudID = contract.CloudID;
                 repNS.Save(ns);
 
@@ -3609,10 +3610,8 @@ namespace JMMServer
                     string fileName = "";
                     if (fileNumber == 1) fileName = df.FullServerPath1;
                     if (fileNumber == 2) fileName = df.FullServerPath2;
-
-                    if (!File.Exists(fileName)) return "File could not be found";
-
-                    File.Delete(fileName);
+                    IFile file = VideoLocal.ResolveFile(fileName);
+                    file?.Delete(true);
                 }
 
                 repDupFiles.Delete(duplicateFileID);
@@ -3802,7 +3801,9 @@ namespace JMMServer
                     }
 
                     // check if both files still exist
-                    if (!File.Exists(df.FullServerPath1) || !File.Exists(df.FullServerPath2))
+                    IFile file1 = VideoLocal.ResolveFile(df.FullServerPath1);
+                    IFile file2 = VideoLocal.ResolveFile(df.FullServerPath2);
+                    if (file1==null || file2==null)
                     {
                         string msg =
                             string.Format(

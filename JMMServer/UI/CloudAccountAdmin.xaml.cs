@@ -3,18 +3,18 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using JMMServer.Entities;
+using JMMServer.UI;
 
-namespace JMMServer.UI
+namespace JMMServer
 {
     /// <summary>
     /// Interaction logic for CloudAccounts.xaml
     /// </summary>
-    public partial class CloudAccounts : UserControl
+    public partial class CloudAccountAdmin : UserControl
     {
-        public CloudAccounts()
+        public CloudAccountAdmin()
         {
             InitializeComponent();
-            ServerInfo.Instance.RefreshCloudAccounts();
             btnAddCloudAccount.Click += btnAddCloudAccount_Click;
             btnDeleteCloudAccount.Click += btnDeleteCloudAccount_Click;
             lbCloudAccounts.MouseDoubleClick += lbCloudAccount_MouseDoubleClick;

@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.Xml.Serialization;
+﻿using System.Xml.Serialization;
 using JMMServer.Repositories;
 
 namespace JMMServer.Entities

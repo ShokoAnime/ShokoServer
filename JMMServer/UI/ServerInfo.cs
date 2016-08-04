@@ -466,9 +466,9 @@ namespace JMMServer
         public void RefreshFolderProviders()
         {
             FolderProviders.Clear();
-            ICloudPlugin plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == "Local File System");
-            FolderProviders.Add(new CloudAccount {Icon = plugin.CreateIconImage(), Name = "Local File System", Provider = "NA"});
-            new ImportFolderRepository().GetAll().ForEach(a => ImportFolders.Add(a));
+            CloudAccount lfs = new CloudAccount() {Name = "NA", Provider = "Local File System"};
+            FolderProviders.Add(lfs);
+            new CloudAccountRepository().GetAll().ForEach(a => FolderProviders.Add(a));
         }
         #endregion
     }

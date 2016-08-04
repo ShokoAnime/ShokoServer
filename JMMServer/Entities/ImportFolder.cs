@@ -5,7 +5,8 @@ using System.Threading.Tasks;
 using JMMContracts;
 using JMMServer.Repositories;
 using NutzCode.CloudFileSystem;
-using NutzCode.CloudFileSystem.OAuth.Windows.WinForms;
+using NutzCode.CloudFileSystem.OAuth.Windows.WPF;
+using NutzCode.CloudFileSystem.Plugins.GoogleDrive;
 
 namespace JMMServer.Entities
 {
@@ -49,6 +50,16 @@ namespace JMMServer.Entities
             }
         }
 
+        public IDirectory BaseDirectory
+        {
+            get
+            {
+                FileSystemResult<IObject> fr = FileSystem.Resolve(ImportFolderLocation);
+                if (fr.IsOk && fr.Result is IDirectory)
+                    return (IDirectory)fr.Result;
+                throw new Exception("Import Folder not found '" + ImportFolderLocation + "'");
+            }
+        }
         public CloudAccount CloudAccount
         {
             get

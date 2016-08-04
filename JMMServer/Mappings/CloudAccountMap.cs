@@ -14,7 +14,7 @@ namespace JMMServer.Mappings
         {
             Not.LazyLoad();
             Id(x => x.CloudID);
-
+            Map(x => x.Name).Not.Nullable();
             Map(x => x.ConnectionString).Not.Nullable();
             Map(x => x.Provider).Not.Nullable();
         }

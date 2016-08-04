@@ -140,6 +140,7 @@ namespace JMMServer.Commands
             IFile source_file = (IFile) source.Result;
             if (folder.CloudID.HasValue)
                 filesize = source_file.Size;
+            nshareID = folder.ImportFolderID;
             // check if we have already processed this file
             VideoLocalRepository repVidLocal = new VideoLocalRepository();
             FileNameHashRepository repFNHash = new FileNameHashRepository();
@@ -171,8 +172,8 @@ namespace JMMServer.Commands
                 vlocal.FileSize = filesize;
                 vlocal.Hash = string.Empty;
                 vlocal.CRC32 = string.Empty;
-                vlocal.MD5 = source_file.MD5 ?? string.Empty;
-                vlocal.SHA1 = source_file.SHA1 ?? string.Empty;
+                vlocal.MD5 = source_file.MD5.ToUpperInvariant() ?? string.Empty;
+                vlocal.SHA1 = source_file.SHA1.ToUpperInvariant() ?? string.Empty;
                 vlocal.IsIgnored = 0;
                 vlocal.IsVariation = 0;
                 vlocalplace=new VideoLocal_Place();
@@ -247,7 +248,7 @@ namespace JMMServer.Commands
                 // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
 
                 VideoLocal tlocal = repVidLocal.GetByHash(vlocal.Hash);
-                VideoLocal_Place prep= tlocal.Places.FirstOrDefault(a => a.ImportFolder.CloudID == folder.CloudID && vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
+                VideoLocal_Place prep= tlocal?.Places.FirstOrDefault(a => a.ImportFolder.CloudID == folder.CloudID && vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
                 if (prep!=null)
                 {
                     // delete the VideoLocal record
@@ -335,26 +336,26 @@ namespace JMMServer.Commands
                     VideoLocal n = vlrepo.GetBySHA1(v.SHA1);
                     if (n != null)
                     {
-                        v.CRC32 = n.CRC32;
-                        v.MD5 = n.MD5;
-                        v.ED2KHash = n.ED2KHash;
+                        v.CRC32 = n.CRC32.ToUpperInvariant();
+                        v.MD5 = n.MD5.ToUpperInvariant();
+                        v.ED2KHash = n.ED2KHash.ToUpperInvariant();
                         return;
                     }
                     AniDB_File f = frepo.GetBySHA1(session, v.SHA1);
                     if (f != null)
                     {
-                        v.CRC32 = f.CRC;
-                        v.ED2KHash = f.Hash;
-                        v.MD5 = f.MD5;
+                        v.CRC32 = f.CRC.ToUpperInvariant();
+                        v.ED2KHash = f.Hash.ToUpperInvariant();
+                        v.MD5 = f.MD5.ToUpperInvariant();
                         return;
                     }
                     List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.SHA1, v.SHA1);
                     ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5)).ToList();
                     if (ls.Count > 0)
                     {
-                        v.ED2KHash = ls[0].ED2K;
-                        v.CRC32 = ls[0].CRC32;
-                        v.MD5 = ls[0].MD5;
+                        v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
+                        v.CRC32 = ls[0].CRC32.ToUpperInvariant();
+                        v.MD5 = ls[0].MD5.ToUpperInvariant();
                         return;
                     }
                 }
@@ -363,26 +364,26 @@ namespace JMMServer.Commands
                     VideoLocal n = vlrepo.GetByMD5(v.MD5);
                     if (n != null)
                     {
-                        v.CRC32 = n.CRC32;
-                        v.SHA1 = n.SHA1;
-                        v.ED2KHash = n.ED2KHash;
+                        v.CRC32 = n.CRC32.ToUpperInvariant();
+                        v.SHA1 = n.SHA1.ToUpperInvariant();
+                        v.ED2KHash = n.ED2KHash.ToUpperInvariant();
                         return;
                     }
                     AniDB_File f = frepo.GetByMD5(session, v.MD5);
                     if (f != null)
                     {
-                        v.CRC32 = f.CRC;
-                        v.ED2KHash = f.Hash;
-                        v.SHA1 = f.SHA1;
+                        v.CRC32 = f.CRC.ToUpperInvariant();
+                        v.ED2KHash = f.Hash.ToUpperInvariant();
+                        v.SHA1 = f.SHA1.ToUpperInvariant();
                         return;
                     }
                     List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.MD5, v.MD5);
                     ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.SHA1)).ToList();
                     if (ls.Count > 0)
                     {
-                        v.ED2KHash = ls[0].ED2K;
-                        v.CRC32 = ls[0].CRC32;
-                        v.SHA1 = ls[0].SHA1;
+                        v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
+                        v.CRC32 = ls[0].CRC32.ToUpperInvariant();
+                        v.SHA1 = ls[0].SHA1.ToUpperInvariant();
                     }
                 }
             }

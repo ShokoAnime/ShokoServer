@@ -89,7 +89,16 @@ namespace JMMServer.Entities
                 logger.ErrorException(ex.ToString(), ex);
             }
         }
-
+        public IFile GetFile()
+        {
+            IFileSystem fs = ImportFolder.FileSystem;
+            if (fs == null)
+                return null;
+            FileSystemResult<IObject> fobj = fs.Resolve(FullServerPath);
+            if (!fobj.IsOk || fobj.Result is IDirectory)
+                return null;
+            return fobj.Result as IFile;
+        }
         public bool RefreshMediaInfo()
         {
             return MediaInfoReader.ReadMediaInfo(this);

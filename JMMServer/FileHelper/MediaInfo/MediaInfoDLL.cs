@@ -169,7 +169,7 @@ namespace MediaInfoLib
         internal static extern bool FreeLibrary(IntPtr hModule);
 
         private static System.IntPtr moduleHandle = IntPtr.Zero;
-
+        private static System.IntPtr curlHandle=IntPtr.Zero;
 
         //MediaInfo class
         public MediaInfo()
@@ -178,12 +178,12 @@ namespace MediaInfoLib
             {
                 string fullexepath = System.Reflection.Assembly.GetExecutingAssembly().Location;
                 FileInfo fi = new FileInfo(fullexepath);
-                fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                    "MediaInfo.dll");
-
+                fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86","MediaInfo.dll");
+                string curlpath= Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "libcurl.dll");
                 NLog.LogManager.GetCurrentClassLogger().Trace(string.Format("Using MediaInfo at: {0}", fullexepath));
 
                 moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
+                curlHandle = LoadLibraryEx(curlpath, IntPtr.Zero, 0);
             }
             try
             {
@@ -204,6 +204,11 @@ namespace MediaInfoLib
             {
                 FreeLibrary(moduleHandle);
                 moduleHandle = IntPtr.Zero;
+            }
+            if (curlHandle != IntPtr.Zero)
+            {
+                FreeLibrary(curlHandle);
+                curlHandle=IntPtr.Zero;
             }
         }
 

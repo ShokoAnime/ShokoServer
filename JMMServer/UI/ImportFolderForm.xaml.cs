@@ -55,22 +55,15 @@ namespace JMMServer
             }
             else
             {
-                ImportFolderForm frm=new ImportFolderForm();
-                frm.Owner = GetTopParent();
+                CloudFolderBrowser frm=new CloudFolderBrowser();
+                frm.Owner = this;
                 frm.Init(importFldr);
-                frm.ShowDialog();
+                bool? result=frm.ShowDialog();
+                if (result.HasValue && result.Value)
+                    txtImportFolderLocation.Text = frm.SelectedPath;
             }
         }
-        private Window GetTopParent()
-        {
-            DependencyObject dpParent = Parent;
-            do
-            {
-                dpParent = LogicalTreeHelper.GetParent(dpParent);
-            } while (dpParent.GetType().BaseType != typeof(Window));
 
-            return dpParent as Window;
-        }
         void btnSave_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -101,6 +94,7 @@ namespace JMMServer
                     contract.ImportFolderID = null;
                 else
                     contract.ImportFolderID = importFldr.ImportFolderID;
+                contract.ImportFolderType = (int)(importFldr.CloudID.HasValue ? ImportFolderType.Cloud : ImportFolderType.HDD);
                 contract.ImportFolderName = "NA";
                 contract.ImportFolderLocation = txtImportFolderLocation.Text.Trim();
                 contract.IsDropDestination = chkDropDestination.IsChecked.Value ? 1 : 0;
@@ -137,8 +131,8 @@ namespace JMMServer
         {
             try
             {
-                ServerInfo.Instance.RefreshCloudAccounts();
                 importFldr = ifldr;
+                ServerInfo.Instance.RefreshFolderProviders();
                 txtImportFolderLocation.Text = importFldr.ImportFolderLocation;
                 chkDropDestination.IsChecked = importFldr.IsDropDestination == 1;
                 chkDropSource.IsChecked = importFldr.IsDropSource == 1;

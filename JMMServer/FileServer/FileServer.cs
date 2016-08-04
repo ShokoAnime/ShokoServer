@@ -361,8 +361,15 @@ namespace JMMServer.FileServer
             }
             finally
             {
-                org?.Close();
-                obj?.Response.OutputStream?.Close();
+                org?.Dispose();
+                try
+                {
+                    obj?.Response.OutputStream?.Close();
+
+                }
+                catch (Exception)
+                {
+                }
             }
         }
 

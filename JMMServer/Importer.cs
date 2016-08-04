@@ -250,7 +250,7 @@ namespace JMMServer
 
                 logger.Debug("ImportFolder: {0} || {1}", fldr.ImportFolderName, fldr.ImportFolderLocation);
 
-                Utils.GetFilesForImportFolder(fldr.FileSystem, ref fileList);
+                Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
 
                 // get a list of all files in the share
                 foreach (string fileName in fileList)
@@ -294,7 +294,7 @@ namespace JMMServer
 
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 
-                Utils.GetFilesForImportFolder(share.FileSystem, ref fileList);
+                Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
             }
 
             // get a list of all the shares we are looking at
@@ -355,7 +355,7 @@ namespace JMMServer
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 try
                 {
-                    Utils.GetFilesForImportFolder(share.FileSystem, ref fileList);
+                    Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
                 }
                 catch (Exception ex)
                 {

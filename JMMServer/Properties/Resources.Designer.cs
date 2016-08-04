@@ -386,6 +386,24 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Connected.
+        /// </summary>
+        internal static string CloudAccount_Connected {
+            get {
+                return ResourceManager.GetString("CloudAccount_Connected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not Connected.
+        /// </summary>
+        internal static string CloudAccount_NotConnected {
+            get {
+                return ResourceManager.GetString("CloudAccount_NotConnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Add Account.
         /// </summary>
         internal static string CloudAccounts_Add {
@@ -2638,6 +2656,15 @@ namespace JMMServer.Properties {
         internal static string Tab_Actions {
             get {
                 return ResourceManager.GetString("Tab_Actions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cloud Accounts.
+        /// </summary>
+        internal static string Tab_CloudAccounts {
+            get {
+                return ResourceManager.GetString("Tab_CloudAccounts", resourceCulture);
             }
         }
         

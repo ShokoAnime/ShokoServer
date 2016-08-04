@@ -11,20 +11,11 @@ namespace JMMServer
 
         private static ServerState _instance;
 
-        public static ServerState Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    _instance = new ServerState();
-                }
-                return _instance;
-            }
-        }
+        public static ServerState Instance => _instance ?? (_instance = new ServerState());
 
         public ServerState()
         {
+            ConnectedFileSystems=new Dictionary<string, IFileSystem>();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -317,8 +308,7 @@ namespace JMMServer
 
 
 
-        public Dictionary<string, IFileSystem> ConnectedFileSystems => new Dictionary<string, IFileSystem>();
-
+        public Dictionary<string, IFileSystem> ConnectedFileSystems { get; private set; }
 
 
         public void LoadSettings()

@@ -12,6 +12,8 @@ namespace JMMServer.Mappings
             Map(x => x.VideoLocalID).Not.Nullable();
             Map(x => x.FilePath).Not.Nullable();
             Map(x => x.ImportFolderID).Not.Nullable();
+            Map(x => x.ImportFolderType).Not.Nullable();
+
         }
     }
 }

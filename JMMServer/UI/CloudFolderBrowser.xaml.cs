@@ -14,7 +14,7 @@ using System.Windows.Shapes;
 using JMMServer.Entities;
 using NutzCode.CloudFileSystem;
 
-namespace JMMServer.UI
+namespace JMMServer
 {
     /// <summary>
     /// Interaction logic for CloudFolderBrowser.xaml
@@ -48,16 +48,19 @@ namespace JMMServer.UI
             Close();
         }
 
-        public void Init(CloudAccount acc)
+        public void Init(ImportFolder acc)
         {
-            _account = acc;
+            _account = acc.CloudAccount;
+            PopulateMainDir();
         }
 
         public void PopulateMainDir()
         {
+            this.Cursor = Cursors.Wait;
             _account.FileSystem.Populate();
-            foreach (IDirectory d in _account.FileSystem.Directories)
+            foreach (IDirectory d in _account.FileSystem.Directories.OrderBy(a=>a.Name))
                 TrView.Items.Add(GenerateFromDirectory(d));
+            this.Cursor = Cursors.Arrow;
         }
 
         private TreeViewItem GenerateFromDirectory(IDirectory d)
@@ -72,6 +75,7 @@ namespace JMMServer.UI
         }
         private void Item_Expanded(object sender, RoutedEventArgs e)
         {
+            this.Cursor = Cursors.Wait;
             TreeViewItem item = (TreeViewItem)sender;
             if (item.Items.Count>0 && item.Items[0]==obj)
             {
@@ -80,33 +84,21 @@ namespace JMMServer.UI
                 {
                     IDirectory dir = (IDirectory) item.Tag;
                     dir.Populate();
-                    foreach(IDirectory d in dir.Directories)
+                    foreach(IDirectory d in dir.Directories.OrderBy(a=>a.Name))
                         item.Items.Add(GenerateFromDirectory(d));
                 }
                 catch (Exception) { }
             }
+            this.Cursor = Cursors.Arrow;
         }
         private void TrView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             TreeView tree = (TreeView)sender;
-            TreeViewItem temp = ((TreeViewItem)tree.SelectedItem);
-
-            if (temp == null)
-                return;
-            string temp1 = "";
-            string temp2 = "";
-            while (true)
+            TreeViewItem item = tree.SelectedItem as TreeViewItem;
+            if (item != null)
             {
-                temp1 = temp.Header.ToString();
-                if (temp1.Contains(@"\"))
-                {
-                    temp2 = string.Empty;
-                }
-                SelectedPath = temp1 + temp2 + SelectedPath;
-                if (temp.Parent.GetType() == typeof(TreeView))
-                    break;
-                temp = (TreeViewItem)temp.Parent;
-                temp2 = @"\";
+                IDirectory dir = (IDirectory)item.Tag;
+                SelectedPath = dir.FullName;
             }
         }
 
