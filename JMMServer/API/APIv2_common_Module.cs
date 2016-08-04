@@ -7,7 +7,7 @@ namespace JMMServer.API
 {
     public class APIv2_common_Module : Nancy.NancyModule
     {
-        public APIv2_common_Module() : base("/api/")
+        public APIv2_common_Module() : base("/api")
         {
             //Images
             Get["/get_image/{type}/{id}"] = parameter => { return GetImage(parameter.type, parameter.id); };
