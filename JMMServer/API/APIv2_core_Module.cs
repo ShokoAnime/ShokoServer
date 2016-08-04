@@ -17,15 +17,12 @@ namespace JMMServer.API
     //As responds for this API we throw object that will be converted to json/xml or standard http codes (HttpStatusCode)
     public class APIv2_core_Module : Nancy.NancyModule
     {
-        static int version = 1;
+        public static int version = 1;
         //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
         //routes are named with twitter api style
         //every function with summary is implemented 
-        public APIv2_core_Module() : base("/api/")
+        public APIv2_core_Module() : base("/api")
         {
-            Get["/"] = _ => { return IndexPage; };
-            Get["/version"] = _ => { return GetVersion(); };
-
             this.RequiresAuthentication();
 
             // Operations on collection
@@ -90,8 +87,6 @@ namespace JMMServer.API
             Get["/queue/images/start"] = _ => { return StartImagesQueue(); };
             Get["/queue/images/clear"] = _ => { return ClearImagesQueue(); };
         }
-
-        const String IndexPage = @"<html><body><h1>JMMServer is running</h1></body></html>";
 
         #region Operations on collection
 
@@ -653,15 +648,6 @@ namespace JMMServer.API
             {
                 return null;
             }
-        }
-
-        /// <summary>
-        /// Return current version of JMMServer
-        /// </summary>
-        /// <returns></returns>
-        private object GetVersion()
-        {
-            return "{\"version\":\"" + System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString() + "\", \"api\":" + version.ToString() + "}";
         }
 
         /// <summary>
