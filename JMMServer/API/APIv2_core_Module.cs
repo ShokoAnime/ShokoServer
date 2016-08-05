@@ -683,7 +683,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetHasherQueue()
         {
-            return "{\"hash\":{\"count\":" + ServerInfo.Instance.HasherQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.HasherQueueState + "\",\"isrunning\":" + ServerInfo.Instance.HasherQueueRunning.ToString() + ", \"ispause\":" + ServerInfo.Instance.HasherQueuePaused + "\"}";
+            return "{\"hash\":{\"count\":" + ServerInfo.Instance.HasherQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.HasherQueueState + "\",\"isrunning\":" + ServerInfo.Instance.HasherQueueRunning.ToString().ToLower() + ", \"ispause\":" + ServerInfo.Instance.HasherQueuePaused.ToString().ToLower() + "\"}";
         }
 
         /// <summary>
@@ -692,7 +692,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetGeneralQueue()
         {
-            return "{\"count\":" + ServerInfo.Instance.GeneralQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.GeneralQueueState + "\",\"isrunning\":" + ServerInfo.Instance.GeneralQueueRunning.ToString() + ", \"ispause\":" + ServerInfo.Instance.GeneralQueuePaused + "\"}";
+            return "{\"count\":" + ServerInfo.Instance.GeneralQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.GeneralQueueState + "\",\"isrunning\":" + ServerInfo.Instance.GeneralQueueRunning.ToString().ToLower() + ", \"ispause\":" + ServerInfo.Instance.GeneralQueuePaused.ToString().ToLower() + "\"}";
         }
 
         /// <summary>
@@ -701,7 +701,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetImagesQueue()
         {
-            return "{\"count\":" + ServerInfo.Instance.ImagesQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.ImagesQueueState + "\",\"isrunning\":" + ServerInfo.Instance.ImagesQueueRunning.ToString() + ", \"ispause\":" + ServerInfo.Instance.ImagesQueuePaused + "\"}";
+            return "{\"count\":" + ServerInfo.Instance.ImagesQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.ImagesQueueState + "\",\"isrunning\":" + ServerInfo.Instance.ImagesQueueRunning.ToString().ToLower() + ", \"ispause\":" + ServerInfo.Instance.ImagesQueuePaused.ToString().ToLower() + "\"}";
         }
 
         /// <summary>
