@@ -49,10 +49,6 @@ namespace JMMServer.API
             Get["/trakt/get"] = _ => { return GetTrakt(); };
             Get["/trakt/create"] = _ => { return CreateTrakt(); };
 
-            // Setup
-            Post["/db/set"] = _ => { return SetupDB(); };
-            Get["/db/get"] = _ => { return GetDB(); };
-
             // Actions
             Get["/remove_missing_files"] = _ => { return RemoveMissingFiles(); };
             Get["/stats_update"] = _ => { return UpdateStats(); };
@@ -243,7 +239,7 @@ namespace JMMServer.API
             }
             else
             {
-                if (String.IsNullOrEmpty(imagepath.path) && imagepath.path != "")
+                if (!String.IsNullOrEmpty(imagepath.path) && imagepath.path != "")
                 {
                     ServerSettings.BaseImagesPath = imagepath.path;
                     return HttpStatusCode.OK;
@@ -275,7 +271,7 @@ namespace JMMServer.API
         private object SetAniDB()
         {
             Creditentials cred = this.Bind();
-            if (String.IsNullOrEmpty(cred.login) && cred.login != "" && String.IsNullOrEmpty(cred.password) && cred.password != "")
+            if (!String.IsNullOrEmpty(cred.login) && cred.login != "" && !String.IsNullOrEmpty(cred.password) && cred.password != "")
             {
                 ServerSettings.AniDB_Username = cred.login;
                 ServerSettings.AniDB_Password = cred.password;
@@ -339,7 +335,7 @@ namespace JMMServer.API
         private object SetMAL()
         {
             Creditentials cred = this.Bind();
-            if (String.IsNullOrEmpty(cred.login) && cred.login != "" && String.IsNullOrEmpty(cred.password) && cred.password != "")
+            if (!String.IsNullOrEmpty(cred.login) && cred.login != "" && !String.IsNullOrEmpty(cred.password) && cred.password != "")
             {
                 ServerSettings.MAL_Username = cred.login;
                 ServerSettings.MAL_Password = cred.password;
@@ -423,88 +419,6 @@ namespace JMMServer.API
             cred.token = ServerSettings.Trakt_AuthToken;
             cred.refresh_token = ServerSettings.Trakt_RefreshToken;
             return cred;
-        }
-
-        #endregion
-
-        #region Setup
-
-        /// <summary>
-        /// Setup Database and Init it
-        /// </summary>
-        /// <returns></returns>
-        private object SetupDB()
-        {
-            Database db = this.Bind();
-            if (String.IsNullOrEmpty(db.type) && db.type != "")
-            {
-                switch (db.type.ToLower())
-                {
-                    case "sqlite":
-                        ServerSettings.DatabaseFile = db.path;
-                        break;
-
-                    case "sqlserver":
-                        ServerSettings.DatabaseUsername = db.login;
-                        ServerSettings.DatabasePassword = db.password;
-                        ServerSettings.DatabaseName = db.table;
-                        ServerSettings.DatabaseServer = db.server;
-                        break;
-
-                    case "mysql":
-                        ServerSettings.MySQL_Username = db.login;
-                        ServerSettings.MySQL_Password = db.password;
-                        ServerSettings.MySQL_SchemaName = db.table;
-                        ServerSettings.MySQL_Hostname = db.server;
-                        break;
-                }
-
-                MainWindow.workerSetupDB.RunWorkerAsync();
-                return HttpStatusCode.OK;
-            }
-            else
-            {
-                return HttpStatusCode.BadRequest;
-            }
-        }
-
-        /// <summary>
-        /// Return Database object
-        /// </summary>
-        /// <returns></returns>
-        private object GetDB()
-        {
-            Database db = this.Bind();
-            db.type = ServerSettings.DatabaseType;
-            if (String.IsNullOrEmpty(db.type) && db.type != "")
-            {
-                switch (db.type.ToLower())
-                {
-                    case "sqlite":
-                        db.path = ServerSettings.DatabaseFile;
-                        break;
-
-                    case "sqlserver":
-                        db.login = ServerSettings.DatabaseUsername;
-                        db.password = ServerSettings.DatabasePassword;
-                        db.table = ServerSettings.DatabaseName;
-                        db.server = ServerSettings.DatabaseServer;
-                        break;
-
-                    case "mysql":
-                        db.login = ServerSettings.MySQL_Username;
-                        db.password = ServerSettings.MySQL_Password;
-                        db.table = ServerSettings.MySQL_SchemaName;
-                        db.server = ServerSettings.MySQL_Hostname;
-                        break;
-                }
-
-                return HttpStatusCode.OK;
-            }
-            else
-            {
-                return HttpStatusCode.BadRequest;
-            }
         }
 
         #endregion

@@ -323,6 +323,8 @@ namespace JMMServer
             cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
 
             InitCulture();
+
+            StartNancyHost();
         }
 
         private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
@@ -966,7 +968,7 @@ namespace JMMServer
                 //StartImageHostMetro();
                 StartFileHost();
                 StartStreamingHost();
-                StartNancyHost();
+                //StartNancyHost();
 
 
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
@@ -2520,8 +2522,8 @@ namespace JMMServer
             if (hostFile != null)
                 hostFile.Stop();
 
-            if (hostNancy != null)
-                hostNancy.Stop();
+            //if (hostNancy != null)
+            //    hostNancy.Stop();
         }
             
         private static void SetupAniDBProcessor()

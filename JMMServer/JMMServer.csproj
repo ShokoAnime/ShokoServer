@@ -252,6 +252,7 @@
     <Compile Include="API\APIv1_Legacy_Module.cs" />
     <Compile Include="API\APIv2_auth_Module.cs" />
     <Compile Include="API\APIv2_common_Module.cs" />
+    <Compile Include="API\APIv2_database_Module.cs" />
     <Compile Include="API\APIv2_unauth_Module.cs" />
     <Compile Include="API\Binnary_Module.cs" />
     <Compile Include="API\Bootstrapper.cs" />
