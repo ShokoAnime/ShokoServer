@@ -5,7 +5,6 @@
     using Nancy.Bootstrapper;
     using Nancy.TinyIoc;
     using System.Linq;
-    using System.Collections.Generic;
 
     public class Bootstrapper : DefaultNancyBootstrapper
     {
@@ -30,7 +29,14 @@
                         //take out value of "apikey" from query that was pass in request and check for User
                         apiKey = (string)nancyContext.Request.Query.apikey.Value;
                     }
-                    return UserDatabase.GetUserFromApiKey(apiKey);
+                    if (apiKey != null)
+                    {
+                        return UserDatabase.GetUserFromApiKey(apiKey);
+                    }
+                    else
+                    {
+                        return null;
+                    }
                 });
             StatelessAuthentication.Enable(pipelines, configuration);
         }
