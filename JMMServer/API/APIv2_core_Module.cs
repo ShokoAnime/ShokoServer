@@ -27,6 +27,7 @@ namespace JMMServer.API
 
             // Operations on collection
             Get["/folder/list"] = x => { return ListFolders(); };
+            Get["/folder/count"] = x => { return CountFolders(); };
             Post["/folder/add"] = x => { return AddFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
             Post["/upnp/list"] = x => { return ListUPNP(); };
@@ -88,6 +89,7 @@ namespace JMMServer.API
 
             //Files
             Get["/file/list"] = _ => { return GetAllFiles(); };
+            Get["/file/count"] = _ => { return CountFiles(); };
             Get["/file/{id}"] = x => { return GetFileById(x.id); };
             Get["/file/recent"] = x => { return GetRecentFiles(10); };
             Get["/file/recent/{max}"] = x => { return GetRecentFiles((int)x.max); };
@@ -99,6 +101,13 @@ namespace JMMServer.API
             Get["/ep/{id}"] = x => { return GetEpisodeById(x.id); };
             Get["/ep/recent"] = x => { return GetRecentEpisodes(10); };
             Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int)x.max); };
+
+            //Series
+            Get["/serie/list"] = _ => { return GetAllSeries(); ; };
+            Get["/serie/count"] = _ => { return CountSerie(); ; };
+            Get["/serie/{id}"] = x => { return GetSerieById(x.id); ; };
+            Get["/serie/recent"] = _ => { return GetRecentSeries(10); };
+            Get["/serie/recent/{max}"] = x => { return GetRecentSeries((int)x.max); };
 
         }
 
@@ -112,6 +121,17 @@ namespace JMMServer.API
         {
             List<Contract_ImportFolder> list = new JMMServiceImplementation().GetImportFolders();
             return list;
+        }
+
+        /// <summary>
+        /// return number of Import Folders
+        /// </summary>
+        /// <returns></returns>
+        private object CountFolders()
+        {
+            Counter count = new Counter();
+            count.count = new JMMServiceImplementation().GetImportFolders().Count;
+            return count;
         }
 
         /// <summary>
@@ -911,6 +931,18 @@ namespace JMMServer.API
         }
 
         /// <summary>
+        /// return how many files collection have
+        /// </summary>
+        /// <returns></returns>
+        private object CountFiles()
+        {
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            Counter count = new Counter();
+            count.count = _impl.GetAllFiles().Count;
+            return count;
+        }
+
+        /// <summary>
         /// Return List<> of recently added files paths
         /// </summary>
         /// <param name="max_limit"></param>
@@ -985,5 +1017,60 @@ namespace JMMServer.API
 
         #endregion
 
+        #region Series
+
+        /// <summary>
+        /// Return number of series inside collection
+        /// </summary>
+        /// <returns></returns>
+        private object CountSerie()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            Counter count = new Counter();
+            count.count = _impl.GetAllSeries(user.JMMUserID).Count;
+            return count;
+        }
+
+        /// <summary>
+        /// return all series for current user
+        /// </summary>
+        /// <returns></returns>
+        private object GetAllSeries()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.GetAllSeries(user.JMMUserID);
+        }
+
+        /// <summary>
+        /// return information about serie with given ID
+        /// </summary>
+        /// <param name="series_id"></param>
+        /// <returns></returns>
+        private object GetSerieById(int series_id)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.GetSeries(series_id, user.JMMUserID);
+        }
+
+        /// <summary>
+        /// return Recent added series
+        /// </summary>
+        /// <param name="max_limit"></param>
+        /// <returns></returns>
+        private object GetRecentSeries(int max_limit)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.GetSeriesRecentlyAdded(max_limit, user.JMMUserID);
+        }
+
+        #endregion
     }
 }
