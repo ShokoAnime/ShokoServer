@@ -3,6 +3,7 @@
     using Nancy;
     using Nancy.Authentication.Stateless;
     using Nancy.Bootstrapper;
+    using Nancy.Conventions;
     using Nancy.TinyIoc;
     using System.Linq;
 
@@ -40,5 +41,16 @@
                 });
             StatelessAuthentication.Enable(pipelines, configuration);
         }
+
+        /// <summary>
+        /// overwrite the folder of static content
+        /// </summary>
+        /// <param name="nancyConventions"></param>
+        protected override void ConfigureConventions(NancyConventions nancyConventions)
+        {
+            nancyConventions.StaticContentsConventions.Add(StaticContentConventionBuilder.AddDirectory("webui", @"webui"));
+            base.ConfigureConventions(nancyConventions);
+        }
+
     }
 }
