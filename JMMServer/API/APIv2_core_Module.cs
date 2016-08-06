@@ -648,9 +648,11 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetQueue()
         {
-            return "{\"hash\": " + GetHasherQueue() + "," +
-                "\"general\":" + GetGeneralQueue() + "," +
-                "\"images\":" + GetImagesQueue() + "}";
+            List<QueueInfo> queues = new List<QueueInfo>();
+            queues.Add((QueueInfo)GetHasherQueue());
+            queues.Add((QueueInfo)GetGeneralQueue());
+            queues.Add((QueueInfo)GetImagesQueue());
+            return queues;
         }
 
         /// <summary>
@@ -683,7 +685,12 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetHasherQueue()
         {
-            return "{\"count\":" + ServerInfo.Instance.HasherQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.HasherQueueState + "\",\"isrunning\":" + ServerInfo.Instance.HasherQueueRunning.ToString().ToLower() + ", \"ispause\":" + ServerInfo.Instance.HasherQueuePaused.ToString().ToLower() + "}";
+            QueueInfo queue = new QueueInfo();
+            queue.count = ServerInfo.Instance.HasherQueueCount;
+            queue.state = ServerInfo.Instance.HasherQueueState;
+            queue.isrunning = ServerInfo.Instance.HasherQueueRunning;
+            queue.ispause = ServerInfo.Instance.HasherQueuePaused;
+            return queue;
         }
 
         /// <summary>
@@ -692,7 +699,12 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetGeneralQueue()
         {
-            return "{\"count\":" + ServerInfo.Instance.GeneralQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.GeneralQueueState + "\",\"isrunning\":" + ServerInfo.Instance.GeneralQueueRunning.ToString().ToLower() + ", \"ispause\":" + ServerInfo.Instance.GeneralQueuePaused.ToString().ToLower() + "}";
+            QueueInfo queue = new QueueInfo();
+            queue.count = ServerInfo.Instance.GeneralQueueCount;
+            queue.state = ServerInfo.Instance.GeneralQueueState;
+            queue.isrunning = ServerInfo.Instance.GeneralQueueRunning;
+            queue.ispause = ServerInfo.Instance.GeneralQueuePaused;
+            return queue;
         }
 
         /// <summary>
@@ -701,7 +713,12 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetImagesQueue()
         {
-            return "{\"count\":" + ServerInfo.Instance.ImagesQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.ImagesQueueState + "\",\"isrunning\":" + ServerInfo.Instance.ImagesQueueRunning.ToString().ToLower() + ", \"ispause\":" + ServerInfo.Instance.ImagesQueuePaused.ToString().ToLower() + "}";
+            QueueInfo queue = new QueueInfo();
+            queue.count = ServerInfo.Instance.ImagesQueueCount;
+            queue.state = ServerInfo.Instance.ImagesQueueState;
+            queue.isrunning = ServerInfo.Instance.ImagesQueueRunning;
+            queue.ispause = ServerInfo.Instance.ImagesQueuePaused;
+            return queue;
         }
 
         /// <summary>
