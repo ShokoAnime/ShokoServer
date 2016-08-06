@@ -896,16 +896,17 @@ namespace JMMServer.API
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
 
             JMMServiceImplementation _impl = new JMMServiceImplementation();
-            List<Contract_AnimeEpisode> eps = _impl.GetEpisodesRecentlyAdded(max_limit, user.JMMUserID);
 
-            List<List<Contract_VideoDetailed>> list = new List<List<Contract_VideoDetailed>>();
+            //List<Contract_AnimeEpisode> eps = _impl.GetEpisodesRecentlyAdded(max_limit, user.JMMUserID);
 
-            foreach (Contract_AnimeEpisode ep in eps)
-            {
-                list.Add(_impl.GetFilesForEpisode(ep.AnimeEpisodeID, user.JMMUserID));
-            }
+            //List<List<Contract_VideoDetailed>> list = new List<List<Contract_VideoDetailed>>();
 
-            return list;
+            //foreach (Contract_AnimeEpisode ep in eps)
+            //{
+            //    list.Add(_impl.GetFilesForEpisode(ep.AnimeEpisodeID, user.JMMUserID));
+            //}
+
+            return _impl.GetFilesRecentlyAdded(max_limit, user.JMMUserID);
         }
 
         private object GetUnrecognisedFiles()
