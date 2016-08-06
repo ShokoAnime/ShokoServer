@@ -87,18 +87,16 @@ namespace JMMServer.API
             Get["/queue/images/clear"] = _ => { return ClearImagesQueue(); };
 
             //Files
-            Get["/file/list"] = _ => { return "get all files"; };
-            Get["/file/{id}"] = x => { return x.id; };
-            Get["/file/create"] = x => { return "ok"; };
-            Get["/file/delete"] = x => { return "ok"; };
+            Get["/file/list"] = _ => { return GetAllFiles(); };
+            Get["/file/{id}"] = x => { return GetFileById(x.id); };
             Get["/file/recent"] = x => { return GetRecentFiles(10); };
             Get["/file/recent/{max}"] = x => { return GetRecentFiles((int)x.max); };
             Get["/file/unrecognised"] = x => { return GetUnrecognisedFiles(10); };
             Get["/file/unrecognised/{max}"] = x => { return GetUnrecognisedFiles((int)x.max); };
 
             //Episodes
-            Get["/ep/list"] = _ => { return "get all episodes"; };
-            Get["/ep/{id}"] = x => { return x.id; };
+            Get["/ep/list"] = _ => { return GetAllEpisodes(); ; };
+            Get["/ep/{id}"] = x => { return GetEpisodeById(x.id); };
             Get["/ep/recent"] = x => { return GetRecentEpisodes(10); };
             Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int)x.max); };
 
@@ -891,6 +889,27 @@ namespace JMMServer.API
 
         #region Files
 
+        private object GetFileById(int file_id)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Get List of all files
+        /// </summary>
+        /// <returns></returns>
+        private object GetAllFiles()
+        {
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            List<string> files = new List<string>();
+            foreach (VideoLocal file in _impl.GetAllFiles())
+            {
+                files.Add(file.FilePath);
+            }
+
+            return files;
+        }
+
         /// <summary>
         /// Return List<> of recently added files paths
         /// </summary>
@@ -905,7 +924,7 @@ namespace JMMServer.API
 
             List<string> files = new List<string>();
 
-            foreach (VideoLocal file in _impl.GetFilesRecentlyAdded(max_limit, user.JMMUserID))
+            foreach (VideoLocal file in _impl.GetFilesRecentlyAdded(max_limit))
             {
                 files.Add(file.FilePath);
             }
@@ -938,13 +957,29 @@ namespace JMMServer.API
 
         #region Episodes
 
+        private object GetAllEpisodes()
+        {
+            throw new NotImplementedException();
+            return null;
+        }
+
+        private object GetEpisodeById(int ep_id)
+        {
+            throw new NotImplementedException();
+            return null;
+        }
+
+        /// <summary>
+        /// Get recent Episodes
+        /// </summary>
+        /// <param name="max_limit"></param>
+        /// <returns></returns>
         private object GetRecentEpisodes(int max_limit)
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
 
             JMMServiceImplementation _impl = new JMMServiceImplementation();
-            //return _impl.GetEpisodesRecentlyAddedSummary(max_limit, user.JMMUserID);
             return _impl.GetEpisodesRecentlyAdded(max_limit, user.JMMUserID);
         }
 

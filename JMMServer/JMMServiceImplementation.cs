@@ -6452,15 +6452,31 @@ namespace JMMServer
             return retEps;
         }
 
-        public List<VideoLocal> GetFilesRecentlyAdded(int max_records, int userid)
+        public List<VideoLocal> GetAllFiles()
         {
             try
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     VideoLocalRepository repVids = new VideoLocalRepository();
-                    JMMUserRepository repUsers = new JMMUserRepository();
-                    JMMUser user = repUsers.GetByID(session, userid);
+                    List<VideoLocal> vids = repVids.GetAll();
+                    return vids;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return new List<VideoLocal>();
+            }
+        }
+
+        public List<VideoLocal> GetFilesRecentlyAdded(int max_records)
+        {
+            try
+            {
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    VideoLocalRepository repVids = new VideoLocalRepository();
                     List<VideoLocal> vids = repVids.GetMostRecentlyAdded(session, max_records);
                     return vids;
                 }
