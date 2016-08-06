@@ -6,6 +6,10 @@
     using Nancy.Conventions;
     using Nancy.TinyIoc;
     using System.Linq;
+    using Nancy.Extensions;
+    using Nancy.ViewEngines;
+    using Nancy.ErrorHandling;
+    using Pri.LongPath;
 
     public class Bootstrapper : DefaultNancyBootstrapper
     {
@@ -51,6 +55,39 @@
             nancyConventions.StaticContentsConventions.Add(StaticContentConventionBuilder.AddDirectory("webui", @"webui"));
             base.ConfigureConventions(nancyConventions);
         }
+    }
 
+    public class StatusCodeHandler : IStatusCodeHandler
+    {
+        private readonly IRootPathProvider _rootPathProvider;
+
+        public StatusCodeHandler(IRootPathProvider rootPathProvider)
+        {
+            _rootPathProvider = rootPathProvider;
+        }
+
+        public bool HandlesStatusCode(HttpStatusCode statusCode, NancyContext context)
+        {
+            return statusCode == HttpStatusCode.NotFound;
+        }
+
+        public void Handle(HttpStatusCode statusCode, NancyContext context)
+        {
+            if (context.ResolvedRoute.Description.Path.Contains("/webui/"))
+            {
+                context.Response.Contents = stream =>
+                {
+                    var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
+                    using (var file = File.OpenRead(filename))
+                    {
+                        file.CopyTo(stream);
+                    }
+                };
+            }
+            else
+            {
+                context.Response = @"<html><body>File not Found (404)</body></html>";
+            }
+        }
     }
 }

@@ -261,7 +261,6 @@
     <Compile Include="API\Model\Database.cs" />
     <Compile Include="API\Model\ImagePath.cs" />
     <Compile Include="API\Model\QueueInfo.cs" />
-    <Compile Include="API\Secret_Module.cs" />
     <Compile Include="API\UserDatabase.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
