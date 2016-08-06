@@ -257,6 +257,7 @@
     <Compile Include="API\Binnary_Module.cs" />
     <Compile Include="API\Bootstrapper.cs" />
     <Compile Include="API\Model\AuthUser.cs" />
+    <Compile Include="API\Model\Counter.cs" />
     <Compile Include="API\Model\Creditentials.cs" />
     <Compile Include="API\Model\Database.cs" />
     <Compile Include="API\Model\ImagePath.cs" />
