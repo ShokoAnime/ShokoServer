@@ -1,11 +1,13 @@
-﻿namespace JMMServer.API
+﻿using Nancy;
+
+namespace JMMServer.API
 {
     public class APIv2_unauth_Module: Nancy.NancyModule
     {
-        public APIv2_unauth_Module(): base("/api")
+        public APIv2_unauth_Module()
         {
-            Get["/"] = _ => { return @"<html><body><h1>JMMServer is running</h1></body></html>"; };
-            Get["/version"] = x => { return GetVersion(); };
+            Get["/"] = _ => { return Response.AsRedirect("/webui/index.html"); };
+            Get["/api/version"] = x => { return GetVersion(); };
         }
 
         /// <summary>

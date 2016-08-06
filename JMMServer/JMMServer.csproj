@@ -260,7 +260,7 @@
     <Compile Include="API\Model\Creditentials.cs" />
     <Compile Include="API\Model\Database.cs" />
     <Compile Include="API\Model\ImagePath.cs" />
-    <Compile Include="API\Secret_Module.cs" />
+    <Compile Include="API\Model\QueueInfo.cs" />
     <Compile Include="API\UserDatabase.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
@@ -1080,7 +1080,12 @@
     <Resource Include="Images\db.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="API\Views\" />
+    <Content Include="webui\image\logo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="webui\index.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

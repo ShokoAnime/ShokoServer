@@ -138,7 +138,7 @@ namespace JMMServer.Repositories
 
         public List<VideoLocal> GetMostRecentlyAdded(int maxResults)
         {
-            return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(15).ToList();
+            return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
         }
 
         public List<VideoLocal> GetMostRecentlyAdded(ISession session, int maxResults)

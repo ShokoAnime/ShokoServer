@@ -85,6 +85,21 @@ namespace JMMServer.API
             Get["/queue/images/pause"] = _ => { return PauseImagesQueue(); };
             Get["/queue/images/start"] = _ => { return StartImagesQueue(); };
             Get["/queue/images/clear"] = _ => { return ClearImagesQueue(); };
+
+            //Files
+            Get["/file/list"] = _ => { return GetAllFiles(); };
+            Get["/file/{id}"] = x => { return GetFileById(x.id); };
+            Get["/file/recent"] = x => { return GetRecentFiles(10); };
+            Get["/file/recent/{max}"] = x => { return GetRecentFiles((int)x.max); };
+            Get["/file/unrecognised"] = x => { return GetUnrecognisedFiles(10); };
+            Get["/file/unrecognised/{max}"] = x => { return GetUnrecognisedFiles((int)x.max); };
+
+            //Episodes
+            Get["/ep/list"] = _ => { return GetAllEpisodes(); ; };
+            Get["/ep/{id}"] = x => { return GetEpisodeById(x.id); };
+            Get["/ep/recent"] = x => { return GetRecentEpisodes(10); };
+            Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int)x.max); };
+
         }
 
         #region Operations on collection
@@ -606,7 +621,7 @@ namespace JMMServer.API
             if (user != null)
             {
                 JMMUser _user = this.Bind();
-                if (new JMMServiceImplementation().ChangePassword(user.JMMUserID, _user.Password) =="")
+                if (new JMMServiceImplementation().ChangePassword(user.JMMUserID, _user.Password) == "")
                 {
                     return HttpStatusCode.OK;
                 }
@@ -618,7 +633,7 @@ namespace JMMServer.API
             else
             {
                 return HttpStatusCode.Unauthorized;
-            }            
+            }
         }
 
         /// <summary>
@@ -648,9 +663,11 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetQueue()
         {
-            return "{\"hash\": " + GetHasherQueue() + "," +
-                "\"general\":" + GetGeneralQueue() + "," +
-                "\"images\":" + GetImagesQueue() + "}";
+            List<QueueInfo> queues = new List<QueueInfo>();
+            queues.Add((QueueInfo)GetHasherQueue());
+            queues.Add((QueueInfo)GetGeneralQueue());
+            queues.Add((QueueInfo)GetImagesQueue());
+            return queues;
         }
 
         /// <summary>
@@ -683,7 +700,12 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetHasherQueue()
         {
-            return "{\"hash\":{\"count\":" + ServerInfo.Instance.HasherQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.HasherQueueState + "\",\"isrunning\":" + ServerInfo.Instance.HasherQueueRunning.ToString().ToLower() + ", \"ispause\":" + ServerInfo.Instance.HasherQueuePaused.ToString().ToLower() + "\"}";
+            QueueInfo queue = new QueueInfo();
+            queue.count = ServerInfo.Instance.HasherQueueCount;
+            queue.state = ServerInfo.Instance.HasherQueueState;
+            queue.isrunning = ServerInfo.Instance.HasherQueueRunning;
+            queue.ispause = ServerInfo.Instance.HasherQueuePaused;
+            return queue;
         }
 
         /// <summary>
@@ -692,7 +714,12 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetGeneralQueue()
         {
-            return "{\"count\":" + ServerInfo.Instance.GeneralQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.GeneralQueueState + "\",\"isrunning\":" + ServerInfo.Instance.GeneralQueueRunning.ToString().ToLower() + ", \"ispause\":" + ServerInfo.Instance.GeneralQueuePaused.ToString().ToLower() + "\"}";
+            QueueInfo queue = new QueueInfo();
+            queue.count = ServerInfo.Instance.GeneralQueueCount;
+            queue.state = ServerInfo.Instance.GeneralQueueState;
+            queue.isrunning = ServerInfo.Instance.GeneralQueueRunning;
+            queue.ispause = ServerInfo.Instance.GeneralQueuePaused;
+            return queue;
         }
 
         /// <summary>
@@ -701,7 +728,12 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetImagesQueue()
         {
-            return "{\"count\":" + ServerInfo.Instance.ImagesQueueCount.ToString() + ", \"state\":\"" + ServerInfo.Instance.ImagesQueueState + "\",\"isrunning\":" + ServerInfo.Instance.ImagesQueueRunning.ToString().ToLower() + ", \"ispause\":" + ServerInfo.Instance.ImagesQueuePaused.ToString().ToLower() + "\"}";
+            QueueInfo queue = new QueueInfo();
+            queue.count = ServerInfo.Instance.ImagesQueueCount;
+            queue.state = ServerInfo.Instance.ImagesQueueState;
+            queue.isrunning = ServerInfo.Instance.ImagesQueueRunning;
+            queue.ispause = ServerInfo.Instance.ImagesQueuePaused;
+            return queue;
         }
 
         /// <summary>
@@ -853,8 +885,105 @@ namespace JMMServer.API
                 return HttpStatusCode.InternalServerError;
             }
         }
+        #endregion
+
+        #region Files
+
+        private object GetFileById(int file_id)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Get List of all files
+        /// </summary>
+        /// <returns></returns>
+        private object GetAllFiles()
+        {
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            List<string> files = new List<string>();
+            foreach (VideoLocal file in _impl.GetAllFiles())
+            {
+                files.Add(file.FilePath);
+            }
+
+            return files;
+        }
+
+        /// <summary>
+        /// Return List<> of recently added files paths
+        /// </summary>
+        /// <param name="max_limit"></param>
+        /// <returns></returns>
+        private object GetRecentFiles(int max_limit)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+
+            List<string> files = new List<string>();
+
+            foreach (VideoLocal file in _impl.GetFilesRecentlyAdded(max_limit))
+            {
+                files.Add(file.FilePath);
+            }
+
+            return files;
+        }
+
+        /// <summary>
+        /// Return list of paths of files that have benn makred as Unrecognised
+        /// </summary>
+        /// <param name="max_limit"></param>
+        /// <returns></returns>
+        private object GetUnrecognisedFiles(int max_limit)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            List<string> files = new List<string>();
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            int i = 0;
+            foreach (Contract_VideoLocal file in _impl.GetUnrecognisedFiles(user.JMMUserID))
+            {
+                i++;
+                files.Add(file.FilePath);
+                if (i >= 10) break;
+            }
+            return files;
+        }
+
+        #endregion
+
+        #region Episodes
+
+        private object GetAllEpisodes()
+        {
+            throw new NotImplementedException();
+            return null;
+        }
+
+        private object GetEpisodeById(int ep_id)
+        {
+            throw new NotImplementedException();
+            return null;
+        }
+
+        /// <summary>
+        /// Get recent Episodes
+        /// </summary>
+        /// <param name="max_limit"></param>
+        /// <returns></returns>
+        private object GetRecentEpisodes(int max_limit)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.GetEpisodesRecentlyAdded(max_limit, user.JMMUserID);
+        }
+
+        #endregion
+
     }
-
-
-    #endregion
 }
