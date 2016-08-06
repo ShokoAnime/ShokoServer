@@ -93,7 +93,8 @@ namespace JMMServer.API
             Get["/file/delete"] = x => { return "ok"; };
             Get["/file/recent"] = x => { return GetRecentFiles(10); };
             Get["/file/recent/{max}"] = x => { return GetRecentFiles((int)x.max); };
-            Get["/file/unrecognised"] = x => { return GetUnrecognisedFiles(); };
+            Get["/file/unrecognised"] = x => { return GetUnrecognisedFiles(10); };
+            Get["/file/unrecognised/{max}"] = x => { return GetUnrecognisedFiles((int)x.max); };
 
             //Episodes
             Get["/ep/list"] = _ => { return "get all episodes"; };
@@ -890,6 +891,11 @@ namespace JMMServer.API
 
         #region Files
 
+        /// <summary>
+        /// Return List<> of recently added files paths
+        /// </summary>
+        /// <param name="max_limit"></param>
+        /// <returns></returns>
         private object GetRecentFiles(int max_limit)
         {
             Request request = this.Request;
@@ -897,25 +903,35 @@ namespace JMMServer.API
 
             JMMServiceImplementation _impl = new JMMServiceImplementation();
 
-            //List<Contract_AnimeEpisode> eps = _impl.GetEpisodesRecentlyAdded(max_limit, user.JMMUserID);
+            List<string> files = new List<string>();
 
-            //List<List<Contract_VideoDetailed>> list = new List<List<Contract_VideoDetailed>>();
+            foreach (VideoLocal file in _impl.GetFilesRecentlyAdded(max_limit, user.JMMUserID))
+            {
+                files.Add(file.FilePath);
+            }
 
-            //foreach (Contract_AnimeEpisode ep in eps)
-            //{
-            //    list.Add(_impl.GetFilesForEpisode(ep.AnimeEpisodeID, user.JMMUserID));
-            //}
-
-            return _impl.GetFilesRecentlyAdded(max_limit, user.JMMUserID);
+            return files;
         }
 
-        private object GetUnrecognisedFiles()
+        /// <summary>
+        /// Return list of paths of files that have benn makred as Unrecognised
+        /// </summary>
+        /// <param name="max_limit"></param>
+        /// <returns></returns>
+        private object GetUnrecognisedFiles(int max_limit)
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-
+            List<string> files = new List<string>();
             JMMServiceImplementation _impl = new JMMServiceImplementation();
-            return _impl.GetUnrecognisedFiles(user.JMMUserID);
+            int i = 0;
+            foreach (Contract_VideoLocal file in _impl.GetUnrecognisedFiles(user.JMMUserID))
+            {
+                i++;
+                files.Add(file.FilePath);
+                if (i >= 10) break;
+            }
+            return files;
         }
 
         #endregion
