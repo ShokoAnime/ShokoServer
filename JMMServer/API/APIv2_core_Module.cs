@@ -85,6 +85,22 @@ namespace JMMServer.API
             Get["/queue/images/pause"] = _ => { return PauseImagesQueue(); };
             Get["/queue/images/start"] = _ => { return StartImagesQueue(); };
             Get["/queue/images/clear"] = _ => { return ClearImagesQueue(); };
+
+            //Files
+            Get["/file/list"] = _ => { return "get all files"; };
+            Get["/file/{id}"] = x => { return x.id; };
+            Get["/file/create"] = x => { return "ok"; };
+            Get["/file/delete"] = x => { return "ok"; };
+            Get["/file/recent"] = x => { return GetRecentFiles(10); };
+            Get["/file/recent/{max}"] = x => { return GetRecentFiles((int)x.max); };
+            Get["/file/unrecognised"] = x => { return GetUnrecognisedFiles(); };
+
+            //Episodes
+            Get["/ep/list"] = _ => { return "get all episodes"; };
+            Get["/ep/{id}"] = x => { return x.id; };
+            Get["/ep/recent"] = x => { return GetRecentEpisodes(10); };
+            Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int)x.max); };
+
         }
 
         #region Operations on collection
@@ -606,7 +622,7 @@ namespace JMMServer.API
             if (user != null)
             {
                 JMMUser _user = this.Bind();
-                if (new JMMServiceImplementation().ChangePassword(user.JMMUserID, _user.Password) =="")
+                if (new JMMServiceImplementation().ChangePassword(user.JMMUserID, _user.Password) == "")
                 {
                     return HttpStatusCode.OK;
                 }
@@ -618,7 +634,7 @@ namespace JMMServer.API
             else
             {
                 return HttpStatusCode.Unauthorized;
-            }            
+            }
         }
 
         /// <summary>
@@ -870,8 +886,52 @@ namespace JMMServer.API
                 return HttpStatusCode.InternalServerError;
             }
         }
+        #endregion
+
+        #region Files
+
+        private object GetRecentFiles(int max_limit)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            List<Contract_AnimeEpisode> eps = _impl.GetEpisodesRecentlyAdded(max_limit, user.JMMUserID);
+
+            List<List<Contract_VideoDetailed>> list = new List<List<Contract_VideoDetailed>>();
+
+            foreach (Contract_AnimeEpisode ep in eps)
+            {
+                list.Add(_impl.GetFilesForEpisode(ep.AnimeEpisodeID, user.JMMUserID));
+            }
+
+            return list;
+        }
+
+        private object GetUnrecognisedFiles()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.GetUnrecognisedFiles(user.JMMUserID);
+        }
+
+        #endregion
+
+        #region Episodes
+
+        private object GetRecentEpisodes(int max_limit)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            //return _impl.GetEpisodesRecentlyAddedSummary(max_limit, user.JMMUserID);
+            return _impl.GetEpisodesRecentlyAdded(max_limit, user.JMMUserID);
+        }
+
+        #endregion
+
     }
-
-
-    #endregion
 }
