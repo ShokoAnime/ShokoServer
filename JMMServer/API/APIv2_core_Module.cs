@@ -109,6 +109,9 @@ namespace JMMServer.API
             Get["/serie/recent"] = _ => { return GetRecentSeries(10); };
             Get["/serie/recent/{max}"] = x => { return GetRecentSeries((int)x.max); };
 
+            //dashboard
+            Get["/dashboard"] = _ => { return GetDashboard(); };
+
         }
 
         #region Operations on collection
@@ -1069,6 +1072,21 @@ namespace JMMServer.API
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             return _impl.GetSeriesRecentlyAdded(max_limit, user.JMMUserID);
+        }
+
+        #endregion
+
+        #region Dashboard
+
+        private object GetDashboard()
+        {
+            List<object> dash = new List<object>();
+            dash.Add(GetQueue());
+            dash.Add(GetRecentFiles(10));
+            dash.Add(ListFolders());
+            dash.Add(CountFiles());
+            dash.Add(CountSerie());
+            return dash;
         }
 
         #endregion
