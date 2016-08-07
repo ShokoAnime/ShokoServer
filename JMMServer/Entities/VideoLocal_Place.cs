@@ -143,7 +143,7 @@ namespace JMMServer.Entities
                 }
 
                 FileSystemResult<IObject> fsrresult = f.Resolve(FullServerPath);
-                if (fsrresult == null || !fsrresult.IsOk)
+                if (!fsrresult.IsOk)
                 {
                     logger.Error("Could not find the file to move: {0}", this.FullServerPath);
                     return;
@@ -169,7 +169,7 @@ namespace JMMServer.Entities
                 if (destFolder == null) return;
 
                 FileSystemResult<IObject> re = f.Resolve(destFolder.ImportFolderLocation);
-                if (re == null || !re.IsOk)
+                if (!re.IsOk)
                     return;
 
                 // keep the original drop folder for later (take a copy, not a reference)
@@ -225,7 +225,7 @@ namespace JMMServer.Entities
                             string folderName = Path.GetDirectoryName(thisFileName);
 
                             FileSystemResult<IObject> dir = f.Resolve(folderName);
-                            if (dir != null && dir.IsOk)
+                            if (dir.IsOk)
                             {
                                 destination = (IDirectory)dir.Result;
                                 newFullPath = folderName;
@@ -243,10 +243,10 @@ namespace JMMServer.Entities
                     string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().MainTitle);
                     newFullPath = Path.Combine(destFolder.ImportFolderLocation, newFolderName);
                     FileSystemResult<IObject> dirn = f.Resolve(newFullPath);
-                    if (dirn == null || !dirn.IsOk)
+                    if (!dirn.IsOk)
                     {
                         dirn = f.Resolve(destFolder.ImportFolderLocation);
-                        if (dirn != null && dirn.IsOk)
+                        if (dirn.IsOk)
                         {
                             IDirectory d = (IDirectory)dirn.Result;
                             FileSystemResult<IDirectory> d2 = Task.Run(async () => await d.CreateDirectoryAsync(newFolderName, null)).Result;
@@ -273,7 +273,7 @@ namespace JMMServer.Entities
                 logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
 
                 FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
-                if (dst != null && dst.IsOk)
+                if (dst.IsOk)
                 {
                     logger.Trace("Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
                         this.FullServerPath, newFullServerPath);
@@ -281,7 +281,7 @@ namespace JMMServer.Entities
                     // if the file already exists, we can just delete the source file instead
                     // this is safer than deleting and moving
                     FileSystemResult fr = source_file.Delete(true);
-                    if (fr == null || !fr.IsOk)
+                    if (!fr.IsOk)
                     {
                         logger.Warn("Unable to delete file: {0} error {1}", this.FullServerPath, fr?.Error ?? String.Empty);
                     }
@@ -292,7 +292,7 @@ namespace JMMServer.Entities
                 else
                 {
                     FileSystemResult fr = source_file.Move(destination);
-                    if (fr == null || !fr.IsOk)
+                    if (!fr.IsOk)
                     {
                         logger.Error("Unable to move file: {0} to {1} error {2)", this.FullServerPath, newFullServerPath, fr?.Error ?? String.Empty);
                         return;
@@ -310,14 +310,14 @@ namespace JMMServer.Entities
                         foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
                         {
                             FileSystemResult<IObject> src = f.Resolve(subtitleFile);
-                            if (src != null && src.IsOk && src.Result is IFile)
+                            if (src.IsOk && src.Result is IFile)
                             {
                                 string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath), ((IFile)src).Name);
                                 dst = f.Resolve(newSubPath);
                                 if (dst != null && dst.IsOk && dst.Result is IFile)
                                 {
                                     FileSystemResult fr2 = src.Result.Delete(true);
-                                    if (fr2 == null || !fr2.IsOk)
+                                    if (!fr2.IsOk)
                                     {
                                         logger.Warn("Unable to delete file: {0} error {1}", subtitleFile,
                                             fr2?.Error ?? String.Empty);
@@ -326,7 +326,7 @@ namespace JMMServer.Entities
                                 else
                                 {
                                     FileSystemResult fr2 = ((IFile)src).Move(destination);
-                                    if (fr2 == null || !fr2.IsOk)
+                                    if (!fr2.IsOk)
                                     {
                                         logger.Error("Unable to move file: {0} to {1} error {2)", subtitleFile,
                                             newSubPath, fr2?.Error ?? String.Empty);
@@ -346,7 +346,7 @@ namespace JMMServer.Entities
                     {
                         FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
                         if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                            RecursiveDeleteEmptyDirectories((IDirectory)dd.Result);
+                            RecursiveDeleteEmptyDirectories((IDirectory)dd.Result,true);
                     }
                 }
             }
@@ -370,23 +370,25 @@ namespace JMMServer.Entities
             };
             return v;
         }
-        private void RecursiveDeleteEmptyDirectories(IDirectory dir)
+        private void RecursiveDeleteEmptyDirectories(IDirectory dir, bool importfolder)
         {
             FileSystemResult fr = dir.Populate();
-            if (fr != null && fr.IsOk)
+            if (fr.IsOk)
             {
                 if (dir.Files.Count > 0)
                     return;
                 foreach (IDirectory d in dir.Directories)
-                    RecursiveDeleteEmptyDirectories(d);
+                    RecursiveDeleteEmptyDirectories(d,false);
             }
+            if (importfolder)
+                return;
             fr = dir.Refresh();
-            if (fr != null && fr.IsOk)
+            if (fr.IsOk)
             {
                 if (dir.Files.Count == 0 && dir.Directories.Count == 0)
                 {
                     fr = dir.Delete(true);
-                    if (fr == null || !fr.IsOk)
+                    if (!fr.IsOk)
                     {
                         logger.Warn("Unable to delete directory: {0} error {1}", dir.FullName, fr?.Error ?? String.Empty);
                     }

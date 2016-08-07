@@ -177,6 +177,7 @@ namespace JMMServer.Databases
                 UpdateSchema_051(versionNumber);
                 UpdateSchema_052(versionNumber);
                 UpdateSchema_053(versionNumber);
+                UpdateSchema_054(versionNumber);
 
             }
             catch (Exception ex)
@@ -2065,7 +2066,58 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+        private static void UpdateSchema_054(int currentVersionNumber)
+        {
+            int thisVersion = 54;
+            if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            cmds.Add("CREATE TABLE `VideoLocal_Place` ( " +
+         " `VideoLocal_Place_ID` INT NOT NULL AUTO_INCREMENT, " +
+         " `VideoLocalID` int NOT NULL, " +
+         " `FilePath` text character set utf8 NOT NULL, " +
+         " `ImportFolderID` int NOT NULL, " +
+         " PRIMARY KEY (`VideoLocal_Place_ID`) ) ; ");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `FileName` text character set utf8 NOT NULL DEFAULT '', "+
+                "`VideoCodec` varchar(100) NOT NULL DEFAULT '', " +
+                "`VideoBitrate` varchar(100) NOT NULL DEFAULT '', "+
+                "`VideoBitDepth` varchar(100) NOT NULL DEFAULT '', "+
+                "`VideoFrameRate` varchar(100) NOT NULL DEFAULT '', "+
+                "`VideoResolution` varchar(100) NOT NULL DEFAULT '', "+
+                "`AudioCodec` varchar(100) NOT NULL DEFAULT '', "+
+                "`AudioBitrate` varchar(100) NOT NULL DEFAULT '', "+
+                "`Duration` bigint NOT NULL DEFAULT 0");
+
+            cmds.Add("INSERT INTO `VideoLocal_Place` (`VideoLocalID`, `FilePath`, `ImportFolderID`, `ImportFolderType`) SELECT `VideoLocalID`, `FilePath`, `ImportFolderID`, 1 as `ImportFolderType` FROM `VideoLocal`");
+            cmds.Add("ALTER TABLE `VideoLocal` DROP COLUMN `FilePath`, `ImportFolderID`");
+            cmds.Add("CREATE TABLE `CloudAccount` ( `CloudID` INT NOT NULL AUTO_INCREMENT,  `ConnectionString` text character set utf8 NOT NULL DEFAULT '',  `Provider` varchar(100) NOT NULL DEFAULT '', `Name` varchar(256) NOT NULL DEFAULT '',  PRIMARY KEY (`CloudID`) ) ; ");
+            cmds.Add("ALTER TABLE `ImportFolder` ADD `CloudID` int NULL");
+            cmds.Add("ALTER TABLE `VideoLocal_User` ALTER COLUMN `WatchedDate` datetime NULL");
+            cmds.Add("ALTER TABLE `VideoLocal_User` ADD `ResumePosition` bigint NOT NULL DEFAULT 0");
+            cmds.Add("DROP TABLE `VideoInfo`");
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
 
         private static void ExecuteSQLCommands(List<string> cmds)
         {

@@ -392,7 +392,39 @@ namespace JMMServer
             logger.Debug("Found {0} files", filesFound);
             logger.Debug("Found {0} videos", videosFound);
         }
+        public static void RunImport_ImportFolderNewFiles(ImportFolder fldr)
+        {
+            List<string> fileList = new List<string>();
+            int filesFound = 0, videosFound = 0;
+            int i = 0;
+            VideoLocal_PlaceRepository repPlace = new VideoLocal_PlaceRepository();
+            List<VideoLocal_Place> filesAll = repPlace.GetByImportFolder(fldr.ImportFolderID);
+            Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
+            HashSet<string> fs = new HashSet<string>(fileList);
+            foreach (VideoLocal_Place v in filesAll)
+            {
+                if (fs.Contains(v.FullServerPath))
+                    fileList.Remove(v.FullServerPath);
+            }
 
+
+            // get a list of all files in the share
+            foreach (string fileName in fileList)
+            {
+                i++;
+                filesFound++;
+                logger.Info("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
+
+                if (!FileHashHelper.IsVideo(fileName)) continue;
+
+                videosFound++;
+
+                CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(fileName, false);
+                cr_hashfile.Save();
+            }
+            logger.Debug("Found {0} files", filesFound);
+            logger.Debug("Found {0} videos", videosFound);
+        }
         public static void RunImport_GetImages()
         {
             // AniDB posters

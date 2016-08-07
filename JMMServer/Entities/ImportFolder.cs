@@ -40,7 +40,7 @@ namespace JMMServer.Entities
                     {
 
                        
-                        FileSystemResult<IFileSystem> ff= CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == "Local File System")?.Init(ImportFolderName, null, null);
+                        FileSystemResult<IFileSystem> ff= CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == "Local File System")?.Init("", null, null);
                         if (ff==null || !ff.IsOk)
                             throw new Exception(ff?.Error ?? "Error Opening Local Filesystem");
                         _filesystem = ff.Result;

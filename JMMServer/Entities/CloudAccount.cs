@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using JMMServer.Repositories;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.OAuth.Windows.WPF;
 using AuthProvider = JMMServer.UI.AuthProvider;
@@ -41,7 +42,11 @@ namespace JMMServer.Entities
             get
             {
                 if (!ServerState.Instance.ConnectedFileSystems.ContainsKey(Name))
-                    ServerState.Instance.ConnectedFileSystems[Name]=Connect(MainWindow.Instance);
+                {
+                    ServerState.Instance.ConnectedFileSystems[Name] = Connect(MainWindow.Instance);
+                    if (NeedSave)
+                        new CloudAccountRepository().Save(this);
+                }
                 return ServerState.Instance.ConnectedFileSystems[Name];
             }
             set
@@ -56,7 +61,7 @@ namespace JMMServer.Entities
         public bool IsConnected => ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty);
 
 
-
+        public bool NeedSave { get; set; } = false;
 
         public CloudAccount()
         {
@@ -80,7 +85,10 @@ namespace JMMServer.Entities
                 throw new Exception("Unable to connect to '" + Provider + "'");
             string userauth = res.Result.GetUserAuthorization();
             if (ConnectionString != userauth)
+            {
+                NeedSave = true;
                 ConnectionString = userauth;
+            }
             return res.Result;
         }
 

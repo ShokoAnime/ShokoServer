@@ -2084,6 +2084,22 @@ namespace JMMServer
             }
         }
 
+        public static void CloudWatch()
+        {
+            ImportFolderRepository repNetShares = new ImportFolderRepository();
+            foreach (ImportFolder share in repNetShares.GetAll().Where(a=>a.CloudID.HasValue && a.FolderIsWatched && a.FolderIsDropSource))
+            {
+                try
+                {
+                    logger.Info("Checking new files for ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
+                    Importer.RunImport_ImportFolderNewFiles(share);
+                }
+                catch (Exception ex)
+                {
+                    logger.ErrorException(ex.ToString(), ex);
+                }
+            }
+        }
 
         public static void StopWatchingFiles()
         {

@@ -26,6 +26,54 @@ namespace JMMServer
             btnSave.Click += new RoutedEventHandler(btnSave_Click);
             btnChooseFolder.Click += new RoutedEventHandler(btnChooseFolder_Click);
             comboProvider.SelectionChanged += ComboProvider_SelectionChanged;
+            chkDropSource.Checked += ChkDropSource_Checked;
+            chkDropDestination.Checked += ChkDropDestination_Checked;
+            chkIsWatched.Checked += ChkIsWatched_Checked;
+        }
+
+        private void ChkIsWatched_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!checkchange && importFldr.CloudID.HasValue && chkDropDestination.IsChecked.HasValue &&
+                chkDropDestination.IsChecked.Value)
+            {
+                checkchange = true;
+                chkIsWatched.IsChecked = false;
+                checkchange = false;
+            }
+        }
+
+        private void ChkDropDestination_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!checkchange && chkDropDestination.IsChecked.HasValue && chkDropDestination.IsChecked.Value)
+            {
+                if (chkDropSource.IsChecked.HasValue && chkDropSource.IsChecked.Value)
+                {
+                    checkchange = true;
+                    chkDropSource.IsChecked = false;
+                    checkchange = false;
+                }
+                if (importFldr.CloudID.HasValue && chkIsWatched.IsChecked.HasValue && chkIsWatched.IsChecked.Value)
+                {
+                    checkchange = true;
+                    chkIsWatched.IsChecked = false;
+                    checkchange = false;
+                }
+            }
+        }
+
+        private bool checkchange = false;
+
+        private void ChkDropSource_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!checkchange && chkDropSource.IsChecked.HasValue && chkDropSource.IsChecked.Value)
+            {
+                if (chkDropDestination.IsChecked.HasValue && chkDropDestination.IsChecked.Value)
+                {
+                    checkchange = true;
+                    chkDropDestination.IsChecked = false;
+                    checkchange = false;
+                }
+            }
         }
 
         private void ComboProvider_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
