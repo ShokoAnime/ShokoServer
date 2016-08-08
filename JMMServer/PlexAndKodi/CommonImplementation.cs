@@ -380,6 +380,24 @@ namespace JMMServer.PlexAndKodi
             return new MediaContainer() { ErrorString = "Episode Not Found" };
         }
 
+        public Dictionary<int, string> GetUsers()
+        {
+            Dictionary<int, string> users = new Dictionary<int, string>();
+            try
+            {
+                JMMUserRepository repUsers = new JMMUserRepository();
+                foreach (JMMUser us in repUsers.GetAll())
+                {
+                    users.Add(us.JMMUserID, us.Username);
+                }
+                return users;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public PlexContract_Users GetUsers(IProvider prov)
         {
             PlexContract_Users gfs = new PlexContract_Users();
