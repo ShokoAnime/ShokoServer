@@ -258,6 +258,10 @@ namespace JMMServer.Entities
                     {
                         logger.Error("Destination folder is a file: {0}", newFolderName);
                     }
+                    else
+                    {
+                        destination = (IDirectory) dirn.Result;
+                    }
                 }
                 VideoLocal_PlaceRepository repVids = new VideoLocal_PlaceRepository();
 
@@ -312,9 +316,9 @@ namespace JMMServer.Entities
                             FileSystemResult<IObject> src = f.Resolve(subtitleFile);
                             if (src.IsOk && src.Result is IFile)
                             {
-                                string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath), ((IFile)src).Name);
+                                string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath), ((IFile)src.Result).Name);
                                 dst = f.Resolve(newSubPath);
-                                if (dst != null && dst.IsOk && dst.Result is IFile)
+                                if (dst.IsOk && dst.Result is IFile)
                                 {
                                     FileSystemResult fr2 = src.Result.Delete(true);
                                     if (!fr2.IsOk)
@@ -325,7 +329,7 @@ namespace JMMServer.Entities
                                 }
                                 else
                                 {
-                                    FileSystemResult fr2 = ((IFile)src).Move(destination);
+                                    FileSystemResult fr2 = ((IFile)src.Result).Move(destination);
                                     if (!fr2.IsOk)
                                     {
                                         logger.Error("Unable to move file: {0} to {1} error {2)", subtitleFile,
