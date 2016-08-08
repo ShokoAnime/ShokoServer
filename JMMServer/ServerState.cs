@@ -2,6 +2,7 @@
 using NLog;
 using Microsoft.Win32;
 using System;
+using Microsoft.Win32.TaskScheduler;
 
 namespace JMMServer
 {
@@ -337,7 +338,12 @@ namespace JMMServer
             }
         }
 
-        public string autostartKey = "JMMServer";
+        /* Swith this to "Registry" when we no longer need elevated run level */
+        public readonly AutostartMethod autostartMethod = AutostartMethod.TaskScheduler;
+
+        public readonly string autostartTaskName = "JMMServer";
+
+        public readonly string autostartKey = "JMMServer";
         public RegistryKey autostartRegistryKey
         {
             get
@@ -362,13 +368,28 @@ namespace JMMServer
 
             VLCLocation = ServerSettings.VLCLocation;
 
-            try
+            if (autostartMethod == AutostartMethod.Registry)
             {
-                IsAutostartEnabled = autostartRegistryKey.GetValue(autostartKey) != null;
+                try
+                {
+                    IsAutostartEnabled = autostartRegistryKey.GetValue(autostartKey) != null;
+                    IsAutostartDisabled = !isAutostartEnabled;
+                }
+                catch (Exception ex)
+                {
+                    logger.DebugException("Unable to get autostart registry value", ex);
+                }
+            } else if(autostartMethod == AutostartMethod.TaskScheduler)
+            {
+                Task task = TaskService.Instance.GetTask(autostartTaskName);
+                if (task != null && task.State != TaskState.Disabled)
+                {
+                    IsAutostartEnabled = true;
+                } else
+                {
+                    IsAutostartEnabled = false;
+                }
                 IsAutostartDisabled = !isAutostartEnabled;
-            } catch (Exception ex)
-            {
-                logger.DebugException("Unable to get autostart registry value", ex);
             }
         }
     }

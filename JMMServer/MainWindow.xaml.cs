@@ -33,6 +33,7 @@ using JMMServer.WCFCompression;
 using Microsoft.SqlServer.Management.Smo;
 using NHibernate;
 using NLog;
+using Microsoft.Win32.TaskScheduler;
 
 namespace JMMServer
 {
@@ -590,21 +591,43 @@ namespace JMMServer
         void btnJMMEnableStartWithWindows_Click(object sender, RoutedEventArgs e)
         {
             ServerState state = ServerState.Instance;
+
             if (state.IsAutostartEnabled)
             {
                 return;
             }
 
-            try
+            if (state.autostartMethod == AutostartMethod.Registry)
             {
-                state.autostartRegistryKey.SetValue(state.autostartKey, '"'+System.Reflection.Assembly.GetExecutingAssembly().Location+'"');
+                try
+                {
+                    state.autostartRegistryKey.SetValue(state.autostartKey, '"' + System.Reflection.Assembly.GetExecutingAssembly().Location + '"');
+                    state.LoadSettings();
+                }
+                catch (Exception ex)
+                {
+                    logger.DebugException("Creating autostart key", ex);
+                }
+            } else if (state.autostartMethod == AutostartMethod.TaskScheduler)
+            {
+                Task task = TaskService.Instance.GetTask(state.autostartTaskName);
+                if (task != null)
+                {
+                    TaskService.Instance.RootFolder.DeleteTask(task.Name);
+                }
 
-                //Reload from registry
+                TaskDefinition td = TaskService.Instance.NewTask();
+                td.RegistrationInfo.Description = "Auto start task for JMM Server";
+
+                td.Principal.RunLevel = TaskRunLevel.Highest;
+                
+                td.Triggers.Add(new BootTrigger());
+                td.Triggers.Add(new LogonTrigger());
+                
+                td.Actions.Add('"' + System.Reflection.Assembly.GetExecutingAssembly().Location + '"');
+
+                TaskService.Instance.RootFolder.RegisterTaskDefinition(state.autostartTaskName, td);
                 state.LoadSettings();
-            }
-            catch (Exception ex)
-            {
-                logger.DebugException("Creating autostart key", ex);
             }
         }
 
@@ -616,16 +639,25 @@ namespace JMMServer
                 return;
             }
 
-            try
+            if (state.autostartMethod == AutostartMethod.Registry)
             {
-                state.autostartRegistryKey.DeleteValue(state.autostartKey, false);
-
-                //Reload from registry
-                state.LoadSettings();
-            }
-            catch (Exception ex)
+                try
+                {
+                    state.autostartRegistryKey.DeleteValue(state.autostartKey, false);
+                    state.LoadSettings();
+                }
+                catch (Exception ex)
+                {
+                    logger.DebugException("Deleting autostart key", ex);
+                }
+            } else if (state.autostartMethod == AutostartMethod.TaskScheduler)
             {
-                logger.DebugException("Deleting autostart key", ex);
+                Task task = TaskService.Instance.GetTask(state.autostartTaskName);
+                if (task != null)
+                {
+                    TaskService.Instance.RootFolder.DeleteTask(task.Name);
+                    state.LoadSettings();
+                }
             }
         }
 
