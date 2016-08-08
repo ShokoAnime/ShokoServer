@@ -41,5 +41,20 @@ namespace JMMServer.Providers.Azure
 
             this.AuthGUID = string.Empty;
         }
+
+        public FileHashInput(VideoLocal v)
+        {
+            ED2K = v.ED2KHash;
+            CRC32 = v.CRC32;
+            MD5 = v.MD5;
+            SHA1 = v.SHA1;
+            FileSize = v.FileSize;
+
+            this.Username = ServerSettings.AniDB_Username;
+            if (ServerSettings.WebCache_Anonymous)
+                this.Username = Constants.AnonWebCacheUsername;
+
+            this.AuthGUID = string.Empty;
+        }
     }
 }

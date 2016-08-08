@@ -225,9 +225,6 @@
   <data name="SQLite_Info" xml:space="preserve">
     <value>Mientras que SQLite es la más fácil de los tipos de tres bases de datos para configurar con la configuración de un solo clic. Si la colección contiene serie 200 o más, usted comenzará a experimentar un montón de cuestiones incluyendo tiempos de respuesta lentos y bloqueos de programa cuando JMM intenta obtener acceso a su colección a través de su base de datos SQLite. En cuanto a cómo JMM utiliza la base de datos, simplemente no está diseñado para grandes colecciones. SQLite también tiene dificultad con el manejo de varias operaciones que aumenta el tiempo de espera entre las operaciones que en general aumentar la espera tiempo al acceder a tu colección.</value>
   </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>Más información sobre</value>
-  </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server puede utilizar mucha memoria</value>
   </data>
@@ -357,9 +354,6 @@
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Sincronización de colección de metadatos con Trakt añadido a la cola. </value>
   </data>
-  <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Análisis falta archivos añadidos a la cola.</value>
-  </data>
   <data name="Server_Import" xml:space="preserve">
     <value>Exploración para recién añadido archivos añadidos a la cola.</value>
   </data>
@@ -402,9 +396,6 @@ Usted puede tener tantas fuentes de la gota como usted quiere, sin embargo usted
     <value>Utilizado en conjunción con la fuente de la gota, JMM servidor moverá todos los archivos de sus fuentes de origen y colocar la gota en el destino seleccionado de la gota. 
 
 Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
-  </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Carpetas de importación son el los lugares base donde guarda su anime. Usted necesitará agregar al menos una carpeta y seleccione 'Ejecutar Import' en la ficha acciones</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
@@ -472,17 +463,11 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
     <value>Puerto de cliente AniDB</value>
   </data>
-  <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Inicio de sesión de prueba</value>
-  </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>¿No tiene una cuenta de AniDB? Haga clic aquí para registrarse en una</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
-  </data>
-  <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Inicializando...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Eliminación...</value>
@@ -874,9 +859,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Eliminar todos los archivos que faltan agrega a cola</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Votos de Sync con AniDB y MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server está diseñado para usuarios con una gran colección que supera los más de 200 series que también quieren las mejores prestaciones posibles. De los tres tipos de base de datos, SQL Server es considerada la más difícil en la creación, pero se puede configurar con facilidad si sigues a la guía que hemos creado.</value>
   </data>
@@ -945,5 +927,74 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>No</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Hashes de sincronización</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Sincronización de Hashes con el WebCache funcionando</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Actualización cambiado TvDB Asociación: {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>AniDB credenciales</value>
+  </data>
+  <data name="InitialSetup_Test" xml:space="preserve">
+    <value>Probar y guardar inicio de sesión</value>
+  </data>
+  <data name="Tooltip_ScanFolder" xml:space="preserve">
+    <value>Explorar carpeta</value>
+  </data>
+  <data name="Filter_CreatingTag" xml:space="preserve">
+    <value>Creación de etiqueta</value>
+  </data>
+  <data name="Filter_Filter" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Crear filtro de seguir viendo</value>
+  </data>
+  <data name="Filter_All" xml:space="preserve">
+    <value>Todos</value>
+  </data>
+  <data name="Filter_CreateAll" xml:space="preserve">
+    <value>Crear todos los filtros</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Etiquetas</value>
+  </data>
+  <data name="Filter_Years" xml:space="preserve">
+    <value>Años</value>
+  </data>
+  <data name="Filter_Recalc" xml:space="preserve">
+    <value>Filtro Recalc</value>
+  </data>
+  <data name="Filter_CreatingYear" xml:space="preserve">
+    <value>Año de creación</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Cada carpeta de importación es un lugar donde se guardan los archivos de anime que se utiliza para crear su colección. Necesitarás al menos una carpeta de importación para comenzar a construir su colección.</value>
+  </data>
+  <data name="Tooltip_Watch" xml:space="preserve">
+    <value>Servidor de JMM supervisará esta carpeta y añadir los archivos que detecta a su colección. Puede utilizarse en conjunción con fuente de la gota o gota destino comprobado. </value>
+  </data>
+  <data name="ImportFolders_LearnMore" xml:space="preserve">
+    <value>Más información sobre carpetas de importación</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Más información sobre</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Rellene el siguiente formulario para agregar una carpeta de importación. Seleccione la ubicación de la carpeta y tipo de importación y haga clic en guardar para agregar la carpeta de importación.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Cargar las consultas locales en AniDB y MAL</value>
+  </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Tenga en cuenta que actualizar su destino de caída sólo afectará la nueva serie se añade. Series que ya has importado no será afectados.</value>
   </data>
 </root>

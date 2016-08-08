@@ -24,6 +24,7 @@ using JMMServer.Repositories;
 using JMMServer.WebCache;
 using NHibernate;
 using NLog;
+using JMMServer.Commands.TvDB;
 
 namespace JMMServer
 {
@@ -3124,7 +3125,10 @@ namespace JMMServer
         {
             MainWindow.RunImport();
         }
-
+        public void SyncHashes()
+        {
+            MainWindow.SyncHashes();
+        }
         public void ScanDropFolders()
         {
             Importer.RunImport_DropFolders();
@@ -4711,10 +4715,9 @@ namespace JMMServer
                     repDefaults.Save(img);
                 }
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
-                repAnime.Save(anime);
-
+                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+                AnimeSeries series = repSeries.GetByAnimeID(animeID);
+                repSeries.Save(series,false);
 
                 return "";
             }
@@ -5143,9 +5146,11 @@ namespace JMMServer
                     return msg;
                 }
 
-                return TvDBHelper.LinkAniDBTvDB(animeID, (enEpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
-                    tvEpNumber,
-                    false);
+                CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(animeID, (enEpisodeType)aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
+                    tvEpNumber,false);
+                cmdRequest.Save();
+
+                return "";
             }
             catch (Exception ex)
             {

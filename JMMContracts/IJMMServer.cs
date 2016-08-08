@@ -296,6 +296,9 @@ namespace JMMContracts
         void RescanUnlinkedFiles();
 
         [OperationContract]
+        void SyncHashes();
+
+        [OperationContract]
         List<Contract_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName, string resolution,
             string videoSource, int videoBitDepth, int userID);
 

@@ -225,9 +225,6 @@
   <data name="SQLite_Info" xml:space="preserve">
     <value>Alors qu'il est plus facile des types de configuration avec la configuration d'un seul clic c' est trois de base de données SQLite. Si votre collection contient 200 ou plusieurs séries, vous allez commencer à éprouver un grand nombre de questions, notamment les temps de réponse lent et blocages du programme quand JMM tente d'accéder à votre collection par l'intermédiaire de votre base de données SQLite. En ce qui concerne comment JMM utilise la base de données, il n'est simplement pas conçu pour de grandes collections. SQLite aussi a du mal à gérer plusieurs opérations qui augmente le temps d'attente entre les opérations qui globalement augmenter votre attente du temps lorsque vous accédez à votre collection.</value>
   </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>En savoir plus sur</value>
-  </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server peut utiliser beaucoup de mémoire</value>
   </data>
@@ -357,9 +354,6 @@
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Les métadonnées de collection synchronisation avec Trakt ajouté à la file d'attente. </value>
   </data>
-  <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Balayage pour manque de fichiers ajoutés à la file d'attente.</value>
-  </data>
   <data name="Server_Import" xml:space="preserve">
     <value>Balayage pour nouvellement ajouté les fichiers ajoutés à la file d'attente.</value>
   </data>
@@ -402,9 +396,6 @@ Vous pouvez avoir autant de Sources Drop que vous le souhaitez, cependant, vous 
     <value>Utilisé en conjonction avec Source Drop, JMM serveur passeront tous les fichiers de vos Sources de Source/Drop Drop dans la Destination sélectionnée de Drop. 
 
 Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Drop.</value>
-  </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Importer les dossiers sont la les emplacements de base où vous gardez votre anime. Vous devez ajouter au moins un dossier, puis sélectionnez 'Exécuter Import' dans l'onglet Actions</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
@@ -472,17 +463,11 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
     <value>Port Client AniDB</value>
   </data>
-  <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Test de connexion</value>
-  </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>N'avez pas un compte AniDB ? Cliquez ici pour vous inscrire à un</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
-  </data>
-  <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Initialisation...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Disposer...</value>
@@ -874,9 +859,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Supprimer tous les fichiers manquants ajoutés à la file d’attente</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Voix pour Sync et AniDB et MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server est destiné aux utilisateurs avec une grande collection qui dépasse de plus de 200 séries qui souhaitent aussi le rendement le plus rapide possible. Sur les trois types de base de données, SQL Server est considéré comme le plus difficile à mettre en place mais peut être configuré avec une facilité si vous suivez le guide, que nous avons créé.</value>
   </data>
@@ -945,5 +927,74 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>N°</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Hachages de synchronisation</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Synchronisation des hachages avec le WebCache en cours d’exécution</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Mise à jour changé TvDB association : {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>Références de connexion AniDB</value>
+  </data>
+  <data name="InitialSetup_Test" xml:space="preserve">
+    <value>Tester et enregistrer Login</value>
+  </data>
+  <data name="Tooltip_ScanFolder" xml:space="preserve">
+    <value>Numérisation de dossier</value>
+  </data>
+  <data name="Filter_CreatingTag" xml:space="preserve">
+    <value>Création d’étiquette</value>
+  </data>
+  <data name="Filter_Filter" xml:space="preserve">
+    <value>Filtre</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Création de filtre de continuer à regarder</value>
+  </data>
+  <data name="Filter_All" xml:space="preserve">
+    <value>Tous les</value>
+  </data>
+  <data name="Filter_CreateAll" xml:space="preserve">
+    <value>Création tous les filtre</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Filter_Years" xml:space="preserve">
+    <value>Années</value>
+  </data>
+  <data name="Filter_Recalc" xml:space="preserve">
+    <value>Recalc filtre</value>
+  </data>
+  <data name="Filter_CreatingYear" xml:space="preserve">
+    <value>Année de création</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Chaque dossier d’importation est un endroit où vos fichiers anime sont conservés qui permet de créer votre collection. Vous aurez besoin d’au moins un dossier d’importation pour commencer à construire votre collection.</value>
+  </data>
+  <data name="Tooltip_Watch" xml:space="preserve">
+    <value>JMM Server surveillera ce dossier et ajouter tous les fichiers qu’il détecte à votre collection. Peut être utilisé en conjonction avec Drop Source et/ou de la Destination de Drop vérifié. </value>
+  </data>
+  <data name="ImportFolders_LearnMore" xml:space="preserve">
+    <value>En savoir plus sur Importer les dossiers</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>En savoir plus sur</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Remplissez le formulaire ci-dessous pour ajouter un dossier d’importation. Sélectionnez l’emplacement du dossier et importer type et puis cliquez sur Enregistrer pour ajouter le dossier d’importation.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Télécharger voix locales sur AniDB et MAL</value>
+  </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>S’il vous plaît noter, mise à jour de votre destination de goutte ne touchent que nouvelle série ajoutée. Ne souffrira pas série que vous avez déjà importé.</value>
   </data>
 </root>

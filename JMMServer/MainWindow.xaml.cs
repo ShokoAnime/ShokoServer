@@ -89,6 +89,9 @@ namespace JMMServer
         private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
         private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
+        private static BackgroundWorker workerSyncHashes= new BackgroundWorker();
+
+
         private static BackgroundWorker workerSetupDB = new BackgroundWorker();
 
         private static System.Timers.Timer autoUpdateTimer = null;
@@ -226,6 +229,7 @@ namespace JMMServer
 
             btnRemoveMissingFiles.Click += new RoutedEventHandler(btnRemoveMissingFiles_Click);
             btnRunImport.Click += new RoutedEventHandler(btnRunImport_Click);
+            btnSyncHashes.Click += BtnSyncHashes_Click;
             btnSyncMyList.Click += new RoutedEventHandler(btnSyncMyList_Click);
             btnSyncVotes.Click += new RoutedEventHandler(btnSyncVotes_Click);
             btnUpdateTvDBInfo.Click += new RoutedEventHandler(btnUpdateTvDBInfo_Click);
@@ -269,6 +273,12 @@ namespace JMMServer
             workerScanDropFolders.WorkerSupportsCancellation = true;
             workerScanDropFolders.DoWork += new DoWorkEventHandler(workerScanDropFolders_DoWork);
 
+
+            workerSyncHashes.WorkerReportsProgress = true;
+            workerSyncHashes.WorkerSupportsCancellation = true;
+            workerSyncHashes.DoWork += WorkerSyncHashes_DoWork;
+
+
             workerRemoveMissing.WorkerReportsProgress = true;
             workerRemoveMissing.WorkerSupportsCancellation = true;
             workerRemoveMissing.DoWork += new DoWorkEventHandler(workerRemoveMissing_DoWork);
@@ -308,7 +318,8 @@ namespace JMMServer
             btnMinOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
             btnLogs.Click += new RoutedEventHandler(btnLogs_Click);
             btnChooseVLCLocation.Click += new RoutedEventHandler(btnChooseVLCLocation_Click);
-            btnJMMStartWithWindows.Click += new RoutedEventHandler(btnJMMStartWithWindows_Click);
+            btnJMMEnableStartWithWindows.Click += new RoutedEventHandler(btnJMMEnableStartWithWindows_Click);
+            btnJMMDisableStartWithWindows.Click += new RoutedEventHandler(btnJMMDisableStartWithWindows_Click);
             btnUpdateAniDBLogin.Click += new RoutedEventHandler(btnUpdateAniDBLogin_Click);
 
 
@@ -330,6 +341,25 @@ namespace JMMServer
             cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
 
             InitCulture();
+        }
+
+        private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
+        {
+            SyncHashes();
+            MessageBox.Show(JMMServer.Properties.Resources.Server_SyncHashesRunning, JMMServer.Properties.Resources.Success,
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
+        {
+            try
+            {
+                Importer.SyncHashes();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.Message, ex);
+            }
         }
 
         private void ChkEnablePlex_Click(object sender, RoutedEventArgs e)
@@ -557,10 +587,46 @@ namespace JMMServer
 		}
         */
 
-        void btnJMMStartWithWindows_Click(object sender, RoutedEventArgs e)
+        void btnJMMEnableStartWithWindows_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Process.Start(
-                "http://jmediamanager.org/jmm-server/configuring-jmm-server/#jmm-start-with-windows");
+            ServerState state = ServerState.Instance;
+            if (state.IsAutostartEnabled)
+            {
+                return;
+            }
+
+            try
+            {
+                state.autostartRegistryKey.SetValue(state.autostartKey, '"'+System.Reflection.Assembly.GetExecutingAssembly().Location+'"');
+
+                //Reload from registry
+                state.LoadSettings();
+            }
+            catch (Exception ex)
+            {
+                logger.DebugException("Creating autostart key", ex);
+            }
+        }
+
+        void btnJMMDisableStartWithWindows_Click(object sender, RoutedEventArgs e)
+        {
+            ServerState state = ServerState.Instance;
+            if (!state.IsAutostartEnabled)
+            {
+                return;
+            }
+
+            try
+            {
+                state.autostartRegistryKey.DeleteValue(state.autostartKey, false);
+
+                //Reload from registry
+                state.LoadSettings();
+            }
+            catch (Exception ex)
+            {
+                logger.DebugException("Deleting autostart key", ex);
+            }
         }
 
         void btnUpdateAniDBLogin_Click(object sender, RoutedEventArgs e)
@@ -1925,7 +1991,13 @@ namespace JMMServer
 
         void MainWindow_StateChanged(object sender, EventArgs e)
         {
-            if (this.WindowState == System.Windows.WindowState.Minimized) this.Hide();
+            if (this.WindowState == System.Windows.WindowState.Minimized)
+            {
+                this.Hide();
+            } else
+            {
+                this.Show();
+            }
         }
 
         void TippuTrayNotify_MouseDoubleClick(object sender, System.Windows.Forms.MouseEventArgs e)
@@ -2079,7 +2151,11 @@ namespace JMMServer
             if (!workerScanDropFolders.IsBusy)
                 workerScanDropFolders.RunWorkerAsync();
         }
-
+        public static void SyncHashes()
+        {
+            if (!workerSyncHashes.IsBusy)
+                workerSyncHashes.RunWorkerAsync();
+        }
         public static void ScanFolder(int importFolderID)
         {
             if (!workerScanFolder.IsBusy)
@@ -2165,7 +2241,8 @@ namespace JMMServer
                 Importer.RunImport_NewFiles();
                 Importer.RunImport_IntegrityCheck();
 
-                // TODO drop folder
+				// drop folder
+				Importer.RunImport_DropFolders();
 
                 // TvDB association checks
                 Importer.RunImport_ScanTvDB();

@@ -225,9 +225,6 @@
   <data name="SQLite_Info" xml:space="preserve">
     <value>Podczas gdy SQLite jest najprostszą z trzech dostępnych baz danych do instalacji, gdyż odbywa się poprzez jedno kliknięcie. Jeśli kolekcja zawiera 200 lub więcej serii możesz zacząć odczuwać spowolnienia w działaniu, w tym wydłużają czas odpowiedzi i zawieszanie się programu, gdy JMM próbuje uzyskać dostęp do bazy danych SQLite. Korzystanie z tego typu bazy danych nie jest zalecane w przypadku posiadania dużych kolekcji.</value>
   </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>Dowiedz się więcej o</value>
-  </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>Microsoft SQL Server można wykorzystywać dużo pamięci podręcznej</value>
   </data>
@@ -357,9 +354,6 @@
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Synchronizacja metadanych kolekcji z Trakt. </value>
   </data>
-  <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Skanowanie w poszukiwaniu brakujące pliki.</value>
-  </data>
   <data name="Server_Import" xml:space="preserve">
     <value>Skanowania nowo dodanych plików.</value>
   </data>
@@ -402,9 +396,6 @@ Możeć korzystać z wielu katalogów źródłowych, jednak pamiętaj by dodać 
     <value>Używany w połączeniu z folderem źródłowym. Serwer JMM będzie przenieść wszystkie pliki z folderów źródłowych do tego katalogu. 
 
 Możesz skonfigurować tylko jeden folder docelowym.</value>
-  </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Ścieżka zasobu to katalog, w którym przechowujesz pliki z anime. Musisz dodać co najmniej jeden folder, a następnie wybierać 'Uruchom Import' na karcie akcje</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
@@ -472,17 +463,11 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
     <value>Port AniDB</value>
   </data>
-  <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Próba logowania</value>
-  </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>Nie masz konta AniDB? Kliknij tutaj, aby utworzyć nowe konto</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
-  </data>
-  <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Inicjowanie...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Usuwania...</value>
@@ -874,9 +859,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Usuwanie wszystkich brakujących plików dodawane do kolejki</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync głosów z AniDB i MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server jest przeznaczona dla użytkowników z dużą kolekcją, która przekracza ponad 200 serii, którzy również chcą możliwe największą wydajność. Spośród trzech typów dostępne bazy danych SQL Server jest uważany za najtrudniejszy w tworzeniu, ale to może być ustawiony z łatwością, jeśli możesz postępuj zgodnie z instrukcjami, które stworzyliśmy.</value>
   </data>
@@ -945,5 +927,74 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>Nr</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Synchronizacja skrótów</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Synchronizacja skrótów z WebCache uruchomiona</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Aktualizowanie stowarzyszenia TvDB zmieniono: {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Zamknij</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>Poświadczenia logowania AniDB</value>
+  </data>
+  <data name="InitialSetup_Test" xml:space="preserve">
+    <value>Test i zapisać Login</value>
+  </data>
+  <data name="Tooltip_ScanFolder" xml:space="preserve">
+    <value>Skanowanie folderu</value>
+  </data>
+  <data name="Filter_CreatingTag" xml:space="preserve">
+    <value>Tworzenie etykiety</value>
+  </data>
+  <data name="Filter_Filter" xml:space="preserve">
+    <value>Filtr</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Tworzenie filtru kontynuować oglądanie</value>
+  </data>
+  <data name="Filter_All" xml:space="preserve">
+    <value>Wszystkie</value>
+  </data>
+  <data name="Filter_CreateAll" xml:space="preserve">
+    <value>Tworzenie filtru wszystkie</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Tagi</value>
+  </data>
+  <data name="Filter_Years" xml:space="preserve">
+    <value>Lata</value>
+  </data>
+  <data name="Filter_Recalc" xml:space="preserve">
+    <value>Przeliczania filtr</value>
+  </data>
+  <data name="Filter_CreatingYear" xml:space="preserve">
+    <value>Tworzenie rok</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Każdy folder importu jest miejsce gdzie przechowywane są pliki anime, który jest używany do tworzenia kolekcji. Musisz mieć co najmniej jeden folder importu, aby rozpocząć budowę swojej kolekcji.</value>
+  </data>
+  <data name="Tooltip_Watch" xml:space="preserve">
+    <value>JMM serwer monitorowania tego folderu i dodać wszystkie pliki, które wykrywa do swojej kolekcji. Może służyć w połączeniu z źródło Drop lub upuść przeznaczenia sprawdzane. </value>
+  </data>
+  <data name="ImportFolders_LearnMore" xml:space="preserve">
+    <value>Dowiedz się więcej o Importuj foldery</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Dowiedz się więcej o</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Wypełnij poniższy formularz, aby dodać folder importu. Wybierz lokalizację folderu i zaimportować typu i następnie kliknij przycisk Zapisz, aby dodać folder importu.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Przesyłanie lokalnych głosów do AniDB i MAL</value>
+  </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Uwaga: aktualizowanie miejsca docelowego upuszczania wpłynie tylko na nowa seria dodawana. Nie wpływają na serii, które już zostały zaimportowane.</value>
   </data>
 </root>

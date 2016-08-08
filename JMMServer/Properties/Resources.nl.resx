@@ -225,9 +225,6 @@
   <data name="SQLite_Info" xml:space="preserve">
     <value>Terwijl SQLite de eenvoudigste van de drie databasetypen Setup met het één-klik installatie is. Als uw collectie 200 of meer reeksen bevat, zult u beginnen te ervaren van een heleboel kwesties met inbegrip van trage reactietijden en programma lockups wanneer JMM probeert te toegang tot uw collectie via uw SQLite database. Met betrekking tot hoe JMM maakt gebruik van de database, het gewoon niet ontworpen voor grote verzamelingen. SQLite heeft ook moeite met het verwerken van meerdere bewerkingen die toeneemt de wachttijd tussen de operaties die algemeen verhogen uw wacht tijd bij het benaderen van uw collectie.</value>
   </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>Meer weten over</value>
-  </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server kan bij grote collecties veel werkgeheugen in gebruik nemen.</value>
   </data>
@@ -357,9 +354,6 @@
   <data name="Server_SyncTrakt" xml:space="preserve">
     <value>Synchroniseren collectie metagegevens met Trakt toegevoegd aan de wachtrij. </value>
   </data>
-  <data name="Server_RemoveMising" xml:space="preserve">
-    <value>Zoeken naar ontbrekende bestanden toegevoegd aan de wachtrij.</value>
-  </data>
   <data name="Server_Import" xml:space="preserve">
     <value>Scannen voor nieuw toegevoegde bestanden toegevoegd aan de wachtrij.</value>
   </data>
@@ -402,9 +396,6 @@ U kunt zoveel Drop bronnen als u wilt, maar u moet opstelling een Drop bestemmin
     <value>Gebruikt in combinatie met Drop bron, zal JMM Server Verplaats alle bestanden uit uw bron/Drop Drop bronnen in de geselecteerde Drop bestemming. 
 
 U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
-  </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Mappen importeren zijn de de basis locaties waar u uw anime houden. U moet ten minste één map toevoegen en selecteer vervolgens 'Importbewerking uitvoeren' op het tabblad acties</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
@@ -472,17 +463,11 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
     <value>AniDB Client poort</value>
   </data>
-  <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Test Login</value>
-  </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>Nog geen AniDB account? Klik hier om te registreren</value>
   </data>
   <data name="Link_AniDB" xml:space="preserve">
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
-  </data>
-  <data name="InitialSetup_Initializing" xml:space="preserve">
-    <value>Initialiseren...</value>
   </data>
   <data name="InitialSetup_Disposing" xml:space="preserve">
     <value>Verwijdering...</value>
@@ -874,9 +859,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Het verwijderen van alle ontbrekende bestanden toegevoegd aan de wachtrij</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync stemmen met AniDB en MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server is bedoeld voor gebruikers met een grote collectie die meer dan 200 serie die ook willen dat de snelste prestaties mogelijk overschrijdt. Uit de drie types van beschikbare database, SQL Server wordt beschouwd als de meest moeilijke in het opzetten van maar kan worden ingesteld met gemak wanneer u volgen naar de gids die we hebben gemaakt.</value>
   </data>
@@ -945,5 +927,74 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>No</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Sync-Hashes</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Hashes synchroniseren met de WebCache uitgevoerd</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Bijwerken veranderd TvDB vereniging: {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Sluiten</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>AniDB inloggegevens</value>
+  </data>
+  <data name="InitialSetup_Test" xml:space="preserve">
+    <value>Testen en opslaan van Login</value>
+  </data>
+  <data name="Tooltip_ScanFolder" xml:space="preserve">
+    <value>Omslag aftasten</value>
+  </data>
+  <data name="Filter_CreatingTag" xml:space="preserve">
+    <value>Tag maken</value>
+  </data>
+  <data name="Filter_Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Blijven kijken filter maken</value>
+  </data>
+  <data name="Filter_All" xml:space="preserve">
+    <value>Alle</value>
+  </data>
+  <data name="Filter_CreateAll" xml:space="preserve">
+    <value>Alle filter maken</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Filter_Years" xml:space="preserve">
+    <value>Jaar</value>
+  </data>
+  <data name="Filter_Recalc" xml:space="preserve">
+    <value>Recalc Filter</value>
+  </data>
+  <data name="Filter_CreatingYear" xml:space="preserve">
+    <value>Creëren van jaar</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Elke invoer-map is een locatie waar uw anime-bestanden worden opgeslagen die wordt gebruikt voor het bouwen van uw collectie. U moet ten minste één map import om te beginnen met het opbouwen van uw collectie.</value>
+  </data>
+  <data name="Tooltip_Watch" xml:space="preserve">
+    <value>JMM Server controleert deze map en alle bestanden het detecteert aan je collectie toevoegen. Kan worden gebruikt in combinatie met Drop bron en/of Drop bestemming gecontroleerd. </value>
+  </data>
+  <data name="ImportFolders_LearnMore" xml:space="preserve">
+    <value>Meer informatie over mappen importeren</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Meer weten over</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Vul het onderstaande formulier om een import map toevoegen. Selecteer de locatie van de map en importeren van type en klik op Opslaan om toe te voegen de import map.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Lokale stemmen uploaden naar AniDB en MAL</value>
+  </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Houd er rekening mee, bijwerken van uw bestemming daling zal alleen van invloed op nieuwe serie wordt toegevoegd. Serie die u al hebt geïmporteerd, zal niet worden beïnvloed.</value>
   </data>
 </root>

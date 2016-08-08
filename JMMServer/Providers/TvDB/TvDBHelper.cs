@@ -353,9 +353,10 @@ namespace JMMServer.Providers.TvDB
                 logger.Trace("GetLanguages: {0}", url);
 
                 // Search for a series
-                string xmlSeries = Utils.DownloadWebPage(url);
+                string xmlSeries = Utils.DownloadWebPage(url, Encoding.UTF8);
 
                 XmlDocument docLanguages = new XmlDocument();
+                
                 docLanguages.LoadXml(xmlSeries);
 
                 XmlNodeList lanItems = docLanguages["Languages"].GetElementsByTagName("Language");
@@ -860,7 +861,13 @@ namespace JMMServer.Providers.TvDB
                 CommandRequest_TvDBUpdateSeriesAndEpisodes cmdSeriesEps =
                     new CommandRequest_TvDBUpdateSeriesAndEpisodes(tvDBID,
                         false);
-                cmdSeriesEps.Save();
+                //Optimize for batch updates, if there are a lot of LinkAniDBTvDB commands queued 
+                //this will cause only one updateSeriesAndEpisodes command to be created
+                CommandRequestRepository repCR = new CommandRequestRepository();
+                if (repCR.GetByCommandID(cmdSeriesEps.CommandID) == null)
+                {
+                    cmdSeriesEps.Save();
+                }
 
                 CrossRef_AniDB_TvDBV2 xref = repCrossRef.GetByTvDBID(session, tvDBID, tvSeasonNumber, tvEpNumber,
                     animeID,

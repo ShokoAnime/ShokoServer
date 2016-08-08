@@ -25,7 +25,7 @@
                         <Button HorizontalAlignment="Left" Name="btnScanFolder" Margin="5,0,0,0"
                                 Style="{DynamicResource FlatButtonStyle}" Width="Auto"
                                 Command="{DynamicResource ScanFolderCommand}" CommandParameter="{Binding}"
-                                ToolTip="Scan Folder">
+                                ToolTip="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_ScanFolder}">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Image Height="16" Width="16" Source="/Images/16_folder_video.png" Margin="0,0,0,0" />
 
@@ -40,26 +40,21 @@
                                Margin="0,0,5,0"
                                Visibility="{Binding Path=FolderIsDropSource, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Image.ToolTip>
-                                <TextBlock
-                                    Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropSource}"
-                                    TextWrapping="Wrap" Width="250" />
+                                <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropSource}" TextWrapping="Wrap" Width="250" />
                             </Image.ToolTip>
                         </Image>
                         <Image Height="22" Width="23" Source="/Images/24_folder_up.png" VerticalAlignment="Center"
                                Margin="0,0,5,0"
                                Visibility="{Binding Path=FolderIsDropDestination, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Image.ToolTip>
-                                <TextBlock
-                                    Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropDestination}"
-                                    TextWrapping="Wrap" Width="250" />
+                                <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropDestination}" TextWrapping="Wrap" Width="250" />
                             </Image.ToolTip>
                         </Image>
                         <Image Height="22" Width="23" Source="/Images/24_folder_find.png" VerticalAlignment="Center"
                                Margin="0,0,5,0"
                                Visibility="{Binding Path=FolderIsWatched, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Image.ToolTip>
-                                <TextBlock
-                                    Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_DropDestination}" />
+                                <TextBlock Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_Watch}" TextWrapping="Wrap" Width="250" />
                             </Image.ToolTip>
                         </Image>
                     </StackPanel>
@@ -91,7 +86,7 @@
                            Text="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_Info}"
                            Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1" />
                 <local:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,5,5,5"
-                                         DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=DetailedExplanation}"
+                                         DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_LearnMore}"
                                          URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_ImportFolders}" />
                 <Image Height="16" Width="16" Source="/Images/32_info.png" Margin="5,2,4,0" Grid.Column="0"
                        Grid.Row="2" VerticalAlignment="Top" />
