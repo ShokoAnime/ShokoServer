@@ -17,6 +17,12 @@ namespace JMMServer
         FinishedAiring = 2,
     }
 
+    public enum AutostartMethod
+    {
+        Registry = 1,
+        TaskScheduler = 2
+    }
+
     public enum CustomTagCrossRefType
     {
         Anime = 1,
