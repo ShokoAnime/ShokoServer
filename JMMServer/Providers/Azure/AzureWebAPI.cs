@@ -911,34 +911,6 @@ namespace JMMServer.Providers.Azure
 
         }
 
-        public static void Send_FileHash(List<FileHashInput> files)
-        {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
-
-            string uri = string.Format(@"http://{0}/api/FileHash", azureHostBaseAddress);
-
-            List<FileHashInput> inputs = new List<FileHashInput>();
-            // send a max of 25 at a time
-            foreach (FileHashInput input in files)
-            {
-                if (inputs.Count < 25)
-                    inputs.Add(input);
-                else
-                {
-                    string json = JSONHelper.Serialize<List<FileHashInput>>(inputs);
-                    SendData(uri, json, "POST");
-                    inputs.Clear();
-                }
-            }
-
-            if (inputs.Count > 0)
-            {
-                string json = JSONHelper.Serialize<List<FileHashInput>>(inputs);
-                SendData(uri, json, "POST");
-            }
-
-        }
-
         /// <summary>
         /// Get File hash details from the web cache
         /// When the hash type is a CRC, the hash details value should be a combination of the CRC and the FileSize with an under score in between
