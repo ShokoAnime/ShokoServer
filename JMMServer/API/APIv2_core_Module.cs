@@ -75,6 +75,7 @@ namespace JMMServer.API
 
             // 9. Misc
             Get["/MyID"] = x => { return MyID(x.apikey); };
+            Get["/dashboard"] = _ => { return GetDashboard(); };
 
             // 10. User
             Get["/user/list"] = _ => { return GetUsers(); };
@@ -130,7 +131,7 @@ namespace JMMServer.API
         /// List all saved Import Folders
         /// </summary>
         /// <returns></returns>
-        private object ListFolders()
+        private object GetFolders()
         {
             List<Contract_ImportFolder> list = new JMMServiceImplementation().GetImportFolders();
             return list;
@@ -626,6 +627,17 @@ namespace JMMServer.API
             }
         }
 
+        private object GetDashboard()
+        {
+            Dictionary<string, object> dash = new Dictionary<string, object>();
+            dash.Add("queue", GetQueue());
+            dash.Add("file", GetRecentFiles(10));
+            dash.Add("folder", GetFolders());
+            dash.Add("file_count", CountFiles());
+            dash.Add("serie_count", CountSerie());
+            return dash;
+        }
+
         #endregion
 
         #region 10.User
@@ -713,10 +725,10 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetQueue()
         {
-            List<QueueInfo> queues = new List<QueueInfo>();
-            queues.Add((QueueInfo)GetHasherQueue());
-            queues.Add((QueueInfo)GetGeneralQueue());
-            queues.Add((QueueInfo)GetImagesQueue());
+            Dictionary<string, QueueInfo> queues = new Dictionary<string, QueueInfo>();
+            queues.Add("hash", (QueueInfo)GetHasherQueue());
+            queues.Add("general", (QueueInfo)GetGeneralQueue());
+            queues.Add("image", (QueueInfo)GetImagesQueue());
             return queues;
         }
 
