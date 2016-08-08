@@ -44,7 +44,7 @@ namespace JMMServer.API
 
         public static string ValidateUser(string username, string password, string device)
         {
-            var userRecord = Users.FirstOrDefault(u => u.Item2 == username && u.Item3 == password);
+            var userRecord = Users.FirstOrDefault(u => u.Item2.ToLower() == username.ToLower() && u.Item3 == password);
 
             if (userRecord == null)
             {
@@ -55,25 +55,34 @@ namespace JMMServer.API
             string apiKey = "";
             try
             {
-                var apiKeys = ActiveApiKeys.First(u => u.Item1 == uid && u.Item2 == device);
+                var apiKeys = ActiveApiKeys.First(u => u.Item1 == uid && u.Item2 == device.ToLower());
                 apiKey = apiKeys.Item3;
             }
             catch
             {
                 apiKey = Guid.NewGuid().ToString();
-                ActiveApiKeys.Add(new Tuple<int, string, string>(uid, device, apiKey));
+                ActiveApiKeys.Add(new Tuple<int, string, string>(uid, device.ToLower(), apiKey));
             }
 
             return apiKey;
         }
 
-        public static void RemoveApiKey(string apiKey)
+        public static bool RemoveApiKey(string apiKey)
         {
-            var apiKeyToRemove = ActiveApiKeys.First(x => x.Item3 == apiKey);
-            ActiveApiKeys.Remove(apiKeyToRemove);
-            //remove auth from repository/database
-            Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
-            authRepo.Delete(apiKeyToRemove.Item1);
+            try
+            {
+                var apiKeyToRemove = ActiveApiKeys.First(x => x.Item3 == apiKey);
+                //remove auth from repository/database
+                Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
+                authRepo.Delete(apiKeyToRemove.Item1);
+                //remove from memory
+                ActiveApiKeys.Remove(apiKeyToRemove);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

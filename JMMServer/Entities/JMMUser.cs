@@ -124,7 +124,7 @@ namespace JMMServer.Entities
             JMMUserRepository repUsers = new JMMUserRepository();
             foreach (JMMUser us in repUsers.GetAll())
             {
-                if (us.Username == username)
+                if (us.Username.ToLower() == username.ToLower())
                 {
                     JMMUserID = us.JMMUserID;
                     Username = us.Username;

@@ -53,8 +53,14 @@ namespace JMMServer.API
             Delete["/"] = x =>
             {
                 var apiKey = (string)this.Request.Query.apikey;
-                UserDatabase.RemoveApiKey(apiKey);
-                return new Response { StatusCode = HttpStatusCode.OK };
+                if (UserDatabase.RemoveApiKey(apiKey))
+                {
+                    return HttpStatusCode.OK;
+                }
+                else
+                {
+                    return HttpStatusCode.InternalServerError;
+                }
             };
         }
     }
