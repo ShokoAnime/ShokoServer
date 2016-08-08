@@ -26,7 +26,7 @@ namespace JMMServer.API
             this.RequiresAuthentication();
 
             // 1. folders
-            Get["/folder/list"] = x => { return ListFolders(); };
+            Get["/folder/list"] = x => { return GetFolders(); };
             Get["/folder/count"] = x => { return CountFolders(); };
             Post["/folder/add"] = x => { return AddFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
@@ -1123,19 +1123,5 @@ namespace JMMServer.API
 
         #endregion
 
-        #region Dashboard
-
-        private object GetDashboard()
-        {
-            List<object> dash = new List<object>();
-            dash.Add(GetQueue());
-            dash.Add(GetRecentFiles(10));
-            dash.Add(ListFolders());
-            dash.Add(CountFiles());
-            dash.Add(CountSerie());
-            return dash;
-        }
-
-        #endregion
     }
 }
