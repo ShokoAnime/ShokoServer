@@ -627,6 +627,11 @@ namespace JMMServer.API
             }
         }
 
+
+        /// <summary>
+        /// Return Dictionary with nesesery items for Dashboard inside Webui
+        /// </summary>
+        /// <returns></returns>
         private object GetDashboard()
         {
             Dictionary<string, object> dash = new Dictionary<string, object>();
