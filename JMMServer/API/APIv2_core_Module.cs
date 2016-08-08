@@ -25,52 +25,66 @@ namespace JMMServer.API
         {
             this.RequiresAuthentication();
 
-            // Operations on collection
-            Get["/folder/list"] = x => { return ListFolders(); };
+            // 1. folders
+            Get["/folder/list"] = x => { return GetFolders(); };
             Get["/folder/count"] = x => { return CountFolders(); };
             Post["/folder/add"] = x => { return AddFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
+            Get["/folder/import"] = _ => { return RunImport(); };
+
+            // 2. upnp 
             Post["/upnp/list"] = x => { return ListUPNP(); };
             Post["/upnp/add"] = x => { return AddUPNP(); };
             Post["/upnp/delete"] = x => { return DeleteUPNP(); };
-            Get["/import"] = _ => { return RunImport(); };
 
-            // Settings
+            // 3. Settings
             Post["/port/set"] = _ => { return SetPort(); };
             Get["/port/get"] = _ => { return GetPort(); };
             Post["/imagepath/set"] = _ => { return SetImagepath(); };
             Get["/imagepath/get"] = _ => { return GetImagepath(); };
+
+            // 4. AniDB
             Post["/anidb/set"] = _ => { return SetAniDB(); };
             Get["/anidb/get"] = _ => { return GetAniDB(); };
             Get["/anidb/test"] = _ => { return TestAniDB(); };
+            Get["/anidb/votes/sync"] = _ => { return SyncAniDBVotes(); };
+            Get["/anidb/list/sync"] = _ => { return SyncAniDBList(); };
+            Get["/anidb/update"] = _ => { return UpdateAllAniDB(); };
+
+            // 5. MyAnimeList
             Post["/mal/set"] = _ => { return SetMAL(); };
             Get["/mal/get"] = _ => { return GetMAL(); };
             Get["/mal/test"] = _ => { return TestMAL(); };
+            //Get["/mal/votes/sync"] = _ => { return SyncMALVotes(); }; <-- not implemented as CommandRequest
+
+            // 6. Trakt
             Post["/trakt/set"] = _ => { return SetTraktPIN(); };
             Get["/trakt/get"] = _ => { return GetTrakt(); };
             Get["/trakt/create"] = _ => { return CreateTrakt(); };
+            Get["/trakt/sync"] = _ => { return SyncTrakt(); };
+            Get["/trakt/update"] = _ => { return UpdateAllTrakt(); };
 
-            // Actions
+            // 7. TvDB
+            Get["/tvdb/update"] = _ => { return UpdateAllTvDB(); };
+
+            // 8. Actions
             Get["/remove_missing_files"] = _ => { return RemoveMissingFiles(); };
             Get["/stats_update"] = _ => { return UpdateStats(); };
             Get["/mediainfo_update"] = _ => { return UpdateMediaInfo(); };
             Get["/hash/sync"] = _ => { return HashSync(); };
-            Get["/trakt/sync"] = _ => { return SyncTrakt(); };
-            Get["/trakt/update"] = _ => { return UpdateAllTrakt(); };
-            Get["/anidb/votes/sync"] = _ => { return SyncAniDBVotes(); };
-            Get["/anidb/list/sync"] = _ => { return SyncAniDBList(); };
-            Get["/anidb/update"] = _ => { return UpdateAllAniDB(); };
-            //Get["/mal/votes/sync"] = _ => { return SyncMALVotes(); }; <-- not implemented as CommandRequest
-            Get["/tvdb/update"] = _ => { return UpdateAllTvDB(); };
 
-            // Misc
+            // 9. Misc
             Get["/MyID"] = x => { return MyID(x.apikey); };
+            Get["/dashboard"] = _ => { return GetDashboard(); };
+
+            // 10. User
             Get["/user/list"] = _ => { return GetUsers(); };
             Post["/user/create"] = _ => { return CreateUser(); };
             Post["/user/delete"] = _ => { return DeleteUser(); };
             Post["/user/password"] = _ => { return ChangePassword(); };
+            Post["/user/password/{uid}"] = x => { return ChangePassword(x.uid); };
 
-            // Queue
+            // 11. Queue
             Get["/queue/get"] = _ => { return GetQueue(); };
             Get["/queue/pause"] = _ => { return PauseQueue(); };
             Get["/queue/start"] = _ => { return StartQueue(); };
@@ -87,7 +101,7 @@ namespace JMMServer.API
             Get["/queue/images/start"] = _ => { return StartImagesQueue(); };
             Get["/queue/images/clear"] = _ => { return ClearImagesQueue(); };
 
-            //Files
+            // 12. Files
             Get["/file/list"] = _ => { return GetAllFiles(); };
             Get["/file/count"] = _ => { return CountFiles(); };
             Get["/file/{id}"] = x => { return GetFileById(x.id); };
@@ -96,28 +110,31 @@ namespace JMMServer.API
             Get["/file/unrecognised"] = x => { return GetUnrecognisedFiles(10); };
             Get["/file/unrecognised/{max}"] = x => { return GetUnrecognisedFiles((int)x.max); };
 
-            //Episodes
+            // 13. Episodes
             Get["/ep/list"] = _ => { return GetAllEpisodes(); ; };
             Get["/ep/{id}"] = x => { return GetEpisodeById(x.id); };
             Get["/ep/recent"] = x => { return GetRecentEpisodes(10); };
             Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int)x.max); };
 
-            //Series
+            // 14. Series
             Get["/serie/list"] = _ => { return GetAllSeries(); ; };
             Get["/serie/count"] = _ => { return CountSerie(); ; };
             Get["/serie/{id}"] = x => { return GetSerieById(x.id); ; };
             Get["/serie/recent"] = _ => { return GetRecentSeries(10); };
             Get["/serie/recent/{max}"] = x => { return GetRecentSeries((int)x.max); };
 
+            //dashboard
+            Get["/dashboard"] = _ => { return GetDashboard(); };
+
         }
 
-        #region Operations on collection
+        #region 1.Folders
 
         /// <summary>
         /// List all saved Import Folders
         /// </summary>
         /// <returns></returns>
-        private object ListFolders()
+        private object GetFolders()
         {
             List<Contract_ImportFolder> list = new JMMServiceImplementation().GetImportFolders();
             return list;
@@ -196,6 +213,20 @@ namespace JMMServer.API
             }
         }
 
+        /// <summary>
+        /// Run Import action on all Import Folders inside Import Folders Repository
+        /// </summary>
+        /// <returns></returns>
+        private object RunImport()
+        {
+            MainWindow.RunImport();
+            return HttpStatusCode.OK;
+        }
+
+        #endregion
+
+        #region 2.UPNP
+
         private object ListUPNP()
         {
             UPNPLib.UPnPDeviceFinder discovery = new UPNPLib.UPnPDeviceFinder();
@@ -219,19 +250,9 @@ namespace JMMServer.API
             throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Run Import action on all Import Folders inside Import Folders Repository
-        /// </summary>
-        /// <returns></returns>
-        private object RunImport()
-        {
-            MainWindow.RunImport();
-            return HttpStatusCode.OK;
-        }
-
         #endregion
 
-        #region Settings
+        #region 3.Settings
 
         /// <summary>
         /// Set JMMServer Port
@@ -299,6 +320,9 @@ namespace JMMServer.API
             return imagepath;
         }
 
+        #endregion
+
+        #region 4.AniDB
         /// <summary>
         /// Set AniDB account with login, password and client port
         /// </summary>
@@ -364,6 +388,42 @@ namespace JMMServer.API
         }
 
         /// <summary>
+        /// Sync votes bettween Local and AniDB and only upload to MAL
+        /// </summary>
+        /// <returns></returns>
+        private object SyncAniDBVotes()
+        {
+            //TODO APIv2: Command should be split into AniDb/MAL sepereate
+            CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
+            cmdVotes.Save();
+            return HttpStatusCode.OK;
+        }
+
+        /// <summary>
+        /// Sync AniDB List
+        /// </summary>
+        /// <returns></returns>
+        private object SyncAniDBList()
+        {
+            MainWindow.SyncMyList();
+            return HttpStatusCode.OK;
+        }
+
+        /// <summary>
+        /// Update all series infromation from AniDB
+        /// </summary>
+        /// <returns></returns>
+        private object UpdateAllAniDB()
+        {
+            Importer.RunImport_UpdateAllAniDB();
+            return HttpStatusCode.OK;
+        }
+
+        #endregion
+
+        #region 5.MyAnimeList
+
+        /// <summary>
         /// Set MAL account with login, password
         /// </summary>
         /// <returns></returns>
@@ -409,6 +469,10 @@ namespace JMMServer.API
                 return HttpStatusCode.Unauthorized;
             }
         }
+
+        #endregion
+
+        #region 6.Trakt
 
         /// <summary>
         /// Set Trakt PIN
@@ -456,9 +520,52 @@ namespace JMMServer.API
             return cred;
         }
 
+        /// <summary>
+        /// Sync Trakt Collection
+        /// </summary>
+        /// <returns></returns>
+        private object SyncTrakt()
+        {
+            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            {
+                CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
+                cmd.Save();
+                return HttpStatusCode.OK;
+            }
+            else
+            {
+                return HttpStatusCode.NoContent;
+            }
+        }
+
+        /// <summary>
+        /// Update All information from Trakt
+        /// </summary>
+        /// <returns></returns>
+        private object UpdateAllTrakt()
+        {
+            Providers.TraktTV.TraktTVHelper.UpdateAllInfo();
+            return HttpStatusCode.OK;
+        }
+
         #endregion
 
-        #region Actions
+        #region 7.TvDB
+
+        /// <summary>
+        /// Update all information from TvDB
+        /// </summary>
+        /// <returns></returns>
+        private object UpdateAllTvDB()
+        {
+            Importer.RunImport_UpdateTvDB(false);
+            return HttpStatusCode.OK;
+        }
+
+
+        #endregion
+
+        #region 8.Actions
 
         /// <summary>
         /// Scans your import folders and remove files from your database that are no longer in your collection.
@@ -500,88 +607,9 @@ namespace JMMServer.API
             return HttpStatusCode.OK;
         }
 
-        /// <summary>
-        /// Sync Trakt Collection
-        /// </summary>
-        /// <returns></returns>
-        private object SyncTrakt()
-        {
-            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-            {
-                CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
-                cmd.Save();
-                return HttpStatusCode.OK;
-            }
-            else
-            {
-                return HttpStatusCode.NoContent;
-            }
-        }
-
-        /// <summary>
-        /// Update All information from Trakt
-        /// </summary>
-        /// <returns></returns>
-        private object UpdateAllTrakt()
-        {
-            Providers.TraktTV.TraktTVHelper.UpdateAllInfo();
-            return HttpStatusCode.OK;
-        }
-
-        /// <summary>
-        /// Sync votes bettween Local and AniDB and only upload to MAL
-        /// </summary>
-        /// <returns></returns>
-        private object SyncAniDBVotes()
-        {
-            //TODO APIv2: Command should be split into AniDb/MAL sepereate
-            CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
-            cmdVotes.Save();
-            return HttpStatusCode.OK;
-        }
-
-        /// <summary>
-        /// Sync AniDB List
-        /// </summary>
-        /// <returns></returns>
-        private object SyncAniDBList()
-        {
-            MainWindow.SyncMyList();
-            return HttpStatusCode.OK;
-        }
-
-        /// <summary>
-        /// Update all series infromation from AniDB
-        /// </summary>
-        /// <returns></returns>
-        private object UpdateAllAniDB()
-        {
-            Importer.RunImport_UpdateAllAniDB();
-            return HttpStatusCode.OK;
-        }
-
-        //This is not implemented  yet/or its deep inside code
-        //private object SyncMALVotes()
-        //{
-        //    CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
-        //    cmdVotes.Save();
-        //    return HttpStatusCode.OK;
-        //}
-
-        /// <summary>
-        /// Update all information from TvDB
-        /// </summary>
-        /// <returns></returns>
-        private object UpdateAllTvDB()
-        {
-            Importer.RunImport_UpdateTvDB(false);
-            return HttpStatusCode.OK;
-        }
-
-
         #endregion
 
-        #region Misc
+        #region 9.Misc
 
         /// <summary>
         /// return userid as it can be needed in legacy implementation
@@ -602,13 +630,33 @@ namespace JMMServer.API
             }
         }
 
+
         /// <summary>
-        /// return List of PlexContract_Users
+        /// Return Dictionary with nesesery items for Dashboard inside Webui
+        /// </summary>
+        /// <returns></returns>
+        private object GetDashboard()
+        {
+            Dictionary<string, object> dash = new Dictionary<string, object>();
+            dash.Add("queue", GetQueue());
+            dash.Add("file", GetRecentFiles(10));
+            dash.Add("folder", GetFolders());
+            dash.Add("file_count", CountFiles());
+            dash.Add("serie_count", CountSerie());
+            return dash;
+        }
+
+        #endregion
+
+        #region 10.User
+
+        /// <summary>
+        /// return Dictionary int = id, string = username
         /// </summary>
         /// <returns></returns>
         private object GetUsers()
         {
-            return new CommonImplementation().GetUsers(null);
+            return new CommonImplementation().GetUsers();
         }
 
         /// <summary>
@@ -638,21 +686,23 @@ namespace JMMServer.API
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            if (user != null)
+            return ChangePassword(user.JMMUserID);
+        }
+
+        /// <summary>
+        /// change given user (by uid) password
+        /// </summary>
+        /// <returns></returns>
+        private object ChangePassword(int uid)
+        {
+            JMMUser _user = this.Bind();
+            if (new JMMServiceImplementation().ChangePassword(uid, _user.Password) == "")
             {
-                JMMUser _user = this.Bind();
-                if (new JMMServiceImplementation().ChangePassword(user.JMMUserID, _user.Password) == "")
-                {
-                    return HttpStatusCode.OK;
-                }
-                else
-                {
-                    return HttpStatusCode.InternalServerError;
-                }
+                return HttpStatusCode.OK;
             }
             else
             {
-                return HttpStatusCode.Unauthorized;
+                return HttpStatusCode.InternalServerError;
             }
         }
 
@@ -675,7 +725,7 @@ namespace JMMServer.API
 
         #endregion
 
-        #region Queue
+        #region 11.Queue
 
         /// <summary>
         /// Return current information about Queues (hash, general, images)
@@ -683,10 +733,10 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetQueue()
         {
-            List<QueueInfo> queues = new List<QueueInfo>();
-            queues.Add((QueueInfo)GetHasherQueue());
-            queues.Add((QueueInfo)GetGeneralQueue());
-            queues.Add((QueueInfo)GetImagesQueue());
+            Dictionary<string, QueueInfo> queues = new Dictionary<string, QueueInfo>();
+            queues.Add("hash", (QueueInfo)GetHasherQueue());
+            queues.Add("general", (QueueInfo)GetGeneralQueue());
+            queues.Add("image", (QueueInfo)GetImagesQueue());
             return queues;
         }
 
@@ -907,7 +957,7 @@ namespace JMMServer.API
         }
         #endregion
 
-        #region Files
+        #region 12.Files
 
         private object GetFileById(int file_id)
         {
@@ -987,7 +1037,7 @@ namespace JMMServer.API
 
         #endregion
 
-        #region Episodes
+        #region 13.Episodes
 
         private object GetAllEpisodes()
         {
@@ -1017,7 +1067,7 @@ namespace JMMServer.API
 
         #endregion
 
-        #region Series
+        #region 14.Series
 
         /// <summary>
         /// Return number of series inside collection
@@ -1072,5 +1122,6 @@ namespace JMMServer.API
         }
 
         #endregion
+
     }
 }
