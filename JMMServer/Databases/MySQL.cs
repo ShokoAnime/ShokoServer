@@ -2079,22 +2079,23 @@ namespace JMMServer.Databases
          " `VideoLocalID` int NOT NULL, " +
          " `FilePath` text character set utf8 NOT NULL, " +
          " `ImportFolderID` int NOT NULL, " +
+         " `ImportFolderType` int NOT NULL, "+
          " PRIMARY KEY (`VideoLocal_Place_ID`) ) ; ");
-            cmds.Add("ALTER TABLE `VideoLocal` ADD `FileName` text character set utf8 NOT NULL DEFAULT '', "+
-                "`VideoCodec` varchar(100) NOT NULL DEFAULT '', " +
-                "`VideoBitrate` varchar(100) NOT NULL DEFAULT '', "+
-                "`VideoBitDepth` varchar(100) NOT NULL DEFAULT '', "+
-                "`VideoFrameRate` varchar(100) NOT NULL DEFAULT '', "+
-                "`VideoResolution` varchar(100) NOT NULL DEFAULT '', "+
-                "`AudioCodec` varchar(100) NOT NULL DEFAULT '', "+
-                "`AudioBitrate` varchar(100) NOT NULL DEFAULT '', "+
-                "`Duration` bigint NOT NULL DEFAULT 0");
-
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `FileName` text character set utf8 NOT NULL");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `VideoCodec` varchar(100) NOT NULL DEFAULT ''");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `VideoBitrate` varchar(100) NOT NULL DEFAULT ''");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `VideoBitDepth` varchar(100) NOT NULL DEFAULT ''");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `VideoFrameRate` varchar(100) NOT NULL DEFAULT ''");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `VideoResolution` varchar(100) NOT NULL DEFAULT ''");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `AudioCodec` varchar(100) NOT NULL DEFAULT ''");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `AudioBitrate` varchar(100) NOT NULL DEFAULT ''");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD `Duration` bigint NOT NULL DEFAULT 0");
             cmds.Add("INSERT INTO `VideoLocal_Place` (`VideoLocalID`, `FilePath`, `ImportFolderID`, `ImportFolderType`) SELECT `VideoLocalID`, `FilePath`, `ImportFolderID`, 1 as `ImportFolderType` FROM `VideoLocal`");
-            cmds.Add("ALTER TABLE `VideoLocal` DROP COLUMN `FilePath`, `ImportFolderID`");
-            cmds.Add("CREATE TABLE `CloudAccount` ( `CloudID` INT NOT NULL AUTO_INCREMENT,  `ConnectionString` text character set utf8 NOT NULL DEFAULT '',  `Provider` varchar(100) NOT NULL DEFAULT '', `Name` varchar(256) NOT NULL DEFAULT '',  PRIMARY KEY (`CloudID`) ) ; ");
+            cmds.Add("ALTER TABLE `VideoLocal` DROP COLUMN `FilePath`");
+            cmds.Add("ALTER TABLE `VideoLocal` DROP COLUMN `ImportFolderID`");
+            cmds.Add("CREATE TABLE `CloudAccount` ( `CloudID` INT NOT NULL AUTO_INCREMENT,  `ConnectionString` text character set utf8 NOT NULL,  `Provider` varchar(100) NOT NULL DEFAULT '', `Name` varchar(256) NOT NULL DEFAULT '',  PRIMARY KEY (`CloudID`) ) ; ");
             cmds.Add("ALTER TABLE `ImportFolder` ADD `CloudID` int NULL");
-            cmds.Add("ALTER TABLE `VideoLocal_User` ALTER COLUMN `WatchedDate` datetime NULL");
+            cmds.Add("ALTER TABLE `VideoLocal_User` MODIFY COLUMN `WatchedDate` datetime NULL");
             cmds.Add("ALTER TABLE `VideoLocal_User` ADD `ResumePosition` bigint NOT NULL DEFAULT 0");
             cmds.Add("DROP TABLE `VideoInfo`");
             try

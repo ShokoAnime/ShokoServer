@@ -295,6 +295,9 @@ namespace JMMServer.Commands
                 vlocalplace.VideoLocalID = vlocal.VideoLocalID;
                 repPlaces.Save(vlocalplace);
 
+                if (intercloudfolder)
+                    return vlocalplace;
+
                 // also save the filename to hash record
                 // replace the existing records just in case it was corrupt
                 FileNameHash fnhash = null;
@@ -319,8 +322,7 @@ namespace JMMServer.Commands
                 fnhash.Hash = vlocal.Hash;
                 fnhash.DateTimeUpdated = DateTime.Now;
                 repFNHash.Save(fnhash);
-                if (intercloudfolder)
-                    return vlocalplace;
+
             }
 
 
