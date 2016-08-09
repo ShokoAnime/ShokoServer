@@ -1175,7 +1175,7 @@ namespace JMMServer.API
 
             WebUIVersion version = new WebUIVersion();
             version.version = result.tag_name;
-            version.url = "https://raw.githubusercontent.com/japanesemediamanager/jmmserver-webui/" + result.tag_name + "/build/latest.zip";
+            version.url = "https://raw.githubusercontent.com/japanesemediamanager/jmmserver-webui/tree/" + result.tag_name + "/build/latest.zip";
 
             return version;
         }
