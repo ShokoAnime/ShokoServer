@@ -28,7 +28,7 @@
                 new StatelessAuthenticationConfiguration(nancyContext =>
                 {
                     //try to take "apikey" from header
-                    var apiKey = nancyContext.Request.Headers["apikey"].FirstOrDefault();
+                    string apiKey = nancyContext.Request.Headers["apikey"].FirstOrDefault();
                     if (apiKey == "")
                     {
                         //take out value of "apikey" from query that was pass in request and check for User
