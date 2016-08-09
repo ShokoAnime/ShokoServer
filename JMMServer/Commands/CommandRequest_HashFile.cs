@@ -163,7 +163,7 @@ namespace JMMServer.Commands
                 }
             }
             else
-            {
+            {                
                 logger.Trace("VideoLocal, creating new record");
                 vlocal = new VideoLocal();
                 vlocal.DateTimeUpdated = DateTime.Now;
@@ -227,6 +227,7 @@ namespace JMMServer.Commands
                     repVidLocal.Save(vlocal,false);
                     vlocalplace.VideoLocalID = vlocal.VideoLocalID;
                     repPlaces.Save(vlocalplace);
+                    return vlocalplace;
                 }
                 // hash the file
                 if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
@@ -248,6 +249,8 @@ namespace JMMServer.Commands
                 // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
 
                 VideoLocal tlocal = repVidLocal.GetByHash(vlocal.Hash);
+
+                bool intercloudfolder = false;
                 VideoLocal_Place prep= tlocal?.Places.FirstOrDefault(a => a.ImportFolder.CloudID == folder.CloudID && vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
                 if (prep!=null)
                 {
@@ -279,10 +282,16 @@ namespace JMMServer.Commands
                     }
                     //Notify duplicate, don't delete
                 }
+                else if (tlocal != null)
+                {
+                    vlocal = tlocal;
+                    intercloudfolder = true;
+                }
 
 
+                if (!intercloudfolder)
+                    repVidLocal.Save(vlocal, true);
 
-                repVidLocal.Save(vlocal, true);
                 vlocalplace.VideoLocalID = vlocal.VideoLocalID;
                 repPlaces.Save(vlocalplace);
 
@@ -310,6 +319,8 @@ namespace JMMServer.Commands
                 fnhash.Hash = vlocal.Hash;
                 fnhash.DateTimeUpdated = DateTime.Now;
                 repFNHash.Save(fnhash);
+                if (intercloudfolder)
+                    return vlocalplace;
             }
 
 
