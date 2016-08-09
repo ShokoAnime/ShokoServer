@@ -75,7 +75,6 @@ namespace JMMServer.API
 
             // 9. Misc
             Get["/MyID"] = x => { return MyID(x.apikey); };
-            Get["/dashboard"] = _ => { return GetDashboard(); };
 
             // 10. User
             Get["/user/list"] = _ => { return GetUsers(); };
@@ -123,8 +122,11 @@ namespace JMMServer.API
             Get["/serie/recent"] = _ => { return GetRecentSeries(10); };
             Get["/serie/recent/{max}"] = x => { return GetRecentSeries((int)x.max); };
 
-            //dashboard
+            // 15. WebUI
             Get["/dashboard"] = _ => { return GetDashboard(); };
+            Get["/webui/update"] = _ => { return WebUIUpdate(); };
+            Get["/webui/latest"] = _ => { return WebUILatestVersion(); };
+
 
         }
 
@@ -630,22 +632,6 @@ namespace JMMServer.API
             }
         }
 
-
-        /// <summary>
-        /// Return Dictionary with nesesery items for Dashboard inside Webui
-        /// </summary>
-        /// <returns></returns>
-        private object GetDashboard()
-        {
-            Dictionary<string, object> dash = new Dictionary<string, object>();
-            dash.Add("queue", GetQueue());
-            dash.Add("file", GetRecentFiles(10));
-            dash.Add("folder", GetFolders());
-            dash.Add("file_count", CountFiles());
-            dash.Add("serie_count", CountSerie());
-            return dash;
-        }
-
         #endregion
 
         #region 10.User
@@ -1119,6 +1105,79 @@ namespace JMMServer.API
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             return _impl.GetSeriesRecentlyAdded(max_limit, user.JMMUserID);
+        }
+
+        #endregion
+
+        #region 15.WebUI
+
+        /// <summary>
+        /// Return Dictionary with nesesery items for Dashboard inside Webui
+        /// </summary>
+        /// <returns></returns>
+        private object GetDashboard()
+        {
+            Dictionary<string, object> dash = new Dictionary<string, object>();
+            dash.Add("queue", GetQueue());
+            dash.Add("file", GetRecentFiles(10));
+            dash.Add("folder", GetFolders());
+            dash.Add("file_count", CountFiles());
+            dash.Add("serie_count", CountSerie());
+            return dash;
+        }
+
+        /// <summary>
+        /// Download the latest version of WebUI
+        /// </summary>
+        /// <returns></returns>
+        private object WebUIUpdate()
+        {
+            try
+            {
+                WebUIVersion version = (WebUIVersion)WebUILatestVersion();
+                if (!String.IsNullOrEmpty(version.url))
+                {
+                    if (!System.IO.Directory.Exists("webui/download"))
+                    {
+                        System.IO.Directory.CreateDirectory("webui/download");
+                    }
+                    var client = new System.Net.WebClient();
+                    client.Headers.Add("User-Agent", "jmmserver");
+                    client.DownloadFile(version.url, "webui/download/latest.zip");
+
+                    System.IO.Compression.ZipFile.ExtractToDirectory("webui/download/latest.zip", "webui");
+
+                    return HttpStatusCode.OK;
+                }
+                else
+                {
+                    return HttpStatusCode.NoContent;
+                }
+            }
+            catch
+            {
+                return HttpStatusCode.InternalServerError;
+            }
+        }
+
+        /// <summary>
+        /// Check for newest version and return object { version: string, url: string }
+        /// </summary>
+        /// <returns></returns>
+        private object WebUILatestVersion()
+        {
+            var client = new System.Net.WebClient();
+            client.Headers.Add("Accept: application/vnd.github.v3+json");
+            client.Headers.Add("User-Agent", "jmmserver");
+            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver/releases/latest"));
+
+            dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+
+            WebUIVersion version = new WebUIVersion();
+            version.version = result.tag_name;
+            version.url = "https://raw.githubusercontent.com/japanesemediamanager/jmmserver-webui/" + result.tag_name + "/build/latest.zip";
+
+            return version;
         }
 
         #endregion
