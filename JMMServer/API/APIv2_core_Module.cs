@@ -11,6 +11,10 @@ using System.Globalization;
 using JMMServer.Commands;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
+using System.Linq;
+using Newtonsoft.Json;
+using System.Dynamic;
+using System.IO;
 
 namespace JMMServer.API
 {
@@ -75,6 +79,7 @@ namespace JMMServer.API
 
             // 9. Misc
             Get["/MyID"] = x => { return MyID(x.apikey); };
+            Get["/news/get"] = _ => { return GetNews(5); };
 
             // 10. User
             Get["/user/list"] = _ => { return GetUsers(); };
@@ -325,6 +330,7 @@ namespace JMMServer.API
         #endregion
 
         #region 4.AniDB
+
         /// <summary>
         /// Set AniDB account with login, password and client port
         /// </summary>
@@ -630,6 +636,34 @@ namespace JMMServer.API
             {
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Return newest posts from 
+        /// </summary>
+        /// <returns></returns>
+        private object GetNews(int max)
+        {
+            var client = new System.Net.WebClient();
+            client.Headers.Add("User-Agent", "jmmserver");
+            client.Headers.Add("Accept", "application/json");
+            var response = client.DownloadString(new Uri("http://jmediamanager.org/wp-json/wp/v2/posts"));
+            List<dynamic> news_feed = JsonConvert.DeserializeObject<List<dynamic>>(response);
+            List<WebNews> news = new List<WebNews>();
+            int limit = 0;
+            foreach (dynamic post in news_feed)
+            {
+                limit++;
+                WebNews wn = new WebNews();
+                wn.author = post.author;
+                wn.date = post.date;
+                wn.link = post.link;
+                wn.title = post.title.rendered;
+                wn.description = post.excerpt.rendered;
+                news.Add(wn);
+                if (limit >= max) break;
+            }
+            return news;
         }
 
         #endregion
@@ -1137,20 +1171,64 @@ namespace JMMServer.API
                 WebUIVersion version = (WebUIVersion)WebUILatestVersion();
                 if (!String.IsNullOrEmpty(version.url))
                 {
-                    if (!System.IO.Directory.Exists("webui/download"))
-                    {
-                        System.IO.Directory.CreateDirectory("webui/download");
+                    //list all files from root /webui/ and all directories
+                    string[] files = Directory.GetFiles("webui");
+                    string[] directories = Directory.GetDirectories("webui");
+
+                    try {
+                        //download latest version
+                        var client = new System.Net.WebClient();
+                        client.Headers.Add("User-Agent", "jmmserver");
+                        client.DownloadFile(version.url, "webui\\latest.zip");
+
+                        //create 'old' dictionary
+                        if (!Directory.Exists("webui\\old")) { System.IO.Directory.CreateDirectory("webui\\old"); }
+                        try {
+                            //move all directories and files to 'old' folder as fallback recovery
+                            foreach (string dir in directories)
+                            {
+                                if (Directory.Exists(dir) && dir != "webui\\old")
+                                {
+                                    string n_dir = dir.Replace("webui", "webui\\old");
+                                    Directory.Move(dir, n_dir);
+                                }
+                            }
+                            foreach (string file in files)
+                            {
+                                if (File.Exists(file))
+                                {
+                                    string n_file = file.Replace("webui", "webui\\old");
+                                    File.Move(file, n_file);
+                                }
+                            }
+
+                            try {
+                                //extract latest webui
+                                System.IO.Compression.ZipFile.ExtractToDirectory("webui\\latest.zip", "webui");
+
+                                //clean because we already have working updated webui
+                                Directory.Delete("webui\\old", true);
+                                File.Delete("webui\\latest.zip");
+
+                                return HttpStatusCode.OK;
+                            }
+                            catch
+                            {
+                                //when extracting latest.zip failes
+                                return HttpStatusCode.MethodNotAllowed;
+                            }
+                        }
+                        catch
+                        {
+                            //when moving files to 'old' folder failed
+                            return HttpStatusCode.Locked;
+                        }
                     }
-                    var client = new System.Net.WebClient();
-                    client.Headers.Add("User-Agent", "jmmserver");
-                    client.DownloadFile(version.url, "webui/download/latest.zip");
-
-                    System.IO.Compression.ZipFile.ExtractToDirectory("webui/download/latest.zip", "webui");
-                    System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.OpenRead("webui/download/latest.zip");
-
-                    //todo apiv2: zip overwrite
-
-                    return HttpStatusCode.OK;
+                    catch
+                    {
+                        //when download failed
+                        return HttpStatusCode.ClientClosedRequest;
+                    }
                 }
                 else
                 {
