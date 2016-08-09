@@ -264,6 +264,7 @@
     <Compile Include="API\Model\Database.cs" />
     <Compile Include="API\Model\ImagePath.cs" />
     <Compile Include="API\Model\QueueInfo.cs" />
+    <Compile Include="API\Model\RecentFile.cs" />
     <Compile Include="API\Model\WebNews.cs" />
     <Compile Include="API\Model\WebUIVersion.cs" />
     <Compile Include="API\UserDatabase.cs" />

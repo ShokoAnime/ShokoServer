@@ -1024,11 +1024,22 @@ namespace JMMServer.API
 
             JMMServiceImplementation _impl = new JMMServiceImplementation();
 
-            List<string> files = new List<string>();
+            List<RecentFile> files = new List<RecentFile>();
 
             foreach (VideoLocal file in _impl.GetFilesRecentlyAdded(max_limit))
             {
-                files.Add(file.FilePath);
+                RecentFile recent = new RecentFile();
+                recent.path = file.FilePath;
+                recent.id = file.VideoLocalID;
+                if (file.EpisodeCrossRefs.Count() == 0)
+                {
+                    recent.success = false;
+                }
+                else
+                {
+                    recent.success = true;
+                }
+                files.Add(recent);
             }
 
             return files;
@@ -1050,7 +1061,7 @@ namespace JMMServer.API
             {
                 i++;
                 files.Add(file.FilePath);
-                if (i >= 10) break;
+                if (i >= max_limit) break;
             }
             return files;
         }
