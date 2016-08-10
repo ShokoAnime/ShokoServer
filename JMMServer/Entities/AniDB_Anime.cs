@@ -2424,7 +2424,7 @@ namespace JMMServer.Entities
                 AniDB_Anime relAnime = repAnime.GetByAnimeID(session, rel.RelatedAnimeID);
                 if (relAnime != null && !relListIDs.Contains(relAnime.AnimeID))
                 {
-	                if(AnimeGroup.IsRelationTypeInExclusions(relAnime.AnimeTypeDescription)) continue;
+	                if(AnimeGroup.IsRelationTypeInExclusions(relAnime.AnimeTypeDescription.ToLower())) continue;
                     relList.Add(relAnime);
                     relListIDs.Add(relAnime.AnimeID);
                     if (!searchedIDs.Contains(rel.RelatedAnimeID))
