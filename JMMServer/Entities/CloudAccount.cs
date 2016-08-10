@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Media.Imaging;
 using JMMServer.Repositories;
 using NutzCode.CloudFileSystem;
-using NutzCode.CloudFileSystem.OAuth.Windows.WPF;
+
 using AuthProvider = JMMServer.UI.AuthProvider;
 
 namespace JMMServer.Entities

@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using System.Windows;
-using NutzCode.CloudFileSystem.OAuth.Windows.WPF;
+
 using NutzCode.CloudFileSystem.OAuth2;
 
 namespace JMMServer.UI

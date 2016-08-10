@@ -148,6 +148,7 @@ namespace JMMServer.Databases
                 UpdateSchema_044(versionNumber);
                 UpdateSchema_045(versionNumber);
                 UpdateSchema_046(versionNumber);
+                UpdateSchema_047(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1541,6 +1542,35 @@ namespace JMMServer.Databases
                                   " ResumePosition bigint NOT NULL DEFAULT 0); ";
             List<string> indexvluser = new List<string>() { "CREATE UNIQUE INDEX UIX2_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);" };
             Alter(myConn, "VideoLocal_User", createvluser, indexvluser);
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+
+
+        }
+        private static void UpdateSchema_047(int currentVersionNumber)
+        {
+            int thisVersion = 47;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+            List<string> cmds = new List<string>();
+            //Remove Videolocal Hash unique constraint. Since we use videolocal to store the non hashed files in cloud drop folders.Empty Hash.
+            cmds.Add("DROP INDEX UIX2_VideoLocal_Hash;");
+            cmds.Add("CREATE INDEX UIX_VideoLocal_Hash ON VideoLocal(Hash);");
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+
+     
             myConn.Close();
 
             UpdateDatabaseVersion(thisVersion);

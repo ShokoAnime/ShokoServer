@@ -202,6 +202,7 @@ namespace JMMServer.Databases
                 UpdateSchema_048(versionNumber);
                 UpdateSchema_049(versionNumber);
                 UpdateSchema_050(versionNumber);
+                UpdateSchema_051(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1884,7 +1885,43 @@ namespace JMMServer.Databases
             }
             UpdateDatabaseVersion(thisVersion);
         }
+        private static void UpdateSchema_051(int currentVersionNumber)
+        {
+            int thisVersion = 51;
+            if (currentVersionNumber >= thisVersion) return;
 
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+            //Remove Videolocal Hash unique constraint. Since we use videolocal to store the non hashed files in cloud drop folders. Empty Hash.
+
+            cmds.Add("DROP INDEX UIX_VideoLocal_Hash ON Videolocal;");
+            cmds.Add("CREATE INDEX UIX_VideoLocal_Hash ON VideoLocal(Hash);");
+            using (
+             SqlConnection tmpConn =
+                 new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
+                     ServerSettings.DatabaseServer,
+                     ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception e)
+                        {
+                        }
+                    }
+                }
+            }
+            UpdateDatabaseVersion(thisVersion);
+        }
         private static void ExecuteSQLCommands(List<string> cmds)
         {
             using (

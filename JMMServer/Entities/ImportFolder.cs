@@ -5,8 +5,7 @@ using System.Threading.Tasks;
 using JMMContracts;
 using JMMServer.Repositories;
 using NutzCode.CloudFileSystem;
-using NutzCode.CloudFileSystem.OAuth.Windows.WPF;
-using NutzCode.CloudFileSystem.Plugins.GoogleDrive;
+
 
 namespace JMMServer.Entities
 {

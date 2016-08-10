@@ -949,10 +949,6 @@
     <Resource Include="db.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\NET\NutzCode\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.OAuth.Windows.WPF\NutzCode.CloudFileSystem.OAuth.Windows.WPF.csproj">
-      <Project>{83727f74-6684-4b11-9158-b0ba1a60d8be}</Project>
-      <Name>NutzCode.CloudFileSystem.OAuth.Windows.WPF</Name>
-    </ProjectReference>
     <ProjectReference Include="..\JMMContracts\JMMContracts.csproj">
       <Project>{D777636B-F927-4C7D-9D00-4A7858E75F3E}</Project>
       <Name>JMMContracts</Name>

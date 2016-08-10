@@ -178,6 +178,7 @@ namespace JMMServer.Databases
                 UpdateSchema_052(versionNumber);
                 UpdateSchema_053(versionNumber);
                 UpdateSchema_054(versionNumber);
+                UpdateSchema_055(versionNumber);
 
             }
             catch (Exception ex)
@@ -2119,7 +2120,38 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+        private static void UpdateSchema_055(int currentVersionNumber)
+        {
+            int thisVersion = 55;
+            if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+            //Remove Videolocal Hash unique constraint. Since we use videolocal to store the non hashed files in cloud drop folders.Empty Hash.
+
+            List<string> cmds = new List<string>();
+            cmds.Add("ALTER TABLE `Videolocal` DROP INDEX `UIX_VideoLocal_Hash` ;");
+            cmds.Add("ALTER TABLE `VideoLocal` ADD INDEX `UIX_VideoLocal_Hash` (`Hash` ASC) ;");
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+
+                    foreach (string sql in cmds)
+                    {
+                        using (MySqlCommand command = new MySqlCommand(sql, conn))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                UpdateDatabaseVersion(thisVersion);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message);
+            }
+        }
         private static void ExecuteSQLCommands(List<string> cmds)
         {
             using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
