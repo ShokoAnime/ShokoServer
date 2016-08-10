@@ -1022,14 +1022,12 @@ namespace JMMServer
 
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseSetup;
                 logger.Info("Setting up database...");
-                if (!DatabaseHelper.InitDB())
+                if (!DatabaseExtensions.Instance.InitDB())
                 {
                     ServerState.Instance.DatabaseAvailable = false;
 
                     if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
                         ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseConfig;
-                    else
-                        ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseFail;
                     e.Result = false;
                     return;
                 }

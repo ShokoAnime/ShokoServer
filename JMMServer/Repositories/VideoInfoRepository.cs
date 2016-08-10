@@ -13,7 +13,7 @@ namespace JMMServer.Repositories
         public static void InitCache()
         {
             string t = "VideoInfos";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             VideoInfoRepository repo = new VideoInfoRepository();
             Cache = new PocoCache<int, VideoInfo>(repo.InternalGetAll(), a => a.VideoInfoID);
             Hashes = new PocoIndex<int, VideoInfo, string>(Cache, a => a.Hash);

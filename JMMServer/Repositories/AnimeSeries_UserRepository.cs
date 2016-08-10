@@ -23,7 +23,7 @@ namespace JMMServer.Repositories
         public static void InitCache()
         {
             string t = "AnimeSeries_User";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             AnimeSeries_UserRepository repo = new AnimeSeries_UserRepository();
             Cache = new PocoCache<int, AnimeSeries_User>(repo.InternalGetAll(), a => a.AnimeSeries_UserID);
             Users = Cache.CreateIndex(a => a.JMMUserID);
@@ -44,11 +44,11 @@ namespace JMMServer.Repositories
                 cnt++;
                 if (cnt%10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                 " DbRegen - " + max + "/" + max);
 
 

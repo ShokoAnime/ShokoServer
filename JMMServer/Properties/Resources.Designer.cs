@@ -998,6 +998,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to New Version detected. Database Backup in progress....
+        /// </summary>
+        internal static string Database_Backup {
+            get {
+                return ResourceManager.GetString("Database_Backup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Database Cache - Caching  - {0}{1}....
         /// </summary>
         internal static string Database_Cache {
@@ -1057,6 +1066,15 @@ namespace JMMServer.Properties {
         internal static string Database_LockFilters {
             get {
                 return ResourceManager.GetString("Database_LockFilters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The Database Version is bigger than the supported version by JMM Server. You should upgrade JMMServer..
+        /// </summary>
+        internal static string Database_NotSupportedVersion {
+            get {
+                return ResourceManager.GetString("Database_NotSupportedVersion", resourceCulture);
             }
         }
         
