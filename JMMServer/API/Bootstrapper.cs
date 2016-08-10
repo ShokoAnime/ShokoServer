@@ -73,7 +73,7 @@
 
         public void Handle(HttpStatusCode statusCode, NancyContext context)
         {
-            if (context.ResolvedRoute.Description.Path.Contains("/webui/"))
+            if (context.ResolvedRoute.Description.Path.StartsWith("/webui/"))
             {
                 context.Response.Contents = stream =>
                 {
