@@ -1179,8 +1179,17 @@ namespace JMMServer.API
         {
             try
             {
-                WebUIVersion version = (WebUIVersion)WebUILatestVersion();
-                if (!String.IsNullOrEmpty(version.url))
+                var client = new System.Net.WebClient();
+                client.Headers.Add("Accept: application/vnd.github.v3+json");
+                client.Headers.Add("User-Agent", "jmmserver");
+                var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/latest"));
+
+                dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+
+                string url = "https://github.com/japanesemediamanager/jmmserver-webui/raw/" + result.tag_name + "/build/latest.zip";
+
+                //check if tag was parsed corrently as it make the url
+                if (!String.IsNullOrEmpty(result.tag_name))
                 {
                     //list all files from root /webui/ and all directories
                     string[] files = Directory.GetFiles("webui");
@@ -1188,9 +1197,8 @@ namespace JMMServer.API
 
                     try {
                         //download latest version
-                        var client = new System.Net.WebClient();
                         client.Headers.Add("User-Agent", "jmmserver");
-                        client.DownloadFile(version.url, "webui\\latest.zip");
+                        client.DownloadFile(url, "webui\\latest.zip");
 
                         //create 'old' dictionary
                         if (!Directory.Exists("webui\\old")) { System.IO.Directory.CreateDirectory("webui\\old"); }
@@ -1265,9 +1273,8 @@ namespace JMMServer.API
 
             dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
 
-            WebUIVersion version = new WebUIVersion();
-            version.version = result.tag_name;
-            version.url = "https://github.com/japanesemediamanager/jmmserver-webui/raw/" + result.tag_name + "/build/latest.zip";
+            ComponentVersion version = new ComponentVersion();
+            version.version = result.tag_name;            
 
             return version;
         }

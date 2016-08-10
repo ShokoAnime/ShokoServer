@@ -1,4 +1,6 @@
-﻿using Nancy;
+﻿using JMMServer.API.Model;
+using Nancy;
+using System.Collections.Generic;
 
 namespace JMMServer.API
 {
@@ -16,7 +18,16 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetVersion()
         {
-            return "{\"version\":\"" + System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString() + "\", \"api\":" + APIv2_core_Module. version.ToString() + "}";
+            List<ComponentVersion> list = new List<ComponentVersion>();
+            ComponentVersion version = new ComponentVersion();
+            version.version = System.Reflection.Assembly.GetEntryAssembly().GetName().Version.ToString();
+            version.name = "jmmserver";
+            list.Add(version);
+            version = new ComponentVersion();
+            version.version = APIv2_core_Module.version.ToString();
+            version.name = "apiv2";
+            list.Add(version);
+            return list;
         }
     }
 }

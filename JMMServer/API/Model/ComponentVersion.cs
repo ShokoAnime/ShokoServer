@@ -1,8 +1,8 @@
 ﻿namespace JMMServer.API.Model
 {
-    public class WebUIVersion
+    public class ComponentVersion
     {
+        public string name { get; set; }
         public string version { get; set; }
-        public string url { get; set; }
     }
 }
