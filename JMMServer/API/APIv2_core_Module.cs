@@ -1189,7 +1189,7 @@ namespace JMMServer.API
                 string url = "https://github.com/japanesemediamanager/jmmserver-webui/raw/" + result.tag_name + "/build/latest.zip";
 
                 //check if tag was parsed corrently as it make the url
-                if (!String.IsNullOrEmpty(result.tag_name))
+                if (!String.IsNullOrEmpty((string)result.tag_name))
                 {
                     //list all files from root /webui/ and all directories
                     string[] files = Directory.GetFiles("webui");
