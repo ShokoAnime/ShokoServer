@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Windows;
+using FluentNHibernate.Utils;
 using JMMContracts;
 using JMMServer.Entities;
 
@@ -78,6 +79,8 @@ namespace JMMServer
 
         private void ComboProvider_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
+            if (importFldr == null)
+                return;
             if (comboProvider.SelectedIndex < 0)
                 return;
             if (comboProvider.SelectedIndex == 0)
@@ -157,7 +160,7 @@ namespace JMMServer
                 if (!string.IsNullOrEmpty(response.ErrorMessage))
                     MessageBox.Show(response.ErrorMessage, JMMServer.Properties.Resources.Error, MessageBoxButton.OK,
                         MessageBoxImage.Error);
-
+                importFldr = null;
                 ServerInfo.Instance.RefreshImportFolders();
             }
             catch (Exception ex)
@@ -179,14 +182,14 @@ namespace JMMServer
         {
             try
             {
-                importFldr = ifldr;
                 ServerInfo.Instance.RefreshFolderProviders();
+                importFldr = (ImportFolder)ifldr.DeepCopy();
                 txtImportFolderLocation.Text = importFldr.ImportFolderLocation;
                 chkDropDestination.IsChecked = importFldr.IsDropDestination == 1;
                 chkDropSource.IsChecked = importFldr.IsDropSource == 1;
                 chkIsWatched.IsChecked = importFldr.IsWatched == 1;
                 if (ifldr.CloudID.HasValue)
-                    comboProvider.SelectedItem = ServerInfo.Instance.CloudAccounts.FirstOrDefault(a => a.CloudID == ifldr.CloudID.Value);
+                    comboProvider.SelectedItem = ServerInfo.Instance.FolderProviders.FirstOrDefault(a => a.CloudID == ifldr.CloudID.Value);
                 else
                     comboProvider.SelectedIndex = 0;
                 txtImportFolderLocation.Focus();

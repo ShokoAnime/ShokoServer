@@ -386,7 +386,7 @@ namespace JMMServer.Entities
             }
             if (importfolder)
                 return;
-            fr = dir.Refresh();
+            fr = dir.Populate();
             if (fr.IsOk)
             {
                 if (dir.Files.Count == 0 && dir.Directories.Count == 0)

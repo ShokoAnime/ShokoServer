@@ -12,6 +12,7 @@ using System.ServiceModel.Channels;
 using System.ServiceModel.Description;
 using System.ServiceModel.Web;
 using System.Threading;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -96,6 +97,8 @@ namespace JMMServer
 
         private static System.Timers.Timer autoUpdateTimer = null;
         private static System.Timers.Timer autoUpdateTimerShort = null;
+        private static System.Timers.Timer cloudWatchTimer = null;
+
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
         private static List<FileSystemWatcher> watcherVids = null;
 
@@ -401,6 +404,11 @@ namespace JMMServer
 
                     if (evt.ChangeType == WatcherChangeTypes.Created)
                     {
+                        if (evt.FullPath.StartsWith("|CLOUD|"))
+                        {
+                            int shareid = int.Parse(evt.Name);
+                            Importer.RunImport_ImportFolderNewFiles(new ImportFolderRepository().GetByID(shareid));
+                        }
                         if (Directory.Exists(evt.FullPath))
                         {
                             // When the path that was created represents a directory we need to manually get the contained files to add.
@@ -917,6 +925,38 @@ namespace JMMServer
                 workerFileEvents.RunWorkerAsync();
         }
 
+        public static void StartCloudWatchTimer()
+        {
+            cloudWatchTimer = new System.Timers.Timer();
+            cloudWatchTimer.AutoReset = true;
+            cloudWatchTimer.Interval = ServerSettings.CloudWatcherTime*60 * 1000;
+            cloudWatchTimer.Elapsed += CloudWatchTimer_Elapsed;
+            cloudWatchTimer.Start();
+        }
+
+        public static void StopCloudWatchTimer()
+        {
+            cloudWatchTimer?.Stop();
+        }
+        private static void CloudWatchTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            try
+            {
+                ImportFolderRepository repNetShares = new ImportFolderRepository();
+                foreach (ImportFolder share in repNetShares.GetAll().Where(a => a.CloudID.HasValue && a.FolderIsWatched))
+                {
+                    //Little hack in there to reuse the file queue
+                    FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Created, "|CLOUD|", share.ImportFolderID.ToString());
+                    queueFileEvents.Add(args);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+        }
+
         void workerSetupDB_DoWork(object sender, DoWorkEventArgs e)
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
@@ -927,6 +967,7 @@ namespace JMMServer
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_Cleaning;
 
                 StopWatchingFiles();
+
                 AniDBDispose();
                 StopHost();
 
@@ -2052,7 +2093,7 @@ namespace JMMServer
         public static void StartWatchingFiles()
         {
             StopWatchingFiles();
-
+            StopCloudWatchTimer();
             watcherVids = new List<FileSystemWatcher>();
 
             ImportFolderRepository repNetShares = new ImportFolderRepository();
@@ -2082,24 +2123,10 @@ namespace JMMServer
                     logger.ErrorException(ex.ToString(), ex);
                 }
             }
+            StartCloudWatchTimer();
         }
 
-        public static void CloudWatch()
-        {
-            ImportFolderRepository repNetShares = new ImportFolderRepository();
-            foreach (ImportFolder share in repNetShares.GetAll().Where(a=>a.CloudID.HasValue && a.FolderIsWatched && a.FolderIsDropSource))
-            {
-                try
-                {
-                    logger.Info("Checking new files for ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
-                    Importer.RunImport_ImportFolderNewFiles(share);
-                }
-                catch (Exception ex)
-                {
-                    logger.ErrorException(ex.ToString(), ex);
-                }
-            }
-        }
+
 
         public static void StopWatchingFiles()
         {
@@ -2109,6 +2136,7 @@ namespace JMMServer
             {
                 fsw.EnableRaisingEvents = false;
             }
+            StopCloudWatchTimer();
         }
 
         static void fsw_Created(object sender, FileSystemEventArgs e)

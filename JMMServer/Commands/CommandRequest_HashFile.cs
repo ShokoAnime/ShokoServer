@@ -391,12 +391,15 @@ namespace JMMServer.Commands
                         return;
                     }
                     List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.MD5, v.MD5);
-                    ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.SHA1)).ToList();
-                    if (ls.Count > 0)
+                    if (ls != null)
                     {
-                        v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
-                        v.CRC32 = ls[0].CRC32.ToUpperInvariant();
-                        v.SHA1 = ls[0].SHA1.ToUpperInvariant();
+                        ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.SHA1)).ToList();
+                        if (ls.Count > 0)
+                        {
+                            v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
+                            v.CRC32 = ls[0].CRC32.ToUpperInvariant();
+                            v.SHA1 = ls[0].SHA1.ToUpperInvariant();
+                        }
                     }
                 }
             }
