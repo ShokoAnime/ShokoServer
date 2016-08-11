@@ -2101,21 +2101,21 @@ namespace JMMServer
             {
                 try
                 {
-                   
+                    if (share.FolderIsWatched)
+                    {
+                        logger.Info("Watching ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
+                    }
                     if (share.CloudID==null && Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
                     {
-                        logger.Info("Watching ImportFolder: {0} || {1}", share.ImportFolderName,
-                            share.ImportFolderLocation);
                         FileSystemWatcher fsw = new FileSystemWatcher(share.ImportFolderLocation);
                         fsw.IncludeSubdirectories = true;
                         fsw.Created += new FileSystemEventHandler(fsw_Created);
                         fsw.EnableRaisingEvents = true;
                         watcherVids.Add(fsw);
                     }
-                    else
+                    else if (!share.FolderIsWatched)
                     {
-                        logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName,
-                            share.ImportFolderLocation);
+                        logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                     }
                 }
                 catch (Exception ex)

@@ -223,10 +223,13 @@ namespace JMMServer.Commands
                     FillVideoHashes(vlocal);
                 if (string.IsNullOrEmpty(vlocal.Hash) && folder.CloudID.HasValue)
                 {
-                    //Cloud and no hash, Nothing to do
+                    //Cloud and no hash, Nothing to do, except maybe Get the mediainfo....
+
                     repVidLocal.Save(vlocal,false);
                     vlocalplace.VideoLocalID = vlocal.VideoLocalID;
                     repPlaces.Save(vlocalplace);
+                    if (vlocalplace.RefreshMediaInfo())
+                        repVidLocal.Save(vlocalplace.VideoLocal, true);
                     return vlocalplace;
                 }
                 // hash the file
