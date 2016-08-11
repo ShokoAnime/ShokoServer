@@ -935,10 +935,8 @@ namespace JMMServer.PlexAndKodi
                     }
                 }
                 List<Video> vids = new List<Video>();
-                if (eptype.HasValue)
-                {
+                if ((eptype.HasValue) && (info!=null))
                     info.ParentKey = info.GrandParentKey;
-                }
                 foreach (KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep in episodes)
                 {
                     try
@@ -961,7 +959,7 @@ namespace JMMServer.PlexAndKodi
                         //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
                     }
                 }
-                ret.Childrens = vids.OrderBy(a => a.EpisodeNumber).ToList();
+                ret.Childrens = vids.OrderBy(a => int.Parse(a.EpisodeNumber)).ToList();
                 return ret.GetStream(prov);
             }
         }
