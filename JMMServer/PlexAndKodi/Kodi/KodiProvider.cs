@@ -18,6 +18,10 @@ namespace JMMServer.PlexAndKodi.Kodi
         public bool ConstructFakeIosParent => false; //turn off plex workaround for ios (plex)
         public bool AutoWatch => false; //turn off marking watched on stream side (plex)
 
+        public bool EnableRolesInLists { get; } =true;
+        public bool EnableAnimeTitlesInLists { get; } = true;
+        public bool EnableGenresInLists { get; } = true;
+
 
         private static Regex _removeIp=new Regex(@"(\d+\.\d+\.\d+\.\d+):(\d+)",RegexOptions.Compiled);
 

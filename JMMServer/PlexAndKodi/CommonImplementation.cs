@@ -509,7 +509,6 @@ namespace JMMServer.PlexAndKodi
             return ret.GetStream(prov);
         }
 
-
         public MediaContainer GetItemsFromGroup(IProvider prov, int userid, string GroupId, BreadCrumbs info)
         {
             int groupID;
@@ -556,6 +555,7 @@ namespace JMMServer.PlexAndKodi
             }
             ret.MediaContainer.RandomizeArt(retGroups);
             ret.Childrens = Helper.ConvertToDirectory(retGroups.OrderBy(a => a.AirDate).ToList());
+            FilterExtras(prov,ret.Childrens);
             return ret.GetStream(prov);
         }
 
@@ -576,8 +576,9 @@ namespace JMMServer.PlexAndKodi
                     return rsp;
                 if (!int.TryParse(userid, out usid))
                     return rsp;
-                if (!bool.TryParse(watchedstatus, out wstatus))
-                    return rsp;
+                wstatus = false;
+                if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
+                    wstatus = true;
 
                 AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
                 AnimeEpisode ep = repEps.GetByID(aep);
@@ -836,6 +837,18 @@ namespace JMMServer.PlexAndKodi
             return ret.GetStream(prov);
         }
 
+        private void FilterExtras(IProvider provider, List<Video> videos)
+        {
+            foreach (Video v in videos)
+            {
+                if (!provider.EnableAnimeTitlesInLists)
+                    v.Titles = null;
+                if (!provider.EnableGenresInLists)
+                    v.Genres = null;
+                if (!provider.EnableRolesInLists)
+                    v.Roles = null;
+            }
+        }
         public MediaContainer GetItemsFromSerie(IProvider prov, int userid, string SerieId, BreadCrumbs info)
         {
             BaseObject ret = null;
@@ -960,6 +973,7 @@ namespace JMMServer.PlexAndKodi
                     }
                 }
                 ret.Childrens = vids.OrderBy(a => int.Parse(a.EpisodeNumber)).ToList();
+                FilterExtras(prov,ret.Childrens);
                 return ret.GetStream(prov);
             }
         }
@@ -1030,6 +1044,7 @@ namespace JMMServer.PlexAndKodi
                     IEnumerable<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group);
                     grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
                     ret.Childrens = grps.Select(a => order[a]).ToList();
+                    FilterExtras(prov,ret.Childrens);
                     return ret.GetStream(prov);
                 }
             }

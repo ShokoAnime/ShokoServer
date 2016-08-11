@@ -59,6 +59,10 @@ namespace JMMServer.PlexAndKodi.Plex
         public int AddExtraItemForSearchButtonInGroupFilters => 2;
         public bool ConstructFakeIosParent => true;
         public bool AutoWatch => true;
+        public bool EnableRolesInLists { get; } = false;
+        public bool EnableAnimeTitlesInLists { get; } = false;
+        public bool EnableGenresInLists { get; } = false;
+
         public string Proxyfy(string url)
         {
             return "/video/jmm/proxy/" + ToHex(url);
@@ -68,6 +72,7 @@ namespace JMMServer.PlexAndKodi.Plex
         {
             return url;
         }
+
 
         private static string ToHex(string ka)
         {
