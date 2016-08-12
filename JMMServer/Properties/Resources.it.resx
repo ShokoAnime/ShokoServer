@@ -997,4 +997,10 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="ImportFolders_DDNote" xml:space="preserve">
     <value>Siete pregati di notare che l'aggiornamento destinazione goccia influirà solo nuova serie viene aggiunto. Serie che hai già importato non ne risentiranno.</value>
   </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>Nuova versione rilevato. Backup del database in corso...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>La versione del Database è più grande della versione supportata dal Server di JMM. È consigliabile aggiornare JMMServer.</value>
+  </data>
 </root>

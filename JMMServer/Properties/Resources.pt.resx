@@ -997,4 +997,10 @@
   <data name="ImportFolders_DDNote" xml:space="preserve">
     <value>Por favor note, atualizar seu destino de soltar afetará apenas a nova série a ser adicionado. Série que já tenha importado não será afetado.</value>
   </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>Nova versão detectado. Backup de banco de dados em andamento...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>A versão do banco de dados é maior do que a versão suportada pelo servidor de JMM. Você deve atualizar o JMMServer.</value>
+  </data>
 </root>

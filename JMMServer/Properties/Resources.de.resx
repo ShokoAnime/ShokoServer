@@ -997,4 +997,10 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="ImportFolders_DDNote" xml:space="preserve">
     <value>Bitte beachten Sie, dass die Aktualisierung Ihrer Drop-Ziel nur Auswirkungen auf neue Serie hinzugefügt wird. Serie, die Sie bereits importiert haben, bleiben unberührt.</value>
   </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>Neue Version entdeckt. Datenbanksicherung im Gange...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>Die Version der Datenbank ist größer als die unterstützte Version von JMM Server. Sie sollten JMMServer aktualisieren.</value>
+  </data>
 </root>

@@ -997,4 +997,10 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="ImportFolders_DDNote" xml:space="preserve">
     <value>Please note, updating your drop destination will only affect new series being added. Series you've already imported will not be affected.</value>
   </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>New Version detected. Database Backup in progress...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>The Database Version is bigger than the supported version by JMM Server. You should upgrade JMMServer.</value>
+  </data>
 </root>
