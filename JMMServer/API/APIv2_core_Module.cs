@@ -658,7 +658,7 @@ namespace JMMServer.API
                 wn.author = post.author;
                 wn.date = post.date;
                 wn.link = post.link;
-                wn.title = post.title.rendered;
+                wn.title = System.Web.HttpUtility.HtmlDecode((string)post.title.rendered);
                 wn.description = post.excerpt.rendered;
                 news.Add(wn);
                 if (limit >= max) break;
