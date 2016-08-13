@@ -35,6 +35,11 @@ namespace JMMServer.API
             Post["/folder/add"] = x => { return AddFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
             Get["/folder/import"] = _ => { return RunImport(); };
+            Get["/cloud/list"] = x => { return null; };
+            Get["/cloud/count"] = x => { return null; };
+            Post["/cloud/add"] = x => { return null; };
+            Post["/cloud/delete"] = x => { return null; };
+            Get["/cloud/import"] = _ => { return null; };
 
             // 2. upnp 
             Post["/upnp/list"] = x => { return ListUPNP(); };
