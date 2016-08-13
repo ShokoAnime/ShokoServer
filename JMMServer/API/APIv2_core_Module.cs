@@ -35,6 +35,11 @@ namespace JMMServer.API
             Post["/folder/add"] = x => { return AddFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
             Get["/folder/import"] = _ => { return RunImport(); };
+            Get["/cloud/list"] = x => { return null; };
+            Get["/cloud/count"] = x => { return null; };
+            Post["/cloud/add"] = x => { return null; };
+            Post["/cloud/delete"] = x => { return null; };
+            Get["/cloud/import"] = _ => { return null; };
 
             // 2. upnp 
             Post["/upnp/list"] = x => { return ListUPNP(); };
@@ -129,9 +134,10 @@ namespace JMMServer.API
 
             // 15. WebUI
             Get["/dashboard"] = _ => { return GetDashboard(); };
-            Get["/webui/update"] = _ => { return WebUIUpdate(); };
-            Get["/webui/latest"] = _ => { return WebUILatestVersion(); };
-
+            Get["/webui/update/stable"] = _ => { return WebUIStableUpdate(); };
+            Get["/webui/latest/stable"] = _ => { return WebUILatestStableVersion(); };
+            Get["/webui/update/unstable"] = _ => { return WebUIUnstableUpdate(); };
+            Get["/webui/latest/unstable"] = _ => { return WebUILatestUnstableVersion(); };
 
         }
 
@@ -1172,10 +1178,10 @@ namespace JMMServer.API
         }
 
         /// <summary>
-        /// Download the latest version of WebUI
+        /// Download the latest stable version of WebUI
         /// </summary>
         /// <returns></returns>
-        private object WebUIUpdate()
+        private object WebUIStableUpdate()
         {
             try
             {
@@ -1191,63 +1197,7 @@ namespace JMMServer.API
                 //check if tag was parsed corrently as it make the url
                 if (!String.IsNullOrEmpty((string)result.tag_name))
                 {
-                    //list all files from root /webui/ and all directories
-                    string[] files = Directory.GetFiles("webui");
-                    string[] directories = Directory.GetDirectories("webui");
-
-                    try {
-                        //download latest version
-                        client.Headers.Add("User-Agent", "jmmserver");
-                        client.DownloadFile(url, "webui\\latest.zip");
-
-                        //create 'old' dictionary
-                        if (!Directory.Exists("webui\\old")) { System.IO.Directory.CreateDirectory("webui\\old"); }
-                        try {
-                            //move all directories and files to 'old' folder as fallback recovery
-                            foreach (string dir in directories)
-                            {
-                                if (Directory.Exists(dir) && dir != "webui\\old")
-                                {
-                                    string n_dir = dir.Replace("webui", "webui\\old");
-                                    Directory.Move(dir, n_dir);
-                                }
-                            }
-                            foreach (string file in files)
-                            {
-                                if (File.Exists(file))
-                                {
-                                    string n_file = file.Replace("webui", "webui\\old");
-                                    File.Move(file, n_file);
-                                }
-                            }
-
-                            try {
-                                //extract latest webui
-                                System.IO.Compression.ZipFile.ExtractToDirectory("webui\\latest.zip", "webui");
-
-                                //clean because we already have working updated webui
-                                Directory.Delete("webui\\old", true);
-                                File.Delete("webui\\latest.zip");
-
-                                return HttpStatusCode.OK;
-                            }
-                            catch
-                            {
-                                //when extracting latest.zip failes
-                                return HttpStatusCode.MethodNotAllowed;
-                            }
-                        }
-                        catch
-                        {
-                            //when moving files to 'old' folder failed
-                            return HttpStatusCode.Locked;
-                        }
-                    }
-                    catch
-                    {
-                        //when download failed
-                        return HttpStatusCode.ClientClosedRequest;
-                    }
+                    return WebUIUpdate(url);
                 }
                 else
                 {
@@ -1261,10 +1211,113 @@ namespace JMMServer.API
         }
 
         /// <summary>
-        /// Check for newest version and return object { version: string, url: string }
+        /// Download the latest unstable version of WebUI
         /// </summary>
         /// <returns></returns>
-        private object WebUILatestVersion()
+        private object WebUIUnstableUpdate()
+        {
+            try
+            {
+                var client = new System.Net.WebClient();
+                client.Headers.Add("Accept: application/vnd.github.v3+json");
+                client.Headers.Add("User-Agent", "jmmserver");
+                var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/tags/unstable"));
+
+                dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+
+                string url = result.zipball_url;
+
+                //check if tag was parsed corrently as it make the url
+                if (!String.IsNullOrEmpty((string)result.body))
+                {
+                    return WebUIUpdate(url);
+                }
+                else
+                {
+                    return HttpStatusCode.NoContent;
+                }
+            }
+            catch
+            {
+                return HttpStatusCode.InternalServerError;
+            }
+        }
+
+        /// <summary>
+        /// Update WebUI with version from given url
+        /// </summary>
+        /// <param name="url">direct link to version you want to install</param>
+        /// <returns></returns>
+        internal object WebUIUpdate(string url)
+        {
+            //list all files from root /webui/ and all directories
+            string[] files = Directory.GetFiles("webui");
+            string[] directories = Directory.GetDirectories("webui");
+
+            try
+            {
+                //download latest version
+                var client = new System.Net.WebClient();
+                client.Headers.Add("User-Agent", "jmmserver");
+                client.DownloadFile(url, "webui\\latest.zip");
+
+                //create 'old' dictionary
+                if (!Directory.Exists("webui\\old")) { System.IO.Directory.CreateDirectory("webui\\old"); }
+                try
+                {
+                    //move all directories and files to 'old' folder as fallback recovery
+                    foreach (string dir in directories)
+                    {
+                        if (Directory.Exists(dir) && dir != "webui\\old")
+                        {
+                            string n_dir = dir.Replace("webui", "webui\\old");
+                            Directory.Move(dir, n_dir);
+                        }
+                    }
+                    foreach (string file in files)
+                    {
+                        if (File.Exists(file))
+                        {
+                            string n_file = file.Replace("webui", "webui\\old");
+                            File.Move(file, n_file);
+                        }
+                    }
+
+                    try
+                    {
+                        //extract latest webui
+                        System.IO.Compression.ZipFile.ExtractToDirectory("webui\\latest.zip", "webui");
+
+                        //clean because we already have working updated webui
+                        Directory.Delete("webui\\old", true);
+                        File.Delete("webui\\latest.zip");
+
+                        return HttpStatusCode.OK;
+                    }
+                    catch
+                    {
+                        //when extracting latest.zip failes
+                        return HttpStatusCode.MethodNotAllowed;
+                    }
+                }
+                catch
+                {
+                    //when moving files to 'old' folder failed
+                    return HttpStatusCode.Locked;
+                }
+            }
+            catch
+            {
+                //when download failed
+                return HttpStatusCode.ClientClosedRequest;
+            }
+        }
+
+        /// <summary>
+        /// Check for newest stable version and return object { version: string, url: string }
+        /// </summary>
+        /// <returns></returns>
+        private object WebUILatestStableVersion()
         {
             var client = new System.Net.WebClient();
             client.Headers.Add("Accept: application/vnd.github.v3+json");
@@ -1275,6 +1328,25 @@ namespace JMMServer.API
 
             ComponentVersion version = new ComponentVersion();
             version.version = result.tag_name;            
+
+            return version;
+        }
+
+        /// <summary>
+        /// Check for newest unstable version and return object { version: string, url: string }
+        /// </summary>
+        /// <returns></returns>
+        private object WebUILatestUnstableVersion()
+        {
+            var client = new System.Net.WebClient();
+            client.Headers.Add("Accept: application/vnd.github.v3+json");
+            client.Headers.Add("User-Agent", "jmmserver");
+            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/tags/unstable"));
+
+            dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+
+            ComponentVersion version = new ComponentVersion();
+            version.version = result.body;
 
             return version;
         }
