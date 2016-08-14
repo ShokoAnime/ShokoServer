@@ -16,7 +16,7 @@ namespace JMMServer.Repositories
         public static void InitCache()
         {
             string t = "Cloud Accounts";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             CloudAccountRepository repo = new CloudAccountRepository();
             Cache = new PocoCache<int, CloudAccount>(repo.InternalGetAll(), a => a.CloudID);
         }

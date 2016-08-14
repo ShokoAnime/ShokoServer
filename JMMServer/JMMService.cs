@@ -162,7 +162,7 @@ namespace JMMServer
                     if (sessionFactory == null)
                     {
                         //logger.Info("Creating new session...");
-                        sessionFactory = DatabaseHelper.CreateSessionFactory();
+                        sessionFactory = DatabaseExtensions.Instance.CreateSessionFactory();
                     }
                     return JMMService.sessionFactory;
                 }

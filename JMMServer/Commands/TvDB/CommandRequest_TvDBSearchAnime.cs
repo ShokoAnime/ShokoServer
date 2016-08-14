@@ -67,15 +67,15 @@ namespace JMMServer.Commands
 
                                 foreach (JMMServer.Providers.Azure.CrossRef_AniDB_TvDB xref in cacheResults)
                                 {
-                                    TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(cacheResults[0].TvDBID);
+                                    TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(xref.TvDBID);
                                     if (tvser != null)
                                     {
                                         logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
                                         TvDBHelper.LinkAniDBTvDB(AnimeID,
-                                            (AniDBAPI.enEpisodeType) cacheResults[0].AniDBStartEpisodeType,
-                                            cacheResults[0].AniDBStartEpisodeNumber,
-                                            cacheResults[0].TvDBID, cacheResults[0].TvDBSeasonNumber,
-                                            cacheResults[0].TvDBStartEpisodeNumber, true);
+                                            (AniDBAPI.enEpisodeType)xref.AniDBStartEpisodeType,
+                                            xref.AniDBStartEpisodeNumber,
+                                            xref.TvDBID, xref.TvDBSeasonNumber,
+                                            xref.TvDBStartEpisodeNumber, true);
                                     }
                                     else
                                     {

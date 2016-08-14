@@ -34,6 +34,7 @@ using JMMServer.WCFCompression;
 using Microsoft.SqlServer.Management.Smo;
 using NHibernate;
 using NLog;
+using Microsoft.Win32.TaskScheduler;
 
 namespace JMMServer
 {
@@ -321,7 +322,8 @@ namespace JMMServer
             btnMinOnStartup.Click += new RoutedEventHandler(toggleMinimizeOnStartup);
             btnLogs.Click += new RoutedEventHandler(btnLogs_Click);
             btnChooseVLCLocation.Click += new RoutedEventHandler(btnChooseVLCLocation_Click);
-            btnJMMStartWithWindows.Click += new RoutedEventHandler(btnJMMStartWithWindows_Click);
+            btnJMMEnableStartWithWindows.Click += new RoutedEventHandler(btnJMMEnableStartWithWindows_Click);
+            btnJMMDisableStartWithWindows.Click += new RoutedEventHandler(btnJMMDisableStartWithWindows_Click);
             btnUpdateAniDBLogin.Click += new RoutedEventHandler(btnUpdateAniDBLogin_Click);
 
 
@@ -595,10 +597,77 @@ namespace JMMServer
 		}
         */
 
-        void btnJMMStartWithWindows_Click(object sender, RoutedEventArgs e)
+        void btnJMMEnableStartWithWindows_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Process.Start(
-                "http://jmediamanager.org/jmm-server/configuring-jmm-server/#jmm-start-with-windows");
+            ServerState state = ServerState.Instance;
+
+            if (state.IsAutostartEnabled)
+            {
+                return;
+            }
+
+            if (state.autostartMethod == AutostartMethod.Registry)
+            {
+                try
+                {
+                    state.autostartRegistryKey.SetValue(state.autostartKey, '"' + System.Reflection.Assembly.GetExecutingAssembly().Location + '"');
+                    state.LoadSettings();
+                }
+                catch (Exception ex)
+                {
+                    logger.DebugException("Creating autostart key", ex);
+                }
+            } else if (state.autostartMethod == AutostartMethod.TaskScheduler)
+            {
+                Task task = TaskService.Instance.GetTask(state.autostartTaskName);
+                if (task != null)
+                {
+                    TaskService.Instance.RootFolder.DeleteTask(task.Name);
+                }
+
+                TaskDefinition td = TaskService.Instance.NewTask();
+                td.RegistrationInfo.Description = "Auto start task for JMM Server";
+
+                td.Principal.RunLevel = TaskRunLevel.Highest;
+                
+                td.Triggers.Add(new BootTrigger());
+                td.Triggers.Add(new LogonTrigger());
+                
+                td.Actions.Add('"' + System.Reflection.Assembly.GetExecutingAssembly().Location + '"');
+
+                TaskService.Instance.RootFolder.RegisterTaskDefinition(state.autostartTaskName, td);
+                state.LoadSettings();
+            }
+        }
+
+        void btnJMMDisableStartWithWindows_Click(object sender, RoutedEventArgs e)
+        {
+            ServerState state = ServerState.Instance;
+            if (!state.IsAutostartEnabled)
+            {
+                return;
+            }
+
+            if (state.autostartMethod == AutostartMethod.Registry)
+            {
+                try
+                {
+                    state.autostartRegistryKey.DeleteValue(state.autostartKey, false);
+                    state.LoadSettings();
+                }
+                catch (Exception ex)
+                {
+                    logger.DebugException("Deleting autostart key", ex);
+                }
+            } else if (state.autostartMethod == AutostartMethod.TaskScheduler)
+            {
+                Task task = TaskService.Instance.GetTask(state.autostartTaskName);
+                if (task != null)
+                {
+                    TaskService.Instance.RootFolder.DeleteTask(task.Name);
+                    state.LoadSettings();
+                }
+            }
         }
 
         void btnUpdateAniDBLogin_Click(object sender, RoutedEventArgs e)
@@ -1001,14 +1070,12 @@ namespace JMMServer
 
 
                 logger.Info("Setting up database...");
-                if (!DatabaseHelper.InitDB())
+                if (!DatabaseExtensions.Instance.InitDB())
                 {
                     ServerState.Instance.DatabaseAvailable = false;
 
                     if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
                         ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseConfig;
-                    else
-                        ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseFail;
                     e.Result = false;
                     return;
                 }
@@ -2003,7 +2070,13 @@ namespace JMMServer
 
         void MainWindow_StateChanged(object sender, EventArgs e)
         {
-            if (this.WindowState == System.Windows.WindowState.Minimized) this.Hide();
+            if (this.WindowState == System.Windows.WindowState.Minimized)
+            {
+                this.Hide();
+            } else
+            {
+                this.Show();
+            }
         }
 
         void TippuTrayNotify_MouseDoubleClick(object sender, System.Windows.Forms.MouseEventArgs e)
@@ -2251,7 +2324,8 @@ namespace JMMServer
                 Importer.RunImport_NewFiles();
                 Importer.RunImport_IntegrityCheck();
 
-                // TODO drop folder
+				// drop folder
+				Importer.RunImport_DropFolders();
 
                 // TvDB association checks
                 Importer.RunImport_ScanTvDB();

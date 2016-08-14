@@ -240,7 +240,7 @@ namespace JMMServer.Entities
                 if (!foundLocation)
                 {
                     // we need to create a new folder
-                    string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().MainTitle);
+                    string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().PreferredTitle);
                     newFullPath = Path.Combine(destFolder.ImportFolderLocation, newFolderName);
                     FileSystemResult<IObject> dirn = f.Resolve(newFullPath);
                     if (!dirn.IsOk)

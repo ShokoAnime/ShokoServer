@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -10,6 +9,9 @@ using JMMServer.Entities;
 using JMMServer.FileHelper;
 using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
+using Path = Pri.LongPath.Path;
+using File = Pri.LongPath.File;
+using FileInfo = Pri.LongPath.FileInfo;
 using NutzCode.CloudFileSystem;
 using CrossRef_File_Episode = JMMServer.Entities.CrossRef_File_Episode;
 

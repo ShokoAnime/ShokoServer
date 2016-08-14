@@ -228,9 +228,6 @@
   <data name="SQLite_Info" xml:space="preserve">
     <value>SQLite является самой простой и настраивается одним нажатием. Если коллекция содержит более 200 сериалов возникнет множество проблем, включая медленную реакцию и зависания программы при попытке получить доступ к коллекции. JMM не оптимизирован для этой базы данных поэтому SQLite не предназначен для больших коллекций. SQLite также испытывает трудности с одновременной обработкой нескольких операций что увеличивает время ожидания между операциями, что в свою очередь увеличиваеи время ожидания при доступе к коллекции.</value>
   </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>Узнайте больше о</value>
-  </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server может использовать большой объем памяти</value>
   </data>
@@ -403,9 +400,6 @@
 
 Вы можете иметь только одну папку назначения.</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Импорт папки являются основными местами хранения вашего аниме. Вам нужно будет добавить по крайней мере одну папку и затем на вкладке Действия выберать «Выполнить импорт»</value>
-  </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
@@ -471,9 +465,6 @@
   </data>
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
     <value>Порт клиента AniDB</value>
-  </data>
-  <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Проверить подключение</value>
   </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>У вас нет учетной записи AniDB? Нажмите здесь, чтобы зарегистрироваться</value>
@@ -868,9 +859,6 @@
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Удаление всех отсутствующих файлов Добавлено в очередь</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Синхронизация голосов с AniDB и мал</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server предназначен для пользователей с большой коллекцией, которая превышает 200 серии, которые также хотят наибольшую производительность, возможно. Из трех типов доступных баз данных SQL Server считается самым сложным в настройке, но может быть настроена с легкостью, если вы будете следовать руководство, которую мы создали.</value>
   </data>
@@ -939,5 +927,80 @@
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>Нет</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Синхронизация хэшей</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Синхронизация с управлением WebCache хэшей</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Обновление изменилась TvDB ассоциация: {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>Учетных данных AniDB</value>
+  </data>
+  <data name="InitialSetup_Test" xml:space="preserve">
+    <value>Проверить и сохранить Логин</value>
+  </data>
+  <data name="Tooltip_ScanFolder" xml:space="preserve">
+    <value>Сканировать папки</value>
+  </data>
+  <data name="Filter_CreatingTag" xml:space="preserve">
+    <value>Создание метки</value>
+  </data>
+  <data name="Filter_Filter" xml:space="preserve">
+    <value>Фильтр</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Создание фильтра продолжать смотреть</value>
+  </data>
+  <data name="Filter_All" xml:space="preserve">
+    <value>Все</value>
+  </data>
+  <data name="Filter_CreateAll" xml:space="preserve">
+    <value>Создание всех фильтра</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Теги</value>
+  </data>
+  <data name="Filter_Years" xml:space="preserve">
+    <value>Лет</value>
+  </data>
+  <data name="Filter_Recalc" xml:space="preserve">
+    <value>Recalc фильтр</value>
+  </data>
+  <data name="Filter_CreatingYear" xml:space="preserve">
+    <value>Создание год</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Каждая папка импорта является местом, где хранятся ваши файлы аниме, используемый для построения вашей коллекции. Вам нужно по крайней мере одна папка импорта, чтобы начать строительство вашей коллекции.</value>
+  </data>
+  <data name="Tooltip_Watch" xml:space="preserve">
+    <value>Модель памяти JMM сервер будет отслеживать эту папку и добавить любые файлы, которые он обнаруживает в вашей коллекции. Может использоваться в сочетании с Drop источник и/или Drop назначения проверяются. </value>
+  </data>
+  <data name="ImportFolders_LearnMore" xml:space="preserve">
+    <value>Узнайте больше о импорта папки</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Узнайте больше о</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Заполните форму ниже, чтобы добавить папку импорта. Выберите расположение папки и тип импорта и затем нажмите кнопку Сохранить, чтобы добавить в папку импорта.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Местные голоса передать AniDB и мал</value>
+  </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Обратите внимание, что обновление вашего назначения перетаскивания будет влиять только на новой серии добавляются. Серии, которые вы уже импортированы не будут затронуты.</value>
+  </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>Обнаружена новая версия. Резервное копирование базы данных в ходе...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>Версия базы данных больше, чем поддерживаемые версии модели памяти JMM сервером. Вы должны обновить JMMServer.</value>
   </data>
 </root>

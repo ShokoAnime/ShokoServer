@@ -4,6 +4,8 @@ using System.Text.RegularExpressions;
 using JMMServer.Entities;
 using NutzCode.CloudFileSystem;
 using Stream = JMMContracts.PlexAndKodi.Stream;
+using Path = Pri.LongPath.Path;
+using File = Pri.LongPath.File;
 
 namespace JMMServer.FileHelper.Subtitles
 {

@@ -17,7 +17,7 @@ namespace JMMServer.Repositories
         public static void InitCache()
         {
             string t = "VideoLocal_Places";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             VideoLocal_PlaceRepository repo = new VideoLocal_PlaceRepository();
             Cache = new PocoCache<int, VideoLocal_Place>(repo.InternalGetAll(), a => a.VideoLocal_Place_ID);
             VideoLocals = new PocoIndex<int, VideoLocal_Place, int>(Cache, a => a.VideoLocalID);

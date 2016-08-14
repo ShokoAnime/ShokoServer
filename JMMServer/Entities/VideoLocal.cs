@@ -19,6 +19,11 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Stream = JMMContracts.PlexAndKodi.Stream;
 
+using Path = Pri.LongPath.Path;
+using Directory = Pri.LongPath.Directory;
+using File = Pri.LongPath.File;
+using FileInfo = Pri.LongPath.FileInfo;
+
 namespace JMMServer.Entities
 {
     public class VideoLocal : IHash

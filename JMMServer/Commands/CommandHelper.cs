@@ -1,6 +1,7 @@
 ﻿using JMMServer.Commands.AniDB;
 using JMMServer.Commands.Azure;
 using JMMServer.Commands.MAL;
+using JMMServer.Commands.TvDB;
 using JMMServer.Commands.WebCache;
 using JMMServer.Entities;
 
@@ -12,7 +13,8 @@ namespace JMMServer.Commands
         SearchTvDB, SendAnimeAzure, SendAnimeFull, SendAnimeTitle, SendAnonymousData, StartingGeneral, StartingHasher, StartingImages, SyncMyList, SyncTrakt,
         SyncTraktEpisodes, SyncTraktSeries, SyncVotes, TraktAddHistory, UpdateMALWatched, UpdateMyListInfo, UpdateMyListStats, UpdateTrakt, UpdateTraktData, UploadMALWatched,
         VoteAnime, WebCacheDeleteXRefAniDBMAL, WebCacheDeleteXRefAniDBOther, WebCacheDeleteXRefAniDBTrakt, WebCacheDeleteXRefAniDBTvDB, WebCacheDeleteXRefFileEpisode, WebCacheSendXRefAniDBMAL,
-        WebCacheSendXRefAniDBOther, WebCacheSendXRefAniDBTrakt, WebCacheSendXRefAniDBTvDB, WebCacheSendXRefFileEpisode, AniDB_MyListAdd, AniDB_MyListDelete, AniDB_GetTitles, Actions_SyncVotes
+        WebCacheSendXRefAniDBOther, WebCacheSendXRefAniDBTrakt, WebCacheSendXRefAniDBTvDB, WebCacheSendXRefFileEpisode, AniDB_MyListAdd, AniDB_MyListDelete, AniDB_GetTitles, Actions_SyncVotes,
+        LinkAniDBTvDB
     };
 
     public struct QueueStateStruct
@@ -143,6 +145,8 @@ namespace JMMServer.Commands
                     return JMMServer.Properties.Resources.AniDB_GetTitles;
                 case QueueStateEnum.Actions_SyncVotes:
                     return JMMServer.Properties.Resources.Actions_SyncVotes;
+                case QueueStateEnum.LinkAniDBTvDB:
+                    return JMMServer.Properties.Resources.Command_LinkAniDBTvDB;
                 default:
                     throw new System.Exception("Unknown queue state format string"); ;
             }
@@ -515,6 +519,11 @@ namespace JMMServer.Commands
                     CommandRequest_RefreshAnime cr_refreshAnime = new CommandRequest_RefreshAnime();
                     cr_refreshAnime.LoadFromDBCommand(crdb);
                     return cr_refreshAnime;
+
+                case CommandRequestType.LinkAniDBTvDB:
+                    CommandRequest_LinkAniDBTvDB cr_linkAniDBTvDB = new CommandRequest_LinkAniDBTvDB();
+                    cr_linkAniDBTvDB.LoadFromDBCommand(crdb);
+                    return cr_linkAniDBTvDB;
             }
 
             return null;

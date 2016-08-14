@@ -222,9 +222,6 @@
   <data name="Link_MySQL" xml:space="preserve">
     <value>http://jmediamanager.org/setup/mysql/</value>
   </data>
-  <data name="LearnMore" xml:space="preserve">
-    <value>Erfahren Sie mehr darüber</value>
-  </data>
   <data name="SQLServer_Memory" xml:space="preserve">
     <value>SQL Server kann eine ganze Menge an Arbeitsspeicher belegen</value>
   </data>
@@ -400,9 +397,6 @@ Kann man so viele Tropfen Quellen wie gewünscht, jedoch Sie müssen setup ein D
 
 Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Import-Ordner sind die Basis Standorte wo Sie Ihre Anime halten. Sie müssen mindestens einen Ordner hinzufügen und wählen dann 'Import ausführen' auf der Registerkarte "Aktionen"</value>
-  </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
   </data>
@@ -468,9 +462,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="InitalSetup_AniDBPort" xml:space="preserve">
     <value>AniDB Client-Port</value>
-  </data>
-  <data name="InitialSetup_Test" xml:space="preserve">
-    <value>Test-Login</value>
   </data>
   <data name="InitialSetup_Get" xml:space="preserve">
     <value>Sie haben noch kein AniDB-Konto? Klicken Sie hier, um zum einen zu registrieren</value>
@@ -868,9 +859,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Server_RemoveMissingFiles" xml:space="preserve">
     <value>Entfernen alle fehlende Dateien hinzugefügt zur Warteschlange</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Sync stimmen mit AniDB und MAL</value>
-  </data>
   <data name="SQLServer_Info" xml:space="preserve">
     <value>SQL Server richtet sich an Benutzer mit einer großen Sammlung, die mehr als 200 Serie überschreitet, die wollen auch die schnellste Leistung möglich. Aus den drei verfügbaren Datenbanktypen SQL Server gilt als das schwierigste bei der Einrichtung aber kann sein Setup mit Leichtigkeit, wenn Sie der Anleitung folgen, die wir erstellt haben.</value>
   </data>
@@ -939,5 +927,80 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="MessageBox_No" xml:space="preserve">
     <value>Nein</value>
+  </data>
+  <data name="Actions_SyncHashes" xml:space="preserve">
+    <value>Sync-Hashes</value>
+  </data>
+  <data name="Server_SyncHashesRunning" xml:space="preserve">
+    <value>Synchronisieren von Hashes mit den WebCache ausgeführt</value>
+  </data>
+  <data name="Command_LinkAniDBTvDB" xml:space="preserve">
+    <value>Aktualisierung geändert TvDB Verband: {0}</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>In der Nähe</value>
+  </data>
+  <data name="InitialSetup_LoginCredentials" xml:space="preserve">
+    <value>AniDB Login-Daten</value>
+  </data>
+  <data name="InitialSetup_Test" xml:space="preserve">
+    <value>Testen und speichern Login</value>
+  </data>
+  <data name="Tooltip_ScanFolder" xml:space="preserve">
+    <value>Ordner scannen</value>
+  </data>
+  <data name="Filter_CreatingTag" xml:space="preserve">
+    <value>Tag erstellen</value>
+  </data>
+  <data name="Filter_Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="Filter_CreateContinueWatching" xml:space="preserve">
+    <value>Weiter beobachten Filter erstellen</value>
+  </data>
+  <data name="Filter_All" xml:space="preserve">
+    <value>Alle</value>
+  </data>
+  <data name="Filter_CreateAll" xml:space="preserve">
+    <value>Alle Filter erstellen</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Filter_Years" xml:space="preserve">
+    <value>Jahre</value>
+  </data>
+  <data name="Filter_Recalc" xml:space="preserve">
+    <value>Recalc Filter</value>
+  </data>
+  <data name="Filter_CreatingYear" xml:space="preserve">
+    <value>Gründungsjahr</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Jeder Importordner ist ein Ort, wo Ihre Anime-Dateien aufbewahrt werden, der verwendet wird, um Ihre Sammlung zu bauen. Sie benötigen mindestens einen Importordner, mit dem Bau Ihrer Sammlung.</value>
+  </data>
+  <data name="Tooltip_Watch" xml:space="preserve">
+    <value>JMM-Server überwacht diesen Ordner und alle Dateien, die es erkennt zu Ihrer Sammlung hinzufügen. Einsetzbar in Verbindung mit Drop Quelle und/oder Drop-Ziel überprüft. </value>
+  </data>
+  <data name="ImportFolders_LearnMore" xml:space="preserve">
+    <value>Erfahren Sie mehr über Import-Ordner</value>
+  </data>
+  <data name="LearnMore" xml:space="preserve">
+    <value>Erfahren Sie mehr über</value>
+  </data>
+  <data name="ImportFolders_AddImportFolder" xml:space="preserve">
+    <value>Füllen Sie das Formular unten, um eine Importordner hinzufügen. Wählen Sie den Speicherort des Ordners und Importtyp und klicken Sie dann auf speichern, um den Importordner hinzufügen.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Lokale Stimmen auf AniDB und MAL hochladen</value>
+  </data>
+  <data name="ImportFolders_DDNote" xml:space="preserve">
+    <value>Bitte beachten Sie, dass die Aktualisierung Ihrer Drop-Ziel nur Auswirkungen auf neue Serie hinzugefügt wird. Serie, die Sie bereits importiert haben, bleiben unberührt.</value>
+  </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>Neue Version entdeckt. Datenbanksicherung im Gange...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>Die Version der Datenbank ist größer als die unterstützte Version von JMM Server. Sie sollten JMMServer aktualisieren.</value>
   </data>
 </root>

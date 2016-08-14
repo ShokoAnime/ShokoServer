@@ -17,6 +17,12 @@ namespace JMMServer
         FinishedAiring = 2,
     }
 
+    public enum AutostartMethod
+    {
+        Registry = 1,
+        TaskScheduler = 2
+    }
+
     public enum CustomTagCrossRefType
     {
         Anime = 1,
@@ -156,6 +162,7 @@ namespace JMMServer
         Azure_SendUserInfo = 73,
         AniDB_GetEpisodeUDP = 80,
         Refresh_AnimeStats = 90,
+        LinkAniDBTvDB = 91
     }
 
     public enum CommandRequestPriority

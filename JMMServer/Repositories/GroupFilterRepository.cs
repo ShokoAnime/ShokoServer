@@ -26,7 +26,7 @@ namespace JMMServer.Repositories
         public static List<GroupFilter> InitCache()
         {
             string t = "GroupFilter";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
 
             GroupFilterConditionRepository repConds = new GroupFilterConditionRepository();
 
@@ -59,7 +59,7 @@ namespace JMMServer.Repositories
         public static void InitCacheSecondPart(List<GroupFilter> recalc)
         {
             string t = "GroupFilter";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             GroupFilterRepository repo = new GroupFilterRepository();
             foreach (GroupFilter g in Cache.Values.ToList())
             {
@@ -76,8 +76,8 @@ namespace JMMServer.Repositories
             foreach (GroupFilter gf in recalc)
             {
                 cnt++;
-                ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
-                    " Recalc Filter " + gf.GroupFilterName + " - " + cnt + "/" + max);
+                ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
+                    Properties.Resources.Filter_Recalc + " " + gf.GroupFilterName + " - " + cnt + "/" + max);
                 if (gf.GroupsIdsVersion < GroupFilter.GROUPFILTER_VERSION ||
                     gf.GroupConditionsVersion < GroupFilter.GROUPCONDITIONS_VERSION)
                     gf.EvaluateAnimeGroups();
@@ -105,22 +105,21 @@ namespace JMMServer.Repositories
                 //Continue Watching
                 // check if it already exists
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " Creating Continue Watching filter");
+                ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, " " + Properties.Resources.Filter_CreateContinueWatching);
 
                 GroupFilter cwatching =
                     lockedGFs.FirstOrDefault(
                         a =>
-                            a.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching,
-                                StringComparison.InvariantCultureIgnoreCase));
+                            a.FilterType == (int)GroupFilterType.ContinueWatching);
                 if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " Creating Continue Watching filter");
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, " " + Properties.Resources.Filter_CreateContinueWatching);
                     cwatching.FilterType = (int) GroupFilterType.ContinueWatching;
                     repFilters.Save(cwatching);
                 }
                 else if (cwatching == null)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " Creating Continue Watching filter");
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, " " + Properties.Resources.Filter_CreateContinueWatching);
                     GroupFilter gf = new GroupFilter();
                     gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
                     gf.Locked = 1;
@@ -151,10 +150,10 @@ namespace JMMServer.Repositories
                 GroupFilter allfilter = lockedGFs.FirstOrDefault(a => a.FilterType == (int) GroupFilterType.All);
                 if (allfilter == null)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " Creating All filter");
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, " " + Properties.Resources.Filter_CreateAll);
                     GroupFilter gf = new GroupFilter
                     {
-                        GroupFilterName = "All",
+                        GroupFilterName = Properties.Resources.Filter_All,
                         Locked = 1,
                         InvisibleInClients = 0,
                         FilterType = (int) GroupFilterType.All,
@@ -172,7 +171,7 @@ namespace JMMServer.Repositories
                 {
                     tagsdirec = new GroupFilter
                     {
-                        GroupFilterName = "Tags",
+                        GroupFilterName = Properties.Resources.Filter_Tags,
                         InvisibleInClients = 0,
                         FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Tag),
                         BaseCondition = 1,
@@ -188,7 +187,7 @@ namespace JMMServer.Repositories
                 {
                     yearsdirec = new GroupFilter
                     {
-                        GroupFilterName = "Years",
+                        GroupFilterName = Properties.Resources.Filter_Years,
                         InvisibleInClients = 0,
                         FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Year),
                         BaseCondition = 1,
@@ -230,8 +229,8 @@ namespace JMMServer.Repositories
                     {
                         cnt++;
                         if (frominit)
-                            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
-                                " Creating Tag '" + s + "' filter " + cnt + "/" + max);
+                            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
+                                Properties.Resources.Filter_CreatingTag + " '" + s + "'" + Properties.Resources.Filter_Filter + cnt + "/" + max);
                         GroupFilter yf = new GroupFilter
                         {
                             ParentGroupFilterID = tagsdirec.GroupFilterID,
@@ -294,8 +293,8 @@ namespace JMMServer.Repositories
                     {
                         cnt++;
                         if (frominit)
-                            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
-                                " Creating Year '" + s + "' filter " + cnt + "/" + max);
+                            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
+                                Properties.Resources.Filter_CreatingYear + " '" + s + "'  " + Properties.Resources.Filter_Filter + cnt + "/" + max);
                         GroupFilter yf = new GroupFilter
                         {
                             ParentGroupFilterID = yearsdirec.GroupFilterID,

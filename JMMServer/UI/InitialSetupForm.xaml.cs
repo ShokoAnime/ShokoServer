@@ -23,6 +23,7 @@ namespace JMMServer.UI
             txtClientPort.TextChanged += new TextChangedEventHandler(txtClientPort_TextChanged);
 
             btnTestConnection.Click += new RoutedEventHandler(btnTestConnection_Click);
+            btnClose.Click += new RoutedEventHandler(btnClose_Click);
 
             workerTestLogin.DoWork += new DoWorkEventHandler(workerTestLogin_DoWork);
             workerTestLogin.ProgressChanged += new ProgressChangedEventHandler(workerTestLogin_ProgressChanged);
@@ -127,6 +128,12 @@ namespace JMMServer.UI
         void txtUsername_TextChanged(object sender, TextChangedEventArgs e)
         {
             ServerSettings.AniDB_Username = txtUsername.Text.Trim();
+        }
+
+        void btnClose_Click(object sender, RoutedEventArgs e)
+        {
+            this.DialogResult = false;
+            this.Close();
         }
     }
 }

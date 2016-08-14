@@ -27,6 +27,7 @@ using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Directory = System.IO.Directory;
+using JMMServer.Commands.TvDB;
 
 namespace JMMServer
 {
@@ -5169,9 +5170,11 @@ namespace JMMServer
                     return msg;
                 }
 
-                return TvDBHelper.LinkAniDBTvDB(animeID, (enEpisodeType) aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
-                    tvEpNumber,
-                    false);
+                CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(animeID, (enEpisodeType)aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
+                    tvEpNumber,false);
+                cmdRequest.Save();
+
+                return "";
             }
             catch (Exception ex)
             {
@@ -6544,7 +6547,7 @@ namespace JMMServer
                                  "INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
                                  "GROUP BY ae.AnimeSeriesID " +
                                  "ORDER BY MaxDate desc ";
-                    ArrayList results = DatabaseHelper.GetData(sql);
+                    ArrayList results = DatabaseExtensions.Instance.GetData(sql);
 
                     TimeSpan ts2 = DateTime.Now - start;
                     logger.Info("GetEpisodesRecentlyAddedSummary:RawData in {0} ms", ts2.TotalMilliseconds);

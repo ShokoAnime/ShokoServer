@@ -85,8 +85,6 @@ namespace JMMServer.Commands
             AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
             AniDB_AnimeRepository repAniAnime = new AniDB_AnimeRepository();
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            VideoLocalRepository repVidLocals = new VideoLocalRepository();
-            AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
             CrossRef_File_EpisodeRepository repXrefFE = new CrossRef_File_EpisodeRepository();
 
             AniDB_File aniFile = null;

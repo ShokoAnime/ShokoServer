@@ -19,7 +19,7 @@ namespace JMMServer.Repositories
         public static void InitCache()
         {
             string t = "AnimeEpisodes";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             AnimeEpisodeRepository repo = new AnimeEpisodeRepository();
 
             Cache = new PocoCache<int, AnimeEpisode>(repo.InternalGetAll(), a => a.AnimeEpisodeID);
@@ -36,11 +36,11 @@ namespace JMMServer.Repositories
                 cnt++;
                 if (cnt%10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                 " DbRegen - " + max + "/" + max);
         }
 
@@ -182,7 +182,7 @@ namespace JMMServer.Repositories
                     sql += "group by xref.EpisodeID  having count(xref.EpisodeID)>1) " +
                            "g ON g.EpisodeID = x.AniDB_EpisodeID " +
                            " ";
-                    ArrayList results = DatabaseHelper.GetData(sql);
+                    ArrayList results = DatabaseExtensions.Instance.GetData(sql);
 
                     foreach (object[] res in results)
                     {

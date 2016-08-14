@@ -7,6 +7,8 @@ using JMMContracts.PlexAndKodi;
 using MediaInfoLib;
 using NutzCode.CloudFileSystem;
 using Stream = JMMContracts.PlexAndKodi.Stream;
+using File = Pri.LongPath.File;
+
 
 namespace JMMServer.FileHelper.MediaInfo
 {

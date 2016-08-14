@@ -14,7 +14,7 @@ namespace JMMServer.Repositories
         public static void InitCache()
         {
             string t = "Import Folder";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             ImportFolderRepository repo = new ImportFolderRepository();
             Cache = new PocoCache<int, ImportFolder>(repo.InternalGetAll(), a => a.ImportFolderID);
         }
