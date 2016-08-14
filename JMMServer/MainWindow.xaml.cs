@@ -994,6 +994,12 @@ namespace JMMServer
                 Thread.Sleep(1000);
 
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseSetup;
+
+
+                //Moving FileHost up, Mediainfo fill could be trigged from Cache Init
+                StartFileHost();
+
+
                 logger.Info("Setting up database...");
                 if (!DatabaseHelper.InitDB())
                 {
@@ -1025,7 +1031,6 @@ namespace JMMServer
                 StartImageHostMetro();
                 StartPlexHost();
                 StartKodiHost();
-                StartFileHost();
                 StartRESTHost();
                 StartStreamingHost();
 
