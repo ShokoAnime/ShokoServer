@@ -1223,8 +1223,7 @@ namespace JMMServer.API
                 //check if tag was parsed corrently as it make the url
                 if (url != "")
                 {
-                    //return WebUIUpdate(url);
-                    return url;
+                    return WebUIUpdate(url);
                 }
                 else
                 {
