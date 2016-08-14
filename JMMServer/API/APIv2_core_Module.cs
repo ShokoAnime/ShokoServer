@@ -25,6 +25,7 @@ namespace JMMServer.API
         //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
         //routes are named with twitter api style
         //every function with summary is implemented 
+        //private funtions are the ones for api calls directly and internal ones are support function for private ones
         public APIv2_core_Module() : base("/api")
         {
             this.RequiresAuthentication();
