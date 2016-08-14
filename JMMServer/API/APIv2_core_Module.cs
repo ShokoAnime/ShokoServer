@@ -1183,44 +1183,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object WebUIStableUpdate()
         {
-            try
-            {
-                var client = new System.Net.WebClient();
-                client.Headers.Add("Accept: application/vnd.github.v3+json");
-                client.Headers.Add("User-Agent", "jmmserver");
-                var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/latest"));
-
-                dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
-
-                string url = "https://github.com/japanesemediamanager/jmmserver-webui/raw/" + result.tag_name + "/build/latest.zip";
-                dynamic file = null;
-
-                foreach (dynamic asset in result.assets) {
-                    if (String.Equals((string)asset.name, "latest.zip"))
-                    {
-                        file = asset;
-                        break;
-                    }
-                }
-                if (file != null)
-                {
-                    url = (string)file.browser_download_url;
-                }
-
-                //check if tag was parsed corrently as it make the url
-                if (!String.IsNullOrEmpty((string)file.browser_download_url))
-                {
-                    return WebUIUpdate(url);
-                }
-                else
-                {
-                    return HttpStatusCode.NoContent;
-                }                
-            }
-            catch
-            {
-                return HttpStatusCode.InternalServerError;
-            }
+            return WebUIGetUrlAndUpdate(WebUILatestStableVersion().version);
         }
 
         /// <summary>
@@ -1229,21 +1192,39 @@ namespace JMMServer.API
         /// <returns></returns>
         private object WebUIUnstableUpdate()
         {
+            return WebUIGetUrlAndUpdate(WebUILatestUnstableVersion().version);
+        }
+
+        /// <summary>
+        /// Get url for update and start update
+        /// </summary>
+        /// <param name="tag_name"></param>
+        /// <returns></returns>
+        internal object WebUIGetUrlAndUpdate(string tag_name)
+        {
             try
             {
                 var client = new System.Net.WebClient();
                 client.Headers.Add("Accept: application/vnd.github.v3+json");
                 client.Headers.Add("User-Agent", "jmmserver");
-                var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/tags/unstable"));
+                var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/tags/" + tag_name));
 
                 dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
-
-                string url = result.zipball_url;
+                string url = "";
+                foreach (dynamic obj in result.assets)
+                {
+                    if (obj.name == "latest.zip")
+                    {
+                        url = obj.browser_download_url;
+                        break;
+                    }
+                }
 
                 //check if tag was parsed corrently as it make the url
-                if (!String.IsNullOrEmpty((string)result.body))
+                if (url != "")
                 {
-                    return WebUIUpdate(url);
+                    //return WebUIUpdate(url);
+                    return url;
                 }
                 else
                 {
@@ -1330,17 +1311,10 @@ namespace JMMServer.API
         /// Check for newest stable version and return object { version: string, url: string }
         /// </summary>
         /// <returns></returns>
-        private object WebUILatestStableVersion()
+        private ComponentVersion WebUILatestStableVersion()
         {
-            var client = new System.Net.WebClient();
-            client.Headers.Add("Accept: application/vnd.github.v3+json");
-            client.Headers.Add("User-Agent", "jmmserver");
-            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/latest"));
-
-            dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
-
             ComponentVersion version = new ComponentVersion();
-            version.version = result.tag_name;            
+            version = WebUIGetLatestVersion(true);
 
             return version;
         }
@@ -1349,19 +1323,102 @@ namespace JMMServer.API
         /// Check for newest unstable version and return object { version: string, url: string }
         /// </summary>
         /// <returns></returns>
-        private object WebUILatestUnstableVersion()
+        private ComponentVersion WebUILatestUnstableVersion()
         {
+            ComponentVersion version = new ComponentVersion();
+            version = WebUIGetLatestVersion(false);
+
+            return version;
+        }
+
+        /// <summary>
+        /// Find version that match requirements
+        /// </summary>
+        /// <param name="stable">do version have to be stable</param>
+        /// <returns></returns>
+        internal ComponentVersion WebUIGetLatestVersion(bool stable)
+        { 
             var client = new System.Net.WebClient();
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "jmmserver");
-            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/tags/unstable"));
+            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/latest"));
 
             dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
 
             ComponentVersion version = new ComponentVersion();
-            version.version = result.body;
 
+            if (result.prerelease == "False")
+            {
+                //not pre-build
+                if (stable)
+                {
+                    version.version = result.tag_name;
+                }
+                else
+                {
+                    version.version = WebUIGetVersionsTag(false);
+                }
+            }
+            else
+            {
+                //pre-build
+                if (stable)
+                {
+                    version.version = WebUIGetVersionsTag(true);
+                }
+                else
+                {
+                    version.version = result.tag_name;
+                }
+            }
+           
             return version;
+        }
+
+        /// <summary>
+        /// Return tag_name of version that match requirements and is not present in /latest/
+        /// </summary>
+        /// <param name="stable">do version have to be stable</param>
+        /// <returns></returns>
+        internal string WebUIGetVersionsTag(bool stable)
+        {
+            var client = new System.Net.WebClient();
+            client.Headers.Add("Accept: application/vnd.github.v3+json");
+            client.Headers.Add("User-Agent", "jmmserver");
+            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases"));
+
+            dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+
+            foreach (dynamic obj in result)
+            {
+                if (stable)
+                {
+                    if (obj.prerelease == "False")
+                    {
+                        foreach (dynamic file in obj.assets)
+                        {
+                            if ((string)file.name == "latest.zip")
+                            {
+                                return obj.tag_name;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (obj.prerelease == "True")
+                    {
+                        foreach (dynamic file in obj.assets)
+                        {
+                            if ((string)file.name == "latest.zip")
+                            {
+                                return obj.tag_name;
+                            }
+                        }
+                    }
+                }
+            }
+            return "";
         }
 
         #endregion
