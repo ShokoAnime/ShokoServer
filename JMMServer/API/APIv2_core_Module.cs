@@ -1193,16 +1193,29 @@ namespace JMMServer.API
                 dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
 
                 string url = "https://github.com/japanesemediamanager/jmmserver-webui/raw/" + result.tag_name + "/build/latest.zip";
+                dynamic file = null;
+
+                foreach (dynamic asset in result.assets) {
+                    if (String.Equals((string)asset.name, "latest.zip"))
+                    {
+                        file = asset;
+                        break;
+                    }
+                }
+                if (file != null)
+                {
+                    url = (string)file.browser_download_url;
+                }
 
                 //check if tag was parsed corrently as it make the url
-                if (!String.IsNullOrEmpty((string)result.tag_name))
+                if (!String.IsNullOrEmpty((string)file.browser_download_url))
                 {
                     return WebUIUpdate(url);
                 }
                 else
                 {
                     return HttpStatusCode.NoContent;
-                }
+                }                
             }
             catch
             {
