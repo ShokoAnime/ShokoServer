@@ -266,7 +266,14 @@ namespace JMMServer.PlexAndKodi
             if (m == null || string.IsNullOrEmpty(m.Duration))
             {
                 VideoLocalRepository lrepo = new VideoLocalRepository();
-                lrepo.Save(v, true);
+                VideoLocal_Place pl = v.GetBestVideoLocalPlace();
+                if (pl != null)
+                {
+                    if (pl.RefreshMediaInfo())
+                    {
+                        lrepo.Save(v, true);
+                    }
+                }
                 m = v.Media;
             }
             if (m != null)
