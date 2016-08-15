@@ -24,7 +24,7 @@ namespace JMMServer.Databases
         public static SQLServer Instance { get; } = new SQLServer();
 
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 49;
+        public int RequiredVersion { get; } = 51;
 
         public void BackupDatabase(string fullfilename)
         {

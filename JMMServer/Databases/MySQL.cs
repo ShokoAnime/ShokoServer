@@ -16,7 +16,7 @@ namespace JMMServer.Databases
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 53;
+        public int RequiredVersion { get; } = 55;
 
         public static MySQL Instance { get; } = new MySQL();
 

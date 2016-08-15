@@ -22,7 +22,7 @@ namespace JMMServer.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 45;
+        public int RequiredVersion { get; } = 47;
 
 
 
