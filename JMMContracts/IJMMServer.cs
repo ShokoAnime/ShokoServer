@@ -743,5 +743,8 @@ namespace JMMContracts
 
         [OperationContract]
         List<Contract_AniDB_Episode> GetAniDBEpisodesForAnime(int animeID);
+
+        [OperationContract]
+        List<string> DirectoriesFromImportFolderPath(string path);
     }
 }

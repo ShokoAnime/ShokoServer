@@ -411,32 +411,34 @@ namespace JMMServer
                             int shareid = int.Parse(evt.Name);
                             Importer.RunImport_ImportFolderNewFiles(new ImportFolderRepository().GetByID(shareid));
                         }
-                        if (Directory.Exists(evt.FullPath))
+                        else
                         {
-                            // When the path that was created represents a directory we need to manually get the contained files to add.
-                            // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
-                            // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
-                            // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
-                            string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
-
-                            foreach (string file in files)
+                            if (Directory.Exists(evt.FullPath))
                             {
-                                if (FileHashHelper.IsVideo(file))
-                                {
-                                    logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+                                // When the path that was created represents a directory we need to manually get the contained files to add.
+                                // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
+                                // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
+                                // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
+                                string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
 
-                                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
-                                    cmd.Save();
+                                foreach (string file in files)
+                                {
+                                    if (FileHashHelper.IsVideo(file))
+                                    {
+                                        logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+
+                                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
+                                        cmd.Save();
+                                    }
                                 }
                             }
-                        }
-                        else if (FileHashHelper.IsVideo(evt.FullPath))
-                        {
-                            CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
-                            cmd.Save();
+                            else if (FileHashHelper.IsVideo(evt.FullPath))
+                            {
+                                CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                                cmd.Save();
+                            }
                         }
                     }
-
                     queueFileEvents.Remove(evt);
                 }
                 catch (Exception ex)

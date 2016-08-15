@@ -183,7 +183,17 @@ namespace JMMServer
             try
             {
                 ServerInfo.Instance.RefreshFolderProviders();
-                importFldr = (ImportFolder)ifldr.DeepCopy();
+                importFldr = new ImportFolder()
+                {
+                    ImportFolderID = ifldr.ImportFolderID,
+                    ImportFolderType = ifldr.ImportFolderType,
+                    ImportFolderLocation = ifldr.ImportFolderLocation,
+                    ImportFolderName = ifldr.ImportFolderName,
+                    IsDropSource = ifldr.IsDropSource,
+                    IsDropDestination = ifldr.IsDropDestination,
+                    CloudID = ifldr.CloudID,
+                    IsWatched = ifldr.IsWatched
+                };
                 txtImportFolderLocation.Text = importFldr.ImportFolderLocation;
                 chkDropDestination.IsChecked = importFldr.IsDropDestination == 1;
                 chkDropSource.IsChecked = importFldr.IsDropSource == 1;

@@ -263,7 +263,7 @@ namespace JMMServer.PlexAndKodi
             l.Year = v.DateTimeCreated.Year.ToString();
             l.Medias = new List<Media>();
             Media m = v.Media;
-            if (m == null)
+            if (m == null || string.IsNullOrEmpty(m.Duration))
             {
                 VideoLocalRepository lrepo = new VideoLocalRepository();
                 lrepo.Save(v, true);
@@ -350,7 +350,7 @@ namespace JMMServer.PlexAndKodi
                 bool refresh = false;
                 foreach (VideoLocal v in vids)
                 {
-                    if (v.Media == null)
+                    if (v.Media == null || string.IsNullOrEmpty(v.Media.Duration))
                     {
                         VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                         if (pl != null)

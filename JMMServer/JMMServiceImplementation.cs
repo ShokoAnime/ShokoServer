@@ -2233,6 +2233,31 @@ namespace JMMServer
             return eps;
         }
 
+        public List<string> DirectoriesFromImportFolderPath(string path)
+        {
+            List<string> result = new List<string>();
+            try
+            {
+                Tuple<ImportFolder, string> fld = VideoLocal_PlaceRepository.GetFromFullPath(path);
+                if (fld == null)
+                    return result;
+                FileSystemResult<IObject> dirr = fld.Item1.FileSystem?.Resolve(fld.Item2);
+                if (dirr == null || !dirr.IsOk || dirr.Result is IFile)
+                    return result;
+                IDirectory dir=dirr.Result as IDirectory;
+                FileSystemResult fr=dir.Populate();
+                if (!fr.IsOk)
+                    return result;
+                return dir.Directories.Select(a => a.FullName).ToList();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return result;
+            }
+
+        }
+
         public List<Contract_AnimeEpisode> GetEpisodesForSeries(int animeSeriesID, int userID)
         {
             List<Contract_AnimeEpisode> eps = new List<Contract_AnimeEpisode>();

@@ -32,7 +32,7 @@ namespace JMMServer.Repositories
             Names = new PocoIndex<int, VideoLocal, string>(Cache, a => a.FileName);
             Ignored = new PocoIndex<int, VideoLocal, int>(Cache, a => a.IsIgnored);
             int cnt = 0;
-            List<VideoLocal> grps = Cache.Values.Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaBlob==null).ToList();
+            List<VideoLocal> grps = Cache.Values.Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaBlob==null || a.Duration==0).ToList();
             int max = grps.Count;
             foreach (VideoLocal g in grps)
             {
@@ -69,7 +69,7 @@ namespace JMMServer.Repositories
 
         private void UpdateMediaContracts(VideoLocal obj)
         {
-            if (obj.Media == null || obj.MediaVersion < VideoLocal.MEDIA_VERSION)
+            if (obj.Media == null || obj.MediaVersion < VideoLocal.MEDIA_VERSION || obj.Duration==0)
             {
                 VideoLocal_Place place = obj.GetBestVideoLocalPlace();
                 place?.RefreshMediaInfo();
@@ -310,7 +310,7 @@ namespace JMMServer.Repositories
         }
         public List<VideoLocal> GetVideosWithoutVideoInfo()
         {
-            return Cache.Values.Where(a => a.Media == null || a.MediaVersion < VideoLocal.MEDIA_VERSION).ToList();
+            return Cache.Values.Where(a => a.Media == null || a.MediaVersion < VideoLocal.MEDIA_VERSION || a.Duration==0).ToList();
         }
         public List<VideoLocal> GetVideosWithoutEpisode()
         {

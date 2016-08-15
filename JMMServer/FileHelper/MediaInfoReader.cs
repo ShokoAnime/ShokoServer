@@ -27,7 +27,7 @@ namespace JMMServer.FileHelper
 
                 string name = (v.ImportFolder.CloudID == null) ? v.FullServerPath.Replace("/", "\\") : PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(0, v.VideoLocalID.ToString(), "file", false));
                 Media m = MediaConvert.Convert(name,v.GetFile()); //Mediainfo should have libcurl.dll for http
-                if (m != null)
+                if (m != null && !string.IsNullOrEmpty(m.Duration))
                 {
                     VideoLocal info = v.VideoLocal;
                     info.VideoResolution = (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))

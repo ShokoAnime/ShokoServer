@@ -331,7 +331,7 @@ namespace JMMServer.Commands
             }
 
 
-            if ((vlocal.Media == null) || vlocal.MediaVersion < VideoLocal.MEDIA_VERSION)
+            if ((vlocal.Media == null) || vlocal.MediaVersion < VideoLocal.MEDIA_VERSION || vlocal.Duration==0)
             {
                 if (vlocalplace.RefreshMediaInfo()) 
                     repVidLocal.Save(vlocalplace.VideoLocal,true);

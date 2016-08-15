@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
 using JMMContracts;
 using JMMServer.Repositories;
 using NutzCode.CloudFileSystem;
@@ -11,7 +12,7 @@ namespace JMMServer.Entities
 {
     public class ImportFolder : INotifyPropertyChanged
     {
-        public int ImportFolderID { get; private set; }
+        public int ImportFolderID { get; set; }
         public int ImportFolderType { get; set; }
         public string ImportFolderName { get; set; }
         public string ImportFolderLocation { get; set; }
@@ -48,6 +49,18 @@ namespace JMMServer.Entities
                 return _filesystem;
             }
         }
+
+        private BitmapSource _icon;
+        public BitmapSource Icon
+        {
+            get
+            {
+                if (_icon==null)
+                    _icon = CloudID.HasValue ? CloudAccount.Icon : new CloudAccount() {Name = "NA", Provider = "Local File System"}.Icon;
+                return _icon;
+            }
+        }
+
 
         public IDirectory BaseDirectory
         {
@@ -186,6 +199,7 @@ namespace JMMServer.Entities
             contract.IsDropDestination = this.IsDropDestination;
             contract.IsWatched = this.IsWatched;
             contract.CloudID = this.CloudID;
+            contract.Icon = !CloudID.HasValue ? CloudFileSystemPluginFactory.Instance.List.First(a => a.Name == "Local File System").Icon : CloudFileSystemPluginFactory.Instance.List.First(a=>a.Name==CloudAccount.Provider).Icon;
             return contract;
         }
     }

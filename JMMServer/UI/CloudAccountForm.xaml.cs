@@ -141,7 +141,13 @@ namespace JMMServer
 
             SaveAccount = account;
 
-            WorkingAccount = account != null ? (CloudAccount)account.DeepCopy() : new CloudAccount();
+            WorkingAccount = account != null ? new CloudAccount
+            {
+                CloudID=account.CloudID,
+                Name=account.Name,
+                ConnectionString = account.ConnectionString,
+                Provider=account.Provider
+        } : new CloudAccount();
             SetConnectStatus();
             try
             {

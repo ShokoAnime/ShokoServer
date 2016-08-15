@@ -13,7 +13,7 @@ namespace JMMServer.Entities
 {
     public class CloudAccount
     {
-        public int CloudID { get; private set; }
+        public int CloudID { get; set; }
         public string ConnectionString { get; set; }
         public string Provider 
         {

@@ -46,11 +46,10 @@ namespace JMMServer
                 if (plugin?.Icon == null)
                     return null;
 
-                MemoryStream ms = new MemoryStream();
-                plugin.Icon.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                MemoryStream ms = new MemoryStream(plugin.Icon);
+                ms.Seek(0, SeekOrigin.Begin);
                 BitmapImage icon = new BitmapImage();
                 icon.BeginInit();
-                ms.Seek(0, SeekOrigin.Begin);
                 icon.StreamSource = ms;
                 icon.EndInit();
                 return icon;
