@@ -657,7 +657,7 @@ namespace JMMServer.FileHelper.MediaInfo
                         p.Streams = streams;
                     });
                     mediaInfoThread.Start();
-                    bool finished = mediaInfoThread.Join(TimeSpan.FromMinutes(30)); //TODO Move Timeout to settings
+                    bool finished = mediaInfoThread.Join(TimeSpan.FromMinutes(3)); //TODO Move Timeout to settings
                     if (!finished)
                     {
                         try { mediaInfoThread.Abort();} catch {  /*ignored*/ }
