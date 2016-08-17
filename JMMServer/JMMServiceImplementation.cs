@@ -2402,10 +2402,11 @@ namespace JMMServer
             return null;
         }
 
-        public List<Contract_AnimeSeries> GetSeriesByFolderID(int FolderID, int userID)
+        public List<Contract_AnimeSeries> GetSeriesByFolderID(int FolderID, int userID, int max)
         {
             try
             {
+                int limit = 0;
                 List<Contract_AnimeSeries> list = new List<Contract_AnimeSeries>();
 
                 VideoLocalRepository reVideo = new VideoLocalRepository();
@@ -2416,7 +2417,12 @@ namespace JMMServer
                         Contract_AnimeSeries ase = GetSeries(ae.AnimeSeriesID, userID);
                         if (!list.Contains(ase))
                         {
+                            limit++;
                             list.Add(ase);
+                            if (limit >= max)
+                            {
+                                break;
+                            }
                         }
                     }
                 }
