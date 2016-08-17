@@ -13,7 +13,6 @@ using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
 using System.Linq;
 using Newtonsoft.Json;
-using System.Dynamic;
 using System.IO;
 
 namespace JMMServer.API
@@ -34,6 +33,7 @@ namespace JMMServer.API
             Get["/folder/list"] = x => { return GetFolders(); };
             Get["/folder/count"] = x => { return CountFolders(); };
             Post["/folder/add"] = x => { return AddFolder(); };
+            Post["/folder/edit"] = x => { return EditFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
             Get["/folder/import"] = _ => { return RunImport(); };
             Get["/cloud/list"] = x => { return null; };
@@ -193,6 +193,52 @@ namespace JMMServer.API
                         }
 
                         return HttpStatusCode.OK;
+                    }
+                }
+                catch
+                {
+                    return HttpStatusCode.InternalServerError;
+                }
+            }
+            else
+            {
+                return HttpStatusCode.BadRequest;
+            }
+        }
+
+        /// <summary>
+        /// Edit folder giving fulll ImportFolder object with ID
+        /// </summary>
+        /// <returns></returns>
+        private object EditFolder()
+        {
+            ImportFolder folder = this.Bind();
+            if (folder.ImportFolderLocation != "")
+            {
+                try
+                {
+                    if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
+                    {
+                        return HttpStatusCode.Conflict;
+                    }
+                    else
+                    {
+                        if (folder.ImportFolderID != 0 & folder.ToContract().ImportFolderID.HasValue)
+                        {
+                            Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder.ToContract());
+                            if (!string.IsNullOrEmpty(response.ErrorMessage))
+                            {
+                                return HttpStatusCode.InternalServerError;
+                            }
+                            else
+                            {
+                                return HttpStatusCode.OK;
+                            }
+                        }
+                        else
+                        {
+                            return HttpStatusCode.Conflict;
+                        }
                     }
                 }
                 catch
