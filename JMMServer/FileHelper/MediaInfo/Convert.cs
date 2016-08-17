@@ -721,7 +721,7 @@ namespace JMMServer.FileHelper.MediaInfo
             }
             finally
             {
-                minstance.Close();
+                minstance?.Close();
                 GC.Collect();
             }
         }

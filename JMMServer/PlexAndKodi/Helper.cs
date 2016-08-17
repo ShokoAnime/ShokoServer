@@ -29,8 +29,6 @@ namespace JMMServer.PlexAndKodi
             return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/" + name, BaseObject.IsExternalRequest);
         }
 
-
-
         public static string ConstructFileStream(int userid, string file, bool autowatch)
         {
             return ServerUrl(int.Parse(ServerSettings.JMMServerFilePort), "file/" + userid + "/" + (autowatch ? "1" : "0") +"/"+Base64EncodeUrl(file), BaseObject.IsExternalRequest);
@@ -263,16 +261,14 @@ namespace JMMServer.PlexAndKodi
             l.Year = v.DateTimeCreated.Year.ToString();
             l.Medias = new List<Media>();
             Media m = v.Media;
-            if (m == null || string.IsNullOrEmpty(m.Duration))
+            if (string.IsNullOrEmpty(m?.Duration))
             {
                 VideoLocalRepository lrepo = new VideoLocalRepository();
                 VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                 if (pl != null)
                 {
                     if (pl.RefreshMediaInfo())
-                    {
                         lrepo.Save(v, true);
-                    }
                 }
                 m = v.Media;
             }
@@ -298,11 +294,14 @@ namespace JMMServer.PlexAndKodi
             {
                 foreach (VideoLocal vl in e.Key.GetVideoLocals())
                 {
-                    VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
-                    if (pl != null)
+                    if (string.IsNullOrEmpty(vl.Media?.Duration))
                     {
-                        if (pl.RefreshMediaInfo())
-                            lrepo.Save(vl,true);
+                        VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                        if (pl != null)
+                        {
+                            if (pl.RefreshMediaInfo())
+                                lrepo.Save(vl, true);
+                        }
                     }
                 }
                 erepo.Save(e.Key);
@@ -354,19 +353,15 @@ namespace JMMServer.PlexAndKodi
                 l.OriginallyAvailableAt = vids[0].DateTimeCreated.ToPlexDate();
                 l.Year = vids[0].DateTimeCreated.Year.ToString();
                 l.Medias = new List<Media>();
-                bool refresh = false;
                 foreach (VideoLocal v in vids)
                 {
-                    if (v.Media == null || string.IsNullOrEmpty(v.Media.Duration))
+                    if (string.IsNullOrEmpty(v.Media?.Duration))
                     {
                         VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                         if (pl != null)
                         {
                             if (pl.RefreshMediaInfo())
-                            {
                                 repo.Save(v,true);
-                                refresh = true;
-                            }
                         }
                     }
                     if (v.Media != null)
