@@ -19,6 +19,7 @@ namespace JMMServer.FileHelper
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+
         public static bool ReadMediaInfo(VideoLocal_Place v)
         {
             try
@@ -26,7 +27,10 @@ namespace JMMServer.FileHelper
                 logger.Trace($"Getting media info for: {v.FullServerPath}");
 
                 string name = (v.ImportFolder.CloudID == null) ? v.FullServerPath.Replace("/", "\\") : PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(0, v.VideoLocalID.ToString(), "file", false));
+                
                 Media m = MediaConvert.Convert(name,v.GetFile()); //Mediainfo should have libcurl.dll for http
+
+
                 if (m != null && !string.IsNullOrEmpty(m.Duration))
                 {
                     VideoLocal info = v.VideoLocal;

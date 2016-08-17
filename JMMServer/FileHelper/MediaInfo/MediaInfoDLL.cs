@@ -16,7 +16,9 @@
 
 using System;
 using System.IO;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Security;
 
 #pragma warning disable 1591 // Disable XML documentation warnings
 
@@ -70,7 +72,7 @@ namespace MediaInfoLib
         Finalized = 0x08,
     }
 
-    public class MediaInfo
+    public class MediaInfo : IDisposable
     {
         //Import of DLL functions. DO NOT USE until you know what you do (MediaInfo DLL do NOT use CoTaskMemAlloc to allocate memory)
         [DllImport("MediaInfo.dll")]
@@ -80,6 +82,8 @@ namespace MediaInfoLib
         private static extern void MediaInfo_Delete(IntPtr Handle);
 
         [DllImport("MediaInfo.dll")]
+        [HandleProcessCorruptedStateExceptions]
+        [SecurityCritical]
         private static extern IntPtr MediaInfo_Open(IntPtr Handle, [MarshalAs(UnmanagedType.LPWStr)] string FileName);
 
         [DllImport("MediaInfo.dll")]
@@ -196,7 +200,7 @@ namespace MediaInfoLib
             MustUseAnsi = Environment.OSVersion.ToString().IndexOf("Windows") == -1;
         }
 
-        ~MediaInfo()
+        public void Dispose()
         {
             if (Handle != IntPtr.Zero)
                 MediaInfo_Delete(Handle);
@@ -208,12 +212,12 @@ namespace MediaInfoLib
             if (curlHandle != IntPtr.Zero)
             {
                 FreeLibrary(curlHandle);
-                curlHandle=IntPtr.Zero;
+                curlHandle = IntPtr.Zero;
             }
         }
-
         #endregion
-
+        [HandleProcessCorruptedStateExceptions]
+        [SecurityCritical]
         public int Open(String FileName)
         {
             if (Handle == (IntPtr)0)
@@ -221,12 +225,20 @@ namespace MediaInfoLib
             if (MustUseAnsi)
             {
                 IntPtr FileName_Ptr = Marshal.StringToHGlobalAnsi(FileName);
-                int ToReturn = (int)MediaInfoA_Open(Handle, FileName_Ptr);
+                int ToReturn = (int) MediaInfoA_Open(Handle, FileName_Ptr);
                 Marshal.FreeHGlobal(FileName_Ptr);
                 return ToReturn;
             }
-            else
+            try
+            {
                 return (int)MediaInfo_Open(Handle, FileName);
+
+            }
+            catch (Exception)
+            {
+                return 0;
+                //Ignored
+            }
         }
 
         public int Open_Buffer_Init(Int64 File_Size, Int64 File_Offset)

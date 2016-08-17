@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace JMMServer
 {
@@ -8,8 +9,6 @@ namespace JMMServer
         private Stream _stream;
         private long _pos;
         private long _original;
-
-
         public long CrossPosition { get; set; }
 
         public delegate void CrossPositionHandler(long position);
@@ -40,47 +39,37 @@ namespace JMMServer
         }
 
 
-        public override bool CanRead
-        {
-            get { return true; }
-        }
+        public override bool CanRead => true;
 
-        public override bool CanSeek
-        {
-            get { return false; }
-        }
+        public override bool CanSeek => false;
 
-        public override bool CanWrite
-        {
-            get { return false; }
-        }
+        public override bool CanWrite => false;
 
         public override void Flush()
         {
-            throw new System.NotSupportedException();
+            throw new NotSupportedException();
         }
 
-        public override long Length
-        {
-            get { return _original; }
-        }
+        public override long Length => _original;
 
         public override long Position
         {
             get { return _pos; }
-            set { throw new System.NotSupportedException(); }
+            set { throw new NotSupportedException(); }
         }
 
         public override int Read(byte[] buffer, int offset, int count)
-        {
+        {            
             if (count > _bytesLeft)
             {
                 count = (int) _bytesLeft;
             }
+           
             long oldpos = _stream.Position;
             int read = _stream.Read(buffer, offset, count);
             _pos += read;
             _bytesLeft -= read;
+
             if (CrossPositionCrossed != null)
             {
                 if ((oldpos <= CrossPosition) && (_stream.Position >= CrossPosition))
@@ -89,21 +78,22 @@ namespace JMMServer
                 }
             }
             return read;
+          
         }
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new System.NotSupportedException();
+            throw new NotSupportedException();
         }
 
         public override void SetLength(long value)
         {
-            throw new System.NotSupportedException();
+            throw new NotSupportedException();
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new System.NotSupportedException();
+            throw new NotSupportedException();
         }
     }
 }

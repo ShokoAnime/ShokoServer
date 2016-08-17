@@ -195,13 +195,13 @@ namespace JMMServer.FileServer
                 string user = dta[1];
                 string aw = dta[2];
                 string arg = dta[3];
-                string fullname=string.Empty;
+                string fullname = string.Empty;
                 int userid = 0;
                 int autowatch = 0;
                 int.TryParse(user, out userid);
                 int.TryParse(aw, out autowatch);
                 VideoLocal loc = null;
-                IFile file=null;
+                IFile file = null;
                 if (cmd == "videolocal")
                 {
                     int sid = 0;
@@ -223,7 +223,7 @@ namespace JMMServer.FileServer
                     file = loc.GetBestFileLink();
                     if (file == null)
                     {
-                        obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                        obj.Response.StatusCode = (int) HttpStatusCode.NotFound;
                         obj.Response.StatusDescription = "Stream Id not found.";
                         return;
                     }
@@ -235,7 +235,7 @@ namespace JMMServer.FileServer
                     file = VideoLocal.ResolveFile(fullname);
                     if (file == null)
                     {
-                        obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                        obj.Response.StatusCode = (int) HttpStatusCode.NotFound;
                         obj.Response.StatusDescription = "File not found.";
                         return;
                     }
@@ -272,8 +272,9 @@ namespace JMMServer.FileServer
                     FileSystemResult<Stream> fr = file.OpenRead();
                     if (fr == null || !fr.IsOk)
                     {
-                        obj.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                        obj.Response.StatusDescription = "Unable to open '" + fullname + "' "+fr?.Error ?? string.Empty;
+                        obj.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
+                        obj.Response.StatusDescription = "Unable to open '" + fullname + "' " + fr?.Error ??
+                                                         string.Empty;
                         return;
                     }
                     org = fr.Result;
@@ -327,7 +328,7 @@ namespace JMMServer.FileServer
                         obj.Response.ContentLength64 = totalsize;
                         obj.Response.StatusCode = (int) HttpStatusCode.OK;
                     }
-                    if ((userid != 0) && (loc != null) && autowatch==1)
+                    if ((userid != 0) && (loc != null) && autowatch == 1)
                     {
                         outstream.CrossPosition = (long) ((double) totalsize*WatchedThreshold);
                         outstream.CrossPositionCrossed +=
@@ -352,23 +353,41 @@ namespace JMMServer.FileServer
                     obj.Response.OutputStream.Close();
                 }
             }
-            catch (HttpListenerException e)
+            catch (HttpListenerException)
             {
+                //ignored
             }
             catch (Exception e)
             {
-                logger.Error(e.ToString);
+                try
+                {
+                    obj.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    obj.Response.StatusDescription = "Internal Server Error";
+                }
+                catch
+                {
+                    // ignored
+                }
+                logger.Warn(e.ToString);
             }
             finally
             {
-                org?.Dispose();
+                try
+                {
+                    org?.Dispose();
+                }
+                catch
+                {
+                    // ignored
+                }
                 try
                 {
                     obj?.Response.OutputStream?.Close();
-
+                    obj?.Response.Close();
                 }
-                catch (Exception)
+                catch
                 {
+                    // ignored
                 }
             }
         }
