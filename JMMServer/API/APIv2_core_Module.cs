@@ -1209,7 +1209,7 @@ namespace JMMServer.API
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             JMMServiceImplementation _impl = new JMMServiceImplementation();
-            return _impl.GetSeriesByFolderID(folder_id, user.JMMUserID, max);
+            return _impl.GetSeriesFileStatsByFolderID(folder_id, user.JMMUserID, max);
         }
 
         /// <summary>
