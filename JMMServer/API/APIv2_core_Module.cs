@@ -143,6 +143,10 @@ namespace JMMServer.API
             Get["/webui/update/unstable"] = _ => { return WebUIUnstableUpdate(); };
             Get["/webui/latest/unstable"] = _ => { return WebUILatestUnstableVersion(); };
 
+            // 16. OS-based operations
+            Get["/os/folder/base"] = _ => { return GetOSBaseFolder(); };
+            Post["/os/folder"] = x => { return GetOSFolder(x.folder); };
+            Get["/os/drives"] = _ => { return GetOSDrives(); };
         }
 
         #region 1.Folders
@@ -1481,6 +1485,82 @@ namespace JMMServer.API
                 }
             }
             return "";
+        }
+
+        #endregion
+
+        #region 16.OS-based operations
+
+        /// <summary>
+        /// Return OSFolder object that is a folder from which jmmserver is running
+        /// </summary>
+        /// <returns></returns>
+        private object GetOSBaseFolder()
+        {
+            OSFolder dir = new OSFolder();
+            dir.full_path = Environment.CurrentDirectory;
+            System.IO.DirectoryInfo dir_info = new DirectoryInfo(dir.full_path);
+            dir.dir = dir_info.Name;
+            dir.subdir = new List<OSFolder>();
+
+            foreach (DirectoryInfo info in dir_info.GetDirectories())
+            {
+                OSFolder subdir = new OSFolder();
+                subdir.full_path = info.FullName;
+                subdir.dir = info.Name;
+                dir.subdir.Add(subdir);
+            }
+            return dir;
+        }
+
+        /// <summary>
+        /// Return OSFolder object of directory that was given via 
+        /// </summary>
+        /// <param name="folder"></param>
+        /// <returns></returns>
+        private object GetOSFolder(string folder)
+        {
+            OSFolder dir = this.Bind();
+            if (!String.IsNullOrEmpty(dir.full_path))
+            {
+                System.IO.DirectoryInfo dir_info = new DirectoryInfo(dir.full_path);
+                dir.dir = dir_info.Name;
+                dir.subdir = new List<OSFolder>();
+
+                foreach (DirectoryInfo info in dir_info.GetDirectories())
+                {
+                    OSFolder subdir = new OSFolder();
+                    subdir.full_path = info.FullName;
+                    subdir.dir = info.Name;
+                    dir.subdir.Add(subdir);
+                }
+                return dir;
+            }
+            else
+            {
+                return HttpStatusCode.BadRequest;
+            }
+        }
+
+        /// <summary>
+        /// Return OSFolder with subdirs as every driver on local system
+        /// </summary>
+        /// <returns></returns>
+        private object GetOSDrives()
+        {
+            string[] drives = System.IO.Directory.GetLogicalDrives();
+            OSFolder dir = new OSFolder();
+            dir.dir = "/";
+            dir.full_path = "/";
+            foreach (string str in drives)
+            {
+                OSFolder driver = new OSFolder();
+                driver.dir = str;
+                driver.full_path = str;
+                dir.subdir.Add(driver);
+            }
+
+            return dir;
         }
 
         #endregion
