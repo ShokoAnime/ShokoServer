@@ -418,6 +418,7 @@ namespace JMMServer
             }
             return gfs;
         }
+
         public Contract_GroupFilter GetGroupFilter(int gf)
         {
             List<Contract_GroupFilter> gfs = new List<Contract_GroupFilter>();
@@ -432,6 +433,7 @@ namespace JMMServer
             }
             return null;
         }
+
         public Contract_GroupFilter EvaluateGroupFilter(Contract_GroupFilter contract)
         {
             try
@@ -1064,8 +1066,6 @@ namespace JMMServer
             }
         }
 
-
-
         public Contract_AnimeSeries_SaveResponse SaveSeries(Contract_AnimeSeries_Save contract, int userID)
         {
             Contract_AnimeSeries_SaveResponse contractout = new Contract_AnimeSeries_SaveResponse();
@@ -1175,7 +1175,6 @@ namespace JMMServer
                 return null;
             }
         }
-
 
         public string RemoveAssociationOnFile(int videoLocalID, int aniDBEpisodeID)
         {
@@ -2395,6 +2394,34 @@ namespace JMMServer
             try
             {
                 return repAnimeSer.GetByID(animeSeriesID)?.GetUserContract(userID);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return null;
+        }
+
+        public List<Contract_AnimeSeries> GetSeriesByFolderID(int FolderID, int userID)
+        {
+            try
+            {
+                List<Contract_AnimeSeries> list = new List<Contract_AnimeSeries>();
+
+                VideoLocalRepository reVideo = new VideoLocalRepository();
+                foreach (VideoLocal vi in reVideo.GetByImportFolder(FolderID))
+                {
+                    foreach (Contract_AnimeEpisode ae in GetEpisodesForFile(vi.VideoLocalID, userID))
+                    {
+                        Contract_AnimeSeries ase = GetSeries(ae.AnimeSeriesID, userID);
+                        if (!list.Contains(ase))
+                        {
+                            list.Add(ase);
+                        }
+                    }
+                }
+
+                return list;
             }
             catch (Exception ex)
             {

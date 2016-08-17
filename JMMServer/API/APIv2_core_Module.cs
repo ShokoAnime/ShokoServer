@@ -132,6 +132,8 @@ namespace JMMServer.API
             Get["/serie/{id}"] = x => { return GetSerieById(x.id); ; };
             Get["/serie/recent"] = _ => { return GetRecentSeries(10); };
             Get["/serie/recent/{max}"] = x => { return GetRecentSeries((int)x.max); };
+            Get["/serie/search/{query}"] = x => { return null; };
+            Get["/serie/byfolder/{id}"] = x => { return GetSerieByFolderId(x.id); };
 
             // 15. WebUI
             Get["/dashboard"] = _ => { return GetDashboard(); };
@@ -1144,6 +1146,19 @@ namespace JMMServer.API
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             return _impl.GetSeries(series_id, user.JMMUserID);
+        }
+
+        /// <summary>
+        /// return information about serie with given Folder ID
+        /// </summary>
+        /// <param name="folder_id"></param>
+        /// <returns></returns>
+        private object GetSerieByFolderId(int folder_id)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.GetSeriesByFolderID(folder_id, user.JMMUserID);
         }
 
         /// <summary>
