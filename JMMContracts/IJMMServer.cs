@@ -746,5 +746,8 @@ namespace JMMContracts
 
         [OperationContract]
         List<string> DirectoriesFromImportFolderPath(string path);
+
+        [OperationContract]
+        List<Contract_CloudProvider> GetCloudProviders();
     }
 }

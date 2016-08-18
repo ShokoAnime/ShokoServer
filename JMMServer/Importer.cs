@@ -992,6 +992,41 @@ namespace JMMServer
             return vidsToUpdate.Count;
         }
 
+        public static void CheckForDayFilters()
+        {
+            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
+            ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.DayFiltersUpdate);
+            if (sched != null)
+            {
+                if (DateTime.Now.Day == sched.LastUpdate.Day)
+                    return;
+            }
+            GroupFilterRepository repos=new GroupFilterRepository();
+            //Get GroupFiters that change daily
+
+            HashSet<GroupFilterConditionType> conditions = new HashSet<GroupFilterConditionType>
+            {
+                GroupFilterConditionType.AirDate,
+                GroupFilterConditionType.LatestEpisodeAirDate,
+                GroupFilterConditionType.SeriesCreatedDate,
+                GroupFilterConditionType.EpisodeWatchedDate,
+                GroupFilterConditionType.EpisodeAddedDate
+            };
+            List<GroupFilter> evalfilters=repos.GetWithConditionsTypes(conditions).Where(
+                a=>a.Conditions.Any(b=>conditions.Contains(b.ConditionTypeEnum) && b.ConditionOperatorEnum==GroupFilterOperator.LastXDays)).ToList();
+            foreach(GroupFilter g in evalfilters)
+                g.EvaluateAnimeGroups();
+            if (sched == null)
+            {
+                sched = new ScheduledUpdate();
+                sched.UpdateType = (int)ScheduledUpdateType.DayFiltersUpdate;
+            }
+
+            sched.LastUpdate = DateTime.Now;
+            repSched.Save(sched);
+        }
+
+
         public static void CheckForTvDBUpdates(bool forceRefresh)
         {
             if (ServerSettings.TvDB_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using JMMContracts;
 using JMMServer.Repositories;
 using NutzCode.CloudFileSystem;
 
@@ -68,7 +69,15 @@ namespace JMMServer.Entities
 
         }
 
-
+        public Contract_CloudProvider ToContactCloudProvider()
+        {
+            return new Contract_CloudProvider
+            {
+                Provider = Provider,
+                Name = Name,
+                Icon = _plugin.Icon
+            };
+        }
         public IFileSystem Connect(Window owner)
         {
             if (string.IsNullOrEmpty(Provider))

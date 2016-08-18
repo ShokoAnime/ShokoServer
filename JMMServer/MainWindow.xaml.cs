@@ -2157,6 +2157,7 @@ namespace JMMServer
 
         static void autoUpdateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
+            Importer.CheckForDayFilters();
             Importer.CheckForCalendarUpdate(false);
             Importer.CheckForAnimeUpdate(false);
             Importer.CheckForTvDBUpdates(false);

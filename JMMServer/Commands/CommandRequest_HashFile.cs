@@ -238,16 +238,44 @@ namespace JMMServer.Commands
                 if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
                 {
                     DateTime start = DateTime.Now;
-                    logger.Trace("Calculating hashes for: {0}", FileName);
+                    logger.Trace("Calculating ED2K hashes for: {0}", FileName);
                     // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                    hashes = FileHashHelper.GetHashInfo(FileName.Replace("/","\\"), true, MainWindow.OnHashProgress, true, true, true);
+                    hashes = FileHashHelper.GetHashInfo(FileName.Replace("/","\\"), true, MainWindow.OnHashProgress, false, false, false);
                     TimeSpan ts = DateTime.Now - start;
                     logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName, Utils.FormatByteSize(vlocal.FileSize));
-                    vlocal.Hash = hashes.ed2k;
-                    vlocal.CRC32 = hashes.crc32;
-                    vlocal.MD5 = hashes.md5;
-                    vlocal.SHA1 = hashes.sha1;
+                    vlocal.Hash = hashes.ed2k?.ToUpperInvariant();
+                    vlocal.CRC32 = hashes.crc32?.ToUpperInvariant();
+                    vlocal.MD5 = hashes.md5?.ToUpperInvariant();
+                    vlocal.SHA1 = hashes.sha1?.ToUpperInvariant();
                     vlocal.HashSource = (int) HashSource.DirectHash;
+                    FillVideoHashes(vlocal);
+                    bool needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
+                    bool needmd5 = string.IsNullOrEmpty(vlocal.MD5);
+                    bool needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
+                    if (needcrc32 || needmd5 || needsha1)
+                    {
+                        List<string> tp = new List<string>();
+                        if (needsha1)
+                            tp.Add("SHA1");
+                        if (needmd5)
+                            tp.Add("MD5");
+                        if (needcrc32)
+                            tp.Add("CRC32");
+                        logger.Trace("Calculating missing {1} hashes for: {0}", FileName, string.Join(",", tp));
+                        // update the VideoLocal record with the Hash, since cloud support we calculate everything
+                        hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, MainWindow.OnHashProgress,
+                            needcrc32, needmd5, needsha1);
+                        ts = DateTime.Now - start;
+                        logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"),
+                            FileName, Utils.FormatByteSize(vlocal.FileSize));
+                        if (needsha1)
+                            vlocal.SHA1 = hashes.sha1?.ToUpperInvariant();
+                        if (needmd5)
+                            vlocal.MD5 = hashes.md5?.ToUpperInvariant();
+                        if (needcrc32)
+                            vlocal.CRC32 = hashes.crc32?.ToUpperInvariant();
+                        AzureWebAPI.Send_FileHash(new List<VideoLocal> {vlocal});
+                    }
                 }
 
                 // We should have a hash by now
@@ -349,6 +377,34 @@ namespace JMMServer.Commands
             {
                 VideoLocalRepository vlrepo = new VideoLocalRepository();
                 AniDB_FileRepository frepo = new AniDB_FileRepository();
+                if (!string.IsNullOrEmpty(v.ED2KHash))
+                {
+                    VideoLocal n = vlrepo.GetByHash(v.ED2KHash);
+                    if (n != null)
+                    {
+                        v.CRC32 = n.CRC32.ToUpperInvariant();
+                        v.MD5 = n.MD5.ToUpperInvariant();
+                        v.SHA1 = n.SHA1.ToUpperInvariant();
+                        return;
+                    }
+                    AniDB_File f = frepo.GetByHash(session, v.ED2KHash);
+                    if (f != null)
+                    {
+                        v.CRC32 = f.CRC.ToUpperInvariant();
+                        v.SHA1 = f.SHA1.ToUpperInvariant();
+                        v.MD5 = f.MD5.ToUpperInvariant();
+                        return;
+                    }
+                    List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
+                    ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.SHA1)).ToList();
+                    if (ls.Count > 0)
+                    {
+                        v.SHA1 = ls[0].SHA1.ToUpperInvariant();
+                        v.CRC32 = ls[0].CRC32.ToUpperInvariant();
+                        v.MD5 = ls[0].MD5.ToUpperInvariant();
+                        return;
+                    }
+                }
                 if (!string.IsNullOrEmpty(v.SHA1))
                 {
                     VideoLocal n = vlrepo.GetBySHA1(v.SHA1);
@@ -368,7 +424,7 @@ namespace JMMServer.Commands
                         return;
                     }
                     List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.SHA1, v.SHA1);
-                    ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5)).ToList();
+                    ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.ED2K)).ToList();
                     if (ls.Count > 0)
                     {
                         v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
@@ -398,7 +454,7 @@ namespace JMMServer.Commands
                     List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.MD5, v.MD5);
                     if (ls != null)
                     {
-                        ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.SHA1)).ToList();
+                        ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.SHA1) && !string.IsNullOrEmpty(a.ED2K)).ToList();
                         if (ls.Count > 0)
                         {
                             v.ED2KHash = ls[0].ED2K.ToUpperInvariant();

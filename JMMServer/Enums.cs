@@ -247,7 +247,8 @@ namespace JMMServer
         AniDBFileUpdates = 10,
         LogClean = 11,
         AzureUserInfo = 12,
-        TraktToken = 13
+        TraktToken = 13,
+        DayFiltersUpdate = 14
     }
 
     public enum JMMImageType

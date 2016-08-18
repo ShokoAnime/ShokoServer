@@ -2258,6 +2258,21 @@ namespace JMMServer
 
         }
 
+        public List<Contract_CloudProvider> GetCloudProviders()
+        {
+            List<Contract_CloudProvider> ls = new List<Contract_CloudProvider>();
+            try
+            {
+                ls.Add(new CloudAccount() {Name = "NA", Provider = "Local File System"}.ToContactCloudProvider());
+                new CloudAccountRepository().GetAll().ForEach(a => ls.Add(a.ToContactCloudProvider()));
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return ls;
+        }
+
         public List<Contract_AnimeEpisode> GetEpisodesForSeries(int animeSeriesID, int userID)
         {
             List<Contract_AnimeEpisode> eps = new List<Contract_AnimeEpisode>();
