@@ -1165,7 +1165,8 @@ namespace JMMServer.Entities
                     }
                     DateTime? airdate = ep.AniDB_Episode.AirDateAsDate;
 
-                    if (airdate.HasValue)
+	                // Only count episodes that have already aired
+                    if (airdate.HasValue && !(airdate > DateTime.Now))
                     {
                         if (lastEpAirDate < airdate.Value)
                             lastEpAirDate = airdate.Value;
