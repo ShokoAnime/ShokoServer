@@ -178,7 +178,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object AddFolder()
         {
-            ImportFolder folder = this.Bind();
+            Contract_ImportFolder folder = this.Bind();
             if (folder.ImportFolderLocation != "")
             {
                 try
@@ -189,7 +189,7 @@ namespace JMMServer.API
                     }
                     else
                     {
-                        Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder.ToContract());
+                        Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder);
 
                         if (!string.IsNullOrEmpty(response.ErrorMessage))
                         {
@@ -1552,6 +1552,7 @@ namespace JMMServer.API
             OSFolder dir = new OSFolder();
             dir.dir = "/";
             dir.full_path = "/";
+            dir.subdir = new List<OSFolder>();
             foreach (string str in drives)
             {
                 OSFolder driver = new OSFolder();
