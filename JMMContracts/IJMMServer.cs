@@ -745,9 +745,9 @@ namespace JMMContracts
         List<Contract_AniDB_Episode> GetAniDBEpisodesForAnime(int animeID);
 
         [OperationContract]
-        List<string> DirectoriesFromImportFolderPath(string path);
+        List<string> DirectoriesFromImportFolderPath(int cloudaccountid, string path);
 
         [OperationContract]
-        List<Contract_CloudProvider> GetCloudProviders();
+        List<Contract_CloudAccount> GetCloudProviders();
     }
 }

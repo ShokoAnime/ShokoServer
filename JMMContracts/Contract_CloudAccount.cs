@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace JMMContracts
 {
-    public class Contract_CloudProvider
+    public class Contract_CloudAccount
     {
+        public int? CloudID { get; set; }
         public string Provider { get; set; }
         public string Name { get; set; }
         public byte[] Icon { get; set; }

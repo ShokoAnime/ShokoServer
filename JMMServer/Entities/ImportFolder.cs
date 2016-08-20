@@ -199,7 +199,6 @@ namespace JMMServer.Entities
             contract.IsDropDestination = this.IsDropDestination;
             contract.IsWatched = this.IsWatched;
             contract.CloudID = this.CloudID;
-            contract.Icon = !CloudID.HasValue ? CloudFileSystemPluginFactory.Instance.List.First(a => a.Name == "Local File System").Icon : CloudFileSystemPluginFactory.Instance.List.First(a=>a.Name==CloudAccount.Provider).Icon;
             return contract;
         }
     }

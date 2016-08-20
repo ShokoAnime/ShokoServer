@@ -48,18 +48,38 @@ namespace JMMServer
             Close();
         }
 
-        public void Init(ImportFolder acc)
+        public void Init(ImportFolder acc, string initialpath)
         {
             _account = acc.CloudAccount;
-            PopulateMainDir();
+            PopulateMainDir(initialpath);
         }
 
-        public void PopulateMainDir()
+        private void RecursiveAddFromDirectory(ItemCollection coll, IDirectory d, string[] parts, int pos)
+        {
+            foreach (IDirectory n in d.Directories.OrderBy(a => a.Name))
+            {
+                TreeViewItem item = GenerateFromDirectory(d);
+                if (parts.Length > pos)
+                {
+                    if (n.Name.Equals(parts[0],StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        RecursiveAddFromDirectory(item.Items,n,parts,pos+1);
+                        item.IsSelected = true;
+                    }
+                }
+                coll.Add(item);
+            }
+        }
+
+        public void PopulateMainDir(string initialpath)
         {
             this.Cursor = Cursors.Wait;
             _account.FileSystem.Populate();
-            foreach (IDirectory d in _account.FileSystem.Directories.OrderBy(a=>a.Name))
-                TrView.Items.Add(GenerateFromDirectory(d));
+            initialpath = initialpath.Replace("/", "\\");
+            while (initialpath.StartsWith("\\"))
+                initialpath = initialpath.Substring(1);
+            string[] pars = initialpath.Split(new char[] {'\\'}, StringSplitOptions.RemoveEmptyEntries);
+            RecursiveAddFromDirectory(TrView.Items,_account.FileSystem,pars,0);
             this.Cursor = Cursors.Arrow;
         }
 

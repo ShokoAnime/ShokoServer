@@ -2233,17 +2233,16 @@ namespace JMMServer
             return eps;
         }
 
-        public List<string> DirectoriesFromImportFolderPath(string path)
+        public List<string> DirectoriesFromImportFolderPath(int cloudaccountid, string path)
         {
             List<string> result = new List<string>();
             try
             {
-                Tuple<ImportFolder, string> fld = VideoLocal_PlaceRepository.GetFromFullPath(path);
-                if (fld == null)
-                    return result;
-                FileSystemResult<IObject> dirr = fld.Item1.FileSystem?.Resolve(fld.Item2);
+
+                CloudAccount cl = cloudaccountid==0 ? new CloudAccount() { Name = "NA", Provider = "Local File System" } :  new CloudAccountRepository().GetByID(cloudaccountid);
+                FileSystemResult<IObject> dirr = cl?.FileSystem?.Resolve(path);
                 if (dirr == null || !dirr.IsOk || dirr.Result is IFile)
-                    return result;
+                    return null;
                 IDirectory dir=dirr.Result as IDirectory;
                 FileSystemResult fr=dir.Populate();
                 if (!fr.IsOk)
@@ -2258,9 +2257,9 @@ namespace JMMServer
 
         }
 
-        public List<Contract_CloudProvider> GetCloudProviders()
+        public List<Contract_CloudAccount> GetCloudProviders()
         {
-            List<Contract_CloudProvider> ls = new List<Contract_CloudProvider>();
+            List<Contract_CloudAccount> ls = new List<Contract_CloudAccount>();
             try
             {
                 ls.Add(new CloudAccount() {Name = "NA", Provider = "Local File System"}.ToContactCloudProvider());

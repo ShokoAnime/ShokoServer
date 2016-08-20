@@ -108,7 +108,7 @@ namespace JMMServer
             {
                 CloudFolderBrowser frm=new CloudFolderBrowser();
                 frm.Owner = this;
-                frm.Init(importFldr);
+                frm.Init(importFldr, txtImportFolderLocation.Text);
                 bool? result=frm.ShowDialog();
                 if (result.HasValue && result.Value)
                     txtImportFolderLocation.Text = frm.SelectedPath;

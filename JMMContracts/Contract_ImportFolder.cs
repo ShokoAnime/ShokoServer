@@ -10,6 +10,5 @@
         public int IsDropDestination { get; set; }
         public int IsWatched { get; set; }
         public int? CloudID { get; set; }
-        public byte[] Icon { get; set; }
     }
 }

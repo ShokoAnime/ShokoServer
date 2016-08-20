@@ -69,12 +69,13 @@ namespace JMMServer.Entities
 
         }
 
-        public Contract_CloudProvider ToContactCloudProvider()
+        public Contract_CloudAccount ToContactCloudProvider()
         {
-            return new Contract_CloudProvider
+            return new Contract_CloudAccount
             {
                 Provider = Provider,
                 Name = Name,
+                CloudID = CloudID,
                 Icon = _plugin.Icon
             };
         }
