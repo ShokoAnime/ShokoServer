@@ -602,7 +602,108 @@ namespace JMMServer.PlexAndKodi
             return rsp;
         }
 
-        public Response VoteAnime(IProvider prov, string userid, string objectid, string votevalue,
+		public Response ToggleWatchedStatusOnSeries(IProvider prov, string userid, string seriesid,
+			string watchedstatus)
+		{
+			prov.AddResponseHeaders();
+
+			Response rsp = new Response();
+			rsp.Code = "400";
+			rsp.Message = "Bad Request";
+			try
+			{
+				int aep = 0;
+				int usid = 0;
+				bool wstatus = false;
+				if (!int.TryParse(seriesid, out aep))
+					return rsp;
+				if (!int.TryParse(userid, out usid))
+					return rsp;
+				wstatus = false;
+				if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
+					wstatus = true;
+
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				AnimeSeries series = repSeries.GetByID(aep);
+				if (series == null)
+				{
+					rsp.Code = "404";
+					rsp.Message = "Episode Not Found";
+					return rsp;
+				}
+
+				List<AnimeEpisode> eps = series.GetAnimeEpisodes();
+				foreach (AnimeEpisode ep in eps)
+				{
+					ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
+				}
+
+				series.UpdateStats(true, false, true);
+				rsp.Code = "200";
+				rsp.Message = null;
+			}
+			catch (Exception ex)
+			{
+				rsp.Code = "500";
+				rsp.Message = "Internal Error : " + ex;
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return rsp;
+		}
+
+		public Response ToggleWatchedStatusOnGroup(IProvider prov, string userid, string groupid,
+			string watchedstatus)
+		{
+			prov.AddResponseHeaders();
+
+			Response rsp = new Response();
+			rsp.Code = "400";
+			rsp.Message = "Bad Request";
+			try
+			{
+				int aep = 0;
+				int usid = 0;
+				bool wstatus = false;
+				if (!int.TryParse(groupid, out aep))
+					return rsp;
+				if (!int.TryParse(userid, out usid))
+					return rsp;
+				wstatus = false;
+				if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
+					wstatus = true;
+
+				AnimeGroupRepository repGroup = new AnimeGroupRepository();
+				AnimeGroup group = repGroup.GetByID(aep);
+				if (group == null)
+				{
+					rsp.Code = "404";
+					rsp.Message = "Episode Not Found";
+					return rsp;
+				}
+
+				foreach(AnimeSeries series in group.GetAllSeries())
+				{
+					foreach(AnimeEpisode ep in series.GetAnimeEpisodes())
+					{
+						ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
+					}
+					series.UpdateStats(true, false, false);
+				}
+				group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
+
+				rsp.Code = "200";
+				rsp.Message = null;
+			}
+			catch (Exception ex)
+			{
+				rsp.Code = "500";
+				rsp.Message = "Internal Error : " + ex;
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return rsp;
+		}
+
+		public Response VoteAnime(IProvider prov, string userid, string objectid, string votevalue,
             string votetype)
         {
             prov.AddResponseHeaders();
