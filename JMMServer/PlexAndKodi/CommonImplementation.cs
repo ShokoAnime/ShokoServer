@@ -6,7 +6,7 @@ using System.Linq;
 using System.ServiceModel.Web;
 using System.Text;
 using AniDBAPI;
-
+using FluentNHibernate.Conventions;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
@@ -635,6 +635,9 @@ namespace JMMServer.PlexAndKodi
 				List<AnimeEpisode> eps = series.GetAnimeEpisodes();
 				foreach (AnimeEpisode ep in eps)
 				{
+					List<VideoLocal> locals = ep.GetVideoLocals();
+					if (locals == null) continue;
+					if (locals.IsEmpty()) continue;
 					ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
 				}
 
@@ -685,6 +688,9 @@ namespace JMMServer.PlexAndKodi
 				{
 					foreach(AnimeEpisode ep in series.GetAnimeEpisodes())
 					{
+						List<VideoLocal> locals = ep.GetVideoLocals();
+                        if (locals == null) continue;
+                        if (locals.IsEmpty()) continue;
 						ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
 					}
 					series.UpdateStats(true, false, false);
