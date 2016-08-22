@@ -260,6 +260,14 @@ namespace JMMServer.PlexAndKodi
             l.OriginallyAvailableAt = v.DateTimeCreated.ToPlexDate();
             l.Year = v.DateTimeCreated.Year.ToString();
             l.Medias = new List<Media>();
+            VideoLocal_User vlr = v.GetUserRecord(userid);
+            if (vlr != null)
+            {
+                if (vlr.WatchedDate.HasValue)
+                    l.LastViewedAt = vlr.WatchedDate.Value.ToUnixTime();
+                if (vlr.ResumePosition > 0)
+                    l.ViewOffset = vlr.ResumePosition.ToString();
+            }
             Media m = v.Media;
             if (string.IsNullOrEmpty(m?.Duration))
             {
@@ -292,15 +300,15 @@ namespace JMMServer.PlexAndKodi
             AnimeEpisodeRepository erepo = new AnimeEpisodeRepository();
             if (v != null && (v.Medias == null || v.Medias.Count == 0))
             {
-                foreach (VideoLocal vl in e.Key.GetVideoLocals())
+                foreach (VideoLocal vl2 in e.Key.GetVideoLocals())
                 {
-                    if (string.IsNullOrEmpty(vl.Media?.Duration))
+                    if (string.IsNullOrEmpty(vl2.Media?.Duration))
                     {
-                        VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                        VideoLocal_Place pl = vl2.GetBestVideoLocalPlace();
                         if (pl != null)
                         {
                             if (pl.RefreshMediaInfo())
-                                lrepo.Save(vl, true);
+                                lrepo.Save(vl2, true);
                         }
                     }
                 }
@@ -332,6 +340,8 @@ namespace JMMServer.PlexAndKodi
                 }
                 AddLinksToAnimeEpisodeVideo(prov, v, userid);
             }
+            v.AddResumePosition(prov, userid);
+
             return v;
         }
 

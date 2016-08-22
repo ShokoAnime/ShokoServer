@@ -2272,6 +2272,28 @@ namespace JMMServer
             return ls;
         }
 
+        public void SetResumePosition(int videolocalid, int jmmuserID, long position)
+        {
+            try
+            {
+                VideoLocal_UserRepository grepo = new VideoLocal_UserRepository();
+                VideoLocal_User vlu=grepo.GetByUserIDAndVideoLocalID(jmmuserID, videolocalid);
+                if (vlu == null)
+                {
+                    vlu = new VideoLocal_User();
+                    vlu.JMMUserID = jmmuserID;
+                    vlu.VideoLocalID = videolocalid;
+                    vlu.WatchedDate = null;
+                }
+                vlu.ResumePosition = position;
+                grepo.Save(vlu);
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+        }
+
         public List<Contract_AnimeEpisode> GetEpisodesForSeries(int animeSeriesID, int userID)
         {
             List<Contract_AnimeEpisode> eps = new List<Contract_AnimeEpisode>();

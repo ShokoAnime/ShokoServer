@@ -1,14 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using JMMContracts;
+using JMMContracts.PlexAndKodi;
 using JMMServer.FileHelper;
+using JMMServer.FileHelper.MediaInfo;
+using JMMServer.FileHelper.Subtitles;
 using JMMServer.Repositories;
 using NLog;
 using NutzCode.CloudFileSystem;
+using Stream = System.IO.Stream;
 
 namespace JMMServer.Entities
 {
@@ -101,7 +106,84 @@ namespace JMMServer.Entities
         }
         public bool RefreshMediaInfo()
         {
-            return MediaInfoReader.ReadMediaInfo(this);
+            try
+            {
+                logger.Trace($"Getting media info for: {FullServerPath}");
+
+                string name = (ImportFolder.CloudID == null) ? FullServerPath.Replace("/", "\\") : PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(0, VideoLocalID.ToString(), "file", false));
+
+                Media m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http
+                if (string.IsNullOrEmpty(m.Duration))
+                    m = null;
+
+                if (m != null)
+                {
+                    VideoLocal info = VideoLocal;
+                    info.VideoResolution = (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
+                        ? m.Width + "x" + m.Height
+                        : string.Empty;
+                    info.VideoCodec = (!string.IsNullOrEmpty(m.VideoCodec)) ? m.VideoCodec : string.Empty;
+                    info.AudioCodec = (!string.IsNullOrEmpty(m.AudioCodec)) ? m.AudioCodec : string.Empty;
+                    info.Duration = (!string.IsNullOrEmpty(m.Duration)) ? (long)double.Parse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture) : 0;
+                    info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
+                    List<JMMContracts.PlexAndKodi.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
+                    if (vparts.Count > 0)
+                    {
+                        if (!string.IsNullOrEmpty(vparts[0].Bitrate))
+                            info.VideoBitrate = vparts[0].Bitrate;
+                        if (!string.IsNullOrEmpty(vparts[0].BitDepth))
+                            info.VideoBitDepth = vparts[0].BitDepth;
+                        if (!string.IsNullOrEmpty(vparts[0].FrameRate))
+                            info.VideoFrameRate = vparts[0].FrameRate;
+                    }
+                    List<JMMContracts.PlexAndKodi.Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
+                    if (aparts.Count > 0)
+                    {
+                        if (!string.IsNullOrEmpty(aparts[0].Bitrate))
+                            info.AudioBitrate = aparts[0].Bitrate;
+                    }
+                    m.Id = VideoLocalID.ToString();
+                    List<JMMContracts.PlexAndKodi.Stream> subs = SubtitleHelper.GetSubtitleStreams(this);
+                    if (subs.Count > 0)
+                    {
+                        m.Parts[0].Streams.AddRange(subs);
+                    }
+                    foreach (Part p in m.Parts)
+                    {
+                        p.Id = null;
+                        p.Accessible = "1";
+                        p.Exists = "1";
+                        bool vid = false;
+                        bool aud = false;
+                        bool txt = false;
+                        foreach (JMMContracts.PlexAndKodi.Stream ss in p.Streams.ToArray())
+                        {
+                            if ((ss.StreamType == "1") && !vid)
+                            {
+                                vid = true;
+                            }
+                            if ((ss.StreamType == "2") && !aud)
+                            {
+                                aud = true;
+                                ss.Selected = "1";
+                            }
+                            if ((ss.StreamType == "3") && !txt)
+                            {
+                                txt = true;
+                                ss.Selected = "1";
+                            }
+                        }
+                    }
+                    info.Media = m;
+                    return true;
+                }
+                logger.Error($"File {FullServerPath} do not exists, we're unable to read the media information from it");
+            }
+            catch (Exception e)
+            {
+                logger.Error($"Unable to read the media information of file {FullServerPath} ERROR: {e}");
+            }
+            return false;
         }
         public void RenameIfRequired()
         {

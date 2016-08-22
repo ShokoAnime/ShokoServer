@@ -32,7 +32,7 @@ namespace JMMServer.Repositories
             Names = new PocoIndex<int, VideoLocal, string>(Cache, a => a.FileName);
             Ignored = new PocoIndex<int, VideoLocal, int>(Cache, a => a.IsIgnored);
             int cnt = 0;
-            List<VideoLocal> grps = Cache.Values.Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaBlob==null || a.Duration==0).ToList();
+            List<VideoLocal> grps = Cache.Values.Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaBlob==null).ToList();
             int max = grps.Count;
             foreach (VideoLocal g in grps)
             {

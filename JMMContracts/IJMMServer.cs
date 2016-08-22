@@ -749,5 +749,8 @@ namespace JMMContracts
 
         [OperationContract]
         List<Contract_CloudAccount> GetCloudProviders();
+
+        [OperationContract]
+        void SetResumePosition(int videolocalid, int jmmuserID, long position);
     }
 }

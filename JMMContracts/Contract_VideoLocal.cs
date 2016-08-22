@@ -22,5 +22,7 @@ namespace JMMContracts
         public int IsVariation { get; set; }
         public List<Contract_VideoLocal_Place> Places { get; set; }        
         public Media Media { get; set; }
+        public long Duration { get; set; }
+
     }
 }

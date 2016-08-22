@@ -498,6 +498,7 @@ namespace JMMServer.Entities
             contract.HashSource = this.HashSource;
             contract.IsIgnored = this.IsIgnored;
             contract.IsVariation = this.IsVariation;
+            contract.Duration = this.Duration;
             contract.MD5 = this.MD5;
             contract.SHA1 = this.SHA1;
             contract.VideoLocalID = this.VideoLocalID;
