@@ -405,6 +405,7 @@ namespace JMMServer.Entities
                         grp.GroupName = newTitle;
                         grp.SortName = newTitle;
                         repGroups.Save(grp, true, true);
+						grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
                     }
 
                     #endregion
@@ -844,6 +845,7 @@ namespace JMMServer.Entities
                 {
                     this.MissingEpisodeCount += ser.MissingEpisodeCount;
                     this.MissingEpisodeCountGroups += ser.MissingEpisodeCountGroups;
+	                // Now ser.LatestEpisodeAirDate should never be greater than today
                     if (ser.LatestEpisodeAirDate.HasValue)
                     {
                         if ((LatestEpisodeAirDate.HasValue &&

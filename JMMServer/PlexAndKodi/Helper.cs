@@ -482,7 +482,7 @@ namespace JMMServer.PlexAndKodi
 
         
 
-        public static void AddInformationFromMasterSeries(Video v, Contract_AnimeSeries cserie, Video nv)
+        public static void AddInformationFromMasterSeries(Video v, Contract_AnimeSeries cserie, Video nv, bool omitExtraData=false)
         {
             bool ret = false;
             v.Art = nv.Art;
@@ -520,13 +520,16 @@ namespace JMMServer.PlexAndKodi
             }
             if (string.IsNullOrEmpty(v.Art))
                 v.Art = nv.Art;
-            if (v.Tags == null)
-                v.Tags = nv.Tags;
-            if (v.Genres == null)
-                v.Genres = nv.Genres;
-            if (v.Roles == null)
-                v.Roles = nv.Roles;
-            if (string.IsNullOrEmpty(v.Rating))
+	        if (!omitExtraData)
+	        {
+		        if (v.Tags == null)
+			        v.Tags = nv.Tags;
+		        if (v.Genres == null)
+			        v.Genres = nv.Genres;
+		        if (v.Roles == null)
+			        v.Roles = nv.Roles;
+	        }
+	        if (string.IsNullOrEmpty(v.Rating))
                 v.Rating = nv.Rating;
             if (v.Thumb == null)
                 v.Thumb = v.ParentThumb;
@@ -598,6 +601,49 @@ namespace JMMServer.PlexAndKodi
                 v.Group = cgrp;
                 v.AirDate = cgrp.Stat_AirDate_Min.HasValue ? cgrp.Stat_AirDate_Min.Value : DateTime.MinValue;
                 v.UpdatedAt = cgrp.LatestEpisodeAirDate.HasValue ? cgrp.LatestEpisodeAirDate.Value.ToUnixTime() : null;
+	            v.Rating = "" + Math.Round((grp.AniDBRating / 100), 1);
+	            List<Tag> newTags = new List<Tag>();
+	            foreach (AniDB_Tag tag in grp.Tags)
+	            {
+		            Tag newTag = new Tag();
+		            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+		            newTag.Value = textInfo.ToTitleCase(tag.TagName.Trim());
+		            if(!newTags.Contains(newTag)) newTags.Add(newTag);
+	            }
+	            v.Genres = newTags;
+	            List<AnimeTitle> newTitles = new List<AnimeTitle>();
+	            foreach (AniDB_Anime_Title title in ser.GetAnime(session).GetTitles())
+	            {
+		            AnimeTitle newTitle = new AnimeTitle();
+		            newTitle.Title = title.Title;
+		            newTitle.Language = title.Language;
+		            newTitle.Type = title.TitleType;
+		            newTitles.Add(newTitle);
+	            }
+	            v.Titles = newTitles;
+	            
+	            v.Roles = new List<RoleTag>();
+                
+				//TODO Character implementation is limited in JMM, One Character, could have more than one Seiyuu
+				if (ser.GetAnime(session).Contract?.AniDBAnime?.Characters != null)
+				{
+					foreach (Contract_AniDB_Character c in ser.GetAnime(session).Contract.AniDBAnime.Characters)
+					{
+						string ch = c?.CharName;
+						Contract_AniDB_Seiyuu seiyuu = c?.Seiyuu;
+						if (!string.IsNullOrEmpty(ch))
+						{
+							RoleTag t = new RoleTag();
+							t.Value = seiyuu?.SeiyuuName;
+							if (seiyuu != null)
+								t.TagPicture = Helper.ConstructSeiyuuImage(seiyuu.AniDB_SeiyuuID);
+							t.Role = ch;
+							t.RoleDescription = c?.CharDescription;
+							t.RolePicture = Helper.ConstructCharacterImage(c.CharID);
+							v.Roles.Add(t);
+						}
+					}
+				}
                 return v;
             }
             return null;

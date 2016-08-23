@@ -6,11 +6,12 @@ using System.Linq;
 using System.ServiceModel.Web;
 using System.Text;
 using AniDBAPI;
-
+using FluentNHibernate.Conventions;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
 using JMMServer.Entities;
+using JMMServer.PlexAndKodi.Kodi;
 using JMMServer.Properties;
 using JMMServer.Repositories;
 using NLog;
@@ -358,7 +359,7 @@ namespace JMMServer.PlexAndKodi
                     if (v != null)
                     {
                         Video nv = ser.GetPlexContract(userid);
-                        Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid));
+                        Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid), prov is KodiProvider);
                         if (v.Medias != null && v.Medias.Count > 0)
                         {
                             v.Type = "episode";
@@ -602,7 +603,114 @@ namespace JMMServer.PlexAndKodi
             return rsp;
         }
 
-        public Response VoteAnime(IProvider prov, string userid, string objectid, string votevalue,
+		public Response ToggleWatchedStatusOnSeries(IProvider prov, string userid, string seriesid,
+			string watchedstatus)
+		{
+			prov.AddResponseHeaders();
+
+			Response rsp = new Response();
+			rsp.Code = "400";
+			rsp.Message = "Bad Request";
+			try
+			{
+				int aep = 0;
+				int usid = 0;
+				bool wstatus = false;
+				if (!int.TryParse(seriesid, out aep))
+					return rsp;
+				if (!int.TryParse(userid, out usid))
+					return rsp;
+				wstatus = false;
+				if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
+					wstatus = true;
+
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				AnimeSeries series = repSeries.GetByID(aep);
+				if (series == null)
+				{
+					rsp.Code = "404";
+					rsp.Message = "Episode Not Found";
+					return rsp;
+				}
+
+				List<AnimeEpisode> eps = series.GetAnimeEpisodes();
+				foreach (AnimeEpisode ep in eps)
+				{
+					List<VideoLocal> locals = ep.GetVideoLocals();
+					if (locals == null) continue;
+					if (locals.IsEmpty()) continue;
+					ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
+				}
+
+				series.UpdateStats(true, false, true);
+				rsp.Code = "200";
+				rsp.Message = null;
+			}
+			catch (Exception ex)
+			{
+				rsp.Code = "500";
+				rsp.Message = "Internal Error : " + ex;
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return rsp;
+		}
+
+		public Response ToggleWatchedStatusOnGroup(IProvider prov, string userid, string groupid,
+			string watchedstatus)
+		{
+			prov.AddResponseHeaders();
+
+			Response rsp = new Response();
+			rsp.Code = "400";
+			rsp.Message = "Bad Request";
+			try
+			{
+				int aep = 0;
+				int usid = 0;
+				bool wstatus = false;
+				if (!int.TryParse(groupid, out aep))
+					return rsp;
+				if (!int.TryParse(userid, out usid))
+					return rsp;
+				wstatus = false;
+				if (watchedstatus == "True" || watchedstatus == "true" || watchedstatus == "1")
+					wstatus = true;
+
+				AnimeGroupRepository repGroup = new AnimeGroupRepository();
+				AnimeGroup group = repGroup.GetByID(aep);
+				if (group == null)
+				{
+					rsp.Code = "404";
+					rsp.Message = "Episode Not Found";
+					return rsp;
+				}
+
+				foreach(AnimeSeries series in group.GetAllSeries())
+				{
+					foreach(AnimeEpisode ep in series.GetAnimeEpisodes())
+					{
+						List<VideoLocal> locals = ep.GetVideoLocals();
+                        if (locals == null) continue;
+                        if (locals.IsEmpty()) continue;
+						ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
+					}
+					series.UpdateStats(true, false, false);
+				}
+				group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
+
+				rsp.Code = "200";
+				rsp.Message = null;
+			}
+			catch (Exception ex)
+			{
+				rsp.Code = "500";
+				rsp.Message = "Internal Error : " + ex;
+				logger.ErrorException(ex.ToString(), ex);
+			}
+			return rsp;
+		}
+
+		public Response VoteAnime(IProvider prov, string userid, string objectid, string votevalue,
             string votetype)
         {
             prov.AddResponseHeaders();
@@ -950,6 +1058,7 @@ namespace JMMServer.PlexAndKodi
                 List<Video> vids = new List<Video>();
                 if ((eptype.HasValue) && (info!=null))
                     info.ParentKey = info.GrandParentKey;
+	            bool hasRoles = false;
                 foreach (KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep in episodes)
                 {
                     try
@@ -957,7 +1066,7 @@ namespace JMMServer.PlexAndKodi
                         Video v = Helper.VideoFromAnimeEpisode(prov, cseries.CrossRefAniDBTvDBV2, ep, userid);
                         if (v!=null && v.Medias != null && v.Medias.Count > 0)
                         {
-                            Helper.AddInformationFromMasterSeries(v, cseries, nv);
+                            Helper.AddInformationFromMasterSeries(v, cseries, nv, hasRoles);
                             v.Type = "episode";
                             vids.Add(prov, v, info);
                             if (prov.ConstructFakeIosParent)
@@ -965,6 +1074,7 @@ namespace JMMServer.PlexAndKodi
                                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,
                                         v.Art ?? v.ParentArt ?? v.GrandparentArt));
                             v.ParentKey = null;
+	                        if (!hasRoles) hasRoles = true;
                         }
                     }
                     catch (Exception e)

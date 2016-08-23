@@ -51,7 +51,17 @@ namespace JMMServer.PlexAndKodi.Kodi
             return _impl.ToggleWatchedStatusOnEpisode(_prov, userid, episodeid, watchedstatus);
         }
 
-        public Response VoteAnime(string userid, string objectid, string votevalue, string votetype)
+		public Response ToggleWatchedStatusOnSeries(string userid, string seriesid, string watchedstatus)
+		{
+			return _impl.ToggleWatchedStatusOnSeries(_prov, userid, seriesid, watchedstatus);
+		}
+
+		public Response ToggleWatchedStatusOnGroup(string userid, string groupid, string watchedstatus)
+		{
+			return _impl.ToggleWatchedStatusOnGroup(_prov, userid, groupid, watchedstatus);
+		}
+
+		public Response VoteAnime(string userid, string objectid, string votevalue, string votetype)
         {
             return _impl.VoteAnime(_prov, userid, objectid, votevalue, votetype);
         }

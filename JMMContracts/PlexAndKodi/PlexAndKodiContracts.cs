@@ -216,6 +216,7 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("index")]
         public string Index { get; set; }
 
+	    [Plex]
         [DataMember(EmitDefaultValue = false, Order = 36)]
         [XmlAttribute("parentIndex")]
         public string ParentIndex { get; set; }
@@ -256,6 +257,7 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("year")]
         public string Year { get; set; }
 
+	    [Plex]
         [DataMember(EmitDefaultValue = false, Order = 46)]
         [XmlAttribute("duration")]
         public string Duration { get; set; }
@@ -284,6 +286,7 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("leafCount")]
         public string LeafCount { get; set; }
 
+	    [Plex]
         [DataMember(EmitDefaultValue = false, Order = 53)]
         [XmlAttribute("childCount")]
         public string ChildCount { get; set; }
@@ -430,6 +433,27 @@ namespace JMMContracts.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 2)]
         [XmlAttribute("role")]
         public string Role { get; set; }
+		// Override for ease of making sets
+	    protected bool Equals(Tag other)
+	    {
+		    return string.Equals(Value, other.Value) && string.Equals(Role, other.Role);
+	    }
+
+	    public override bool Equals(object obj)
+	    {
+		    if (ReferenceEquals(null, obj)) return false;
+		    if (ReferenceEquals(this, obj)) return true;
+		    if (obj.GetType() != this.GetType()) return false;
+		    return Equals((Tag) obj);
+	    }
+
+	    public override int GetHashCode()
+	    {
+		    unchecked
+		    {
+			    return ((Value != null ? Value.GetHashCode() : 0) * 397) ^ (Role != null ? Role.GetHashCode() : 0);
+		    }
+	    }
     }
 
     [XmlType("Media")]

@@ -36,7 +36,15 @@ namespace JMMContracts
         [WebGet(UriTemplate = "Watch/{userid}/{episodeid}/{watchedstatus}", BodyStyle = WebMessageBodyStyle.Bare)]
         Response ToggleWatchedStatusOnEpisode(string userid, string episodeid, string watchedstatus);
 
-        [OperationContract]
+		[OperationContract]
+		[WebGet(UriTemplate = "WatchSeries/{userid}/{seriesid}/{watchedstatus}", BodyStyle = WebMessageBodyStyle.Bare)]
+		Response ToggleWatchedStatusOnSeries(string userid, string seriesid, string watchedstatus);
+
+		[OperationContract]
+		[WebGet(UriTemplate = "WatchGroup/{userid}/{groupid}/{watchedstatus}", BodyStyle = WebMessageBodyStyle.Bare)]
+		Response ToggleWatchedStatusOnGroup(string userid, string groupid, string watchedstatus);
+
+		[OperationContract]
         [WebGet(UriTemplate = "Vote/{userid}/{seriesid}/{votevalue}/{votetype}", BodyStyle = WebMessageBodyStyle.Bare)]
         Response VoteAnime(string userid, string seriesid, string votevalue, string votetype);
 
