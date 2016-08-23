@@ -661,7 +661,7 @@ namespace JMMServer.PlexAndKodi
                 v.Group = cgrp;
                 v.AirDate = cgrp.Stat_AirDate_Min.HasValue ? cgrp.Stat_AirDate_Min.Value : DateTime.MinValue;
                 v.UpdatedAt = cgrp.LatestEpisodeAirDate.HasValue ? cgrp.LatestEpisodeAirDate.Value.ToUnixTime() : null;
-	            v.Rating = "" + grp.AniDBRating;
+	            v.Rating = "" + Math.Round((grp.AniDBRating / 100), 1);
 	            List<Tag> newTags = new List<Tag>();
 	            foreach (AniDB_Tag tag in grp.Tags)
 	            {
@@ -671,7 +671,7 @@ namespace JMMServer.PlexAndKodi
 	            }
 	            v.Tags = newTags;
 	            List<AnimeTitle> newTitles = new List<AnimeTitle>();
-	            foreach (AniDB_Anime_Title title in grp.Titles)
+	            foreach (AniDB_Anime_Title title in ser.GetAnime(session).GetTitles())
 	            {
 		            AnimeTitle newTitle = new AnimeTitle();
 		            newTitle.Title = title.Title;
