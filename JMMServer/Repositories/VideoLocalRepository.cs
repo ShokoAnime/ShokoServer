@@ -7,6 +7,7 @@ using JMMServer.Entities;
 using JMMServer.PlexAndKodi;
 using NHibernate;
 using NutzCode.InMemoryIndex;
+using System.Globalization;
 
 namespace JMMServer.Repositories
 {
@@ -133,7 +134,11 @@ namespace JMMServer.Repositories
 
         public List<VideoLocal> GetByName(string fileName)
         {
-            return Paths.GetMultiple(fileName);
+            //return Paths.GetMultiple(fileName);
+            //return Cache.Values.Where(store => store.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase)).ToList();
+
+            return Cache.Values.Where(p => CultureInfo.CurrentCulture.CompareInfo.IndexOf
+             (p.FilePath, fileName, CompareOptions.IgnoreCase) >= 0).ToList();
         }
 
         public List<VideoLocal> GetMostRecentlyAdded(int maxResults)
