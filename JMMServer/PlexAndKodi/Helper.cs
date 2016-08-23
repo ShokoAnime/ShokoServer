@@ -666,7 +666,8 @@ namespace JMMServer.PlexAndKodi
 	            foreach (AniDB_Tag tag in grp.Tags)
 	            {
 		            Tag newTag = new Tag();
-		            newTag.Value = tag.TagName;
+		            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
+		            newTag.Value = textInfo.ToTitleCase(tag.TagName.Trim());
 		            newTags.Add(newTag);
 	            }
 	            v.Genres = newTags;
