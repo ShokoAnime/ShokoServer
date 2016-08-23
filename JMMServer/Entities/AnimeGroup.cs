@@ -405,6 +405,7 @@ namespace JMMServer.Entities
                         grp.GroupName = newTitle;
                         grp.SortName = newTitle;
                         repGroups.Save(grp, true, true);
+						grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
                     }
 
                     #endregion
