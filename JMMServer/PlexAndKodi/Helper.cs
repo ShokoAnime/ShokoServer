@@ -669,7 +669,7 @@ namespace JMMServer.PlexAndKodi
 		            newTag.Value = tag.TagName;
 		            newTags.Add(newTag);
 	            }
-	            v.Tags = newTags;
+	            v.Genres = newTags;
 	            List<AnimeTitle> newTitles = new List<AnimeTitle>();
 	            foreach (AniDB_Anime_Title title in ser.GetAnime(session).GetTitles())
 	            {
