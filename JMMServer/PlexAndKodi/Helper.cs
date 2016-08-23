@@ -668,7 +668,7 @@ namespace JMMServer.PlexAndKodi
 		            Tag newTag = new Tag();
 		            TextInfo textInfo = new CultureInfo("en-US", false).TextInfo;
 		            newTag.Value = textInfo.ToTitleCase(tag.TagName.Trim());
-		            newTags.Add(newTag);
+		            if(!newTags.Contains(newTag)) newTags.Add(newTag);
 	            }
 	            v.Genres = newTags;
 	            List<AnimeTitle> newTitles = new List<AnimeTitle>();
