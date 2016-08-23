@@ -2247,7 +2247,7 @@ namespace JMMServer
                 FileSystemResult fr=dir.Populate();
                 if (!fr.IsOk)
                     return result;
-                return dir.Directories.Select(a => a.FullName).ToList();
+                return dir.Directories.Select(a => a.FullName).OrderBy(a=>a).ToList();
             }
             catch (Exception ex)
             {

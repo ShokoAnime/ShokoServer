@@ -22,7 +22,7 @@
                 <DataTemplate x:Key="ImportFolderTemplate">
 
                     <StackPanel Orientation="Horizontal" Height="24">
-                        <Button Height="24" HorizontalAlignment="Left" Name="btnScanFolder" Margin="5,0,0,0"
+                        <Button Padding="0,0,0,0" Height="24" HorizontalAlignment="Left" Name="btnScanFolder" Margin="5,0,0,0"
                                 Style="{DynamicResource FlatButtonStyle}" Width="Auto"
                                 Command="{DynamicResource ScanFolderCommand}" CommandParameter="{Binding}"
                                 ToolTip="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_ScanFolder}">
