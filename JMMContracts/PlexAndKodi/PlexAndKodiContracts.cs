@@ -212,7 +212,6 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("grandparentKey")]
         public string GrandparentKey { get; set; }
 
-	    [Plex]
         [DataMember(EmitDefaultValue = false, Order = 35)]
         [XmlAttribute("index")]
         public string Index { get; set; }
