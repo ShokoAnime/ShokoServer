@@ -1066,7 +1066,7 @@ namespace JMMServer.PlexAndKodi
                         Video v = Helper.VideoFromAnimeEpisode(prov, cseries.CrossRefAniDBTvDBV2, ep, userid);
                         if (v!=null && v.Medias != null && v.Medias.Count > 0)
                         {
-                            Helper.AddInformationFromMasterSeries(v, cseries, nv, !hasRoles);
+                            Helper.AddInformationFromMasterSeries(v, cseries, nv, hasRoles);
                             v.Type = "episode";
                             vids.Add(prov, v, info);
                             if (prov.ConstructFakeIosParent)
