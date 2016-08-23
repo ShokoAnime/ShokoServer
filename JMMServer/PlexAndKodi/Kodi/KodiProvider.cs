@@ -22,7 +22,7 @@ namespace JMMServer.PlexAndKodi.Kodi
         public bool EnableAnimeTitlesInLists { get; } = true;
         public bool EnableGenresInLists { get; } = true;
 
-
+		//TODO improve this
         private static Regex _removeIp=new Regex(@"(\d+\.\d+\.\d+\.\d+):(\d+)",RegexOptions.Compiled);
 
         public string Proxyfy(string url)

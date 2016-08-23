@@ -212,10 +212,12 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("grandparentKey")]
         public string GrandparentKey { get; set; }
 
+	    [Plex]
         [DataMember(EmitDefaultValue = false, Order = 35)]
         [XmlAttribute("index")]
         public string Index { get; set; }
 
+	    [Plex]
         [DataMember(EmitDefaultValue = false, Order = 36)]
         [XmlAttribute("parentIndex")]
         public string ParentIndex { get; set; }
@@ -256,6 +258,7 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("year")]
         public string Year { get; set; }
 
+	    [Plex]
         [DataMember(EmitDefaultValue = false, Order = 46)]
         [XmlAttribute("duration")]
         public string Duration { get; set; }
@@ -284,6 +287,7 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("leafCount")]
         public string LeafCount { get; set; }
 
+	    [Plex]
         [DataMember(EmitDefaultValue = false, Order = 53)]
         [XmlAttribute("childCount")]
         public string ChildCount { get; set; }

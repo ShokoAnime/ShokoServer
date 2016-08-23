@@ -11,6 +11,7 @@ using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
 using JMMServer.Entities;
+using JMMServer.PlexAndKodi.Kodi;
 using JMMServer.Properties;
 using JMMServer.Repositories;
 using NLog;
@@ -358,7 +359,7 @@ namespace JMMServer.PlexAndKodi
                     if (v != null)
                     {
                         Video nv = ser.GetPlexContract(userid);
-                        Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid));
+                        Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid), prov is KodiProvider);
                         if (v.Medias != null && v.Medias.Count > 0)
                         {
                             v.Type = "episode";
@@ -1057,6 +1058,7 @@ namespace JMMServer.PlexAndKodi
                 List<Video> vids = new List<Video>();
                 if ((eptype.HasValue) && (info!=null))
                     info.ParentKey = info.GrandParentKey;
+	            bool hasRoles = false;
                 foreach (KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep in episodes)
                 {
                     try
@@ -1064,7 +1066,7 @@ namespace JMMServer.PlexAndKodi
                         Video v = Helper.VideoFromAnimeEpisode(prov, cseries.CrossRefAniDBTvDBV2, ep, userid);
                         if (v!=null && v.Medias != null && v.Medias.Count > 0)
                         {
-                            Helper.AddInformationFromMasterSeries(v, cseries, nv);
+                            Helper.AddInformationFromMasterSeries(v, cseries, nv, !hasRoles);
                             v.Type = "episode";
                             vids.Add(prov, v, info);
                             if (prov.ConstructFakeIosParent)
@@ -1072,6 +1074,7 @@ namespace JMMServer.PlexAndKodi
                                     prov.Proxyfy(prov.ConstructFakeIosThumb(userid, v.ParentThumb,
                                         v.Art ?? v.ParentArt ?? v.GrandparentArt));
                             v.ParentKey = null;
+	                        if (!hasRoles) hasRoles = true;
                         }
                     }
                     catch (Exception e)
