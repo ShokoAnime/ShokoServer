@@ -149,8 +149,7 @@ namespace JMMServer.Repositories
             //return Paths.GetMultiple(fileName);
             //return Cache.Values.Where(store => store.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase)).ToList();
 
-            return Cache.Values.Where(p => CultureInfo.CurrentCulture.CompareInfo.IndexOf
-             (p.FilePath, fileName, CompareOptions.IgnoreCase) >= 0).ToList();
+            return Cache.Values.Where(p => p.Places.Any(a=>CultureInfo.CurrentCulture.CompareInfo.IndexOf(a.FilePath, fileName, CompareOptions.IgnoreCase) >= 0)).ToList();
         }
 
         public List<VideoLocal> GetMostRecentlyAdded(int maxResults)

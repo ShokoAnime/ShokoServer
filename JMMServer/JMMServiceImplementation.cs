@@ -3165,8 +3165,7 @@ namespace JMMServer
                 {
                     foreach (ImportFolder imf in allFolders)
                     {
-                        if (imf.IsDropDestination == 1 &&
-                            (!contract.ImportFolderID.HasValue || (contract.ImportFolderID.Value != imf.ImportFolderID)))
+                        if (contract.CloudID==imf.CloudID && imf.IsDropDestination == 1 && (!contract.ImportFolderID.HasValue || (contract.ImportFolderID.Value != imf.ImportFolderID)))
                         {
                             imf.IsDropDestination = 0;
                             repNS.Save(imf);

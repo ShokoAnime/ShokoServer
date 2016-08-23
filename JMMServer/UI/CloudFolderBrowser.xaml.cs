@@ -58,12 +58,13 @@ namespace JMMServer
         {
             foreach (IDirectory n in d.Directories.OrderBy(a => a.Name))
             {
-                TreeViewItem item = GenerateFromDirectory(d);
+                TreeViewItem item = GenerateFromDirectory(n);
                 if (parts.Length > pos)
                 {
-                    if (n.Name.Equals(parts[0],StringComparison.InvariantCultureIgnoreCase))
+                    if (n.Name.Equals(parts[pos],StringComparison.InvariantCultureIgnoreCase))
                     {
-                        RecursiveAddFromDirectory(item.Items,n,parts,pos+1);
+                        if (pos<parts.Length-1)
+                            RecursiveAddFromDirectory(item.Items,n,parts,pos+1);
                         item.IsSelected = true;
                     }
                 }
@@ -79,6 +80,12 @@ namespace JMMServer
             while (initialpath.StartsWith("\\"))
                 initialpath = initialpath.Substring(1);
             string[] pars = initialpath.Split(new char[] {'\\'}, StringSplitOptions.RemoveEmptyEntries);
+            if (pars.Length>0 && _account.FileSystem.Name == pars[0])
+            {
+                string[] pars2=new string[pars.Length-1];
+                Array.Copy(pars,1,pars2,0,pars.Length-1);
+                pars = pars2;
+            }
             RecursiveAddFromDirectory(TrView.Items,_account.FileSystem,pars,0);
             this.Cursor = Cursors.Arrow;
         }
