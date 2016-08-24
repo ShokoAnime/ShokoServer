@@ -1019,6 +1019,7 @@ namespace JMMServer
             if (sched == null)
             {
                 sched = new ScheduledUpdate();
+                sched.UpdateDetails = "";
                 sched.UpdateType = (int)ScheduledUpdateType.DayFiltersUpdate;
             }
 
