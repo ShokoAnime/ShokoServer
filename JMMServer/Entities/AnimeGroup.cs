@@ -383,7 +383,7 @@ namespace JMMServer.Entities
 								}
 								#endregion
 								new AnimeSeriesRepository().Save(ser, false);
-								ser.UpdateStats(true, true, false);
+								series.UpdateStats(true, true, false);
 								if (series == null)
 								{
 									series = ser;
@@ -532,7 +532,7 @@ namespace JMMServer.Entities
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
             List<AnimeSeries> seriesList = repSeries.GetByGroupID(this.AnimeGroupID);
             // Make everything that relies on GetSeries[0] have the proper result
-            seriesList.OrderBy(a => a.AirDate ?? DateTime.MinValue); //FIX this might be null
+            seriesList.OrderBy(a => a.AirDate ?? DateTime.MaxValue); //FIX this might be null | Make ones without dates last not first
             if (DefaultAnimeSeriesID.HasValue)
             {
                 AnimeSeries series = repSeries.GetByID(DefaultAnimeSeriesID.Value);

@@ -444,6 +444,14 @@ namespace JMMServer.Entities
             {
                 if (GetAnime() != null)
                     return GetAnime().AirDate;
+				// This will be slower, but hopefully more accurate
+				List<AnimeEpisode> eps = GetAnimeEpisodes();
+				if (eps != null && eps.Count > 0)
+				{
+					AnimeEpisode ep = eps[0];
+					if (ep != null && ep.AniDB_Episode != null && ep.AniDB_Episode.AirDateAsDate != null)
+						return ep.AniDB_Episode.AirDateAsDate;
+				}
                 return DateTime.Now;
             }
         }
