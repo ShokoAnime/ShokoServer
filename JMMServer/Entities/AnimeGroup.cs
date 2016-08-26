@@ -383,7 +383,7 @@ namespace JMMServer.Entities
 								}
 								#endregion
 								new AnimeSeriesRepository().Save(ser, false);
-								series.UpdateStats(true, true, false);
+								ser.UpdateStats(true, true, false);
 								if (series == null)
 								{
 									series = ser;
