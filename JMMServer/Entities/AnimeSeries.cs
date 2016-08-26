@@ -448,8 +448,9 @@ namespace JMMServer.Entities
 				List<AnimeEpisode> eps = GetAnimeEpisodes();
 				if (eps != null && eps.Count > 0)
 				{
+					eps.OrderBy(a => a.AniDB_Episode.AirDateAsDate ?? DateTime.Now);
 					AnimeEpisode ep = eps[0];
-					if (ep != null && ep.AniDB_Episode != null && ep.AniDB_Episode.AirDateAsDate != null)
+					if (ep != null && ep.AniDB_Episode.AirDateAsDate != null)
 						return ep.AniDB_Episode.AirDateAsDate;
 				}
                 return DateTime.Now;
