@@ -636,9 +636,9 @@ namespace JMMServer.PlexAndKodi
 				List<AnimeEpisode> eps = series.GetAnimeEpisodes();
 				foreach (AnimeEpisode ep in eps)
 				{
-					List<VideoLocal> locals = ep.GetVideoLocals();
-					if (locals == null) continue;
-					if (locals.IsEmpty()) continue;
+					if (ep.EpisodeTypeEnum == enEpisodeType.Credits) continue;
+					if (ep.EpisodeTypeEnum == enEpisodeType.Trailer) continue;
+
 					ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
 				}
 
@@ -689,9 +689,9 @@ namespace JMMServer.PlexAndKodi
 				{
 					foreach(AnimeEpisode ep in series.GetAnimeEpisodes())
 					{
-						List<VideoLocal> locals = ep.GetVideoLocals();
-                        if (locals == null) continue;
-                        if (locals.IsEmpty()) continue;
+						if (ep.EpisodeTypeEnum == enEpisodeType.Credits) continue;
+                        if (ep.EpisodeTypeEnum == enEpisodeType.Trailer) continue;
+                        					
 						ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, false, usid, true);
 					}
 					series.UpdateStats(true, false, false);
