@@ -41,7 +41,6 @@ namespace JMMServer
         System.Timers.Timer logoutTimer = null;
 
         public static int AniDBDelay = 2500;
-        public static int AniDBDelay_Short = 1250;
 
         private DateTime? banTime = null;
 
@@ -260,7 +259,6 @@ namespace JMMServer
         private void Pause(AniDBPause pauseType)
         {
             int pauseDuration = AniDBDelay;
-            if (pauseType == AniDBPause.Short) pauseDuration = AniDBDelay_Short;
 
             if (ExtendPauseSecs.HasValue) pauseDuration = ExtendPauseSecs.Value*1000;
 
@@ -365,7 +363,7 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause(AniDBPause.Short);
+                Pause();
 
                 getInfoCmd = new AniDBCommand_GetEpisodeInfo();
                 getInfoCmd.Init(episodeID, true);
@@ -400,7 +398,7 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause(AniDBPause.Short);
+                Pause();
 
                 getInfoCmd = new AniDBCommand_GetFileInfo();
                 getInfoCmd.Init(vidLocal, true);
