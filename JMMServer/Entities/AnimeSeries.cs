@@ -438,22 +438,23 @@ namespace JMMServer.Entities
             return anidb_anime;
         }
 
-        public DateTime? AirDate
+        public DateTime AirDate
         {
             get
             {
                 if (GetAnime() != null)
-                    return GetAnime().AirDate;
+					if(GetAnime().AirDate.HasValue)
+						return GetAnime().AirDate.Value;
 				// This will be slower, but hopefully more accurate
 				List<AnimeEpisode> eps = GetAnimeEpisodes();
 				if (eps != null && eps.Count > 0)
 				{
-					eps.OrderBy(a => a.AniDB_Episode.AirDateAsDate ?? DateTime.Now);
-					AnimeEpisode ep = eps[0];
-					if (ep != null && ep.AniDB_Episode.AirDateAsDate != null)
-						return ep.AniDB_Episode.AirDateAsDate;
+					eps.OrderBy(a => a.AniDB_Episode.AirDateAsDate ?? DateTime.MaxValue);
+					AnimeEpisode ep = eps.First(a => a.AniDB_Episode?.AirDateAsDate != null);
+					if (ep != null)
+						return ep.AniDB_Episode.AirDateAsDate.Value;
 				}
-                return DateTime.Now;
+                return DateTime.MinValue;
             }
         }
 

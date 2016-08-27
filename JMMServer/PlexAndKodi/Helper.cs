@@ -642,7 +642,7 @@ namespace JMMServer.PlexAndKodi
                     if (cserie != null)
                     {
                         Video v = GenerateFromSeries(cserie, ser, ser.GetAnime(session), userid);
-                        v.AirDate = ser.AirDate.HasValue ? ser.AirDate.Value : DateTime.MinValue;
+						v.AirDate = ser.AirDate;
                         v.UpdatedAt = ser.LatestEpisodeAirDate.HasValue
                             ? ser.LatestEpisodeAirDate.Value.ToUnixTime()
                             : null;
@@ -655,7 +655,11 @@ namespace JMMServer.PlexAndKodi
             {
                 AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue
                     ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value)
-                    : JMMServiceImplementation.GetSeriesForGroup(grp.AnimeGroupID, allSeries);
+                    : allSeries.FirstOrDefault(a => a.AirDate != DateTime.MinValue);
+				foreach(AnimeSeries ser1 in allSeries)
+				{
+					NLog.LogManager.GetCurrentClassLogger().Trace("Group: " + grp.GroupName + " AnimeSeries: " + ser1.GetSeriesName() + " | " + ser1.AirDate.ToShortDateString());
+				}
                 Contract_AnimeSeries cserie = ser?.GetUserContract(userid);
                 Video v = FromGroup(cgrp, cserie, userid, subgrpcnt);
                 v.Group = cgrp;

@@ -545,7 +545,7 @@ namespace JMMServer.PlexAndKodi
                     var v = ser.GetPlexContract(userid)?.Clone<Directory>();
                     if (v != null)
                     {
-                        v.AirDate = ser.AirDate ?? DateTime.MinValue;
+                        v.AirDate = ser.AirDate;
                         v.Group = basegrp;
                         v.Type = "show";
                         v.GenerateKey(prov, userid);

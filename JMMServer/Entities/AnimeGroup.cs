@@ -532,7 +532,7 @@ namespace JMMServer.Entities
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
             List<AnimeSeries> seriesList = repSeries.GetByGroupID(this.AnimeGroupID);
             // Make everything that relies on GetSeries[0] have the proper result
-            seriesList.OrderBy(a => a.AirDate ?? DateTime.Now); //FIX this might be null | Make ones without dates last not first
+            seriesList.OrderBy(a => a.AirDate);
             if (DefaultAnimeSeriesID.HasValue)
             {
                 AnimeSeries series = repSeries.GetByID(DefaultAnimeSeriesID.Value);
@@ -570,7 +570,7 @@ namespace JMMServer.Entities
             List<AnimeSeries> seriesList = new List<AnimeSeries>();
             AnimeGroup.GetAnimeSeriesRecursive(session, this.AnimeGroupID, ref seriesList);
 
-            return seriesList;
+            return seriesList.OrderBy(a => a.AirDate).ToList();
         }
 
         /*
@@ -1130,7 +1130,8 @@ namespace JMMServer.Entities
 
                     // Calculate Air Date 
                     DateTime? thisDate = serie.AirDate;
-                    if (thisDate.HasValue)
+					// This will now always have a value
+                    if (thisDate.Value != DateTime.MinValue)
                     {
                         if (airDate_Min.HasValue)
                         {
