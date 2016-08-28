@@ -216,11 +216,23 @@ namespace JMMServer.FileServer
                     loc = rep.GetByID(sid);
                     if (loc == null)
                     {
-                        obj.Response.StatusCode = (int) HttpStatusCode.NotFound;
+                        obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
                         obj.Response.StatusDescription = "Stream Id not found.";
                         return;
                     }
-                    file = loc.GetBestFileLink();
+#if DEBUG_STREAM
+                    if (loc.VideoLocalID == 6393488934891)
+                    {
+                        FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == "Local File System")?.Init("", null, null);
+                        if (ff == null || !ff.IsOk)
+                            throw new Exception(ff?.Error ?? "Error Opening Local Filesystem");
+                        FileSystemResult<IObject> o=ff.Result.Resolve(@"C:\test\unsort\[FTV-Wasurenai] 11eyes - 01 [1280x720 BD H264] [07238189].mkv");
+                        if (o.IsOk)
+                            file = (IFile) o.Result;
+                    }
+                    else
+#endif
+                        file = loc.GetBestFileLink();
                     if (file == null)
                     {
                         obj.Response.StatusCode = (int) HttpStatusCode.NotFound;

@@ -17,14 +17,15 @@ namespace JMMServer.UI
         public string Code { get; private set; }
         public List<string> Scopes { get; private set; } = new List<string>();
         private Uri uri;
-        public LoginForm(string name, string authurl, string clientid, List<string> scopes, string redirect)
+        public LoginForm(string name, string authurl, string clientid, List<string> scopes, string redirect, bool scopecommaseparated)
         {
             InitializeComponent();
             this.Title=string.IsNullOrEmpty(name) ? "Login" : name;
             WebView.Navigated += WebView_Navigated;
             WebView.Navigating += WebView_Navigating;
             string responsetype = "code";
-            string url = string.Format(AuthUrl, HttpUtility.UrlEncode(clientid), HttpUtility.UrlEncode(string.Join(" ", scopes)), HttpUtility.UrlEncode(responsetype), HttpUtility.UrlEncode(redirect), authurl);
+            string sep = scopecommaseparated ? "," : " ";
+            string url = string.Format(AuthUrl, HttpUtility.UrlEncode(clientid), HttpUtility.UrlEncode(string.Join(sep, scopes)), HttpUtility.UrlEncode(responsetype), HttpUtility.UrlEncode(redirect), authurl);
             uri=new Uri(url);
             this.Visibility=Visibility.Visible;
         }

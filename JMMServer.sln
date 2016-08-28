@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NutzCode.CloudFileSystem.Pl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NutzCode.Libraries.Web", "NutzCode.CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj", "{865C8B13-EB43-439E-9D69-CE7B54DCA4FF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NutzCode.CloudFileSystem.Plugins.OneDrive", "..\..\NET\NutzCode\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj", "{D24D15AA-3E71-45A5-B2AF-7490681DEF68}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -152,6 +154,22 @@ Global
 		{865C8B13-EB43-439E-9D69-CE7B54DCA4FF}.Release|Win32.Build.0 = Release|Any CPU
 		{865C8B13-EB43-439E-9D69-CE7B54DCA4FF}.Release|x64.ActiveCfg = Release|Any CPU
 		{865C8B13-EB43-439E-9D69-CE7B54DCA4FF}.Release|x64.Build.0 = Release|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Debug|Win32.Build.0 = Debug|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Debug|x64.Build.0 = Debug|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Release|Win32.ActiveCfg = Release|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Release|Win32.Build.0 = Release|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Release|x64.ActiveCfg = Release|Any CPU
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -162,6 +180,7 @@ Global
 		{964A62E6-2DAE-4723-926D-D3E9597B5213} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
 		{2A705C96-21D4-4061-876F-1BB954E39D25} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
 		{865C8B13-EB43-439E-9D69-CE7B54DCA4FF} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
+		{D24D15AA-3E71-45A5-B2AF-7490681DEF68} = {6568B082-7BB9-4D24-921A-840E8CF1612F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		RESX_ExcelExportMode = MultipleSheets

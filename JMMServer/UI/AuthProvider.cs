@@ -15,7 +15,7 @@ namespace JMMServer.UI
             AuthResult r = new AuthResult();
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                LoginForm l = new LoginForm(request.Name, request.LoginUrl, request.ClientId, request.Scopes, request.RedirectUri);
+                LoginForm l = new LoginForm(request.Name, request.LoginUrl, request.ClientId, request.Scopes, request.RedirectUri,request.ScopesCommaSeparated);
                 l.Owner = _owner;
                 bool? res = l.ShowDialog();
                 if (res.HasValue && res.Value)
