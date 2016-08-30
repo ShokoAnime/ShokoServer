@@ -596,15 +596,31 @@ namespace JMMServer.PlexAndKodi
             v.IsMovie = ret;
         }
 
-        public static IEnumerable<T> Randomize<T>(this IEnumerable<T> source, int seed)
+        public static IEnumerable<T> Randomize<T>(this IEnumerable<T> source, int seed = -1)
         {
-            Random rnd = new Random(seed);
+			Random rnd;
+			if (seed == -1)
+			{
+				rnd = new Random();
+			}
+			else
+			{
+				rnd = new Random(seed);
+			}
             return source.OrderBy(item => rnd.Next());
         }
 
+		public static string GetRandomFanartFromSeries(List<AnimeSeries> series)
+		{
+			using (var session = JMMService.SessionFactory.OpenSession())
+			{
+				return GetRandomFanartFromSeries(series, session);
+			}
+		}
+
         public static string GetRandomFanartFromSeries(List<AnimeSeries> series, ISession session)
         {
-            foreach (AnimeSeries ser in series.Randomize(123456789))
+            foreach (AnimeSeries ser in series.Randomize())
             {
                 AniDB_Anime anim = ser.GetAnime(session);
                 if (anim != null)
@@ -656,10 +672,6 @@ namespace JMMServer.PlexAndKodi
                 AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue
                     ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value)
                     : allSeries.FirstOrDefault(a => a.AirDate != DateTime.MinValue);
-				foreach(AnimeSeries ser1 in allSeries)
-				{
-					NLog.LogManager.GetCurrentClassLogger().Trace("Group: " + grp.GroupName + " AnimeSeries: " + ser1.GetSeriesName() + " | " + ser1.AirDate.ToShortDateString());
-				}
                 Contract_AnimeSeries cserie = ser?.GetUserContract(userid);
                 Video v = FromGroup(cgrp, cserie, userid, subgrpcnt);
                 v.Group = cgrp;
@@ -856,8 +868,8 @@ namespace JMMServer.PlexAndKodi
                     }
                 }
                 p.Thumb = p.ParentThumb = anime.DefaultImagePoster.GenPoster();
-                p.Art = anime.DefaultImageFanart.GenArt();
-                if (eps != null)
+				p.Art = anime?.DefaultImageFanart?.GenArt();
+				if (eps != null)
                 {
                     List<enEpisodeType> types = eps.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     p.ChildCount = types.Count > 1 ? types.Count.ToString() : eps.Keys.Count.ToString();

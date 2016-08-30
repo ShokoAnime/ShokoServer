@@ -753,7 +753,7 @@ namespace JMMServer.Entities
             Random fanartRandom = new Random();
 
             ImageDetails details = null;
-            if (GetDefaultFanart() == null)
+            if (GetDefaultFanart(session) == null)
             {
                 // get a random fanart (only tvdb)
                 if (this.AnimeTypeEnum == enAnimeType.Movie)

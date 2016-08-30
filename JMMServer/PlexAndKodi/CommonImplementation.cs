@@ -519,7 +519,8 @@ namespace JMMServer.PlexAndKodi
 
             List<Video> retGroups = new List<Video>();
             AnimeGroupRepository repGroups = new AnimeGroupRepository();
-            AnimeGroup grp = repGroups.GetByID(groupID);
+			AnimeSeriesRepository repSer = new AnimeSeriesRepository();
+			AnimeGroup grp = repGroups.GetByID(groupID);
             if (grp == null)
                 return new MediaContainer {ErrorString = "Invalid Group"};
             BaseObject ret =
@@ -536,6 +537,15 @@ namespace JMMServer.PlexAndKodi
                     {
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
+						if(grpChild.DefaultAnimeSeriesID.HasValue)
+						{
+							AnimeSeries ser = repSer.GetByID(grpChild.DefaultAnimeSeriesID.Value);
+							v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser });
+						}
+						else
+						{
+							v.Art = Helper.GetRandomFanartFromSeries(grpChild.GetAllSeries());
+						}
                         retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
                     }
@@ -549,7 +559,16 @@ namespace JMMServer.PlexAndKodi
                         v.Group = basegrp;
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
-                        retGroups.Add(prov, v, info);
+						if (grp.DefaultAnimeSeriesID.HasValue)
+						{
+							AnimeSeries ser1 = repSer.GetByID(grp.DefaultAnimeSeriesID.Value);
+							v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser1 });
+						}
+						else
+						{
+							v.Art = Helper.GetRandomFanartFromSeries(grp.GetAllSeries());
+						}
+						retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
                     }
                 }
@@ -1144,7 +1163,17 @@ namespace JMMServer.PlexAndKodi
                                     v.Group = grp.GetUserContract(userid);
                                 v.GenerateKey(prov, userid);
                                 v.Type = "show";
-                                order.Add(v.Group, v);
+								if (grp.DefaultAnimeSeriesID.HasValue)
+								{
+									AnimeSeriesRepository repSer = new AnimeSeriesRepository();
+									AnimeSeries ser1 = repSer.GetByID(grp.DefaultAnimeSeriesID.Value);
+									v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser1 });
+								}
+								else
+								{
+									v.Art = Helper.GetRandomFanartFromSeries(grp.GetAllSeries());
+								}
+								order.Add(v.Group, v);
                                 retGroups.Add(prov, v, info);
                                 v.ParentThumb = v.GrandparentThumb = null;
                             }
