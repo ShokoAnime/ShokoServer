@@ -16,6 +16,7 @@ using JMMFileHelper.Subtitles;
 using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using Directory = JMMContracts.PlexAndKodi.Directory;
 using Stream = JMMContracts.PlexAndKodi.Stream;
@@ -600,11 +601,11 @@ namespace JMMServer.PlexAndKodi
 	    {
 		    using (var session = JMMService.SessionFactory.OpenSession())
 		    {
-			    return GetRandomBannerFromSeries(series, session);
+			    return GetRandomBannerFromSeries(series, session.Wrap());
 		    }
 	    }
 
-	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, ISession session)
+	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, ISessionWrapper session)
 	    {
 		    foreach (AnimeSeries ser in series.Randomize())
 		    {
@@ -637,11 +638,11 @@ namespace JMMServer.PlexAndKodi
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return GetRandomFanartFromSeries(series, session);
+				return GetRandomFanartFromSeries(series, session.Wrap());
 			}
 		}
 
-        public static string GetRandomFanartFromSeries(List<AnimeSeries> series, ISession session)
+        public static string GetRandomFanartFromSeries(List<AnimeSeries> series, ISessionWrapper session)
         {
             foreach (AnimeSeries ser in series.Randomize())
             {
@@ -666,7 +667,7 @@ namespace JMMServer.PlexAndKodi
             return null;
         }
 
-        public static Video GenerateFromAnimeGroup(ISession session, AnimeGroup grp, int userid,
+        public static Video GenerateFromAnimeGroup(ISessionWrapper session, AnimeGroup grp, int userid,
             List<AnimeSeries> allSeries)
         {
             Contract_AnimeGroup cgrp = grp.GetUserContract(userid);
@@ -857,12 +858,13 @@ namespace JMMServer.PlexAndKodi
         {
             using (ISession session = JMMService.SessionFactory.OpenSession())
             {
+                ISessionWrapper sessionWrapper = session.Wrap();
                 Contract_AniDBAnime anime = ser.AniDBAnime.AniDBAnime;
                 p.Id = ser.AnimeSeriesID.ToString();
                 p.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeSerie.ToString();
                 if (ser.AniDBAnime.AniDBAnime.Restricted > 0)
                     p.ContentRating = "R";
-                p.Title = aser.GetSeriesName(session);
+                p.Title = aser.GetSeriesName(sessionWrapper);
                 p.Summary = SummaryFromAnimeContract(ser);
                 p.Type = "show";
                 p.AirDate = DateTime.MinValue;

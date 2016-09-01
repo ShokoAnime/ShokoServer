@@ -2,6 +2,7 @@
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -158,7 +159,7 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
-        public AnimeSeries GetByID(ISession session, int id)
+        public AnimeSeries GetByID(ISessionWrapper session, int id)
         {
             return GetByID(id);
         }
@@ -168,7 +169,7 @@ namespace JMMServer.Repositories
             return AniDBIds.GetOne(id);
         }
 
-        public AnimeSeries GetByAnimeID(ISession session, int id)
+        public AnimeSeries GetByAnimeID(ISessionWrapper session, int id)
         {
             return GetByAnimeID(id);
         }

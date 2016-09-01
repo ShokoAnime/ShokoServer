@@ -7,6 +7,7 @@ using AniDBAPI;
 using JMMServer.Commands.AniDB;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 
 namespace JMMServer.Commands
 {
@@ -123,7 +124,7 @@ namespace JMMServer.Commands
                     {
                         using (var session = JMMService.SessionFactory.OpenSession())
                         {
-                            anime.UpdateContractDetailed(session);
+                            anime.UpdateContractDetailed(session.Wrap());
                         }
                     }
                     AnimeSeries series = repo.GetByAnimeID(aniFile.AnimeID);

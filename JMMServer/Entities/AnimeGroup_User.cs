@@ -4,6 +4,7 @@ using JMMContracts.PlexAndKodi;
 using JMMServer.LZ4;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NLog;
 
 namespace JMMServer.Entities
@@ -128,12 +129,13 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
+                ISessionWrapper sessionWrapper = session.Wrap();
                 AnimeGroupRepository repo = new AnimeGroupRepository();
                 AnimeGroup grp = repo.GetByID(AnimeGroupID);
                 if (grp == null)
                     return;
-                List<AnimeSeries> series = grp.GetAllSeries(session);
-                PlexContract = Helper.GenerateFromAnimeGroup(session, grp, JMMUserID, series);
+                List<AnimeSeries> series = grp.GetAllSeries(sessionWrapper);
+                PlexContract = Helper.GenerateFromAnimeGroup(sessionWrapper, grp, JMMUserID, series);
             }
         }
 

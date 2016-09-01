@@ -1,5 +1,6 @@
 ﻿using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -16,11 +17,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetMovieDB_Movie(session);
+                return GetMovieDB_Movie(session.Wrap());
             }
         }
 
-        public MovieDB_Movie GetMovieDB_Movie(ISession session)
+        public MovieDB_Movie GetMovieDB_Movie(ISessionWrapper session)
         {
             if (CrossRefType != (int) JMMServer.CrossRefType.MovieDB)
                 return null;

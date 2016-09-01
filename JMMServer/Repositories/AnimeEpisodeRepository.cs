@@ -5,6 +5,7 @@ using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.PlexAndKodi;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 
@@ -112,7 +113,7 @@ namespace JMMServer.Repositories
             return Series.GetMultiple(seriesid);
         }
 
-        public List<AnimeEpisode> GetBySeriesID(ISession session, int seriesid)
+        public List<AnimeEpisode> GetBySeriesID(ISessionWrapper session, int seriesid)
         {
             return GetBySeriesID(seriesid);
         }

@@ -13,6 +13,7 @@ using JMMServer.Providers.MyAnimeList;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NLog;
 using CrossRef_File_Episode = JMMServer.Entities.CrossRef_File_Episode;
 
@@ -143,6 +144,7 @@ namespace JMMServer
             AniDB_FileRepository repFiles=new AniDB_FileRepository();
             using (var session = JMMService.SessionFactory.OpenSession())
             {
+                ISessionWrapper sessionWrapper = session.Wrap();
                 List<VideoLocal> allfiles = repVidLocals.GetAll().ToList();
                 List<VideoLocal> missfiles = allfiles.Where(
                             a =>
@@ -153,7 +155,7 @@ namespace JMMServer
                 //Check if we can populate md5,sha and crc from AniDB_Files
                 foreach (VideoLocal v in missfiles.ToList())
                 {
-                    AniDB_File file = repFiles.GetByHash(session,v.ED2KHash);
+                    AniDB_File file = repFiles.GetByHash(sessionWrapper,v.ED2KHash);
                     if (file != null)
                     {
                         if (!string.IsNullOrEmpty(file.CRC) && !string.IsNullOrEmpty(file.SHA1) &&

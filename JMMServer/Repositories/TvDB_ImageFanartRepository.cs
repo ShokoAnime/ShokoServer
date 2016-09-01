@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -24,11 +25,11 @@ namespace JMMServer.Repositories
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetByID(session, id);
+                return GetByID(session.Wrap(), id);
             }
         }
 
-        public TvDB_ImageFanart GetByID(ISession session, int id)
+        public TvDB_ImageFanart GetByID(ISessionWrapper session, int id)
         {
             return session.Get<TvDB_ImageFanart>(id);
         }
@@ -49,11 +50,11 @@ namespace JMMServer.Repositories
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetBySeriesID(session, seriesID);
+                return GetBySeriesID(session.Wrap(), seriesID);
             }
         }
 
-        public List<TvDB_ImageFanart> GetBySeriesID(ISession session, int seriesID)
+        public List<TvDB_ImageFanart> GetBySeriesID(ISessionWrapper session, int seriesID)
         {
             var objs = session
                 .CreateCriteria(typeof(TvDB_ImageFanart))

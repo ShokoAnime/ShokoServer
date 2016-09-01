@@ -7,6 +7,7 @@ using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using Stream = JMMContracts.PlexAndKodi.Stream;
 
@@ -97,11 +98,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetAnimeSeries(session);
+                return GetAnimeSeries(session.Wrap());
             }
         }
 
-        public AnimeSeries GetAnimeSeries(ISession session)
+        public AnimeSeries GetAnimeSeries(ISessionWrapper session)
         {
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
             return repSeries.GetByID(session, this.AnimeSeriesID);

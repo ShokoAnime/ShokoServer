@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -32,11 +33,11 @@ namespace JMMServer.Repositories
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetByAnimeIDAndType(session, animeID, xrefType);
+                return GetByAnimeIDAndType(session.Wrap(), animeID, xrefType);
             }
         }
 
-        public CrossRef_AniDB_Other GetByAnimeIDAndType(ISession session, int animeID, CrossRefType xrefType)
+        public CrossRef_AniDB_Other GetByAnimeIDAndType(ISessionWrapper session, int animeID, CrossRefType xrefType)
         {
             CrossRef_AniDB_Other cr = session
                 .CreateCriteria(typeof(CrossRef_AniDB_Other))

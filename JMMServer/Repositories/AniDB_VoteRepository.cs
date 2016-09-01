@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -111,6 +114,24 @@ namespace JMMServer.Repositories
             }
 
             return null;
+        }
+
+        public Dictionary<int, AniDB_Vote> GetByAnimeIDs(ISessionWrapper session, ICollection<int> animeIDs)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (animeIDs == null)
+                throw new ArgumentNullException(nameof(animeIDs));
+
+            var votesByAnime = session
+                .CreateCriteria<AniDB_Vote>()
+                .Add(Restrictions.InG(nameof(AniDB_Vote.EntityID), animeIDs))
+                .Add(Restrictions.In(nameof(AniDB_Vote.VoteType), new[] { (int)AniDBVoteType.Anime, (int)AniDBVoteType.AnimeTemp }))
+                .List<AniDB_Vote>()
+                .GroupBy(v => v.EntityID)
+                .ToDictionary(g => g.Key, g => g.FirstOrDefault());
+
+            return votesByAnime;
         }
 
         public void Delete(int id)
