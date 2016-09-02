@@ -596,7 +596,30 @@ namespace JMMServer.PlexAndKodi
             v.IsMovie = ret;
         }
 
-        public static IEnumerable<T> Randomize<T>(this IEnumerable<T> source, int seed = -1)
+	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series)
+	    {
+		    using (var session = JMMService.SessionFactory.OpenSession())
+		    {
+			    return GetRandomBannerFromSeries(series, session);
+		    }
+	    }
+
+	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, ISession session)
+	    {
+		    foreach (AnimeSeries ser in series.Randomize())
+		    {
+			    AniDB_Anime anim = ser.GetAnime(session);
+			    if (anim != null)
+			    {
+				    ImageDetails banner = anim.GetDefaultWideBannerDetailsNoBlanks(session);
+				    if (banner != null)
+					    return banner.GenArt();
+			    }
+		    }
+		    return null;
+	    }
+
+	    public static IEnumerable<T> Randomize<T>(this IEnumerable<T> source, int seed = -1)
         {
 			Random rnd;
 			if (seed == -1)

@@ -185,8 +185,9 @@ namespace JMMServer.PlexAndKodi
                         if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                         {
                             var anime = repo.GetByID(session, episodeID).GetAnimeSeries(session).GetAnime(session);
-                            dir.Thumb = anime.GetDefaultPosterDetailsNoBlanks(session).GenPoster();
-                            dir.Art = anime.GetDefaultFanartDetailsNoBlanks(session).GenArt();
+                            dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks(session)?.GenPoster();
+                            dir.Art = anime?.GetDefaultFanartDetailsNoBlanks(session)?.GenArt();
+	                        dir.Banner = anime?.GetDefaultWideBannerDetailsNoBlanks(session)?.GenArt();
                         }
                         else
                         {
@@ -459,10 +460,10 @@ namespace JMMServer.PlexAndKodi
                         a =>
                             a.Contract != null && a.Contract.AniDBAnime != null &&
                             a.Contract.AniDBAnime.AniDBAnime != null &&
-                            a.Contract.AniDBAnime.AniDBAnime.AllTags.Contains(query,
+                            (a.Contract.AniDBAnime.AniDBAnime.AllTags.Contains(query,
                                 StringComparer.InvariantCultureIgnoreCase) ||
                             a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName)
-                                .Contains(query, StringComparer.InvariantCultureIgnoreCase))
+                                .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
                 : repSeries.GetAll()
                     .Where(
                         a =>
@@ -541,10 +542,12 @@ namespace JMMServer.PlexAndKodi
 						{
 							AnimeSeries ser = repSer.GetByID(grpChild.DefaultAnimeSeriesID.Value);
 							v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser });
+							v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() {ser});
 						}
 						else
 						{
 							v.Art = Helper.GetRandomFanartFromSeries(grpChild.GetAllSeries());
+							v.Banner = Helper.GetRandomBannerFromSeries(grpChild.GetAllSeries());
 						}
                         retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
@@ -563,10 +566,12 @@ namespace JMMServer.PlexAndKodi
 						{
 							AnimeSeries ser1 = repSer.GetByID(grp.DefaultAnimeSeriesID.Value);
 							v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser1 });
+							v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() {ser1});
 						}
 						else
 						{
 							v.Art = Helper.GetRandomFanartFromSeries(grp.GetAllSeries());
+							v.Banner = Helper.GetRandomBannerFromSeries(grp.GetAllSeries());
 						}
 						retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
@@ -1168,10 +1173,12 @@ namespace JMMServer.PlexAndKodi
 									AnimeSeriesRepository repSer = new AnimeSeriesRepository();
 									AnimeSeries ser1 = repSer.GetByID(grp.DefaultAnimeSeriesID.Value);
 									v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser1 });
+									v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() {ser1});
 								}
 								else
 								{
 									v.Art = Helper.GetRandomFanartFromSeries(grp.GetAllSeries());
+									v.Banner = Helper.GetRandomBannerFromSeries(grp.GetAllSeries());
 								}
 								order.Add(v.Group, v);
                                 retGroups.Add(prov, v, info);

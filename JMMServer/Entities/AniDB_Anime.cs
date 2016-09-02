@@ -921,7 +921,60 @@ namespace JMMServer.Entities
             return repDefaults.GetByAnimeIDAndImagezSizeType(session, this.AnimeID, (int) ImageSizeType.WideBanner);
         }
 
-        public string AnimeTypeRAW
+	    public ImageDetails GetDefaultWideBannerDetailsNoBlanks(ISession session)
+	    {
+		    Random bannerRandom = new Random();
+
+		    ImageDetails details = null;
+		    if (GetDefaultWideBanner() == null)
+		    {
+			    // get a random banner (only tvdb)
+			    if (this.AnimeTypeEnum == enAnimeType.Movie)
+			    {
+				    // MovieDB doesn't have banners
+				    return null;
+			    }
+			    else
+			    {
+				    List<TvDB_ImageWideBanner> banners = GetTvDBImageWideBanners(session);
+				    if (banners.Count == 0) return null;
+
+				    TvDB_ImageWideBanner tvBanner = banners[bannerRandom.Next(0, banners.Count)];
+				    details = new ImageDetails()
+				    {
+					    ImageType = JMMImageType.TvDB_Banner,
+					    ImageID = tvBanner.TvDB_ImageWideBannerID
+				    };
+				    return details;
+			    }
+		    }
+		    else
+		    {
+			    ImageEntityType imageType = (ImageEntityType) GetDefaultWideBanner().ImageParentType;
+
+			    switch (imageType)
+			    {
+				    case ImageEntityType.TvDB_Banner:
+
+					    TvDB_ImageWideBannerRepository repTvBanner = new TvDB_ImageWideBannerRepository();
+					    TvDB_ImageWideBanner tvBanner = repTvBanner.GetByID(session,
+						    GetDefaultWideBanner(session).ImageParentID);
+					    if (tvBanner != null)
+						    details = new ImageDetails()
+						    {
+							    ImageType = JMMImageType.TvDB_Banner,
+							    ImageID = tvBanner.TvDB_ImageWideBannerID
+						    };
+
+					    return details;
+
+			    }
+		    }
+
+		    return null;
+	    }
+
+	    public string AnimeTypeRAW
         {
             get
             {
