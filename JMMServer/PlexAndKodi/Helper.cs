@@ -700,8 +700,8 @@ namespace JMMServer.PlexAndKodi
                 Contract_AnimeSeries cserie = ser?.GetUserContract(userid);
                 Video v = FromGroup(cgrp, cserie, userid, subgrpcnt);
                 v.Group = cgrp;
-                v.AirDate = cgrp.Stat_AirDate_Min.HasValue ? cgrp.Stat_AirDate_Min.Value : DateTime.MinValue;
-                v.UpdatedAt = cgrp.LatestEpisodeAirDate.HasValue ? cgrp.LatestEpisodeAirDate.Value.ToUnixTime() : null;
+                v.AirDate = cgrp.Stat_AirDate_Min ?? DateTime.MinValue;
+                v.UpdatedAt = cgrp.LatestEpisodeAirDate?.ToUnixTime();
 	            v.Rating = "" + Math.Round((grp.AniDBRating / 100), 1);
 	            List<Tag> newTags = new List<Tag>();
 	            foreach (AniDB_Tag tag in grp.Tags)
