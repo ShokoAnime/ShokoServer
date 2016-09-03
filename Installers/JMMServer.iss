@@ -112,6 +112,7 @@ Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMS
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8112/JMMFilePort user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
 Filename: "{app}\JMMServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,JMM Server}"
+Filename: "http://jmediamanager.org/version-3-6-brings-speed-and-streaming/"; Flags: shellexec runasoriginaluser postinstall; Description: "View Release Notes"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
