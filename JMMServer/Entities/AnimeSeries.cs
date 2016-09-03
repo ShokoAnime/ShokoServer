@@ -449,8 +449,9 @@ namespace JMMServer.Entities
 				List<AnimeEpisode> eps = GetAnimeEpisodes();
 				if (eps != null && eps.Count > 0)
 				{
-					eps.OrderBy(a => a.AniDB_Episode.AirDateAsDate ?? DateTime.MaxValue);
-					AnimeEpisode ep = eps.First(a => a.AniDB_Episode?.AirDateAsDate != null);
+					// Should be redundant, but just in case, as resharper warned me
+					eps = eps.OrderBy(a => a.AniDB_Episode.AirDateAsDate ?? DateTime.MaxValue).ToList();
+					AnimeEpisode ep = eps.Find(a => a.AniDB_Episode?.AirDateAsDate != null);
 					if (ep != null)
 						return ep.AniDB_Episode.AirDateAsDate.Value;
 				}

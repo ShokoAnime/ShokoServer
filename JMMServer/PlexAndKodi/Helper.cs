@@ -694,14 +694,14 @@ namespace JMMServer.PlexAndKodi
             {
                 AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue
                     ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value)
-                    : allSeries.FirstOrDefault(a => a.AirDate != DateTime.MinValue);
+                    : allSeries.Find(a => a.AirDate != DateTime.MinValue);
 	            if ((ser == null) && (allSeries!=null && allSeries.Count>0))
                     ser = allSeries[0];
                 Contract_AnimeSeries cserie = ser?.GetUserContract(userid);
                 Video v = FromGroup(cgrp, cserie, userid, subgrpcnt);
                 v.Group = cgrp;
-                v.AirDate = cgrp.Stat_AirDate_Min.HasValue ? cgrp.Stat_AirDate_Min.Value : DateTime.MinValue;
-                v.UpdatedAt = cgrp.LatestEpisodeAirDate.HasValue ? cgrp.LatestEpisodeAirDate.Value.ToUnixTime() : null;
+                v.AirDate = cgrp.Stat_AirDate_Min ?? DateTime.MinValue;
+                v.UpdatedAt = cgrp.LatestEpisodeAirDate?.ToUnixTime();
 	            v.Rating = "" + Math.Round((grp.AniDBRating / 100), 1);
 	            List<Tag> newTags = new List<Tag>();
 	            foreach (AniDB_Tag tag in grp.Tags)

@@ -12,8 +12,8 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}
 AppName=JMM Server
-AppVersion=3.6.0.2
-;AppVerName=JMM Server 3.6.0.2
+AppVersion=3.6.0.3
+;AppVerName=JMM Server 3.6.0.3
 AppPublisher=JMM
 AppPublisherURL=https://github.com/japanesemediamanager
 AppSupportURL=https://github.com/japanesemediamanager
@@ -102,16 +102,16 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\JMM Server"; Filen
 [Run]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerImage user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerBinary user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetro user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetroImage user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerPlex user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerKodi user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerREST user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8112/JMMFilePort user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service..";
-Filename: "{app}\JMMServer.exe"; Flags: nowait postinstall skipifsilent; Description: "{cm:LaunchProgram,JMM Server}"
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerImage user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerBinary user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetro user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetroImage user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerPlex user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerKodi user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerREST user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8112/JMMFilePort user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{app}\JMMServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,JMM Server}"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
