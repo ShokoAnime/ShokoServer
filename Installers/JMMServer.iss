@@ -12,8 +12,8 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}
 AppName=JMM Server
-AppVersion=3.6.0.2
-;AppVerName=JMM Server 3.6.0.2
+AppVersion=3.6.0.3
+;AppVerName=JMM Server 3.6.0.3
 AppPublisher=JMM
 AppPublisherURL=https://github.com/japanesemediamanager
 AppSupportURL=https://github.com/japanesemediamanager
