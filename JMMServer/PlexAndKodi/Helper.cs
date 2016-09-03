@@ -695,7 +695,8 @@ namespace JMMServer.PlexAndKodi
                 AnimeSeries ser = grp.DefaultAnimeSeriesID.HasValue
                     ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value)
                     : allSeries.FirstOrDefault(a => a.AirDate != DateTime.MinValue);
-	            if (ser == null) ser = allSeries[0];
+	            if ((ser == null) && (allSeries!=null && allSeries.Count>0))
+                    ser = allSeries[0];
                 Contract_AnimeSeries cserie = ser?.GetUserContract(userid);
                 Video v = FromGroup(cgrp, cserie, userid, subgrpcnt);
                 v.Group = cgrp;
@@ -711,39 +712,42 @@ namespace JMMServer.PlexAndKodi
 		            if(!newTags.Contains(newTag)) newTags.Add(newTag);
 	            }
 	            v.Genres = newTags;
-	            List<AnimeTitle> newTitles = new List<AnimeTitle>();
-	            foreach (AniDB_Anime_Title title in ser.GetAnime(session).GetTitles())
-	            {
-		            AnimeTitle newTitle = new AnimeTitle();
-		            newTitle.Title = title.Title;
-		            newTitle.Language = title.Language;
-		            newTitle.Type = title.TitleType;
-		            newTitles.Add(newTitle);
-	            }
-	            v.Titles = newTitles;
-	            
-	            v.Roles = new List<RoleTag>();
-                
-				//TODO Character implementation is limited in JMM, One Character, could have more than one Seiyuu
-				if (ser.GetAnime(session).Contract?.AniDBAnime?.Characters != null)
-				{
-					foreach (Contract_AniDB_Character c in ser.GetAnime(session).Contract.AniDBAnime.Characters)
-					{
-						string ch = c?.CharName;
-						Contract_AniDB_Seiyuu seiyuu = c?.Seiyuu;
-						if (!string.IsNullOrEmpty(ch))
-						{
-							RoleTag t = new RoleTag();
-							t.Value = seiyuu?.SeiyuuName;
-							if (seiyuu != null)
-								t.TagPicture = Helper.ConstructSeiyuuImage(seiyuu.AniDB_SeiyuuID);
-							t.Role = ch;
-							t.RoleDescription = c?.CharDescription;
-							t.RolePicture = Helper.ConstructCharacterImage(c.CharID);
-							v.Roles.Add(t);
-						}
-					}
-				}
+                if (ser != null)
+                {
+                    List<AnimeTitle> newTitles = new List<AnimeTitle>();
+                    foreach (AniDB_Anime_Title title in ser.GetAnime(session).GetTitles())
+                    {
+                        AnimeTitle newTitle = new AnimeTitle();
+                        newTitle.Title = title.Title;
+                        newTitle.Language = title.Language;
+                        newTitle.Type = title.TitleType;
+                        newTitles.Add(newTitle);
+                    }
+                    v.Titles = newTitles;
+
+                    v.Roles = new List<RoleTag>();
+
+                    //TODO Character implementation is limited in JMM, One Character, could have more than one Seiyuu
+                    if (ser.GetAnime(session).Contract?.AniDBAnime?.Characters != null)
+                    {
+                        foreach (Contract_AniDB_Character c in ser.GetAnime(session).Contract.AniDBAnime.Characters)
+                        {
+                            string ch = c?.CharName;
+                            Contract_AniDB_Seiyuu seiyuu = c?.Seiyuu;
+                            if (!string.IsNullOrEmpty(ch))
+                            {
+                                RoleTag t = new RoleTag();
+                                t.Value = seiyuu?.SeiyuuName;
+                                if (seiyuu != null)
+                                    t.TagPicture = Helper.ConstructSeiyuuImage(seiyuu.AniDB_SeiyuuID);
+                                t.Role = ch;
+                                t.RoleDescription = c?.CharDescription;
+                                t.RolePicture = Helper.ConstructCharacterImage(c.CharID);
+                                v.Roles.Add(t);
+                            }
+                        }
+                    }
+                }
                 return v;
             }
             return null;
