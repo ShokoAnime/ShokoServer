@@ -697,6 +697,8 @@ namespace JMMServer.PlexAndKodi
                     : allSeries.FirstOrDefault(a => a.AirDate != DateTime.MinValue);
 	            if ((ser == null) && (allSeries!=null && allSeries.Count>0))
                     ser = allSeries[0];
+                    : allSeries.Find(a => a.AirDate != DateTime.MinValue);
+	            if (ser == null) ser = allSeries[0];
                 Contract_AnimeSeries cserie = ser?.GetUserContract(userid);
                 Video v = FromGroup(cgrp, cserie, userid, subgrpcnt);
                 v.Group = cgrp;
