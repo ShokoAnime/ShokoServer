@@ -120,7 +120,7 @@ namespace JMMServer.PlexAndKodi
             }
         }
 
-        public MediaContainer GetMetadata(IProvider prov, string UserId, string TypeId, string Id, string historyinfo)
+        public MediaContainer GetMetadata(IProvider prov, string UserId, string TypeId, string Id, string historyinfo, bool nocast=false)
         {
             try
             {
@@ -133,13 +133,13 @@ namespace JMMServer.PlexAndKodi
                 switch ((JMMType) type)
                 {
                     case JMMType.Group:
-                        return GetItemsFromGroup(prov, user.JMMUserID, Id, his);
+                        return GetItemsFromGroup(prov, user.JMMUserID, Id, his, nocast);
                     case JMMType.GroupFilter:
-                        return GetGroupsOrSubFiltersFromFilter(prov, user.JMMUserID, Id, his);
+                        return GetGroupsOrSubFiltersFromFilter(prov, user.JMMUserID, Id, his, nocast);
                     case JMMType.GroupUnsort:
                         return GetUnsort(prov, user.JMMUserID, his);
                     case JMMType.Serie:
-                        return GetItemsFromSerie(prov, user.JMMUserID, Id, his);
+                        return GetItemsFromSerie(prov, user.JMMUserID, Id, his, nocast);
                     case JMMType.Episode:
                         return GetFromEpisode(prov, user.JMMUserID, Id, his);
                     case JMMType.File:
@@ -511,7 +511,7 @@ namespace JMMServer.PlexAndKodi
             return ret.GetStream(prov);
         }
 
-        public MediaContainer GetItemsFromGroup(IProvider prov, int userid, string GroupId, BreadCrumbs info)
+        public MediaContainer GetItemsFromGroup(IProvider prov, int userid, string GroupId, BreadCrumbs info, bool nocast)
         {
             int groupID;
             int.TryParse(GroupId, out groupID);
@@ -549,7 +549,8 @@ namespace JMMServer.PlexAndKodi
 							v.Art = Helper.GetRandomFanartFromSeries(grpChild.GetAllSeries());
 							v.Banner = Helper.GetRandomBannerFromSeries(grpChild.GetAllSeries());
 						}
-                        retGroups.Add(prov, v, info);
+						if (nocast) v.Roles = null;
+						retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
                     }
                 }
@@ -981,7 +982,7 @@ namespace JMMServer.PlexAndKodi
                     v.Roles = null;
             }
         }
-        public MediaContainer GetItemsFromSerie(IProvider prov, int userid, string SerieId, BreadCrumbs info)
+        public MediaContainer GetItemsFromSerie(IProvider prov, int userid, string SerieId, BreadCrumbs info, bool nocast)
         {
             BaseObject ret = null;
             enEpisodeType? eptype = null;
@@ -1090,7 +1091,8 @@ namespace JMMServer.PlexAndKodi
                         Video v = Helper.VideoFromAnimeEpisode(prov, cseries.CrossRefAniDBTvDBV2, ep, userid);
                         if (v!=null && v.Medias != null && v.Medias.Count > 0)
                         {
-                            Helper.AddInformationFromMasterSeries(v, cseries, nv, hasRoles);
+							if (nocast && !hasRoles) hasRoles = true;
+							Helper.AddInformationFromMasterSeries(v, cseries, nv, hasRoles);
                             v.Type = "episode";
                             vids.Add(prov, v, info);
                             if (prov.ConstructFakeIosParent)
@@ -1113,7 +1115,7 @@ namespace JMMServer.PlexAndKodi
         }
 
         private MediaContainer GetGroupsOrSubFiltersFromFilter(IProvider prov, int userid, string GroupFilterId,
-            BreadCrumbs info)
+            BreadCrumbs info, bool nocast)
         {
             //List<Joint> retGroups = new List<Joint>();
             try
@@ -1180,6 +1182,7 @@ namespace JMMServer.PlexAndKodi
 									v.Art = Helper.GetRandomFanartFromSeries(grp.GetAllSeries());
 									v.Banner = Helper.GetRandomBannerFromSeries(grp.GetAllSeries());
 								}
+								if (nocast) v.Roles = null;
 								order.Add(v.Group, v);
                                 retGroups.Add(prov, v, info);
                                 v.ParentThumb = v.GrandparentThumb = null;

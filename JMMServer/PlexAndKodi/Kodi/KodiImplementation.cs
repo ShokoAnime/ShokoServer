@@ -21,7 +21,12 @@ namespace JMMServer.PlexAndKodi.Kodi
             return _impl.GetMetadata(_prov, userid, typeid, id, null);
         }
 
-        public Response GetVersion()
+		public MediaContainer GetMetadataNoCast(string userid, string typeid, string id)
+		{
+			return _impl.GetMetadata(_prov, userid, typeid, id, null, true);
+		}
+
+		public Response GetVersion()
         {
             return _impl.GetVersion(_prov);
         }
