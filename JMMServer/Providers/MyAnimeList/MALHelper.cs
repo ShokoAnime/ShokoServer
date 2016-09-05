@@ -630,9 +630,9 @@ namespace JMMServer.Providers.MyAnimeList
             string fanSubs)
         {
             // now modify back to proper status
-            if (!ModifyAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs))
+            if (!AddAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs))
             {
-                return AddAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs);
+                return ModifyAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs);
             }
             return true;
         }
