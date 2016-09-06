@@ -546,8 +546,9 @@ namespace JMMServer.PlexAndKodi
 						}
 						else
 						{
-							v.Art = Helper.GetRandomFanartFromSeries(grpChild.GetAllSeries());
-							v.Banner = Helper.GetRandomBannerFromSeries(grpChild.GetAllSeries());
+							List<AnimeSeries> seriesList = grp.GetAllSeries(true);
+							v.Art = Helper.GetRandomFanartFromSeries(seriesList);
+							v.Banner = Helper.GetRandomBannerFromSeries(seriesList);
 						}
 						if (nocast) v.Roles = null;
 						retGroups.Add(prov, v, info);
@@ -1179,8 +1180,9 @@ namespace JMMServer.PlexAndKodi
 								}
 								else
 								{
-									v.Art = Helper.GetRandomFanartFromSeries(grp.GetAllSeries());
-									v.Banner = Helper.GetRandomBannerFromSeries(grp.GetAllSeries());
+									List<AnimeSeries> seriesList = grp.GetAllSeries(true);
+									v.Art = Helper.GetRandomFanartFromSeries(seriesList);
+									v.Banner = Helper.GetRandomBannerFromSeries(seriesList);
 								}
 								if (nocast) v.Roles = null;
 								order.Add(v.Group, v);

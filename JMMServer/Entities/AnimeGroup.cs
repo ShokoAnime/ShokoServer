@@ -545,7 +545,7 @@ namespace JMMServer.Entities
             return seriesList;
         }
 
-        /*[XmlIgnore]
+		/*[XmlIgnore]
 		public List<AnimeSeries> AllSeries
 		{
 			get
@@ -557,18 +557,19 @@ namespace JMMServer.Entities
 			}
 		}*/
 
-        public List<AnimeSeries> GetAllSeries()
+		public List<AnimeSeries> GetAllSeries(bool skipSorting=false)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetAllSeries(session);
+                return GetAllSeries(session, skipSorting);
             }
         }
 
-        public List<AnimeSeries> GetAllSeries(ISession session)
+        public List<AnimeSeries> GetAllSeries(ISession session, bool skipSorting=false)
         {
             List<AnimeSeries> seriesList = new List<AnimeSeries>();
             AnimeGroup.GetAnimeSeriesRecursive(session, this.AnimeGroupID, ref seriesList);
+			if (skipSorting) return seriesList;
 
             return seriesList.OrderBy(a => a.AirDate).ToList();
         }
