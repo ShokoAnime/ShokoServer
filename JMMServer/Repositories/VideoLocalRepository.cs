@@ -7,6 +7,7 @@ using JMMServer.Entities;
 using JMMServer.PlexAndKodi;
 using NHibernate;
 using NutzCode.InMemoryIndex;
+using System.Globalization;
 
 namespace JMMServer.Repositories
 {
@@ -21,7 +22,7 @@ namespace JMMServer.Repositories
         public static void InitCache()
         {
             string t = "VideoLocal";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             VideoLocalRepository repo = new VideoLocalRepository();
             Cache = new PocoCache<int, VideoLocal>(repo.InternalGetAll(), a => a.VideoLocalID);
             Hashes = new PocoIndex<int, VideoLocal, string>(Cache, a => a.Hash);
@@ -47,11 +48,11 @@ namespace JMMServer.Repositories
                 cnt++;
                 if (cnt%10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                 " DbRegen - " + max + "/" + max);
         }
 
@@ -133,7 +134,11 @@ namespace JMMServer.Repositories
 
         public List<VideoLocal> GetByName(string fileName)
         {
-            return Paths.GetMultiple(fileName);
+            //return Paths.GetMultiple(fileName);
+            //return Cache.Values.Where(store => store.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase)).ToList();
+
+            return Cache.Values.Where(p => CultureInfo.CurrentCulture.CompareInfo.IndexOf
+             (p.FilePath, fileName, CompareOptions.IgnoreCase) >= 0).ToList();
         }
 
         public List<VideoLocal> GetMostRecentlyAdded(int maxResults)

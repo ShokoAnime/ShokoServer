@@ -26,7 +26,7 @@ namespace JMMServer.Repositories
         public static List<GroupFilter> InitCache()
         {
             string t = "GroupFilter";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
 
             GroupFilterConditionRepository repConds = new GroupFilterConditionRepository();
 
@@ -59,7 +59,7 @@ namespace JMMServer.Repositories
         public static void InitCacheSecondPart(List<GroupFilter> recalc)
         {
             string t = "GroupFilter";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             GroupFilterRepository repo = new GroupFilterRepository();
             foreach (GroupFilter g in Cache.Values.ToList())
             {
@@ -76,7 +76,7 @@ namespace JMMServer.Repositories
             foreach (GroupFilter gf in recalc)
             {
                 cnt++;
-                ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                     Properties.Resources.Filter_Recalc + " " + gf.GroupFilterName + " - " + cnt + "/" + max);
                 if (gf.GroupsIdsVersion < GroupFilter.GROUPFILTER_VERSION ||
                     gf.GroupConditionsVersion < GroupFilter.GROUPCONDITIONS_VERSION)
@@ -105,7 +105,7 @@ namespace JMMServer.Repositories
                 //Continue Watching
                 // check if it already exists
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " " + Properties.Resources.Filter_CreateContinueWatching);
+                ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, " " + Properties.Resources.Filter_CreateContinueWatching);
 
                 GroupFilter cwatching =
                     lockedGFs.FirstOrDefault(
@@ -113,13 +113,13 @@ namespace JMMServer.Repositories
                             a.FilterType == (int)GroupFilterType.ContinueWatching);
                 if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " " + Properties.Resources.Filter_CreateContinueWatching);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, " " + Properties.Resources.Filter_CreateContinueWatching);
                     cwatching.FilterType = (int) GroupFilterType.ContinueWatching;
                     repFilters.Save(cwatching);
                 }
                 else if (cwatching == null)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " " + Properties.Resources.Filter_CreateContinueWatching);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, " " + Properties.Resources.Filter_CreateContinueWatching);
                     GroupFilter gf = new GroupFilter();
                     gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
                     gf.Locked = 1;
@@ -150,7 +150,7 @@ namespace JMMServer.Repositories
                 GroupFilter allfilter = lockedGFs.FirstOrDefault(a => a.FilterType == (int) GroupFilterType.All);
                 if (allfilter == null)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, " " + Properties.Resources.Filter_CreateAll);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, " " + Properties.Resources.Filter_CreateAll);
                     GroupFilter gf = new GroupFilter
                     {
                         GroupFilterName = Properties.Resources.Filter_All,
@@ -229,7 +229,7 @@ namespace JMMServer.Repositories
                     {
                         cnt++;
                         if (frominit)
-                            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                                 Properties.Resources.Filter_CreatingTag + " '" + s + "'" + Properties.Resources.Filter_Filter + cnt + "/" + max);
                         GroupFilter yf = new GroupFilter
                         {
@@ -293,7 +293,7 @@ namespace JMMServer.Repositories
                     {
                         cnt++;
                         if (frominit)
-                            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                                 Properties.Resources.Filter_CreatingYear + " '" + s + "'  " + Properties.Resources.Filter_Filter + cnt + "/" + max);
                         GroupFilter yf = new GroupFilter
                         {

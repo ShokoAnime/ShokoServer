@@ -438,13 +438,24 @@ namespace JMMServer.Entities
             return anidb_anime;
         }
 
-        public DateTime? AirDate
+        public DateTime AirDate
         {
             get
             {
                 if (GetAnime() != null)
-                    return GetAnime().AirDate;
-                return DateTime.Now;
+					if(GetAnime().AirDate.HasValue)
+						return GetAnime().AirDate.Value;
+				// This will be slower, but hopefully more accurate
+				List<AnimeEpisode> eps = GetAnimeEpisodes();
+				if (eps != null && eps.Count > 0)
+				{
+					// Should be redundant, but just in case, as resharper warned me
+					eps = eps.OrderBy(a => a.AniDB_Episode.AirDateAsDate ?? DateTime.MaxValue).ToList();
+					AnimeEpisode ep = eps.Find(a => a.AniDB_Episode?.AirDateAsDate != null);
+					if (ep != null)
+						return ep.AniDB_Episode.AirDateAsDate.Value;
+				}
+                return DateTime.MinValue;
             }
         }
 
@@ -1165,7 +1176,8 @@ namespace JMMServer.Entities
                     }
                     DateTime? airdate = ep.AniDB_Episode.AirDateAsDate;
 
-                    if (airdate.HasValue)
+	                // Only count episodes that have already aired
+                    if (airdate.HasValue && !(airdate > DateTime.Now))
                     {
                         if (lastEpAirDate < airdate.Value)
                             lastEpAirDate = airdate.Value;

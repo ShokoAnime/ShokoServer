@@ -196,7 +196,7 @@ namespace JMMServer
                                  "INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
                                  "GROUP BY ae.AnimeSeriesID " +
                                  "ORDER BY MaxDate desc ";
-                    ArrayList results = DatabaseHelper.GetData(sql);
+                    ArrayList results = DatabaseExtensions.Instance.GetData(sql);
 
                     int numEps = 0;
                     foreach (object[] res in results)
@@ -257,7 +257,7 @@ namespace JMMServer
                                  "INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
                                  "GROUP BY ae.AnimeSeriesID " +
                                  "ORDER BY MaxDate desc ";
-                    ArrayList results = DatabaseHelper.GetData(sql);
+                    ArrayList results = DatabaseExtensions.Instance.GetData(sql);
 
                     int numEps = 0;
                     foreach (object[] res in results)

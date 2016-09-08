@@ -997,4 +997,10 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="ImportFolders_DDNote" xml:space="preserve">
     <value>S’il vous plaît noter, mise à jour de votre destination de goutte ne touchent que nouvelle série ajoutée. Ne souffrira pas série que vous avez déjà importé.</value>
   </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>Nouvelle Version détectée. Sauvegarde de base de données en cours...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>La Version de base de données est plus grande que la version prise en charge par le serveur de JMM. Vous devez mettre à jour JMMServer.</value>
+  </data>
 </root>

@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:JMMServer"
         Title="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_ImportFolder}" Height="Auto"
-        Width="400" WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow"
-        SizeToContent="WidthAndHeight" Icon="/JMMServer;component/Images/24_folder.png">
+        Width="500" WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow"
+        SizeToContent="Height" Icon="/JMMServer;component/Images/24_folder.png">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -44,7 +44,7 @@
 
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="25" />
-                            <ColumnDefinition Width="335" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
                         <Image Height="16" Width="16" Source="/Images/32_info.png" Margin="5,2,4,0" Grid.Column="0" VerticalAlignment="Top" />

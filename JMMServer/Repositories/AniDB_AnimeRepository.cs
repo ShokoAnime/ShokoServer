@@ -46,7 +46,7 @@ namespace JMMServer.Repositories
         public static void InitCache()
         {
             string t = "AniDB_Anime";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             AniDB_AnimeRepository repo = new AniDB_AnimeRepository();
             using (var session = JMMService.SessionFactory.OpenSession())
             {
@@ -60,11 +60,11 @@ namespace JMMServer.Repositories
                     cnt++;
                     if (cnt%10 == 0)
                     {
-                        ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                             " DbRegen - " + cnt + "/" + max);
                     }
                 }
-                ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t,
+                ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t,
                     " DbRegen - " + max + "/" + max);
             }
         }

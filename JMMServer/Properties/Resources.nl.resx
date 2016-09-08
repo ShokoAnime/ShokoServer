@@ -997,4 +997,10 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="ImportFolders_DDNote" xml:space="preserve">
     <value>Houd er rekening mee, bijwerken van uw bestemming daling zal alleen van invloed op nieuwe serie wordt toegevoegd. Serie die u al hebt geïmporteerd, zal niet worden beïnvloed.</value>
   </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>Nieuwe versie gedetecteerd. De reservekopie van de database aan de gang...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>Versie van de Database is groter dan de versie die wordt ondersteund door JMM Server. U moet het bijwerken van JMMServer.</value>
+  </data>
 </root>
