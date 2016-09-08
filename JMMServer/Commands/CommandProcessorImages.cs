@@ -149,7 +149,8 @@ namespace JMMServer.Commands
         public void NotifyOfNewCommand()
         {
             // if the worker is busy, it will pick up the next command from the DB
-            if (processingCommands)
+            // do not pick new command if cancellation is requested
+            if (processingCommands || workerCommands.CancellationPending)
             {
                 //logger.Trace("NotifyOfNewCommand (images) exiting, worker already busy");
                 return;

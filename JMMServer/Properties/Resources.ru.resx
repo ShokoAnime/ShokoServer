@@ -997,4 +997,10 @@
   <data name="ImportFolders_DDNote" xml:space="preserve">
     <value>Обратите внимание, что обновление вашего назначения перетаскивания будет влиять только на новой серии добавляются. Серии, которые вы уже импортированы не будут затронуты.</value>
   </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>Обнаружена новая версия. Резервное копирование базы данных в ходе...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>Версия базы данных больше, чем поддерживаемые версии модели памяти JMM сервером. Вы должны обновить JMMServer.</value>
+  </data>
 </root>

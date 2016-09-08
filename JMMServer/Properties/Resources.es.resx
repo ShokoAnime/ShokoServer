@@ -997,4 +997,10 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="ImportFolders_DDNote" xml:space="preserve">
     <value>Tenga en cuenta que actualizar su destino de caída sólo afectará la nueva serie se añade. Series que ya has importado no será afectados.</value>
   </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>Nueva versión detectada. Backup de base de datos en curso...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>La versión de base de datos es más grande que la versión soportada por el servidor de JMM. Usted debe actualizar JMMServer.</value>
+  </data>
 </root>

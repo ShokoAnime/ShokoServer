@@ -753,47 +753,30 @@ namespace JMMServer.Entities
             Random fanartRandom = new Random();
 
             ImageDetails details = null;
-            if (GetDefaultFanart() == null)
+            if (GetDefaultFanart(session) == null)
             {
-                // get a random fanart (only tvdb)
-                if (this.AnimeTypeEnum == enAnimeType.Movie)
-                {
-                    List<MovieDB_Fanart> fanarts = GetMovieDBFanarts(session);
-                    if (fanarts.Count == 0) return null;
-
-                    MovieDB_Fanart movieFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                    details = new ImageDetails()
-                    {
-                        ImageType = JMMImageType.MovieDB_FanArt,
-                        ImageID = movieFanart.MovieDB_FanartID
-                    };
-                    return details;
-                }
-                else
-                {
-                    List<TvDB_ImageFanart> fanarts = GetTvDBImageFanarts(session);
-                    if (fanarts.Count == 0) return null;
-
-                    TvDB_ImageFanart tvFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                    details = new ImageDetails()
-                    {
-                        ImageType = JMMImageType.TvDB_FanArt,
-                        ImageID = tvFanart.TvDB_ImageFanartID
-                    };
-                    return details;
-                }
+	            List<Contract_AniDB_Anime_DefaultImage> fanarts = Contract.AniDBAnime.Fanarts;
+	            if (fanarts == null || fanarts.Count == 0) return null;
+	            Contract_AniDB_Anime_DefaultImage art = fanarts[fanartRandom.Next(0, fanarts.Count)];
+	            details = new ImageDetails()
+	            {
+					ImageID = art.AniDB_Anime_DefaultImageID,
+		            ImageType = (JMMImageType)art.ImageType
+	            };
+	            return details;
             }
             else
             {
-                ImageEntityType imageType = (ImageEntityType) GetDefaultFanart().ImageParentType;
+	            // TODO Move this to contract as well
+	            AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
+	            ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
 
                 switch (imageType)
                 {
                     case ImageEntityType.TvDB_FanArt:
 
                         TvDB_ImageFanartRepository repTvFanarts = new TvDB_ImageFanartRepository();
-                        TvDB_ImageFanart tvFanart = repTvFanarts.GetByID(session,
-                            GetDefaultFanart(session).ImageParentID);
+                        TvDB_ImageFanart tvFanart = repTvFanarts.GetByID(session, fanart.ImageParentID);
                         if (tvFanart != null)
                             details = new ImageDetails()
                             {
@@ -806,8 +789,7 @@ namespace JMMServer.Entities
                     case ImageEntityType.Trakt_Fanart:
 
                         Trakt_ImageFanartRepository repTraktFanarts = new Trakt_ImageFanartRepository();
-                        Trakt_ImageFanart traktFanart = repTraktFanarts.GetByID(session,
-                            GetDefaultFanart(session).ImageParentID);
+                        Trakt_ImageFanart traktFanart = repTraktFanarts.GetByID(session, fanart.ImageParentID);
                         if (traktFanart != null)
                             details = new ImageDetails()
                             {
@@ -820,8 +802,7 @@ namespace JMMServer.Entities
                     case ImageEntityType.MovieDB_FanArt:
 
                         MovieDB_FanartRepository repMovieFanarts = new MovieDB_FanartRepository();
-                        MovieDB_Fanart movieFanart = repMovieFanarts.GetByID(session,
-                            GetDefaultFanart(session).ImageParentID);
+                        MovieDB_Fanart movieFanart = repMovieFanarts.GetByID(session, fanart.ImageParentID);
                         if (movieFanart != null)
                             details = new ImageDetails()
                             {
@@ -871,7 +852,9 @@ namespace JMMServer.Entities
             }
             else
             {
-                ImageEntityType imageType = (ImageEntityType) GetDefaultFanart().ImageParentType;
+	            // TODO Move this to contract as well
+	            AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
+	            ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
 
                 switch (imageType)
                 {
@@ -921,7 +904,55 @@ namespace JMMServer.Entities
             return repDefaults.GetByAnimeIDAndImagezSizeType(session, this.AnimeID, (int) ImageSizeType.WideBanner);
         }
 
-        public string AnimeTypeRAW
+	    public ImageDetails GetDefaultWideBannerDetailsNoBlanks(ISession session)
+	    {
+		    Random bannerRandom = new Random();
+
+		    ImageDetails details = null;
+		    if (GetDefaultWideBanner() == null)
+		    {
+			    // get a random banner (only tvdb)
+			    if (this.AnimeTypeEnum == enAnimeType.Movie)
+			    {
+				    // MovieDB doesn't have banners
+				    return null;
+			    }
+			    else
+			    {
+				    List<Contract_AniDB_Anime_DefaultImage> banners = Contract.AniDBAnime.Fanarts;
+				    if (banners == null || banners.Count == 0) return null;
+				    Contract_AniDB_Anime_DefaultImage art = banners[bannerRandom.Next(0, banners.Count)];
+				    details = new ImageDetails()
+				    {
+					    ImageID = art.AniDB_Anime_DefaultImageID,
+					    ImageType = (JMMImageType) art.ImageType
+				    };
+				    return details;
+			    }
+		    }
+		    else
+		    {
+			    AniDB_Anime_DefaultImage banner = GetDefaultWideBanner();
+			    ImageEntityType imageType = (ImageEntityType) banner.ImageParentType;
+
+			    switch (imageType)
+			    {
+				    case ImageEntityType.TvDB_Banner:
+
+						details = new ImageDetails()
+						{
+							ImageType = JMMImageType.TvDB_Banner,
+							ImageID = banner.ToContract(session).TVWideBanner.TvDB_ImageWideBannerID
+						};
+
+					    return details;
+			    }
+		    }
+
+		    return null;
+	    }
+
+	    public string AnimeTypeRAW
         {
             get
             {
@@ -1991,7 +2022,48 @@ namespace JMMServer.Entities
             AniDB_Anime_DefaultImage defBanner = this.GetDefaultWideBanner(session);
             if (defBanner != null) contract.DefaultImageWideBanner = defBanner.ToContract(session);
             contract.Characters = GetCharactersContract();
-            return contract;
+
+	        // get a random fanart (only tvdb)
+	        if (this.AnimeTypeEnum == enAnimeType.Movie)
+	        {
+		        List<MovieDB_Fanart> fanarts = GetMovieDBFanarts(session);
+		        if (fanarts.Count > 0)
+		        {
+			        contract.Fanarts = new List<Contract_AniDB_Anime_DefaultImage>();
+			        fanarts.ForEach(a => contract.Fanarts.Add(new Contract_AniDB_Anime_DefaultImage()
+			        {
+				        ImageType = (int)JMMImageType.MovieDB_FanArt, MovieFanart = a.ToContract(),
+				        AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
+			        }));
+		        }
+		        // MovieDB doesn't have banners
+	        }
+	        else
+	        {
+		        List<TvDB_ImageFanart> fanarts = GetTvDBImageFanarts(session);
+		        if (fanarts.Count > 0)
+		        {
+			        contract.Fanarts = new List<Contract_AniDB_Anime_DefaultImage>();
+			        fanarts.ForEach(a => contract.Fanarts.Add(new Contract_AniDB_Anime_DefaultImage()
+			        {
+				        ImageType = (int) JMMImageType.TvDB_FanArt,
+				        TVFanart = a.ToContract(),
+				        AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
+			        }));
+		        }
+		        List<TvDB_ImageWideBanner> banners = GetTvDBImageWideBanners(session);
+		        if (banners.Count > 0)
+		        {
+			        contract.Banners = new List<Contract_AniDB_Anime_DefaultImage>();
+			        banners.ForEach(a => contract.Banners.Add(new Contract_AniDB_Anime_DefaultImage()
+			        {
+				        ImageType = (int) JMMImageType.TvDB_Banner,
+				        TVWideBanner = a.ToContract(),
+				        AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
+			        }));
+		        }
+	        }
+	        return contract;
         }
 
         public List<Contract_AniDB_Character> GetCharactersContract()
@@ -2424,6 +2496,7 @@ namespace JMMServer.Entities
                 AniDB_Anime relAnime = repAnime.GetByAnimeID(session, rel.RelatedAnimeID);
                 if (relAnime != null && !relListIDs.Contains(relAnime.AnimeID))
                 {
+	                if(AnimeGroup.IsRelationTypeInExclusions(relAnime.AnimeTypeDescription.ToLower())) continue;
                     relList.Add(relAnime);
                     relListIDs.Add(relAnime.AnimeID);
                     if (!searchedIDs.Contains(rel.RelatedAnimeID))

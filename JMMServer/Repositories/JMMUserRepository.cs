@@ -19,7 +19,7 @@ namespace JMMServer.Repositories
         public static void InitCache()
         {
             string t = "Users";
-            ServerState.Instance.CurrentSetupStatus = string.Format(DatabaseHelper.InitCacheTitle, t, string.Empty);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             JMMUserRepository repo = new JMMUserRepository();
             Cache = new PocoCache<int, JMMUser>(repo.InternalGetAll(), a => a.JMMUserID);
         }

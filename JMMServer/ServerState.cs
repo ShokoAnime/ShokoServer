@@ -1,5 +1,8 @@
 ﻿using System.ComponentModel;
 using NLog;
+using Microsoft.Win32;
+using System;
+using Microsoft.Win32.TaskScheduler;
 
 namespace JMMServer
 {
@@ -313,6 +316,42 @@ namespace JMMServer
             }
         }
 
+        private bool isAutostartEnabled = false;
+        public bool IsAutostartEnabled
+        {
+            get { return isAutostartEnabled; }
+            set
+            {
+                isAutostartEnabled = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("IsAutostartEnabled"));
+            }
+        }
+
+        private bool isAutostartDisabled = false;
+        public bool IsAutostartDisabled
+        {
+            get { return isAutostartDisabled; }
+            set
+            {
+                isAutostartDisabled = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("IsAutostartDisabled"));
+            }
+        }
+
+        /* Swith this to "Registry" when we no longer need elevated run level */
+        public readonly AutostartMethod autostartMethod = AutostartMethod.TaskScheduler;
+
+        public readonly string autostartTaskName = "JMMServer";
+
+        public readonly string autostartKey = "JMMServer";
+        public RegistryKey autostartRegistryKey
+        {
+            get
+            {
+                return Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+            }
+        }
+
         public void LoadSettings()
         {
             AniDB_Username = ServerSettings.AniDB_Username;
@@ -328,6 +367,30 @@ namespace JMMServer
             DisallowMultipleInstances = !ServerSettings.AllowMultipleInstances;
 
             VLCLocation = ServerSettings.VLCLocation;
+
+            if (autostartMethod == AutostartMethod.Registry)
+            {
+                try
+                {
+                    IsAutostartEnabled = autostartRegistryKey.GetValue(autostartKey) != null;
+                    IsAutostartDisabled = !isAutostartEnabled;
+                }
+                catch (Exception ex)
+                {
+                    logger.DebugException("Unable to get autostart registry value", ex);
+                }
+            } else if(autostartMethod == AutostartMethod.TaskScheduler)
+            {
+                Task task = TaskService.Instance.GetTask(autostartTaskName);
+                if (task != null && task.State != TaskState.Disabled)
+                {
+                    IsAutostartEnabled = true;
+                } else
+                {
+                    IsAutostartEnabled = false;
+                }
+                IsAutostartDisabled = !isAutostartEnabled;
+            }
         }
     }
 }

@@ -997,4 +997,10 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="ImportFolders_DDNote" xml:space="preserve">
     <value>Uwaga: aktualizowanie miejsca docelowego upuszczania wpłynie tylko na nowa seria dodawana. Nie wpływają na serii, które już zostały zaimportowane.</value>
   </data>
+  <data name="Database_Backup" xml:space="preserve">
+    <value>Wykryto nową wersję. Kopia zapasowa bazy danych w toku...</value>
+  </data>
+  <data name="Database_NotSupportedVersion" xml:space="preserve">
+    <value>Wersja bazy danych jest większa niż wersja obsługiwanych przez serwer JMM. Należy uaktualnić JMMServer.</value>
+  </data>
 </root>

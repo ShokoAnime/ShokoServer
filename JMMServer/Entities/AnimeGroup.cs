@@ -383,7 +383,7 @@ namespace JMMServer.Entities
 								}
 								#endregion
 								new AnimeSeriesRepository().Save(ser, false);
-								series.UpdateStats(true, true, false);
+								ser.UpdateStats(true, true, false);
 								if (series == null)
 								{
 									series = ser;
@@ -405,6 +405,7 @@ namespace JMMServer.Entities
                         grp.GroupName = newTitle;
                         grp.SortName = newTitle;
                         repGroups.Save(grp, true, true);
+						grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
                     }
 
                     #endregion
@@ -531,7 +532,7 @@ namespace JMMServer.Entities
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
             List<AnimeSeries> seriesList = repSeries.GetByGroupID(this.AnimeGroupID);
             // Make everything that relies on GetSeries[0] have the proper result
-            seriesList.OrderBy(a => a.AirDate ?? DateTime.MinValue); //FIX this might be null
+            seriesList.OrderBy(a => a.AirDate);
             if (DefaultAnimeSeriesID.HasValue)
             {
                 AnimeSeries series = repSeries.GetByID(DefaultAnimeSeriesID.Value);
@@ -544,7 +545,7 @@ namespace JMMServer.Entities
             return seriesList;
         }
 
-        /*[XmlIgnore]
+		/*[XmlIgnore]
 		public List<AnimeSeries> AllSeries
 		{
 			get
@@ -556,20 +557,21 @@ namespace JMMServer.Entities
 			}
 		}*/
 
-        public List<AnimeSeries> GetAllSeries()
+		public List<AnimeSeries> GetAllSeries(bool skipSorting=false)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetAllSeries(session);
+                return GetAllSeries(session, skipSorting);
             }
         }
 
-        public List<AnimeSeries> GetAllSeries(ISession session)
+        public List<AnimeSeries> GetAllSeries(ISession session, bool skipSorting=false)
         {
             List<AnimeSeries> seriesList = new List<AnimeSeries>();
             AnimeGroup.GetAnimeSeriesRecursive(session, this.AnimeGroupID, ref seriesList);
+			if (skipSorting) return seriesList;
 
-            return seriesList;
+            return seriesList.OrderBy(a => a.AirDate).ToList();
         }
 
         /*
@@ -844,6 +846,7 @@ namespace JMMServer.Entities
                 {
                     this.MissingEpisodeCount += ser.MissingEpisodeCount;
                     this.MissingEpisodeCountGroups += ser.MissingEpisodeCountGroups;
+	                // Now ser.LatestEpisodeAirDate should never be greater than today
                     if (ser.LatestEpisodeAirDate.HasValue)
                     {
                         if ((LatestEpisodeAirDate.HasValue &&
@@ -1128,7 +1131,8 @@ namespace JMMServer.Entities
 
                     // Calculate Air Date 
                     DateTime? thisDate = serie.AirDate;
-                    if (thisDate.HasValue)
+					// This will now always have a value
+                    if (thisDate.Value != DateTime.MinValue)
                     {
                         if (airDate_Min.HasValue)
                         {

@@ -185,7 +185,7 @@ namespace JMMServer.PlexAndKodi
 
         public static void RandomizeArt(this MediaContainer m, List<Video> vids)
         {
-            foreach (Video v in vids.Randomize(123456789))
+            foreach (Video v in vids.Randomize())
             {
                 if (v.Art != null)
                 {

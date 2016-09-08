@@ -3,52 +3,78 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
+using FluentNHibernate.Cfg;
+using FluentNHibernate.Cfg.Db;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using NHibernate;
 using NLog;
 
 namespace JMMServer.Databases
 {
-    public class SQLite
+    public class SQLite : IDatabase
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
         public const string DefaultDBName = @"JMMServer.db3";
 
+        public static SQLite Instance { get; } = new SQLite();
 
-        public static string GetDatabasePath()
+
+        public string Name { get; } = "SQLite";
+
+        public int RequiredVersion { get; } = 45;
+
+
+
+        public void BackupDatabase(string fullfilename)
+        {
+            fullfilename += ".db3";
+            File.Copy(GetDatabaseFilePath(),fullfilename);
+        }
+
+        public string GetDatabasePath()
         {
             string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             string dbPath = Path.Combine(appPath, "SQLite");
             return dbPath;
         }
 
-        public static string GetDatabaseFilePath()
+        public string GetDatabaseFilePath()
         {
             string dbName = Path.Combine(GetDatabasePath(), DefaultDBName);
             return dbName;
         }
 
-        public static string GetConnectionString()
+        public string GetConnectionString()
         {
             return string.Format(@"data source={0};useutf16encoding=True", GetDatabaseFilePath());
         }
 
-        public static bool DatabaseAlreadyExists()
+        public ISessionFactory CreateSessionFactory()
         {
-            if (SQLite.GetDatabaseFilePath().Length == 0) return false;
-
-            if (File.Exists(SQLite.GetDatabaseFilePath()))
-                return true;
-            else
-                return false;
+            return Fluently.Configure()
+                   .Database(SQLiteConfiguration.Standard
+                       .UsingFile(GetDatabaseFilePath()))
+                   .Mappings(m =>
+                       m.FluentMappings.AddFromAssemblyOf<JMMService>())
+                   .BuildSessionFactory();
         }
 
-        public static bool TestLogin(string serverName, string user, string password)
+        public bool DatabaseAlreadyExists()
+        {
+            if (GetDatabaseFilePath().Length == 0) return false;
+
+            if (File.Exists(GetDatabaseFilePath()))
+                return true;
+            return false;
+        }
+
+        public bool TestLogin(string serverName, string user, string password)
         {
             return true;
         }
 
-        public static void CreateDatabase()
+        public void CreateDatabase()
         {
             if (DatabaseAlreadyExists()) return;
 
@@ -61,7 +87,7 @@ namespace JMMServer.Databases
             ServerSettings.DatabaseFile = GetDatabaseFilePath();
         }
 
-        public static ArrayList GetData(string sql)
+        public ArrayList GetData(string sql)
         {
             ArrayList rowList = new ArrayList();
             try
@@ -91,18 +117,24 @@ namespace JMMServer.Databases
         }
 
         #region Schema Updates
-
-        public static void UpdateSchema()
+        public int GetDatabaseVersion()
         {
             VersionsRepository repVersions = new VersionsRepository();
             Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);
-            if (ver == null) return;
-
+            if (ver == null) return 0;
             int versionNumber = 0;
             int.TryParse(ver.VersionValue, out versionNumber);
+            return versionNumber;
+        }
+
+
+        public void UpdateSchema()
+        {
+
 
             try
             {
+                int versionNumber = GetDatabaseVersion();
                 UpdateSchema_002(versionNumber);
                 UpdateSchema_003(versionNumber);
                 UpdateSchema_004(versionNumber);
@@ -155,7 +187,9 @@ namespace JMMServer.Databases
             }
         }
 
-        private static void UpdateSchema_002(int currentVersionNumber)
+
+
+        private void UpdateSchema_002(int currentVersionNumber)
         {
             int thisVersion = 2;
             if (currentVersionNumber >= thisVersion) return;
@@ -187,7 +221,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_003(int currentVersionNumber)
+        private void UpdateSchema_003(int currentVersionNumber)
         {
             int thisVersion = 3;
             if (currentVersionNumber >= thisVersion) return;
@@ -226,7 +260,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_004(int currentVersionNumber)
+        private void UpdateSchema_004(int currentVersionNumber)
         {
             int thisVersion = 4;
             if (currentVersionNumber >= thisVersion) return;
@@ -251,7 +285,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_005(int currentVersionNumber)
+        private void UpdateSchema_005(int currentVersionNumber)
         {
             int thisVersion = 5;
             if (currentVersionNumber >= thisVersion) return;
@@ -276,7 +310,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_006(int currentVersionNumber)
+        private void UpdateSchema_006(int currentVersionNumber)
         {
             int thisVersion = 6;
             if (currentVersionNumber >= thisVersion) return;
@@ -311,7 +345,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_007(int currentVersionNumber)
+        private void UpdateSchema_007(int currentVersionNumber)
         {
             int thisVersion = 7;
             if (currentVersionNumber >= thisVersion) return;
@@ -336,7 +370,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_008(int currentVersionNumber)
+        private void UpdateSchema_008(int currentVersionNumber)
         {
             int thisVersion = 8;
             if (currentVersionNumber >= thisVersion) return;
@@ -346,7 +380,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_009(int currentVersionNumber)
+        private void UpdateSchema_009(int currentVersionNumber)
         {
             int thisVersion = 9;
             if (currentVersionNumber >= thisVersion) return;
@@ -371,7 +405,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_010(int currentVersionNumber)
+        private void UpdateSchema_010(int currentVersionNumber)
         {
             int thisVersion = 10;
             if (currentVersionNumber >= thisVersion) return;
@@ -407,7 +441,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_011(int currentVersionNumber)
+        private void UpdateSchema_011(int currentVersionNumber)
         {
             int thisVersion = 11;
             if (currentVersionNumber >= thisVersion) return;
@@ -448,7 +482,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_012(int currentVersionNumber)
+        private void UpdateSchema_012(int currentVersionNumber)
         {
             int thisVersion = 12;
             if (currentVersionNumber >= thisVersion) return;
@@ -482,7 +516,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_013(int currentVersionNumber)
+        private void UpdateSchema_013(int currentVersionNumber)
         {
             int thisVersion = 13;
             if (currentVersionNumber >= thisVersion) return;
@@ -507,7 +541,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_014(int currentVersionNumber)
+        private void UpdateSchema_014(int currentVersionNumber)
         {
             int thisVersion = 14;
             if (currentVersionNumber >= thisVersion) return;
@@ -542,7 +576,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_015(int currentVersionNumber)
+        private void UpdateSchema_015(int currentVersionNumber)
         {
             int thisVersion = 15;
             if (currentVersionNumber >= thisVersion) return;
@@ -568,7 +602,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_016(int currentVersionNumber)
+        private void UpdateSchema_016(int currentVersionNumber)
         {
             int thisVersion = 16;
             if (currentVersionNumber >= thisVersion) return;
@@ -602,7 +636,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_017(int currentVersionNumber)
+        private void UpdateSchema_017(int currentVersionNumber)
         {
             int thisVersion = 17;
             if (currentVersionNumber >= thisVersion) return;
@@ -648,7 +682,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_018(int currentVersionNumber)
+        private void UpdateSchema_018(int currentVersionNumber)
         {
             int thisVersion = 18;
             if (currentVersionNumber >= thisVersion) return;
@@ -682,7 +716,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_019(int currentVersionNumber)
+        private void UpdateSchema_019(int currentVersionNumber)
         {
             int thisVersion = 19;
             if (currentVersionNumber >= thisVersion) return;
@@ -708,7 +742,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_020(int currentVersionNumber)
+        private void UpdateSchema_020(int currentVersionNumber)
         {
             int thisVersion = 20;
             if (currentVersionNumber >= thisVersion) return;
@@ -734,7 +768,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_021(int currentVersionNumber)
+        private void UpdateSchema_021(int currentVersionNumber)
         {
             int thisVersion = 21;
             if (currentVersionNumber >= thisVersion) return;
@@ -766,7 +800,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_022(int currentVersionNumber)
+        private void UpdateSchema_022(int currentVersionNumber)
         {
             int thisVersion = 22;
             if (currentVersionNumber >= thisVersion) return;
@@ -812,7 +846,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_023(int currentVersionNumber)
+        private void UpdateSchema_023(int currentVersionNumber)
         {
             int thisVersion = 23;
             if (currentVersionNumber >= thisVersion) return;
@@ -838,7 +872,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_024(int currentVersionNumber)
+        private void UpdateSchema_024(int currentVersionNumber)
         {
             int thisVersion = 24;
             if (currentVersionNumber >= thisVersion) return;
@@ -864,7 +898,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_025(int currentVersionNumber)
+        private void UpdateSchema_025(int currentVersionNumber)
         {
             int thisVersion = 25;
             if (currentVersionNumber >= thisVersion) return;
@@ -899,7 +933,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_026(int currentVersionNumber)
+        private void UpdateSchema_026(int currentVersionNumber)
         {
             int thisVersion = 26;
             if (currentVersionNumber >= thisVersion) return;
@@ -927,7 +961,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_027(int currentVersionNumber)
+        private void UpdateSchema_027(int currentVersionNumber)
         {
             int thisVersion = 27;
             if (currentVersionNumber >= thisVersion) return;
@@ -955,7 +989,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_028(int currentVersionNumber)
+        private void UpdateSchema_028(int currentVersionNumber)
         {
             int thisVersion = 28;
             if (currentVersionNumber >= thisVersion) return;
@@ -987,7 +1021,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_029(int currentVersionNumber)
+        private void UpdateSchema_029(int currentVersionNumber)
         {
             int thisVersion = 29;
             if (currentVersionNumber >= thisVersion) return;
@@ -1029,7 +1063,7 @@ namespace JMMServer.Databases
             DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTvDBLinks_V1_to_V2);
         }
 
-        private static void UpdateSchema_030(int currentVersionNumber)
+        private void UpdateSchema_030(int currentVersionNumber)
         {
             int thisVersion = 30;
             if (currentVersionNumber >= thisVersion) return;
@@ -1044,7 +1078,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_031(int currentVersionNumber)
+        private void UpdateSchema_031(int currentVersionNumber)
         {
             int thisVersion = 31;
             if (currentVersionNumber >= thisVersion) return;
@@ -1059,7 +1093,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_032(int currentVersionNumber)
+        private void UpdateSchema_032(int currentVersionNumber)
         {
             int thisVersion = 32;
             if (currentVersionNumber >= thisVersion) return;
@@ -1102,7 +1136,7 @@ namespace JMMServer.Databases
         }
 
 
-        private static void UpdateSchema_033(int currentVersionNumber)
+        private void UpdateSchema_033(int currentVersionNumber)
         {
             int thisVersion = 33;
             if (currentVersionNumber >= thisVersion) return;
@@ -1139,7 +1173,7 @@ namespace JMMServer.Databases
         }
 
 
-        private static void UpdateSchema_034(int currentVersionNumber)
+        private void UpdateSchema_034(int currentVersionNumber)
         {
             int thisVersion = 34;
             if (currentVersionNumber >= thisVersion) return;
@@ -1152,7 +1186,7 @@ namespace JMMServer.Databases
             DatabaseFixes.Fixes.Add(DatabaseFixes.RemoveOldMovieDBImageRecords);
         }
 
-        private static void UpdateSchema_035(int currentVersionNumber)
+        private void UpdateSchema_035(int currentVersionNumber)
         {
             int thisVersion = 35;
             if (currentVersionNumber >= thisVersion) return;
@@ -1189,10 +1223,10 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            DatabaseHelper.CreateInitialCustomTags();
+            this.CreateInitialCustomTags();
         }
 
-        private static void UpdateSchema_036(int currentVersionNumber)
+        private void UpdateSchema_036(int currentVersionNumber)
         {
             int thisVersion = 36;
             if (currentVersionNumber >= thisVersion) return;
@@ -1207,7 +1241,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_037(int currentVersionNumber)
+        private void UpdateSchema_037(int currentVersionNumber)
         {
             int thisVersion = 37;
             if (currentVersionNumber >= thisVersion) return;
@@ -1219,7 +1253,7 @@ namespace JMMServer.Databases
             DatabaseFixes.Fixes.Add(DatabaseFixes.PopulateTagWeight);
         }
 
-        private static void UpdateSchema_038(int currentVersionNumber)
+        private void UpdateSchema_038(int currentVersionNumber)
         {
             int thisVersion = 38;
             if (currentVersionNumber >= thisVersion) return;
@@ -1234,7 +1268,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_039(int currentVersionNumber)
+        private void UpdateSchema_039(int currentVersionNumber)
         {
             int thisVersion = 39;
             if (currentVersionNumber >= thisVersion) return;
@@ -1248,7 +1282,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_040(int currentVersionNumber)
+        private void UpdateSchema_040(int currentVersionNumber)
         {
             int thisVersion = 40;
             if (currentVersionNumber >= thisVersion) return;
@@ -1263,7 +1297,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_041(int currentVersionNumber)
+        private void UpdateSchema_041(int currentVersionNumber)
         {
             int thisVersion = 41;
             if (currentVersionNumber >= thisVersion) return;
@@ -1278,7 +1312,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_042(int currentVersionNumber)
+        private void UpdateSchema_042(int currentVersionNumber)
         {
             int thisVersion = 42;
             if (currentVersionNumber >= thisVersion) return;
@@ -1293,7 +1327,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
         }
 
-        private static void UpdateSchema_043(int currentVersionNumber)
+        private void UpdateSchema_043(int currentVersionNumber)
         {
             int thisVersion = 43;
             if (currentVersionNumber >= thisVersion) return;
@@ -1325,7 +1359,7 @@ namespace JMMServer.Databases
             DatabaseFixes.Fixes.Add(DatabaseFixes.FixContinueWatchingGroupFilter_20160406);
         }
 
-        private static void UpdateSchema_044(int currentVersionNumber)
+        private void UpdateSchema_044(int currentVersionNumber)
         {
             int thisVersion = 44;
             if (currentVersionNumber >= thisVersion) return;
@@ -1449,7 +1483,7 @@ namespace JMMServer.Databases
 
             // Now do the migratiuon
         }
-        private static void UpdateSchema_045(int currentVersionNumber)
+        private void UpdateSchema_045(int currentVersionNumber)
         {
             int thisVersion = 45;
             if (currentVersionNumber >= thisVersion) return;
@@ -1495,7 +1529,7 @@ namespace JMMServer.Databases
 
         //WE NEED TO DROP SOME SQL LITE COLUMNS...
 
-        private static void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove, string createcommand, List<string> indexcommands)
+        private void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove, string createcommand, List<string> indexcommands)
         {
             List<string> updatedTableColumns = GetTableColumns(tableName);
             colsToRemove.ForEach(a => updatedTableColumns.Remove(a));
@@ -1515,7 +1549,7 @@ namespace JMMServer.Databases
             }
         }
 
-        private static List<string> GetTableColumns(string tableName)
+        private List<string> GetTableColumns(string tableName)
         {
             string cmd = "pragma table_info(" + tableName + ");";
             List<string> columns = new List<string>();
@@ -1529,7 +1563,7 @@ namespace JMMServer.Databases
 
 
 
-        private static void ExecuteSQLCommands(List<string> cmds)
+        private void ExecuteSQLCommands(List<string> cmds)
         {
             SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
             myConn.Open();
@@ -1544,7 +1578,7 @@ namespace JMMServer.Databases
             myConn.Close();
         }
 
-        private static void UpdateDatabaseVersion(int versionNumber)
+        private void UpdateDatabaseVersion(int versionNumber)
         {
             VersionsRepository repVersions = new VersionsRepository();
             Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);
@@ -1558,7 +1592,7 @@ namespace JMMServer.Databases
 
         #region Create Initial Schema
 
-        public static void CreateInitialSchema()
+        public bool CreateInitialSchema()
         {
             SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
             myConn.Open();
@@ -1569,7 +1603,7 @@ namespace JMMServer.Databases
             long count = long.Parse(sqCommandCheck.ExecuteScalar().ToString());
 
             // if the Versions already exists, it means we have done this already
-            if (count > 0) return;
+            if (count > 0) return false;
 
             //Create all the commands to be executed
             List<string> commands = new List<string>();
@@ -1649,9 +1683,10 @@ namespace JMMServer.Databases
 
             VersionsRepository repVer = new VersionsRepository();
             repVer.Save(ver1);
+            return true;
         }
 
-        public static List<string> CreateTableString_Versions()
+        public List<string> CreateTableString_Versions()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE Versions ( " +
@@ -1662,7 +1697,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Anime()
+        public List<string> CreateTableString_AniDB_Anime()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Anime ( " +
@@ -1706,7 +1741,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Anime_Category()
+        public List<string> CreateTableString_AniDB_Anime_Category()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Anime_Category ( " +
@@ -1723,7 +1758,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Anime_Character()
+        public List<string> CreateTableString_AniDB_Anime_Character()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Anime_Character ( " +
@@ -1741,7 +1776,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Anime_Relation()
+        public List<string> CreateTableString_AniDB_Anime_Relation()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Anime_Relation ( " +
@@ -1758,7 +1793,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Anime_Review()
+        public List<string> CreateTableString_AniDB_Anime_Review()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Anime_Review ( " +
@@ -1774,7 +1809,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Anime_Similar()
+        public List<string> CreateTableString_AniDB_Anime_Similar()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Anime_Similar ( " +
@@ -1792,7 +1827,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Anime_Tag()
+        public List<string> CreateTableString_AniDB_Anime_Tag()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Anime_Tag ( " +
@@ -1808,7 +1843,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Anime_Title()
+        public List<string> CreateTableString_AniDB_Anime_Title()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Anime_Title ( " +
@@ -1824,7 +1859,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Category()
+        public List<string> CreateTableString_AniDB_Category()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Category ( " +
@@ -1841,7 +1876,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Character()
+        public List<string> CreateTableString_AniDB_Character()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Character ( " +
@@ -1859,7 +1894,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Character_Seiyuu()
+        public List<string> CreateTableString_AniDB_Character_Seiyuu()
         {
             List<string> cmds = new List<string>();
 
@@ -1877,7 +1912,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Seiyuu()
+        public List<string> CreateTableString_AniDB_Seiyuu()
         {
             List<string> cmds = new List<string>();
 
@@ -1894,7 +1929,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Episode()
+        public List<string> CreateTableString_AniDB_Episode()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Episode ( " +
@@ -1918,7 +1953,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_File()
+        public List<string> CreateTableString_AniDB_File()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_File ( " +
@@ -1956,7 +1991,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_GroupStatus()
+        public List<string> CreateTableString_AniDB_GroupStatus()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_GroupStatus ( " +
@@ -1978,7 +2013,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_ReleaseGroup()
+        public List<string> CreateTableString_AniDB_ReleaseGroup()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_ReleaseGroup ( " +
@@ -2002,7 +2037,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Review()
+        public List<string> CreateTableString_AniDB_Review()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Review ( " +
@@ -2025,7 +2060,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Tag()
+        public List<string> CreateTableString_AniDB_Tag()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Tag ( " +
@@ -2044,7 +2079,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AnimeEpisode()
+        public List<string> CreateTableString_AnimeEpisode()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE [AnimeEpisode]( " +
@@ -2061,7 +2096,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AnimeEpisode_User()
+        public List<string> CreateTableString_AnimeEpisode_User()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AnimeEpisode_User( " +
@@ -2083,7 +2118,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AnimeGroup()
+        public List<string> CreateTableString_AnimeGroup()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AnimeGroup ( " +
@@ -2104,7 +2139,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AnimeGroup_User()
+        public List<string> CreateTableString_AnimeGroup_User()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AnimeGroup_User( " +
@@ -2125,7 +2160,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AnimeSeries()
+        public List<string> CreateTableString_AnimeSeries()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AnimeSeries ( " +
@@ -2147,7 +2182,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AnimeSeries_User()
+        public List<string> CreateTableString_AnimeSeries_User()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AnimeSeries_User( " +
@@ -2168,7 +2203,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_CommandRequest()
+        public List<string> CreateTableString_CommandRequest()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE CommandRequest ( " +
@@ -2183,7 +2218,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_CrossRef_AniDB_TvDB()
+        public List<string> CreateTableString_CrossRef_AniDB_TvDB()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE CrossRef_AniDB_TvDB( " +
@@ -2200,7 +2235,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_CrossRef_AniDB_Other()
+        public List<string> CreateTableString_CrossRef_AniDB_Other()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE CrossRef_AniDB_Other( " +
@@ -2217,7 +2252,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_CrossRef_File_Episode()
+        public List<string> CreateTableString_CrossRef_File_Episode()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE CrossRef_File_Episode ( " +
@@ -2238,7 +2273,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_CrossRef_Languages_AniDB_File()
+        public List<string> CreateTableString_CrossRef_Languages_AniDB_File()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE CrossRef_Languages_AniDB_File ( " +
@@ -2250,7 +2285,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_CrossRef_Subtitles_AniDB_File()
+        public List<string> CreateTableString_CrossRef_Subtitles_AniDB_File()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE CrossRef_Subtitles_AniDB_File ( " +
@@ -2262,7 +2297,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_FileNameHash()
+        public List<string> CreateTableString_FileNameHash()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE FileNameHash ( " +
@@ -2278,7 +2313,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_Language()
+        public List<string> CreateTableString_Language()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE Language ( " +
@@ -2291,7 +2326,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_ImportFolder()
+        public List<string> CreateTableString_ImportFolder()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE ImportFolder ( " +
@@ -2306,7 +2341,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_ScheduledUpdate()
+        public List<string> CreateTableString_ScheduledUpdate()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE ScheduledUpdate( " +
@@ -2321,7 +2356,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_VideoInfo()
+        public List<string> CreateTableString_VideoInfo()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE VideoInfo ( " +
@@ -2344,7 +2379,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_VideoLocal()
+        public List<string> CreateTableString_VideoLocal()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE VideoLocal ( " +
@@ -2366,7 +2401,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_VideoLocal_User()
+        public List<string> CreateTableString_VideoLocal_User()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE VideoLocal_User( " +
@@ -2382,7 +2417,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_DuplicateFile()
+        public List<string> CreateTableString_DuplicateFile()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE DuplicateFile ( " +
@@ -2398,7 +2433,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_GroupFilter()
+        public List<string> CreateTableString_GroupFilter()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE GroupFilter( " +
@@ -2412,7 +2447,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_GroupFilterCondition()
+        public List<string> CreateTableString_GroupFilterCondition()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE GroupFilterCondition( " +
@@ -2426,7 +2461,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Vote()
+        public List<string> CreateTableString_AniDB_Vote()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE AniDB_Vote ( " +
@@ -2439,7 +2474,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_TvDB_ImageFanart()
+        public List<string> CreateTableString_TvDB_ImageFanart()
         {
             List<string> cmds = new List<string>();
 
@@ -2462,7 +2497,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_TvDB_ImageWideBanner()
+        public List<string> CreateTableString_TvDB_ImageWideBanner()
         {
             List<string> cmds = new List<string>();
 
@@ -2482,7 +2517,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_TvDB_ImagePoster()
+        public List<string> CreateTableString_TvDB_ImagePoster()
         {
             List<string> cmds = new List<string>();
 
@@ -2502,7 +2537,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_TvDB_Episode()
+        public List<string> CreateTableString_TvDB_Episode()
         {
             List<string> cmds = new List<string>();
 
@@ -2528,7 +2563,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_TvDB_Series()
+        public List<string> CreateTableString_TvDB_Series()
         {
             List<string> cmds = new List<string>();
 
@@ -2548,7 +2583,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_AniDB_Anime_DefaultImage()
+        public List<string> CreateTableString_AniDB_Anime_DefaultImage()
         {
             List<string> cmds = new List<string>();
 
@@ -2566,7 +2601,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_MovieDB_Movie()
+        public List<string> CreateTableString_MovieDB_Movie()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE MovieDB_Movie( " +
@@ -2582,7 +2617,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_MovieDB_Poster()
+        public List<string> CreateTableString_MovieDB_Poster()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE MovieDB_Poster( " +
@@ -2600,7 +2635,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_MovieDB_Fanart()
+        public List<string> CreateTableString_MovieDB_Fanart()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE MovieDB_Fanart( " +
@@ -2618,7 +2653,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_JMMUser()
+        public List<string> CreateTableString_JMMUser()
         {
             List<string> cmds = new List<string>();
             cmds.Add("CREATE TABLE JMMUser( " +
@@ -2634,7 +2669,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_Trakt_Episode()
+        public List<string> CreateTableString_Trakt_Episode()
         {
             List<string> cmds = new List<string>();
 
@@ -2652,7 +2687,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_Trakt_ImagePoster()
+        public List<string> CreateTableString_Trakt_ImagePoster()
         {
             List<string> cmds = new List<string>();
 
@@ -2667,7 +2702,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_Trakt_ImageFanart()
+        public List<string> CreateTableString_Trakt_ImageFanart()
         {
             List<string> cmds = new List<string>();
 
@@ -2682,7 +2717,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_Trakt_Show()
+        public List<string> CreateTableString_Trakt_Show()
         {
             List<string> cmds = new List<string>();
 
@@ -2699,7 +2734,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_Trakt_Season()
+        public List<string> CreateTableString_Trakt_Season()
         {
             List<string> cmds = new List<string>();
 
@@ -2713,7 +2748,7 @@ namespace JMMServer.Databases
             return cmds;
         }
 
-        public static List<string> CreateTableString_CrossRef_AniDB_Trakt()
+        public List<string> CreateTableString_CrossRef_AniDB_Trakt()
         {
             List<string> cmds = new List<string>();
 
