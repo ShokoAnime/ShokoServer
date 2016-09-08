@@ -779,8 +779,8 @@ namespace JMMServer.PlexAndKodi
                             }
                         }
                     }
-	                v.Fanarts = ser.GetAnime(session)?.Contract?.AniDBAnime?.Fanarts;
-	                v.Banners = ser.GetAnime(session)?.Contract?.AniDBAnime?.Banners;
+	                v.Fanarts = cserie?.AniDBAnime?.AniDBAnime?.Fanarts;
+	                v.Banners = cserie?.AniDBAnime?.AniDBAnime?.Banners;
                 }
                 return v;
             }
@@ -931,8 +931,8 @@ namespace JMMServer.PlexAndKodi
                 }
                 p.Thumb = p.ParentThumb = anime.DefaultImagePoster.GenPoster();
 				p.Art = anime?.DefaultImageFanart?.GenArt();
-	            p.Fanarts = aser.GetAnime(session)?.Contract?.AniDBAnime?.Fanarts;
-	            p.Banners = aser.GetAnime(session)?.Contract?.AniDBAnime?.Banners;
+	            p.Fanarts = anime?.Fanarts;
+	            p.Banners = anime?.Banners;
 
 	            if (eps != null)
                 {
@@ -942,9 +942,9 @@ namespace JMMServer.PlexAndKodi
                 p.Roles = new List<RoleTag>();
 
                 //TODO Character implementation is limited in JMM, One Character, could have more than one Seiyuu
-                if (anidb.Contract?.AniDBAnime?.Characters != null)
+                if (anime.Characters != null)
                 {
-                    foreach (Contract_AniDB_Character c in anidb.Contract.AniDBAnime.Characters)
+                    foreach (Contract_AniDB_Character c in anime.Characters)
                     {
                         string ch = c?.CharName;
                         Contract_AniDB_Seiyuu seiyuu = c?.Seiyuu;
