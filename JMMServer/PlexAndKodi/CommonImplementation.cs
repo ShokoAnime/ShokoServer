@@ -65,9 +65,9 @@ namespace JMMServer.PlexAndKodi
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     GroupFilterRepository repGF = new GroupFilterRepository();
-                    List<GroupFilter> allGfs = repGF.GetTopLevel().Where(a => a.InvisibleInClients == 0 && 
+                    List<GroupFilter> allGfs = repGF.GetTopLevel().Where(a => a.InvisibleInClients == 0 &&
                     (
-                        (a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0) 
+                        (a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0)
                         || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
                     ).ToList();
 
@@ -540,8 +540,8 @@ namespace JMMServer.PlexAndKodi
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
 
-	                    v.Art = Helper.GetRandomFanartFromVideo(v);
-	                    v.Banner = Helper.GetRandomBannerFromVideo(v);
+                        v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
+                        v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
 
 	                    if (nocast) v.Roles = null;
 						retGroups.Add(prov, v, info);

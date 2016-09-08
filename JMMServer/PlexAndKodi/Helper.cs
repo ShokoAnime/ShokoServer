@@ -677,10 +677,10 @@ namespace JMMServer.PlexAndKodi
 		    return GetRandomArtFromList(v.Banners);
 	    }
 
-	    public static string GetRandomArtFromList(List<Contract_AniDB_Anime_DefaultImage> list)
+	    public static string GetRandomArtFromList(List<Contract_ImageDetails> list)
 	    {
 		    if (list == null || list.Count == 0) return null;
-		    Contract_AniDB_Anime_DefaultImage art;
+		    Contract_ImageDetails art;
 		    if (list.Count == 1)
 		    {
 			    art = list[0];
@@ -692,7 +692,7 @@ namespace JMMServer.PlexAndKodi
 		    }
 		    ImageDetails details = new ImageDetails()
 		    {
-			    ImageID = art.AniDB_Anime_DefaultImageID,
+			    ImageID = art.ImageID,
 			    ImageType = (JMMImageType) art.ImageType
 		    };
 		    return details.GenArt();
@@ -779,8 +779,28 @@ namespace JMMServer.PlexAndKodi
                             }
                         }
                     }
-	                v.Fanarts = cserie?.AniDBAnime?.AniDBAnime?.Fanarts;
-	                v.Banners = cserie?.AniDBAnime?.AniDBAnime?.Banners;
+                    if (cserie?.AniDBAnime?.AniDBAnime?.Fanarts != null)
+                    {
+                        v.Fanarts = new List<Contract_ImageDetails>();
+                        cserie?.AniDBAnime?.AniDBAnime?.Fanarts.ForEach(
+                            a =>
+                                v.Fanarts.Add(new Contract_ImageDetails()
+                                {
+                                    ImageID = a.AniDB_Anime_DefaultImageID,
+                                    ImageType = a.ImageType
+                                }));
+                    }
+                    if (cserie?.AniDBAnime?.AniDBAnime?.Banners != null)
+                    {
+                        v.Banners = new List<Contract_ImageDetails>();
+                        cserie?.AniDBAnime?.AniDBAnime?.Banners.ForEach(
+                            a =>
+                                v.Banners.Add(new Contract_ImageDetails()
+                                {
+                                    ImageID = a.AniDB_Anime_DefaultImageID,
+                                    ImageType = a.ImageType
+                                }));
+                    }
                 }
                 return v;
             }
@@ -931,10 +951,30 @@ namespace JMMServer.PlexAndKodi
                 }
                 p.Thumb = p.ParentThumb = anime.DefaultImagePoster.GenPoster();
 				p.Art = anime?.DefaultImageFanart?.GenArt();
-	            p.Fanarts = anime?.Fanarts;
-	            p.Banners = anime?.Banners;
+                if (anime?.Fanarts != null)
+                {
+                    p.Fanarts = new List<Contract_ImageDetails>();
+                    anime.Fanarts.ForEach(
+                        a =>
+                            p.Fanarts.Add(new Contract_ImageDetails()
+                            {
+                                ImageID = a.AniDB_Anime_DefaultImageID,
+                                ImageType = a.ImageType
+                            }));
+                }
+                if (anime?.Banners != null)
+                {
+                    p.Banners = new List<Contract_ImageDetails>();
+                    anime.Banners.ForEach(
+                        a =>
+                            p.Banners.Add(new Contract_ImageDetails()
+                            {
+                                ImageID = a.AniDB_Anime_DefaultImageID,
+                                ImageType = a.ImageType
+                            }));
+                }
 
-	            if (eps != null)
+                if (eps != null)
                 {
                     List<enEpisodeType> types = eps.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     p.ChildCount = types.Count > 1 ? types.Count.ToString() : eps.Keys.Count.ToString();
