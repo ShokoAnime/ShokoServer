@@ -914,7 +914,9 @@ namespace JMMServer.Entities
             Random bannerRandom = new Random();
 
             ImageDetails details = null;
-            if (GetDefaultWideBanner() == null)
+            AniDB_Anime_DefaultImage banner = GetDefaultWideBanner();
+
+            if (banner == null)
             {
                 // get a random banner (only tvdb)
                 if (this.AnimeTypeEnum == enAnimeType.Movie)
