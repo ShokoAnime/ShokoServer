@@ -41,7 +41,7 @@ namespace JMMServer.Databases
 
 
 
-        public string GetConnectionString()
+        public static string GetConnectionString()
         {
             return string.Format("Server={0};Database={1};User ID={2};Password={3};Default Command Timeout=3600",
                 ServerSettings.MySQL_Hostname, ServerSettings.MySQL_SchemaName, ServerSettings.MySQL_Username,
@@ -2090,7 +2090,7 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
-        private void UpdateSchema_053(int currentVersionNumber)
+
         private static void UpdateSchema_053(int currentVersionNumber)
         {
             int thisVersion = 53;
@@ -2113,6 +2113,7 @@ namespace JMMServer.Databases
         {
             int thisVersion = 54;
             if (currentVersionNumber >= thisVersion) return;
+        }
 
         private void ExecuteSQLCommands(List<string> cmds)
         {
@@ -2179,7 +2180,7 @@ namespace JMMServer.Databases
             }
         }
 
-        private void UpdateDatabaseVersion(int versionNumber)
+        private static void UpdateDatabaseVersion(int versionNumber)
         {
             VersionsRepository repVersions = new VersionsRepository();
             Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);

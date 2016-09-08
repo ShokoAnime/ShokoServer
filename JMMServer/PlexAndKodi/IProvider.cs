@@ -13,12 +13,8 @@ namespace JMMServer.PlexAndKodi
         bool UseBreadCrumbs { get; }
         int AddExtraItemForSearchButtonInGroupFilters { get; }
         bool ConstructFakeIosParent { get; }
-        bool AutoWatch { get;  }
+        bool AutoWatch { get; }
         string Proxyfy(string url);
         string ShortUrl(string url);
-
-        bool EnableRolesInLists { get;  }
-        bool EnableAnimeTitlesInLists { get; }
-        bool EnableGenresInLists { get;  }
     }
 }
