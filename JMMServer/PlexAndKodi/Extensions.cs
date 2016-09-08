@@ -227,7 +227,7 @@ namespace JMMServer.PlexAndKodi
         }
 
 	    // This should be the same as a ShallowCopy, but I did just learn the difference 2 days ago, so I might be wrong
-	    public static void CopyTo<T>(this Video o, T v) where T : Video
+	    public static void CopyTo<T>(this Video v, T o) where T : Video
 	    {
 		    o.AirDate = v.AirDate;
 		    o.IsMovie = v.IsMovie;
