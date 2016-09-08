@@ -548,7 +548,7 @@ namespace JMMServer.PlexAndKodi
                     {
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
-                        
+
                         v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
                         v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
 
