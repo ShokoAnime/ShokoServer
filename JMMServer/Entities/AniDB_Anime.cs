@@ -2517,7 +2517,7 @@ namespace JMMServer.Entities
                 repAnimes.Save(an);
             AnimeSeries series = repSeries.GetByAnimeID(id);
             if (series != null)
-                repSeries.Save(series, true, false);
+                repSeries.Save(series, true, true, false);
         }
     }
 }
