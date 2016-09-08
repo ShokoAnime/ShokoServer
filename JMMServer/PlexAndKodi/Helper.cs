@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.ServiceModel;
 using System.ServiceModel.Web;
 using System.Text;
@@ -666,6 +667,37 @@ namespace JMMServer.PlexAndKodi
             return null;
         }
 
+	    public static string GetRandomFanartFromVideo(Video v)
+	    {
+		    return GetRandomArtFromList(v.Fanarts);
+	    }
+
+	    public static string GetRandomBannerFromVideo(Video v)
+	    {
+		    return GetRandomArtFromList(v.Banners);
+	    }
+
+	    public static string GetRandomArtFromList(List<Contract_AniDB_Anime_DefaultImage> list)
+	    {
+		    if (list == null || list.Count == 0) return null;
+		    Contract_AniDB_Anime_DefaultImage art;
+		    if (list.Count == 1)
+		    {
+			    art = list[0];
+		    }
+		    else
+		    {
+			    Random rand = new Random();
+			    art = list[rand.Next(0, list.Count)];
+		    }
+		    ImageDetails details = new ImageDetails()
+		    {
+			    ImageID = art.AniDB_Anime_DefaultImageID,
+			    ImageType = (JMMImageType) art.ImageType
+		    };
+		    return details.GenArt();
+	    }
+
         public static Video GenerateFromAnimeGroup(ISession session, AnimeGroup grp, int userid,
             List<AnimeSeries> allSeries)
         {
@@ -728,7 +760,7 @@ namespace JMMServer.PlexAndKodi
                     v.Roles = new List<RoleTag>();
 
                     //TODO Character implementation is limited in JMM, One Character, could have more than one Seiyuu
-                    if (ser.GetAnime(session).Contract?.AniDBAnime?.Characters != null)
+                    if (ser.GetAnime(session)?.Contract?.AniDBAnime?.Characters != null)
                     {
                         foreach (Contract_AniDB_Character c in ser.GetAnime(session).Contract.AniDBAnime.Characters)
                         {
@@ -747,6 +779,8 @@ namespace JMMServer.PlexAndKodi
                             }
                         }
                     }
+	                v.Fanarts = ser.GetAnime(session)?.Contract?.AniDBAnime?.Fanarts;
+	                v.Banners = ser.GetAnime(session)?.Contract?.AniDBAnime?.Banners;
                 }
                 return v;
             }
@@ -897,7 +931,10 @@ namespace JMMServer.PlexAndKodi
                 }
                 p.Thumb = p.ParentThumb = anime.DefaultImagePoster.GenPoster();
 				p.Art = anime?.DefaultImageFanart?.GenArt();
-				if (eps != null)
+	            p.Fanarts = aser.GetAnime(session)?.Contract?.AniDBAnime?.Fanarts;
+	            p.Banners = aser.GetAnime(session)?.Contract?.AniDBAnime?.Banners;
+
+	            if (eps != null)
                 {
                     List<enEpisodeType> types = eps.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     p.ChildCount = types.Count > 1 ? types.Count.ToString() : eps.Keys.Count.ToString();

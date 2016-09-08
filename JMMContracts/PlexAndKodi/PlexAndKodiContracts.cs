@@ -385,6 +385,12 @@ namespace JMMContracts.PlexAndKodi
         [DataMember(EmitDefaultValue = false, Order = 106)]
         [XmlElement("AnimeTitle")]
         public List<AnimeTitle> Titles { get; set; }
+
+	    [XmlIgnore]
+	    public List<Contract_AniDB_Anime_DefaultImage> Fanarts { get; set; }
+
+	    [XmlIgnore]
+	    public List<Contract_AniDB_Anime_DefaultImage> Banners { get; set; }
     }
 
     [Serializable]

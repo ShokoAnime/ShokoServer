@@ -531,31 +531,24 @@ namespace JMMServer.PlexAndKodi
             Contract_AnimeGroup basegrp = grp?.GetUserContract(userid);
             if (basegrp != null)
             {
-                foreach (AnimeGroup grpChild in grp.GetChildGroups())
+	            List<AnimeSeries> seriesList = grp.GetSeries();
+	            foreach (AnimeGroup grpChild in grp.GetChildGroups())
                 {
                     var v = grpChild.GetPlexContract(userid);
                     if (v != null)
                     {
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
-						if(grpChild.DefaultAnimeSeriesID.HasValue)
-						{
-							AnimeSeries ser = repSer.GetByID(grpChild.DefaultAnimeSeriesID.Value);
-							v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser });
-							v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() {ser});
-						}
-						else
-						{
-							List<AnimeSeries> seriesList = grp.GetAllSeries(true);
-							v.Art = Helper.GetRandomFanartFromSeries(seriesList);
-							v.Banner = Helper.GetRandomBannerFromSeries(seriesList);
-						}
-						if (nocast) v.Roles = null;
+
+	                    v.Art = Helper.GetRandomFanartFromVideo(v);
+	                    v.Banner = Helper.GetRandomBannerFromVideo(v);
+
+	                    if (nocast) v.Roles = null;
 						retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
                     }
                 }
-                foreach (AnimeSeries ser in grp.GetSeries())
+                foreach (AnimeSeries ser in seriesList)
                 {
                     var v = ser.GetPlexContract(userid)?.Clone<Directory>();
                     if (v != null)
@@ -564,18 +557,9 @@ namespace JMMServer.PlexAndKodi
                         v.Group = basegrp;
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
-						if (grp.DefaultAnimeSeriesID.HasValue)
-						{
-							AnimeSeries ser1 = repSer.GetByID(grp.DefaultAnimeSeriesID.Value);
-							v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser1 });
-							v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() {ser1});
-						}
-						else
-						{
-							v.Art = Helper.GetRandomFanartFromSeries(grp.GetAllSeries());
-							v.Banner = Helper.GetRandomBannerFromSeries(grp.GetAllSeries());
-						}
-						retGroups.Add(prov, v, info);
+	                    v.Art = Helper.GetRandomFanartFromVideo(v);
+	                    v.Banner = Helper.GetRandomBannerFromVideo(v);
+	                    retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
                     }
                 }
@@ -1171,20 +1155,9 @@ namespace JMMServer.PlexAndKodi
                                     v.Group = grp.GetUserContract(userid);
                                 v.GenerateKey(prov, userid);
                                 v.Type = "show";
-								if (grp.DefaultAnimeSeriesID.HasValue)
-								{
-									AnimeSeriesRepository repSer = new AnimeSeriesRepository();
-									AnimeSeries ser1 = repSer.GetByID(grp.DefaultAnimeSeriesID.Value);
-									v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser1 });
-									v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() {ser1});
-								}
-								else
-								{
-									List<AnimeSeries> seriesList = grp.GetAllSeries(true);
-									v.Art = Helper.GetRandomFanartFromSeries(seriesList);
-									v.Banner = Helper.GetRandomBannerFromSeries(seriesList);
-								}
-								if (nocast) v.Roles = null;
+	                            v.Art = Helper.GetRandomFanartFromVideo(v);
+	                            v.Banner = Helper.GetRandomBannerFromVideo(v);
+	                            if (nocast) v.Roles = null;
 								order.Add(v.Group, v);
                                 retGroups.Add(prov, v, info);
                                 v.ParentThumb = v.GrandparentThumb = null;
