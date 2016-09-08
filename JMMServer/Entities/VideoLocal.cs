@@ -21,6 +21,7 @@ using Path = Pri.LongPath.Path;
 using Directory = Pri.LongPath.Directory;
 using File = Pri.LongPath.File;
 using FileInfo = Pri.LongPath.FileInfo;
+using JMMServer.Repositories.NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -139,11 +140,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetAniDBFile(session);
+                return GetAniDBFile(session.Wrap());
             }
         }
 
-        public AniDB_File GetAniDBFile(ISession session)
+        public AniDB_File GetAniDBFile(ISessionWrapper session)
         {
             AniDB_FileRepository repAniFile = new AniDB_FileRepository();
             return repAniFile.GetByHash(session, Hash);

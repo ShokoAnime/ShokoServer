@@ -6,7 +6,7 @@ using NLog;
 
 namespace JMMServer.Entities
 {
-    public class MovieDB_Poster
+    public class MovieDB_Poster : IImageEntity
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 

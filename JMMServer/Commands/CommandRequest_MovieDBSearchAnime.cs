@@ -6,6 +6,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
 namespace JMMServer.Commands
@@ -51,6 +52,8 @@ namespace JMMServer.Commands
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
+
                     // first check if the user wants to use the web cache
                     if (ServerSettings.WebCache_TvDB_Get)
                     {
@@ -64,7 +67,7 @@ namespace JMMServer.Commands
                             if (crossRef != null)
                             {
                                 int movieID = int.Parse(crossRef.CrossRefID);
-                                MovieDB_Movie movie = repMovies.GetByOnlineID(session, movieID);
+                                MovieDB_Movie movie = repMovies.GetByOnlineID(sessionWrapper, movieID);
                                 if (movie == null)
                                 {
                                     // update the info from online
@@ -87,7 +90,7 @@ namespace JMMServer.Commands
 
                     string searchCriteria = "";
                     AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(session, AnimeID);
+                    AniDB_Anime anime = repAnime.GetByAnimeID(sessionWrapper, AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;
@@ -100,7 +103,7 @@ namespace JMMServer.Commands
 
                     if (results.Count == 0)
                     {
-                        foreach (AniDB_Anime_Title title in anime.GetTitles(session))
+                        foreach (AniDB_Anime_Title title in anime.GetTitles(sessionWrapper))
                         {
                             if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
 

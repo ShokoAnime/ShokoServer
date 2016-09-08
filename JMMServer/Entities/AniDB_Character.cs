@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using AniDBAPI;
 using JMMContracts;
@@ -69,26 +70,33 @@ namespace JMMServer.Entities
             }
         }
 
-        public Contract_AniDB_Character ToContract(AniDB_Anime_Character charRel)
+        public Contract_AniDB_Character ToContract(string charType, AniDB_Seiyuu seiyuu)
         {
-            Contract_AniDB_Character contract = new Contract_AniDB_Character();
+            var contract = new Contract_AniDB_Character
+                {
+                    AniDB_CharacterID = AniDB_CharacterID,
+                    CharID = CharID,
+                    PicName = PicName,
+                    CreatorListRaw = CreatorListRaw,
+                    CharName = CharName,
+                    CharKanjiName = CharKanjiName,
+                    CharDescription = CharDescription,
+                    CharType = charType
+                };
 
-            contract.AniDB_CharacterID = this.AniDB_CharacterID;
-            contract.CharID = this.CharID;
-            contract.PicName = this.PicName;
-            contract.CreatorListRaw = this.CreatorListRaw;
-            contract.CharName = this.CharName;
-            contract.CharKanjiName = this.CharKanjiName;
-            contract.CharDescription = this.CharDescription;
-
-            contract.CharType = charRel.CharType;
-
-            contract.Seiyuu = null;
-            AniDB_Seiyuu seiyuu = this.GetSeiyuu();
             if (seiyuu != null)
+            {
                 contract.Seiyuu = seiyuu.ToContract();
+            }
 
             return contract;
+        }
+
+        public Contract_AniDB_Character ToContract(string charType)
+        {
+            AniDB_Seiyuu seiyuu = GetSeiyuu();
+
+            return ToContract(charType, seiyuu);
         }
 
         public MetroContract_AniDB_Character ToContractMetro(ISession session, AniDB_Anime_Character charRel)

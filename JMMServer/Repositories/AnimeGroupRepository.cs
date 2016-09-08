@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -60,6 +61,7 @@ namespace JMMServer.Repositories
 
             using (var session = JMMService.SessionFactory.OpenSession())
             {
+                ISessionWrapper sessionWrapper = session.Wrap();
                 HashSet<GroupFilterConditionType> types;
                 lock (grp)
                 {
@@ -73,7 +75,7 @@ namespace JMMServer.Repositories
                             transaction.Commit();
                         }
                     }
-                    types = grp.UpdateContract(session, updategrpcontractstats);
+                    types = grp.UpdateContract(sessionWrapper, updategrpcontractstats);
                     //Types will contains the affected GroupFilterConditionTypes
                     using (var transaction = session.BeginTransaction())
                     {
@@ -91,7 +93,7 @@ namespace JMMServer.Repositories
                 }
                 if (grp.AnimeGroupParentID.HasValue && recursive)
                 {
-                    AnimeGroup pgroup = GetByID(session, grp.AnimeGroupParentID.Value);
+                    AnimeGroup pgroup = GetByID(sessionWrapper, grp.AnimeGroupParentID.Value);
 					// This will avoid the recursive error that would be possible, it won't update it, but that would be
 					// the least of the issues
 					if(pgroup != null && pgroup.AnimeGroupParentID == grp.AnimeGroupID)
@@ -105,7 +107,7 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
-        public AnimeGroup GetByID(ISession session, int id)
+        public AnimeGroup GetByID(ISessionWrapper session, int id)
         {
             return GetByID(id);
         }
@@ -115,7 +117,7 @@ namespace JMMServer.Repositories
             return Parents.GetMultiple(parentid);
         }
 
-        public List<AnimeGroup> GetByParentID(ISession session, int parentid)
+        public List<AnimeGroup> GetByParentID(ISessionWrapper session, int parentid)
         {
             return GetByParentID(parentid);
         }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
@@ -41,11 +42,11 @@ namespace JMMServer.Repositories
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetByHash(session, hash);
+                return GetByHash(session.Wrap(), hash);
             }
         }
 
-        public AniDB_File GetByHash(ISession session, string hash)
+        public AniDB_File GetByHash(ISessionWrapper session, string hash)
         {
             AniDB_File cr = session
                 .CreateCriteria(typeof(AniDB_File))

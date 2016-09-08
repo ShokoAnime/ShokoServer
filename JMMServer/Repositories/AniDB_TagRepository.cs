@@ -1,5 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using JMMServer.Collections;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -65,7 +69,7 @@ namespace JMMServer.Repositories
             }
         }
 
-        public List<AniDB_Tag> GetByAnimeID(ISession session, int animeID)
+        public List<AniDB_Tag> GetByAnimeID(ISessionWrapper session, int animeID)
         {
             var tags =
                 session.CreateQuery(
@@ -75,6 +79,28 @@ namespace JMMServer.Repositories
 
             return new List<AniDB_Tag>(tags);
         }
+
+        public ILookup<int, AniDB_Tag> GetByAnimeIDs(ISessionWrapper session, int[] ids)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (ids == null)
+                throw new ArgumentNullException(nameof(ids));
+
+            if (ids.Length == 0)
+            {
+                return EmptyLookup<int, AniDB_Tag>.Instance;
+            }
+
+            var tags = session
+                .CreateQuery("Select xref.AnimeID, tag FROM AniDB_Tag as tag, AniDB_Anime_Tag as xref WHERE tag.TagID = xref.TagID AND xref.AnimeID IN (:animeIDs)")
+                .SetParameterList("animeIDs", ids)
+                .List<object[]>()
+                .ToLookup(t => (int)t[0], t => (AniDB_Tag)t[1]);
+
+            return tags;
+        }
+
 
         public AniDB_Tag GetByTagID(int id)
         {
@@ -89,7 +115,7 @@ namespace JMMServer.Repositories
             }
         }
 
-        public AniDB_Tag GetByTagID(int id, ISession session)
+        public AniDB_Tag GetByTagID(int id, ISessionWrapper session)
         {
             AniDB_Tag cr = session
                 .CreateCriteria(typeof(AniDB_Tag))

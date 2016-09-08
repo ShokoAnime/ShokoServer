@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -41,7 +42,7 @@ namespace JMMServer.Repositories
             }
         }
 
-        public List<AniDB_Anime_Character> GetByAnimeID(ISession session, int id)
+        public List<AniDB_Anime_Character> GetByAnimeID(ISessionWrapper session, int id)
         {
             var cats = session
                 .CreateCriteria(typeof(AniDB_Anime_Character))
