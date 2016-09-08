@@ -418,6 +418,7 @@ namespace JMMServer
             }
             return gfs;
         }
+
         public Contract_GroupFilter GetGroupFilter(int gf)
         {
             List<Contract_GroupFilter> gfs = new List<Contract_GroupFilter>();
@@ -432,6 +433,7 @@ namespace JMMServer
             }
             return null;
         }
+
         public Contract_GroupFilter EvaluateGroupFilter(Contract_GroupFilter contract)
         {
             try
@@ -1064,8 +1066,6 @@ namespace JMMServer
             }
         }
 
-
-
         public Contract_AnimeSeries_SaveResponse SaveSeries(Contract_AnimeSeries_Save contract, int userID)
         {
             Contract_AnimeSeries_SaveResponse contractout = new Contract_AnimeSeries_SaveResponse();
@@ -1175,7 +1175,6 @@ namespace JMMServer
                 return null;
             }
         }
-
 
         public string RemoveAssociationOnFile(int videoLocalID, int aniDBEpisodeID)
         {
@@ -2403,6 +2402,94 @@ namespace JMMServer
             return null;
         }
 
+        public List<Contract_AnimeSeries> GetSeriesByFolderID(int FolderID, int userID, int max)
+        {
+            try
+            {
+                int limit = 0;
+                List<Contract_AnimeSeries> list = new List<Contract_AnimeSeries>();
+
+                VideoLocalRepository reVideo = new VideoLocalRepository();
+                foreach (VideoLocal vi in reVideo.GetByImportFolder(FolderID))
+                {
+                    foreach (Contract_AnimeEpisode ae in GetEpisodesForFile(vi.VideoLocalID, userID))
+                    {
+                        Contract_AnimeSeries ase = GetSeries(ae.AnimeSeriesID, userID);
+                        if (!list.Contains(ase))
+                        {
+                            limit++;
+                            list.Add(ase);
+                            if (limit >= max)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                return list;
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return null;
+        }
+
+        public List<Contract_AnimeSeriesFileStats> GetSeriesFileStatsByFolderID(int FolderID, int userID, int max)
+        {
+            try
+            {
+                int limit = 0;
+                Dictionary<int,Contract_AnimeSeriesFileStats> list = new Dictionary<int, Contract_AnimeSeriesFileStats>();
+                VideoLocalRepository reVideo = new VideoLocalRepository();
+                ImportFolderRepository repFolders = new ImportFolderRepository();
+                ImportFolder fldr = repFolders.GetByID(FolderID);
+                if (fldr == null) return list.Values.ToList();
+                string importLocation = fldr.ImportFolderLocation.TrimEnd('\\');
+
+                foreach (VideoLocal vi in reVideo.GetByImportFolder(FolderID))
+                {
+                    foreach (Contract_AnimeEpisode ae in GetEpisodesForFile(vi.VideoLocalID, userID))
+                    {
+                        Contract_AnimeSeries ase = GetSeries(ae.AnimeSeriesID, userID);
+                        Contract_AnimeSeriesFileStats asfs = null;
+                        if (list.TryGetValue(ase.AnimeSeriesID, out asfs) == false)
+                        {
+                            limit++;
+                            if (limit >= max)
+                            {
+                                continue;
+                            }
+                            asfs = new Contract_AnimeSeriesFileStats();
+                            asfs.AnimeSeriesName = ase.AniDBAnime.AniDBAnime.MainTitle;
+                            asfs.FileCount = 0;
+                            asfs.FileSize = 0;
+                            asfs.Folders = new List<string>();
+                            asfs.AnimeSeriesID = ase.AnimeSeriesID;
+                            list.Add(ase.AnimeSeriesID, asfs);
+                        }
+                        asfs.FileCount++;
+                        asfs.FileSize += vi.FileSize;
+
+                        string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FullServerPath).Replace(importLocation, "");
+                        filePath = filePath.TrimStart('\\');
+                        if (!asfs.Folders.Contains(filePath)) {
+                            asfs.Folders.Add(filePath);
+                        }
+                        
+                    }
+                }
+
+                return list.Values.ToList();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+            return null;
+        }
+
         public Contract_AnimeSeries GetSeriesForAnime(int animeID, int userID)
         {
             AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
@@ -3026,7 +3113,7 @@ namespace JMMServer
             {
                 ImportFolderRepository repNS = new ImportFolderRepository();
                 ImportFolder ns = null;
-                if (contract.ImportFolderID.HasValue)
+                if (contract.ImportFolderID.HasValue && contract.ImportFolderID != 0)
                 {
                     // update
                     ns = repNS.GetByID(contract.ImportFolderID.Value);
@@ -6450,6 +6537,42 @@ namespace JMMServer
             }
 
             return retEps;
+        }
+
+        public List<VideoLocal> GetAllFiles()
+        {
+            try
+            {
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    VideoLocalRepository repVids = new VideoLocalRepository();
+                    List<VideoLocal> vids = repVids.GetAll();
+                    return vids;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return new List<VideoLocal>();
+            }
+        }
+
+        public List<VideoLocal> GetFilesRecentlyAdded(int max_records)
+        {
+            try
+            {
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    VideoLocalRepository repVids = new VideoLocalRepository();
+                    List<VideoLocal> vids = repVids.GetMostRecentlyAdded(session, max_records);
+                    return vids;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return new List<VideoLocal>();
+            }
         }
 
         public List<Contract_AnimeEpisode> GetEpisodesRecentlyAdded(int maxRecords, int jmmuserID)

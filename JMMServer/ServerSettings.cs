@@ -118,6 +118,24 @@ namespace JMMServer
             set { UpdateSetting("Culture", value); }
         }
 
+        /// <summary>
+        /// FirstRun idicates if DB was configured or not, as it needed as backend for user authentication
+        /// </summary>
+        public static bool FirstRun
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                bool val = true;
+                if (appSettings.AllKeys.Contains("FirstRun"))
+                { bool.TryParse(appSettings["FirstRun"], out val); }
+                else
+                { FirstRun = val; }
+                return val;
+            }
+            set { UpdateSetting("FirstRun", value.ToString()); }
+        }
+
         #region Database
 
         public static string DatabaseType
@@ -1151,6 +1169,8 @@ namespace JMMServer
             }
             set { UpdateSetting("Trakt_IsEnabled", value.ToString()); }
         }
+
+        public static string Trakt_PIN { get; set; }
 
         public static string Trakt_AuthToken
         {

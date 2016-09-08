@@ -92,6 +92,7 @@
     <Compile Include="Contract_AnimeGroup_SaveResponse.cs" />
     <Compile Include="Contract_AnimeRating.cs" />
     <Compile Include="Contract_AnimeSearch.cs" />
+    <Compile Include="Contract_AnimeSeriesFileStats.cs" />
     <Compile Include="Contract_AnimeSeries.cs" />
     <Compile Include="Contract_AniDB_AnimeDetailed.cs" />
     <Compile Include="Contract_AnimeSeries_Save.cs" />
@@ -177,11 +178,7 @@
     <Compile Include="Contract_VideoLocalRenamed.cs" />
     <Compile Include="Hashes.cs" />
     <Compile Include="IJMMServer.cs" />
-    <Compile Include="IJMMServerImage.cs" />
     <Compile Include="IJMMServerMetro.cs" />
-    <Compile Include="IJMMServerKodi.cs" />
-    <Compile Include="IJMMServerPlex.cs" />
-    <Compile Include="IJMMServerREST.cs" />
     <Compile Include="IJMMServerStreaming.cs" />
     <Compile Include="MediaInfoResult.cs" />
     <Compile Include="MetroContract_AniDB_Character.cs" />

@@ -129,6 +129,24 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
+        public JMMUser GetByUsername(string username)
+        {
+            try
+            {
+                return Cache.Values.First<JMMUser>(x => x.Username.ToLower() == username.ToLower());
+            }
+            catch
+            {
+                return null;
+            }
+            //foreach (JMMUser user in Cache.Values)
+            //{
+            //    if (user.UserName.ToLower() == username.ToLower())
+            //        return user;
+            //}
+            //return null;
+        }
+
         public List<JMMUser> GetAll()
         {
             return Cache.Values.ToList();

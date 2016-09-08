@@ -401,7 +401,6 @@ namespace JMMServer
         public void RefreshImportFolders()
         {
             ImportFolders.Clear();
-
             try
             {
                 ImportFolderRepository repFolders = new ImportFolderRepository();

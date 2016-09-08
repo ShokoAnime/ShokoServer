@@ -13,11 +13,11 @@ using NLog;
 
 namespace JMMServer
 {
-    public class JMMServiceImplementationREST : IJMMServerREST
+    public class JMMServiceImplementationREST
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public System.IO.Stream GetImage(string ImageType, string ImageID)
+        public System.IO.Stream GetImage(string ImageType, string ImageID, bool thumnbnailOnly)
         {
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
             TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
@@ -45,7 +45,6 @@ namespace JMMServer
                     if (File.Exists(anime.PosterPath))
                     {
                         FileStream fs = File.OpenRead(anime.PosterPath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -63,7 +62,6 @@ namespace JMMServer
                     if (File.Exists(chr.PosterPath))
                     {
                         FileStream fs = File.OpenRead(chr.PosterPath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -81,7 +79,6 @@ namespace JMMServer
                     if (File.Exists(creator.PosterPath))
                     {
                         FileStream fs = File.OpenRead(creator.PosterPath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -98,7 +95,6 @@ namespace JMMServer
                     if (File.Exists(poster.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(poster.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -115,7 +111,6 @@ namespace JMMServer
                     if (File.Exists(wideBanner.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(wideBanner.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -132,7 +127,6 @@ namespace JMMServer
                     if (File.Exists(ep.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(ep.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -146,16 +140,31 @@ namespace JMMServer
                     TvDB_ImageFanart fanart = repFanart.GetByID(int.Parse(ImageID));
                     if (fanart == null) return null;
 
-                    if (File.Exists(fanart.FullImagePath))
+                    if (thumnbnailOnly)
                     {
-                        FileStream fs = File.OpenRead(fanart.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
-                        return fs;
+                        if (File.Exists(fanart.FullThumbnailPath))
+                        {
+                            FileStream fs = File.OpenRead(fanart.FullThumbnailPath);
+                            return fs;
+                        }
+                        else
+                        {
+                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullThumbnailPath);
+                            return null;
+                        }
                     }
                     else
                     {
-                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullImagePath);
-                        return BlankImage();
+                        if (File.Exists(fanart.FullImagePath))
+                        {
+                            FileStream fs = File.OpenRead(fanart.FullImagePath);
+                            return fs;
+                        }
+                        else
+                        {
+                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.FullImagePath);
+                            return BlankImage();
+                        }
                     }
 
                 case JMMImageType.MovieDB_Poster:
@@ -170,7 +179,6 @@ namespace JMMServer
                     if (File.Exists(mPoster.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(mPoster.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -190,7 +198,6 @@ namespace JMMServer
                     if (File.Exists(mFanart.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(mFanart.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -207,7 +214,6 @@ namespace JMMServer
                     if (File.Exists(tFanart.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(tFanart.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -224,7 +230,6 @@ namespace JMMServer
                     if (File.Exists(tPoster.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(tPoster.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -242,7 +247,6 @@ namespace JMMServer
                     if (File.Exists(tEpisode.FullImagePath))
                     {
                         FileStream fs = File.OpenRead(tEpisode.FullImagePath);
-                        WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                         return fs;
                     }
                     else
@@ -260,7 +264,6 @@ namespace JMMServer
         public System.IO.Stream BlankImage()
         {
             byte[] dta = Resources.blank;
-            WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
             return ms;
@@ -450,7 +453,6 @@ namespace JMMServer
             if (File.Exists(serverImagePath))
             {
                 FileStream fs = File.OpenRead(serverImagePath);
-                WebOperationContext.Current.OutgoingResponse.ContentType = "image/jpeg";
                 return fs;
             }
             else
@@ -525,8 +527,6 @@ namespace JMMServer
                 byte[] dta = (byte[]) man.GetObject(name);
                 if ((dta == null) || (dta.Length == 0))
                     return new MemoryStream();
-                if (WebOperationContext.Current != null)
-                    WebOperationContext.Current.OutgoingResponse.ContentType = "image/png";
                 //Little hack
                 MemoryStream ms = new MemoryStream(dta);
                 ms.Seek(0, SeekOrigin.Begin);
@@ -593,7 +593,7 @@ namespace JMMServer
 
         public System.IO.Stream GetThumb(string ImageType, string ImageID, string Ratio)
         {
-            using (Stream m = GetImage(ImageType, ImageID))
+            using (Stream m = GetImage(ImageType, ImageID, false))
             {
                 if (m != null)
                 {

@@ -14,70 +14,139 @@ namespace JMMServer.PlexAndKodi
     {
         public static string ConstructUnsortUrl(this IProvider prov, int userid)
         {
-            return Helper.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.GroupUnsort + "/0/");
+            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.GroupUnsort + "/0/");
+            }
+            else
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupUnsort + "/0/");
+            }
         }
 
         public static string ConstructGroupIdUrl(this IProvider prov, int userid, string gid)
         {
-            return Helper.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Group + "/" + gid);
+            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.Group + "/" + gid);
+            }
+            else
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Group + "/" + gid);
+            }
         }
 
         public static string ConstructSerieIdUrl(this IProvider prov, int userid, string sid)
         {
-            return Helper.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Serie + "/" + sid);
+            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.Serie + "/" + sid);
+            }
+            else
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Serie + "/" + sid);
+            }
         }
 
         public static string ContructVideoUrl(this IProvider prov, int userid, string vid, JMMType type)
         {
-            return Helper.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) type + "/" + vid);
+            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)type + "/" + vid);
+            }
+            else
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)type + "/" + vid);
+            }
         }
 
         public static string ConstructFilterIdUrl(this IProvider prov, int userid, int gfid)
         {
-            return Helper.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.GroupFilter + "/" + gfid);
+            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.GroupFilter + "/" + gfid);
+            }
+            else
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupFilter + "/" + gfid);
+            }
         }
 
         public static string ConstructFakeIosThumb(this IProvider prov, int userid, string thumburl, string arturl)
         {
             string r = Helper.Base64EncodeUrl(thumburl + "|" + arturl);
-            return Helper.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.FakeIosThumb + "/" + r + "/0");
+            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
+            }
+            else
+            {
+                
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
+            }
         }
 
         public static string ConstructFiltersUrl(this IProvider prov, int userid)
         {
-            return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetFilters/" + userid);
+            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetFilters");
+            }
+            else
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetFilters/" + userid);
+            }
         }
 
-        public static string ConstructSearchUrl(this IProvider prov, string userid, string limit, string query,
-            bool searchTag)
+        public static string ConstructSearchUrl(this IProvider prov, string userid, string limit, string query, bool searchTag)
         {
             if (searchTag)
-                return Helper.ServerUrl(prov.ServicePort,
-                    prov.ServiceAddress + "/SearchTag/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" +
-                    WebUtility.UrlEncode(query));
-            return Helper.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" +
-                WebUtility.UrlEncode(query));
+            {
+                if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+                {
+                    return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/SearchTag/" + limit + "/" + WebUtility.UrlEncode(query));
+                }
+                else
+                {
+                    return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/SearchTag/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query));
+                }
+            }
+            else
+            {
+                if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+                {
+                    return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/Search/" + limit + "/" + WebUtility.UrlEncode(query));
+                }
+                else
+                {
+                    return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" + WebUtility.UrlEncode(query));
+                }
+            }
         }
 
         public static string ConstructPlaylistUrl(this IProvider prov, int userid)
         {
-            return Helper.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Playlist + "/0");
+            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetaData/" + (int)JMMType.Playlist + "/0");
+            }
+            else
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/0");
+            }
         }
 
         public static string ConstructPlaylistIdUrl(this IProvider prov, int userid, int pid)
         {
-            return Helper.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int) JMMType.Playlist + "/" + pid);
+            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetaData/" + (int)JMMType.Playlist + "/" + pid);
+            }
+            else
+            {
+                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.Playlist + "/" + pid);
+            }
         }
-
 
         public static string GenPoster(this ImageDetails im, string fallbackimage = "plex_404V.png")
         {

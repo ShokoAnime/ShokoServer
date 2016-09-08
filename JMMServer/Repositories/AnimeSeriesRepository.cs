@@ -193,7 +193,6 @@ namespace JMMServer.Repositories
             return GetByGroupID(groupid);
         }
 
-
         public List<AnimeSeries> GetWithMissingEpisodes()
         {
             return
