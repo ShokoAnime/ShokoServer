@@ -16,16 +16,28 @@ namespace JMMServer.API
 
         static UserDatabase()
         {
-            Repositories.JMMUserRepository repUsers = new Repositories.JMMUserRepository();
-            foreach (Entities.JMMUser us in repUsers.GetAll())
-            {
-                Users.Add(new Tuple<int, string, string>(us.JMMUserID, us.Username, us.Password));
-            }
+            Refresh();
+        }
 
-            Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
-            foreach (Entities.AuthTokens at in authRepo.GetAll())
+        public static void Refresh()
+        {
+            try
             {
-                ActiveApiKeys.Add(new Tuple<int, string, string>(at.UserID, at.DeviceName, at.Token));
+                Repositories.JMMUserRepository repUsers = new Repositories.JMMUserRepository();
+                foreach (Entities.JMMUser us in repUsers.GetAll())
+                {
+                    Users.Add(new Tuple<int, string, string>(us.JMMUserID, us.Username, us.Password));
+                }
+
+                Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
+                foreach (Entities.AuthTokens at in authRepo.GetAll())
+                {
+                    ActiveApiKeys.Add(new Tuple<int, string, string>(at.UserID, at.DeviceName, at.Token));
+                }
+            }
+            catch
+            {
+
             }
         }
 
@@ -44,10 +56,15 @@ namespace JMMServer.API
 
         public static string ValidateUser(string username, string password, string device)
         {
+            //in case of login before database have been loaded
+            if (Users.Count == 0) { UserDatabase.Refresh(); }
+
             var userRecord = Users.FirstOrDefault(u => u.Item2.ToLower() == username.ToLower() && u.Item3 == password);
 
             if (userRecord == null)
             {
+                //if user is invalid try to refresh cache so we add any newly added users to cache just in case
+                UserDatabase.Refresh();
                 return null;
             }
 

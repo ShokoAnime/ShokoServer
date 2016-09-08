@@ -13,7 +13,6 @@ using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
 using System.Linq;
 using Newtonsoft.Json;
-using System.Dynamic;
 using System.IO;
 
 namespace JMMServer.API
@@ -25,6 +24,7 @@ namespace JMMServer.API
         //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
         //routes are named with twitter api style
         //every function with summary is implemented 
+        //private funtions are the ones for api calls directly and internal ones are support function for private ones
         public APIv2_core_Module() : base("/api")
         {
             this.RequiresAuthentication();
@@ -33,6 +33,7 @@ namespace JMMServer.API
             Get["/folder/list"] = x => { return GetFolders(); };
             Get["/folder/count"] = x => { return CountFolders(); };
             Post["/folder/add"] = x => { return AddFolder(); };
+            Post["/folder/edit"] = x => { return EditFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
             Get["/folder/import"] = _ => { return RunImport(); };
             Get["/cloud/list"] = x => { return null; };
@@ -131,6 +132,9 @@ namespace JMMServer.API
             Get["/serie/{id}"] = x => { return GetSerieById(x.id); ; };
             Get["/serie/recent"] = _ => { return GetRecentSeries(10); };
             Get["/serie/recent/{max}"] = x => { return GetRecentSeries((int)x.max); };
+            Get["/serie/search/{query}"] = x => { return null; };
+            Get["/serie/byfolder/{id}"] = x => { return GetSerieByFolderId(x.id, 10); };
+            Get["/serie/byfolder/{id}/{max}"] = x => { return GetSerieByFolderId(x.id, x.max); };
 
             // 15. WebUI
             Get["/dashboard"] = _ => { return GetDashboard(); };
@@ -139,6 +143,10 @@ namespace JMMServer.API
             Get["/webui/update/unstable"] = _ => { return WebUIUnstableUpdate(); };
             Get["/webui/latest/unstable"] = _ => { return WebUILatestUnstableVersion(); };
 
+            // 16. OS-based operations
+            Get["/os/folder/base"] = _ => { return GetOSBaseFolder(); };
+            Post["/os/folder"] = x => { return GetOSFolder(x.folder); };
+            Get["/os/drives"] = _ => { return GetOSDrives(); };
         }
 
         #region 1.Folders
@@ -170,6 +178,44 @@ namespace JMMServer.API
         /// <returns></returns>
         private object AddFolder()
         {
+            Contract_ImportFolder folder = this.Bind();
+            if (folder.ImportFolderLocation != "")
+            {
+                try
+                {
+                    if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
+                    {
+                        return HttpStatusCode.Conflict;
+                    }
+                    else
+                    {
+                        Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder);
+
+                        if (!string.IsNullOrEmpty(response.ErrorMessage))
+                        {
+                            return HttpStatusCode.InternalServerError;
+                        }
+
+                        return HttpStatusCode.OK;
+                    }
+                }
+                catch
+                {
+                    return HttpStatusCode.InternalServerError;
+                }
+            }
+            else
+            {
+                return HttpStatusCode.BadRequest;
+            }
+        }
+
+        /// <summary>
+        /// Edit folder giving fulll ImportFolder object with ID
+        /// </summary>
+        /// <returns></returns>
+        private object EditFolder()
+        {
             ImportFolder folder = this.Bind();
             if (folder.ImportFolderLocation != "")
             {
@@ -181,14 +227,22 @@ namespace JMMServer.API
                     }
                     else
                     {
-                        Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder.ToContract());
-
-                        if (!string.IsNullOrEmpty(response.ErrorMessage))
+                        if (folder.ImportFolderID != 0 & folder.ToContract().ImportFolderID.HasValue)
                         {
-                            return HttpStatusCode.InternalServerError;
+                            Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder.ToContract());
+                            if (!string.IsNullOrEmpty(response.ErrorMessage))
+                            {
+                                return HttpStatusCode.InternalServerError;
+                            }
+                            else
+                            {
+                                return HttpStatusCode.OK;
+                            }
                         }
-
-                        return HttpStatusCode.OK;
+                        else
+                        {
+                            return HttpStatusCode.Conflict;
+                        }
                     }
                 }
                 catch
@@ -1146,6 +1200,19 @@ namespace JMMServer.API
         }
 
         /// <summary>
+        /// return information about serie with given Folder ID
+        /// </summary>
+        /// <param name="folder_id"></param>
+        /// <returns></returns>
+        private object GetSerieByFolderId(int folder_id, int max)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.GetSeriesFileStatsByFolderID(folder_id, user.JMMUserID, max);
+        }
+
+        /// <summary>
         /// return Recent added series
         /// </summary>
         /// <param name="max_limit"></param>
@@ -1183,31 +1250,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object WebUIStableUpdate()
         {
-            try
-            {
-                var client = new System.Net.WebClient();
-                client.Headers.Add("Accept: application/vnd.github.v3+json");
-                client.Headers.Add("User-Agent", "jmmserver");
-                var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/latest"));
-
-                dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
-
-                string url = "https://github.com/japanesemediamanager/jmmserver-webui/raw/" + result.tag_name + "/build/latest.zip";
-
-                //check if tag was parsed corrently as it make the url
-                if (!String.IsNullOrEmpty((string)result.tag_name))
-                {
-                    return WebUIUpdate(url);
-                }
-                else
-                {
-                    return HttpStatusCode.NoContent;
-                }
-            }
-            catch
-            {
-                return HttpStatusCode.InternalServerError;
-            }
+            return WebUIGetUrlAndUpdate(WebUILatestStableVersion().version);
         }
 
         /// <summary>
@@ -1216,19 +1259,36 @@ namespace JMMServer.API
         /// <returns></returns>
         private object WebUIUnstableUpdate()
         {
+            return WebUIGetUrlAndUpdate(WebUILatestUnstableVersion().version);
+        }
+
+        /// <summary>
+        /// Get url for update and start update
+        /// </summary>
+        /// <param name="tag_name"></param>
+        /// <returns></returns>
+        internal object WebUIGetUrlAndUpdate(string tag_name)
+        {
             try
             {
                 var client = new System.Net.WebClient();
                 client.Headers.Add("Accept: application/vnd.github.v3+json");
                 client.Headers.Add("User-Agent", "jmmserver");
-                var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/tags/unstable"));
+                var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/tags/" + tag_name));
 
                 dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
-
-                string url = result.zipball_url;
+                string url = "";
+                foreach (dynamic obj in result.assets)
+                {
+                    if (obj.name == "latest.zip")
+                    {
+                        url = obj.browser_download_url;
+                        break;
+                    }
+                }
 
                 //check if tag was parsed corrently as it make the url
-                if (!String.IsNullOrEmpty((string)result.body))
+                if (url != "")
                 {
                     return WebUIUpdate(url);
                 }
@@ -1317,17 +1377,10 @@ namespace JMMServer.API
         /// Check for newest stable version and return object { version: string, url: string }
         /// </summary>
         /// <returns></returns>
-        private object WebUILatestStableVersion()
+        private ComponentVersion WebUILatestStableVersion()
         {
-            var client = new System.Net.WebClient();
-            client.Headers.Add("Accept: application/vnd.github.v3+json");
-            client.Headers.Add("User-Agent", "jmmserver");
-            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/latest"));
-
-            dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
-
             ComponentVersion version = new ComponentVersion();
-            version.version = result.tag_name;            
+            version = WebUIGetLatestVersion(true);
 
             return version;
         }
@@ -1336,19 +1389,179 @@ namespace JMMServer.API
         /// Check for newest unstable version and return object { version: string, url: string }
         /// </summary>
         /// <returns></returns>
-        private object WebUILatestUnstableVersion()
+        private ComponentVersion WebUILatestUnstableVersion()
         {
+            ComponentVersion version = new ComponentVersion();
+            version = WebUIGetLatestVersion(false);
+
+            return version;
+        }
+
+        /// <summary>
+        /// Find version that match requirements
+        /// </summary>
+        /// <param name="stable">do version have to be stable</param>
+        /// <returns></returns>
+        internal ComponentVersion WebUIGetLatestVersion(bool stable)
+        { 
             var client = new System.Net.WebClient();
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "jmmserver");
-            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/tags/unstable"));
+            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases/latest"));
 
             dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
 
             ComponentVersion version = new ComponentVersion();
-            version.version = result.body;
 
+            if (result.prerelease == "False")
+            {
+                //not pre-build
+                if (stable)
+                {
+                    version.version = result.tag_name;
+                }
+                else
+                {
+                    version.version = WebUIGetVersionsTag(false);
+                }
+            }
+            else
+            {
+                //pre-build
+                if (stable)
+                {
+                    version.version = WebUIGetVersionsTag(true);
+                }
+                else
+                {
+                    version.version = result.tag_name;
+                }
+            }
+           
             return version;
+        }
+
+        /// <summary>
+        /// Return tag_name of version that match requirements and is not present in /latest/
+        /// </summary>
+        /// <param name="stable">do version have to be stable</param>
+        /// <returns></returns>
+        internal string WebUIGetVersionsTag(bool stable)
+        {
+            var client = new System.Net.WebClient();
+            client.Headers.Add("Accept: application/vnd.github.v3+json");
+            client.Headers.Add("User-Agent", "jmmserver");
+            var response = client.DownloadString(new Uri("https://api.github.com/repos/japanesemediamanager/jmmserver-webui/releases"));
+
+            dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+
+            foreach (dynamic obj in result)
+            {
+                if (stable)
+                {
+                    if (obj.prerelease == "False")
+                    {
+                        foreach (dynamic file in obj.assets)
+                        {
+                            if ((string)file.name == "latest.zip")
+                            {
+                                return obj.tag_name;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (obj.prerelease == "True")
+                    {
+                        foreach (dynamic file in obj.assets)
+                        {
+                            if ((string)file.name == "latest.zip")
+                            {
+                                return obj.tag_name;
+                            }
+                        }
+                    }
+                }
+            }
+            return "";
+        }
+
+        #endregion
+
+        #region 16.OS-based operations
+
+        /// <summary>
+        /// Return OSFolder object that is a folder from which jmmserver is running
+        /// </summary>
+        /// <returns></returns>
+        private object GetOSBaseFolder()
+        {
+            OSFolder dir = new OSFolder();
+            dir.full_path = Environment.CurrentDirectory;
+            System.IO.DirectoryInfo dir_info = new DirectoryInfo(dir.full_path);
+            dir.dir = dir_info.Name;
+            dir.subdir = new List<OSFolder>();
+
+            foreach (DirectoryInfo info in dir_info.GetDirectories())
+            {
+                OSFolder subdir = new OSFolder();
+                subdir.full_path = info.FullName;
+                subdir.dir = info.Name;
+                dir.subdir.Add(subdir);
+            }
+            return dir;
+        }
+
+        /// <summary>
+        /// Return OSFolder object of directory that was given via 
+        /// </summary>
+        /// <param name="folder"></param>
+        /// <returns></returns>
+        private object GetOSFolder(string folder)
+        {
+            OSFolder dir = this.Bind();
+            if (!String.IsNullOrEmpty(dir.full_path))
+            {
+                System.IO.DirectoryInfo dir_info = new DirectoryInfo(dir.full_path);
+                dir.dir = dir_info.Name;
+                dir.subdir = new List<OSFolder>();
+
+                foreach (DirectoryInfo info in dir_info.GetDirectories())
+                {
+                    OSFolder subdir = new OSFolder();
+                    subdir.full_path = info.FullName;
+                    subdir.dir = info.Name;
+                    dir.subdir.Add(subdir);
+                }
+                return dir;
+            }
+            else
+            {
+                return HttpStatusCode.BadRequest;
+            }
+        }
+
+        /// <summary>
+        /// Return OSFolder with subdirs as every driver on local system
+        /// </summary>
+        /// <returns></returns>
+        private object GetOSDrives()
+        {
+            string[] drives = System.IO.Directory.GetLogicalDrives();
+            OSFolder dir = new OSFolder();
+            dir.dir = "/";
+            dir.full_path = "/";
+            dir.subdir = new List<OSFolder>();
+            foreach (string str in drives)
+            {
+                OSFolder driver = new OSFolder();
+                driver.dir = str;
+                driver.full_path = str;
+                dir.subdir.Add(driver);
+            }
+
+            return dir;
         }
 
         #endregion
