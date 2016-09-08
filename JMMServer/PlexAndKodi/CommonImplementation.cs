@@ -557,8 +557,9 @@ namespace JMMServer.PlexAndKodi
                         v.Group = basegrp;
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
-	                    v.Art = Helper.GetRandomFanartFromVideo(v);
-	                    v.Banner = Helper.GetRandomBannerFromVideo(v);
+	                    v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
+	                    v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+	                    if (nocast) v.Roles = null;
 	                    retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
                     }
@@ -1155,8 +1156,8 @@ namespace JMMServer.PlexAndKodi
                                     v.Group = grp.GetUserContract(userid);
                                 v.GenerateKey(prov, userid);
                                 v.Type = "show";
-	                            v.Art = Helper.GetRandomFanartFromVideo(v);
-	                            v.Banner = Helper.GetRandomBannerFromVideo(v);
+	                            v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
+	                            v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
 	                            if (nocast) v.Roles = null;
 								order.Add(v.Group, v);
                                 retGroups.Add(prov, v, info);
