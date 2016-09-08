@@ -4,6 +4,7 @@ using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.PlexAndKodi;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -106,7 +107,7 @@ namespace JMMServer.Repositories
                 Contract_AnimeSeries con = ser?.GetUserContract(ugrp.JMMUserID);
                 if (con == null)
                     return;
-                ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(session), ugrp.JMMUserID);
+                ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(session.Wrap()), ugrp.JMMUserID);
             }
         }
 

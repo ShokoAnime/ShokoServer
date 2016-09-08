@@ -13,6 +13,7 @@ using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TraktTV.Contracts;
 using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NLog;
 
 namespace JMMServer
@@ -79,9 +80,10 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-                    AniDB_Anime anime = repAnime.GetByAnimeID(session, animeID);
+                    AniDB_Anime anime = repAnime.GetByAnimeID(sessionWrapper, animeID);
                     if (anime == null) return null;
 
                     //AniDB
@@ -100,7 +102,7 @@ namespace JMMServer
                     }
 
                     // TvDB
-                    List<CrossRef_AniDB_TvDBV2> tvdbRef = anime.GetCrossRefTvDBV2(session);
+                    List<CrossRef_AniDB_TvDBV2> tvdbRef = anime.GetCrossRefTvDBV2(sessionWrapper);
                     if (tvdbRef != null && tvdbRef.Count > 0)
                     {
                         contract.TvDB_ID = tvdbRef[0].TvDBID.ToString();
@@ -181,13 +183,14 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
                     AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
                     AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                     JMMUserRepository repUsers = new JMMUserRepository();
                     VideoLocalRepository repVids = new VideoLocalRepository();
 
-                    JMMUser user = repUsers.GetByID(session, jmmuserID);
+                    JMMUser user = repUsers.GetByID(sessionWrapper, jmmuserID);
                     if (user == null) return retEps;
 
                     string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
@@ -203,7 +206,7 @@ namespace JMMServer
                     {
                         int animeSeriesID = int.Parse(res[0].ToString());
 
-                        AnimeSeries ser = repSeries.GetByID(session, animeSeriesID);
+                        AnimeSeries ser = repSeries.GetByID(sessionWrapper, animeSeriesID);
                         if (ser == null) continue;
 
                         if (!user.AllowedSeries(session, ser)) continue;
@@ -242,13 +245,14 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
                     AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
                     AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                     JMMUserRepository repUsers = new JMMUserRepository();
                     VideoLocalRepository repVids = new VideoLocalRepository();
 
-                    JMMUser user = repUsers.GetByID(session, jmmuserID);
+                    JMMUser user = repUsers.GetByID(sessionWrapper, jmmuserID);
                     if (user == null) return retAnime;
 
                     string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
@@ -264,7 +268,7 @@ namespace JMMServer
                     {
                         int animeSeriesID = int.Parse(res[0].ToString());
 
-                        AnimeSeries ser = repSeries.GetByID(session, animeSeriesID);
+                        AnimeSeries ser = repSeries.GetByID(sessionWrapper, animeSeriesID);
                         if (ser == null) continue;
 
                         if (!user.AllowedSeries(session, ser)) continue;
@@ -280,11 +284,11 @@ namespace JMMServer
                         Contract_AnimeEpisode epContract = eps[0].GetUserContract(jmmuserID);
                         if (epContract != null)
                         {
-                            AniDB_Anime anidb_anime = ser.GetAnime(session);
+                            AniDB_Anime anidb_anime = ser.GetAnime(sessionWrapper);
 
                             MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                             summ.AnimeID = ser.AniDB_ID;
-                            summ.AnimeName = ser.GetSeriesName(session);
+                            summ.AnimeName = ser.GetSeriesName(sessionWrapper);
                             summ.AnimeSeriesID = ser.AnimeSeriesID;
                             summ.BeginYear = anidb_anime.BeginYear;
                             summ.EndYear = anidb_anime.EndYear;
@@ -294,7 +298,7 @@ namespace JMMServer
                             else
                                 summ.UnwatchedEpisodeCount = 0;
 
-                            ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
+                            ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                             summ.ImageType = (int) imgDet.ImageType;
                             summ.ImageID = imgDet.ImageID;
 
@@ -322,6 +326,7 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
                     AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
                     AnimeSeries_UserRepository repSeriesUser = new AnimeSeries_UserRepository();
@@ -329,7 +334,7 @@ namespace JMMServer
 
                     DateTime start = DateTime.Now;
 
-                    JMMUser user = repUsers.GetByID(session, jmmuserID);
+                    JMMUser user = repUsers.GetByID(sessionWrapper, jmmuserID);
                     if (user == null) return retAnime;
 
                     // get a list of series that is applicable
@@ -344,7 +349,7 @@ namespace JMMServer
                     {
                         start = DateTime.Now;
 
-                        AnimeSeries series = repAnimeSer.GetByID(session, userRecord.AnimeSeriesID);
+                        AnimeSeries series = repAnimeSer.GetByID(sessionWrapper, userRecord.AnimeSeriesID);
                         if (series == null) continue;
 
                         if (!user.AllowedSeries(session, series))
@@ -356,15 +361,15 @@ namespace JMMServer
 
                         AnimeSeries_User serUser = series.GetUserRecord(session, jmmuserID);
 
-                        Contract_AnimeEpisode ep = imp.GetNextUnwatchedEpisode(session, userRecord.AnimeSeriesID,
+                        Contract_AnimeEpisode ep = imp.GetNextUnwatchedEpisode(sessionWrapper, userRecord.AnimeSeriesID,
                             jmmuserID);
                         if (ep != null)
                         {
-                            AniDB_Anime anidb_anime = series.GetAnime(session);
+                            AniDB_Anime anidb_anime = series.GetAnime(sessionWrapper);
 
                             MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                             summ.AnimeID = series.AniDB_ID;
-                            summ.AnimeName = series.GetSeriesName(session);
+                            summ.AnimeName = series.GetSeriesName(sessionWrapper);
                             summ.AnimeSeriesID = series.AnimeSeriesID;
                             summ.BeginYear = anidb_anime.BeginYear;
                             summ.EndYear = anidb_anime.EndYear;
@@ -375,7 +380,7 @@ namespace JMMServer
                             else
                                 summ.UnwatchedEpisodeCount = 0;
 
-                            ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
+                            ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                             summ.ImageType = (int) imgDet.ImageType;
                             summ.ImageID = imgDet.ImageID;
 
@@ -409,10 +414,11 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     GroupFilterRepository repGF = new GroupFilterRepository();
                     AnimeGroup_UserRepository repGU = new AnimeGroup_UserRepository();
                     JMMUserRepository repUsers = new JMMUserRepository();
-                    JMMUser user = repUsers.GetByID(session, jmmuserID);
+                    JMMUser user = repUsers.GetByID(sessionWrapper, jmmuserID);
                     if (user == null) return retAnime;
 
                     // find the locked Continue Watching Filter
@@ -451,14 +457,14 @@ namespace JMMServer
 
                             AnimeSeries_User serUser = ser.GetUserRecord(session, jmmuserID);
 
-                            Contract_AnimeEpisode ep = imp.GetNextUnwatchedEpisode(session, ser.AnimeSeriesID, jmmuserID);
+                            Contract_AnimeEpisode ep = imp.GetNextUnwatchedEpisode(sessionWrapper, ser.AnimeSeriesID, jmmuserID);
                             if (ep != null)
                             {
-                                AniDB_Anime anidb_anime = ser.GetAnime(session);
+                                AniDB_Anime anidb_anime = ser.GetAnime(sessionWrapper);
 
                                 MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                                 summ.AnimeID = ser.AniDB_ID;
-                                summ.AnimeName = ser.GetSeriesName(session);
+                                summ.AnimeName = ser.GetSeriesName(sessionWrapper);
                                 summ.AnimeSeriesID = ser.AnimeSeriesID;
                                 summ.BeginYear = anidb_anime.BeginYear;
                                 summ.EndYear = anidb_anime.EndYear;
@@ -469,7 +475,7 @@ namespace JMMServer
                                 else
                                     summ.UnwatchedEpisodeCount = 0;
 
-                                ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
+                                ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                                 summ.ImageType = (int) imgDet.ImageType;
                                 summ.ImageID = imgDet.ImageID;
 
@@ -502,12 +508,12 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
                     JMMUserRepository repUsers = new JMMUserRepository();
                     AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
-
-                    JMMUser user = repUsers.GetByID(session, jmmuserID);
+                    JMMUser user = repUsers.GetByID(sessionWrapper, jmmuserID);
                     if (user == null) return retAnime;
 
                     DateTime? startDate = Utils.GetAniDBDateAsDate(startDateSecs);
@@ -526,7 +532,7 @@ namespace JMMServer
                         summ.AnimeID = anidb_anime.AnimeID;
                         if (ser != null)
                         {
-                            summ.AnimeName = ser.GetSeriesName(session);
+                            summ.AnimeName = ser.GetSeriesName(sessionWrapper);
                             summ.AnimeSeriesID = ser.AnimeSeriesID;
                         }
                         else
@@ -536,9 +542,9 @@ namespace JMMServer
                         }
                         summ.BeginYear = anidb_anime.BeginYear;
                         summ.EndYear = anidb_anime.EndYear;
-                        summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
+                        summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(sessionWrapper);
 
-                        ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
+                        ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                         summ.ImageType = (int) imgDet.ImageType;
                         summ.ImageID = imgDet.ImageID;
 
@@ -562,12 +568,12 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
                     JMMUserRepository repUsers = new JMMUserRepository();
                     AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
-
-                    JMMUser user = repUsers.GetByID(session, jmmuserID);
+                    JMMUser user = repUsers.GetByID(sessionWrapper, jmmuserID);
                     if (user == null) return retAnime;
 
 
@@ -584,7 +590,7 @@ namespace JMMServer
                         summ.AnimeID = anidb_anime.AnimeID;
                         if (ser != null)
                         {
-                            summ.AnimeName = ser.GetSeriesName(session);
+                            summ.AnimeName = ser.GetSeriesName(sessionWrapper);
                             summ.AnimeSeriesID = ser.AnimeSeriesID;
                         }
                         else
@@ -594,9 +600,9 @@ namespace JMMServer
                         }
                         summ.BeginYear = anidb_anime.BeginYear;
                         summ.EndYear = anidb_anime.EndYear;
-                        summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(session);
+                        summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(sessionWrapper);
 
-                        ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(session);
+                        ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                         summ.ImageType = (int) imgDet.ImageType;
                         summ.ImageID = imgDet.ImageID;
 
@@ -619,19 +625,20 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                     AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-                    AniDB_Anime anime = repAnime.GetByAnimeID(session, animeID);
+                    AniDB_Anime anime = repAnime.GetByAnimeID(sessionWrapper, animeID);
                     if (anime == null) return null;
 
-                    AnimeSeries ser = repSeries.GetByAnimeID(session, animeID);
+                    AnimeSeries ser = repSeries.GetByAnimeID(sessionWrapper, animeID);
 
                     MetroContract_Anime_Detail ret = new MetroContract_Anime_Detail();
                     ret.AnimeID = anime.AnimeID;
 
                     if (ser != null)
-                        ret.AnimeName = ser.GetSeriesName(session);
+                        ret.AnimeName = ser.GetSeriesName(sessionWrapper);
                     else
                         ret.AnimeName = anime.MainTitle;
 
@@ -643,11 +650,11 @@ namespace JMMServer
                     ret.BeginYear = anime.BeginYear;
                     ret.EndYear = anime.EndYear;
 
-                    ImageDetails imgDet = anime.GetDefaultPosterDetailsNoBlanks(session);
+                    ImageDetails imgDet = anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                     ret.PosterImageType = (int) imgDet.ImageType;
                     ret.PosterImageID = imgDet.ImageID;
 
-                    ImageDetails imgDetFan = anime.GetDefaultFanartDetailsNoBlanks(session);
+                    ImageDetails imgDetFan = anime.GetDefaultFanartDetailsNoBlanks(sessionWrapper);
                     if (imgDetFan != null)
                     {
                         ret.FanartImageType = (int) imgDetFan.ImageType;
@@ -688,10 +695,10 @@ namespace JMMServer
                         Dictionary<int, AnimeEpisode_User> dictEpUsers = new Dictionary<int, AnimeEpisode_User>();
                         foreach (
                             AnimeEpisode_User userRecord in
-                                repEpUser.GetByUserIDAndSeriesID(session, jmmuserID, ser.AnimeSeriesID))
+                                repEpUser.GetByUserIDAndSeriesID(sessionWrapper, jmmuserID, ser.AnimeSeriesID))
                             dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
 
-                        foreach (AnimeEpisode animeep in repEps.GetBySeriesID(session, ser.AnimeSeriesID))
+                        foreach (AnimeEpisode animeep in repEps.GetBySeriesID(sessionWrapper, ser.AnimeSeriesID))
                         {
                             if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
                             {
@@ -705,7 +712,7 @@ namespace JMMServer
                         }
 
                         AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                        List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(session, ser.AniDB_ID);
+                        List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(sessionWrapper, ser.AniDB_ID);
                         Dictionary<int, AniDB_Episode> dictAniEps = new Dictionary<int, AniDB_Episode>();
                         foreach (AniDB_Episode aniep in aniEpList)
                             dictAniEps[aniep.EpisodeID] = aniep;
@@ -806,14 +813,15 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
                     AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                     AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-                    AniDB_Anime anime = repAnime.GetByAnimeID(session, animeID);
+                    AniDB_Anime anime = repAnime.GetByAnimeID(sessionWrapper, animeID);
                     if (anime == null) return null;
 
-                    AnimeSeries ser = repSeries.GetByAnimeID(session, animeID);
+                    AnimeSeries ser = repSeries.GetByAnimeID(sessionWrapper, animeID);
 
                     MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                     summ.AnimeID = anime.AnimeID;
@@ -822,15 +830,15 @@ namespace JMMServer
 
                     summ.BeginYear = anime.BeginYear;
                     summ.EndYear = anime.EndYear;
-                    summ.PosterName = anime.GetDefaultPosterPathNoBlanks(session);
+                    summ.PosterName = anime.GetDefaultPosterPathNoBlanks(sessionWrapper);
 
-                    ImageDetails imgDet = anime.GetDefaultPosterDetailsNoBlanks(session);
+                    ImageDetails imgDet = anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                     summ.ImageType = (int) imgDet.ImageType;
                     summ.ImageID = imgDet.ImageID;
 
                     if (ser != null)
                     {
-                        summ.AnimeName = ser.GetSeriesName(session);
+                        summ.AnimeName = ser.GetSeriesName(sessionWrapper);
                         summ.AnimeSeriesID = ser.AnimeSeriesID;
                     }
 
@@ -1056,10 +1064,11 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
                     AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
 
-                    List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(session, animeID);
+                    List<AniDB_Anime_Character> animeChars = repAnimeChar.GetByAnimeID(sessionWrapper, animeID);
                     if (animeChars == null || animeChars.Count == 0) return chars;
 
                     int cnt = 0;
@@ -1172,10 +1181,11 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AniDB_RecommendationRepository repBA = new AniDB_RecommendationRepository();
 
                     int cnt = 0;
-                    foreach (AniDB_Recommendation rec in repBA.GetByAnimeID(session, animeID))
+                    foreach (AniDB_Recommendation rec in repBA.GetByAnimeID(sessionWrapper, animeID))
                     {
                         MetroContract_Comment shout = new MetroContract_Comment();
 
@@ -1229,12 +1239,13 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(session, animeID);
+                    AniDB_Anime anime = repAnime.GetByAnimeID(sessionWrapper, animeID);
                     if (anime == null) return retAnime;
 
                     JMMUserRepository repUsers = new JMMUserRepository();
-                    JMMUser juser = repUsers.GetByID(session, jmmuserID);
+                    JMMUser juser = repUsers.GetByID(sessionWrapper, jmmuserID);
                     if (juser == null) return retAnime;
 
                     AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
@@ -1268,13 +1279,13 @@ namespace JMMServer
 
                         summ.RelationshipType = link.RelationType;
 
-                        ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks(session);
+                        ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                         summ.ImageType = (int) imgDet.ImageType;
                         summ.ImageID = imgDet.ImageID;
 
                         if (ser != null)
                         {
-                            summ.AnimeName = ser.GetSeriesName(session);
+                            summ.AnimeName = ser.GetSeriesName(sessionWrapper);
                             summ.AnimeSeriesID = ser.AnimeSeriesID;
                         }
 
@@ -1284,7 +1295,7 @@ namespace JMMServer
                     // now get similar anime
                     foreach (AniDB_Anime_Similar link in anime.GetSimilarAnime(session))
                     {
-                        AniDB_Anime animeLink = repAnime.GetByAnimeID(session, link.SimilarAnimeID);
+                        AniDB_Anime animeLink = repAnime.GetByAnimeID(sessionWrapper, link.SimilarAnimeID);
 
                         if (animeLink == null)
                         {
@@ -1297,7 +1308,7 @@ namespace JMMServer
                         if (!juser.AllowedAnime(animeLink)) continue;
 
                         // check if this anime has a series
-                        AnimeSeries ser = repSeries.GetByAnimeID(session, link.SimilarAnimeID);
+                        AnimeSeries ser = repSeries.GetByAnimeID(sessionWrapper, link.SimilarAnimeID);
 
                         MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                         summ.AnimeID = animeLink.AnimeID;
@@ -1310,13 +1321,13 @@ namespace JMMServer
 
                         summ.RelationshipType = "Recommendation";
 
-                        ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks(session);
+                        ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
                         summ.ImageType = (int) imgDet.ImageType;
                         summ.ImageID = imgDet.ImageID;
 
                         if (ser != null)
                         {
-                            summ.AnimeName = ser.GetSeriesName(session);
+                            summ.AnimeName = ser.GetSeriesName(sessionWrapper);
                             summ.AnimeSeriesID = ser.AnimeSeriesID;
                         }
 

@@ -7,6 +7,7 @@ using JMMServer.Commands;
 using JMMServer.ImageDownload;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -79,11 +80,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetSeriesName(session);
+                return GetSeriesName(session.Wrap());
             }
         }
 
-        public string GetSeriesName(ISession session)
+        public string GetSeriesName(ISessionWrapper session)
         {
             string seriesName = "";
             if (!string.IsNullOrEmpty(SeriesNameOverride))
@@ -185,11 +186,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetAnimeEpisodes(session);
+                return GetAnimeEpisodes(session.Wrap());
             }
         }
 
-        public List<AnimeEpisode> GetAnimeEpisodes(ISession session)
+        public List<AnimeEpisode> GetAnimeEpisodes(ISessionWrapper session)
         {
             AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
             return repEpisodes.GetBySeriesID(session, AnimeSeriesID);
@@ -240,11 +241,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetCrossRefTvDBV2(session);
+                return GetCrossRefTvDBV2(session.Wrap());
             }
         }
 
-        public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2(ISession session)
+        public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2(ISessionWrapper session)
         {
             CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
             return repCrossRef.GetByAnimeID(session, this.AniDB_ID);
@@ -254,11 +255,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetTvDBSeries(session);
+                return GetTvDBSeries(session.Wrap());
             }
         }
 
-        public List<TvDB_Series> GetTvDBSeries(ISession session)
+        public List<TvDB_Series> GetTvDBSeries(ISessionWrapper session)
         {
             List<TvDB_Series> sers = new List<TvDB_Series>();
 
@@ -427,11 +428,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetAnime(session);
+                return GetAnime(session.Wrap());
             }
         }
 
-        public AniDB_Anime GetAnime(ISession session)
+        public AniDB_Anime GetAnime(ISessionWrapper session)
         {
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
             AniDB_Anime anidb_anime = repAnime.GetByAnimeID(session, this.AniDB_ID);
@@ -488,10 +489,11 @@ namespace JMMServer.Entities
 
         public void CreateAnimeEpisodes(ISession session)
         {
-            AniDB_Anime anime = GetAnime(session);
+            ISessionWrapper sessionWrapper = session.Wrap();
+            AniDB_Anime anime = GetAnime(session.Wrap());
             if (anime == null) return;
 
-            foreach (AniDB_Episode ep in anime.GetAniDBEpisodes(session))
+            foreach (AniDB_Episode ep in anime.GetAniDBEpisodes(sessionWrapper))
             {
                 ep.CreateAnimeEpisode(session, this.AnimeSeriesID);
             }

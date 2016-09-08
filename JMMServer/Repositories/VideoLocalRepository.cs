@@ -8,6 +8,7 @@ using JMMServer.PlexAndKodi;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 using System.Globalization;
+using JMMServer.Repositories.NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -276,11 +277,11 @@ namespace JMMServer.Repositories
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetByAniDBAnimeID(session, animeID);
+                return GetByAniDBAnimeID(session.Wrap(), animeID);
             }
         }
 
-        public List<VideoLocal> GetByAniDBAnimeID(ISession session, int animeID)
+        public List<VideoLocal> GetByAniDBAnimeID(ISessionWrapper session, int animeID)
         {
             return
                 session.CreateQuery(

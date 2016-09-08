@@ -17,6 +17,7 @@ using JMMFileHelper.Subtitles;
 using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using Directory = JMMContracts.PlexAndKodi.Directory;
 using Stream = JMMContracts.PlexAndKodi.Stream;
@@ -601,11 +602,11 @@ namespace JMMServer.PlexAndKodi
 	    {
 		    using (var session = JMMService.SessionFactory.OpenSession())
 		    {
-			    return GetRandomBannerFromSeries(series, session);
+			    return GetRandomBannerFromSeries(series, session.Wrap());
 		    }
 	    }
 
-	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, ISession session)
+	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series, ISessionWrapper session)
 	    {
 		    foreach (AnimeSeries ser in series.Randomize())
 		    {
@@ -638,11 +639,11 @@ namespace JMMServer.PlexAndKodi
 		{
 			using (var session = JMMService.SessionFactory.OpenSession())
 			{
-				return GetRandomFanartFromSeries(series, session);
+				return GetRandomFanartFromSeries(series, session.Wrap());
 			}
 		}
 
-        public static string GetRandomFanartFromSeries(List<AnimeSeries> series, ISession session)
+        public static string GetRandomFanartFromSeries(List<AnimeSeries> series, ISessionWrapper session)
         {
             foreach (AnimeSeries ser in series.Randomize())
             {
@@ -667,38 +668,7 @@ namespace JMMServer.PlexAndKodi
             return null;
         }
 
-	    public static string GetRandomFanartFromVideo(Video v)
-	    {
-		    return GetRandomArtFromList(v.Fanarts);
-	    }
-
-	    public static string GetRandomBannerFromVideo(Video v)
-	    {
-		    return GetRandomArtFromList(v.Banners);
-	    }
-
-	    public static string GetRandomArtFromList(List<Contract_ImageDetails> list)
-	    {
-		    if (list == null || list.Count == 0) return null;
-		    Contract_ImageDetails art;
-		    if (list.Count == 1)
-		    {
-			    art = list[0];
-		    }
-		    else
-		    {
-			    Random rand = new Random();
-			    art = list[rand.Next(0, list.Count)];
-		    }
-		    ImageDetails details = new ImageDetails()
-		    {
-			    ImageID = art.ImageID,
-			    ImageType = (JMMImageType) art.ImageType
-		    };
-		    return details.GenArt();
-	    }
-
-        public static Video GenerateFromAnimeGroup(ISession session, AnimeGroup grp, int userid,
+        public static Video GenerateFromAnimeGroup(ISessionWrapper session, AnimeGroup grp, int userid,
             List<AnimeSeries> allSeries)
         {
             Contract_AnimeGroup cgrp = grp.GetUserContract(userid);
@@ -911,12 +881,13 @@ namespace JMMServer.PlexAndKodi
         {
             using (ISession session = JMMService.SessionFactory.OpenSession())
             {
+                ISessionWrapper sessionWrapper = session.Wrap();
                 Contract_AniDBAnime anime = ser.AniDBAnime.AniDBAnime;
                 p.Id = ser.AnimeSeriesID.ToString();
                 p.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeSerie.ToString();
                 if (ser.AniDBAnime.AniDBAnime.Restricted > 0)
                     p.ContentRating = "R";
-                p.Title = aser.GetSeriesName(session);
+                p.Title = aser.GetSeriesName(sessionWrapper);
                 p.Summary = SummaryFromAnimeContract(ser);
                 p.Type = "show";
                 p.AirDate = DateTime.MinValue;
