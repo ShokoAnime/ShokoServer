@@ -221,9 +221,76 @@ namespace JMMServer.PlexAndKodi
         public static T Clone<T>(this Video o) where T : Video, new()
         {
             T v = new T();
-            o.ShallowCopyTo(v);
+            o.CopyTo(v);
             v.ReplaceSchemeHost();
             return v;
         }
+
+	    // This should be the same as a ShallowCopy, but I did just learn the difference 2 days ago, so I might be wrong
+	    public static void CopyTo<T>(this Video o, T v) where T : Video
+	    {
+		    o.AirDate = v.AirDate;
+		    o.IsMovie = v.IsMovie;
+		    o.Id = v.Id;
+		    o.AnimeType = v.AnimeType;
+		    o.Art = v.Art;
+		    o.Url = v.Url;
+		    o.Thumb = v.Thumb;
+		    o.Banner = v.Banner;
+		    o.ParentThumb = v.ParentThumb;
+		    o.GrandparentThumb = v.GrandparentThumb;
+		    o.ParentArt = v.ParentArt;
+		    o.GrandparentArt = v.GrandparentArt;
+		    o.RatingKey = v.RatingKey;
+		    o.ParentRatingKey = v.ParentRatingKey;
+		    o.GrandparentRatingKey = v.GrandparentRatingKey;
+		    o.Key = v.Key;
+		    o.ParentKey = v.ParentKey;
+		    o.GrandparentKey = v.GrandparentKey;
+		    o.Index = v.Index;
+		    o.ParentIndex = v.ParentIndex;
+		    o.Guid = v.Guid;
+		    o.Type = v.Type;
+		    o.Title = v.Title;
+		    o.Title1 = v.Title1;
+		    o.Title2 = v.Title2;
+		    o.ParentTitle = v.ParentTitle;
+		    o.GrandparentTitle = v.GrandparentTitle;
+		    o.Summary = v.Summary;
+		    o.Year = v.Year;
+		    o.Duration = v.Duration;
+		    o.EpisodeCount = v.EpisodeCount;
+		    o.UpdatedAt = v.UpdatedAt;
+		    o.AddedAt = v.AddedAt;
+		    o.LastViewedAt = v.LastViewedAt;
+		    o.OriginallyAvailableAt = v.OriginallyAvailableAt;
+		    o.LeafCount = v.LeafCount;
+		    o.ChildCount = v.ChildCount;
+		    o.ViewedLeafCount = v.ViewedLeafCount;
+		    o.OriginalTitle = v.OriginalTitle;
+		    o.SourceTitle = v.SourceTitle;
+		    o.Rating = v.Rating;
+		    o.Season = v.Season;
+		    o.ViewCount = v.ViewCount;
+		    o.ViewOffset = v.ViewOffset;
+		    o.PrimaryExtraKey = v.PrimaryExtraKey;
+		    o.ChapterSource = v.ChapterSource;
+		    o.Tagline = v.Tagline;
+		    o.ContentRating = v.ContentRating;
+		    o.Studio = v.Studio;
+		    o.ExtraType = v.ExtraType;
+		    o.EpisodeType = v.EpisodeType;
+		    o.EpisodeNumber = v.EpisodeNumber;
+		    o.Group = v.Group;
+		    o.Medias = v.Medias;
+		    o.Roles = v.Roles;
+		    o.Extras = v.Extras;
+		    o.Related = v.Related;
+		    o.Tags = v.Tags;
+		    o.Genres = v.Genres;
+		    o.Titles = v.Titles;
+		    o.Fanarts = v.Fanarts;
+		    o.Banners = v.Banners;
+	    }
     }
 }
