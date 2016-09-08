@@ -32,20 +32,20 @@ namespace JMMServer.Databases
             File.Copy(GetDatabaseFilePath(),fullfilename);
         }
 
-        public string GetDatabasePath()
+        public static string GetDatabasePath()
         {
             string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             string dbPath = Path.Combine(appPath, "SQLite");
             return dbPath;
         }
 
-        public string GetDatabaseFilePath()
+        public static string GetDatabaseFilePath()
         {
             string dbName = Path.Combine(GetDatabasePath(), DefaultDBName);
             return dbName;
         }
 
-        public string GetConnectionString()
+        public static string GetConnectionString()
         {
             return string.Format(@"data source={0};useutf16encoding=True", GetDatabaseFilePath());
         }
@@ -1578,7 +1578,7 @@ namespace JMMServer.Databases
             myConn.Close();
         }
 
-        private void UpdateDatabaseVersion(int versionNumber)
+        private static void UpdateDatabaseVersion(int versionNumber)
         {
             VersionsRepository repVersions = new VersionsRepository();
             Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);

@@ -575,7 +575,7 @@ namespace JMMServer.PlexAndKodi
             }
             ret.MediaContainer.RandomizeArt(retGroups);
             ret.Childrens = Helper.ConvertToDirectory(retGroups.OrderBy(a => a.AirDate).ToList());
-            FilterExtras(prov,ret.Childrens);
+            //FilterExtras(prov,ret.Childrens);
             return ret.GetStream(prov);
         }
 
@@ -622,7 +622,7 @@ namespace JMMServer.PlexAndKodi
 		public Response ToggleWatchedStatusOnSeries(IProvider prov, string userid, string seriesid,
 			string watchedstatus)
 		{
-			prov.AddResponseHeaders();
+			//prov.AddResponseHeaders();
 
 			Response rsp = new Response();
 			rsp.Code = "400";
@@ -674,7 +674,7 @@ namespace JMMServer.PlexAndKodi
 		public Response ToggleWatchedStatusOnGroup(IProvider prov, string userid, string groupid,
 			string watchedstatus)
 		{
-			prov.AddResponseHeaders();
+			//prov.AddResponseHeaders();
 
 			Response rsp = new Response();
 			rsp.Code = "400";
@@ -957,18 +957,18 @@ namespace JMMServer.PlexAndKodi
             return ret.GetStream(prov);
         }
 
-        private void FilterExtras(IProvider provider, List<Video> videos)
-        {
-            foreach (Video v in videos)
-            {
-                if (!provider.EnableAnimeTitlesInLists)
-                    v.Titles = null;
-                if (!provider.EnableGenresInLists)
-                    v.Genres = null;
-                if (!provider.EnableRolesInLists)
-                    v.Roles = null;
-            }
-        }
+        //private void FilterExtras(IProvider provider, List<Video> videos)
+        //{
+        //    //foreach (Video v in videos)
+        //    //{
+        //    //    if (!provider.EnableAnimeTitlesInLists)
+        //    //        v.Titles = null;
+        //    //    if (!provider.EnableGenresInLists)
+        //    //        v.Genres = null;
+        //    //    if (!provider.EnableRolesInLists)
+        //    //        v.Roles = null;
+        //    //}
+        //}
         public MediaContainer GetItemsFromSerie(IProvider prov, int userid, string SerieId, BreadCrumbs info, bool nocast)
         {
             BaseObject ret = null;
@@ -1096,7 +1096,7 @@ namespace JMMServer.PlexAndKodi
                     }
                 }
                 ret.Childrens = vids.OrderBy(a => int.Parse(a.EpisodeNumber)).ToList();
-                FilterExtras(prov,ret.Childrens);
+                //FilterExtras(prov,ret.Childrens);
                 return ret.GetStream(prov);
             }
         }
@@ -1170,7 +1170,7 @@ namespace JMMServer.PlexAndKodi
                     IEnumerable<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group);
                     grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
                     ret.Childrens = grps.Select(a => order[a]).ToList();
-                    FilterExtras(prov,ret.Childrens);
+                    //FilterExtras(prov,ret.Childrens);
                     return ret.GetStream(prov);
                 }
             }
