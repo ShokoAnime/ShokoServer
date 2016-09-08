@@ -670,11 +670,8 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL is the mid-tier and recommended database type for JMM users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using JMM. It is easy to setup and using our guide you’ll be up and running in a matter of minutes.</value>
   </data>
-  <data name="Toolbar_Translate" xml:space="preserve">
-    <value>Help Translate JMM!</value>
-  </data>
-  <data name="Link_Translate" xml:space="preserve">
-    <value>http://jmediamanager.org/translate</value>
+  <data name="Link_Contribute" xml:space="preserve">
+    <value>http://jmediamanager.org/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Getting release group info from UDP API: {0}</value>
@@ -1002,5 +999,8 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Database_NotSupportedVersion" xml:space="preserve">
     <value>The Database Version is bigger than the supported version by JMM Server. You should upgrade JMMServer.</value>
+  </data>
+  <data name="Toolbar_Contribute" xml:space="preserve">
+    <value>Help Make JMM Better!</value>
   </data>
 </root>
