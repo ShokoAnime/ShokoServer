@@ -760,45 +760,28 @@ namespace JMMServer.Entities
             ImageDetails details = null;
             if (GetDefaultFanart(session) == null)
             {
-                // get a random fanart (only tvdb)
-                if (this.AnimeTypeEnum == enAnimeType.Movie)
-                {
-                    List<MovieDB_Fanart> fanarts = GetMovieDBFanarts(session);
-                    if (fanarts.Count == 0) return null;
-
-                    MovieDB_Fanart movieFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                    details = new ImageDetails()
-                    {
-                        ImageType = JMMImageType.MovieDB_FanArt,
-                        ImageID = movieFanart.MovieDB_FanartID
-                    };
-                    return details;
-                }
-                else
-                {
-                    List<TvDB_ImageFanart> fanarts = GetTvDBImageFanarts(session);
-                    if (fanarts.Count == 0) return null;
-
-                    TvDB_ImageFanart tvFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                    details = new ImageDetails()
-                    {
-                        ImageType = JMMImageType.TvDB_FanArt,
-                        ImageID = tvFanart.TvDB_ImageFanartID
-                    };
-                    return details;
-                }
+	            List<Contract_AniDB_Anime_DefaultImage> fanarts = Contract.AniDBAnime.Fanarts;
+	            if (fanarts == null || fanarts.Count == 0) return null;
+	            Contract_AniDB_Anime_DefaultImage art = fanarts[fanartRandom.Next(0, fanarts.Count)];
+	            details = new ImageDetails()
+	            {
+					ImageID = art.AniDB_Anime_DefaultImageID,
+		            ImageType = (JMMImageType)art.ImageType
+	            };
+	            return details;
             }
             else
             {
-                ImageEntityType imageType = (ImageEntityType) GetDefaultFanart().ImageParentType;
+	            // TODO Move this to contract as well
+	            AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
+	            ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
 
                 switch (imageType)
                 {
                     case ImageEntityType.TvDB_FanArt:
 
                         TvDB_ImageFanartRepository repTvFanarts = new TvDB_ImageFanartRepository();
-                        TvDB_ImageFanart tvFanart = repTvFanarts.GetByID(session,
-                            GetDefaultFanart(session).ImageParentID);
+                        TvDB_ImageFanart tvFanart = repTvFanarts.GetByID(session, fanart.ImageParentID);
                         if (tvFanart != null)
                             details = new ImageDetails()
                             {
@@ -811,8 +794,7 @@ namespace JMMServer.Entities
                     case ImageEntityType.Trakt_Fanart:
 
                         Trakt_ImageFanartRepository repTraktFanarts = new Trakt_ImageFanartRepository();
-                        Trakt_ImageFanart traktFanart = repTraktFanarts.GetByID(session,
-                            GetDefaultFanart(session).ImageParentID);
+                        Trakt_ImageFanart traktFanart = repTraktFanarts.GetByID(session, fanart.ImageParentID);
                         if (traktFanart != null)
                             details = new ImageDetails()
                             {
@@ -825,8 +807,7 @@ namespace JMMServer.Entities
                     case ImageEntityType.MovieDB_FanArt:
 
                         MovieDB_FanartRepository repMovieFanarts = new MovieDB_FanartRepository();
-                        MovieDB_Fanart movieFanart = repMovieFanarts.GetByID(session,
-                            GetDefaultFanart(session).ImageParentID);
+                        MovieDB_Fanart movieFanart = repMovieFanarts.GetByID(session, fanart.ImageParentID);
                         if (movieFanart != null)
                             details = new ImageDetails()
                             {
@@ -876,7 +857,9 @@ namespace JMMServer.Entities
             }
             else
             {
-                ImageEntityType imageType = (ImageEntityType) GetDefaultFanart().ImageParentType;
+	            // TODO Move this to contract as well
+	            AniDB_Anime_DefaultImage fanart = GetDefaultFanart();
+	            ImageEntityType imageType = (ImageEntityType) fanart.ImageParentType;
 
                 switch (imageType)
                 {
@@ -931,7 +914,9 @@ namespace JMMServer.Entities
             Random bannerRandom = new Random();
 
             ImageDetails details = null;
-            if (GetDefaultWideBanner() == null)
+            AniDB_Anime_DefaultImage banner = GetDefaultWideBanner();
+
+            if (banner == null)
             {
                 // get a random banner (only tvdb)
                 if (this.AnimeTypeEnum == enAnimeType.Movie)
@@ -961,6 +946,11 @@ namespace JMMServer.Entities
                 {
                     case ImageEntityType.TvDB_Banner:
 
+						details = new ImageDetails()
+						{
+							ImageType = JMMImageType.TvDB_Banner,
+							ImageID = banner.ToContract(session).TVWideBanner.TvDB_ImageWideBannerID
+						};
                         TvDB_ImageWideBannerRepository repTvBanner = new TvDB_ImageWideBannerRepository();
                         TvDB_ImageWideBanner tvBanner = repTvBanner.GetByID(session,
                             GetDefaultWideBanner(session).ImageParentID);
@@ -2651,7 +2641,7 @@ namespace JMMServer.Entities
                 repAnimes.Save(an);
             AnimeSeries series = repSeries.GetByAnimeID(id);
             if (series != null)
-                repSeries.Save(series, true, false);
+                repSeries.Save(series, true, true, false);
         }
     }
 }

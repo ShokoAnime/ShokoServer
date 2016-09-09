@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="JMMServer" xml:space="preserve">
-    <value>Servidor JMM</value>
+    <value>JMM Server</value>
   </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Eliminar archivos que faltan</value>
@@ -619,11 +619,8 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL es el tipo de base de datos intermedio y recomendado para usuarios JMM con una gran colección, que pretende construir una gran colección o simplemente quiere un impulso de velocidad y el rendimiento al utilizar JMM. Es fácil configuración usando a nuestra guía que estará arriba y funcionando en cuestión de minutos.</value>
   </data>
-  <data name="Toolbar_Translate" xml:space="preserve">
-    <value>Ayudar a traducir JMM!</value>
-  </data>
-  <data name="Link_Translate" xml:space="preserve">
-    <value>http://jmediamanager.org/translate</value>
+  <data name="Link_Contribute" xml:space="preserve">
+    <value>http://jmediamanager.org/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Obtener información del grupo de lanzamiento del API de UDP: {0}</value>
@@ -1002,5 +999,8 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Database_NotSupportedVersion" xml:space="preserve">
     <value>La versión de base de datos es más grande que la versión soportada por el servidor de JMM. Usted debe actualizar JMMServer.</value>
+  </data>
+  <data name="Toolbar_Contribute" xml:space="preserve">
+    <value>¡Hacer JMM mejor!</value>
   </data>
 </root>

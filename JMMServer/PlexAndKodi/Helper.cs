@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.ServiceModel;
 using System.ServiceModel.Web;
 using System.Text;
@@ -729,7 +730,7 @@ namespace JMMServer.PlexAndKodi
                     v.Roles = new List<RoleTag>();
 
                     //TODO Character implementation is limited in JMM, One Character, could have more than one Seiyuu
-                    if (ser.GetAnime(session).Contract?.AniDBAnime?.Characters != null)
+                    if (ser.GetAnime(session)?.Contract?.AniDBAnime?.Characters != null)
                     {
                         foreach (Contract_AniDB_Character c in ser.GetAnime(session).Contract.AniDBAnime.Characters)
                         {
@@ -747,6 +748,28 @@ namespace JMMServer.PlexAndKodi
                                 v.Roles.Add(t);
                             }
                         }
+                    }
+                    if (cserie?.AniDBAnime?.AniDBAnime?.Fanarts != null)
+                    {
+                        v.Fanarts = new List<Contract_ImageDetails>();
+                        cserie?.AniDBAnime?.AniDBAnime?.Fanarts.ForEach(
+                            a =>
+                                v.Fanarts.Add(new Contract_ImageDetails()
+                                {
+                                    ImageID = a.AniDB_Anime_DefaultImageID,
+                                    ImageType = a.ImageType
+                                }));
+                    }
+                    if (cserie?.AniDBAnime?.AniDBAnime?.Banners != null)
+                    {
+                        v.Banners = new List<Contract_ImageDetails>();
+                        cserie?.AniDBAnime?.AniDBAnime?.Banners.ForEach(
+                            a =>
+                                v.Banners.Add(new Contract_ImageDetails()
+                                {
+                                    ImageID = a.AniDB_Anime_DefaultImageID,
+                                    ImageType = a.ImageType
+                                }));
                     }
                 }
                 return v;
@@ -899,7 +922,30 @@ namespace JMMServer.PlexAndKodi
                 }
                 p.Thumb = p.ParentThumb = anime.DefaultImagePoster.GenPoster();
 				p.Art = anime?.DefaultImageFanart?.GenArt();
-				if (eps != null)
+                if (anime?.Fanarts != null)
+                {
+                    p.Fanarts = new List<Contract_ImageDetails>();
+                    anime.Fanarts.ForEach(
+                        a =>
+                            p.Fanarts.Add(new Contract_ImageDetails()
+                            {
+                                ImageID = a.AniDB_Anime_DefaultImageID,
+                                ImageType = a.ImageType
+                            }));
+                }
+                if (anime?.Banners != null)
+                {
+                    p.Banners = new List<Contract_ImageDetails>();
+                    anime.Banners.ForEach(
+                        a =>
+                            p.Banners.Add(new Contract_ImageDetails()
+                            {
+                                ImageID = a.AniDB_Anime_DefaultImageID,
+                                ImageType = a.ImageType
+                            }));
+                }
+
+                if (eps != null)
                 {
                     List<enEpisodeType> types = eps.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     p.ChildCount = types.Count > 1 ? types.Count.ToString() : eps.Keys.Count.ToString();
@@ -907,9 +953,9 @@ namespace JMMServer.PlexAndKodi
                 p.Roles = new List<RoleTag>();
 
                 //TODO Character implementation is limited in JMM, One Character, could have more than one Seiyuu
-                if (anidb.Contract?.AniDBAnime?.Characters != null)
+                if (anime.Characters != null)
                 {
-                    foreach (Contract_AniDB_Character c in anidb.Contract.AniDBAnime.Characters)
+                    foreach (Contract_AniDB_Character c in anime.Characters)
                     {
                         string ch = c?.CharName;
                         Contract_AniDB_Seiyuu seiyuu = c?.Seiyuu;

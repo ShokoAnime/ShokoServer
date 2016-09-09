@@ -66,9 +66,9 @@ namespace JMMServer.PlexAndKodi
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     GroupFilterRepository repGF = new GroupFilterRepository();
-                    List<GroupFilter> allGfs = repGF.GetTopLevel().Where(a => a.InvisibleInClients == 0 && 
+                    List<GroupFilter> allGfs = repGF.GetTopLevel().Where(a => a.InvisibleInClients == 0 &&
                     (
-                        (a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0) 
+                        (a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0)
                         || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
                     ).ToList();
 
@@ -536,26 +536,27 @@ namespace JMMServer.PlexAndKodi
             Contract_AnimeGroup basegrp = grp?.GetUserContract(userid);
             if (basegrp != null)
             {
-                foreach (AnimeGroup grpChild in grp.GetChildGroups())
+	            foreach (AnimeGroup grpChild in grp.GetChildGroups())
                 {
                     var v = grpChild.GetPlexContract(userid);
                     if (v != null)
                     {
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
-						if(grpChild.DefaultAnimeSeriesID.HasValue)
-						{
-							AnimeSeries ser = repSer.GetByID(grpChild.DefaultAnimeSeriesID.Value);
-							v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser });
-							v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() {ser});
-						}
-						else
-						{
-							List<AnimeSeries> seriesList = grp.GetAllSeries(true);
-							v.Art = Helper.GetRandomFanartFromSeries(seriesList);
-							v.Banner = Helper.GetRandomBannerFromSeries(seriesList);
-						}
-						if (nocast) v.Roles = null;
+                        if (grpChild.DefaultAnimeSeriesID.HasValue)
+                        {
+                            AnimeSeries ser = repSer.GetByID(grpChild.DefaultAnimeSeriesID.Value);
+                            v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser });
+                            v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() { ser });
+                        }
+                        else
+                        {
+                            List<AnimeSeries> seriesList = grp.GetAllSeries(true);
+                            v.Art = Helper.GetRandomFanartFromSeries(seriesList);
+                            v.Banner = Helper.GetRandomBannerFromSeries(seriesList);
+                        }
+
+                        if (nocast) v.Roles = null;
 						retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
                     }
@@ -569,18 +570,19 @@ namespace JMMServer.PlexAndKodi
                         v.Group = basegrp;
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
-						if (grp.DefaultAnimeSeriesID.HasValue)
-						{
-							AnimeSeries ser1 = repSer.GetByID(grp.DefaultAnimeSeriesID.Value);
-							v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser1 });
-							v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() {ser1});
-						}
-						else
-						{
-							v.Art = Helper.GetRandomFanartFromSeries(grp.GetAllSeries());
-							v.Banner = Helper.GetRandomBannerFromSeries(grp.GetAllSeries());
-						}
-						retGroups.Add(prov, v, info);
+                        if (grp.DefaultAnimeSeriesID.HasValue)
+                        {
+                            AnimeSeries ser1 = repSer.GetByID(grp.DefaultAnimeSeriesID.Value);
+                            v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser1 });
+                            v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() { ser1 });
+                        }
+                        else
+                        {
+                            v.Art = Helper.GetRandomFanartFromSeries(grp.GetAllSeries());
+                            v.Banner = Helper.GetRandomBannerFromSeries(grp.GetAllSeries());
+                        }
+                        if (nocast) v.Roles = null;
+	                    retGroups.Add(prov, v, info);
                         v.ParentThumb = v.GrandparentThumb = null;
                     }
                 }
@@ -1179,20 +1181,20 @@ namespace JMMServer.PlexAndKodi
                                     v.Group = grp.GetUserContract(userid);
                                 v.GenerateKey(prov, userid);
                                 v.Type = "show";
-								if (grp.DefaultAnimeSeriesID.HasValue)
-								{
-									AnimeSeriesRepository repSer = new AnimeSeriesRepository();
-									AnimeSeries ser1 = repSer.GetByID(grp.DefaultAnimeSeriesID.Value);
-									v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser1 });
-									v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() {ser1});
-								}
-								else
-								{
-									List<AnimeSeries> seriesList = grp.GetAllSeries(true);
-									v.Art = Helper.GetRandomFanartFromSeries(seriesList);
-									v.Banner = Helper.GetRandomBannerFromSeries(seriesList);
-								}
-								if (nocast) v.Roles = null;
+                                if (grp.DefaultAnimeSeriesID.HasValue)
+                                {
+                                    AnimeSeriesRepository repSer = new AnimeSeriesRepository();
+                                    AnimeSeries ser1 = repSer.GetByID(grp.DefaultAnimeSeriesID.Value);
+                                    v.Art = Helper.GetRandomFanartFromSeries(new List<AnimeSeries>() { ser1 });
+                                    v.Banner = Helper.GetRandomBannerFromSeries(new List<AnimeSeries>() { ser1 });
+                                }
+                                else
+                                {
+                                    List<AnimeSeries> seriesList = grp.GetAllSeries(true);
+                                    v.Art = Helper.GetRandomFanartFromSeries(seriesList);
+                                    v.Banner = Helper.GetRandomBannerFromSeries(seriesList);
+                                }
+                                if (nocast) v.Roles = null;
 								order.Add(v.Group, v);
                                 retGroups.Add(prov, v, info);
                                 v.ParentThumb = v.GrandparentThumb = null;

@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="JMMServer" xml:space="preserve">
-    <value>Serwer JMM</value>
+    <value>JMM Server</value>
   </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Usuń brakujące pliki</value>
@@ -619,11 +619,8 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL/MariaDB jest typ bazy danych średniej klasy, a jego użycie zaleca się użytkownikom JMM z dużą kolekcją. Operacje na dużych kolekcjach wykonywane są dużo szybciej i wydajniej niżeli na SQLite. Instalacja jest łatwa szczególnie dzięki korzystaniu z naszego poradnika.</value>
   </data>
-  <data name="Toolbar_Translate" xml:space="preserve">
-    <value>Pomóż tłumaczyć JMM!</value>
-  </data>
-  <data name="Link_Translate" xml:space="preserve">
-    <value>http://jmediamanager.org/translate</value>
+  <data name="Link_Contribute" xml:space="preserve">
+    <value>http://jmediamanager.org/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Pobieranie informacji o grupie poprzez UDP API: {0}</value>
@@ -1002,5 +999,8 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Database_NotSupportedVersion" xml:space="preserve">
     <value>Wersja bazy danych jest większa niż wersja obsługiwanych przez serwer JMM. Należy uaktualnić JMMServer.</value>
+  </data>
+  <data name="Toolbar_Contribute" xml:space="preserve">
+    <value>Pomóc w ulepszeniu JMM!</value>
   </data>
 </root>

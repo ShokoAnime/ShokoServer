@@ -719,11 +719,11 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Command_GettingTvDB" xml:space="preserve">
     <value>Getting episodes from The TvDB: {0}</value>
   </data>
-  <data name="Toolbar_Translate" xml:space="preserve">
-    <value>Help Translate JMM!</value>
+  <data name="Toolbar_Contribute" xml:space="preserve">
+    <value>Help Make JMM Better!</value>
   </data>
-  <data name="Link_Translate" xml:space="preserve">
-    <value>http://jmediamanager.org/translate</value>
+  <data name="Link_Contribute" xml:space="preserve">
+    <value>http://jmediamanager.org/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Getting release group info from UDP API: {0}</value>

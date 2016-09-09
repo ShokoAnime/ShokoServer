@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="JMMServer" xml:space="preserve">
-    <value>Serveur JMM</value>
+    <value>JMM Server</value>
   </data>
   <data name="Actions_RemoveMissing" xml:space="preserve">
     <value>Supprimer les fichiers manquants</value>
@@ -619,11 +619,8 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL est le type de base de données de niveau intermédiaire et recommandée pour les utilisateurs JMM avec une grande collection, ayant l'intention de construire une grande collection ou tout simplement un coup de pouce de vitesse et les performances lorsque vous utilisez JMM. Il est facile à installer et à l'aide de notre guide, que vous serez vers le haut et en cours d'exécution en quelques minutes.</value>
   </data>
-  <data name="Toolbar_Translate" xml:space="preserve">
-    <value>Aider à traduire JMM !</value>
-  </data>
-  <data name="Link_Translate" xml:space="preserve">
-    <value>http://jmediamanager.org/translate</value>
+  <data name="Link_Contribute" xml:space="preserve">
+    <value>http://jmediamanager.org/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Obtenir info presse groupe de UDP API: {0}</value>
@@ -1002,5 +999,8 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="Database_NotSupportedVersion" xml:space="preserve">
     <value>La Version de base de données est plus grande que la version prise en charge par le serveur de JMM. Vous devez mettre à jour JMMServer.</value>
+  </data>
+  <data name="Toolbar_Contribute" xml:space="preserve">
+    <value>Aider à améliorer les JMM !</value>
   </data>
 </root>

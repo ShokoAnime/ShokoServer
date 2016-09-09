@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
@@ -221,9 +222,208 @@ namespace JMMServer.PlexAndKodi
         public static T Clone<T>(this Video o) where T : Video, new()
         {
             T v = new T();
-            o.ShallowCopyTo(v);
+            o.CopyTo(v);
             v.ReplaceSchemeHost();
             return v;
         }
+        public static Stream CopyTo(this Stream s, Stream o)
+        {
+            o.Title=s.Title;
+            o.Language=s.Language;
+            o.Key=s.Key;
+            o.Duration=s.Duration;
+            o.Height=s.Height;
+            o.Width=s.Width;
+            o.Bitrate=s.Bitrate;
+            o.SubIndex = s.SubIndex;
+            o.Id = s.Id;
+            o.ScanType=s.ScanType;
+            o.RefFrames=s.RefFrames;
+            o.Profile=s.Profile;
+            o.Level=s.Level;
+            o.HeaderStripping=s.HeaderStripping;
+            o.HasScalingMatrix=s.HasScalingMatrix;
+            o.FrameRateMode=s.FrameRateMode;
+            o.File=s.File;
+            o.FrameRate=s.FrameRate;
+            o.ColorSpace=s.ColorSpace;
+            o.CodecID=s.CodecID;
+            o.ChromaSubsampling=s.ChromaSubsampling;
+            o.Cabac=s.Cabac;
+            o.BitDepth=s.BitDepth;
+            o.Index=s.Index;
+            o.idx=s.idx;
+            o.Codec=s.Codec;
+            o.StreamType=s.StreamType;
+            o.Orientation=s.Orientation;
+            o.QPel=s.QPel;
+            o.GMC=s.GMC;
+            o.BVOP=s.BVOP;
+            o.SamplingRate=s.SamplingRate;
+            o.LanguageCode=s.LanguageCode;
+            o.Channels=s.Channels;
+            o.Selected=s.Selected;
+            o.DialogNorm=s.DialogNorm;
+            o.BitrateMode=s.BitrateMode;
+            o.Format=s.Format;
+            o.Default=s.Default;
+            o.Forced=s.Forced;
+            o.PixelAspectRatio=s.PixelAspectRatio;
+            o.PA=s.PA;
+            return o;
+        }
+        public static Part CopyTo(this Part s, Part o)
+        {
+            o.Accessible = s.Accessible;
+            o.Exists=s.Exists;
+            o.Streams = new List<Stream>();
+            o.Streams = s.Streams?.Select(a => a.CopyTo(new Stream())).ToList();
+            o.Size=s.Size;
+            o.Duration=s.Duration;
+            o.Key=s.Key;
+            o.Container=s.Container;
+            o.Id=s.Id;
+            o.File=s.File;
+            o.OptimizedForStreaming=s.OptimizedForStreaming;
+            o.Extension=s.Extension;
+            o.Has64bitOffsets=s.Has64bitOffsets;
+            return o;
+        }
+
+        public static Media CopyTo(this Media v, Media o)
+        {
+            o.Parts=v.Parts?.Select(a=>a.CopyTo(new Part())).ToList();
+            o.Duration=v.Duration;
+            o.VideoFrameRate=v.VideoFrameRate;
+            o.Container=v.Container;
+            o.VideoCodec=v.VideoCodec;
+            o.AudioCodec=v.AudioCodec;
+            o.AudioChannels=v.AudioChannels;
+            o.AspectRatio=v.AspectRatio;
+            o.Height=v.Height;
+            o.Width=v.Width;
+            o.Bitrate=v.Bitrate;
+            o.Id=v.Id;
+            o.VideoResolution=v.VideoResolution;
+            o.OptimizedForStreaming=v.OptimizedForStreaming;
+            return o;
+        }
+
+        public static Tag CopyTo(this Tag v, Tag o)
+        {
+            o.Value = v.Value;
+            o.Role = v.Role;
+            return o;
+        }
+
+        public static RoleTag CopyTo(this RoleTag v, RoleTag o)
+        {
+            o.Value = v.Value;
+            o.Role = v.Role;
+            o.RoleDescription = v.RoleDescription;
+            o.RolePicture = v.RolePicture;
+            o.TagPicture = v.TagPicture;
+            return o;
+        }
+
+        public static Extras CopyTo(this Extras v, Extras o)
+        {
+            o.Size = v.Size;
+            o.Videos = v.Videos?.Select(a => a.CopyTo(new Video())).ToList();
+            return o;
+        }
+
+        public static AnimeTitle CopyTo(this AnimeTitle v, AnimeTitle o)
+        {
+            o.Type = v.Type;
+            o.Language = v.Language;
+            o.Title = v.Title;
+            return o;
+        }
+
+        public static Hub CopyTo(this Hub v, Hub o)
+        {
+            o.Key=v.Key;
+            o.Type=v.Type;
+            o.HubIdentifier=v.HubIdentifier;
+            o.Size=v.Size;
+            o.Title=v.Title;
+            o.More=v.More;
+            return o;
+        }
+
+        public static Contract_ImageDetails CopyTo(this Contract_ImageDetails v, Contract_ImageDetails o)
+        {
+            o.ImageID = v.ImageID;
+            o.ImageType = v.ImageType;
+            return o;
+        }
+        // This should be the same as a ShallowCopy, but I did just learn the difference 2 days ago, so I might be wrong
+        public static Video CopyTo<T>(this Video v, T o) where T : Video
+	    {
+		    o.AirDate = v.AirDate;
+		    o.IsMovie = v.IsMovie;
+		    o.Id = v.Id;
+		    o.AnimeType = v.AnimeType;
+		    o.Art = v.Art;
+		    o.Url = v.Url;
+		    o.Thumb = v.Thumb;
+		    o.Banner = v.Banner;
+		    o.ParentThumb = v.ParentThumb;
+		    o.GrandparentThumb = v.GrandparentThumb;
+		    o.ParentArt = v.ParentArt;
+		    o.GrandparentArt = v.GrandparentArt;
+		    o.RatingKey = v.RatingKey;
+		    o.ParentRatingKey = v.ParentRatingKey;
+		    o.GrandparentRatingKey = v.GrandparentRatingKey;
+		    o.Key = v.Key;
+		    o.ParentKey = v.ParentKey;
+		    o.GrandparentKey = v.GrandparentKey;
+		    o.Index = v.Index;
+		    o.ParentIndex = v.ParentIndex;
+		    o.Guid = v.Guid;
+		    o.Type = v.Type;
+		    o.Title = v.Title;
+		    o.Title1 = v.Title1;
+		    o.Title2 = v.Title2;
+		    o.ParentTitle = v.ParentTitle;
+		    o.GrandparentTitle = v.GrandparentTitle;
+		    o.Summary = v.Summary;
+		    o.Year = v.Year;
+		    o.Duration = v.Duration;
+		    o.EpisodeCount = v.EpisodeCount;
+		    o.UpdatedAt = v.UpdatedAt;
+		    o.AddedAt = v.AddedAt;
+		    o.LastViewedAt = v.LastViewedAt;
+		    o.OriginallyAvailableAt = v.OriginallyAvailableAt;
+		    o.LeafCount = v.LeafCount;
+		    o.ChildCount = v.ChildCount;
+		    o.ViewedLeafCount = v.ViewedLeafCount;
+		    o.OriginalTitle = v.OriginalTitle;
+		    o.SourceTitle = v.SourceTitle;
+		    o.Rating = v.Rating;
+		    o.Season = v.Season;
+		    o.ViewCount = v.ViewCount;
+		    o.ViewOffset = v.ViewOffset;
+		    o.PrimaryExtraKey = v.PrimaryExtraKey;
+		    o.ChapterSource = v.ChapterSource;
+		    o.Tagline = v.Tagline;
+		    o.ContentRating = v.ContentRating;
+		    o.Studio = v.Studio;
+		    o.ExtraType = v.ExtraType;
+		    o.EpisodeType = v.EpisodeType;
+		    o.EpisodeNumber = v.EpisodeNumber;
+		    o.Group = v.Group; //We use contract group as reference so, we dont need to copy it.
+		    o.Medias = v.Medias?.Select(a => a.CopyTo(new Media())).ToList();
+		    o.Roles = v.Roles?.Select(a => a.CopyTo(new RoleTag())).ToList();
+		    o.Extras = v.Extras?.CopyTo(new Extras());
+            o.Related = v.Related?.Select(a => a.CopyTo(new Hub())).ToList();
+		    o.Tags = v.Tags?.Select(a => a.CopyTo(new Tag())).ToList();
+		    o.Genres = v.Genres?.Select(a => a.CopyTo(new Tag())).ToList();
+            o.Titles = v.Titles?.Select(a => a.CopyTo(new AnimeTitle())).ToList();
+		    o.Fanarts = v.Fanarts?.Select(a => a.CopyTo(new Contract_ImageDetails())).ToList();
+		    o.Banners = v.Banners?.Select(a => a.CopyTo(new Contract_ImageDetails())).ToList();
+            return o;
+	    }
     }
 }
