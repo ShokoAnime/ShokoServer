@@ -9,6 +9,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using JMMServer.Commands;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NLog;
 
 namespace JMMServer.Providers.TvDB
@@ -404,13 +405,15 @@ namespace JMMServer.Providers.TvDB
 
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                foreach (TvDB_ImageFanart fanart in repFanart.GetBySeriesID(session, seriesID))
+                ISessionWrapper sessionWrapper = session.Wrap();
+
+                foreach (TvDB_ImageFanart fanart in repFanart.GetBySeriesID(sessionWrapper, seriesID))
                 {
                     if (!string.IsNullOrEmpty(fanart.FullImagePath) && File.Exists(fanart.FullImagePath))
                         numFanartDownloaded++;
                 }
 
-                foreach (TvDB_ImagePoster poster in repPosters.GetBySeriesID(session, seriesID))
+                foreach (TvDB_ImagePoster poster in repPosters.GetBySeriesID(sessionWrapper, seriesID))
                 {
                     if (!string.IsNullOrEmpty(poster.FullImagePath) && File.Exists(poster.FullImagePath))
                         numPostersDownloaded++;

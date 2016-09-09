@@ -387,7 +387,7 @@ namespace JMMServer.Commands
                         v.SHA1 = n.SHA1.ToUpperInvariant();
                         return;
                     }
-                    AniDB_File f = frepo.GetByHash(session, v.ED2KHash);
+                    AniDB_File f = frepo.GetByHash(v.ED2KHash);
                     if (f != null)
                     {
                         v.CRC32 = f.CRC.ToUpperInvariant();
@@ -415,7 +415,7 @@ namespace JMMServer.Commands
                         v.ED2KHash = n.ED2KHash.ToUpperInvariant();
                         return;
                     }
-                    AniDB_File f = frepo.GetBySHA1(session, v.SHA1);
+                    AniDB_File f = frepo.GetBySHA1(v.SHA1);
                     if (f != null)
                     {
                         v.CRC32 = f.CRC.ToUpperInvariant();
@@ -443,7 +443,7 @@ namespace JMMServer.Commands
                         v.ED2KHash = n.ED2KHash.ToUpperInvariant();
                         return;
                     }
-                    AniDB_File f = frepo.GetByMD5(session, v.MD5);
+                    AniDB_File f = frepo.GetByMD5(v.MD5);
                     if (f != null)
                     {
                         v.CRC32 = f.CRC.ToUpperInvariant();

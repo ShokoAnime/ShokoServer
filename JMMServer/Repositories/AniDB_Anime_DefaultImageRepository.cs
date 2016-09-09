@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -49,11 +50,11 @@ namespace JMMServer.Repositories
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetByAnimeIDAndImagezSizeType(session, animeid, imageType);
+                return GetByAnimeIDAndImagezSizeType(session.Wrap(), animeid, imageType);
             }
         }
 
-        public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(ISession session, int animeid, int imageType)
+        public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(ISessionWrapper session, int animeid, int imageType)
         {
             AniDB_Anime_DefaultImage cr = session
                 .CreateCriteria(typeof(AniDB_Anime_DefaultImage))

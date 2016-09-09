@@ -16,7 +16,11 @@ namespace JMMContracts
         [WebInvoke(UriTemplate = "GetMetadata/{userid}/{typeid}/{id}", BodyStyle = WebMessageBodyStyle.Bare, Method = "*")]
         MediaContainer GetMetadata(string userid, string typeid, string id);
 
-        [OperationContract]
+		[OperationContract]
+		[WebInvoke(UriTemplate = "GetMetadata/{userid}/{typeid}/{id}/nocast", BodyStyle = WebMessageBodyStyle.Bare, Method = "*")]
+		MediaContainer GetMetadataNoCast(string userid, string typeid, string id);
+
+		[OperationContract]
         [WebGet(UriTemplate = "GetUsers", BodyStyle = WebMessageBodyStyle.Bare)]
         PlexContract_Users GetUsers();
 

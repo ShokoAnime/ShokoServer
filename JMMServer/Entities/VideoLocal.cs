@@ -23,6 +23,7 @@ using Path = Pri.LongPath.Path;
 using Directory = Pri.LongPath.Directory;
 using File = Pri.LongPath.File;
 using FileInfo = Pri.LongPath.FileInfo;
+using JMMServer.Repositories.NHibernate;
 
 namespace JMMServer.Entities
 {
@@ -131,17 +132,10 @@ namespace JMMServer.Entities
 
         public AniDB_File GetAniDBFile()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetAniDBFile(session);
-            }
+            AniDB_FileRepository repAniFile = new AniDB_FileRepository();
+            return repAniFile.GetByHash(Hash);
         }
 
-        public AniDB_File GetAniDBFile(ISession session)
-        {
-            AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-            return repAniFile.GetByHash(session, Hash);
-        }
 
         public VideoLocal_User GetUserRecord(int userID)
         {
@@ -163,17 +157,11 @@ namespace JMMServer.Entities
 
         public List<AnimeEpisode> GetAnimeEpisodes()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetAnimeEpisodes(session);
-            }
+            AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+            return repEps.GetByHash(Hash);
         }
 
-        public List<AnimeEpisode> GetAnimeEpisodes(ISession session)
-        {
-            AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-            return repEps.GetByHash(session, Hash);
-        }
+
 
         public List<CrossRef_File_Episode> EpisodeCrossRefs
         {

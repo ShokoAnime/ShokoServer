@@ -9,6 +9,7 @@ using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TraktTV.Contracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
 namespace JMMServer.Commands
@@ -55,6 +56,8 @@ namespace JMMServer.Commands
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
+
                     // first check if the user wants to use the web cache
                     if (ServerSettings.WebCache_Trakt_Get)
                     {
@@ -92,7 +95,7 @@ namespace JMMServer.Commands
                     // lets try to see locally if we have a tvDB link for this anime
                     // Trakt allows the use of TvDB ID's or their own Trakt ID's
                     CrossRef_AniDB_TvDBV2Repository repCrossRefTvDB = new CrossRef_AniDB_TvDBV2Repository();
-                    List<CrossRef_AniDB_TvDBV2> xrefTvDBs = repCrossRefTvDB.GetByAnimeID(session, AnimeID);
+                    List<CrossRef_AniDB_TvDBV2> xrefTvDBs = repCrossRefTvDB.GetByAnimeID(sessionWrapper, AnimeID);
                     if (xrefTvDBs != null && xrefTvDBs.Count > 0)
                     {
                         foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
@@ -149,7 +152,7 @@ namespace JMMServer.Commands
                     // finally lets try searching Trakt directly
                     string searchCriteria = "";
                     AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(session, AnimeID);
+                    AniDB_Anime anime = repAnime.GetByAnimeID(sessionWrapper, AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;
@@ -162,7 +165,7 @@ namespace JMMServer.Commands
 
                     if (results.Count == 0)
                     {
-                        foreach (AniDB_Anime_Title title in anime.GetTitles(session))
+                        foreach (AniDB_Anime_Title title in anime.GetTitles(sessionWrapper))
                         {
                             if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
 

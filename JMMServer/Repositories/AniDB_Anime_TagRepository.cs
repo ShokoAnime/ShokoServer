@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using JMMServer.Collections;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
@@ -85,7 +88,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public AniDB_Anime_Tag GetByAnimeIDAndTagID(ISession session, int animeid, int tagid)
+        public AniDB_Anime_Tag GetByAnimeIDAndTagID(ISessionWrapper session, int animeid, int tagid)
         {
             return Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
             /*
@@ -112,7 +115,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public List<AniDB_Anime_Tag> GetByAnimeID(ISession session, int id)
+        public List<AniDB_Anime_Tag> GetByAnimeID(ISessionWrapper session, int id)
         {
             return Animes.GetMultiple(id);
             /*
@@ -122,6 +125,26 @@ namespace JMMServer.Repositories
                 .List<AniDB_Anime_Tag>();
 
             return new List<AniDB_Anime_Tag>(tags);*/
+        }
+
+        public ILookup<int, AniDB_Anime_Tag> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (ids == null)
+                throw new ArgumentNullException(nameof(ids));
+
+            if (ids.Count == 0)
+            {
+                return EmptyLookup<int, AniDB_Anime_Tag>.Instance;
+            }
+
+            var tags = session.CreateCriteria<AniDB_Anime_Tag>()
+                .Add(Restrictions.InG(nameof(AniDB_Anime_Tag.AnimeID), ids))
+                .List<AniDB_Anime_Tag>()
+                .ToLookup(t => t.AnimeID);
+
+            return tags;
         }
 
         /// <summary>

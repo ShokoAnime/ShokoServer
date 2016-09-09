@@ -1952,6 +1952,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to http://jmediamanager.org/contribute/.
+        /// </summary>
+        internal static string Link_Contribute {
+            get {
+                return ResourceManager.GetString("Link_Contribute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/downloads.
         /// </summary>
         internal static string Link_Download {
@@ -2011,15 +2020,6 @@ namespace JMMServer.Properties {
         internal static string Link_SQLServer {
             get {
                 return ResourceManager.GetString("Link_SQLServer", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to http://jmediamanager.org/translate.
-        /// </summary>
-        internal static string Link_Translate {
-            get {
-                return ResourceManager.GetString("Link_Translate", resourceCulture);
             }
         }
         
@@ -2858,6 +2858,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Help Make JMM Better!.
+        /// </summary>
+        internal static string Toolbar_Contribute {
+            get {
+                return ResourceManager.GetString("Toolbar_Contribute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Logs.
         /// </summary>
         internal static string Toolbar_Logs {
@@ -2890,15 +2899,6 @@ namespace JMMServer.Properties {
         internal static string Toolbar_Shutdown {
             get {
                 return ResourceManager.GetString("Toolbar_Shutdown", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Help Translate JMM!.
-        /// </summary>
-        internal static string Toolbar_Translate {
-            get {
-                return ResourceManager.GetString("Toolbar_Translate", resourceCulture);
             }
         }
         

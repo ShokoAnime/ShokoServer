@@ -252,10 +252,14 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="Collections\EmptyLookup.cs" />
+    <Compile Include="Collections\EnumerableExtensions.cs" />
+    <Compile Include="Collections\LazyLookup.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
+    <Compile Include="Entities\IImageEntity.cs" />
     <Compile Include="Entities\CloudAccount.cs" />
     <Compile Include="Entities\VideoLocal_Place.cs" />
     <Compile Include="Extensions.cs" />
@@ -546,6 +550,11 @@
     <Compile Include="Repositories\CrossRef_CustomTagRepository.cs" />
     <Compile Include="Repositories\CustomTagRepository.cs" />
     <Compile Include="Repositories\FileFfdshowPresetRepository.cs" />
+    <Compile Include="Repositories\NHibernate\ISessionWrapper.cs" />
+    <Compile Include="Repositories\NHibernate\SessionWrapper.cs" />
+    <Compile Include="Repositories\NHibernate\SessionExtensions.cs" />
+    <Compile Include="Repositories\NHibernate\StatelessSessionWrapper.cs" />
+    <Compile Include="Repositories\NHibernate\StatelessSessionExtensions.cs" />
     <Compile Include="Repositories\PlaylistRepository.cs" />
     <Compile Include="Repositories\RenameScriptRepository.cs" />
     <Compile Include="Repositories\VideoLocal_PlaceRepository.cs" />

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
@@ -74,18 +75,14 @@ namespace JMMServer.Repositories
         public AniDB_File GetByHash(string hash)
         {
             return Hashes.GetOne(hash);
-        }
-
-        public AniDB_File GetByHash(ISession session, string hash)
-        {
-            return Hashes.GetOne(hash);
-/*            AniDB_File cr = session
+            /*            AniDB_File cr = session
                 .CreateCriteria(typeof(AniDB_File))
                 .Add(Restrictions.Eq("Hash", hash))
                 .UniqueResult<AniDB_File>();
             return cr;*/
         }
-        public AniDB_File GetBySHA1(ISession session, string hash)
+
+        public AniDB_File GetBySHA1(string hash)
         {
             return SHA1s.GetOne(hash);
             /*
@@ -95,7 +92,7 @@ namespace JMMServer.Repositories
                 .UniqueResult<AniDB_File>();
             return cr;*/
         }
-        public AniDB_File GetByMD5(ISession session, string hash)
+        public AniDB_File GetByMD5(string hash)
         {
             return MD5s.GetOne(hash);
             /*

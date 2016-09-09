@@ -36,7 +36,7 @@ namespace JMMServer.Providers.MyAnimeList
             try
             {
                 searchResultXML =
-                    SendMALAuthenticatedRequest("http://myanimelist.net/api/anime/search.xml?q=" + searchTitle);
+                    SendMALAuthenticatedRequest("https://myanimelist.net/api/anime/search.xml?q=" + searchTitle);
             }
             catch (Exception ex)
             {
@@ -155,7 +155,7 @@ namespace JMMServer.Providers.MyAnimeList
                 string username = ServerSettings.MAL_Username;
                 string password = ServerSettings.MAL_Password;
 
-                string url = "http://myanimelist.net/api/account/verify_credentials.xml";
+                string url = "https://myanimelist.net/api/account/verify_credentials.xml";
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
                 webReq.Timeout = 30*1000;
                 webReq.Credentials = new NetworkCredential(username, password);
@@ -348,7 +348,7 @@ namespace JMMServer.Providers.MyAnimeList
                     return null;
                 }
 
-                string url = string.Format("http://myanimelist.net/malappinfo.php?u={0}&status=all&type=anime",
+                string url = string.Format("https://myanimelist.net/malappinfo.php?u={0}&status=all&type=anime",
                     ServerSettings.MAL_Username);
                 string malAnimeListXML = SendMALAuthenticatedRequest(url);
                 malAnimeListXML = ReplaceEntityNamesByCharacter(malAnimeListXML);
@@ -576,13 +576,12 @@ namespace JMMServer.Providers.MyAnimeList
             {
                 string res = "";
 
-                string animeValuesXMLString =
-                    string.Format(
+                string animeValuesXMLString = string.Format(
                         "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
                         lastEpisodeWatched, status, score);
 
                 res =
-                    SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/add/" + animeId + ".xml" +
+                    SendMALAuthenticatedRequest("https://myanimelist.net/api/animelist/add/" + animeId + ".xml" +
                                                 animeValuesXMLString);
                 if (res.Contains("<title>201 Created</title>") == false)
                 {
@@ -605,13 +604,12 @@ namespace JMMServer.Providers.MyAnimeList
             try
             {
                 string res = "";
-                string animeValuesXMLString =
-                    string.Format(
-                        "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
-                        lastEpisodeWatched, status, score);
+                string animeValuesXMLString = string.Format(
+                            "?data=<entry><episode>{0}</episode><status>{1}</status><score>{2}</score></entry>",
+                            lastEpisodeWatched, status, score);
 
                 res =
-                    SendMALAuthenticatedRequest("http://myanimelist.net/api/animelist/update/" + animeId + ".xml" +
+                    SendMALAuthenticatedRequest("https://myanimelist.net/api/animelist/update/" + animeId + ".xml" +
                                                 animeValuesXMLString);
                 if (res.Equals("Updated", StringComparison.InvariantCultureIgnoreCase) == false)
                 {
@@ -632,9 +630,9 @@ namespace JMMServer.Providers.MyAnimeList
             string fanSubs)
         {
             // now modify back to proper status
-            if (!ModifyAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs))
+            if (!AddAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs))
             {
-                return AddAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs);
+                return ModifyAnime(animeId, lastEpisodeWatched, status, score, downloadedEps, fanSubs);
             }
             return true;
         }

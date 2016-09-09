@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JMMServer.Collections;
+using System.Linq;
 using FluentNHibernate.Utils;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
@@ -87,7 +90,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public List<AniDB_Anime_Title> GetByAnimeID(ISession session, int id)
+        public List<AniDB_Anime_Title> GetByAnimeID(ISessionWrapper session, int id)
         {
             return Animes.GetMultiple(id);
             /*
@@ -97,6 +100,26 @@ namespace JMMServer.Repositories
                 .List<AniDB_Anime_Title>();
 
             return new List<AniDB_Anime_Title>(titles);*/
+        }
+
+        public ILookup<int, AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
+        {
+            if (session == null)
+                throw new ArgumentNullException("session");
+            if (ids == null)
+                throw new ArgumentNullException("ids");
+
+            if (ids.Count == 0)
+            {
+                return EmptyLookup<int, AniDB_Anime_Title>.Instance;
+            }
+
+            var titles = session.CreateCriteria<AniDB_Anime_Title>()
+                .Add(Restrictions.InG(nameof(AniDB_Anime_Title.AnimeID), ids))
+                .List<AniDB_Anime_Title>()
+                .ToLookup(t => t.AnimeID);
+
+            return titles;
         }
 
         public List<AniDB_Anime_Title> GetByAnimeIDLanguageTypeValue(int animeID, string language, string titleType,

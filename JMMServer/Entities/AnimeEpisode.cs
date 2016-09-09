@@ -5,6 +5,7 @@ using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using Stream = JMMContracts.PlexAndKodi.Stream;
 
@@ -95,14 +96,14 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetAnimeSeries(session);
+                return GetAnimeSeries(session.Wrap());
             }
         }
 
-        public AnimeSeries GetAnimeSeries(ISession session)
+        public AnimeSeries GetAnimeSeries(ISessionWrapper session)
         {
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            return repSeries.GetByID(session, this.AnimeSeriesID);
+            return repSeries.GetByID(this.AnimeSeriesID);
         }
 
         public List<VideoLocal> GetVideoLocals()
@@ -116,7 +117,7 @@ namespace JMMServer.Entities
         public List<VideoLocal> GetVideoLocals(ISession session)
         {
             VideoLocalRepository repVidLocals = new VideoLocalRepository();
-            return repVidLocals.GetByAniDBEpisodeID(session, AniDB_EpisodeID);
+            return repVidLocals.GetByAniDBEpisodeID(AniDB_EpisodeID);
         }
 
         public List<CrossRef_File_Episode> FileCrossRefs

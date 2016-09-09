@@ -2,6 +2,7 @@
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -158,40 +159,24 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
-        public AnimeSeries GetByID(ISession session, int id)
-        {
-            return GetByID(id);
-        }
 
         public AnimeSeries GetByAnimeID(int id)
         {
             return AniDBIds.GetOne(id);
         }
 
-        public AnimeSeries GetByAnimeID(ISession session, int id)
-        {
-            return GetByAnimeID(id);
-        }
 
         public List<AnimeSeries> GetAll()
         {
             return Cache.Values.ToList();
         }
 
-        public List<AnimeSeries> GetAll(ISession session)
-        {
-            return GetAll();
-        }
 
         public List<AnimeSeries> GetByGroupID(int groupid)
         {
             return Groups.GetMultiple(groupid);
         }
 
-        public List<AnimeSeries> GetByGroupID(ISession session, int groupid)
-        {
-            return GetByGroupID(groupid);
-        }
 
 
         public List<AnimeSeries> GetWithMissingEpisodes()
@@ -207,10 +192,7 @@ namespace JMMServer.Repositories
             return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
         }
 
-        public List<AnimeSeries> GetMostRecentlyAdded(ISession session, int maxResults)
-        {
-            return GetMostRecentlyAdded(maxResults);
-        }
+
 
         public void Delete(int id)
         {

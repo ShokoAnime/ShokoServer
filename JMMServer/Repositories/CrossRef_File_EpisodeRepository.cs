@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
@@ -78,10 +79,7 @@ namespace JMMServer.Repositories
             return Animes.GetMultiple(animeID);
         }
 
-        public List<CrossRef_File_Episode> GetByAnimeID(ISession session, int animeID)
-        {
-            return Animes.GetMultiple(animeID);
-        }
+
 
         public List<CrossRef_File_Episode> GetByFileNameAndSize(string filename, long filesize)
         {

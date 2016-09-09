@@ -43,5 +43,7 @@ namespace JMMContracts
         public Contract_AniDB_Anime_DefaultImage DefaultImageFanart { get; set; }
         public Contract_AniDB_Anime_DefaultImage DefaultImageWideBanner { get; set; }
         public List<Contract_AniDB_Character> Characters { get; set; }
+	    public List<Contract_AniDB_Anime_DefaultImage> Fanarts { get; set; }
+	    public List<Contract_AniDB_Anime_DefaultImage> Banners { get; set; }
     }
 }

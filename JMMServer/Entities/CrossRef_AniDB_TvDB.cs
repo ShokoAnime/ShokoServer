@@ -1,5 +1,6 @@
 ﻿using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -17,11 +18,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetTvDBSeries(session);
+                return GetTvDBSeries(session.Wrap());
             }
         }
 
-        public TvDB_Series GetTvDBSeries(ISession session)
+        public TvDB_Series GetTvDBSeries(ISessionWrapper session)
         {
             TvDB_SeriesRepository repTvSeries = new TvDB_SeriesRepository();
             return repTvSeries.GetByTvDBID(session, TvDBID);

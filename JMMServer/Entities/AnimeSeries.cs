@@ -8,6 +8,7 @@ using JMMServer.Commands;
 using JMMServer.ImageDownload;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -77,11 +78,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetSeriesName(session);
+                return GetSeriesName(session.Wrap());
             }
         }
 
-        public string GetSeriesName(ISession session)
+        public string GetSeriesName(ISessionWrapper session)
         {
             string seriesName = "";
             if (!string.IsNullOrEmpty(SeriesNameOverride))
@@ -181,16 +182,8 @@ namespace JMMServer.Entities
 
         public List<AnimeEpisode> GetAnimeEpisodes()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetAnimeEpisodes(session);
-            }
-        }
-
-        public List<AnimeEpisode> GetAnimeEpisodes(ISession session)
-        {
             AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-            return repEpisodes.GetBySeriesID(session, AnimeSeriesID);
+            return repEpisodes.GetBySeriesID(AnimeSeriesID);
         }
 
         public int GetAnimeEpisodesNormalCountWithVideoLocal()
@@ -276,11 +269,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetCrossRefTvDBV2(session);
+                return GetCrossRefTvDBV2(session.Wrap());
             }
         }
 
-        public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2(ISession session)
+        public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2(ISessionWrapper session)
         {
             CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
             return repCrossRef.GetByAnimeID(session, this.AniDB_ID);
@@ -290,11 +283,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetTvDBSeries(session);
+                return GetTvDBSeries(session.Wrap());
             }
         }
 
-        public List<TvDB_Series> GetTvDBSeries(ISession session)
+        public List<TvDB_Series> GetTvDBSeries(ISessionWrapper session)
         {
             List<TvDB_Series> sers = new List<TvDB_Series>();
 
@@ -447,40 +440,44 @@ namespace JMMServer.Entities
 
         public AnimeSeries_User GetUserRecord(int userID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetUserRecord(session, userID);
-            }
+            AnimeSeries_UserRepository repUser = new AnimeSeries_UserRepository();
+            return repUser.GetByUserAndSeriesID(userID, this.AnimeSeriesID);
         }
 
-        public AnimeSeries_User GetUserRecord(ISession session, int userID)
-        {
-            AnimeSeries_UserRepository repUser = new AnimeSeries_UserRepository();
-            return repUser.GetByUserAndSeriesID(session, userID, this.AnimeSeriesID);
-        }
 
         public AniDB_Anime GetAnime()
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetAnime(session);
+                return GetAnime(session.Wrap());
             }
         }
 
-        public AniDB_Anime GetAnime(ISession session)
+        public AniDB_Anime GetAnime(ISessionWrapper session)
         {
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
             AniDB_Anime anidb_anime = repAnime.GetByAnimeID(session, this.AniDB_ID);
             return anidb_anime;
         }
 
-        public DateTime? AirDate
+        public DateTime AirDate
         {
             get
             {
                 if (GetAnime() != null)
-                    return GetAnime().AirDate;
-                return DateTime.Now;
+					if(GetAnime().AirDate.HasValue)
+						return GetAnime().AirDate.Value;
+				// This will be slower, but hopefully more accurate
+				List<AnimeEpisode> eps = GetAnimeEpisodes();
+				if (eps != null && eps.Count > 0)
+				{
+					// Should be redundant, but just in case, as resharper warned me
+					eps = eps.OrderBy(a => a.AniDB_Episode.AirDateAsDate ?? DateTime.MaxValue).ToList();
+					AnimeEpisode ep = eps.Find(a => a.AniDB_Episode?.AirDateAsDate != null);
+					if (ep != null)
+						return ep.AniDB_Episode.AirDateAsDate.Value;
+				}
+                return DateTime.MinValue;
             }
         }
 
@@ -513,10 +510,11 @@ namespace JMMServer.Entities
 
         public void CreateAnimeEpisodes(ISession session)
         {
-            AniDB_Anime anime = GetAnime(session);
+
+            AniDB_Anime anime = GetAnime(session.Wrap());
             if (anime == null) return;
 
-            foreach (AniDB_Episode ep in anime.GetAniDBEpisodes(session))
+            foreach (AniDB_Episode ep in anime.GetAniDBEpisodes())
             {
                 ep.CreateAnimeEpisode(session, this.AnimeSeriesID);
             }

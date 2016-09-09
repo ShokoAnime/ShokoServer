@@ -106,20 +106,12 @@ namespace JMMServer.Repositories
             return UsersGroups.GetOne(userid, groupid);
         }
 
-        public AnimeGroup_User GetByUserAndGroupID(ISession session, int userid, int groupid)
-        {
-            return GetByUserAndGroupID(userid, groupid);
-        }
-
         public List<AnimeGroup_User> GetByUserID(int userid)
         {
             return Users.GetMultiple(userid);
         }
 
-        public List<AnimeGroup_User> GetByUserID(ISession session, int userid)
-        {
-            return GetByUserID(userid);
-        }
+
 
         public List<AnimeGroup_User> GetByGroupID(int groupid)
         {

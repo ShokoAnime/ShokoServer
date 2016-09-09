@@ -8,6 +8,7 @@ using JMMServer.PlexAndKodi;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 using System.Globalization;
+using JMMServer.Repositories.NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -157,10 +158,7 @@ namespace JMMServer.Repositories
             return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
         }
 
-        public List<VideoLocal> GetMostRecentlyAdded(ISession session, int maxResults)
-        {
-            return GetMostRecentlyAdded(maxResults);
-        }
+
 
         public List<VideoLocal> GetRandomFiles(int maxResults)
         {
@@ -218,15 +216,7 @@ namespace JMMServer.Repositories
         /// 
         public List<VideoLocal> GetByAniDBEpisodeID(int episodeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetByAniDBEpisodeID(session, episodeID);
-            }
-        }
-
-        public List<VideoLocal> GetByAniDBEpisodeID(ISession session, int episodeID)
-        {
-            return new CrossRef_File_EpisodeRepository().GetByEpisodeID(episodeID).Select(a=>GetByHash(a.Hash)).Where(a=>a!=null).ToList();
+            return new CrossRef_File_EpisodeRepository().GetByEpisodeID(episodeID).Select(a => GetByHash(a.Hash)).Where(a => a != null).ToList();
             /*
             return
                 session.CreateQuery(
@@ -235,15 +225,9 @@ namespace JMMServer.Repositories
                     .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();*/
         }
 
-        public List<VideoLocal> GetMostRecentlyAddedForAnime(int maxResults, int animeID)
-        {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetMostRecentlyAddedForAnime(session, maxResults, animeID);
-            }
-        }
 
-        public List<VideoLocal> GetMostRecentlyAddedForAnime(ISession session, int maxResults, int animeID)
+
+        public List<VideoLocal> GetMostRecentlyAddedForAnime(int maxResults, int animeID)
         {
             return
                 new CrossRef_File_EpisodeRepository().GetByAnimeID(animeID)
@@ -252,14 +236,15 @@ namespace JMMServer.Repositories
                     .OrderByDescending(a => a.DateTimeCreated)
                     .Take(maxResults)
                     .ToList();
-/*
-            return
-                session.CreateQuery(
-                    "Select vl.VideoLocalID FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeid ORDER BY vl.DateTimeCreated Desc")
-                    .SetParameter("animeid", animeID)
-                    .SetMaxResults(maxResults)
-                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();*/
+            /*
+                        return
+                            session.CreateQuery(
+                                "Select vl.VideoLocalID FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeid ORDER BY vl.DateTimeCreated Desc")
+                                .SetParameter("animeid", animeID)
+                                .SetMaxResults(maxResults)
+                                .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();*/
         }
+
 
         public List<VideoLocal> GetByAniDBResolution(string res)
         {
@@ -296,14 +281,6 @@ namespace JMMServer.Repositories
         /// <returns></returns>
         public List<VideoLocal> GetByAniDBAnimeID(int animeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetByAniDBAnimeID(session, animeID);
-            }
-        }
-
-        public List<VideoLocal> GetByAniDBAnimeID(ISession session, int animeID)
-        {
             return
              new CrossRef_File_EpisodeRepository().GetByAnimeID(animeID)
                  .Select(a => GetByHash(a.Hash))
@@ -316,6 +293,8 @@ namespace JMMServer.Repositories
                     .SetParameter("animeID", animeID)
                     .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();*/
         }
+
+
         /*
         public List<VideoLocal> GetVideosWithoutImportFolder()
         {

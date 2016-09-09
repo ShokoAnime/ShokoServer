@@ -43,7 +43,7 @@ namespace JMMServer.Databases
 
         public string GetConnectionString()
         {
-            return string.Format("Server={0};Database={1};User ID={2};Password={3}",
+            return string.Format("Server={0};Database={1};User ID={2};Password={3};Default Command Timeout=3600",
                 ServerSettings.MySQL_Hostname, ServerSettings.MySQL_SchemaName, ServerSettings.MySQL_Username,
                 ServerSettings.MySQL_Password);
         }

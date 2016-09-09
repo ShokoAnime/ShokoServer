@@ -74,16 +74,6 @@ namespace JMMServer.Repositories
         public List<CrossRef_CustomTag> GetByAnimeID(int id)
         {
             return Refs.GetMultiple(id, (int) CustomTagCrossRefType.Anime);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetByAnimeID(session, id);
-            }*/
-        }
-
-        public List<CrossRef_CustomTag> GetByAnimeID(ISession session, int id)
-        {
-            return Refs.GetMultiple(id, (int)CustomTagCrossRefType.Anime);
 
             /*
             var tags = session
@@ -95,17 +85,9 @@ namespace JMMServer.Repositories
             return new List<CrossRef_CustomTag>(tags);*/
         }
 
-        public List<CrossRef_CustomTag> GetByCustomTagID(int id)
-        {
-            return Tags.GetMultiple(id);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetByCustomTagID(session, id);
-            }*/
-        }
 
-        public List<CrossRef_CustomTag> GetByCustomTagID(ISession session, int id)
+
+        public List<CrossRef_CustomTag> GetByCustomTagID(int id)
         {
             return Tags.GetMultiple(id);
             /*
@@ -116,6 +98,7 @@ namespace JMMServer.Repositories
 
             return new List<CrossRef_CustomTag>(tags);*/
         }
+
 
         public List<CrossRef_CustomTag> GetByUniqueID(int customTagID, int crossRefType, int crossRefID)
         {

@@ -5,6 +5,7 @@ using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.PlexAndKodi;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 
@@ -97,10 +98,7 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
-        public AnimeEpisode GetByID(ISession session, int id)
-        {
-            return GetByID(id);
-        }
+
 
         public List<AnimeEpisode> GetAll()
         {
@@ -112,21 +110,11 @@ namespace JMMServer.Repositories
             return Series.GetMultiple(seriesid);
         }
 
-        public List<AnimeEpisode> GetBySeriesID(ISession session, int seriesid)
-        {
-            return GetBySeriesID(seriesid);
-        }
 
         public AnimeEpisode GetByAniDBEpisodeID(int epid)
         {
             //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
             return EpisodeIDs.GetOne(epid);
-        }
-
-        public AnimeEpisode GetByAniDBEpisodeID(ISession session, int epid)
-        {
-            //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.        
-            return GetByAniDBEpisodeID(epid);
         }
 
 
@@ -138,24 +126,16 @@ namespace JMMServer.Repositories
         /// </summary>
         /// <param name="hash"></param>
         /// <returns></returns>
-        public List<AnimeEpisode> GetByHash(ISession session, string hash)
-        {
 
-            return new CrossRef_File_EpisodeRepository().GetByHash(hash).Select(a => GetByAniDBEpisodeID(a.EpisodeID)).Where(a=>a!=null).ToList();
+        public List<AnimeEpisode> GetByHash(string hash)
+        {
+            return new CrossRef_File_EpisodeRepository().GetByHash(hash).Select(a => GetByAniDBEpisodeID(a.EpisodeID)).Where(a => a != null).ToList();
             /*
             return
                 session.CreateQuery(
                     "Select ae.AnimeEpisodeID FROM AnimeEpisode as ae, CrossRef_File_Episode as xref WHERE ae.AniDB_EpisodeID = xref.EpisodeID AND xref.Hash= :Hash")
                     .SetParameter("Hash", hash)
                     .List<int>().Select(GetByID).Where(a => a != null).ToList();*/
-        }
-
-        public List<AnimeEpisode> GetByHash(string hash)
-        {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetByHash(session, hash);
-            }
         }
 
         public List<AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)

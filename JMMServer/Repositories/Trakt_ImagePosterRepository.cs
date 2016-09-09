@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -24,11 +25,11 @@ namespace JMMServer.Repositories
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetByID(session, id);
+                return GetByID(session.Wrap(), id);
             }
         }
 
-        public Trakt_ImagePoster GetByID(ISession session, int id)
+        public Trakt_ImagePoster GetByID(ISessionWrapper session, int id)
         {
             return session.Get<Trakt_ImagePoster>(id);
         }
