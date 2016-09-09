@@ -2026,7 +2026,7 @@ namespace JMMServer.Entities
         private Contract_AniDBAnime GenerateContract(ISessionWrapper session, List<AniDB_Anime_Title> titles)
         {
             List<Contract_AniDB_Character> characters = GetCharactersContract();
-            Contract_AniDBAnime contract = GenerateContract(titles, null, characters);
+            Contract_AniDBAnime contract = GenerateContract(session, titles, null, characters);
             AniDB_Anime_DefaultImage defFanart = GetDefaultFanart(session);
             AniDB_Anime_DefaultImage defPoster = GetDefaultPoster(session);
             AniDB_Anime_DefaultImage defBanner = GetDefaultWideBanner(session);
