@@ -285,6 +285,7 @@
     <Compile Include="API\APIv2_unauth_Module.cs" />
     <Compile Include="API\Binnary_Module.cs" />
     <Compile Include="API\Bootstrapper.cs" />
+    <Compile Include="API\Model\APIMessage.cs" />
     <Compile Include="API\Model\AuthUser.cs" />
     <Compile Include="API\Model\ComponentVersion.cs" />
     <Compile Include="API\Model\Counter.cs" />

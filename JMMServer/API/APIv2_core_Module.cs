@@ -29,13 +29,14 @@ namespace JMMServer.API
         {
             this.RequiresAuthentication();
 
-            // 1. folders
+            // 1. import folders
             Get["/folder/list"] = x => { return GetFolders(); };
             Get["/folder/count"] = x => { return CountFolders(); };
             Post["/folder/add"] = x => { return AddFolder(); };
             Post["/folder/edit"] = x => { return EditFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
             Get["/folder/import"] = _ => { return RunImport(); };
+            // 1.1 cloud folder
             Get["/cloud/list"] = x => { return null; };
             Get["/cloud/count"] = x => { return null; };
             Post["/cloud/add"] = x => { return null; };
@@ -149,7 +150,7 @@ namespace JMMServer.API
             Get["/os/drives"] = _ => { return GetOSDrives(); };
         }
 
-        #region 1.Folders
+        #region 1.Import Folders
 
         /// <summary>
         /// List all saved Import Folders
@@ -185,7 +186,7 @@ namespace JMMServer.API
                 {
                     if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
                     {
-                        return HttpStatusCode.Conflict;
+                        return new APIMessage(200, "folder can't be destination and source simpulteniouse");
                     }
                     else
                     {
@@ -193,20 +194,20 @@ namespace JMMServer.API
 
                         if (!string.IsNullOrEmpty(response.ErrorMessage))
                         {
-                            return HttpStatusCode.InternalServerError;
+                            return new APIMessage(500, "error while saving import folder");
                         }
 
-                        return HttpStatusCode.OK;
+                        return new APIMessage(200, "ok");
                     }
                 }
                 catch
                 {
-                    return HttpStatusCode.InternalServerError;
+                    return new APIMessage(500, "Internal server error");
                 }
             }
             else
             {
-                return HttpStatusCode.BadRequest;
+                return new APIMessage(400, "Bad request");
             }
         }
 
@@ -223,7 +224,7 @@ namespace JMMServer.API
                 {
                     if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
                     {
-                        return HttpStatusCode.Conflict;
+                        return new APIMessage(409, "conflict");
                     }
                     else
                     {
@@ -232,27 +233,27 @@ namespace JMMServer.API
                             Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder.ToContract());
                             if (!string.IsNullOrEmpty(response.ErrorMessage))
                             {
-                                return HttpStatusCode.InternalServerError;
+                                return new APIMessage(500, "Internal server error");
                             }
                             else
                             {
-                                return HttpStatusCode.OK;
+                                return new APIMessage(200, "ok");
                             }
                         }
                         else
                         {
-                            return HttpStatusCode.Conflict;
+                            return new APIMessage(409, "conflict");
                         }
                     }
                 }
                 catch
                 {
-                    return HttpStatusCode.InternalServerError;
+                    return new APIMessage(500, "Internal server error");
                 }
             }
             else
             {
-                return HttpStatusCode.BadRequest;
+                return new APIMessage(400, "ImportFolderLocation missing");
             }
         }
 
@@ -267,16 +268,16 @@ namespace JMMServer.API
             {
                 if (Importer.DeleteImportFolder(folder.ImportFolderID) == "")
                 {
-                    return HttpStatusCode.OK;
+                    return new APIMessage(200, "ok");
                 }
                 else
                 {
-                    return HttpStatusCode.InternalServerError;
+                    return new APIMessage(500, "Internal server error");
                 }
             }
             else
             {
-                return HttpStatusCode.BadRequest;
+                return new APIMessage(400, "ImportFolderID missing");
             }
         }
 
@@ -287,7 +288,7 @@ namespace JMMServer.API
         private object RunImport()
         {
             MainWindow.RunImport();
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         #endregion
@@ -331,11 +332,11 @@ namespace JMMServer.API
             if (cred.port != 0)
             {
                 ServerSettings.JMMServerPort = cred.port.ToString();
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.BadRequest;
+                return new APIMessage(400, "Port missing");
             }
         }
 
@@ -358,18 +359,18 @@ namespace JMMServer.API
             if (imagepath.isdefault)
             {
                 ServerSettings.BaseImagesPathIsDefault = imagepath.isdefault;
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
                 if (!String.IsNullOrEmpty(imagepath.path) && imagepath.path != "")
                 {
                     ServerSettings.BaseImagesPath = imagepath.path;
-                    return HttpStatusCode.OK;
+                    return new APIMessage(200, "ok");
                 }
                 else
                 {
-                    return HttpStatusCode.BadRequest;
+                    return new APIMessage(400, "Path missing");
                 }
             }
         }
@@ -406,11 +407,11 @@ namespace JMMServer.API
                 {
                     ServerSettings.AniDB_ClientPort = cred.port.ToString();
                 }
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.BadRequest;
+                return new APIMessage(400, "Login and Password missing");
             }
         }
 
@@ -434,11 +435,11 @@ namespace JMMServer.API
             if (JMMService.AnidbProcessor.Login())
             {
                 JMMService.AnidbProcessor.ForceLogout();
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.Unauthorized;
+                return new APIMessage(401, "Unauthorized");
             }
         }
 
@@ -464,7 +465,7 @@ namespace JMMServer.API
             //TODO APIv2: Command should be split into AniDb/MAL sepereate
             CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
             cmdVotes.Save();
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -474,7 +475,7 @@ namespace JMMServer.API
         private object SyncAniDBList()
         {
             MainWindow.SyncMyList();
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -484,7 +485,7 @@ namespace JMMServer.API
         private object UpdateAllAniDB()
         {
             Importer.RunImport_UpdateAllAniDB();
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         #endregion
@@ -502,11 +503,11 @@ namespace JMMServer.API
             {
                 ServerSettings.MAL_Username = cred.login;
                 ServerSettings.MAL_Password = cred.password;
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.BadRequest;
+                return new APIMessage(400, "Login and Password missing");
             }
         }
 
@@ -530,11 +531,11 @@ namespace JMMServer.API
         {
             if (Providers.MyAnimeList.MALHelper.VerifyCredentials())
             {
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.Unauthorized;
+                return new APIMessage(401, "Unauthorized");
             }
         }
 
@@ -552,11 +553,11 @@ namespace JMMServer.API
             if (!String.IsNullOrEmpty(cred.token) && cred.token != "")
             {
                 ServerSettings.Trakt_PIN = cred.token;
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.BadRequest;
+                return new APIMessage(400, "Token missing");
             }
         }
 
@@ -568,11 +569,11 @@ namespace JMMServer.API
         {
             if (Providers.TraktTV.TraktTVHelper.EnterTraktPIN(ServerSettings.Trakt_PIN) == "Success")
             {
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.Unauthorized;
+                return new APIMessage(401, "Unauthorized");
             }
         }
 
@@ -598,11 +599,11 @@ namespace JMMServer.API
             {
                 CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
                 cmd.Save();
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.NoContent;
+                return new APIMessage(204, "Trak is not enabled or you missing authtoken");
             }
         }
 
@@ -613,7 +614,7 @@ namespace JMMServer.API
         private object UpdateAllTrakt()
         {
             Providers.TraktTV.TraktTVHelper.UpdateAllInfo();
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         #endregion
@@ -627,7 +628,7 @@ namespace JMMServer.API
         private object UpdateAllTvDB()
         {
             Importer.RunImport_UpdateTvDB(false);
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
 
@@ -642,7 +643,7 @@ namespace JMMServer.API
         private object RemoveMissingFiles()
         {
             MainWindow.RemoveMissingFiles();
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -652,7 +653,7 @@ namespace JMMServer.API
         private object UpdateStats()
         {
             Importer.UpdateAllStats();
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -662,7 +663,7 @@ namespace JMMServer.API
         private object UpdateMediaInfo()
         {
             MainWindow.RefreshAllMediaInfo();
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -672,7 +673,7 @@ namespace JMMServer.API
         private object HashSync()
         {
             MainWindow.SyncHashes();
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         #endregion
@@ -694,7 +695,7 @@ namespace JMMServer.API
             }
             else
             {
-                return null;
+                return " { \"userid\":\"" + "0" + "\" }";
             }
         }
 
@@ -750,11 +751,11 @@ namespace JMMServer.API
 
             if (new JMMServiceImplementation().SaveUser(user) == "")
             {
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.InternalServerError;
+                return new APIMessage(500, "Internal server error");
             }
         }
 
@@ -778,11 +779,11 @@ namespace JMMServer.API
             JMMUser _user = this.Bind();
             if (new JMMServiceImplementation().ChangePassword(uid, _user.Password) == "")
             {
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.InternalServerError;
+                return new APIMessage(500, "Internal server error");
             }
         }
 
@@ -795,11 +796,11 @@ namespace JMMServer.API
             JMMUser user = this.Bind();
             if (new JMMServiceImplementation().DeleteUser(user.JMMUserID) == "")
             {
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             else
             {
-                return HttpStatusCode.InternalServerError;
+                return new APIMessage(500, "Internal server error");
             }
         }
 
@@ -829,7 +830,7 @@ namespace JMMServer.API
             JMMService.CmdProcessorHasher.Paused = true;
             JMMService.CmdProcessorGeneral.Paused = true;
             JMMService.CmdProcessorImages.Paused = true;
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -841,7 +842,7 @@ namespace JMMServer.API
             JMMService.CmdProcessorHasher.Paused = false;
             JMMService.CmdProcessorGeneral.Paused = false;
             JMMService.CmdProcessorImages.Paused = false;
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -893,7 +894,7 @@ namespace JMMServer.API
         private object PauseHasherQueue()
         {
             JMMService.CmdProcessorHasher.Paused = true;
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -903,7 +904,7 @@ namespace JMMServer.API
         private object PauseGeneralQueue()
         {
             JMMService.CmdProcessorGeneral.Paused = true;
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -913,7 +914,7 @@ namespace JMMServer.API
         private object PauseImagesQueue()
         {
             JMMService.CmdProcessorImages.Paused = true;
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -923,7 +924,7 @@ namespace JMMServer.API
         private object StartHasherQueue()
         {
             JMMService.CmdProcessorHasher.Paused = false;
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -933,7 +934,7 @@ namespace JMMServer.API
         private object StartGeneralQueue()
         {
             JMMService.CmdProcessorGeneral.Paused = false;
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -943,7 +944,7 @@ namespace JMMServer.API
         private object StartImagesQueue()
         {
             JMMService.CmdProcessorImages.Paused = false;
-            return HttpStatusCode.OK;
+            return new APIMessage(200, "ok");
         }
 
         /// <summary>
@@ -968,11 +969,11 @@ namespace JMMServer.API
 
                 JMMService.CmdProcessorHasher.Init();
 
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             catch
             {
-                return HttpStatusCode.InternalServerError;
+                return new APIMessage(500, "Internal server error");
             }
         }
 
@@ -998,11 +999,11 @@ namespace JMMServer.API
 
                 JMMService.CmdProcessorGeneral.Init();
 
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             catch
             {
-                return HttpStatusCode.InternalServerError;
+                return new APIMessage(500, "Internal server error");
             }
         }
 
@@ -1028,11 +1029,11 @@ namespace JMMServer.API
 
                 JMMService.CmdProcessorImages.Init();
 
-                return HttpStatusCode.OK;
+                return new APIMessage(200, "ok");
             }
             catch
             {
-                return HttpStatusCode.InternalServerError;
+                return new APIMessage(500, "Internal server error");
             }
         }
         #endregion
@@ -1294,12 +1295,12 @@ namespace JMMServer.API
                 }
                 else
                 {
-                    return HttpStatusCode.NoContent;
+                    return new APIMessage(204, "Content is missing");
                 }
             }
             catch
             {
-                return HttpStatusCode.InternalServerError;
+                return new APIMessage(500, "Internal server error");
             }
         }
 
@@ -1352,24 +1353,24 @@ namespace JMMServer.API
                         Directory.Delete("webui\\old", true);
                         File.Delete("webui\\latest.zip");
 
-                        return HttpStatusCode.OK;
+                        return new APIMessage(200, "ok");
                     }
                     catch
                     {
                         //when extracting latest.zip failes
-                        return HttpStatusCode.MethodNotAllowed;
+                        return new APIMessage(405, "MethodNotAllowed");
                     }
                 }
                 catch
                 {
                     //when moving files to 'old' folder failed
-                    return HttpStatusCode.Locked;
+                    return new APIMessage(423, "Locked");
                 }
             }
             catch
             {
                 //when download failed
-                return HttpStatusCode.ClientClosedRequest;
+                return new APIMessage(499, "download failed");
             }
         }
 
@@ -1538,7 +1539,7 @@ namespace JMMServer.API
             }
             else
             {
-                return HttpStatusCode.BadRequest;
+                return new APIMessage(400, "full_path missing");
             }
         }
 
