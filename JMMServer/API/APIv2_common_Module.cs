@@ -2,6 +2,7 @@
 using JMMServer.PlexAndKodi.Kodi;
 using Nancy;
 using Nancy.Security;
+using JMMServer.API.Model;
 
 namespace JMMServer.API
 {
@@ -139,7 +140,7 @@ namespace JMMServer.API
             }
             else
             {
-                return HttpStatusCode.InternalServerError;
+                return new APIMessage(500, "Internal server error");
             }
         }
 
@@ -153,7 +154,7 @@ namespace JMMServer.API
             }
             else
             {
-                return HttpStatusCode.InternalServerError;
+                return new APIMessage(500, "Internal server error");
             }
         }
 
