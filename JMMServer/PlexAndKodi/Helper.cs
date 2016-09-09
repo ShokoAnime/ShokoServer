@@ -668,6 +668,37 @@ namespace JMMServer.PlexAndKodi
             return null;
         }
 
+	    public static string GetRandomFanartFromVideo(Video v)
+	    {
+		    return GetRandomArtFromList(v.Fanarts);
+	    }
+
+	    public static string GetRandomBannerFromVideo(Video v)
+	    {
+		    return GetRandomArtFromList(v.Banners);
+	    }
+
+	    public static string GetRandomArtFromList(List<Contract_ImageDetails> list)
+	    {
+		    if (list == null || list.Count == 0) return null;
+		    Contract_ImageDetails art;
+		    if (list.Count == 1)
+		    {
+			    art = list[0];
+		    }
+		    else
+		    {
+			    Random rand = new Random();
+			    art = list[rand.Next(0, list.Count)];
+		    }
+		    ImageDetails details = new ImageDetails()
+		    {
+			    ImageID = art.ImageID,
+			    ImageType = (JMMImageType) art.ImageType
+		    };
+		    return details.GenArt();
+	    }
+
         public static Video GenerateFromAnimeGroup(ISessionWrapper session, AnimeGroup grp, int userid,
             List<AnimeSeries> allSeries)
         {
