@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using JMMServer.Collections;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -72,6 +75,34 @@ namespace JMMServer.Repositories
                 .List<MovieDB_Fanart>();
 
             return new List<MovieDB_Fanart>(objs);
+        }
+
+        public ILookup<int, MovieDB_Fanart> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (animeIds == null)
+                throw new ArgumentNullException(nameof(animeIds));
+
+            if (animeIds.Length == 0)
+            {
+                return EmptyLookup<int, MovieDB_Fanart>.Instance;
+            }
+
+            var fanartByAnime = session.CreateSQLQuery(@"
+                SELECT DISTINCT adbOther.AnimeID, {mdbFanart.*}
+                    FROM CrossRef_AniDB_Other AS adbOther
+                        INNER JOIN MovieDB_Fanart AS mdbFanart
+                            ON mdbFanart.MovieId = adbOther.CrossRefID
+                    WHERE adbOther.CrossRefType = :crossRefType AND adbOther.AnimeID IN (:animeIds)")
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .AddEntity("mdbFanart", typeof(MovieDB_Fanart))
+                .SetInt32("crossRefType", (int)CrossRefType.MovieDB)
+                .SetParameterList("animeIds", animeIds)
+                .List<object[]>()
+                .ToLookup(r => (int)r[0], r => (MovieDB_Fanart)r[1]);
+
+            return fanartByAnime;
         }
 
         public List<MovieDB_Fanart> GetAllOriginal()

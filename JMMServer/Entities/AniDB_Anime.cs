@@ -1992,7 +1992,21 @@ namespace JMMServer.Entities
         private Contract_AniDBAnime GenerateContract(ISessionWrapper session, List<AniDB_Anime_Title> titles)
         {
             List<Contract_AniDB_Character> characters = GetCharactersContract();
-            Contract_AniDBAnime contract = GenerateContract(titles, null, characters);
+            List<MovieDB_Fanart> movDbFanart = null;
+            List<TvDB_ImageFanart> tvDbFanart = null;
+            List<TvDB_ImageWideBanner> tvDbBanners = null;
+
+            if (AnimeTypeEnum == enAnimeType.Movie)
+            {
+                movDbFanart = GetMovieDBFanarts(session);
+            }
+            else
+            {
+                tvDbFanart = GetTvDBImageFanarts(session);
+                tvDbBanners = GetTvDBImageWideBanners(session);
+            }
+
+            Contract_AniDBAnime contract = GenerateContract(titles, null, characters, movDbFanart, tvDbFanart, tvDbBanners);
             AniDB_Anime_DefaultImage defFanart = GetDefaultFanart(session);
             AniDB_Anime_DefaultImage defPoster = GetDefaultPoster(session);
             AniDB_Anime_DefaultImage defBanner = GetDefaultWideBanner(session);
@@ -2005,7 +2019,8 @@ namespace JMMServer.Entities
         }
 
         private Contract_AniDBAnime GenerateContract(List<AniDB_Anime_Title> titles, DefaultAnimeImages defaultImages,
-            List<Contract_AniDB_Character> characters)
+            List<Contract_AniDB_Character> characters, IEnumerable<MovieDB_Fanart> movDbFanart, IEnumerable<TvDB_ImageFanart> tvDbFanart,
+            IEnumerable<TvDB_ImageWideBanner> tvDbBanners)
         {
             Contract_AniDBAnime contract = new Contract_AniDBAnime();
             contract.AirDate = this.AirDate;
@@ -2060,6 +2075,34 @@ namespace JMMServer.Entities
                 contract.DefaultImageWideBanner = defaultImages.WideBanner?.ToContract();
             }
 
+            if (AnimeTypeEnum == enAnimeType.Movie)
+            {
+                contract.Fanarts = movDbFanart?.Select(a => new Contract_AniDB_Anime_DefaultImage
+                    {
+                        ImageType = (int)JMMImageType.MovieDB_FanArt,
+                        MovieFanart = a.ToContract(),
+                        AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
+                    })
+                    .ToList() ?? new List<Contract_AniDB_Anime_DefaultImage>();
+            }
+            else // Not a movie
+            {
+                contract.Fanarts = tvDbFanart?.Select(a => new Contract_AniDB_Anime_DefaultImage
+                    {
+                        ImageType = (int)JMMImageType.TvDB_FanArt,
+                        TVFanart = a.ToContract(),
+                        AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
+                    })
+                    .ToList() ?? new List<Contract_AniDB_Anime_DefaultImage>();
+                contract.Banners = tvDbBanners?.Select(a => new Contract_AniDB_Anime_DefaultImage
+                    {
+                        ImageType = (int)JMMImageType.TvDB_FanArt,
+                        TVWideBanner = a.ToContract(),
+                        AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
+                    })
+                    .ToList() ?? new List<Contract_AniDB_Anime_DefaultImage>();
+            }
+
             return contract;
         }
 
@@ -2104,6 +2147,9 @@ namespace JMMServer.Entities
             var repVotes = new AniDB_VoteRepository();
             var repAnime = new AniDB_AnimeRepository();
             var repChars = new AniDB_CharacterRepository();
+            var repMovDbFanart = new MovieDB_FanartRepository();
+            var repTvDbBanner = new TvDB_ImageWideBannerRepository();
+            var repTvDbFanart = new TvDB_ImageFanartRepository();
             int[] animeIds = animeColl.Select(a => a.AnimeID).ToArray();
 
             var titlesByAnime = repTitles.GetByAnimeIDs(session, animeIds);
@@ -2117,6 +2163,9 @@ namespace JMMServer.Entities
             var epVidQualByAnime = repAdHoc.GetEpisodeVideoQualityStatsByAnime(session, animeIds);
             var defImagesByAnime = repAnime.GetDefaultImagesByAnime(session, animeIds);
             var charsByAnime = repChars.GetCharacterAndSeiyuuByAnime(session, animeIds);
+            var movDbFanartByAnime = repMovDbFanart.GetByAnimeIDs(session, animeIds);
+            var tvDbBannersByAnime = repTvDbBanner.GetByAnimeIDs(session, animeIds);
+            var tvDbFanartByAnime = repTvDbFanart.GetByAnimeIDs(session, animeIds);
 
             foreach (AniDB_Anime anime in animeColl)
             {
@@ -2129,8 +2178,12 @@ namespace JMMServer.Entities
                 var characterContracts = (charsByAnime[anime.AnimeID] ?? Enumerable.Empty<AnimeCharacterAndSeiyuu>())
                     .Select(ac => ac.ToContract())
                     .ToList();
+                var movieDbFanart = movDbFanartByAnime[anime.AnimeID];
+                var tvDbBanners = tvDbBannersByAnime[anime.AnimeID];
+                var tvDbFanart = tvDbFanartByAnime[anime.AnimeID];
 
-                contract.AniDBAnime = anime.GenerateContract(animeTitles.ToList(), defImages, characterContracts);
+                contract.AniDBAnime = anime.GenerateContract(animeTitles.ToList(), defImages, characterContracts,
+                    movieDbFanart, tvDbFanart, tvDbBanners);
 
                 // Anime titles
                 contract.AnimeTitles = titlesByAnime[anime.AnimeID]
