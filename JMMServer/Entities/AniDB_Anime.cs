@@ -2113,7 +2113,7 @@ namespace JMMServer.Entities
                         MovieFanart = a.ToContract(),
                         AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
                     })
-                    .ToList() ?? new List<Contract_AniDB_Anime_DefaultImage>();
+                    .ToList();
             }
             else // Not a movie
             {
@@ -2123,17 +2123,20 @@ namespace JMMServer.Entities
                         TVFanart = a.ToContract(),
                         AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
                     })
-                    .ToList() ?? new List<Contract_AniDB_Anime_DefaultImage>();
+                    .ToList();
                 contract.Banners = tvDbBanners?.Select(a => new Contract_AniDB_Anime_DefaultImage
                     {
                         ImageType = (int)JMMImageType.TvDB_FanArt,
                         TVWideBanner = a.ToContract(),
                         AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
                     })
-                    .ToList() ?? new List<Contract_AniDB_Anime_DefaultImage>();
+                    .ToList();
             }
 
-            return contract;
+	        if (contract.Fanarts?.Count == 0) contract.Fanarts = null;
+	        if (contract.Banners?.Count == 0) contract.Banners = null;
+
+	        return contract;
         }
 
         public List<Contract_AniDB_Character> GetCharactersContract()
