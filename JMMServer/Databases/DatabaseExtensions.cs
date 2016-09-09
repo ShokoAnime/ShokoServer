@@ -98,6 +98,15 @@ namespace JMMServer.Databases
             CloudAccountRepository.InitCache();
             ImportFolderRepository.InitCache();
             AniDB_AnimeRepository.InitCache();
+            AniDB_EpisodeRepository.InitCache();
+            AniDB_FileRepository.InitCache();
+            AniDB_Anime_TitleRepository.InitCache();
+            AniDB_Anime_TagRepository.InitCache();
+            AniDB_TagRepository.InitCache();
+            CustomTagRepository.InitCache();
+            CrossRef_CustomTagRepository.InitCache();
+            CrossRef_File_EpisodeRepository.InitCache();
+
             VideoLocal_PlaceRepository.InitCache();
             VideoLocalRepository.InitCache();
             VideoLocal_UserRepository.InitCache();

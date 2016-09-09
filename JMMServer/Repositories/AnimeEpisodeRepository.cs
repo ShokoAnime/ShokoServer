@@ -140,11 +140,14 @@ namespace JMMServer.Repositories
         /// <returns></returns>
         public List<AnimeEpisode> GetByHash(ISession session, string hash)
         {
+
+            return new CrossRef_File_EpisodeRepository().GetByHash(hash).Select(a => GetByAniDBEpisodeID(a.EpisodeID)).Where(a=>a!=null).ToList();
+            /*
             return
                 session.CreateQuery(
                     "Select ae.AnimeEpisodeID FROM AnimeEpisode as ae, CrossRef_File_Episode as xref WHERE ae.AniDB_EpisodeID = xref.EpisodeID AND xref.Hash= :Hash")
                     .SetParameter("Hash", hash)
-                    .List<int>().Select(GetByID).Where(a => a != null).ToList();
+                    .List<int>().Select(GetByID).Where(a => a != null).ToList();*/
         }
 
         public List<AnimeEpisode> GetByHash(string hash)
@@ -157,6 +160,16 @@ namespace JMMServer.Repositories
 
         public List<AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
         {
+
+            List<string> hashes = ignoreVariations ? new VideoLocalRepository().GetAll().Where(a=>a.IsVariation==0).Select(a => a.Hash).Where(a => a != string.Empty).ToList() : new VideoLocalRepository().GetAll().Select(a => a.Hash).Where(a => a != string.Empty).ToList();
+            return new CrossRef_File_EpisodeRepository().GetAll()
+                .Where(a => hashes.Contains(a.Hash))
+                .GroupBy(a => a.EpisodeID)
+                .Where(a => a.Count() > 1)
+                .Select(a => GetByAniDBEpisodeID(a.Key))
+                .ToList();
+            /*
+
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 //FROM AnimeEpisode x WHERE x.AniDB_EpisodeID IN (Select xref.EpisodeID FROM CrossRef_File_Episode xref WHERE xref.Hash IN (Select vl.Hash from VideoLocal vl) GROUP BY xref.EpisodeID HAVING COUNT(xref.EpisodeID) > 1)
@@ -208,11 +221,18 @@ namespace JMMServer.Repositories
                     return session.CreateQuery(sql).List<int>().Select(GetByID).Where(a => a != null).ToList();
                     ;
                 }
-            }
+
+            }*/
         }
 
         public List<AnimeEpisode> GetUnwatchedEpisodes(int seriesid, int userid)
         {
+            List<int> eps =
+                new AnimeEpisode_UserRepository().GetByUserIDAndSeriesID(userid, seriesid).Where(a=>a.WatchedDate.HasValue)
+                    .Select(a => a.AnimeEpisodeID)
+                    .ToList();
+            return GetBySeriesID(seriesid).Where(a => !eps.Contains(a.AnimeEpisodeID)).ToList();
+            /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 return
@@ -221,7 +241,7 @@ namespace JMMServer.Repositories
                         .SetParameter("AnimeSeriesID", seriesid)
                         .SetParameter("JMMUserID", userid)
                         .List<int>().Select(GetByID).Where(a => a != null).ToList();
-            }
+            }*/
         }
 
         public List<AnimeEpisode> GetMostRecentlyAdded(int seriesID)

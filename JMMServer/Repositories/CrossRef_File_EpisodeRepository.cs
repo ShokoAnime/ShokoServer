@@ -1,14 +1,35 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
+using NutzCode.InMemoryIndex;
 
 namespace JMMServer.Repositories
 {
     public class CrossRef_File_EpisodeRepository
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
+
+        private static PocoCache<int, CrossRef_File_Episode> Cache;
+        private static PocoIndex<int, CrossRef_File_Episode, string> Hashes;
+        private static PocoIndex<int, CrossRef_File_Episode, int> Animes;
+        private static PocoIndex<int, CrossRef_File_Episode, int> Episodes;
+        private static PocoIndex<int, CrossRef_File_Episode, string> Filenames;
+
+        public static void InitCache()
+        {
+            string t = "CrossRef_File_Episode";
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
+            CrossRef_File_EpisodeRepository repo = new CrossRef_File_EpisodeRepository();
+            Cache = new PocoCache<int, CrossRef_File_Episode>(repo.InternalGetAll(), a => a.CrossRef_File_EpisodeID);
+            Hashes = new PocoIndex<int, CrossRef_File_Episode, string>(Cache, a => a.Hash);
+            Animes = new PocoIndex<int, CrossRef_File_Episode, int>(Cache,a=>a.AnimeID);
+            Episodes = new PocoIndex<int, CrossRef_File_Episode, int>(Cache,a=>a.EpisodeID);
+            Filenames = new PocoIndex<int, CrossRef_File_Episode, string>(Cache,a=>a.FileName);
+
+        }
 
         public void Save(CrossRef_File_Episode obj)
         {
@@ -20,63 +41,51 @@ namespace JMMServer.Repositories
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
                 }
+                Cache.Update(obj);
             }
             logger.Trace("Updating group stats by file from CrossRef_File_EpisodeRepository.Save: {0}", obj.Hash);
             AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
         }
 
-        public CrossRef_File_Episode GetByID(int id)
+        private List<CrossRef_File_Episode> InternalGetAll()
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return session.Get<CrossRef_File_Episode>(id);
+                var objs = session
+                    .CreateCriteria(typeof(CrossRef_File_Episode))
+                    .List<CrossRef_File_Episode>();
+
+                return new List<CrossRef_File_Episode>(objs);
             }
+        }
+
+        public CrossRef_File_Episode GetByID(int id)
+        {
+            return Cache.Get(id);
         }
 
         public List<CrossRef_File_Episode> GetByHash(string hash)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var xrefs = session
-                    .CreateCriteria(typeof(CrossRef_File_Episode))
-                    .Add(Restrictions.Eq("Hash", hash))
-                    .AddOrder(Order.Asc("EpisodeOrder"))
-                    .List<CrossRef_File_Episode>();
-
-                return new List<CrossRef_File_Episode>(xrefs);
-            }
+            return Hashes.GetMultiple(hash).OrderBy(a => a.EpisodeOrder).ToList();
+        }
+        public List<CrossRef_File_Episode> GetAll()
+        {
+            return Cache.Values.ToList();
         }
 
         public List<CrossRef_File_Episode> GetByAnimeID(int animeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetByAnimeID(session, animeID);
-            }
+            return Animes.GetMultiple(animeID);
         }
 
         public List<CrossRef_File_Episode> GetByAnimeID(ISession session, int animeID)
         {
-            var xrefs = session
-                .CreateCriteria(typeof(CrossRef_File_Episode))
-                .Add(Restrictions.Eq("AnimeID", animeID))
-                .List<CrossRef_File_Episode>();
-
-            return new List<CrossRef_File_Episode>(xrefs);
+            return Animes.GetMultiple(animeID);
         }
 
         public List<CrossRef_File_Episode> GetByFileNameAndSize(string filename, long filesize)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var vidfiles = session
-                    .CreateCriteria(typeof(CrossRef_File_Episode))
-                    .Add(Restrictions.Eq("FileName", filename))
-                    .Add(Restrictions.Eq("FileSize", filesize))
-                    .List<CrossRef_File_Episode>();
-
-                return new List<CrossRef_File_Episode>(vidfiles);
-            }
+            return Filenames.GetMultiple(filename).Where(a => a.FileSize == filesize).ToList();
         }
 
         /// <summary>
@@ -87,29 +96,13 @@ namespace JMMServer.Repositories
         /// <returns></returns>
         public CrossRef_File_Episode GetByHashAndEpisodeID(string hash, int episodeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                CrossRef_File_Episode obj = session
-                    .CreateCriteria(typeof(CrossRef_File_Episode))
-                    .Add(Restrictions.Eq("Hash", hash))
-                    .Add(Restrictions.Eq("EpisodeID", episodeID))
-                    .UniqueResult<CrossRef_File_Episode>();
-
-                return obj;
-            }
+            return Hashes.GetMultiple(hash).FirstOrDefault(a => a.EpisodeID == episodeID);
         }
 
         public List<CrossRef_File_Episode> GetByEpisodeID(int episodeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var xrefs = session
-                    .CreateCriteria(typeof(CrossRef_File_Episode))
-                    .Add(Restrictions.Eq("EpisodeID", episodeID))
-                    .List<CrossRef_File_Episode>();
+            return Episodes.GetMultiple(episodeID);
 
-                return new List<CrossRef_File_Episode>(xrefs);
-            }
         }
 
         public void Delete(int id)
@@ -124,6 +117,7 @@ namespace JMMServer.Repositories
                     if (cr != null)
                     {
                         animeID = cr.AnimeID;
+                        Cache.Remove(cr);
                         session.Delete(cr);
                         transaction.Commit();
                     }
