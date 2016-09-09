@@ -2003,48 +2003,6 @@ namespace JMMServer.Entities
             contract.DefaultImagePoster = defPoster?.ToContract(session);
             contract.DefaultImageWideBanner = defBanner?.ToContract(session);
 
-	        // generate Fanarts and Banners
-	        if (this.AnimeTypeEnum == enAnimeType.Movie)
-	        {
-		        List<MovieDB_Fanart> fanarts = GetMovieDBFanarts(session);
-		        if (fanarts.Count > 0)
-		        {
-			        contract.Fanarts = new List<Contract_AniDB_Anime_DefaultImage>();
-			        fanarts.ForEach(a => contract.Fanarts.Add(new Contract_AniDB_Anime_DefaultImage()
-			        {
-				        ImageType = (int) JMMImageType.MovieDB_FanArt,
-				        MovieFanart = a.ToContract(),
-				        AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
-			        }));
-		        }
-		        // MovieDB doesn't have banners
-	        }
-	        else
-	        {
-		        List<TvDB_ImageFanart> fanarts = GetTvDBImageFanarts(session);
-		        if (fanarts.Count > 0)
-		        {
-			        contract.Fanarts = new List<Contract_AniDB_Anime_DefaultImage>();
-			        fanarts.ForEach(a => contract.Fanarts.Add(new Contract_AniDB_Anime_DefaultImage()
-			        {
-				        ImageType = (int) JMMImageType.TvDB_FanArt,
-				        TVFanart = a.ToContract(),
-				        AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
-			        }));
-		        }
-		        List<TvDB_ImageWideBanner> banners = GetTvDBImageWideBanners(session);
-		        if (banners.Count > 0)
-		        {
-			        contract.Banners = new List<Contract_AniDB_Anime_DefaultImage>();
-			        banners.ForEach(a => contract.Banners.Add(new Contract_AniDB_Anime_DefaultImage()
-			        {
-				        ImageType = (int) JMMImageType.TvDB_Banner,
-				        TVWideBanner = a.ToContract(),
-				        AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
-			        }));
-		        }
-	        }
-
 	        return contract;
         }
 
@@ -2126,7 +2084,7 @@ namespace JMMServer.Entities
                     .ToList();
                 contract.Banners = tvDbBanners?.Select(a => new Contract_AniDB_Anime_DefaultImage
                     {
-                        ImageType = (int)JMMImageType.TvDB_FanArt,
+                        ImageType = (int)JMMImageType.TvDB_Banner,
                         TVWideBanner = a.ToContract(),
                         AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
                     })
