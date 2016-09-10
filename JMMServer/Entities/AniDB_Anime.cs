@@ -1079,10 +1079,10 @@ namespace JMMServer.Entities
 		}
         */
 
-        public List<CustomTag> GetCustomTagsForAnime(ISessionWrapper session)
+        public List<CustomTag> GetCustomTagsForAnime()
         {
             CustomTagRepository repTags = new CustomTagRepository();
-            return repTags.GetByAnimeID(session, AnimeID);
+            return repTags.GetByAnimeID(AnimeID);
         }
 
         public List<AniDB_Tag> GetAniDBTags(ISessionWrapper session)
@@ -1398,10 +1398,10 @@ namespace JMMServer.Entities
             }
         }
 
-        public List<AniDB_Episode> GetAniDBEpisodes(ISessionWrapper session)
+        public List<AniDB_Episode> GetAniDBEpisodes()
         {
             AniDB_EpisodeRepository repEps = new AniDB_EpisodeRepository();
-            return repEps.GetByAnimeID(session, AnimeID);
+            return repEps.GetByAnimeID(AnimeID);
         }
 
         public AniDB_Anime()
@@ -1564,7 +1564,7 @@ namespace JMMServer.Entities
                     {
                         // first delete any AnimeEpisode records that point to the new anidb episode
                         AnimeEpisodeRepository repAnimeEps = new AnimeEpisodeRepository();
-                        AnimeEpisode aniep = repAnimeEps.GetByAniDBEpisodeID(session, epOld.EpisodeID);
+                        AnimeEpisode aniep = repAnimeEps.GetByAniDBEpisodeID(epOld.EpisodeID);
                         if (aniep != null)
                         {
                             //repAnimeEps.Delete(aniep.AnimeEpisodeID);
@@ -2313,7 +2313,7 @@ namespace JMMServer.Entities
 
 
             // Get all the custom tags
-            foreach (CustomTag custag in GetCustomTagsForAnime(session))
+            foreach (CustomTag custag in GetCustomTagsForAnime())
                 contract.CustomTags.Add(custag.ToContract());
 
             if (this.UserVote != null)
@@ -2499,7 +2499,7 @@ namespace JMMServer.Entities
 
             ISessionWrapper sessionWrapper = session.Wrap();
             JMMUserRepository repUsers = new JMMUserRepository();
-            List<JMMUser> allUsers = repUsers.GetAll(sessionWrapper);
+            List<JMMUser> allUsers = repUsers.GetAll();
 
             // create the AnimeGroup record
             // check if there are any existing groups we could add this series to

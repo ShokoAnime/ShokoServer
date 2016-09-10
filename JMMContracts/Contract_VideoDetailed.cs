@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using JMMContracts.PlexAndKodi;
 
 namespace JMMContracts
@@ -7,11 +8,6 @@ namespace JMMContracts
     {
         public int AnimeEpisodeID { get; set; }
 
-        // ImportFolder
-        public int ImportFolderID { get; set; }
-        public string ImportFolderName { get; set; }
-        public string ImportFolderLocation { get; set; }
-
         // CrossRef_File_Episode
         public int Percentage { get; set; }
         public int EpisodeOrder { get; set; }
@@ -19,20 +15,22 @@ namespace JMMContracts
 
         // VideoLocal
         public int VideoLocalID { get; set; }
-        public string VideoLocal_FilePath { get; set; }
+        public string VideoLocal_FileName { get; set; }
         public string VideoLocal_Hash { get; set; }
         public long VideoLocal_FileSize { get; set; }
         public int VideoLocal_IsWatched { get; set; }
         public DateTime? VideoLocal_WatchedDate { get; set; }
+        public long VideoLocal_ResumePosition { get; set; }
         public int VideoLocal_IsIgnored { get; set; }
         public string VideoLocal_CRC32 { get; set; }
         public string VideoLocal_MD5 { get; set; }
         public string VideoLocal_SHA1 { get; set; }
         public int VideoLocal_HashSource { get; set; }
         public int VideoLocal_IsVariation { get; set; }
+        public List<Contract_VideoLocal_Place> Places { get; set; }
+
 
         // VideoInfo
-        public int VideoInfo_VideoInfoID { get; set; }
         public string VideoInfo_VideoCodec { get; set; }
         public string VideoInfo_VideoBitrate { get; set; }
         public string VideoInfo_VideoBitDepth { get; set; }

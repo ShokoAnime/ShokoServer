@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using AniDBAPI;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
@@ -105,7 +103,7 @@ namespace JMMServer.Entities
         public AnimeSeries GetAnimeSeries(ISessionWrapper session)
         {
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            return repSeries.GetByID(session, this.AnimeSeriesID);
+            return repSeries.GetByID(this.AnimeSeriesID);
         }
 
         public List<VideoLocal> GetVideoLocals()
@@ -119,7 +117,7 @@ namespace JMMServer.Entities
         public List<VideoLocal> GetVideoLocals(ISession session)
         {
             VideoLocalRepository repVidLocals = new VideoLocalRepository();
-            return repVidLocals.GetByAniDBEpisodeID(session, AniDB_EpisodeID);
+            return repVidLocals.GetByAniDBEpisodeID(AniDB_EpisodeID);
         }
 
         public List<CrossRef_File_Episode> FileCrossRefs
@@ -188,121 +186,9 @@ namespace JMMServer.Entities
             // get all the cross refs
             foreach (CrossRef_File_Episode xref in FileCrossRefs)
             {
-                Contract_VideoDetailed contract = new Contract_VideoDetailed();
-                contract.Percentage = xref.Percentage;
-                contract.EpisodeOrder = xref.EpisodeOrder;
-                contract.CrossRefSource = xref.CrossRefSource;
-                contract.AnimeEpisodeID = this.AnimeEpisodeID;
-
-                // get the video file
-                // we will assume that it is unique by hash/episodeid
-                VideoLocal vid = repVids.GetByHash(xref.Hash);
-                if (vid != null)
-                {
-                    contract.VideoLocal_FilePath = vid.FilePath;
-                    contract.VideoLocal_Hash = vid.Hash;
-                    contract.VideoLocal_FileSize = vid.FileSize;
-                    contract.VideoLocalID = vid.VideoLocalID;
-
-                    contract.VideoLocal_MD5 = vid.MD5;
-                    contract.VideoLocal_SHA1 = vid.SHA1;
-                    contract.VideoLocal_CRC32 = vid.CRC32;
-                    contract.VideoLocal_HashSource = vid.HashSource;
-
-                    VideoLocal_User vidUser = vid.GetUserRecord(userID);
-                    //AnimeEpisode_User userRecord = this.GetUserRecord(userID);
-                    if (vidUser == null)
-                    {
-                        contract.VideoLocal_IsWatched = 0;
-                        contract.VideoLocal_WatchedDate = null;
-                    }
-                    else
-                    {
-                        contract.VideoLocal_IsWatched = 1;
-                        contract.VideoLocal_WatchedDate = vidUser.WatchedDate;
-                    }
-                    contract.VideoLocal_IsIgnored = vid.IsIgnored;
-                    contract.VideoLocal_IsVariation = vid.IsVariation;
-
-                    // Import Folder
-                    ImportFolder ns = vid.ImportFolder; // to prevent multiple db calls
-                    contract.ImportFolderID = ns.ImportFolderID;
-                    contract.ImportFolderLocation = ns.ImportFolderLocation;
-                    contract.ImportFolderName = ns.ImportFolderName;
-
-                    // video info
-                    VideoInfo vi = vid.VideoInfo; // to prevent multiple db calls
-                    contract.VideoInfo_AudioBitrate = vi.AudioBitrate;
-                    contract.VideoInfo_AudioCodec = vi.AudioCodec;
-                    contract.VideoInfo_Duration = vi.Duration;
-                    contract.VideoInfo_VideoBitrate = vi.VideoBitrate;
-                    contract.VideoInfo_VideoBitDepth = vi.VideoBitDepth;
-                    contract.VideoInfo_VideoCodec = vi.VideoCodec;
-                    contract.VideoInfo_VideoFrameRate = vi.VideoFrameRate;
-                    contract.VideoInfo_VideoResolution = vi.VideoResolution;
-                    contract.VideoInfo_VideoInfoID = vi.VideoInfoID;
-
-                    // AniDB File
-                    AniDB_File anifile = vid.GetAniDBFile(); // to prevent multiple db calls
-                    if (anifile != null)
-                    {
-                        contract.AniDB_Anime_GroupName = anifile.Anime_GroupName;
-                        contract.AniDB_Anime_GroupNameShort = anifile.Anime_GroupNameShort;
-                        contract.AniDB_AnimeID = anifile.AnimeID;
-                        contract.AniDB_CRC = anifile.CRC;
-                        contract.AniDB_Episode_Rating = anifile.Episode_Rating;
-                        contract.AniDB_Episode_Votes = anifile.Episode_Votes;
-                        contract.AniDB_File_AudioCodec = anifile.File_AudioCodec;
-                        contract.AniDB_File_Description = anifile.File_Description;
-                        contract.AniDB_File_FileExtension = anifile.File_FileExtension;
-                        contract.AniDB_File_LengthSeconds = anifile.File_LengthSeconds;
-                        contract.AniDB_File_ReleaseDate = anifile.File_ReleaseDate;
-                        contract.AniDB_File_Source = anifile.File_Source;
-                        contract.AniDB_File_VideoCodec = anifile.File_VideoCodec;
-                        contract.AniDB_File_VideoResolution = anifile.File_VideoResolution;
-                        contract.AniDB_FileID = anifile.FileID;
-                        contract.AniDB_GroupID = anifile.GroupID;
-                        contract.AniDB_MD5 = anifile.MD5;
-                        contract.AniDB_SHA1 = anifile.SHA1;
-                        contract.AniDB_File_FileVersion = anifile.FileVersion;
-                        contract.AniDB_File_IsCensored = anifile.IsCensored;
-                        contract.AniDB_File_IsDeprecated = anifile.IsDeprecated;
-                        contract.AniDB_File_InternalVersion = anifile.InternalVersion;
-
-                        // languages
-                        contract.LanguagesAudio = anifile.LanguagesRAW;
-                        contract.LanguagesSubtitle = anifile.SubtitlesRAW;
-                    }
-                    else
-                    {
-                        contract.AniDB_Anime_GroupName = "";
-                        contract.AniDB_Anime_GroupNameShort = "";
-                        contract.AniDB_CRC = "";
-                        contract.AniDB_File_AudioCodec = "";
-                        contract.AniDB_File_Description = "";
-                        contract.AniDB_File_FileExtension = "";
-                        contract.AniDB_File_Source = "";
-                        contract.AniDB_File_VideoCodec = "";
-                        contract.AniDB_File_VideoResolution = "";
-                        contract.AniDB_MD5 = "";
-                        contract.AniDB_SHA1 = "";
-                        contract.AniDB_File_FileVersion = 1;
-
-                        // languages
-                        contract.LanguagesAudio = "";
-                        contract.LanguagesSubtitle = "";
-                    }
-
-
-                    AniDB_ReleaseGroup relGroup = vid.ReleaseGroup; // to prevent multiple db calls
-                    if (relGroup != null)
-                        contract.ReleaseGroup = relGroup.ToContract();
-                    else
-                        contract.ReleaseGroup = null;
-
-                    contract.Media = vid.GetMediaFromUser(userID);
-                    contracts.Add(contract);
-                }
+                VideoLocal v=repVids.GetByHash(xref.Hash);
+                if (v != null)
+                    contracts.Add(v.ToContractDetailed(userID));
             }
 
 

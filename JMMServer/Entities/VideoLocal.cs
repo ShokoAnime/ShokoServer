@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using AniDBAPI;
 
 using FluentNHibernate.Utils;
@@ -15,6 +16,7 @@ using JMMServer.LZ4;
 using JMMServer.Repositories;
 using NHibernate;
 using NLog;
+using NutzCode.CloudFileSystem;
 using Stream = JMMContracts.PlexAndKodi.Stream;
 
 using Path = Pri.LongPath.Path;
@@ -30,8 +32,6 @@ namespace JMMServer.Entities
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public int VideoLocalID { get; private set; }
-        public string FilePath { get; set; }
-        public int ImportFolderID { get; set; }
         public string Hash { get; set; }
         public string CRC32 { get; set; }
         public string MD5 { get; set; }
@@ -42,10 +42,24 @@ namespace JMMServer.Entities
         public DateTime DateTimeUpdated { get; set; }
         public DateTime DateTimeCreated { get; set; }
         public int IsVariation { get; set; }
-
         public int MediaVersion { get; set; }
         public byte[] MediaBlob { get; set; }
         public int MediaSize { get; set; }
+
+        public string VideoCodec { get; set; } = string.Empty;
+        public string VideoBitrate { get; set; } = string.Empty;
+        public string VideoBitDepth { get; set; } = string.Empty;
+        public string VideoFrameRate { get; set; } = string.Empty;
+        public string VideoResolution { get; set; } = string.Empty;
+        public string AudioCodec { get; set; } = string.Empty;
+        public string AudioBitrate { get; set; } = string.Empty;
+        public long Duration { get; set; }
+        public string FileName { get; set; }
+
+
+        public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
+
+
 
         public const int MEDIA_VERSION = 2;
 
@@ -70,27 +84,30 @@ namespace JMMServer.Entities
             }
         }
 
+        public List<VideoLocal_Place> Places => new VideoLocal_PlaceRepository().GetByVideoLocal(VideoLocalID);
+
+
         public void CollectContractMemory()
         {
             _media = null;
         }
-
 
         public string ToStringDetailed()
         {
             StringBuilder sb = new StringBuilder("");
             sb.Append(Environment.NewLine);
             sb.Append("VideoLocalID: " + VideoLocalID.ToString());
+
             sb.Append(Environment.NewLine);
-            sb.Append("FilePath: " + FilePath);
-            sb.Append(Environment.NewLine);
-            sb.Append("ImportFolderID: " + ImportFolderID.ToString());
+            sb.Append("FileName: " + FileName);
+/*            sb.Append(Environment.NewLine);
+            sb.Append("ImportFolderID: " + ImportFolderID.ToString());*/
             sb.Append(Environment.NewLine);
             sb.Append("Hash: " + Hash);
             sb.Append(Environment.NewLine);
             sb.Append("FileSize: " + FileSize.ToString());
             sb.Append(Environment.NewLine);
-
+            /*
             try
             {
                 if (ImportFolder != null)
@@ -102,7 +119,7 @@ namespace JMMServer.Entities
             }
 
             sb.Append(Environment.NewLine);
-
+            */
             return sb.ToString();
         }
 
@@ -112,52 +129,13 @@ namespace JMMServer.Entities
             set { Hash = value; }
         }
 
-        public string Info
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(FilePath))
-                    return "";
-                return FilePath;
-            }
-        }
-
-        public ImportFolder ImportFolder
-        {
-            get
-            {
-                ImportFolderRepository repNS = new ImportFolderRepository();
-                return repNS.GetByID(ImportFolderID);
-            }
-        }
-
-        public string FullServerPath
-        {
-            get { return Path.Combine(ImportFolder.ImportFolderLocation, FilePath); }
-        }
 
         public AniDB_File GetAniDBFile()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetAniDBFile(session.Wrap());
-            }
-        }
-
-        public AniDB_File GetAniDBFile(ISessionWrapper session)
-        {
             AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-            return repAniFile.GetByHash(session, Hash);
+            return repAniFile.GetByHash(Hash);
         }
 
-        public VideoInfo VideoInfo
-        {
-            get
-            {
-                VideoInfoRepository repVI = new VideoInfoRepository();
-                return repVI.GetByHash(Hash);
-            }
-        }
 
         public VideoLocal_User GetUserRecord(int userID)
         {
@@ -179,17 +157,11 @@ namespace JMMServer.Entities
 
         public List<AnimeEpisode> GetAnimeEpisodes()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetAnimeEpisodes(session);
-            }
+            AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
+            return repEps.GetByHash(Hash);
         }
 
-        public List<AnimeEpisode> GetAnimeEpisodes(ISession session)
-        {
-            AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-            return repEps.GetByHash(session, Hash);
-        }
+
 
         public List<CrossRef_File_Episode> EpisodeCrossRefs
         {
@@ -201,14 +173,14 @@ namespace JMMServer.Entities
                 return rep.GetByHash(Hash);
             }
         }
-
+        
         private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
         {
             VideoLocal_UserRepository repVidUsers = new VideoLocal_UserRepository();
             VideoLocal_User vidUserRecord = this.GetUserRecord(userID);
             if (watched)
             {
-                if (vidUserRecord == null)
+                if (vidUserRecord?.WatchedDate == null)
                 {
                     vidUserRecord = new VideoLocal_User();
                     vidUserRecord.WatchedDate = DateTime.Now;
@@ -227,8 +199,62 @@ namespace JMMServer.Entities
             else
             {
                 if (vidUserRecord != null)
-                    repVidUsers.Delete(vidUserRecord.VideoLocal_UserID);
+                {
+                    vidUserRecord.WatchedDate = null;
+                    repVidUsers.Save(vidUserRecord);
+
+                }
             }
+        }
+        public static IFile ResolveFile(string fullname)
+        {
+            Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
+            IFileSystem fs = tup?.Item1.FileSystem;
+            if (fs == null)
+                return null;
+            FileSystemResult<IObject> fobj = fs?.Resolve(fullname);
+            if (!fobj.IsOk || fobj.Result is IDirectory)
+                return null;
+            return fobj.Result as IFile;
+        }
+        public IFile GetBestFileLink()
+        {
+            IFile file=null;
+            foreach (VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
+            {
+                if (p != null)
+                {
+                    file = ResolveFile(p.FullServerPath);
+                    if (file != null)
+                        break;
+                }
+            }
+            return file;
+        }
+        public VideoLocal_Place GetBestVideoLocalPlace()
+        {
+            foreach (VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
+            {
+                if (p != null)
+                {
+                    if (ResolveFile(p.FullServerPath) != null)
+                        return p;
+                }
+            }
+            return null;
+        }
+
+        public void SetResumePosition(long resumeposition, int userID)
+        {
+            VideoLocal_User vuser = GetUserRecord(userID);
+            if (vuser == null)
+            {
+                vuser=new VideoLocal_User();
+                vuser.JMMUserID = userID;
+                vuser.VideoLocalID = VideoLocalID;
+                vuser.ResumePosition = resumeposition;
+            }
+            new VideoLocal_UserRepository().Save(vuser);
         }
 
         public void ToggleWatchedStatus(bool watched, int userID)
@@ -329,7 +355,7 @@ namespace JMMServer.Entities
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
                     {
                         VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
-                        if (vidUser != null)
+                        if (vidUser != null && vidUser.WatchedDate.HasValue)
                         {
                             // if not null means it is watched
                             epPercentWatched += filexref.Percentage;
@@ -389,7 +415,7 @@ namespace JMMServer.Entities
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
                     {
                         VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
-                        if (vidUser != null)
+                        if (vidUser != null && vidUser.WatchedDate.HasValue)
                             epPercentWatched += filexref.Percentage;
 
                         if (epPercentWatched > 95) break;
@@ -444,283 +470,9 @@ namespace JMMServer.Entities
 
         public override string ToString()
         {
-            return string.Format("{0} --- {1}", FullServerPath, Hash);
+            return string.Format("{0} --- {1}", FileName, Hash);
         }
 
-        public void RenameFile(string renameScript)
-        {
-            string renamed = RenameFileHelper.GetNewFileName(this, renameScript);
-            if (string.IsNullOrEmpty(renamed)) return;
-
-            ImportFolderRepository repFolders = new ImportFolderRepository();
-            VideoLocalRepository repVids = new VideoLocalRepository();
-
-            // actually rename the file
-            string fullFileName = this.FullServerPath;
-
-            // check if the file exists
-            if (!File.Exists(fullFileName))
-            {
-                logger.Error("Error could not find the original file for renaming: " + fullFileName);
-                return;
-            }
-
-            // actually rename the file
-            string path = Path.GetDirectoryName(fullFileName);
-            string newFullName = Path.Combine(path, renamed);
-
-            try
-            {
-                logger.Info(string.Format("Renaming file From ({0}) to ({1})....", fullFileName, newFullName));
-
-                if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    logger.Info(string.Format("Renaming file SKIPPED, no change From ({0}) to ({1})", fullFileName,
-                        newFullName));
-                }
-                else
-                {
-                    File.Move(fullFileName, newFullName);
-                    logger.Info(string.Format("Renaming file SUCCESS From ({0}) to ({1})", fullFileName, newFullName));
-
-                    string newPartialPath = "";
-                    int folderID = this.ImportFolderID;
-
-                    DataAccessHelper.GetShareAndPath(newFullName, repFolders.GetAll(), ref folderID, ref newPartialPath);
-
-                    this.FilePath = newPartialPath;
-                    repVids.Save(this, true);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Info(string.Format("Renaming file FAIL From ({0}) to ({1}) - {2}", fullFileName, newFullName,
-                    ex.Message));
-                logger.ErrorException(ex.ToString(), ex);
-            }
-        }
-
-        public void RenameIfRequired()
-        {
-            try
-            {
-                RenameScriptRepository repScripts = new RenameScriptRepository();
-                RenameScript defaultScript = repScripts.GetDefaultScript();
-
-                if (defaultScript == null) return;
-
-                RenameFile(defaultScript.Script);
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException(ex.ToString(), ex);
-                return;
-            }
-        }
-
-        public void MoveFileIfRequired()
-        {
-            try
-            {
-                logger.Trace("Attempting to move file: {0}", this.FullServerPath);
-
-                // check if this file is in the drop folder
-                // otherwise we don't need to move it
-                if (this.ImportFolder.IsDropSource == 0)
-                {
-                    logger.Trace("Not moving file as it is NOT in the drop folder: {0}", this.FullServerPath);
-                    return;
-                }
-
-                if (!File.Exists(this.FullServerPath))
-                {
-                    logger.Error("Could not find the file to move: {0}", this.FullServerPath);
-                    return;
-                }
-
-                // find the default destination
-                ImportFolder destFolder = null;
-                ImportFolderRepository repFolders = new ImportFolderRepository();
-                foreach (ImportFolder fldr in repFolders.GetAll())
-                {
-                    if (fldr.IsDropDestination == 1)
-                    {
-                        destFolder = fldr;
-                        break;
-                    }
-                }
-
-                if (destFolder == null) return;
-
-                if (!System.IO.Directory.Exists(destFolder.ImportFolderLocation)) return;
-
-                // keep the original drop folder for later (take a copy, not a reference)
-                ImportFolder dropFolder = this.ImportFolder;
-
-                // we can only move the file if it has an anime associated with it
-                List<CrossRef_File_Episode> xrefs = this.EpisodeCrossRefs;
-                if (xrefs.Count == 0) return;
-                CrossRef_File_Episode xref = xrefs[0];
-
-                // find the series associated with this episode
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries series = repSeries.GetByAnimeID(xref.AnimeID);
-                if (series == null) return;
-
-                // find where the other files are stored for this series
-                // if there are no other files except for this one, it means we need to create a new location
-                bool foundLocation = false;
-                string newFullPath = "";
-
-                // sort the episodes by air date, so that we will move the file to the location of the latest episode
-                List<AnimeEpisode> allEps = series.GetAnimeEpisodes().OrderByDescending(a=>a.AniDB_EpisodeID).ToList();
-
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                CrossRef_File_EpisodeRepository repFileEpXref = new CrossRef_File_EpisodeRepository();
-
-                foreach (AnimeEpisode ep in allEps)
-                {
-                    // check if this episode belongs to more than one anime
-                    // if it does we will ignore it
-                    List<CrossRef_File_Episode> fileEpXrefs = repFileEpXref.GetByEpisodeID(ep.AniDB_EpisodeID);
-                    int? animeID = null;
-                    bool crossOver = false;
-                    foreach (CrossRef_File_Episode fileEpXref in fileEpXrefs)
-                    {
-                        if (!animeID.HasValue)
-                            animeID = fileEpXref.AnimeID;
-                        else
-                        {
-                            if (animeID.Value != fileEpXref.AnimeID)
-                                crossOver = true;
-                        }
-                    }
-                    if (crossOver) continue;
-
-                    foreach (VideoLocal vid in ep.GetVideoLocals())
-                    {
-                        if (vid.VideoLocalID != this.VideoLocalID)
-                        {
-                            // make sure this folder is not the drop source
-                            if (vid.ImportFolder.IsDropSource == 1) continue;
-
-                            string thisFileName = vid.FullServerPath;
-                            string folderName = Path.GetDirectoryName(thisFileName);
-
-                            if (Directory.Exists(folderName))
-                            {
-                                newFullPath = folderName;
-                                foundLocation = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (foundLocation) break;
-                }
-
-                if (!foundLocation)
-                {
-                    // we need to create a new folder
-                    string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().PreferredTitle);
-                    newFullPath = Path.Combine(destFolder.ImportFolderLocation, newFolderName);
-                    if (!Directory.Exists(newFullPath))
-                        Directory.CreateDirectory(newFullPath);
-                }
-
-                int newFolderID = 0;
-                string newPartialPath = "";
-                string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
-
-                DataAccessHelper.GetShareAndPath(newFullServerPath, repFolders.GetAll(), ref newFolderID,
-                    ref newPartialPath);
-                logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
-
-                if (File.Exists(newFullServerPath))
-                {
-                    logger.Trace(
-                        "Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
-                        this.FullServerPath, newFullServerPath);
-
-                    // if the file already exists, we can just delete the source file instead
-                    // this is safer than deleting and moving
-                    File.Delete(this.FullServerPath);
-
-                    this.ImportFolderID = newFolderID;
-                    this.FilePath = newPartialPath;
-                    VideoLocalRepository repVids = new VideoLocalRepository();
-                    repVids.Save(this, true);
-                }
-                else
-                {
-                    string originalFileName = this.FullServerPath;
-                    FileInfo fi = new FileInfo(originalFileName);
-
-                    // now move the file
-                    File.Move(this.FullServerPath, newFullServerPath);
-
-                    this.ImportFolderID = newFolderID;
-                    this.FilePath = newPartialPath;
-                    VideoLocalRepository repVids = new VideoLocalRepository();
-                    repVids.Save(this, true);
-
-                    try
-                    {
-                        // move any subtitle files
-                        foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
-                        {
-                            if (File.Exists(subtitleFile))
-                            {
-                                FileInfo fiSub = new FileInfo(subtitleFile);
-                                string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath), fiSub.Name);
-                                if (File.Exists(newSubPath))
-                                {
-                                    // if the file already exists, we can just delete the source file instead
-                                    // this is safer than deleting and moving
-                                    File.Delete(newSubPath);
-                                }
-                                else
-                                    File.Move(subtitleFile, newSubPath);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.ErrorException(ex.ToString(), ex);
-                    }
-
-                    // check for any empty folders in drop folder
-                    // only for the drop folder
-                    if (dropFolder.IsDropSource == 1)
-                    {
-                        foreach (
-                            string folderName in
-                                Directory.GetDirectories(dropFolder.ImportFolderLocation, "*",
-                                    SearchOption.AllDirectories))
-                        {
-                            if (Directory.Exists(folderName))
-                            {
-                                if (Directory.GetFiles(folderName, "*", SearchOption.AllDirectories).Length == 0)
-                                {
-                                    try
-                                    {
-                                        Directory.Delete(folderName, true);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        logger.ErrorException(ex.ToString(), ex);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                string msg = string.Format("Could not move file: {0} -- {1}", this.FullServerPath, ex.ToString());
-                logger.ErrorException(msg, ex);
-            }
-        }
 
 
         public Contract_VideoLocal ToContract(int userID)
@@ -728,20 +480,19 @@ namespace JMMServer.Entities
             Contract_VideoLocal contract = new Contract_VideoLocal();
             contract.CRC32 = this.CRC32;
             contract.DateTimeUpdated = this.DateTimeUpdated;
-            contract.FilePath = this.FilePath;
+            contract.FileName = this.FileName;
             contract.FileSize = this.FileSize;
             contract.Hash = this.Hash;
             contract.HashSource = this.HashSource;
-            contract.ImportFolder = this.ImportFolder.ToContract();
-            contract.ImportFolderID = this.ImportFolderID;
             contract.IsIgnored = this.IsIgnored;
             contract.IsVariation = this.IsVariation;
+            contract.Duration = this.Duration;
             contract.MD5 = this.MD5;
             contract.SHA1 = this.SHA1;
             contract.VideoLocalID = this.VideoLocalID;
-
+            contract.Places = Places.Select(a => a.ToContract()).ToList();
             VideoLocal_User userRecord = this.GetUserRecord(userID);
-            if (userRecord == null)
+            if (userRecord?.WatchedDate == null)
             {
                 contract.IsWatched = 0;
                 contract.WatchedDate = null;
@@ -751,8 +502,9 @@ namespace JMMServer.Entities
                 contract.IsWatched = 1;
                 contract.WatchedDate = userRecord.WatchedDate;
             }
-            contract.Media = GetMediaFromUser(userID);
-           
+            if (userRecord != null)
+                contract.ResumePosition = userRecord.ResumePosition;
+            contract.Media = GetMediaFromUser(userID);           
             return contract;
         }
         private static Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]", RegexOptions.Compiled);
@@ -762,10 +514,18 @@ namespace JMMServer.Entities
             Media n = null;
             if (Media == null)
             {
-                if (File.Exists(FullServerPath))
+                VideoLocal_Place pl = GetBestVideoLocalPlace();
+                if (pl != null)
                 {
-                    VideoLocalRepository repo=new VideoLocalRepository();
-                    repo.Save(this, false);
+                    IFileSystem f = pl.ImportFolder.FileSystem;
+                    FileSystemResult<IObject> src = f.Resolve(pl.FullServerPath);
+                    if (src != null && src.IsOk && src.Result is IFile)
+                    {
+                        if (pl.RefreshMediaInfo())
+                        {
+                            new VideoLocalRepository().Save(pl.VideoLocal,true);
+                        }
+                    }
                 }
             }
             if (Media != null)
@@ -776,7 +536,7 @@ namespace JMMServer.Entities
                 {
                     foreach (Part p in n?.Parts)
                     {
-                        string name = UrlSafe.Replace(Path.GetFileName(FilePath)," ").Replace("  "," ").Replace("  "," ").Trim();
+                        string name = UrlSafe.Replace(Path.GetFileName(FileName)," ").Replace("  "," ").Replace("  "," ").Trim();
                         name = UrlSafe2.Replace(name, string.Empty).Trim().Replace("..",".").Replace("..",".").Replace("__","_").Replace("__","_").Replace(" ", "_").Replace("_.",".");
                         while (name.StartsWith("_"))
                             name = name.Substring(1);
@@ -808,12 +568,13 @@ namespace JMMServer.Entities
             contract.CrossRefSource = xrefs[0].CrossRefSource;
             contract.AnimeEpisodeID = xrefs[0].EpisodeID;
 
-            contract.VideoLocal_FilePath = this.FilePath;
+            contract.VideoLocal_FileName = this.FileName;
             contract.VideoLocal_Hash = this.Hash;
             contract.VideoLocal_FileSize = this.FileSize;
             contract.VideoLocalID = this.VideoLocalID;
             contract.VideoLocal_IsIgnored = this.IsIgnored;
             contract.VideoLocal_IsVariation = this.IsVariation;
+            contract.Places = Places.Select(a => a.ToContract()).ToList();
 
             contract.VideoLocal_MD5 = this.MD5;
             contract.VideoLocal_SHA1 = this.SHA1;
@@ -821,34 +582,27 @@ namespace JMMServer.Entities
             contract.VideoLocal_HashSource = this.HashSource;
 
             VideoLocal_User userRecord = this.GetUserRecord(userID);
-            if (userRecord == null)
+            if (userRecord?.WatchedDate == null)
+            {
                 contract.VideoLocal_IsWatched = 0;
+                contract.VideoLocal_WatchedDate = null;
+                contract.VideoLocal_ResumePosition = 0;
+            }
             else
-                contract.VideoLocal_IsWatched = 1;
-
-            // Import Folder
-            ImportFolder ns = this.ImportFolder; // to prevent multiple db calls
-            if (ns != null)
             {
-                contract.ImportFolderID = ns.ImportFolderID;
-                contract.ImportFolderLocation = ns.ImportFolderLocation;
-                contract.ImportFolderName = ns.ImportFolderName;
+                contract.VideoLocal_IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
+                contract.VideoLocal_WatchedDate = userRecord.WatchedDate;
             }
-
-            // video info
-            VideoInfo vi = this.VideoInfo; // to prevent multiple db calls
-            if (vi != null)
-            {
-                contract.VideoInfo_AudioBitrate = vi.AudioBitrate;
-                contract.VideoInfo_AudioCodec = vi.AudioCodec;
-                contract.VideoInfo_Duration = vi.Duration;
-                contract.VideoInfo_VideoBitrate = vi.VideoBitrate;
-                contract.VideoInfo_VideoBitDepth = vi.VideoBitDepth;
-                contract.VideoInfo_VideoCodec = vi.VideoCodec;
-                contract.VideoInfo_VideoFrameRate = vi.VideoFrameRate;
-                contract.VideoInfo_VideoResolution = vi.VideoResolution;
-                contract.VideoInfo_VideoInfoID = vi.VideoInfoID;
-            }
+            if (userRecord!=null)
+                contract.VideoLocal_ResumePosition = userRecord.ResumePosition;
+            contract.VideoInfo_AudioBitrate = AudioBitrate;
+            contract.VideoInfo_AudioCodec = AudioCodec;
+            contract.VideoInfo_Duration = Duration;
+            contract.VideoInfo_VideoBitrate = VideoBitrate;
+            contract.VideoInfo_VideoBitDepth = VideoBitDepth;
+            contract.VideoInfo_VideoCodec = VideoCodec;
+            contract.VideoInfo_VideoFrameRate = VideoFrameRate;
+            contract.VideoInfo_VideoResolution = VideoResolution;
 
             // AniDB File
             AniDB_File anifile = this.GetAniDBFile(); // to prevent multiple db calls
@@ -913,30 +667,31 @@ namespace JMMServer.Entities
             Contract_VideoLocalManualLink contract = new Contract_VideoLocalManualLink();
             contract.CRC32 = this.CRC32;
             contract.DateTimeUpdated = this.DateTimeUpdated;
-            contract.FilePath = this.FilePath;
+            contract.FileName = this.FileName;
             contract.FileSize = this.FileSize;
             contract.Hash = this.Hash;
             contract.HashSource = this.HashSource;
-            contract.ImportFolder = this.ImportFolder.ToContract();
-            contract.ImportFolderID = this.ImportFolderID;
             contract.IsIgnored = this.IsIgnored;
             contract.IsVariation = this.IsVariation;
             contract.MD5 = this.MD5;
             contract.SHA1 = this.SHA1;
             contract.VideoLocalID = this.VideoLocalID;
+            contract.Places = Places.Select(a => a.ToContract()).ToList();
 
             VideoLocal_User userRecord = this.GetUserRecord(userID);
-            if (userRecord == null)
+            if (userRecord?.WatchedDate == null)
             {
                 contract.IsWatched = 0;
                 contract.WatchedDate = null;
+                contract.ResumePosition = 0;
             }
             else
             {
-                contract.IsWatched = 1;
+                contract.IsWatched = userRecord.WatchedDate.HasValue ? 1 : 0;
                 contract.WatchedDate = userRecord.WatchedDate;
             }
-
+            if (userRecord!=null)
+                contract.ResumePosition = userRecord.ResumePosition;
             return contract;
         }
     }

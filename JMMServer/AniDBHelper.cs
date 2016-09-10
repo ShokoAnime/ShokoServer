@@ -1166,7 +1166,7 @@ namespace JMMServer
             // create AnimeEpisode records for all episodes in this anime
             // only if we have a series
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            AnimeSeries ser = repSeries.GetByAnimeID(sessionWrapper, animeID);
+            AnimeSeries ser = repSeries.GetByAnimeID(animeID);
             repAnime.Save(anime);
             if (ser != null)
             {

@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.Xml.Serialization;
+﻿using System.Xml.Serialization;
 using JMMServer.Repositories;
 
 namespace JMMServer.Entities
@@ -30,7 +29,7 @@ namespace JMMServer.Entities
         public void PopulateManually(VideoLocal vid, AnimeEpisode ep)
         {
             Hash = vid.ED2KHash;
-            FileName = Path.GetFileName(vid.FullServerPath);
+            FileName = vid.FileName;
             FileSize = vid.FileSize;
             CrossRefSource = (int) JMMServer.CrossRefSource.User;
             AnimeID = ep.GetAnimeSeries().AniDB_ID;

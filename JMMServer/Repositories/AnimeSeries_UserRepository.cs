@@ -121,10 +121,6 @@ namespace JMMServer.Repositories
             return UsersSeries.GetOne(userid, seriesid);
         }
 
-        public AnimeSeries_User GetByUserAndSeriesID(ISession session, int userid, int seriesid)
-        {
-            return GetByUserAndSeriesID(userid, seriesid);
-        }
 
         public List<AnimeSeries_User> GetByUserID(int userid)
         {
@@ -150,10 +146,7 @@ namespace JMMServer.Repositories
                     .ToList();
         }
 
-        public List<AnimeSeries_User> GetMostRecentlyWatched(ISession session, int userID)
-        {
-            return GetMostRecentlyWatched(userID);
-        }
+
 
         public static ChangeTracker<int> GetChangeTracker(int userid)
         {

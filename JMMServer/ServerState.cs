@@ -1,8 +1,10 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using NLog;
 using Microsoft.Win32;
 using System;
 using Microsoft.Win32.TaskScheduler;
+using NutzCode.CloudFileSystem;
 
 namespace JMMServer
 {
@@ -12,20 +14,11 @@ namespace JMMServer
 
         private static ServerState _instance;
 
-        public static ServerState Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    _instance = new ServerState();
-                }
-                return _instance;
-            }
-        }
+        public static ServerState Instance => _instance ?? (_instance = new ServerState());
 
         public ServerState()
         {
+            ConnectedFileSystems=new Dictionary<string, IFileSystem>();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -351,6 +344,11 @@ namespace JMMServer
                 return Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
             }
         }
+
+
+
+        public Dictionary<string, IFileSystem> ConnectedFileSystems { get; private set; }
+
 
         public void LoadSettings()
         {

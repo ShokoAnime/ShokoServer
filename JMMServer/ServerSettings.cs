@@ -1016,7 +1016,19 @@ namespace JMMServer
             }
             set { UpdateSetting("LanguageUseSynonyms", value.ToString()); }
         }
-
+        public static int CloudWatcherTime
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                int val;
+                int.TryParse(appSettings["CloudWatcherTime"], out val);
+                if (val == 0)
+                    val = 3;
+                return val;
+            }
+            set { UpdateSetting("CloudWatcherTime", ((int)value).ToString()); }
+        }
         public static DataSourceType EpisodeTitleSource
         {
             get

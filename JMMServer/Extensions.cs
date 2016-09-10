@@ -1,7 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using NutzCode.CloudFileSystem;
 using FluentNHibernate.Utils;
 using JMMContracts;
 
@@ -86,6 +93,23 @@ namespace JMMServer
             contract.Stat_AudioLanguages = new HashSet<string>(c.Stat_AudioLanguages);
             contract.Stat_SubtitleLanguages = new HashSet<string>(c.Stat_SubtitleLanguages);
             return contract;
+        }
+
+        public static BitmapImage CreateIconImage(this ICloudPlugin plugin)
+        {
+            return Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (plugin?.Icon == null)
+                    return null;
+
+                MemoryStream ms = new MemoryStream(plugin.Icon);
+                ms.Seek(0, SeekOrigin.Begin);
+                BitmapImage icon = new BitmapImage();
+                icon.BeginInit();
+                icon.StreamSource = ms;
+                icon.EndInit();
+                return icon;
+            });
         }
     }
 }
