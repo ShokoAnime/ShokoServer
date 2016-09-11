@@ -323,6 +323,7 @@
     <Compile Include="LZ4\LZ4Codec.Unsafe32HC.Dirty.cs" />
     <Compile Include="LZ4\LZ4Codec.Unsafe64.Dirty.cs" />
     <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
+    <Compile Include="Mappings\AuthTokensMap.cs" />
     <Compile Include="Mappings\CloudAccountMap.cs" />
     <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
     <Compile Include="ObjectExtensions.cs" />
