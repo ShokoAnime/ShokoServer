@@ -1170,6 +1170,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="API\Views\" />
+    <Folder Include="NewFolder1\" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\24_cloud.png" />
