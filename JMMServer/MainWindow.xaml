@@ -245,12 +245,18 @@
                     </StackPanel>
                 </TabItem>
 
+
+                
                 <!-- Import Folders tab-->
                 <TabItem Header="{Resx ResxName=JMMServer.Properties.Resources, Key=Tab_ImportFolders}"
                          Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=ServerOnline, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <local:ImportFolderAdmin />
                 </TabItem>
-
+                <!-- Cloud Account tab-->
+                <TabItem Header="{Resx ResxName=JMMServer.Properties.Resources, Key=Tab_CloudAccounts}"
+                         Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=ServerOnline, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <local:CloudAccountAdmin />
+                </TabItem>
                 <!-- Settings tab-->
                 <TabItem Header="{Resx ResxName=JMMServer.Properties.Resources, Key=Tab_Settings}"
                          Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=ServerOnline, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -960,7 +966,7 @@
                                Grid.Column="3" />
                     <local:HyperLinkStandard VerticalAlignment="Center" Margin="5,0,0,0" Grid.Column="6"
                                              HorizontalAlignment="Right" FontWeight="Bold"
-                                             DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=Toolbar_Translate}"
+                                             DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=Toolbar_Contribute}"
                                              URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_Translate}" />
 
                 </Grid>

@@ -101,7 +101,7 @@ namespace JMMServer.Repositories
             {
                 string t = "GroupFilter";
 
-                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
+                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters();
                 //Continue Watching
                 // check if it already exists
 
@@ -207,7 +207,7 @@ namespace JMMServer.Repositories
             {
                 string t = "GroupFilter";
 
-                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
+                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters();
                 AniDB_TagRepository tagsrepo = new AniDB_TagRepository();
                 AnimeGroupRepository grouprepo = new AnimeGroupRepository();
                 GroupFilter tagsdirec = lockedGFs.FirstOrDefault(a => a.FilterType == (int)(GroupFilterType.Directory | GroupFilterType.Tag));
@@ -368,10 +368,7 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
-        public GroupFilter GetByID(ISession session, int id)
-        {
-            return GetByID(id);
-        }
+
 
         public List<GroupFilter> GetAll()
         {
@@ -388,12 +385,9 @@ namespace JMMServer.Repositories
             return Parents.GetMultiple(0);
         }
 
-        public List<GroupFilter> GetAll(ISession session)
-        {
-            return GetAll();
-        }
 
-        public List<GroupFilter> GetLockedGroupFilters(ISession session)
+
+        public List<GroupFilter> GetLockedGroupFilters()
         {
             return Cache.Values.Where(a => a.Locked == 1).ToList();
         }

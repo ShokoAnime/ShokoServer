@@ -22,7 +22,7 @@ namespace JMMServer.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 46;
+        public int RequiredVersion { get; } = 48;
 
 
 
@@ -180,6 +180,7 @@ namespace JMMServer.Databases
                 UpdateSchema_044(versionNumber);
                 UpdateSchema_045(versionNumber);
                 UpdateSchema_046(versionNumber);
+                UpdateSchema_047(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1495,11 +1496,125 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
         }
-        private static void UpdateSchema_046(int currentVersionNumber)
+        private void UpdateSchema_046(int currentVersionNumber)
         {
             int thisVersion = 46;
             if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE VideoLocal_Place ( VideoLocal_Place_ID INTEGER PRIMARY KEY AUTOINCREMENT," +
+                     " VideoLocalID int NOT NULL, FilePath text NOT NULL,  " +
+                     "ImportFolderID int NOT NULL, " +
+                     "ImportFolderType int NOT NULL )");
+            cmds.Add("CREATE UNIQUE INDEX [UIX_VideoLocal_ VideoLocal_Place_ID] ON [VideoLocal_Place] ([VideoLocal_Place_ID]);");
+            cmds.Add("INSERT INTO VideoLocal_Place (VideoLocalID, FilePath, ImportFolderID, ImportFolderType) SELECT VideoLocalID, FilePath, ImportFolderID, 1 as ImportFolderType FROM VideoLocal");
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+            string createvlcommand = "CREATE TABLE VideoLocal ( " +
+                                     " VideoLocalID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                     " Hash text NOT NULL, " +
+                                     " CRC32 text NULL, " +
+                                     " MD5 text NULL, " +
+                                     " SHA1 text NULL, " +
+                                     " HashSource int NOT NULL, " +
+                                     " FileSize INTEGER NOT NULL, " +
+                                     " IsIgnored int NOT NULL, " +
+                                     " DateTimeUpdated timestamp NOT NULL, " +
+                                     " FileName text NOT NULL DEFAULT '',"+
+                                     " VideoCodec text NOT NULL DEFAULT '',"+
+                                     " VideoBitrate text NOT NULL DEFAULT ''," +
+                                     " VideoBitDepth text NOT NULL DEFAULT ''," +
+                                     " VideoFrameRate text NOT NULL DEFAULT ''," +
+                                     " VideoResolution text NOT NULL DEFAULT ''," +
+                                     " AudioCodec text NOT NULL DEFAULT ''," +
+                                     " AudioBitrate text NOT NULL DEFAULT ''," +
+                                     " Duration INTEGER NOT NULL DEFAULT 0," +
+                                     " DateTimeCreated timestamp NULL, IsVariation int NULL,MediaVersion int NOT NULL DEFAULT 0,MediaBlob BLOB NULL,MediaSize int NOT NULL DEFAULT 0 "+
+                                     " );";
+            List<string> indexvlcommands = new List<string>() { "CREATE UNIQUE INDEX UIX2_VideoLocal_Hash on VideoLocal(Hash)" };
+            DropColumns(myConn, "VideoLocal", new List<string>() { "FilePath","ImportFolderID" }, createvlcommand, indexvlcommands);
+            cmds.Clear();
+            cmds.Add("UPDATE VideoLocal SET "+
+                "FileName=(SELECT FileName FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash),"+
+                "VideoCodec=(SELECT VideoCodec FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), " +
+                "VideoBitrate=(SELECT VideoBitrate FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), " +
+                "VideoBitDepth=(SELECT VideoBitDepth FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), " +
+                "VideoFrameRate=(SELECT VideoFrameRate FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), " +
+                "VideoResolution=(SELECT VideoResolution FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), " +
+                "AudioCodec=(SELECT AudioCodec FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), " +
+                "AudioBitrate=(SELECT AudioBitrate FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), " +
+                "Duration=(SELECT Duration FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash) WHERE " +
+                "RowId IN (SELECT RowId FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash)");
+
+            cmds.Add("CREATE TABLE CloudAccount (CloudID INTEGER PRIMARY KEY AUTOINCREMENT, ConnectionString text NOT NULL, Provider text NOT NULL, Name text NOT NULL);");
+            cmds.Add("CREATE UNIQUE INDEX [UIX_CloudAccount_CloudID] ON [CloudAccount] ([CloudID]);");
+            cmds.Add("ALTER TABLE ImportFolder ADD CloudID int NULL");
+            cmds.Add("DROP TABLE VideoInfo");
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+
+            string createvluser = "CREATE TABLE VideoLocal_User ( " +
+                                  " VideoLocal_UserID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                  " JMMUserID int NOT NULL, " +
+                                  " VideoLocalID int NOT NULL, " +
+                                  " WatchedDate timestamp NULL, " +
+                                  " ResumePosition bigint NOT NULL DEFAULT 0); ";
+            List<string> indexvluser = new List<string>() { "CREATE UNIQUE INDEX UIX2_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);" };
+            Alter(myConn, "VideoLocal_User", createvluser, indexvluser);
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+
+
+        }
+        private void UpdateSchema_047(int currentVersionNumber)
+        {
+            int thisVersion = 47;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+            List<string> cmds = new List<string>();
+            //Remove Videolocal Hash unique constraint. Since we use videolocal to store the non hashed files in cloud drop folders.Empty Hash.
+            cmds.Add("DROP INDEX UIX2_VideoLocal_Hash;");
+            cmds.Add("CREATE INDEX UIX_VideoLocal_Hash ON VideoLocal(Hash);");
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+
+     
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+
+
+        }
+private static void UpdateSchema_048(int currentVersionNumber)
+        {
+            int thisVersion = 48;
+            if (currentVersionNumber >= thisVersion) return;
             logger.Info("Updating schema to VERSION: {0}", thisVersion);
 
             SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
@@ -1526,7 +1641,6 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
         }
-
         //WE NEED TO DROP SOME SQL LITE COLUMNS...
 
         private void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove, string createcommand, List<string> indexcommands)
@@ -1539,7 +1653,7 @@ namespace JMMServer.Databases
             cmds.Add("ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;");
             cmds.Add(createcommand);
             cmds.AddRange(indexcommands);
-            cmds.Add("INSERT INTO "+tableName + " SELECT " + columnsSeperated + " FROM " + tableName + "_old; ");
+            cmds.Add("INSERT INTO "+tableName + " ("+ columnsSeperated+") SELECT " + columnsSeperated + " FROM " + tableName + "_old; ");
             cmds.Add("DROP TABLE " + tableName + "_old;");
             foreach (string cmdTable in cmds)
             {
@@ -1548,7 +1662,24 @@ namespace JMMServer.Databases
                 sqCommand.ExecuteNonQuery();
             }
         }
+        private void Alter(SQLiteConnection db, string tableName, string createcommand, List<string> indexcommands)
+        {
+            List<string> updatedTableColumns = GetTableColumns(tableName);
+            String columnsSeperated = string.Join(",", updatedTableColumns);
+            List<string> cmds = new List<string>();
 
+            cmds.Add("ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;");
+            cmds.Add(createcommand);
+            cmds.AddRange(indexcommands);
+            cmds.Add("INSERT INTO " + tableName + " (" + columnsSeperated + ") SELECT " + columnsSeperated + " FROM " + tableName + "_old; ");
+            cmds.Add("DROP TABLE " + tableName + "_old;");
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = db;
+                sqCommand.ExecuteNonQuery();
+            }
+        }
         private List<string> GetTableColumns(string tableName)
         {
             string cmd = "pragma table_info(" + tableName + ");";

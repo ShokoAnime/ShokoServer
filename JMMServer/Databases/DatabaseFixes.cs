@@ -4,6 +4,7 @@ using System.Linq;
 using AniDBAPI;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NLog;
 
 namespace JMMServer.Databases
@@ -62,7 +63,7 @@ namespace JMMServer.Databases
                     if (fixedHash)
                     {
                         repVids.Save(vid, false);
-                        logger.Info("Fixed hashes on file: {0}", vid.FullServerPath);
+                        logger.Info("Fixed hashes on file: {0}", vid.FileName);
                     }
                 }
             }
@@ -94,6 +95,7 @@ namespace JMMServer.Databases
             }
         }
 
+
         public static void FixContinueWatchingGroupFilter_20160406()
         {
             // group filters
@@ -102,7 +104,7 @@ namespace JMMServer.Databases
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 // check if it already exists
-                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
+                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters();
 
                 if (lockedGFs != null)
                 {
@@ -212,6 +214,7 @@ namespace JMMServer.Databases
 
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
                     List<CrossRef_AniDB_TvDB> xrefsTvDB = repCrossRefTvDB.GetAll();
                     foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
                     {
@@ -221,7 +224,7 @@ namespace JMMServer.Databases
                         xrefNew.TvDBID = xrefTvDB.TvDBID;
                         xrefNew.TvDBSeasonNumber = xrefTvDB.TvDBSeasonNumber;
 
-                        TvDB_Series ser = xrefTvDB.GetTvDBSeries(session);
+                        TvDB_Series ser = xrefTvDB.GetTvDBSeries(sessionWrapper);
                         if (ser != null)
                             xrefNew.TvDBTitle = ser.SeriesName;
 
@@ -265,7 +268,7 @@ namespace JMMServer.Databases
                         xrefNew.AniDBStartEpisodeType = (int) enEpisodeType.Special;
                         xrefNew.AniDBStartEpisodeNumber = 1;
 
-                        TvDB_Series ser = xrefTvDB.GetTvDBSeries(session);
+                        TvDB_Series ser = xrefTvDB.GetTvDBSeries(sessionWrapper);
                         if (ser != null)
                             xrefNew.TvDBTitle = ser.SeriesName;
 

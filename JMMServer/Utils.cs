@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -9,11 +10,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using JMMServer.Entities;
 using NLog;
 using Path = Pri.LongPath.Path;
 using Directory = Pri.LongPath.Directory;
 using DirectoryInfo = Pri.LongPath.DirectoryInfo;
 using File = Pri.LongPath.File;
+using NutzCode.CloudFileSystem;
 
 namespace JMMServer
 {
@@ -845,7 +848,8 @@ namespace JMMServer
                 Path.GetFileNameWithoutExtension(fileName) + ".idx"));
             subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
                 Path.GetFileNameWithoutExtension(fileName) + ".sub"));
-
+            subtileFiles.Add(Path.Combine(Path.GetDirectoryName(fileName),
+                Path.GetFileNameWithoutExtension(fileName) + ".rar"));
             return subtileFiles;
         }
 
@@ -1005,24 +1009,32 @@ namespace JMMServer
 			}
 		}*/
 
-        public static void GetFilesForImportFolder(string sDir, ref List<string> fileList)
+        public static void GetFilesForImportFolder(IDirectory sDir, ref List<string> fileList)
         {
             try
             {
+                if (sDir == null)
+                {
+                    logger.Error("Filesystem not found");
+                    return;
+                }
                 // get root level files
-                fileList.AddRange(Directory.GetFiles(sDir, "*.*", SearchOption.TopDirectoryOnly));
+
+                FileSystemResult r=sDir.Populate();
+                if (r == null || !r.IsOk)
+                {
+                    logger.Error($"Unable to retrieve folder {sDir.FullName}");
+                    return;
+                }
+                fileList.AddRange(sDir.Files.Select(a=>a.FullName));
 
                 // search sub folders
-                foreach (string d in Directory.GetDirectories(sDir))
+                foreach (IDirectory dir in sDir.Directories)
                 {
-                    DirectoryInfo di = new DirectoryInfo(d);
-                    bool isSystem = (di.Attributes & FileAttributes.System) == FileAttributes.System;
-                    if (isSystem)
-                        continue;
-
-                    //fileList.AddRange(Directory.GetFiles(d, "*.*", SearchOption.TopDirectoryOnly));
-
-                    GetFilesForImportFolder(d, ref fileList);
+                    GetFilesForImportFolder(dir,ref fileList);
+//                    bool isSystem = (di.Attributes & FileAttributes.System) == FileAttributes.System;
+//                    if (isSystem)
+//                        continue;
                 }
             }
             catch (System.Exception excpt)

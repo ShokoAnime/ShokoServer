@@ -95,8 +95,19 @@ namespace JMMServer.Databases
         private static void InitCache(this IDatabase db)
         {
             JMMUserRepository.InitCache();
+            CloudAccountRepository.InitCache();
+            ImportFolderRepository.InitCache();
             AniDB_AnimeRepository.InitCache();
-            VideoInfoRepository.InitCache();
+            AniDB_EpisodeRepository.InitCache();
+            AniDB_FileRepository.InitCache();
+            AniDB_Anime_TitleRepository.InitCache();
+            AniDB_Anime_TagRepository.InitCache();
+            AniDB_TagRepository.InitCache();
+            CustomTagRepository.InitCache();
+            CrossRef_CustomTagRepository.InitCache();
+            CrossRef_File_EpisodeRepository.InitCache();
+
+            VideoLocal_PlaceRepository.InitCache();
             VideoLocalRepository.InitCache();
             VideoLocal_UserRepository.InitCache();
             List<GroupFilter> recalc = GroupFilterRepository.InitCache();

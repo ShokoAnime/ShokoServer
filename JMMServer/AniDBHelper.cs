@@ -12,6 +12,7 @@ using JMMServer.Commands;
 using JMMServer.Commands.Azure;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 
@@ -1096,20 +1097,21 @@ namespace JMMServer
 
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
             AniDB_Anime anime = null;
+            ISessionWrapper sessionWrapper = session.Wrap();
 
             bool skip = true;
             if (forceRefresh)
                 skip = false;
             else
             {
-                anime = repAnime.GetByAnimeID(session, animeID);
+                anime = repAnime.GetByAnimeID(sessionWrapper, animeID);
                 if (anime == null) skip = false;
             }
 
             if (skip)
             {
                 if (anime == null)
-                    anime = repAnime.GetByAnimeID(session, animeID);
+                    anime = repAnime.GetByAnimeID(sessionWrapper, animeID);
 
                 return anime;
             }
@@ -1144,10 +1146,11 @@ namespace JMMServer
         {
             AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
             AniDB_Anime anime = null;
+            ISessionWrapper sessionWrapper = session.Wrap();
 
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
-            anime = repAnime.GetByAnimeID(session, animeID);
+            anime = repAnime.GetByAnimeID(sessionWrapper, animeID);
             if (anime == null)
                 anime = new AniDB_Anime();
             anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
@@ -1163,7 +1166,7 @@ namespace JMMServer
             // create AnimeEpisode records for all episodes in this anime
             // only if we have a series
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            AnimeSeries ser = repSeries.GetByAnimeID(session, animeID);
+            AnimeSeries ser = repSeries.GetByAnimeID(animeID);
             repAnime.Save(anime);
             if (ser != null)
             {
@@ -1181,9 +1184,9 @@ namespace JMMServer
             //StatsCache.Instance.UpdateAnimeContract(session, anime.AnimeID);
 
             // download character images
-            foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session))
+            foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session.Wrap()))
             {
-                AniDB_Character chr = animeChar.GetCharacter(session);
+                AniDB_Character chr = animeChar.GetCharacter(sessionWrapper);
                 if (chr == null) continue;
 
                 if (ServerSettings.AniDB_DownloadCharacters)
