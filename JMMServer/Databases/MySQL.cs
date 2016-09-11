@@ -2211,7 +2211,7 @@ namespace JMMServer.Databases
                                    " `AuthID` INT NOT NULL AUTO_INCREMENT, " +
                                    " `UserID` int NOT NULL, " +
                                    " `DeviceName` text character set utf8, " +
-                                   " `Token` text character set utf8 " +
+                                   " `Token` text character set utf8, " +
                                    " PRIMARY KEY (`AuthID`) ) ; ");
 
 
