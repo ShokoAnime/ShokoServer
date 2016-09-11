@@ -166,6 +166,9 @@ namespace JMMContracts
         Contract_ServerSettings_SaveResponse SaveServerSettings(Contract_ServerSettings contractIn);
 
         [OperationContract]
+        string SetResumePositionOnVideo(int videoLocalID, long resumeposition, int userID);
+
+        [OperationContract]
         string ToggleWatchedStatusOnVideo(int videoLocalID, bool watchedStatus, int userID);
 
         [OperationContract]
@@ -290,7 +293,7 @@ namespace JMMContracts
         List<Contract_GroupVideoQuality> GetGroupVideoQualitySummary(int animeID);
 
         [OperationContract]
-        string DeleteVideoLocalAndFile(int videoLocalID);
+        string DeleteVideoLocalPlaceAndFile(int videoplaceid);
 
         [OperationContract]
         void RescanUnlinkedFiles();
@@ -740,5 +743,14 @@ namespace JMMContracts
 
         [OperationContract]
         List<Contract_AniDB_Episode> GetAniDBEpisodesForAnime(int animeID);
+
+        [OperationContract]
+        List<string> DirectoriesFromImportFolderPath(int cloudaccountid, string path);
+
+        [OperationContract]
+        List<Contract_CloudAccount> GetCloudProviders();
+
+        [OperationContract]
+        void SetResumePosition(int videolocalid, int jmmuserID, long position);
     }
 }

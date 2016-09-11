@@ -4,6 +4,7 @@ using System.Linq;
 using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -124,10 +125,6 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
-        public JMMUser GetByID(ISession session, int id)
-        {
-            return Cache.Get(id);
-        }
 
         public JMMUser GetByUsername(string username)
         {
@@ -152,10 +149,7 @@ namespace JMMServer.Repositories
             return Cache.Values.ToList();
         }
 
-        public List<JMMUser> GetAll(ISession session)
-        {
-            return Cache.Values.ToList();
-        }
+
 
         public List<JMMUser> GetAniDBUsers()
         {

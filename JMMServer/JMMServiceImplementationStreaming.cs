@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
 using JMMContracts;
+using JMMServer.Entities;
 using NLog;
+using NutzCode.CloudFileSystem;
 
 namespace JMMServer
 {
@@ -13,9 +15,13 @@ namespace JMMServer
         {
             try
             {
-                if (!File.Exists(fileName)) return null;
-
-                return File.Open(fileName, FileMode.Open, FileAccess.Read);
+                IFile file = VideoLocal.ResolveFile(fileName);
+                if (file == null)
+                    return null;
+                FileSystemResult<Stream> r=file.OpenRead();
+                if (!r.IsOk)
+                    return null;
+                return r.Result;
             }
             catch (Exception ex)
             {

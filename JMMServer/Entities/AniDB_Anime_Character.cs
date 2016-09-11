@@ -1,6 +1,7 @@
 ﻿using AniDBAPI;
 using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -25,11 +26,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetCharacter(session);
+                return GetCharacter(session.Wrap());
             }
         }
 
-        public AniDB_Character GetCharacter(ISession session)
+        public AniDB_Character GetCharacter(ISessionWrapper session)
         {
             AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
             return repChar.GetByCharID(session, CharID);

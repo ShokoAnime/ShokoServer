@@ -5,7 +5,7 @@ using NLog;
 
 namespace JMMServer.Entities
 {
-    public class Trakt_ImageFanart
+    public class Trakt_ImageFanart : IImageEntity
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 

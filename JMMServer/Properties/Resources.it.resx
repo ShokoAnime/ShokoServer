@@ -619,11 +619,8 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL è il tipo di database mid-tier e consigliato per gli utenti JMM con una grande collezione, che hanno intenzione di costruire una grande collezione o semplicemente si vuole una spinta di velocità e le prestazioni quando si utilizza JMM. È facile da installare e utilizzando la nostra guida che sarà possibile e funzionante in pochi minuti.</value>
   </data>
-  <data name="Toolbar_Translate" xml:space="preserve">
-    <value>Aiuta a tradurre JMM!</value>
-  </data>
-  <data name="Link_Translate" xml:space="preserve">
-    <value>http://jmediamanager.org/translate</value>
+  <data name="Link_Contribute" xml:space="preserve">
+    <value>http://jmediamanager.org/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Ottenere informazioni di gruppo di rilascio dall'API di UDP: {0}</value>
@@ -1002,5 +999,8 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Database_NotSupportedVersion" xml:space="preserve">
     <value>La versione del Database è più grande della versione supportata dal Server di JMM. È consigliabile aggiornare JMMServer.</value>
+  </data>
+  <data name="Toolbar_Contribute" xml:space="preserve">
+    <value>Aiutaci a migliorare JMM!</value>
   </data>
 </root>

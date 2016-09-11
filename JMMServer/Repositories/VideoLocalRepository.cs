@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.FileHelper;
 using JMMServer.PlexAndKodi;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 using System.Globalization;
+using JMMServer.Repositories.NHibernate;
 
 namespace JMMServer.Repositories
 {
@@ -15,9 +16,11 @@ namespace JMMServer.Repositories
     {
         private static PocoCache<int, VideoLocal> Cache;
         private static PocoIndex<int, VideoLocal, string> Hashes;
-        private static PocoIndex<int, VideoLocal, string> Paths;
+        private static PocoIndex<int, VideoLocal, string> SHA1;
+        private static PocoIndex<int, VideoLocal, string> MD5;
+
+        private static PocoIndex<int, VideoLocal, string> Names;
         private static PocoIndex<int, VideoLocal, int> Ignored;
-        private static PocoIndex<int, VideoLocal, int> ImportFolders;
 
         public static void InitCache()
         {
@@ -25,10 +28,26 @@ namespace JMMServer.Repositories
             ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             VideoLocalRepository repo = new VideoLocalRepository();
             Cache = new PocoCache<int, VideoLocal>(repo.InternalGetAll(), a => a.VideoLocalID);
+            foreach (VideoLocal l in Cache.Values)
+            {
+                if (l.MD5 == null || l.SHA1 == null || l.Hash == null || l.FileName == null)
+                {
+                    l.MediaVersion = 0;
+                    if (l.MD5 == null)
+                        l.MD5 = string.Empty;
+                    if (l.SHA1 == null)
+                        l.SHA1 = string.Empty;
+                    if (l.Hash == null)
+                        l.Hash = string.Empty;
+                    if (l.FileName == null)
+                        l.FileName = string.Empty;
+                }
+            }
             Hashes = new PocoIndex<int, VideoLocal, string>(Cache, a => a.Hash);
-            Paths = new PocoIndex<int, VideoLocal, string>(Cache, a => a.FilePath);
+            SHA1 =new PocoIndex<int, VideoLocal, string>(Cache, a=>a.SHA1);
+            MD5 = new PocoIndex<int, VideoLocal, string>(Cache, a => a.MD5);
+            Names = new PocoIndex<int, VideoLocal, string>(Cache, a => a.FileName);
             Ignored = new PocoIndex<int, VideoLocal, int>(Cache, a => a.IsIgnored);
-            ImportFolders = new PocoIndex<int, VideoLocal, int>(Cache, a => a.ImportFolderID);
             int cnt = 0;
             List<VideoLocal> grps = Cache.Values.Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaBlob==null).ToList();
             int max = grps.Count;
@@ -36,10 +55,7 @@ namespace JMMServer.Repositories
             {
                 try
                 {
-                    if (File.Exists(g.FullServerPath))
-                    {
-                        repo.Save(g, false);
-                    }
+                    repo.Save(g, false);
                 }
                 catch (Exception)
                 {
@@ -68,9 +84,20 @@ namespace JMMServer.Repositories
             }
         }
 
+        public List<VideoLocal> GetByImportFolder(int importFolderID)
+        {
+            // todo check if needed anymore
+            // return ImportFolders.GetMultiple(importFolderID);
+            return null;
+        }
+
         private void UpdateMediaContracts(VideoLocal obj)
         {
-            obj.Media = Helper.GenerateMediaFromVideoLocal(obj);
+            if (obj.Media == null || obj.MediaVersion < VideoLocal.MEDIA_VERSION || obj.Duration==0)
+            {
+                VideoLocal_Place place = obj.GetBestVideoLocalPlace();
+                place?.RefreshMediaInfo();
+            }
         }
 
         public void Save(VideoLocal obj, bool updateEpisodes)
@@ -116,12 +143,20 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
-
+        
         public VideoLocal GetByHash(string hash)
         {
             return Hashes.GetOne(hash);
         }
 
+        public VideoLocal GetByMD5(string hash)
+        {
+            return MD5.GetOne(hash);
+        }
+        public VideoLocal GetBySHA1(string hash)
+        {
+            return SHA1.GetOne(hash);
+        }
         public long GetTotalRecordCount()
         {
             return Cache.Keys.Count;
@@ -137,18 +172,12 @@ namespace JMMServer.Repositories
             //return Paths.GetMultiple(fileName);
             //return Cache.Values.Where(store => store.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase)).ToList();
 
-            return Cache.Values.Where(p => CultureInfo.CurrentCulture.CompareInfo.IndexOf
-             (p.FilePath, fileName, CompareOptions.IgnoreCase) >= 0).ToList();
+            return Cache.Values.Where(p => p.Places.Any(a=>CultureInfo.CurrentCulture.CompareInfo.IndexOf(a.FilePath, fileName, CompareOptions.IgnoreCase) >= 0)).ToList();
         }
 
         public List<VideoLocal> GetMostRecentlyAdded(int maxResults)
         {
             return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
-        }
-
-        public List<VideoLocal> GetMostRecentlyAdded(ISession session, int maxResults)
-        {
-            return GetMostRecentlyAdded(maxResults);
         }
 
         public List<VideoLocal> GetRandomFiles(int maxResults)
@@ -197,10 +226,7 @@ namespace JMMServer.Repositories
             }
         }
 
-        public List<VideoLocal> GetByFilePathAndShareID(string filePath, int nshareID)
-        {
-            return Paths.GetMultiple(filePath).Where(a => a.ImportFolderID == nshareID).ToList();
-        }
+
 
         /// <summary>
         /// returns all the VideoLocal records associate with an AnimeEpisode Record
@@ -210,41 +236,40 @@ namespace JMMServer.Repositories
         /// 
         public List<VideoLocal> GetByAniDBEpisodeID(int episodeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetByAniDBEpisodeID(session, episodeID);
-            }
-        }
-
-        public List<VideoLocal> GetByAniDBEpisodeID(ISession session, int episodeID)
-        {
+            return new CrossRef_File_EpisodeRepository().GetByEpisodeID(episodeID).Select(a => GetByHash(a.Hash)).Where(a => a != null).ToList();
+            /*
             return
                 session.CreateQuery(
                     "Select vl.VideoLocalID FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.EpisodeID= :episodeid")
                     .SetParameter("episodeid", episodeID)
-                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
+                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();*/
         }
+
+
 
         public List<VideoLocal> GetMostRecentlyAddedForAnime(int maxResults, int animeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetMostRecentlyAddedForAnime(session, maxResults, animeID);
-            }
+            return
+                new CrossRef_File_EpisodeRepository().GetByAnimeID(animeID)
+                    .Select(a => GetByHash(a.Hash))
+                    .Where(a => a != null)
+                    .OrderByDescending(a => a.DateTimeCreated)
+                    .Take(maxResults)
+                    .ToList();
+            /*
+                        return
+                            session.CreateQuery(
+                                "Select vl.VideoLocalID FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeid ORDER BY vl.DateTimeCreated Desc")
+                                .SetParameter("animeid", animeID)
+                                .SetMaxResults(maxResults)
+                                .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();*/
         }
 
-        public List<VideoLocal> GetMostRecentlyAddedForAnime(ISession session, int maxResults, int animeID)
-        {
-            return
-                session.CreateQuery(
-                    "Select vl.VideoLocalID FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeid ORDER BY vl.DateTimeCreated Desc")
-                    .SetParameter("animeid", animeID)
-                    .SetMaxResults(maxResults)
-                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
-        }
 
         public List<VideoLocal> GetByAniDBResolution(string res)
         {
+            return new AniDB_FileRepository().GetByResolution(res).Select(a => GetByHash(a.Hash)).Where(a => a != null).ToList();
+            /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 return
@@ -252,11 +277,13 @@ namespace JMMServer.Repositories
                         "Select vl.VideoLocalID FROM VideoLocal as vl, AniDB_File as xref WHERE vl.Hash = xref.Hash AND vl.FileSize = xref.FileSize AND xref.File_VideoResolution= :fileres")
                         .SetParameter("fileres", res)
                         .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
-            }
+            }*/
         }
 
         public List<VideoLocal> GetByInternalVersion(int iver)
         {
+            return new AniDB_FileRepository().GetByInternalVersion(iver).Select(a => GetByHash(a.Hash)).Where(a => a != null).ToList();
+            /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 return
@@ -264,7 +291,7 @@ namespace JMMServer.Repositories
                         "Select vl.VideoLocalID FROM VideoLocal as vl, AniDB_File as xref WHERE vl.Hash = xref.Hash AND vl.FileSize = xref.FileSize AND xref.InternalVersion= :iver")
                         .SetParameter("iver", iver)
                         .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
-            }
+            }*/
         }
 
         /// <summary>
@@ -274,21 +301,21 @@ namespace JMMServer.Repositories
         /// <returns></returns>
         public List<VideoLocal> GetByAniDBAnimeID(int animeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetByAniDBAnimeID(session, animeID);
-            }
-        }
-
-        public List<VideoLocal> GetByAniDBAnimeID(ISession session, int animeID)
-        {
+            return
+             new CrossRef_File_EpisodeRepository().GetByAnimeID(animeID)
+                 .Select(a => GetByHash(a.Hash))
+                 .Where(a => a != null)
+                 .ToList();
+            /*
             return
                 session.CreateQuery(
                     "Select vl.VideoLocalID FROM VideoLocal as vl, CrossRef_File_Episode as xref WHERE vl.Hash = xref.Hash AND xref.AnimeID= :animeID")
                     .SetParameter("animeID", animeID)
-                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
+                    .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();*/
         }
 
+
+        /*
         public List<VideoLocal> GetVideosWithoutImportFolder()
         {
             using (var session = JMMService.SessionFactory.OpenSession())
@@ -299,29 +326,20 @@ namespace JMMServer.Repositories
                         .List<int>().Select(a => Cache.Get(a)).Where(a => a != null).ToList();
             }
         }
-
+        */
         public List<VideoLocal> GetVideosWithoutHash()
         {
             return Hashes.GetMultiple("").ToList();
         }
-
         public List<VideoLocal> GetVideosWithoutVideoInfo()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return
-                    session.CreateQuery(
-                        "Select vl.VideoLocalID FROM VideoLocal vl WHERE vl.Hash NOT IN (Select Hash FROM VideoInfo vi)")
-                        .List<int>()
-                        .Select(a => Cache.Get(a))
-                        .Where(a => a != null)
-                        .OrderBy(a => a.DateTimeCreated)
-                        .ToList();
-            }
+            return Cache.Values.Where(a => a.Media == null || a.MediaVersion < VideoLocal.MEDIA_VERSION || a.Duration==0).ToList();
         }
-
         public List<VideoLocal> GetVideosWithoutEpisode()
         {
+            List<string> hashes = new CrossRef_File_EpisodeRepository().GetAll().Select(a => a.Hash).ToList();
+            return Cache.Values.Where(a=>!hashes.Contains(a.Hash) && a.IsIgnored==0).OrderBy(a=>a.DateTimeCreated).ToList();
+            /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 return
@@ -332,12 +350,20 @@ namespace JMMServer.Repositories
                         .Where(a => a != null)
                         .OrderBy(a => a.DateTimeCreated)
                         .ToList();
-            }
+            }*/
         }
 
 
         public List<VideoLocal> GetManuallyLinkedVideos()
         {
+            return
+                new CrossRef_File_EpisodeRepository().GetAll()
+                    .Where(a => a.CrossRefSource != 1)
+                    .Select(a => GetByHash(a.Hash))
+                    .Where(a => a != null)
+                    .ToList();
+
+            /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 return
@@ -348,7 +374,7 @@ namespace JMMServer.Repositories
                         .Where(a => a != null)
                         .OrderBy(a => a.DateTimeCreated)
                         .ToList();
-            }
+            }*/
         }
 
         public List<VideoLocal> GetIgnoredVideos()
@@ -356,10 +382,6 @@ namespace JMMServer.Repositories
             return Ignored.GetMultiple(1);
         }
 
-        public List<VideoLocal> GetByImportFolder(int importFolderID)
-        {
-            return ImportFolders.GetMultiple(importFolderID);
-        }
 
         public List<VideoLocal> GetAll()
         {
@@ -376,13 +398,11 @@ namespace JMMServer.Repositories
                 if (cr != null)
                 {
                     Cache.Remove(cr);
-                    // delete video info record
-                    VideoInfoRepository repVI = new VideoInfoRepository();
-                    VideoInfo vi = cr.VideoInfo;
-                    if (vi != null)
-                    {
-                        repVI.Delete(vi.VideoInfoID);
-                    }
+                    // delete places
+                    VideoLocal_PlaceRepository repPlaces = new VideoLocal_PlaceRepository();
+                    foreach (VideoLocal_Place vidplace in cr.Places.ToList())
+                        repPlaces.Delete(vidplace.VideoLocal_Place_ID);
+
                     // delete user records
                     VideoLocal_UserRepository repUsers = new VideoLocal_UserRepository();
                     foreach (VideoLocal_User viduser in repUsers.GetByVideoLocalID(id))

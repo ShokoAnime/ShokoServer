@@ -21,8 +21,7 @@ namespace JMMServer.Repositories
             Cache = new PocoCache<int, VideoLocal_User>(repo.InternalGetAll(), a => a.VideoLocal_UserID);
             VideoLocalIDs = new PocoIndex<int, VideoLocal_User, int>(Cache, a => a.VideoLocalID);
             Users = new PocoIndex<int, VideoLocal_User, int>(Cache, a => a.JMMUserID);
-            UsersVideoLocals = new PocoIndex<int, VideoLocal_User, int, int>(Cache, a => a.JMMUserID,
-                a => a.VideoLocalID);
+            UsersVideoLocals = new PocoIndex<int, VideoLocal_User, int, int>(Cache, a => a.JMMUserID, a => a.VideoLocalID);
         }
 
         private List<VideoLocal_User> InternalGetAll()

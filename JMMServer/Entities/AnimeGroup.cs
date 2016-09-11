@@ -8,6 +8,7 @@ using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 
@@ -74,11 +75,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetPosterPathNoBlanks(session);
+                return GetPosterPathNoBlanks(session.Wrap());
             }
         }
 
-        public string GetPosterPathNoBlanks(ISession session)
+        public string GetPosterPathNoBlanks(ISessionWrapper session)
         {
             List<string> allPosters = GetPosterFilenames(session);
             string posterName = "";
@@ -96,11 +97,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetPosterFilenames(session);
+                return GetPosterFilenames(session.Wrap());
             }
         }
 
-        private List<string> GetPosterFilenames(ISession session)
+        private List<string> GetPosterFilenames(ISessionWrapper session)
         {
             List<string> allPosters = new List<string>();
 
@@ -108,7 +109,7 @@ namespace JMMServer.Entities
             if (DefaultAnimeSeriesID.HasValue)
             {
                 AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries defaultSeries = repSeries.GetByID(session, DefaultAnimeSeriesID.Value);
+                AnimeSeries defaultSeries = repSeries.GetByID(DefaultAnimeSeriesID.Value);
                 if (defaultSeries != null)
                 {
                     AniDB_Anime anime = defaultSeries.GetAnime(session);
@@ -200,11 +201,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetRelatedGroupsFromAnimeID(session, animeid, forceRecursive);
+                return GetRelatedGroupsFromAnimeID(session.Wrap(), animeid, forceRecursive);
             }
         }
 
-        public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(ISession session, int animeid,
+        public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(ISessionWrapper session, int animeid,
             bool forceRecursive = false)
         {
             AniDB_AnimeRepository repAniAnime = new AniDB_AnimeRepository();
@@ -229,10 +230,10 @@ namespace JMMServer.Entities
                 }
 
                 // we actually need to get the series, because it might have been added to another group already
-                AnimeSeries ser = repSeries.GetByAnimeID(session, rel.RelatedAnimeID);
+                AnimeSeries ser = repSeries.GetByAnimeID(rel.RelatedAnimeID);
                 if (ser != null)
                 {
-                    AnimeGroup grp = repGroups.GetByID(session, ser.AnimeGroupID);
+                    AnimeGroup grp = repGroups.GetByID(ser.AnimeGroupID);
                     if (grp != null) grps.Add(grp);
                 }
             }
@@ -243,10 +244,10 @@ namespace JMMServer.Entities
             foreach (AniDB_Anime rel in relatedAnime)
             {
                 // we actually need to get the series, because it might have been added to another group already
-                AnimeSeries ser = repSeries.GetByAnimeID(session, rel.AnimeID);
+                AnimeSeries ser = repSeries.GetByAnimeID(rel.AnimeID);
                 if (ser != null)
                 {
-                    AnimeGroup grp = repGroups.GetByID(session, ser.AnimeGroupID);
+                    AnimeGroup grp = repGroups.GetByID(ser.AnimeGroupID);
                     if (grp != null)
                     {
                         if (!grps.Contains(grp)) grps.Add(grp);
@@ -263,11 +264,7 @@ namespace JMMServer.Entities
             return repUser.GetByUserAndGroupID(userID, this.AnimeGroupID);
         }
 
-        public AnimeGroup_User GetUserRecord(ISession session, int userID)
-        {
-            AnimeGroup_UserRepository repUser = new AnimeGroup_UserRepository();
-            return repUser.GetByUserAndGroupID(session, userID, this.AnimeGroupID);
-        }
+
 
         public void Populate(AnimeSeries series)
         {
@@ -469,17 +466,10 @@ namespace JMMServer.Entities
 
         public List<AnimeGroup> GetChildGroups()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetChildGroups(session);
-            }
+            AnimeGroupRepository repGroups = new AnimeGroupRepository();
+            return repGroups.GetByParentID(AnimeGroupID);
         }
 
-        public List<AnimeGroup> GetChildGroups(ISession session)
-        {
-            AnimeGroupRepository repGroups = new AnimeGroupRepository();
-            return repGroups.GetByParentID(session, this.AnimeGroupID);
-        }
 
         /*[XmlIgnore]
 		public List<AnimeGroup> AllChildGroups
@@ -496,11 +486,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetAllChildGroups(session);
+                return GetAllChildGroups(session.Wrap());
             }
         }
 
-        public List<AnimeGroup> GetAllChildGroups(ISession session)
+        public List<AnimeGroup> GetAllChildGroups(ISessionWrapper session)
         {
             List<AnimeGroup> grpList = new List<AnimeGroup>();
             AnimeGroup.GetAnimeGroupsRecursive(session, this.AnimeGroupID, ref grpList);
@@ -523,11 +513,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetSeries(session);
+                return GetSeries(session.Wrap());
             }
         }
 
-        public List<AnimeSeries> GetSeries(ISession session)
+        public List<AnimeSeries> GetSeries(ISessionWrapper session)
         {
             AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
             List<AnimeSeries> seriesList = repSeries.GetByGroupID(this.AnimeGroupID);
@@ -561,11 +551,11 @@ namespace JMMServer.Entities
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetAllSeries(session, skipSorting);
+                return GetAllSeries(session.Wrap(), skipSorting);
             }
         }
 
-        public List<AnimeSeries> GetAllSeries(ISession session, bool skipSorting=false)
+        public List<AnimeSeries> GetAllSeries(ISessionWrapper session, bool skipSorting = false)
         {
             List<AnimeSeries> seriesList = new List<AnimeSeries>();
             AnimeGroup.GetAnimeSeriesRecursive(session, this.AnimeGroupID, ref seriesList);
@@ -600,10 +590,12 @@ namespace JMMServer.Entities
 
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
+                    ISessionWrapper sessionWrapper = session.Wrap();
+
                     // get a list of all the unique tags for this all the series in this group
                     foreach (AnimeSeries ser in GetAllSeries())
                     {
-                        foreach (AniDB_Anime_Tag aac in ser.GetAnime().GetAnimeTags(session))
+                        foreach (AniDB_Anime_Tag aac in ser.GetAnime().GetAnimeTags(sessionWrapper))
                         {
                             if (!animeTagIDs.Contains(aac.AniDB_Anime_TagID))
                             {
@@ -616,7 +608,7 @@ namespace JMMServer.Entities
                     AniDB_TagRepository repTag = new AniDB_TagRepository();
                     foreach (AniDB_Anime_Tag animeTag in animeTags.OrderByDescending(a=>a.Weight))
                     {
-                        AniDB_Tag tag = repTag.GetByTagID(animeTag.TagID, session);
+                        AniDB_Tag tag = repTag.GetByTagID(animeTag.TagID, sessionWrapper);
                         if (tag != null) tags.Add(tag);
                     }
                 }
@@ -981,7 +973,7 @@ namespace JMMServer.Entities
             return h;
         }
 
-        public HashSet<GroupFilterConditionType> UpdateContract(ISession session, bool updatestats)
+        public HashSet<GroupFilterConditionType> UpdateContract(ISessionWrapper session, bool updatestats)
         {
             Contract_AnimeGroup contract = (Contract_AnimeGroup) Contract?.DeepCopy();
             if (contract == null)
@@ -1034,8 +1026,8 @@ namespace JMMServer.Entities
                 foreach (AnimeSeries serie in series)
                 {
                     seriesCount++;
-                    List<VideoLocal> vidsTemp = repVids.GetByAniDBAnimeID(session, serie.AniDB_ID);
-                    List<CrossRef_File_Episode> crossRefs = repXrefs.GetByAnimeID(session, serie.AniDB_ID);
+                    List<VideoLocal> vidsTemp = repVids.GetByAniDBAnimeID(serie.AniDB_ID);
+                    List<CrossRef_File_Episode> crossRefs = repXrefs.GetByAnimeID(serie.AniDB_ID);
 
                     Dictionary<int, List<CrossRef_File_Episode>> dictCrossRefs =
                         new Dictionary<int, List<CrossRef_File_Episode>>();
@@ -1048,8 +1040,10 @@ namespace JMMServer.Entities
 
                     Dictionary<string, VideoLocal> dictVids = new Dictionary<string, VideoLocal>();
                     foreach (VideoLocal vid in vidsTemp)
+                    {
+                        //Hashes may be repeated from multiple locations but we don't care
                         dictVids[vid.Hash] = vid;
-
+                    }
                     // All Video Quality Episodes
                     // Try to determine if this anime has all the episodes available at a certain video quality
                     // e.g.  the series has all episodes in blu-ray
@@ -1058,7 +1052,7 @@ namespace JMMServer.Entities
                     // video quality, count of episodes
                     AniDB_Anime anime = serie.GetAnime(session);
                     bool shouldsaveanime = false;
-                    foreach (AnimeEpisode ep in serie.GetAnimeEpisodes(session))
+                    foreach (AnimeEpisode ep in serie.GetAnimeEpisodes())
                     {
                         if (ep.EpisodeTypeEnum != enEpisodeType.Episode) continue;
 
@@ -1080,7 +1074,7 @@ namespace JMMServer.Entities
                         // handle mutliple files of the same quality for one episode
                         foreach (VideoLocal vid in epVids)
                         {
-                            AniDB_File anifile = vid.GetAniDBFile(session);
+                            AniDB_File anifile = vid.GetAniDBFile();
                             if (anifile == null) continue;
 
                             if (!qualityAddedSoFar.Contains(anifile.File_Source))
@@ -1290,32 +1284,32 @@ namespace JMMServer.Entities
         }
 
 
-        public static void GetAnimeGroupsRecursive(ISession session, int animeGroupID, ref List<AnimeGroup> groupList)
+        public static void GetAnimeGroupsRecursive(ISessionWrapper session, int animeGroupID, ref List<AnimeGroup> groupList)
         {
             AnimeGroupRepository rep = new AnimeGroupRepository();
-            AnimeGroup grp = rep.GetByID(session, animeGroupID);
+            AnimeGroup grp = rep.GetByID(animeGroupID);
             if (grp == null) return;
 
             // get the child groups for this group
-            groupList.AddRange(grp.GetChildGroups(session));
+            groupList.AddRange(grp.GetChildGroups());
 
-            foreach (AnimeGroup childGroup in grp.GetChildGroups(session))
+            foreach (AnimeGroup childGroup in grp.GetChildGroups())
             {
                 GetAnimeGroupsRecursive(session, childGroup.AnimeGroupID, ref groupList);
             }
         }
 
-        public static void GetAnimeSeriesRecursive(ISession session, int animeGroupID, ref List<AnimeSeries> seriesList)
+        public static void GetAnimeSeriesRecursive(ISessionWrapper session, int animeGroupID, ref List<AnimeSeries> seriesList)
         {
             AnimeGroupRepository rep = new AnimeGroupRepository();
-            AnimeGroup grp = rep.GetByID(session, animeGroupID);
+            AnimeGroup grp = rep.GetByID(animeGroupID);
             if (grp == null) return;
 
             // get the series for this group
             List<AnimeSeries> thisSeries = grp.GetSeries(session);
             seriesList.AddRange(thisSeries);
 
-            foreach (AnimeGroup childGroup in grp.GetChildGroups(session))
+            foreach (AnimeGroup childGroup in grp.GetChildGroups())
             {
                 GetAnimeSeriesRecursive(session, childGroup.AnimeGroupID, ref seriesList);
             }

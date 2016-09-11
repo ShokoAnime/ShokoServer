@@ -11,16 +11,17 @@ using System.ServiceModel;
 using System.ServiceModel.Channels;
 using System.ServiceModel.Description;
 using System.Threading;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Infralution.Localization.Wpf;
 using JMMContracts;
-using JMMFileHelper;
 using JMMServer.Commands;
 using JMMServer.Commands.Azure;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.FileHelper;
 using JMMServer.ImageDownload;
 using JMMServer.MyAnime2Helper;
 using JMMServer.Providers.TraktTV;
@@ -95,6 +96,8 @@ namespace JMMServer
 
         private static System.Timers.Timer autoUpdateTimer = null;
         private static System.Timers.Timer autoUpdateTimerShort = null;
+        private static System.Timers.Timer cloudWatchTimer = null;
+
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
         private static List<FileSystemWatcher> watcherVids = null;
 
@@ -325,10 +328,10 @@ namespace JMMServer
             cboLanguages.SelectionChanged += new SelectionChangedEventHandler(cboLanguages_SelectionChanged);
 
             InitCulture();
-
+            Instance = this;
             StartNancyHost();
         }
-
+        public static MainWindow Instance { get; private set; }
         private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
         {
             SyncHashes();
@@ -387,32 +390,39 @@ namespace JMMServer
 
                     if (evt.ChangeType == WatcherChangeTypes.Created)
                     {
-                        if (Directory.Exists(evt.FullPath))
+                        if (evt.FullPath.StartsWith("|CLOUD|"))
                         {
-                            // When the path that was created represents a directory we need to manually get the contained files to add.
-                            // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
-                            // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
-                            // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
-                            string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
-
-                            foreach (string file in files)
+                            int shareid = int.Parse(evt.Name);
+                            Importer.RunImport_ImportFolderNewFiles(new ImportFolderRepository().GetByID(shareid));
+                        }
+                        else
+                        {
+                            if (Directory.Exists(evt.FullPath))
                             {
-                                if (FileHashHelper.IsVideo(file))
-                                {
-                                    logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+                                // When the path that was created represents a directory we need to manually get the contained files to add.
+                                // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
+                                // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
+                                // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
+                                string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
 
-                                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
-                                    cmd.Save();
+                                foreach (string file in files)
+                                {
+                                    if (FileHashHelper.IsVideo(file))
+                                    {
+                                        logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+
+                                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
+                                        cmd.Save();
+                                    }
                                 }
                             }
-                        }
-                        else if (FileHashHelper.IsVideo(evt.FullPath))
-                        {
-                            CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
-                            cmd.Save();
+                            else if (FileHashHelper.IsVideo(evt.FullPath))
+                            {
+                                CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                                cmd.Save();
+                            }
                         }
                     }
-
                     queueFileEvents.Remove(evt);
                 }
                 catch (Exception ex)
@@ -889,7 +899,7 @@ namespace JMMServer
             if (setupComplete)
             {
                 ServerInfo.Instance.RefreshImportFolders();
-
+                ServerInfo.Instance.RefreshCloudAccounts();
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_Complete;
                 ServerState.Instance.ServerOnline = true;
 
@@ -970,6 +980,38 @@ namespace JMMServer
                 workerFileEvents.RunWorkerAsync();
         }
 
+        public static void StartCloudWatchTimer()
+        {
+            cloudWatchTimer = new System.Timers.Timer();
+            cloudWatchTimer.AutoReset = true;
+            cloudWatchTimer.Interval = ServerSettings.CloudWatcherTime*60 * 1000;
+            cloudWatchTimer.Elapsed += CloudWatchTimer_Elapsed;
+            cloudWatchTimer.Start();
+        }
+
+        public static void StopCloudWatchTimer()
+        {
+            cloudWatchTimer?.Stop();
+        }
+        private static void CloudWatchTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            try
+            {
+                ImportFolderRepository repNetShares = new ImportFolderRepository();
+                foreach (ImportFolder share in repNetShares.GetAll().Where(a => a.CloudID.HasValue && a.FolderIsWatched))
+                {
+                    //Little hack in there to reuse the file queue
+                    FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Created, "|CLOUD|", share.ImportFolderID.ToString());
+                    queueFileEvents.Add(args);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+            }
+        }
+
         void workerSetupDB_DoWork(object sender, DoWorkEventArgs e)
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
@@ -980,6 +1022,7 @@ namespace JMMServer
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_Cleaning;
 
                 StopWatchingFiles();
+
                 AniDBDispose();
                 StopHost();
 
@@ -1006,6 +1049,12 @@ namespace JMMServer
                 Thread.Sleep(1000);
 
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseSetup;
+
+
+                //Moving FileHost up, Mediainfo fill could be trigged from Cache Init
+                StartFileHost();
+
+
                 logger.Info("Setting up database...");
                 if (!DatabaseExtensions.Instance.InitDB())
                 {
@@ -1033,7 +1082,6 @@ namespace JMMServer
                 StartBinaryHost();
                 StartMetroHost();
                 //StartImageHostMetro();
-                StartFileHost();
                 StartStreamingHost();
                 //StartNancyHost();
 
@@ -1167,7 +1215,7 @@ namespace JMMServer
                 List<VideoLocal> vids = repVids.GetVideosWithoutEpisode();
                 ma2Progress.TotalFiles = vids.Count;
 
-                foreach (VideoLocal vid in vids)
+                foreach (VideoLocal vid in vids.Where(a=>!string.IsNullOrEmpty(a.Hash)))
                 {
                     ma2Progress.CurrentFile = ma2Progress.CurrentFile + 1;
                     workerMyAnime2.ReportProgress(0, ma2Progress);
@@ -1264,9 +1312,11 @@ namespace JMMServer
                             }
 
                             repXRefs.Save(xref);
-
-                            vid.RenameIfRequired();
-                            vid.MoveFileIfRequired();
+                            vid.Places.ForEach(a =>
+                            {
+                                a.RenameIfRequired();
+                                a.MoveFileIfRequired();
+                            });
 
                             // update stats for groups and series
                             if (ser != null)
@@ -1731,7 +1781,7 @@ namespace JMMServer
 
             if (ServerSettings.MinimizeOnStartup) MinimizeToTray();
 
-            tabControl1.SelectedIndex = 4; // setup
+            tabControl1.SelectedIndex = 5; // setup
 
             if (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
                 ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase))
@@ -2087,6 +2137,7 @@ namespace JMMServer
 
         static void autoUpdateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
+            Importer.CheckForDayFilters();
             Importer.CheckForCalendarUpdate(false);
             Importer.CheckForAnimeUpdate(false);
             Importer.CheckForTvDBUpdates(false);
@@ -2103,7 +2154,7 @@ namespace JMMServer
         public static void StartWatchingFiles()
         {
             StopWatchingFiles();
-
+            StopCloudWatchTimer();
             watcherVids = new List<FileSystemWatcher>();
 
             ImportFolderRepository repNetShares = new ImportFolderRepository();
@@ -2111,20 +2162,21 @@ namespace JMMServer
             {
                 try
                 {
-                    if (Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
+                    if (share.FolderIsWatched)
                     {
-                        logger.Info("Watching ImportFolder: {0} || {1}", share.ImportFolderName,
-                            share.ImportFolderLocation);
+                        logger.Info("Watching ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
+                    }
+                    if (share.CloudID==null && Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
+                    {
                         FileSystemWatcher fsw = new FileSystemWatcher(share.ImportFolderLocation);
                         fsw.IncludeSubdirectories = true;
                         fsw.Created += new FileSystemEventHandler(fsw_Created);
                         fsw.EnableRaisingEvents = true;
                         watcherVids.Add(fsw);
                     }
-                    else
+                    else if (!share.FolderIsWatched)
                     {
-                        logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName,
-                            share.ImportFolderLocation);
+                        logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                     }
                 }
                 catch (Exception ex)
@@ -2132,7 +2184,9 @@ namespace JMMServer
                     logger.ErrorException(ex.ToString(), ex);
                 }
             }
+            StartCloudWatchTimer();
         }
+
 
 
         public static void StopWatchingFiles()
@@ -2143,6 +2197,7 @@ namespace JMMServer
             {
                 fsw.EnableRaisingEvents = false;
             }
+            StopCloudWatchTimer();
         }
 
         static void fsw_Created(object sender, FileSystemEventArgs e)
@@ -2549,7 +2604,7 @@ namespace JMMServer
             {
                 logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 
-                Utils.GetFilesForImportFolder(share.ImportFolderLocation, ref fileList);
+                Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
             }
 
 

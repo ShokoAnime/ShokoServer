@@ -5,6 +5,7 @@ using System.Text;
 using JMMServer.Commands;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using TMDbLib.Client;
@@ -43,6 +44,7 @@ namespace JMMServer.Providers.MovieDB
             MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
             MovieDB_FanartRepository repFanart = new MovieDB_FanartRepository();
             MovieDB_PosterRepository repPosters = new MovieDB_PosterRepository();
+            ISessionWrapper sessionWrapper = session.Wrap();
 
             // save to the DB
             MovieDB_Movie movie = repMovies.GetByOnlineID(searchResult.MovieID);
@@ -84,7 +86,7 @@ namespace JMMServer.Providers.MovieDB
             // download the posters
             if (ServerSettings.MovieDB_AutoPosters)
             {
-                foreach (MovieDB_Poster poster in repPosters.GetByMovieID(session, movie.MovieId))
+                foreach (MovieDB_Poster poster in repPosters.GetByMovieID(sessionWrapper, movie.MovieId))
                 {
                     if (numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
                     {
@@ -113,7 +115,7 @@ namespace JMMServer.Providers.MovieDB
             // download the fanart
             if (ServerSettings.MovieDB_AutoFanart)
             {
-                foreach (MovieDB_Fanart fanart in repFanart.GetByMovieID(session, movie.MovieId))
+                foreach (MovieDB_Fanart fanart in repFanart.GetByMovieID(sessionWrapper, movie.MovieId))
                 {
                     if (numFanartDownloaded < ServerSettings.MovieDB_AutoFanartAmount)
                     {

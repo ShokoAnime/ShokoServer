@@ -7,7 +7,6 @@ using System.Reflection.Emit;
 using System.ServiceModel.Dispatcher;
 using System.Text;
 using System.Threading.Tasks;
-using RestSharp.Extensions;
 
 namespace JMMServer.WCFCompression
 {

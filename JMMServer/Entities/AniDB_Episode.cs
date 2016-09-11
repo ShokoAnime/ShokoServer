@@ -98,7 +98,7 @@ namespace JMMServer.Entities
         {
             // check if there is an existing episode for this EpisodeID
             AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-            AnimeEpisode existingEp = repEps.GetByAniDBEpisodeID(session, EpisodeID);
+            AnimeEpisode existingEp = repEps.GetByAniDBEpisodeID(EpisodeID);
 
             if (existingEp == null)
             {

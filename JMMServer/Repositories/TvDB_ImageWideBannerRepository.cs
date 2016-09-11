@@ -1,5 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using JMMServer.Collections;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -24,11 +28,11 @@ namespace JMMServer.Repositories
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetByID(session, id);
+                return GetByID(session.Wrap(), id);
             }
         }
 
-        public TvDB_ImageWideBanner GetByID(ISession session, int id)
+        public TvDB_ImageWideBanner GetByID(ISessionWrapper session, int id)
         {
             return session.Get<TvDB_ImageWideBanner>(id);
         }
@@ -61,6 +65,33 @@ namespace JMMServer.Repositories
                 .List<TvDB_ImageWideBanner>();
 
             return new List<TvDB_ImageWideBanner>(objs);
+        }
+
+        public ILookup<int, TvDB_ImageWideBanner> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (animeIds == null)
+                throw new ArgumentNullException(nameof(animeIds));
+
+            if (animeIds.Length == 0)
+            {
+                return EmptyLookup<int, TvDB_ImageWideBanner>.Instance;
+            }
+
+            var bannersByAnime = session.CreateSQLQuery(@"
+                SELECT DISTINCT crAdbTvTb.AnimeID, {tvdbBanner.*}
+                   FROM CrossRef_AniDB_TvDBV2 AS crAdbTvTb
+                      INNER JOIN TvDB_ImageWideBanner AS tvdbBanner
+                         ON tvdbBanner.SeriesID = crAdbTvTb.TvDBID
+                   WHERE crAdbTvTb.AnimeID IN (:animeIds)")
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .AddEntity("tvdbBanner", typeof(TvDB_ImageWideBanner))
+                .SetParameterList("animeIds", animeIds)
+                .List<object[]>()
+                .ToLookup(r => (int)r[0], r => (TvDB_ImageWideBanner)r[1]);
+
+            return bannersByAnime;
         }
 
         public List<TvDB_ImageWideBanner> GetAll()

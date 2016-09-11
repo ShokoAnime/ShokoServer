@@ -4,6 +4,7 @@ using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.PlexAndKodi;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -106,7 +107,7 @@ namespace JMMServer.Repositories
                 Contract_AnimeSeries con = ser?.GetUserContract(ugrp.JMMUserID);
                 if (con == null)
                     return;
-                ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(session), ugrp.JMMUserID);
+                ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(session.Wrap()), ugrp.JMMUserID);
             }
         }
 
@@ -120,10 +121,6 @@ namespace JMMServer.Repositories
             return UsersSeries.GetOne(userid, seriesid);
         }
 
-        public AnimeSeries_User GetByUserAndSeriesID(ISession session, int userid, int seriesid)
-        {
-            return GetByUserAndSeriesID(userid, seriesid);
-        }
 
         public List<AnimeSeries_User> GetByUserID(int userid)
         {
@@ -149,10 +146,7 @@ namespace JMMServer.Repositories
                     .ToList();
         }
 
-        public List<AnimeSeries_User> GetMostRecentlyWatched(ISession session, int userID)
-        {
-            return GetMostRecentlyWatched(userID);
-        }
+
 
         public static ChangeTracker<int> GetChangeTracker(int userid)
         {

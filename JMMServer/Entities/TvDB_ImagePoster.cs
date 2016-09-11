@@ -7,7 +7,7 @@ using NLog;
 
 namespace JMMServer.Entities
 {
-    public class TvDB_ImagePoster
+    public class TvDB_ImagePoster : IImageEntity
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 

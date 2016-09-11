@@ -55,8 +55,8 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="protobuf-net, Version=2.1.0.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
-      <HintPath>..\packages\protobuf-net.2.1.0\lib\net451\protobuf-net.dll</HintPath>
+    <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
+      <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -106,6 +106,7 @@
     <Compile Include="Contract_BookmarkedAnime.cs" />
     <Compile Include="Contract_BookmarkedAnime_SaveResponse.cs" />
     <Compile Include="Contract_Changes.cs" />
+    <Compile Include="Contract_CloudAccount.cs" />
     <Compile Include="Contract_CrossRef_AniDB_MAL.cs" />
     <Compile Include="Contract_CrossRef_AniDB_MALResult.cs" />
     <Compile Include="Contract_CrossRef_AniDB_Other.cs" />
@@ -176,6 +177,7 @@
     <Compile Include="Contract_VideoLocal.cs" />
     <Compile Include="Contract_VideoLocalManualLink.cs" />
     <Compile Include="Contract_VideoLocalRenamed.cs" />
+    <Compile Include="Contract_VideoLocal_Place.cs" />
     <Compile Include="Hashes.cs" />
     <Compile Include="IJMMServer.cs" />
     <Compile Include="IJMMServerMetro.cs" />

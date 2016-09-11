@@ -619,11 +619,8 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL ist der mittlere Rang und der empfohlene Datenbanktyp für JMM-Nutzer mit einer großen Sammlung, die beabsichtigen, eine große Sammlung zu erstellen oder einfach nur eine Erhöhung der Geschwindigkeit und Leistung bei der Verwendung von JMM wünschen. Es ist einfach einzurichten und mithilfe unserer Anleitung sollte dies nur eine Frage von Minuten sein.</value>
   </data>
-  <data name="Toolbar_Translate" xml:space="preserve">
-    <value>Helfen Sie, JMM zu übersetzen!</value>
-  </data>
-  <data name="Link_Translate" xml:space="preserve">
-    <value>http://jmediamanager.org/translate</value>
+  <data name="Link_Contribute" xml:space="preserve">
+    <value>http://jmediamanager.org/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Erste Gruppe Freigabeinfo von UDP-API: {0}</value>
@@ -1002,5 +999,8 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="Database_NotSupportedVersion" xml:space="preserve">
     <value>Die Version der Datenbank ist größer als die unterstützte Version von JMM Server. Sie sollten JMMServer aktualisieren.</value>
+  </data>
+  <data name="Toolbar_Contribute" xml:space="preserve">
+    <value>Helfen Sie JMM besser zu machen!</value>
   </data>
 </root>

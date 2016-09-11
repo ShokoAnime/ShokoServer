@@ -6,10 +6,11 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using JMMFileHelper.Subtitles;
 using JMMServer.Entities;
+using JMMServer.FileHelper.Subtitles;
 using JMMServer.Repositories;
 using NLog;
+using NutzCode.CloudFileSystem;
 using UPnP;
 
 namespace JMMServer.FileServer
@@ -174,9 +175,13 @@ namespace JMMServer.FileServer
         public FileServer(int port, int maxthreads = 100)
         {
             _listener = new HttpListener();
-            _listener.Prefixes.Add(String.Format(@"http://*:{0}/", port));
+            _listener.Prefixes.Add($@"http://*:{port}/");
+            _listener.TimeoutManager.MinSendBytesPerSecond = uint.MaxValue;
+            _listener.TimeoutManager.IdleConnection = new TimeSpan(8, 0, 0);
             _listener.Start();
         }
+
+
 
         private void Process(System.Net.HttpListenerContext obj)
         {
@@ -192,12 +197,13 @@ namespace JMMServer.FileServer
                 string user = dta[1];
                 string aw = dta[2];
                 string arg = dta[3];
-                string fullname;
+                string fullname = string.Empty;
                 int userid = 0;
                 int autowatch = 0;
                 int.TryParse(user, out userid);
                 int.TryParse(aw, out autowatch);
                 VideoLocal loc = null;
+                IFile file = null;
                 if (cmd == "videolocal")
                 {
                     int sid = 0;
@@ -212,15 +218,41 @@ namespace JMMServer.FileServer
                     loc = rep.GetByID(sid);
                     if (loc == null)
                     {
+                        obj.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                        obj.Response.StatusDescription = "Stream Id not found.";
+                        return;
+                    }
+#if DEBUG_STREAM
+                    if (loc.VideoLocalID == 6393488934891)
+                    {
+                        FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == "Local File System")?.Init("", null, null);
+                        if (ff == null || !ff.IsOk)
+                            throw new Exception(ff?.Error ?? "Error Opening Local Filesystem");
+                        FileSystemResult<IObject> o=ff.Result.Resolve(@"C:\test\unsort\[FTV-Wasurenai] 11eyes - 01 [1280x720 BD H264] [07238189].mkv");
+                        if (o.IsOk)
+                            file = (IFile) o.Result;
+                    }
+                    else
+#endif
+                        file = loc.GetBestFileLink();
+                    if (file == null)
+                    {
                         obj.Response.StatusCode = (int) HttpStatusCode.NotFound;
                         obj.Response.StatusDescription = "Stream Id not found.";
                         return;
                     }
-                    fullname = loc.FullServerPath;
+                    fullname = file.FullName;
                 }
                 else if (cmd == "file")
                 {
                     fullname = Base64DecodeUrl(arg);
+                    file = VideoLocal.ResolveFile(fullname);
+                    if (file == null)
+                    {
+                        obj.Response.StatusCode = (int) HttpStatusCode.NotFound;
+                        obj.Response.StatusDescription = "File not found.";
+                        return;
+                    }
                 }
                 else
                 {
@@ -230,22 +262,6 @@ namespace JMMServer.FileServer
                 }
 
                 bool range = false;
-
-                try
-                {
-                    if (!File.Exists(fullname))
-                    {
-                        obj.Response.StatusCode = (int) HttpStatusCode.NotFound;
-                        obj.Response.StatusDescription = "File '" + fullname + "' not found.";
-                        return;
-                    }
-                }
-                catch (Exception)
-                {
-                    obj.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
-                    obj.Response.StatusDescription = "Unable to access File '" + fullname + "'.";
-                    return;
-                }
                 obj.Response.ContentType = GetMime(fullname);
                 obj.Response.AddHeader("Accept-Ranges", "bytes");
                 obj.Response.AddHeader("X-Plex-Protocol", "1.0");
@@ -267,7 +283,15 @@ namespace JMMServer.FileServer
 
                 if (obj.Request.HttpMethod != "HEAD")
                 {
-                    org = new FileStream(fullname, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    FileSystemResult<Stream> fr = file.OpenRead();
+                    if (fr == null || !fr.IsOk)
+                    {
+                        obj.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
+                        obj.Response.StatusDescription = "Unable to open '" + fullname + "' " + fr?.Error ??
+                                                         string.Empty;
+                        return;
+                    }
+                    org = fr.Result;
                     long totalsize = org.Length;
                     long start = 0;
                     long end = 0;
@@ -318,7 +342,7 @@ namespace JMMServer.FileServer
                         obj.Response.ContentLength64 = totalsize;
                         obj.Response.StatusCode = (int) HttpStatusCode.OK;
                     }
-                    if ((userid != 0) && (loc != null) && autowatch==1)
+                    if ((userid != 0) && (loc != null) && autowatch == 1)
                     {
                         outstream.CrossPosition = (long) ((double) totalsize*WatchedThreshold);
                         outstream.CrossPositionCrossed +=
@@ -343,19 +367,42 @@ namespace JMMServer.FileServer
                     obj.Response.OutputStream.Close();
                 }
             }
-            catch (HttpListenerException e)
+            catch (HttpListenerException)
             {
+                //ignored
             }
             catch (Exception e)
             {
-                logger.Error(e.ToString);
+                try
+                {
+                    obj.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    obj.Response.StatusDescription = "Internal Server Error";
+                }
+                catch
+                {
+                    // ignored
+                }
+                logger.Warn(e.ToString);
             }
             finally
             {
-                if (org != null)
-                    org.Close();
-                if ((obj != null) && (obj.Response != null) && (obj.Response.OutputStream != null))
-                    obj.Response.OutputStream.Close();
+                try
+                {
+                    org?.Dispose();
+                }
+                catch
+                {
+                    // ignored
+                }
+                try
+                {
+                    obj?.Response.OutputStream?.Close();
+                    obj?.Response.Close();
+                }
+                catch
+                {
+                    // ignored
+                }
             }
         }
 

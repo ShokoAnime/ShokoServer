@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -44,11 +45,11 @@ namespace JMMServer.Repositories
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                return GetBySeriesID(session, seriesID);
+                return GetBySeriesID(session.Wrap(), seriesID);
             }
         }
 
-        public List<TvDB_Episode> GetBySeriesID(ISession session, int seriesID)
+        public List<TvDB_Episode> GetBySeriesID(ISessionWrapper session, int seriesID)
         {
             var objs = session
                 .CreateCriteria(typeof(TvDB_Episode))

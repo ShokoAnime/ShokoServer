@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>JMMServer</RootNamespace>
     <AssemblyName>JMMServer</AssemblyName>
-    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -49,31 +49,29 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>
-    </StartupObject>
+    <StartupObject>JMMServer.App</StartupObject>
   </PropertyGroup>
   <PropertyGroup>
     <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Antlr3.Runtime">
-      <HintPath>..\Dependencies\Antlr3.Runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="FluentNHibernate">
-      <HintPath>..\Dependencies\FluentNHibernate.dll</HintPath>
-    </Reference>
-    <Reference Include="HibernatingRhinos.Profiler.Appender">
-      <HintPath>..\Dependencies\HibernatingRhinos.Profiler.Appender.dll</HintPath>
-    </Reference>
-    <Reference Include="ICSharpCode.SharpZipLib, Version=0.84.0.0, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
+    <Reference Include="AppGlue, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\ICSharpCode.SharpZipLib.dll</HintPath>
+      <HintPath>..\Dependencies\AppGlue.dll</HintPath>
     </Reference>
-    <Reference Include="Iesi.Collections">
-      <HintPath>..\Dependencies\Iesi.Collections.dll</HintPath>
+    <Reference Include="FluentNHibernate, Version=2.0.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\FluentNHibernate.2.0.3.0\lib\net40\FluentNHibernate.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="Infralution.Localization.Wpf, Version=3.3.0.0, Culture=neutral, PublicKeyToken=91e893994f047aa1, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
+      <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Iesi.Collections, Version=4.0.0.0, Culture=neutral, PublicKeyToken=aa95f207798dfdb4, processorArchitecture=MSIL">
+      <HintPath>..\packages\Iesi.Collections.4.0.1.4000\lib\net40\Iesi.Collections.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Infralution.Localization.Wpf">
       <HintPath>..\Dependencies\Infralution.Localization.Wpf.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
@@ -85,21 +83,9 @@
       <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.ConnectionInfoExtended.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Microsoft.SqlServer.Dmf, Version=13.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Microsoft.SqlServer.Dmf.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
       <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.RegSvrEnum, Version=13.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Microsoft.SqlServer.RegSvrEnum.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.ServiceBrokerEnum, Version=13.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\Microsoft.SqlServer.ServiceBrokerEnum.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.SqlServer.Smo, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.Smo.dll</HintPath>
@@ -149,26 +135,32 @@
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="NHibernate">
-      <HintPath>..\Dependencies\NHibernate.dll</HintPath>
+    <Reference Include="NHibernate, Version=4.0.0.4000, Culture=neutral, PublicKeyToken=aa95f207798dfdb4, processorArchitecture=MSIL">
+      <HintPath>..\packages\NHibernate.4.0.4.4000\lib\net40\NHibernate.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="NHibernate.ByteCode.Castle">
-      <HintPath>..\Dependencies\NHibernate.ByteCode.Castle.dll</HintPath>
+    <Reference Include="Nito.AsyncEx, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nito.AsyncEx.3.0.1\lib\net45\Nito.AsyncEx.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="NLog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Dependencies\NLog.dll</HintPath>
+    <Reference Include="Nito.AsyncEx.Concurrent, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nito.AsyncEx.3.0.1\lib\net45\Nito.AsyncEx.Concurrent.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nito.AsyncEx.Enlightenment, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nito.AsyncEx.3.0.1\lib\net45\Nito.AsyncEx.Enlightenment.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.4.3.8\lib\net45\NLog.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Pri.LongPath, Version=2.0.32.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Pri.LongPath.2.0.32\lib\net45\Pri.LongPath.dll</HintPath>
-      <Private>True</Private>
     </Reference>
-    <Reference Include="protobuf-net, Version=2.1.0.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
-      <HintPath>..\packages\protobuf-net.2.1.0\lib\net451\protobuf-net.dll</HintPath>
+    <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
+      <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
       <Private>True</Private>
-    </Reference>
-    <Reference Include="Remotion.Data.Linq">
-      <HintPath>..\Dependencies\Remotion.Data.Linq.dll</HintPath>
     </Reference>
     <Reference Include="RestSharp, Version=105.2.3.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RestSharp.105.2.3\lib\net46\RestSharp.dll</HintPath>
@@ -277,6 +269,9 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="Collections\EmptyLookup.cs" />
+    <Compile Include="Collections\EnumerableExtensions.cs" />
+    <Compile Include="Collections\LazyLookup.cs" />
     <Compile Include="API\APIv1_Legacy_Module.cs" />
     <Compile Include="API\APIv2_auth_Module.cs" />
     <Compile Include="API\APIv2_common_Module.cs" />
@@ -298,10 +293,24 @@
     <Compile Include="API\Model\WebNews.cs" />
     <Compile Include="API\UserDatabase.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
+    <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
     <Compile Include="Entities\AuthTokens.cs" />
+    <Compile Include="Entities\IImageEntity.cs" />
+    <Compile Include="Entities\CloudAccount.cs" />
+    <Compile Include="Entities\VideoLocal_Place.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="FileHelper\Crc32.cs" />
+    <Compile Include="FileHelper\FileHashHelper.cs" />
+    <Compile Include="FileHelper\Hasher.cs" />
+    <Compile Include="FileHelper\MD4Managed.cs" />
+    <Compile Include="FileHelper\MediaInfo\Convert.cs" />
+    <Compile Include="FileHelper\MediaInfo\MediaInfoDLL.cs" />
+    <Compile Include="FileHelper\Subtitles\ISubtitles.cs" />
+    <Compile Include="FileHelper\Subtitles\SubtitleHelper.cs" />
+    <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
+    <Compile Include="FileHelper\Subtitles\VobSubSubtitles.cs" />
     <Compile Include="LZ4\CompressionHelper.cs" />
     <Compile Include="LZ4\LZ4Codec.cs" />
     <Compile Include="LZ4\LZ4Codec.Safe.cs" />
@@ -314,6 +323,8 @@
     <Compile Include="LZ4\LZ4Codec.Unsafe32HC.Dirty.cs" />
     <Compile Include="LZ4\LZ4Codec.Unsafe64.Dirty.cs" />
     <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
+    <Compile Include="Mappings\CloudAccountMap.cs" />
+    <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
     <Compile Include="ObjectExtensions.cs" />
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
@@ -381,7 +392,6 @@
     <Compile Include="Commands\QueueStateEventArgs.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="CustomHttpBinding.cs" />
-    <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseExtensions.cs" />
     <Compile Include="Databases\MySQL.cs" />
     <Compile Include="Entities\AniDB_MylistStats.cs" />
@@ -397,7 +407,6 @@
     <Compile Include="Entities\FileFfdshowPreset.cs" />
     <Compile Include="Entities\Playlist.cs" />
     <Compile Include="Entities\RenameScript.cs" />
-    <Compile Include="FileRenamer.cs" />
     <Compile Include="FileServer\FileServer.cs" />
     <Compile Include="FileServer\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
@@ -569,6 +578,7 @@
     <Compile Include="Repositories\AuthTokensRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\ChangeTracker.cs" />
+    <Compile Include="Repositories\CloudAccountRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_MALRepository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_TraktV2Repository.cs" />
     <Compile Include="Repositories\CrossRef_AniDB_Trakt_EpisodeRepository.cs" />
@@ -577,8 +587,14 @@
     <Compile Include="Repositories\CrossRef_CustomTagRepository.cs" />
     <Compile Include="Repositories\CustomTagRepository.cs" />
     <Compile Include="Repositories\FileFfdshowPresetRepository.cs" />
+    <Compile Include="Repositories\NHibernate\ISessionWrapper.cs" />
+    <Compile Include="Repositories\NHibernate\SessionWrapper.cs" />
+    <Compile Include="Repositories\NHibernate\SessionExtensions.cs" />
+    <Compile Include="Repositories\NHibernate\StatelessSessionWrapper.cs" />
+    <Compile Include="Repositories\NHibernate\StatelessSessionExtensions.cs" />
     <Compile Include="Repositories\PlaylistRepository.cs" />
     <Compile Include="Repositories\RenameScriptRepository.cs" />
+    <Compile Include="Repositories\VideoLocal_PlaceRepository.cs" />
     <Compile Include="Security\CRC32.cs" />
     <Compile Include="Security\Digest.cs" />
     <Compile Include="MyAnime2Helper\MA2Progress.cs" />
@@ -639,7 +655,6 @@
     <Compile Include="Entities\TvDB_ImageWideBanner.cs" />
     <Compile Include="Entities\TvDB_Series.cs" />
     <Compile Include="Entities\Versions.cs" />
-    <Compile Include="Entities\VideoInfo.cs" />
     <Compile Include="Entities\VideoLocal.cs" />
     <Compile Include="Entities\VideoLocal_User.cs" />
     <Compile Include="Enums.cs" />
@@ -704,7 +719,6 @@
     <Compile Include="Mappings\TvDB_ImageWideBannerMap.cs" />
     <Compile Include="Mappings\TvDB_SeriesMap.cs" />
     <Compile Include="Mappings\VersionsMap.cs" />
-    <Compile Include="Mappings\VideoInfoMap.cs" />
     <Compile Include="Mappings\VideoLocalMap.cs" />
     <Compile Include="Mappings\VideoLocal_UserMap.cs" />
     <Compile Include="NamingLanguage.cs" />
@@ -764,7 +778,6 @@
     <Compile Include="Repositories\TvDB_ImageWideBannerRepository.cs" />
     <Compile Include="Repositories\TvDB_SeriesRepository.cs" />
     <Compile Include="Repositories\VersionsRepository.cs" />
-    <Compile Include="Repositories\VideoInfoRepository.cs" />
     <Compile Include="Repositories\VideoLocalRepository.cs" />
     <Compile Include="Repositories\VideoLocal_UserRepository.cs" />
     <Compile Include="Security\StringTools.cs" />
@@ -778,6 +791,16 @@
     <Compile Include="UI\AdminMessagesForm.xaml.cs">
       <DependentUpon>AdminMessagesForm.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\AuthProvider.cs" />
+    <Compile Include="UI\CloudAccountAdmin.xaml.cs">
+      <DependentUpon>CloudAccountAdmin.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\CloudAccountForm.xaml.cs">
+      <DependentUpon>CloudAccountForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\CloudFolderBrowser.xaml.cs">
+      <DependentUpon>CloudFolderBrowser.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\HyperLinkStandard.xaml.cs">
       <DependentUpon>HyperLinkStandard.xaml</DependentUpon>
     </Compile>
@@ -789,6 +812,9 @@
     </Compile>
     <Compile Include="UI\InitialSetupForm.xaml.cs">
       <DependentUpon>InitialSetupForm.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\LoginForm.xaml.cs">
+      <DependentUpon>LoginForm.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\PasswordBoxAssistant.cs" />
     <Compile Include="UI\ServerInfo.cs" />
@@ -852,6 +878,18 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="UI\CloudAccountAdmin.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\CloudAccountForm.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\CloudFolderBrowser.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="UI\HyperLinkStandard.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -867,6 +905,10 @@
     <Page Include="UI\InitialSetupForm.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\LoginForm.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="UI\UIStyles.xaml">
       <SubType>Designer</SubType>
@@ -889,10 +931,12 @@
     <EmbeddedResource Include="Properties\Resources.de.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.de.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.en-GB.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.en-GB.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.es.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
@@ -966,13 +1010,33 @@
     <Resource Include="db.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
+      <Project>{d24d15aa-3e71-45a5-b2af-7490681def68}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.OneDrive</Name>
+    </ProjectReference>
     <ProjectReference Include="..\JMMContracts\JMMContracts.csproj">
       <Project>{D777636B-F927-4C7D-9D00-4A7858E75F3E}</Project>
       <Name>JMMContracts</Name>
     </ProjectReference>
-    <ProjectReference Include="..\JMMFileHelper\JMMFileHelper.csproj">
-      <Project>{73E4CFC4-291B-47A2-ACAA-78096CEBB7DF}</Project>
-      <Name>JMMFileHelper</Name>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj">
+      <Project>{d202b61e-a658-4208-83fc-745e04f43bde}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj">
+      <Project>{964a62e6-2dae-4723-926d-d3e9597b5213}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.GoogleDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj">
+      <Project>{2a705c96-21d4-4061-876f-1bb954e39d25}</Project>
+      <Name>NutzCode.CloudFileSystem.Plugins.LocalFileSystem</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj">
+      <Project>{29861d1a-968c-49ca-a637-88b391aa5063}</Project>
+      <Name>NutzCode.CloudFileSystem</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj">
+      <Project>{865c8b13-eb43-439e-9d69-ce7b54dca4ff}</Project>
+      <Name>NutzCode.Libraries.Web</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -1107,21 +1171,30 @@
   <ItemGroup>
     <Folder Include="API\Views\" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\24_cloud.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_connect.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\16_folder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y
 xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
-
-xcopy "$(TargetDir)*.dll" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y	
-xcopy "$(TargetDir)*.exe" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)*.pdb" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)*.manifest" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\" /S /R /I /Y
-xcopy "$(TargetDir)x86\*.dll" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x86\*.dll" /S /R /I /Y	
-xcopy "$(TargetDir)x64\*.dll" "C:\Projects\[ JMM Binaries No Configs ]\JMMServer\x64\*.dll" /S /R /I /Y	</PostBuildEvent>
+xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y	
+xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
+xcopy "$(SolutionDir)Dependencies\AppGlue.dll" "$(TargetDir)" /S /R /I /Y
+</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent>xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86" /S /R /I /Y
-xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64" /S /R /I /Y</PreBuildEvent>
+    <PreBuildEvent>
+    </PreBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\System.Data.SQLite.Core.1.0.102.0\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.102.0\build\net46\System.Data.SQLite.Core.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

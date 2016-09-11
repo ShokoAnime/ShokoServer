@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="JMMServer" xml:space="preserve">
-    <value>JMM сервер</value>
+    <value>JMM Server</value>
   </data>
   <data name="Actions_RunImport" xml:space="preserve">
     <value>Выполнить импорт</value>
@@ -622,11 +622,8 @@
   <data name="MySQL_Info" xml:space="preserve">
     <value>MySQL является типом базы данных промежуточного уровня и рекомендуется для пользователей JMM с большой коллекцией либо тем кто планирует создать большую коллекцию или просто хочет улучшения  производительности при использовании JMM. Простой в установке, также при использовании нашего руководства сможете начать работу в считанные минуты.</value>
   </data>
-  <data name="Toolbar_Translate" xml:space="preserve">
-    <value>Помогите перевести JMM!</value>
-  </data>
-  <data name="Link_Translate" xml:space="preserve">
-    <value>http://jmediamanager.org/translate</value>
+  <data name="Link_Contribute" xml:space="preserve">
+    <value>http://jmediamanager.org/contribute/</value>
   </data>
   <data name="Command_GetReleaseInfo" xml:space="preserve">
     <value>Получать информацию о группе выпуска от UDP API: {0}</value>
@@ -1002,5 +999,8 @@
   </data>
   <data name="Database_NotSupportedVersion" xml:space="preserve">
     <value>Версия базы данных больше, чем поддерживаемые версии модели памяти JMM сервером. Вы должны обновить JMMServer.</value>
+  </data>
+  <data name="Toolbar_Contribute" xml:space="preserve">
+    <value>Помогите сделать JMM лучше!</value>
   </data>
 </root>

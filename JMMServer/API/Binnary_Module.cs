@@ -397,7 +397,9 @@ namespace JMMServer.API
 
         private object DeleteVideoLocalAndFile(int a)
         {
-           return _impl.DeleteVideoLocalAndFile(a);
+            //return _impl.DeleteVideoLocalAndFile(a);
+            // TODO check if still usable//
+            return null;
         }
 
         private object EnableDisableImage(bool a, int b, int c)

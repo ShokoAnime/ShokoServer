@@ -3,6 +3,7 @@ using System.Linq;
 using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 
@@ -77,7 +78,7 @@ namespace JMMServer.Repositories
                 }
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    UpdateContract(session, obj);
+                    UpdateContract(obj);
                     // populate the database
                     using (var transaction = session.BeginTransaction())
                     {
@@ -109,10 +110,7 @@ namespace JMMServer.Repositories
             return UsersEpisodes.GetOne(userid, epid);
         }
 
-        public AnimeEpisode_User GetByUserIDAndEpisodeID(ISession session, int userid, int epid)
-        {
-            return GetByUserIDAndEpisodeID(userid, epid);
-        }
+
 
         public List<AnimeEpisode_User> GetByUserID(int userid)
         {
@@ -129,10 +127,7 @@ namespace JMMServer.Repositories
                     .ToList();
         }
 
-        public List<AnimeEpisode_User> GetMostRecentlyWatched(ISession session, int userid, int maxresults = 100)
-        {
-            return GetMostRecentlyWatched(userid, maxresults);
-        }
+
 
         public AnimeEpisode_User GetLastWatchedEpisode()
         {
@@ -158,13 +153,10 @@ namespace JMMServer.Repositories
             return UsersSeries.GetMultiple(userid, seriesid);
         }
 
-        public List<AnimeEpisode_User> GetByUserIDAndSeriesID(ISession session, int userid, int seriesid)
-        {
-            return GetByUserIDAndSeriesID(userid, seriesid);
-        }
 
 
-        public void UpdateContract(ISession session, AnimeEpisode_User aeu)
+
+        public void UpdateContract(AnimeEpisode_User aeu)
         {
             AnimeEpisodeRepository aerepo = new AnimeEpisodeRepository();
             Contract_AnimeEpisode caep = aeu.Contract ?? new Contract_AnimeEpisode();
