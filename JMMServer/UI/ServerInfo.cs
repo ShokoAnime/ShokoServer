@@ -439,7 +439,6 @@ namespace JMMServer
         public void RefreshImportFolders()
         {
             ImportFolders.Clear();
-
             try
             {
                 new ImportFolderRepository().GetAll().ForEach(a=>ImportFolders.Add(a));

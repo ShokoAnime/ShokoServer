@@ -49,8 +49,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>
-    </StartupObject>
+    <StartupObject>JMMServer.App</StartupObject>
   </PropertyGroup>
   <PropertyGroup>
     <RunPostBuildEvent>Always</RunPostBuildEvent>
@@ -75,6 +74,7 @@
     <Reference Include="Infralution.Localization.Wpf">
       <HintPath>..\Dependencies\Infralution.Localization.Wpf.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
       <Private>True</Private>
@@ -115,6 +115,22 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Dependencies\MySqlBackup.dll</HintPath>
     </Reference>
+    <Reference Include="Nancy, Version=1.4.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.1.4.3\lib\net40\Nancy.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nancy.Authentication.Stateless, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Authentication.Stateless.1.4.1\lib\net40\Nancy.Authentication.Stateless.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nancy.Hosting.Self, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Hosting.Self.1.4.1\lib\net40\Nancy.Hosting.Self.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Nancy.Serialization.JsonNet, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nancy.Serialization.JsonNet.1.4.1\lib\net40\Nancy.Serialization.JsonNet.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
@@ -136,14 +152,14 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\packages\NLog.4.3.7\lib\net45\NLog.dll</HintPath>
+      <HintPath>..\packages\NLog.4.3.8\lib\net45\NLog.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Pri.LongPath, Version=2.0.32.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Pri.LongPath.2.0.32\lib\net45\Pri.LongPath.dll</HintPath>
     </Reference>
-    <Reference Include="protobuf-net, Version=2.1.0.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
-      <HintPath>..\packages\protobuf-net.2.1.0\lib\net451\protobuf-net.dll</HintPath>
+    <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
+      <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="RestSharp, Version=105.2.3.0, Culture=neutral, processorArchitecture=MSIL">
@@ -158,6 +174,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Net" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Serialization" />
@@ -255,10 +272,31 @@
     <Compile Include="Collections\EmptyLookup.cs" />
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Collections\LazyLookup.cs" />
+    <Compile Include="API\APIv1_Legacy_Module.cs" />
+    <Compile Include="API\APIv2_auth_Module.cs" />
+    <Compile Include="API\APIv2_common_Module.cs" />
+    <Compile Include="API\APIv2_core_Module.cs" />
+    <Compile Include="API\APIv2_database_Module.cs" />
+    <Compile Include="API\APIv2_unauth_Module.cs" />
+    <Compile Include="API\Binnary_Module.cs" />
+    <Compile Include="API\Bootstrapper.cs" />
+    <Compile Include="API\Model\APIMessage.cs" />
+    <Compile Include="API\Model\AuthUser.cs" />
+    <Compile Include="API\Model\ComponentVersion.cs" />
+    <Compile Include="API\Model\Counter.cs" />
+    <Compile Include="API\Model\Creditentials.cs" />
+    <Compile Include="API\Model\Database.cs" />
+    <Compile Include="API\Model\ImagePath.cs" />
+    <Compile Include="API\Model\OSFolder.cs" />
+    <Compile Include="API\Model\QueueInfo.cs" />
+    <Compile Include="API\Model\RecentFile.cs" />
+    <Compile Include="API\Model\WebNews.cs" />
+    <Compile Include="API\UserDatabase.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
     <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
+    <Compile Include="Entities\AuthTokens.cs" />
     <Compile Include="Entities\IImageEntity.cs" />
     <Compile Include="Entities\CloudAccount.cs" />
     <Compile Include="Entities\VideoLocal_Place.cs" />
@@ -289,9 +327,7 @@
     <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
     <Compile Include="ObjectExtensions.cs" />
     <Compile Include="PlexAndKodi\IProvider.cs" />
-    <Compile Include="PlexAndKodi\Kodi\KodiImplementation.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
-    <Compile Include="PlexAndKodi\Plex\PlexImplementation.cs" />
     <Compile Include="PlexAndKodi\Plex\PlexProvider.cs" />
     <Compile Include="PocoCache.cs" />
     <Compile Include="BitMaskHelper.cs" />
@@ -539,6 +575,7 @@
     <Compile Include="Providers\TvDB\TvDBSummary.cs" />
     <Compile Include="Repositories\AniDB_MylistStatsRepository.cs" />
     <Compile Include="Repositories\AniDB_RecommendationRepository.cs" />
+    <Compile Include="Repositories\AuthTokensRepository.cs" />
     <Compile Include="Repositories\BookmarkedAnimeRepository.cs" />
     <Compile Include="Repositories\ChangeTracker.cs" />
     <Compile Include="Repositories\CloudAccountRepository.cs" />
@@ -626,7 +663,6 @@
     <Compile Include="Importer.cs" />
     <Compile Include="JMMService.cs" />
     <Compile Include="JMMServiceImplementation.cs" />
-    <Compile Include="JMMServiceImplementationImage.cs" />
     <Compile Include="Languages.cs" />
     <Compile Include="Mappings\AniDB_AnimeMap.cs" />
     <Compile Include="Mappings\AniDB_Anime_CharacterMap.cs" />
@@ -974,7 +1010,7 @@
     <Resource Include="db.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\NET\NutzCode\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
+    <ProjectReference Include="..\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
       <Project>{d24d15aa-3e71-45a5-b2af-7490681def68}</Project>
       <Name>NutzCode.CloudFileSystem.Plugins.OneDrive</Name>
     </ProjectReference>
@@ -1133,6 +1169,9 @@
     <Resource Include="Images\db.ico" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="API\Views\" />
+  </ItemGroup>
+  <ItemGroup>
     <Resource Include="Images\24_cloud.png" />
   </ItemGroup>
   <ItemGroup>
@@ -1140,6 +1179,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\16_folder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

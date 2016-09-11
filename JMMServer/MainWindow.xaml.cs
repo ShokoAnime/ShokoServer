@@ -10,7 +10,6 @@ using System.Linq;
 using System.ServiceModel;
 using System.ServiceModel.Channels;
 using System.ServiceModel.Description;
-using System.ServiceModel.Web;
 using System.Threading;
 using System.Timers;
 using System.Windows;
@@ -25,8 +24,6 @@ using JMMServer.Entities;
 using JMMServer.FileHelper;
 using JMMServer.ImageDownload;
 using JMMServer.MyAnime2Helper;
-using JMMServer.PlexAndKodi.Kodi;
-using JMMServer.PlexAndKodi.Plex;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
 using JMMServer.UI;
@@ -55,15 +52,15 @@ namespace JMMServer
         private static BackgroundWorker workerFileEvents = new BackgroundWorker();
 
         //private static Uri baseAddress = new Uri("http://localhost:8111/JMMServer");
-        private static string baseAddressImageString = @"http://localhost:{0}/JMMServerImage";
+        //private static string baseAddressImageString = @"http://localhost:{0}/JMMServerImage";
         private static string baseAddressStreamingString = @"http://localhost:{0}/JMMServerStreaming";
         private static string baseAddressStreamingStringMex = @"net.tcp://localhost:{0}/JMMServerStreaming/mex";
         private static string baseAddressBinaryString = @"http://localhost:{0}/JMMServerBinary";
         private static string baseAddressMetroString = @"http://localhost:{0}/JMMServerMetro";
-        private static string baseAddressMetroImageString = @"http://localhost:{0}/JMMServerMetroImage";
-        private static string baseAddressRESTString = @"http://localhost:{0}/JMMServerREST";
-        private static string baseAddressPlexString = @"http://localhost:{0}/JMMServerPlex";
-        private static string baseAddressKodiString = @"http://localhost:{0}/JMMServerKodi";
+        //private static string baseAddressMetroImageString = @"http://localhost:{0}/JMMServerMetroImage";
+        //private static string baseAddressRESTString = @"http://localhost:{0}/JMMServerREST";
+        //private static string baseAddressPlexString = @"http://localhost:{0}/JMMServerPlex";
+        //private static string baseAddressKodiString = @"http://localhost:{0}/JMMServerKodi";
 
         public static string PathAddressREST = "JMMServerREST";
         public static string PathAddressPlex = "JMMServerPlex";
@@ -72,14 +69,15 @@ namespace JMMServer
         //private static Uri baseAddressTCP = new Uri("net.tcp://localhost:8112/JMMServerTCP");
         //private static ServiceHost host = null;
         //private static ServiceHost hostTCP = null;
-        private static ServiceHost hostImage = null;
+        //private static ServiceHost hostImage = null;
         private static ServiceHost hostStreaming = null;
         private static ServiceHost hostBinary = null;
         private static ServiceHost hostMetro = null;
-        private static ServiceHost hostMetroImage = null;
-        private static WebServiceHost hostREST = null;
-        private static WebServiceHost hostPlex = null;
-        private static WebServiceHost hostKodi = null;
+        //private static ServiceHost hostMetroImage = null;
+        //private static WebServiceHost hostREST = null;
+        //private static WebServiceHost hostPlex = null;
+        //private static WebServiceHost hostKodi = null;
+        private static Nancy.Hosting.Self.NancyHost hostNancy = null;
         //private static MessagingServer hostFile = null;
         private static FileServer.FileServer hostFile = null;
 
@@ -94,7 +92,7 @@ namespace JMMServer
         private static BackgroundWorker workerSyncHashes= new BackgroundWorker();
 
 
-        private static BackgroundWorker workerSetupDB = new BackgroundWorker();
+        internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
 
         private static System.Timers.Timer autoUpdateTimer = null;
         private static System.Timers.Timer autoUpdateTimerShort = null;
@@ -112,10 +110,10 @@ namespace JMMServer
             get { return new Uri(string.Format(baseAddressBinaryString, ServerSettings.JMMServerPort)); }
         }
 
-        public static Uri baseAddressImage
-        {
-            get { return new Uri(string.Format(baseAddressImageString, ServerSettings.JMMServerPort)); }
-        }
+        //public static Uri baseAddressImage
+        //{
+        //    get { return new Uri(string.Format(baseAddressImageString, ServerSettings.JMMServerPort)); }
+        //}
 
         public static Uri baseAddressStreaming
         {
@@ -132,25 +130,10 @@ namespace JMMServer
             get { return new Uri(string.Format(baseAddressMetroString, ServerSettings.JMMServerPort)); }
         }
 
-        public static Uri baseAddressMetroImage
-        {
-            get { return new Uri(string.Format(baseAddressMetroImageString, ServerSettings.JMMServerPort)); }
-        }
-
-        public static Uri baseAddressREST
-        {
-            get { return new Uri(string.Format(baseAddressRESTString, ServerSettings.JMMServerPort)); }
-        }
-
-        public static Uri baseAddressPlex
-        {
-            get { return new Uri(string.Format(baseAddressPlexString, ServerSettings.JMMServerPort)); }
-        }
-
-        public static Uri baseAddressKodi
-        {
-            get { return new Uri(string.Format(baseAddressKodiString, ServerSettings.JMMServerPort)); }
-        }
+        //public static Uri baseAddressMetroImage
+        //{
+        //    get { return new Uri(string.Format(baseAddressMetroImageString, ServerSettings.JMMServerPort)); }
+        //}
 
         private Mutex mutex;
         private readonly string mutexName = "JmmServer3.0Mutex";
@@ -207,7 +190,7 @@ namespace JMMServer
             TippuTrayNotify.Icon = new System.Drawing.Icon(iconStream);
             iconStream.Dispose();
 
-            //show the Tray Notify Icon
+            //show the Tray Notify IconbtnRemoveMissingFiles.Click
             TippuTrayNotify.Visible = true;
 
 
@@ -346,6 +329,7 @@ namespace JMMServer
 
             InitCulture();
             Instance = this;
+            StartNancyHost();
         }
         public static MainWindow Instance { get; private set; }
         private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
@@ -359,7 +343,7 @@ namespace JMMServer
         {
             try
             {
-                Importer.SyncHashes();
+                Importer.SyncHashes(); 
             }
             catch (Exception ex)
             {
@@ -1094,14 +1078,12 @@ namespace JMMServer
                 logger.Info("Initializing Hosts...");
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingHosts;
                 SetupAniDBProcessor();
-                StartImageHost();
+                //StartImageHost();
                 StartBinaryHost();
                 StartMetroHost();
-                StartImageHostMetro();
-                StartPlexHost();
-                StartKodiHost();
-                StartRESTHost();
+                //StartImageHostMetro();
                 StartStreamingHost();
+                //StartNancyHost();
 
 
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
@@ -1442,13 +1424,11 @@ namespace JMMServer
                     txtServerPort.Text = ServerSettings.JMMServerPort;
 
                 StartBinaryHost();
-                StartImageHost();
-                StartImageHostMetro();
-                StartPlexHost();
-                StartKodiHost();
+                //StartImageHost();
+                //StartImageHostMetro();
                 StartFileHost();
                 StartStreamingHost();
-                StartRESTHost();
+                StartNancyHost();
 
                 JMMService.CmdProcessorGeneral.Paused = false;
                 JMMService.CmdProcessorHasher.Paused = false;
@@ -2394,35 +2374,33 @@ namespace JMMServer
             logger.Trace("Now Accepting client connections for test host...");
         }
 
-        private static void StartImageHost()
-        {
-            BasicHttpBinding binding = new BasicHttpBinding();
-            binding.MessageEncoding = WSMessageEncoding.Mtom;
-            binding.MaxReceivedMessageSize = 2147483647;
-            binding.Name = "httpLargeMessageStream";
+        //private static void StartImageHost()
+        //{
+        //    BasicHttpBinding binding = new BasicHttpBinding();
+        //    binding.MessageEncoding = WSMessageEncoding.Mtom;
+        //    binding.MaxReceivedMessageSize = 2147483647;
+        //    binding.Name = "httpLargeMessageStream";
 
 
-            // Create the ServiceHost.
-            hostImage = new ServiceHost(typeof(JMMServiceImplementationImage), baseAddressImage);
-            // Enable metadata publishing.
-            ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
-            smb.HttpGetEnabled = true;
-            smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
-            hostImage.Description.Behaviors.Add(smb);
+        //    // Create the ServiceHost.
+        //    //hostImage = new ServiceHost(typeof(JMMServiceImplementationImage), baseAddressImage);
+        //    // Enable metadata publishing.
+        //    ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
+        //    smb.HttpGetEnabled = true;
+        //    smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
+        //    hostImage.Description.Behaviors.Add(smb);
 
-            hostImage.AddServiceEndpoint(typeof(IJMMServerImage), binding, baseAddressImage);
-            hostImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
-                MetadataExchangeBindings.CreateMexHttpBinding(),
-                "mex");
+        //    //hostImage.AddServiceEndpoint(typeof(IJMMServerImage), binding, baseAddressImage);
+        //    //hostImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,MetadataExchangeBindings.CreateMexHttpBinding(),      "mex");
 
-            // Open the ServiceHost to start listening for messages. Since
-            // no endpoints are explicitly configured, the runtime will create
-            // one endpoint per base address for each service contract implemented
-            // by the service.
+        //    // Open the ServiceHost to start listening for messages. Since
+        //    // no endpoints are explicitly configured, the runtime will create
+        //    // one endpoint per base address for each service contract implemented
+        //    // by the service.
 
-            hostImage.Open();
-            logger.Trace("Now Accepting client connections for images...");
-        }
+        //    hostImage.Open();
+        //    logger.Trace("Now Accepting client connections for images...");
+        //}
 
         private static void StartStreamingHost_HTTP()
         {
@@ -2508,33 +2486,33 @@ namespace JMMServer
             logger.Trace("Now Accepting client connections for streaming...");
         }
 
-        private static void StartImageHostMetro()
-        {
-            BasicHttpBinding binding = new BasicHttpBinding();
-            binding.MessageEncoding = WSMessageEncoding.Text;
-            binding.MaxReceivedMessageSize = 2147483647;
-            binding.Name = "httpLargeMessageStream";
+        //private static void StartImageHostMetro()
+        //{
+        //    BasicHttpBinding binding = new BasicHttpBinding();
+        //    binding.MessageEncoding = WSMessageEncoding.Text;
+        //    binding.MaxReceivedMessageSize = 2147483647;
+        //    binding.Name = "httpLargeMessageStream";
 
 
-            // Create the ServiceHost.
-            hostMetroImage = new ServiceHost(typeof(JMMServiceImplementationImage), baseAddressMetroImage);
-            // Enable metadata publishing.
-            ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
-            smb.HttpGetEnabled = true;
-            smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
-            hostMetroImage.Description.Behaviors.Add(smb);
+        //    // Create the ServiceHost.
+        //    hostMetroImage = new ServiceHost(typeof(JMMServiceImplementationImage), baseAddressMetroImage);
+        //    // Enable metadata publishing.
+        //    ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
+        //    smb.HttpGetEnabled = true;
+        //    smb.MetadataExporter.PolicyVersion = PolicyVersion.Policy15;
+        //    hostMetroImage.Description.Behaviors.Add(smb);
 
-            hostMetroImage.AddServiceEndpoint(typeof(IJMMServerImage), binding, baseAddressMetroImage);
-            hostMetroImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
-                MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
+        //    hostMetroImage.AddServiceEndpoint(typeof(IJMMServerImage), binding, baseAddressMetroImage);
+        //    hostMetroImage.AddServiceEndpoint(ServiceMetadataBehavior.MexContractName,
+        //        MetadataExchangeBindings.CreateMexHttpBinding(), "mex");
 
-            // Open the ServiceHost to start listening for messages. Since
-            // no endpoints are explicitly configured, the runtime will create
-            // one endpoint per base address for each service contract implemented
-            // by the service.
-            hostMetroImage.Open();
-            logger.Trace("Now Accepting client connections for images (metro)...");
-        }
+        //    // Open the ServiceHost to start listening for messages. Since
+        //    // no endpoints are explicitly configured, the runtime will create
+        //    // one endpoint per base address for each service contract implemented
+        //    // by the service.
+        //    hostMetroImage.Open();
+        //    logger.Trace("Now Accepting client connections for images (metro)...");
+        //}
 
 
         private static void StartMetroHost()
@@ -2568,15 +2546,6 @@ namespace JMMServer
         }
 
 
-        private static void StartPlexHost()
-        {
-            hostPlex = new WebServiceHost(typeof(PlexImplementation), baseAddressPlex);
-            AddCompressableEndpoint(hostPlex, typeof(IJMMServerPlex), SerializationFilter.Plex);
-            ServiceDebugBehavior stp = hostPlex.Description.Behaviors.Find<ServiceDebugBehavior>();
-            stp.HttpHelpPageEnabled = false;
-            hostPlex.Open();
-        }
-
         private static void AddCompressableEndpoint(ServiceHost host, Type t, SerializationFilter filter, object address = null)
         {
             CustomBinding custom = new CustomBinding(new WebHttpBinding() { ContentTypeMapper = new MultiContentTypeMapper() });
@@ -2605,13 +2574,10 @@ namespace JMMServer
             ep.EndpointBehaviors.Add(new CompressionSelectionEndpointBehavior(filter));
         }
 
-        private static void StartKodiHost()
+        private static void StartNancyHost()
         {
-            hostKodi = new WebServiceHost(typeof(KodiImplementation), baseAddressKodi);
-            AddCompressableEndpoint(hostKodi, typeof(IJMMServerKodi), SerializationFilter.Kodi);
-            ServiceDebugBehavior stp = hostKodi.Description.Behaviors.Find<ServiceDebugBehavior>();
-            stp.HttpHelpPageEnabled = false;
-            hostKodi.Open();
+            hostNancy = new Nancy.Hosting.Self.NancyHost(new Uri("http://localhost:"+ ServerSettings.JMMServerPort));
+            hostNancy.Start();
         }
 
         private static void StartFileHost()
@@ -2623,52 +2589,7 @@ namespace JMMServer
             //                new MessagingServer(new ServiceFactory(), new MessagingServerConfiguration(new HttpMessageFactory()));
             //           hostFile.Start(new IPEndPoint(IPAddress.Any, int.Parse(ServerSettings.JMMServerFilePort)));
         }
-
-        private static void StartRESTHost()
-        {
-            hostREST = new WebServiceHost(typeof(JMMServiceImplementationREST), baseAddressREST);
-            hostREST.AddServiceEndpoint(typeof(IJMMServerREST),
-                new WebHttpBinding()
-                {
-                    CloseTimeout = TimeSpan.FromMinutes(20),
-                    OpenTimeout = TimeSpan.FromMinutes(20),
-                    SendTimeout = TimeSpan.FromMinutes(20),
-                    MaxBufferSize = 65536,
-                    MaxBufferPoolSize = 524288,
-                    MaxReceivedMessageSize = 107374182400,
-                    TransferMode = TransferMode.StreamedResponse
-                }, "");
-            ServiceDebugBehavior stp = hostREST.Description.Behaviors.Find<ServiceDebugBehavior>();
-            stp.HttpHelpPageEnabled = false;
-            hostREST.Open();
-        }
-
-        private static void StartRESTHost_New()
-        {
-            hostREST = new WebServiceHost(typeof(JMMServiceImplementationREST), baseAddressREST);
-
-            ServiceEndpoint ep = hostREST.AddServiceEndpoint(typeof(IJMMServerREST), new WebHttpBinding()
-            {
-                CloseTimeout = TimeSpan.FromMinutes(20),
-                OpenTimeout = TimeSpan.FromMinutes(20),
-                SendTimeout = TimeSpan.FromMinutes(20),
-                MaxBufferSize = 65536,
-                MaxBufferPoolSize = 524288,
-                MaxReceivedMessageSize = 107374182400,
-                TransferMode = TransferMode.StreamedResponse
-            }, "");
-
-            // modify behaviours
-
-            WebHttpBehavior wbb = hostREST.Description.Behaviors.Find<WebHttpBehavior>();
-            wbb.AutomaticFormatSelectionEnabled = true;
-
-            ServiceDebugBehavior stp = hostREST.Description.Behaviors.Find<ServiceDebugBehavior>();
-            stp.HttpHelpPageEnabled = false;
-
-            hostREST.Open();
-        }
-
+ 
         private static void ReadFiles()
         {
             // Steps for processing a file
@@ -2715,35 +2636,25 @@ namespace JMMServer
             // Close the ServiceHost.
             //host.Close();
 
-            if (hostImage != null)
-                hostImage.Close();
-
             if (hostBinary != null)
                 hostBinary.Close();
 
             if (hostMetro != null)
                 hostMetro.Close();
 
-            if (hostMetroImage != null)
-                hostMetroImage.Close();
-
-            if (hostREST != null)
-                hostREST.Close();
-
+            //if (hostMetroImage != null)
+            //    hostMetroImage.Close();
 
             if (hostStreaming != null)
                 hostStreaming.Close();
 
-            if (hostPlex != null)
-                hostPlex.Close();
-
-            if (hostKodi != null)
-                hostKodi.Close();
-
             if (hostFile != null)
                 hostFile.Stop();
-        }
 
+            //if (hostNancy != null)
+            //    hostNancy.Stop();
+        }
+            
         private static void SetupAniDBProcessor()
         {
             JMMService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,

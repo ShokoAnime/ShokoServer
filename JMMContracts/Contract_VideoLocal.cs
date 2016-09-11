@@ -20,9 +20,11 @@ namespace JMMContracts
         public long ResumePosition { get; set; }
         public DateTime DateTimeUpdated { get; set; }
         public int IsVariation { get; set; }
-        public List<Contract_VideoLocal_Place> Places { get; set; }        
+        public List<Contract_VideoLocal_Place> Places { get; set; }
         public Media Media { get; set; }
         public long Duration { get; set; }
+        // TODO check if still usable//
+        public string FilePath { get; set; }
 
     }
 }

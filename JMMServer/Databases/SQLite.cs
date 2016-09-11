@@ -22,7 +22,7 @@ namespace JMMServer.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 47;
+        public int RequiredVersion { get; } = 48;
 
 
 
@@ -32,20 +32,20 @@ namespace JMMServer.Databases
             File.Copy(GetDatabaseFilePath(),fullfilename);
         }
 
-        public string GetDatabasePath()
+        public static string GetDatabasePath()
         {
             string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             string dbPath = Path.Combine(appPath, "SQLite");
             return dbPath;
         }
 
-        public string GetDatabaseFilePath()
+        public static string GetDatabaseFilePath()
         {
             string dbName = Path.Combine(GetDatabasePath(), DefaultDBName);
             return dbName;
         }
 
-        public string GetConnectionString()
+        public static string GetConnectionString()
         {
             return string.Format(@"data source={0};useutf16encoding=True", GetDatabaseFilePath());
         }
@@ -1611,6 +1611,36 @@ namespace JMMServer.Databases
 
 
         }
+private static void UpdateSchema_048(int currentVersionNumber)
+        {
+            int thisVersion = 48;
+            if (currentVersionNumber >= thisVersion) return;
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE AuthTokens ( " +
+                                   " AuthID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                   " UserID int NOT NULL, " +
+                                   " DeviceName text NOT NULL, " +
+                                   " Token text NOT NULL " +
+                                   " )");
+
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+        }
         //WE NEED TO DROP SOME SQL LITE COLUMNS...
 
         private void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove, string createcommand, List<string> indexcommands)
@@ -1679,7 +1709,7 @@ namespace JMMServer.Databases
             myConn.Close();
         }
 
-        private void UpdateDatabaseVersion(int versionNumber)
+        private static void UpdateDatabaseVersion(int versionNumber)
         {
             VersionsRepository repVersions = new VersionsRepository();
             Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);
