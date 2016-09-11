@@ -181,6 +181,7 @@ namespace JMMServer.Databases
                 UpdateSchema_045(versionNumber);
                 UpdateSchema_046(versionNumber);
                 UpdateSchema_047(versionNumber);
+                UpdateSchema_048(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1484,6 +1485,7 @@ namespace JMMServer.Databases
 
             // Now do the migratiuon
         }
+
         private void UpdateSchema_045(int currentVersionNumber)
         {
             int thisVersion = 45;
@@ -1496,6 +1498,7 @@ namespace JMMServer.Databases
             UpdateDatabaseVersion(thisVersion);
 
         }
+
         private void UpdateSchema_046(int currentVersionNumber)
         {
             int thisVersion = 46;
@@ -1582,6 +1585,7 @@ namespace JMMServer.Databases
 
 
         }
+
         private void UpdateSchema_047(int currentVersionNumber)
         {
             int thisVersion = 47;
@@ -1611,7 +1615,8 @@ namespace JMMServer.Databases
 
 
         }
-private static void UpdateSchema_048(int currentVersionNumber)
+
+        private void UpdateSchema_048(int currentVersionNumber)
         {
             int thisVersion = 48;
             if (currentVersionNumber >= thisVersion) return;
