@@ -84,6 +84,13 @@ namespace JMMServer.Repositories
             }
         }
 
+        public List<VideoLocal> GetByImportFolder(int importFolderID)
+        {
+            // todo check if needed anymore
+            // return ImportFolders.GetMultiple(importFolderID);
+            return null;
+        }
+
         private void UpdateMediaContracts(VideoLocal obj)
         {
             if (obj.Media == null || obj.MediaVersion < VideoLocal.MEDIA_VERSION || obj.Duration==0)
@@ -172,8 +179,6 @@ namespace JMMServer.Repositories
         {
             return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
         }
-
-
 
         public List<VideoLocal> GetRandomFiles(int maxResults)
         {

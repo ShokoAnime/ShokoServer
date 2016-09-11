@@ -2541,8 +2541,8 @@ namespace JMMServer
                         }
                         asfs.FileCount++;
                         asfs.FileSize += vi.FileSize;
-
-                        string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FullServerPath).Replace(importLocation, "");
+                        //todo check if needed vi.FullServerPath
+                        string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FilePath).Replace(importLocation, "");
                         filePath = filePath.TrimStart('\\');
                         if (!asfs.Folders.Contains(filePath)) {
                             asfs.Folders.Add(filePath);
@@ -6658,7 +6658,7 @@ namespace JMMServer
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     VideoLocalRepository repVids = new VideoLocalRepository();
-                    List<VideoLocal> vids = repVids.GetMostRecentlyAdded(session, max_records);
+                    List<VideoLocal> vids = repVids.GetMostRecentlyAdded(max_records);
                     return vids;
                 }
             }
