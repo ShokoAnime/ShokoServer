@@ -63,7 +63,7 @@ namespace JMMServer.Databases
                     if (fixedHash)
                     {
                         repVids.Save(vid, false);
-                        logger.Info("Fixed hashes on file: {0}", vid.FullServerPath);
+                        logger.Info("Fixed hashes on file: {0}", vid.FileName);
                     }
                 }
             }
@@ -95,6 +95,7 @@ namespace JMMServer.Databases
             }
         }
 
+
         public static void FixContinueWatchingGroupFilter_20160406()
         {
             // group filters
@@ -103,7 +104,7 @@ namespace JMMServer.Databases
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 // check if it already exists
-                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
+                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters();
 
                 if (lockedGFs != null)
                 {

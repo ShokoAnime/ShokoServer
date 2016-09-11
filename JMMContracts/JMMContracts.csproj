@@ -105,6 +105,7 @@
     <Compile Include="Contract_BookmarkedAnime.cs" />
     <Compile Include="Contract_BookmarkedAnime_SaveResponse.cs" />
     <Compile Include="Contract_Changes.cs" />
+    <Compile Include="Contract_CloudAccount.cs" />
     <Compile Include="Contract_CrossRef_AniDB_MAL.cs" />
     <Compile Include="Contract_CrossRef_AniDB_MALResult.cs" />
     <Compile Include="Contract_CrossRef_AniDB_Other.cs" />
@@ -175,6 +176,7 @@
     <Compile Include="Contract_VideoLocal.cs" />
     <Compile Include="Contract_VideoLocalManualLink.cs" />
     <Compile Include="Contract_VideoLocalRenamed.cs" />
+    <Compile Include="Contract_VideoLocal_Place.cs" />
     <Compile Include="Hashes.cs" />
     <Compile Include="IJMMServer.cs" />
     <Compile Include="IJMMServerImage.cs" />

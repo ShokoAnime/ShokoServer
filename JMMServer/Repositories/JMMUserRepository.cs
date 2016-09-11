@@ -125,20 +125,13 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
-        public JMMUser GetByID(ISessionWrapper session, int id)
-        {
-            return Cache.Get(id);
-        }
 
         public List<JMMUser> GetAll()
         {
             return Cache.Values.ToList();
         }
 
-        public List<JMMUser> GetAll(ISessionWrapper session)
-        {
-            return Cache.Values.ToList();
-        }
+
 
         public List<JMMUser> GetAniDBUsers()
         {

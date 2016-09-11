@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using AniDBAPI;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
@@ -69,10 +70,7 @@ namespace JMMServer.Entities
         }
 
 
-        public string Year
-        {
-            get { return GetAnime().Year; }
-        }
+        public string Year => GetAnime().Year;
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -184,20 +182,23 @@ namespace JMMServer.Entities
 
         public List<AnimeEpisode> GetAnimeEpisodes()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetAnimeEpisodes(session.Wrap());
-            }
-        }
-
-        public List<AnimeEpisode> GetAnimeEpisodes(ISessionWrapper session)
-        {
             AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-            return repEpisodes.GetBySeriesID(session, AnimeSeriesID);
+            return repEpisodes.GetBySeriesID(AnimeSeriesID);
         }
 
         public int GetAnimeEpisodesNormalCountWithVideoLocal()
         {
+            AniDB_EpisodeRepository aer=new AniDB_EpisodeRepository();
+            CrossRef_File_EpisodeRepository cr=new CrossRef_File_EpisodeRepository();
+            VideoLocalRepository vl=new VideoLocalRepository();
+            return
+                new AnimeEpisodeRepository()
+                    .GetBySeriesID(AnimeSeriesID).Count(a => a.EpisodeTypeEnum == enEpisodeType.Episode &&
+                            cr.GetByEpisodeID(aer.GetByEpisodeID(a.AniDB_EpisodeID)?.EpisodeID ?? 0)
+                                .Select(b => vl.GetByHash(b.Hash))
+                                .Count(b => b != null) > 0);
+
+            /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 return
@@ -206,11 +207,32 @@ namespace JMMServer.Entities
                             "Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid")
                             .SetParameter("animeid", AnimeSeriesID)
                             .UniqueResult());
-            }
+            }*/
         }
 
         public int GetAnimeNumberOfEpisodeTypes()
         {
+            AniDB_EpisodeRepository aer = new AniDB_EpisodeRepository();
+            CrossRef_File_EpisodeRepository cr = new CrossRef_File_EpisodeRepository();
+            VideoLocalRepository vl = new VideoLocalRepository();
+            return new AnimeEpisodeRepository()
+                .GetBySeriesID(AnimeSeriesID)
+                .Where(a => cr.GetByEpisodeID(aer.GetByEpisodeID(a.AniDB_EpisodeID)?.EpisodeID ?? 0)
+                    .Select(b => vl.GetByHash(b.Hash))
+                    .Count(b => b != null) > 0).Select(a => a.EpisodeTypeEnum).Distinct().Count();
+            /*
+
+
+            return
+                new AnimeEpisodeRepository()
+                    .GetBySeriesID(AnimeSeriesID)
+                    .Select(a => aer.GetByEpisodeID(a.AniDB_EpisodeID))
+                    .Where(a => a != null)
+                    .SelectMany(a => cr.GetByEpisodeID(a.EpisodeID))
+                    .Where(a => a != null && vl.GetByHash(a.Hash) != null).GroupBy(a=>a.);*/
+            /*
+             * 
+            /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 return
@@ -219,11 +241,17 @@ namespace JMMServer.Entities
                             "Select count(distinct epi.EpisodeType) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND epi.EpisodeType=1 AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid")
                             .SetParameter("animeid", AnimeSeriesID)
                             .UniqueResult());
-            }
+            }*/
         }
 
         public int GetAnimeEpisodesCountWithVideoLocal()
         {
+            AniDB_EpisodeRepository aer = new AniDB_EpisodeRepository();
+            CrossRef_File_EpisodeRepository cr = new CrossRef_File_EpisodeRepository();
+            VideoLocalRepository vl = new VideoLocalRepository();
+            return new AnimeEpisodeRepository().GetBySeriesID(AnimeSeriesID).Count(a => cr.GetByEpisodeID(aer.GetByEpisodeID(a.AniDB_EpisodeID)?.EpisodeID ?? 0).Select(b => vl.GetByHash(b.Hash))
+                    .Count(b => b != null) > 0);
+            /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 return
@@ -232,7 +260,7 @@ namespace JMMServer.Entities
                             "Select count(*) FROM AnimeEpisode as aepi, AniDB_Episode as epi WHERE aepi.AniDB_EpisodeID = epi.EpisodeID AND (select count(*) from VideoLocal as vl, CrossRef_File_Episode as xref where vl.Hash = xref.Hash and xref.EpisodeID = epi.EpisodeID) > 0 AND aepi.AnimeSeriesID = :animeid")
                             .SetParameter("animeid", AnimeSeriesID)
                             .UniqueResult());
-            }
+            }*/
         }
 
         #region TvDB
@@ -412,17 +440,10 @@ namespace JMMServer.Entities
 
         public AnimeSeries_User GetUserRecord(int userID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetUserRecord(session, userID);
-            }
+            AnimeSeries_UserRepository repUser = new AnimeSeries_UserRepository();
+            return repUser.GetByUserAndSeriesID(userID, this.AnimeSeriesID);
         }
 
-        public AnimeSeries_User GetUserRecord(ISession session, int userID)
-        {
-            AnimeSeries_UserRepository repUser = new AnimeSeries_UserRepository();
-            return repUser.GetByUserAndSeriesID(session, userID, this.AnimeSeriesID);
-        }
 
         public AniDB_Anime GetAnime()
         {
@@ -489,11 +510,11 @@ namespace JMMServer.Entities
 
         public void CreateAnimeEpisodes(ISession session)
         {
-            ISessionWrapper sessionWrapper = session.Wrap();
+
             AniDB_Anime anime = GetAnime(session.Wrap());
             if (anime == null) return;
 
-            foreach (AniDB_Episode ep in anime.GetAniDBEpisodes(sessionWrapper))
+            foreach (AniDB_Episode ep in anime.GetAniDBEpisodes())
             {
                 ep.CreateAnimeEpisode(session, this.AnimeSeriesID);
             }
@@ -1015,8 +1036,10 @@ namespace JMMServer.Entities
 
             Dictionary<string, VideoLocal> dictVids = new Dictionary<string, VideoLocal>();
             foreach (VideoLocal vid in vidsTemp)
+            {
+                //Hashes may be repeated from multiple locations but we don't care
                 dictVids[vid.Hash] = vid;
-
+            }
             TimeSpan tsVids = DateTime.Now - startVids;
             logger.Trace("Got video locals for SERIES {0} in {1}ms", this.ToString(), tsVids.TotalMilliseconds);
 

@@ -93,7 +93,7 @@ namespace JMMServer.Repositories
                 }
                 if (grp.AnimeGroupParentID.HasValue && recursive)
                 {
-                    AnimeGroup pgroup = GetByID(sessionWrapper, grp.AnimeGroupParentID.Value);
+                    AnimeGroup pgroup = GetByID(grp.AnimeGroupParentID.Value);
 					// This will avoid the recursive error that would be possible, it won't update it, but that would be
 					// the least of the issues
 					if(pgroup != null && pgroup.AnimeGroupParentID == grp.AnimeGroupID)
@@ -107,40 +107,26 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
-        public AnimeGroup GetByID(ISessionWrapper session, int id)
-        {
-            return GetByID(id);
-        }
+
 
         public List<AnimeGroup> GetByParentID(int parentid)
         {
             return Parents.GetMultiple(parentid);
         }
 
-        public List<AnimeGroup> GetByParentID(ISessionWrapper session, int parentid)
-        {
-            return GetByParentID(parentid);
-        }
+
 
         public List<AnimeGroup> GetAll()
         {
             return Cache.Values.ToList();
         }
 
-        public List<AnimeGroup> GetAll(ISession session)
-        {
-            return GetAll();
-        }
 
         public List<AnimeGroup> GetAllTopLevelGroups()
         {
             return Parents.GetMultiple(0);
         }
 
-        public List<AnimeGroup> GetAllTopLevelGroups(ISession session)
-        {
-            return GetAllTopLevelGroups();
-        }
         public static ChangeTracker<int> GetChangeTracker()
         {
             return Changes;

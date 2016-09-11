@@ -5,7 +5,9 @@ using System.Linq;
 using System.Net;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
+using JMMServer.Entities;
 using JMMServer.ImageDownload;
+using JMMServer.Repositories;
 
 // ReSharper disable FunctionComplexityOverflow
 
@@ -151,6 +153,42 @@ namespace JMMServer.PlexAndKodi
                 case JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode:
                 case JMMContracts.PlexAndKodi.AnimeTypes.AnimeFile:
                     Helper.AddLinksToAnimeEpisodeVideo(prov, v, userid);
+                    AddResumePosition(v,prov,userid);
+                    break;
+            }
+        }
+
+        public static void AddResumePosition(this Video v, IProvider prov, int userid)
+        {
+            switch (
+                (JMMContracts.PlexAndKodi.AnimeTypes)
+                    Enum.Parse(typeof(JMMContracts.PlexAndKodi.AnimeTypes), v.AnimeType, true))
+            {
+                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode:
+                    if (v.Medias!=null)
+                    {
+                        VideoLocalRepository vrepo=new VideoLocalRepository();
+                        VideoLocal_User vl=v.Medias.Select(a=>vrepo.GetByID(int.Parse(a.Id))).Where(a => a != null).Select(a => a.GetUserRecord(userid))
+                                .Where(a => a != null)
+                                .OrderByDescending(a => a.ResumePosition)
+                                .FirstOrDefault();                       
+                        if (vl != null && vl.ResumePosition > 0)
+                        {
+                            v.ViewOffset = vl.ResumePosition.ToString();
+                            if (vl.WatchedDate.HasValue)
+                                v.LastViewedAt = vl.WatchedDate.Value.ToUnixTime();
+                        }
+                    }
+                    break;
+                case JMMContracts.PlexAndKodi.AnimeTypes.AnimeFile:
+                    int vid = int.Parse(v.Id); //This suxx, but adding regeneration at videolocal_user is worst.
+                    VideoLocal_User vl2 = new VideoLocalRepository().GetByID(vid)?.GetUserRecord(userid);
+                    if (vl2 != null && vl2.ResumePosition > 0)
+                    {
+                        v.ViewOffset = vl2.ResumePosition.ToString();
+                        if (vl2.WatchedDate.HasValue)
+                            v.LastViewedAt = vl2.WatchedDate.Value.ToUnixTime();
+                    }
                     break;
             }
         }

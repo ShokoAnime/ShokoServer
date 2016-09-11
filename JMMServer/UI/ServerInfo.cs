@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
+using System.Windows.Media;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
+using NutzCode.CloudFileSystem;
 
 namespace JMMServer
 {
@@ -42,7 +45,10 @@ namespace JMMServer
         private ServerInfo()
         {
             ImportFolders = new ObservableCollection<ImportFolder>();
+            CloudAccounts=new ObservableCollection<CloudAccount>();
             AdminMessages = new ObservableCollection<AdminMessage>();
+            CloudProviders = new ObservableCollection<CloudProvider>();
+            FolderProviders = new ObservableCollection<CloudAccount>();
         }
 
         private void Init()
@@ -65,6 +71,25 @@ namespace JMMServer
                 new Commands.CommandProcessorImages.QueueCountChangedHandler(CmdProcessorImages_OnQueueCountChangedEvent);
             JMMService.CmdProcessorImages.OnQueueStateChangedEvent +=
                 new Commands.CommandProcessorImages.QueueStateChangedHandler(CmdProcessorImages_OnQueueStateChangedEvent);
+
+
+
+            //Populate Cloud Providers
+            foreach (ICloudPlugin plugin in CloudFileSystemPluginFactory.Instance.List)
+            {
+                if (plugin.Name != "Local File System")
+                {
+                    CloudProvider p = new CloudProvider
+                    {
+                        Icon = plugin.CreateIconImage(),
+                        Name = plugin.Name,
+                        Plugin = plugin
+                    };
+                    CloudProviders.Add(p);
+                }
+            }
+
+
         }
 
         void CmdProcessorImages_OnQueueStateChangedEvent(Commands.QueueStateEventArgs ev)
@@ -398,17 +423,26 @@ namespace JMMServer
 
         public ObservableCollection<ImportFolder> ImportFolders { get; set; }
 
+        public ObservableCollection<CloudAccount> FolderProviders { get; set; }
+
+        public ObservableCollection<CloudProvider> CloudProviders { get; set; }
+
+        public class CloudProvider
+        {
+            public string Name { get; set; }
+            public ImageSource Icon { get; set; }
+            public ICloudPlugin Plugin { get; set; }
+        }
+
+
+        public ObservableCollection<CloudAccount> CloudAccounts { get; set; }
         public void RefreshImportFolders()
         {
             ImportFolders.Clear();
 
             try
             {
-                ImportFolderRepository repFolders = new ImportFolderRepository();
-                List<ImportFolder> fldrs = repFolders.GetAll();
-
-                foreach (ImportFolder ifolder in fldrs)
-                    ImportFolders.Add(ifolder);
+                new ImportFolderRepository().GetAll().ForEach(a=>ImportFolders.Add(a));
             }
             catch (Exception ex)
             {
@@ -416,6 +450,26 @@ namespace JMMServer
             }
         }
 
+        public void RefreshCloudAccounts()
+        {
+            CloudAccounts.Clear();
+            try
+            {
+                new CloudAccountRepository().GetAll().ForEach(a=>CloudAccounts.Add(a));
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex);
+            }
+        }
+
+        public void RefreshFolderProviders()
+        {
+            FolderProviders.Clear();
+            CloudAccount lfs = new CloudAccount() {Name = "NA", Provider = "Local File System"};
+            FolderProviders.Add(lfs);
+            new CloudAccountRepository().GetAll().ForEach(a => FolderProviders.Add(a));
+        }
         #endregion
     }
 }

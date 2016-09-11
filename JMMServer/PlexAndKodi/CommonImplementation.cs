@@ -186,7 +186,7 @@ namespace JMMServer.PlexAndKodi
                         var episodeID = -1;
                         if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                         {
-                            var anime = repo.GetByID(session, episodeID).GetAnimeSeries(sessionWrapper).GetAnime(sessionWrapper);
+                            var anime = repo.GetByID(episodeID).GetAnimeSeries(sessionWrapper).GetAnime(sessionWrapper);
                             dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks(sessionWrapper)?.GenPoster();
                             dir.Art = anime?.GetDefaultFanartDetailsNoBlanks(sessionWrapper)?.GenArt();
                             dir.Banner = anime?.GetDefaultWideBannerDetailsNoBlanks(sessionWrapper)?.GenArt();
@@ -227,7 +227,7 @@ namespace JMMServer.PlexAndKodi
                             if (episodeID < 0) return new MediaContainer() {ErrorString = "Invalid Episode ID"};
                             List<Video> dirs = new List<Video>();
                             AnimeSeriesRepository serRepo = new AnimeSeriesRepository();
-                            AnimeEpisode e = repo.GetByID(session, episodeID);
+                            AnimeEpisode e = repo.GetByID(episodeID);
                             if (e == null)
                                 return new MediaContainer() {ErrorString = "Invalid Episode"};
                             KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep =
@@ -235,7 +235,7 @@ namespace JMMServer.PlexAndKodi
                                     e.GetUserContract(userid));
                             if (ep.Value != null && ep.Value.LocalFileCount == 0)
                                 continue;
-                            AnimeSeries ser = serRepo.GetByID(sessionWrapper, ep.Key.AnimeSeriesID);
+                            AnimeSeries ser = serRepo.GetByID(ep.Key.AnimeSeriesID);
                             if (ser == null)
                                 return new MediaContainer() {ErrorString="Invalid Series"};
                             Contract_AnimeSeries con = ser.GetUserContract(userid);
@@ -309,7 +309,7 @@ namespace JMMServer.PlexAndKodi
             VideoLocal vi = repVids.GetByID(id);
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.File,
-                    Path.GetFileNameWithoutExtension(vi.FilePath ?? ""),
+                    Path.GetFileNameWithoutExtension(vi.FileName ?? ""),
                     true, false, info));
             Video v2 = Helper.VideoFromVideoLocal(prov, vi, userid);
             List<Video> dirs = new List<Video>();
@@ -341,7 +341,7 @@ namespace JMMServer.PlexAndKodi
                 AnimeSeriesRepository serRepo = new AnimeSeriesRepository();
                 ISessionWrapper sessionWrapper = session.Wrap();
 
-                AnimeEpisode e = epRepo.GetByID(session, id);
+                AnimeEpisode e = epRepo.GetByID(id);
                 if (e == null)
                     return new MediaContainer() {ErrorString = "Invalid Episode Id"};
                 KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep =
@@ -352,7 +352,7 @@ namespace JMMServer.PlexAndKodi
                 AniDB_Episode aep = ep.Key.AniDB_Episode;
                 if (aep == null)
                     return new MediaContainer() {ErrorString = "Invalid Episode AniDB link not found"};
-                AnimeSeries ser = serRepo.GetByID(sessionWrapper, ep.Key.AnimeSeriesID);
+                AnimeSeries ser = serRepo.GetByID(ep.Key.AnimeSeriesID);
                 if (ser == null)
                     return new MediaContainer() {ErrorString = "Invalid Serie"};
                 AniDB_Anime anime = ser.GetAnime(sessionWrapper);
@@ -755,7 +755,7 @@ namespace JMMServer.PlexAndKodi
                     if (vt == (int) enAniDBVoteType.Episode)
                     {
                         AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-                        AnimeEpisode ep = repEpisodes.GetByID(session, objid);
+                        AnimeEpisode ep = repEpisodes.GetByID(objid);
                         if (ep == null)
                         {
                             rsp.Code = "404";
@@ -811,7 +811,7 @@ namespace JMMServer.PlexAndKodi
                     if (vt == (int) enAniDBVoteType.Anime)
                     {
                         AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                        AnimeSeries ser = repSeries.GetByID(sessionWrapper, objid);
+                        AnimeSeries ser = repSeries.GetByID(objid);
                         AniDB_Anime anime = ser.GetAnime();
                         if (anime == null)
                         {
@@ -1003,7 +1003,7 @@ namespace JMMServer.PlexAndKodi
                     return new MediaContainer() { ErrorString = "Invalid Serie Id" };
                 ISessionWrapper sessionWrapper = session.Wrap();
                 AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries ser = repSeries.GetByID(sessionWrapper, serieID);
+                AnimeSeries ser = repSeries.GetByID(serieID);
                 if (ser == null)
                     return new MediaContainer() {ErrorString = "Invalid Series"};
                 Contract_AnimeSeries cseries = ser.GetUserContract(userid);
@@ -1012,7 +1012,7 @@ namespace JMMServer.PlexAndKodi
                 Video nv = ser.GetPlexContract(userid);
 
 
-                Dictionary<AnimeEpisode, Contract_AnimeEpisode> episodes = ser.GetAnimeEpisodes(sessionWrapper)
+                Dictionary<AnimeEpisode, Contract_AnimeEpisode> episodes = ser.GetAnimeEpisodes()
                     .ToDictionary(a => a, a => a.GetUserContract(userid));
                 episodes = episodes.Where(a => a.Value == null || a.Value.LocalFileCount > 0)
                     .ToDictionary(a => a.Key, a => a.Value);
@@ -1125,7 +1125,7 @@ namespace JMMServer.PlexAndKodi
                     GroupFilterRepository repGF = new GroupFilterRepository();
 
                     GroupFilter gf;
-                    gf = repGF.GetByID(session, groupFilterID);
+                    gf = repGF.GetByID(groupFilterID);
                     if (gf == null) return new MediaContainer() { ErrorString = "Invalid Group Filter" };
 
                     BaseObject ret =
