@@ -41,8 +41,8 @@ namespace JMMServer.Repositories
                 {
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
+                    Cache.Update(obj);
                 }
-                Cache.Update(obj);
             }
             logger.Trace("Updating group stats by file from CrossRef_File_EpisodeRepository.Save: {0}", obj.Hash);
             AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);

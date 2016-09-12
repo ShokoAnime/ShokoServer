@@ -24,7 +24,21 @@ namespace JMMServer.Repositories
                 }
             }
         }
-
+        public void Save(IEnumerable<AniDB_Character> objs)
+        {
+            if (!objs.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Character obj in objs)
+                       session.SaveOrUpdate(obj);
+                    transaction.Commit();
+                }
+            }
+        }
         public AniDB_Character GetByID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

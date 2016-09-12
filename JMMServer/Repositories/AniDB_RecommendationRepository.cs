@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -23,7 +24,21 @@ namespace JMMServer.Repositories
                 }
             }
         }
-
+        public void Save(IEnumerable<AniDB_Recommendation> objs)
+        {
+            if (!objs.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Recommendation obj in objs)
+                        session.SaveOrUpdate(obj);
+                    transaction.Commit();
+                }
+            }
+        }
         public AniDB_Recommendation GetByID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
@@ -50,6 +65,14 @@ namespace JMMServer.Repositories
             return new List<AniDB_Recommendation>(votes);
         }
 
+        public AniDB_Recommendation GetByAnimeIDAndUserID(ISession session, int animeid, int userid)
+        {
+            return session
+                .CreateCriteria(typeof(AniDB_Recommendation))
+                .Add(Restrictions.Eq("AnimeID", animeid))
+                .Add(Restrictions.Eq("UserID", userid))
+                .UniqueResult<AniDB_Recommendation>();
+        }
 
         public void Delete(int id)
         {

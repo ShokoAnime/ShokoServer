@@ -962,8 +962,7 @@ namespace JMMServer.Providers.Azure
             msg = string.Format("Got File Hash From Cache: {0} - {1}", hashDetails, ts.TotalMilliseconds);
             JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<FileHash> hashes = JSONHelper.Deserialize<List<FileHash>>(json);
-
+            List<FileHash> hashes = JSONHelper.Deserialize<List<FileHash>>(json) ?? new List<FileHash>();
             return hashes;
         }
 

@@ -33,7 +33,6 @@ namespace JMMServer.Repositories
                     .List<AniDB_Tag>();
 
                 return new List<AniDB_Tag>(objs);
-                ;   
             }
         }
         public void Save(AniDB_Tag obj)
@@ -43,13 +42,30 @@ namespace JMMServer.Repositories
                 // populate the database
                 using (var transaction = session.BeginTransaction())
                 {
-                    Cache.Update(obj);
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
+                    Cache.Update(obj);
                 }
             }
         }
+        public void Save(IEnumerable<AniDB_Tag> objs)
+        {
+            if (!objs.Any())
+                return;
 
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Tag obj in objs)
+                        session.SaveOrUpdate(obj);
+                    transaction.Commit();
+                    foreach (AniDB_Tag obj in objs)
+                        Cache.Update(obj);
+                }
+            }
+        }
         public AniDB_Tag GetByID(int id)
         {
             return Cache.Get(id);
@@ -168,6 +184,24 @@ namespace JMMServer.Repositories
                         session.Delete(cr);
                         transaction.Commit();
                     }
+                }
+            }
+        }
+        public void Delete(IEnumerable<AniDB_Tag> tags)
+        {
+            if (!tags.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach (AniDB_Tag cr in tags)
+                    {
+                        Cache.Remove(cr);
+                        session.Delete(cr);
+                    }
+                    transaction.Commit();
                 }
             }
         }

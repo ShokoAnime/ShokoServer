@@ -88,8 +88,8 @@ namespace JMMServer.Repositories
                     {
                         session.SaveOrUpdate(obj);
                         transaction.Commit();
+                        Cache.Update(obj);
                     }
-                    Cache.Update(obj);
                 }
             }
         }

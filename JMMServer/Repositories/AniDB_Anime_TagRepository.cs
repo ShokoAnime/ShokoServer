@@ -41,12 +41,31 @@ namespace JMMServer.Repositories
                 // populate the database
                 using (var transaction = session.BeginTransaction())
                 {
-                    Cache.Update(obj);
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
+                    Cache.Update(obj);
                 }
             }
         }
+        public void Save(IEnumerable<AniDB_Anime_Tag> objs)
+        {
+            if (!objs.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Anime_Tag obj in objs)
+                        session.SaveOrUpdate(obj);
+                    transaction.Commit();
+                    foreach (AniDB_Anime_Tag obj in objs)
+                        Cache.Update(obj);
+                }
+            }
+        }
+
+
 
         public AniDB_Anime_Tag GetByID(int id)
         {
@@ -167,5 +186,24 @@ namespace JMMServer.Repositories
                 }
             }
         }
+        public void Delete(IEnumerable<AniDB_Anime_Tag> tags)
+        {
+            if (!tags.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Anime_Tag cr in tags)
+                    {
+                        Cache.Remove(cr);
+                        session.Delete(cr);
+                    }
+                    transaction.Commit();
+                }
+            }
+        }
+
     }
 }

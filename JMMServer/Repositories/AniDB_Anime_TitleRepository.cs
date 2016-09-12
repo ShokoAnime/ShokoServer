@@ -43,13 +43,33 @@ namespace JMMServer.Repositories
                 // populate the database
                 using (var transaction = session.BeginTransaction())
                 {
-                    Cache.Update(obj);
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
+                    Cache.Update(obj);
                 }
             }
         }
-
+        public void Save(IEnumerable<AniDB_Anime_Title> objs)
+        {
+            if (!objs.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach (AniDB_Anime_Title obj in objs)
+                    {
+                        session.SaveOrUpdate(obj);
+                    }
+                    transaction.Commit();
+                    foreach (AniDB_Anime_Title obj in objs)
+                    {
+                        Cache.Update(obj);
+                    }
+                }
+            }
+        }
         public AniDB_Anime_Title GetByID(int id)
         {
             return Cache.Get(id);
@@ -186,6 +206,24 @@ namespace JMMServer.Repositories
                         session.Delete(cr);
                         transaction.Commit();
                     }
+                }
+            }
+        }
+        public void Delete(IEnumerable<AniDB_Anime_Title> tits)
+        {
+            if (!tits.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach (AniDB_Anime_Title cr in tits)
+                    {
+                        Cache.Remove(cr);
+                        session.Delete(cr);
+                    }
+                    transaction.Commit();
                 }
             }
         }

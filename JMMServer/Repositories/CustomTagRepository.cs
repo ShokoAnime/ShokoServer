@@ -41,9 +41,9 @@ namespace JMMServer.Repositories
                 // populate the database
                 using (var transaction = session.BeginTransaction())
                 {
-                    Cache.Update(obj);
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
+                    Cache.Update(obj);
                 }
             }
         }

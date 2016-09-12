@@ -3339,8 +3339,7 @@ namespace JMMServer
                 Thread.Sleep(200);
 
                 CommandRequestRepository repCR = new CommandRequestRepository();
-                foreach (CommandRequest cr in repCR.GetAllCommandRequestHasher())
-                    repCR.Delete(cr.CommandRequestID);
+                repCR.Delete(repCR.GetAllCommandRequestHasher());
 
                 JMMService.CmdProcessorHasher.Init();
             }
@@ -3364,9 +3363,7 @@ namespace JMMServer
                 Thread.Sleep(200);
 
                 CommandRequestRepository repCR = new CommandRequestRepository();
-                foreach (CommandRequest cr in repCR.GetAllCommandRequestImages())
-                    repCR.Delete(cr.CommandRequestID);
-
+                repCR.Delete(repCR.GetAllCommandRequestImages());
                 JMMService.CmdProcessorImages.Init();
             }
             catch (Exception ex)
@@ -3389,9 +3386,7 @@ namespace JMMServer
                 Thread.Sleep(200);
 
                 CommandRequestRepository repCR = new CommandRequestRepository();
-                foreach (CommandRequest cr in repCR.GetAllCommandRequestGeneral())
-                    repCR.Delete(cr.CommandRequestID);
-
+                repCR.Delete(repCR.GetAllCommandRequestGeneral());
                 JMMService.CmdProcessorGeneral.Init();
             }
             catch (Exception ex)

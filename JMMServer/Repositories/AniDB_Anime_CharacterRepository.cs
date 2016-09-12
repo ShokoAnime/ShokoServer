@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -20,7 +21,21 @@ namespace JMMServer.Repositories
                 }
             }
         }
-
+        public void Save(IEnumerable<AniDB_Anime_Character> objs)
+        {
+            if (!objs.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Anime_Character obj in objs)
+                        session.SaveOrUpdate(obj);
+                    transaction.Commit();
+                }
+            }
+        }
         public AniDB_Anime_Character GetByID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
@@ -92,6 +107,21 @@ namespace JMMServer.Repositories
                         session.Delete(cr);
                         transaction.Commit();
                     }
+                }
+            }
+        }
+        public void Delete(IEnumerable<AniDB_Anime_Character> chars)
+        {
+            if (!chars.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Anime_Character cr in chars)
+                        session.Delete(cr);
+                    transaction.Commit();
                 }
             }
         }
