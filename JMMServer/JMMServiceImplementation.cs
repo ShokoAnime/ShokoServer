@@ -2245,23 +2245,36 @@ namespace JMMServer
             List<string> result = new List<string>();
             try
             {
-
-                CloudAccount cl = cloudaccountid==0 ? new CloudAccount() { Name = "NA", Provider = "Local File System" } :  new CloudAccountRepository().GetByID(cloudaccountid);
-                FileSystemResult<IObject> dirr = cl?.FileSystem?.Resolve(path);
-                if (dirr == null || !dirr.IsOk || dirr.Result is IFile)
-                    return null;
-                IDirectory dir=dirr.Result as IDirectory;
-                FileSystemResult fr=dir.Populate();
-                if (!fr.IsOk)
-                    return result;
-                return dir.Directories.Select(a => a.FullName).OrderBy(a=>a).ToList();
+                IFileSystem n=null;
+                if (cloudaccountid == 0)
+                {
+                    FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == "Local File System")?.Init("", null, null);
+                    if (ff.IsOk)
+                        n = ff.Result;
+                }
+                else
+                {
+                    CloudAccount cl = new CloudAccountRepository().GetByID(cloudaccountid);
+                    if (cl != null)
+                       n = cl.FileSystem;
+                }
+                if (n != null)
+                {
+                    FileSystemResult<IObject> dirr = n.Resolve(path);
+                    if (dirr == null || !dirr.IsOk || dirr.Result is IFile)
+                        return null;
+                    IDirectory dir = dirr.Result as IDirectory;
+                    FileSystemResult fr = dir.Populate();
+                    if (!fr.IsOk)
+                        return result;
+                    return dir.Directories.Select(a => a.FullName).OrderBy(a => a).ToList();
+                }
             }
             catch (Exception ex)
             {
                 logger.ErrorException(ex.ToString(), ex);
-                return result;
             }
-
+            return result;
         }
 
         public List<Contract_CloudAccount> GetCloudProviders()

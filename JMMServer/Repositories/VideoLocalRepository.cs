@@ -28,6 +28,21 @@ namespace JMMServer.Repositories
             ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, t, string.Empty);
             VideoLocalRepository repo = new VideoLocalRepository();
             Cache = new PocoCache<int, VideoLocal>(repo.InternalGetAll(), a => a.VideoLocalID);
+            foreach (VideoLocal l in Cache.Values)
+            {
+                if (l.MD5 == null || l.SHA1 == null || l.Hash == null || l.FileName == null)
+                {
+                    l.MediaVersion = 0;
+                    if (l.MD5 == null)
+                        l.MD5 = string.Empty;
+                    if (l.SHA1 == null)
+                        l.SHA1 = string.Empty;
+                    if (l.Hash == null)
+                        l.Hash = string.Empty;
+                    if (l.FileName == null)
+                        l.FileName = string.Empty;
+                }
+            }
             Hashes = new PocoIndex<int, VideoLocal, string>(Cache, a => a.Hash);
             SHA1 =new PocoIndex<int, VideoLocal, string>(Cache, a=>a.SHA1);
             MD5 = new PocoIndex<int, VideoLocal, string>(Cache, a => a.MD5);
