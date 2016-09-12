@@ -1037,22 +1037,16 @@ namespace JMMServer.Entities
             get { return AnimeType == (int) AnimeTypes.Movie; }
         }
 
-        public List<AniDB_Tag> GetTags()
-        {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                return GetTags(session.Wrap());
-            }
-        }
 
-        public List<AniDB_Tag> GetTags(ISessionWrapper session)
+
+        public List<AniDB_Tag> GetTags()
         {
             AniDB_TagRepository repTag = new AniDB_TagRepository();
 
             List<AniDB_Tag> tags = new List<AniDB_Tag>();
-            foreach (AniDB_Anime_Tag tag in GetAnimeTags(session))
+            foreach (AniDB_Anime_Tag tag in GetAnimeTags())
             {
-                AniDB_Tag newTag = repTag.GetByTagID(tag.TagID, session);
+                AniDB_Tag newTag = repTag.GetByTagID(tag.TagID);
                 if (newTag != null) tags.Add(newTag);
             }
             return tags;
@@ -1085,16 +1079,16 @@ namespace JMMServer.Entities
             return repTags.GetByAnimeID(AnimeID);
         }
 
-        public List<AniDB_Tag> GetAniDBTags(ISessionWrapper session)
+        public List<AniDB_Tag> GetAniDBTags()
         {
             AniDB_TagRepository repTags = new AniDB_TagRepository();
-            return repTags.GetByAnimeID(session, AnimeID);
+            return repTags.GetByAnimeID(AnimeID);
         }
 
-        public List<AniDB_Anime_Tag> GetAnimeTags(ISessionWrapper session)
+        public List<AniDB_Anime_Tag> GetAnimeTags()
         {
             AniDB_Anime_TagRepository repAnimeTags = new AniDB_Anime_TagRepository();
-            return repAnimeTags.GetByAnimeID(session, AnimeID);
+            return repAnimeTags.GetByAnimeID(AnimeID);
         }
 
         public List<AniDB_Anime_Relation> GetRelatedAnime()
@@ -1680,11 +1674,10 @@ namespace JMMServer.Entities
             // find all the current links, and then later remove the ones that are no longer relevant
             List<AniDB_Anime_Tag> currentTags = repTagsXRefs.GetByAnimeID(AnimeID);
             List<int> newTagIDs = new List<int>();
-            ISessionWrapper sessionWrapper = session.Wrap();
 
             foreach (Raw_AniDB_Tag rawtag in tags)
             {
-                AniDB_Tag tag = repTags.GetByTagID(rawtag.TagID, sessionWrapper);
+                AniDB_Tag tag = repTags.GetByTagID(rawtag.TagID);
                 if (tag == null) tag = new AniDB_Tag();
 
                 tag.Populate(rawtag);
@@ -1692,7 +1685,7 @@ namespace JMMServer.Entities
 
                 newTagIDs.Add(tag.TagID);
 
-                AniDB_Anime_Tag anime_tag = repTagsXRefs.GetByAnimeIDAndTagID(sessionWrapper, rawtag.AnimeID, rawtag.TagID);
+                AniDB_Anime_Tag anime_tag = repTagsXRefs.GetByAnimeIDAndTagID(rawtag.AnimeID, rawtag.TagID);
                 if (anime_tag == null) anime_tag = new AniDB_Anime_Tag();
 
                 anime_tag.Populate(rawtag);
@@ -2288,10 +2281,10 @@ namespace JMMServer.Entities
 
 
             Dictionary<int, AniDB_Anime_Tag> dictAnimeTags = new Dictionary<int, AniDB_Anime_Tag>();
-            foreach (AniDB_Anime_Tag animeTag in GetAnimeTags(session))
+            foreach (AniDB_Anime_Tag animeTag in GetAnimeTags())
                 dictAnimeTags[animeTag.TagID] = animeTag;
 
-            foreach (AniDB_Tag tag in GetAniDBTags(session))
+            foreach (AniDB_Tag tag in GetAniDBTags())
             {
                 Contract_AnimeTag ctag = new Contract_AnimeTag();
 
