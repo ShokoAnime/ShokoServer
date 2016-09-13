@@ -74,6 +74,10 @@
     <Reference Include="AppGlue">
       <HintPath>..\Dependencies\AppGlue.dll</HintPath>
     </Reference>
+    <Reference Include="DeepCloner, Version=0.8.0.0, Culture=neutral, PublicKeyToken=dc0b95cf99bf4e99, processorArchitecture=MSIL">
+      <HintPath>..\packages\DeepCloner.0.9.3\lib\net40\DeepCloner.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="FluentNHibernate, Version=2.0.3.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\FluentNHibernate.2.0.3.0\lib\net40\FluentNHibernate.dll</HintPath>
       <Private>True</Private>
@@ -303,7 +307,6 @@
     <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
     <Compile Include="Mappings\CloudAccountMap.cs" />
     <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
-    <Compile Include="ObjectExtensions.cs" />
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiImplementation.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
