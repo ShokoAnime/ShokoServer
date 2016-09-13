@@ -9,9 +9,9 @@ using System.Windows;
 [assembly: AssemblyTitle("JMMServer")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Microsoft")]
+[assembly: AssemblyCompany("JMMServer dewds")]
 [assembly: AssemblyProduct("JMMServer")]
-[assembly: AssemblyCopyright("Copyright © Microsoft 2011")]
+[assembly: AssemblyCopyright("Copyright © Microsoft 2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -52,5 +52,5 @@ using System.Windows;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("3.6.1.0")]
-[assembly: AssemblyFileVersion("3.6.1.0")]
+[assembly: AssemblyVersion("3.6.5.0")]
+[assembly: AssemblyFileVersion("3.6.5.0")]
