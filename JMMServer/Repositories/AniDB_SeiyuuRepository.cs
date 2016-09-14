@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -19,7 +20,21 @@ namespace JMMServer.Repositories
                 }
             }
         }
-
+        public void Save(IEnumerable<AniDB_Seiyuu> objs)
+        {
+            if (!objs.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Seiyuu obj in objs)
+                        session.SaveOrUpdate(obj);
+                    transaction.Commit();
+                }
+            }
+        }
         public AniDB_Seiyuu GetByID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

@@ -590,12 +590,10 @@ namespace JMMServer.Entities
 
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
-
                     // get a list of all the unique tags for this all the series in this group
                     foreach (AnimeSeries ser in GetAllSeries())
                     {
-                        foreach (AniDB_Anime_Tag aac in ser.GetAnime().GetAnimeTags(sessionWrapper))
+                        foreach (AniDB_Anime_Tag aac in ser.GetAnime().GetAnimeTags())
                         {
                             if (!animeTagIDs.Contains(aac.AniDB_Anime_TagID))
                             {
@@ -608,7 +606,7 @@ namespace JMMServer.Entities
                     AniDB_TagRepository repTag = new AniDB_TagRepository();
                     foreach (AniDB_Anime_Tag animeTag in animeTags.OrderByDescending(a=>a.Weight))
                     {
-                        AniDB_Tag tag = repTag.GetByTagID(animeTag.TagID, sessionWrapper);
+                        AniDB_Tag tag = repTag.GetByTagID(animeTag.TagID);
                         if (tag != null) tags.Add(tag);
                     }
                 }

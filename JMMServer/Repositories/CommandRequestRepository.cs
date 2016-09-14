@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -25,7 +26,18 @@ namespace JMMServer.Repositories
                 transaction.Commit();
             }
         }
-
+        public void Save(ISession session, IEnumerable<CommandRequest> objs)
+        {
+            if (!objs.Any())
+                return;
+            // populate the database
+            using (var transaction = session.BeginTransaction())
+            {
+                foreach(CommandRequest obj in objs)
+                    session.SaveOrUpdate(obj);
+                transaction.Commit();
+            }
+        }
         public CommandRequest GetByID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
@@ -72,7 +84,21 @@ namespace JMMServer.Repositories
                 }
             }
         }
-
+        public void Delete(IEnumerable<CommandRequest> reqs)
+        {
+            if (!reqs.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(CommandRequest cr in reqs)
+                        session.Delete(cr);
+                    transaction.Commit();
+                }
+            }
+        }
         public CommandRequest GetNextDBCommandRequestGeneral()
         {
             /*SELECT TOP 1 CommandRequestID

@@ -215,7 +215,7 @@ namespace JMMServer.Repositories
                 {
                     HashSet<string> alltags;
                     if (tags == null)
-                        alltags = new HashSet<string>(tagsrepo.GetAll(session).Select(a => a.TagName).Distinct(StringComparer.InvariantCultureIgnoreCase),StringComparer.InvariantCultureIgnoreCase);
+                        alltags = new HashSet<string>(tagsrepo.GetAll().Select(a => a.TagName).Distinct(StringComparer.InvariantCultureIgnoreCase),StringComparer.InvariantCultureIgnoreCase);
                     else
                         alltags = new HashSet<string>(tags.Distinct(StringComparer.InvariantCultureIgnoreCase),StringComparer.InvariantCultureIgnoreCase);
                     HashSet<string> notin = new HashSet<string>(lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Tag).Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),StringComparer.InvariantCultureIgnoreCase);

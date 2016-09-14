@@ -17,6 +17,21 @@
     <TargetFrameworkProfile />
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -52,20 +67,25 @@
     <StartupObject>JMMServer.App</StartupObject>
   </PropertyGroup>
   <PropertyGroup>
-    <RunPostBuildEvent>Always</RunPostBuildEvent>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AppGlue, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="AppGlue">
       <HintPath>..\Dependencies\AppGlue.dll</HintPath>
+    </Reference>
+    <Reference Include="DeepCloner, Version=0.8.0.0, Culture=neutral, PublicKeyToken=dc0b95cf99bf4e99, processorArchitecture=MSIL">
+      <HintPath>..\packages\DeepCloner.0.9.3\lib\net40\DeepCloner.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="FluentNHibernate, Version=2.0.3.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\FluentNHibernate.2.0.3.0\lib\net40\FluentNHibernate.dll</HintPath>
       <Private>True</Private>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
       <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
       <Private>True</Private>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="Iesi.Collections, Version=4.0.0.0, Culture=neutral, PublicKeyToken=aa95f207798dfdb4, processorArchitecture=MSIL">
       <HintPath>..\packages\Iesi.Collections.4.0.1.4000\lib\net40\Iesi.Collections.dll</HintPath>
@@ -326,7 +346,6 @@
     <Compile Include="Mappings\AuthTokensMap.cs" />
     <Compile Include="Mappings\CloudAccountMap.cs" />
     <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
-    <Compile Include="ObjectExtensions.cs" />
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
     <Compile Include="PlexAndKodi\Plex\PlexProvider.cs" />
@@ -1182,6 +1201,18 @@
     <Resource Include="Images\16_folder.png" />
   </ItemGroup>
   <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.6.1 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
@@ -1195,7 +1226,16 @@
 xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
 xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y	
 xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
-xcopy "$(SolutionDir)Dependencies\AppGlue.dll" "$(TargetDir)" /S /R /I /Y
+cd "$(TargetDir)"
+mkdir Merge
+..\..\..\packages\ILMerge.2.14.1208\tools\ILMerge.exe /t:winexe /wildcards /v4 /out:"Merge\JMMServer.exe" JMMServer.exe "$(SolutionDir)Dependencies\AppGlue.dll" JMMContracts.dll NutzCode.*.dll /closed
+del JMMServer.exe
+del JMMServer.pdb
+move Merge\* .
+del JMMContracts.*
+del NutzCode.*.*
+del AppGlue.*
+rmdir Merge
 </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>

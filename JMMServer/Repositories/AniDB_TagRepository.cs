@@ -33,7 +33,6 @@ namespace JMMServer.Repositories
                     .List<AniDB_Tag>();
 
                 return new List<AniDB_Tag>(objs);
-                ;
             }
         }
         public void Save(AniDB_Tag obj)
@@ -43,13 +42,30 @@ namespace JMMServer.Repositories
                 // populate the database
                 using (var transaction = session.BeginTransaction())
                 {
-                    Cache.Update(obj);
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
+                    Cache.Update(obj);
                 }
             }
         }
+        public void Save(IEnumerable<AniDB_Tag> objs)
+        {
+            if (!objs.Any())
+                return;
 
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Tag obj in objs)
+                        session.SaveOrUpdate(obj);
+                    transaction.Commit();
+                    foreach (AniDB_Tag obj in objs)
+                        Cache.Update(obj);
+                }
+            }
+        }
         public AniDB_Tag GetByID(int id)
         {
             return Cache.Get(id);
@@ -75,17 +91,6 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public List<AniDB_Tag> GetAll(ISession session)
-        {
-            return Cache.Values.ToList();
-            /*
-            var objs = session
-                .CreateCriteria(typeof(AniDB_Tag))
-                .List<AniDB_Tag>();
-
-            return new List<AniDB_Tag>(objs);
-            ;*/
-        }
 
         public List<AniDB_Tag> GetByAnimeID(int animeID)
         {
@@ -103,18 +108,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public List<AniDB_Tag> GetByAnimeID(ISessionWrapper session, int animeID)
-        {
-            return new AniDB_Anime_TagRepository().GetByAnimeID(animeID).Select(a => GetByTagID(a.TagID)).Where(a => a != null).ToList();
-            /*
-            var tags =
-                session.CreateQuery(
-                    "Select tag FROM AniDB_Tag as tag, AniDB_Anime_Tag as xref WHERE tag.TagID = xref.TagID AND xref.AnimeID= :animeID")
-                    .SetParameter("animeID", animeID)
-                    .List<AniDB_Tag>();
 
-            return new List<AniDB_Tag>(tags);*/
-        }
 
         public ILookup<int, AniDB_Tag> GetByAnimeIDs(ISessionWrapper session, int[] ids)
         {
@@ -153,17 +147,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public AniDB_Tag GetByTagID(int id, ISessionWrapper session)
-        {
-            return Tags.GetOne(id);
-            /*
-            AniDB_Tag cr = session
-                .CreateCriteria(typeof(AniDB_Tag))
-                .Add(Restrictions.Eq("TagID", id))
-                .UniqueResult<AniDB_Tag>();
 
-            return cr;*/
-        }
 
         /// <summary>
         /// Gets all the tags, but only if we have the anime locally
@@ -200,6 +184,24 @@ namespace JMMServer.Repositories
                         session.Delete(cr);
                         transaction.Commit();
                     }
+                }
+            }
+        }
+        public void Delete(IEnumerable<AniDB_Tag> tags)
+        {
+            if (!tags.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach (AniDB_Tag cr in tags)
+                    {
+                        Cache.Remove(cr);
+                        session.Delete(cr);
+                    }
+                    transaction.Commit();
                 }
             }
         }

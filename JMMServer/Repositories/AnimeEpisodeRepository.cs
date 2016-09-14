@@ -254,5 +254,29 @@ namespace JMMServer.Repositories
                 }
             }
         }
+        public void Delete(IEnumerable<AnimeEpisode> eps)
+        {
+            if (!eps.Any())
+                return;
+            AnimeEpisode_UserRepository userrepo=new AnimeEpisode_UserRepository();
+
+            List<AnimeEpisode_User> aes = eps.SelectMany(a => userrepo.GetByEpisodeID(a.AnimeEpisodeID)).ToList();
+            if (aes.Count>0)
+                userrepo.Delete(aes);
+
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach (AnimeEpisode cr in eps)
+                    {
+                        Cache.Remove(cr);
+                        session.Delete(cr);
+                    }
+                    transaction.Commit();
+                }
+            }
+        }
     }
 }

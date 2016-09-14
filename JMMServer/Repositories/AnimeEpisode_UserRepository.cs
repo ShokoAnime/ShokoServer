@@ -212,5 +212,21 @@ namespace JMMServer.Repositories
                 }
             }
         }
+        public void Delete(IEnumerable<AnimeEpisode_User> eps)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AnimeEpisode_User cr in eps)
+                    { 
+                        Cache.Remove(cr);
+                        session.Delete(cr);
+                    }
+                    transaction.Commit();
+                }
+            }
+        }
     }
 }

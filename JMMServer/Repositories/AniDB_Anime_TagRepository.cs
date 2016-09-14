@@ -41,12 +41,31 @@ namespace JMMServer.Repositories
                 // populate the database
                 using (var transaction = session.BeginTransaction())
                 {
-                    Cache.Update(obj);
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
+                    Cache.Update(obj);
                 }
             }
         }
+        public void Save(IEnumerable<AniDB_Anime_Tag> objs)
+        {
+            if (!objs.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Anime_Tag obj in objs)
+                        session.SaveOrUpdate(obj);
+                    transaction.Commit();
+                    foreach (AniDB_Anime_Tag obj in objs)
+                        Cache.Update(obj);
+                }
+            }
+        }
+
+
 
         public AniDB_Anime_Tag GetByID(int id)
         {
@@ -88,17 +107,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public AniDB_Anime_Tag GetByAnimeIDAndTagID(ISessionWrapper session, int animeid, int tagid)
-        {
-            return Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
-            /*
-            AniDB_Anime_Tag cr = session
-                .CreateCriteria(typeof(AniDB_Anime_Tag))
-                .Add(Restrictions.Eq("AnimeID", animeid))
-                .Add(Restrictions.Eq("TagID", tagid))
-                .UniqueResult<AniDB_Anime_Tag>();
-            return cr;*/
-        }
+
 
         public List<AniDB_Anime_Tag> GetByAnimeID(int id)
         {
@@ -115,17 +124,7 @@ namespace JMMServer.Repositories
             }*/
         }
 
-        public List<AniDB_Anime_Tag> GetByAnimeID(ISessionWrapper session, int id)
-        {
-            return Animes.GetMultiple(id);
-            /*
-            var tags = session
-                .CreateCriteria(typeof(AniDB_Anime_Tag))
-                .Add(Restrictions.Eq("AnimeID", id))
-                .List<AniDB_Anime_Tag>();
 
-            return new List<AniDB_Anime_Tag>(tags);*/
-        }
 
         public ILookup<int, AniDB_Anime_Tag> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
         {
@@ -187,5 +186,24 @@ namespace JMMServer.Repositories
                 }
             }
         }
+        public void Delete(IEnumerable<AniDB_Anime_Tag> tags)
+        {
+            if (!tags.Any())
+                return;
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                // populate the database
+                using (var transaction = session.BeginTransaction())
+                {
+                    foreach(AniDB_Anime_Tag cr in tags)
+                    {
+                        Cache.Remove(cr);
+                        session.Delete(cr);
+                    }
+                    transaction.Commit();
+                }
+            }
+        }
+
     }
 }
