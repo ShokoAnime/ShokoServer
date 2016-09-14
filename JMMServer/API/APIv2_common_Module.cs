@@ -10,15 +10,15 @@ namespace JMMServer.API
     {
         public APIv2_common_Module() : base("/api")
         {
+            this.RequiresAuthentication();
+
             //Images
             Get["/get_image/{type}/{id}"] = parameter => { return GetImage(parameter.type, parameter.id); };
             Get["/get_image/{type}/{id}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
             Get["/get_thumb/{type}/{id}/{ratio}"] = parameter => { return GetThumb(parameter.type, parameter.id, parameter.ratio); };
             Get["/get_support_image/{name}"] = parameter => { return GetSupportImage(parameter.name); };
             Get["/get_support_image/{name}/{ratio}"] = parameter => { return GetSupportImage(parameter.name, parameter.ratio); };
-            Get["/get_image_using_path/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
-
-            this.RequiresAuthentication();
+            Get["/get_image_using_path/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };            
             Get["/filters/get"] = _ => { return GetFilters(); };
             Get["/metadata/{type}/{id}"] = x => { return GetMetadata(x.type, x.id); };
 

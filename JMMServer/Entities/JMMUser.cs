@@ -8,7 +8,7 @@ namespace JMMServer.Entities
 {
     public class JMMUser: Nancy.Security.IUserIdentity
     {
-        public int JMMUserID { get; private set; }
+        public int JMMUserID { get; set; }
         public string Username { get; set; }
         public string Password { get; set; }
         public int IsAdmin { get; set; }

@@ -36,12 +36,6 @@ namespace JMMServer.API
             Post["/folder/edit"] = x => { return EditFolder(); };
             Post["/folder/delete"] = x => { return DeleteFolder(); };
             Get["/folder/import"] = _ => { return RunImport(); };
-            // 1.1 cloud folder
-            Get["/cloud/list"] = x => { return null; };
-            Get["/cloud/count"] = x => { return null; };
-            Post["/cloud/add"] = x => { return null; };
-            Post["/cloud/delete"] = x => { return null; };
-            Get["/cloud/import"] = _ => { return null; };
 
             // 2. upnp 
             Post["/upnp/list"] = x => { return ListUPNP(); };
@@ -148,6 +142,13 @@ namespace JMMServer.API
             Get["/os/folder/base"] = _ => { return GetOSBaseFolder(); };
             Post["/os/folder"] = x => { return GetOSFolder(x.folder); };
             Get["/os/drives"] = _ => { return GetOSDrives(); };
+
+            // 17. Cloud accounts
+            Get["/cloud/list"] = _ => { return GetCloudAccounts(); };
+            Get["/cloud/count"] = _ => { return GetCloudAccountsCount(); };
+            Post["/cloud/add"] = x => { return AddCloudAccount(); };
+            Post["/cloud/delete"] = x => { return DeleteCloudAccount(); };
+            Get["/cloud/import"] = _ => { return RunCloudImport(); };
         }
 
         #region 1.Import Folders
@@ -180,6 +181,7 @@ namespace JMMServer.API
         private object AddFolder()
         {
             Contract_ImportFolder folder = this.Bind();
+            folder.ImportFolderID = 0;
             if (folder.ImportFolderLocation != "")
             {
                 try
@@ -194,7 +196,7 @@ namespace JMMServer.API
 
                         if (!string.IsNullOrEmpty(response.ErrorMessage))
                         {
-                            return new APIMessage(500, "error while saving import folder");
+                            return new APIMessage(500, response.ErrorMessage);
                         }
                         
                         return APIStatus.statusOK();
@@ -218,7 +220,7 @@ namespace JMMServer.API
         private object EditFolder()
         {
             ImportFolder folder = this.Bind();
-            if (folder.ImportFolderLocation != "")
+            if (!String.IsNullOrEmpty(folder.ImportFolderLocation) && folder.ImportFolderID != 0)
             {
                 try
                 {
@@ -233,7 +235,7 @@ namespace JMMServer.API
                             Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder.ToContract());
                             if (!string.IsNullOrEmpty(response.ErrorMessage))
                             {
-                                return APIStatus.internalError();
+                                return new APIMessage(500, response.ErrorMessage);
                             }
                             else
                             {
@@ -253,7 +255,7 @@ namespace JMMServer.API
             }
             else
             {
-                return new APIMessage(400, "ImportFolderLocation missing");
+                return new APIMessage(400, "ImportFolderLocation and ImportFolderID missing");
             }
         }
 
@@ -266,13 +268,14 @@ namespace JMMServer.API
             ImportFolder folder = this.Bind();
             if (folder.ImportFolderID != 0)
             {
-                if (Importer.DeleteImportFolder(folder.ImportFolderID) == "")
+                string res = Importer.DeleteImportFolder(folder.ImportFolderID);
+                if (res == "")
                 {
                     return APIStatus.statusOK();
                 }
                 else
                 {
-                    return APIStatus.internalError();
+                    return new APIMessage(500, res);
                 }
             }
             else
@@ -302,20 +305,19 @@ namespace JMMServer.API
             discovery.StartAsyncFind(discovery.CreateAsyncFind("urn:schemas-upnp-org:device:MediaServer:1", 0, call));
 
             //TODO APIv2 ListUPNP: Need a tweak as this now should return it as list?
-
-            return call;
+            return APIStatus.notImplemented();
         }
 
         private object AddUPNP()
         {
             //TODO APIv2 AddUPNP: implement this
-            throw new NotImplementedException();
+            return APIStatus.notImplemented();
         }
 
         private object DeleteUPNP()
         {
             //TODO APIv2 DeleteUPN: implement this
-            throw new NotImplementedException();
+            return APIStatus.notImplemented();
         }
 
         #endregion
@@ -346,7 +348,9 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetPort()
         {
-            return "{ \"port\":" + ServerSettings.JMMServerPort.ToString() + "}";
+            dynamic x = new System.Dynamic.ExpandoObject();
+            x.port = int.Parse(ServerSettings.JMMServerPort);
+            return x;
         }
 
         /// <summary>
@@ -365,8 +369,15 @@ namespace JMMServer.API
             {
                 if (!String.IsNullOrEmpty(imagepath.path) && imagepath.path != "")
                 {
-                    ServerSettings.BaseImagesPath = imagepath.path;
-                    return APIStatus.statusOK();
+                    if (Directory.Exists(imagepath.path))
+                    {
+                        ServerSettings.BaseImagesPath = imagepath.path;
+                        return APIStatus.statusOK();
+                    }
+                    else
+                    {
+                        return new APIMessage(404, "Directory not found");
+                    }
                 }
                 else
                 {
@@ -439,7 +450,7 @@ namespace JMMServer.API
             }
             else
             {
-                return new APIMessage(401, "Unauthorized");
+                return APIStatus.unauthorized();
             }
         }
 
@@ -535,7 +546,7 @@ namespace JMMServer.API
             }
             else
             {
-                return new APIMessage(401, "Unauthorized");
+                return APIStatus.unauthorized();
             }
         }
 
@@ -573,7 +584,7 @@ namespace JMMServer.API
             }
             else
             {
-                return new APIMessage(401, "Unauthorized");
+                return APIStatus.unauthorized();
             }
         }
 
@@ -689,13 +700,16 @@ namespace JMMServer.API
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            dynamic x = new System.Dynamic.ExpandoObject();
             if (user != null)
             {
-                return " { \"userid\":\"" + user.JMMUserID.ToString() + "\" }";
+                x.userid = user.JMMUserID;
+                return x;
             }
             else
             {
-                return " { \"userid\":\"" + "0" + "\" }";
+                x.userid = 0;
+                return x;
             }
         }
 
@@ -746,16 +760,26 @@ namespace JMMServer.API
         /// <returns></returns>
         private object CreateUser()
         {
-            Contract_JMMUser user = this.Bind();
-            user.Password = Digest.Hash(user.Password);
-
-            if (new JMMServiceImplementation().SaveUser(user) == "")
+            Request request = this.Request;
+            Entities.JMMUser _user = (Entities.JMMUser)this.Context.CurrentUser;
+            if (_user.IsAdmin == 1)
             {
-                return APIStatus.statusOK();
+                Contract_JMMUser user = this.Bind();
+                user.Password = Digest.Hash(user.Password);
+                user.HideCategories = new HashSet<string>();
+                user.PlexUsers = new HashSet<string>();
+                if (new JMMServiceImplementation().SaveUser(user) == "")
+                {
+                    return APIStatus.statusOK();
+                }
+                else
+                {
+                    return APIStatus.internalError();
+                }
             }
             else
             {
-                return APIStatus.internalError();
+                return APIStatus.adminNeeded();
             }
         }
 
@@ -776,14 +800,23 @@ namespace JMMServer.API
         /// <returns></returns>
         private object ChangePassword(int uid)
         {
-            JMMUser _user = this.Bind();
-            if (new JMMServiceImplementation().ChangePassword(uid, _user.Password) == "")
+            Request request = this.Request;
+            Entities.JMMUser _user = (Entities.JMMUser)this.Context.CurrentUser;
+            if (_user.IsAdmin == 1)
             {
-                return APIStatus.statusOK();
+                JMMUser user = this.Bind();
+                if (new JMMServiceImplementation().ChangePassword(uid, user.Password) == "")
+                {
+                    return APIStatus.statusOK();
+                }
+                else
+                {
+                    return APIStatus.internalError();
+                }
             }
             else
             {
-                return APIStatus.internalError();
+                return APIStatus.adminNeeded();
             }
         }
 
@@ -793,14 +826,23 @@ namespace JMMServer.API
         /// <returns></returns>
         private object DeleteUser()
         {
-            JMMUser user = this.Bind();
-            if (new JMMServiceImplementation().DeleteUser(user.JMMUserID) == "")
+            Request request = this.Request;
+            JMMUser _user = (JMMUser)this.Context.CurrentUser;
+            if (_user.IsAdmin == 1)
             {
-                return APIStatus.statusOK();
+                JMMUser user = this.Bind();
+                if (new JMMServiceImplementation().DeleteUser(user.JMMUserID) == "")
+                {
+                    return APIStatus.statusOK();
+                }
+                else
+                {
+                    return APIStatus.internalError();
+                }
             }
             else
             {
-                return APIStatus.internalError();
+                return APIStatus.adminNeeded();
             }
         }
 
@@ -1040,9 +1082,16 @@ namespace JMMServer.API
 
         #region 12.Files
 
+        /// <summary>
+        /// Get file info by its ID
+        /// </summary>
+        /// <param name="file_id"></param>
+        /// <returns></returns>
         private object GetFileById(int file_id)
         {
-            throw new NotImplementedException();
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            VideoLocal file = _impl.GetFileByID(file_id);
+            return file;
         }
 
         /// <summary>
@@ -1052,10 +1101,10 @@ namespace JMMServer.API
         private object GetAllFiles()
         {
             JMMServiceImplementation _impl = new JMMServiceImplementation();
-            List<string> files = new List<string>();
+            Dictionary<int, string> files = new Dictionary<int, string>();
             foreach (VideoLocal file in _impl.GetAllFiles())
             {
-                files.Add(file.FilePath);
+                files.Add(file.VideoLocalID, file.FileName);
             }
 
             return files;
@@ -1090,7 +1139,7 @@ namespace JMMServer.API
             foreach (VideoLocal file in _impl.GetFilesRecentlyAdded(max_limit))
             {
                 RecentFile recent = new RecentFile();
-                recent.path = file.FilePath;
+                recent.path = file.FileName;
                 recent.id = file.VideoLocalID;
                 if (file.EpisodeCrossRefs.Count() == 0)
                 {
@@ -1115,13 +1164,13 @@ namespace JMMServer.API
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            List<string> files = new List<string>();
+            Dictionary<int, string> files = new Dictionary<int, string>();
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             int i = 0;
             foreach (Contract_VideoLocal file in _impl.GetUnrecognisedFiles(user.JMMUserID))
             {
                 i++;
-                files.Add(file.FilePath);
+                files.Add(file.VideoLocalID, file.FileName);
                 if (i >= max_limit) break;
             }
             return files;
@@ -1131,16 +1180,35 @@ namespace JMMServer.API
 
         #region 13.Episodes
 
+        /// <summary>
+        /// return all known anime series
+        /// </summary>
+        /// <returns></returns>
         private object GetAllEpisodes()
         {
-            throw new NotImplementedException();
-            return null;
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.GetAllEpisodes();
         }
 
+        /// <summary>
+        /// Return information about episode by given ID for current user
+        /// </summary>
+        /// <param name="ep_id"></param>
+        /// <returns></returns>
         private object GetEpisodeById(int ep_id)
         {
-            throw new NotImplementedException();
-            return null;
+            if (ep_id != 0)
+            {
+                Request request = this.Request;
+                Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+                JMMServiceImplementation _impl = new JMMServiceImplementation();
+                return _impl.GetEpisode(ep_id, user.JMMUserID);
+            }
+            else
+            {
+                return APIStatus.badRequest();
+            }
         }
 
         /// <summary>
@@ -1200,17 +1268,13 @@ namespace JMMServer.API
             return _impl.GetSeries(series_id, user.JMMUserID);
         }
 
-        /// <summary>
-        /// return information about serie with given Folder ID
-        /// </summary>
-        /// <param name="folder_id"></param>
-        /// <returns></returns>
         private object GetSerieByFolderId(int folder_id, int max)
         {
-            Request request = this.Request;
-            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            JMMServiceImplementation _impl = new JMMServiceImplementation();
-            return _impl.GetSeriesFileStatsByFolderID(folder_id, user.JMMUserID, max);
+            //Request request = this.Request;
+            //Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            //JMMServiceImplementation _impl = new JMMServiceImplementation();
+            //return _impl.GetSeriesFileStatsByFolderID(folder_id, user.JMMUserID, max);
+            return APIStatus.notImplemented();
         }
 
         /// <summary>
@@ -1563,6 +1627,40 @@ namespace JMMServer.API
             }
 
             return dir;
+        }
+
+        #endregion
+
+        #region 17.Cloud Accounts
+
+        private object GetCloudAccounts()
+        {
+            // TODO APIv2: Cloud
+            return APIStatus.notImplemented();
+        }
+
+        private object GetCloudAccountsCount()
+        {
+            // TODO APIv2: Cloud
+            return APIStatus.notImplemented();
+        }
+
+        private object AddCloudAccount()
+        {
+            // TODO APIv2: Cloud
+            return APIStatus.notImplemented();
+        }
+
+        private object DeleteCloudAccount()
+        {
+            // TODO APIv2: Cloud
+            return APIStatus.notImplemented();
+        }
+
+        private object RunCloudImport()
+        {
+            MainWindow.RunImport();
+            return APIStatus.statusOK();
         }
 
         #endregion

@@ -1,0 +1,174 @@
+APIv2_core_Module: - RequiresAuthentication
+
+// 1. import folders
+Get /folder/list => List<Contract_ImportFolder>
+Get /folder/count => Counter
+Post /folder/add <= { "ImportFolderType": 1, "ImportFolderName": "Name", "ImportFolderLocation": "C:\\test", "isDropSource": 0, "isDropDestination": 1, "isWatched": 0}
+Post /folder/edit <= { "ImportFolderID": 1, "ImportFolderType": 1, "ImportFolderName": "Name", "ImportFolderLocation": "C:\\test", "isDropSource": 0, "isDropDestination": 1, "isWatched": 0}
+Post /folder/delete <= {"ImportFolderID": 1}
+Get /folder/import => { "code": 200, "message": "ok" }
+
+
+            // 2. upnp 
+            Post["/upnp/list"] = x => { return ListUPNP(); };
+            Post["/upnp/add"] = x => { return AddUPNP(); };
+            Post["/upnp/delete"] = x => { return DeleteUPNP(); };
+
+// 3. Settings
+Post /port/set <= { "port": 8111 }
+Get /port/get => { "port": 8111 }
+Post /imagepath/set <= { "isdefault": "False", "path": "C:\Images" }
+Get /imagepath/get => { "isdefault": "False", "path": "C:\Images" }
+
+// 4. AniDB
+Post /anidb/set <= { "login": "username", "password": "password", "port": 4556 }
+Get /anidb/get => { "login": "username", "password": "password", "port": 4556 }
+Get /anidb/test => { "code": 200, "message": "ok" }
+Get /anidb/votes/sync => { "code": 200, "message": "ok" }
+Get /anidb/list/sync => { "code": 200, "message": "ok" }
+Get /anidb/update => { "code": 200, "message": "ok" }
+
+// 5. MyAnimeList
+Post /mal/set <= { "login": "username", "password": "password" }
+Get /mal/get => { "login": "username", "password": "password" }
+Get /mal/test => { "code": 200, "message": "ok" }
+
+// 6. Trakt
+Post /trakt/set <= { "token": "abc" } 
+Get /trakt/get => { "token": "123", "refresh_token": "321" }
+Get /trakt/create => { "code": 200, "message": "ok" }
+Get /trakt/sync => { "code": 200, "message": "ok" }
+Get /trakt/update => { "code": 200, "message": "ok" }
+
+// 7. TvDB
+Get /tvdb/update => { "code": 200, "message": "ok" }
+
+// 8. Actions
+Get /remove_missing_files => { "code": 200, "message": "ok" }
+Get /stats_update => { "code": 200, "message": "ok" }
+Get /mediainfo_update => { "code": 200, "message": "ok" }
+Get /hash/sync => { "code": 200, "message": "ok" }
+
+// 9. Misc
+Get /MyID => { "userid": 1 }
+Get /news/get => [{"author": "1", "date": "01/01/2001 01:01:01", "link": "http://url/", "title": "title", "description": "description"}]
+
+// 10. User
+Get /user/list => { "1": "Default", "2": "Family" }
+Post /user/create <= { "username": "login", "password": "password", "isAdmin": 0, "isAniDBUser": 1, "isTraktUser": 1 }
+Post /user/delete <= { "JMMUserID": 1 }
+Post /user/password <= { "password": "password" }
+Post /user/password/{uid} <= { "password": "password" }
+
+// 11. Queue
+Get /queue/get => { "general": {"count": 0, "ispause": false, "state": "idle", "isrunning": true}, "hash": {"count": 0, "ispause": false, "state": "idle", "isrunning": true}, "image": {"count": 0, "ispause": false, "state": "idle", "isrunning": true} }
+Get /queue/pause => { "code": 200, "message": "ok" }
+Get /queue/start => { "code": 200, "message": "ok" }
+Get /queue/hash/get => { "count": 0, "ispause": false, "state": "idle", "isrunning": true }
+Get /queue/hash/pause => { "code": 200, "message": "ok" }
+Get /queue/hash/start => { "code": 200, "message": "ok" }
+Get /queue/hash/clear => { "code": 200, "message": "ok" }
+Get /queue/general/get => { "count": 0, "ispause": false, "state": "idle", "isrunning": true }
+Get /queue/general/pause => { "code": 200, "message": "ok" }
+Get /queue/general/start => { "code": 200, "message": "ok" }
+Get /queue/general/clear => { "code": 200, "message": "ok" }
+Get /queue/images/get => { "count": 0, "ispause": false, "state": "idle", "isrunning": true }
+Get /queue/images/pause => { "code": 200, "message": "ok" }
+Get /queue/images/start => { "code": 200, "message": "ok" }
+Get /queue/images/clear => { "code": 200, "message": "ok" }
+
+// 12. Files
+Get /file/list => { "1": "filename.avi", "2": "filename2.avi" }
+Get /file/count => { "count": 6 }
+Get /file/{id} => full VideoLocal object
+Get /file/recent => [ { "id": 1, "path": "file.mkv", "success": false }, { "id": 1, "path": "file2.mkv", "success": true } ]"
+Get /file/recent/{max} => [ { "id": 1, "path": "file.mkv", "success": false }, { "id": 1, "path": "file2.mkv", "success": true } ]"
+Get /file/unrecognised =>  { "1": "filename.avi", "2": "filename2.avi" }
+Get /file/unrecognised/{max} =>  { "1": "filename.avi", "2": "filename2.avi" }
+
+// 13. Episodes
+Get /ep/list 
+Get /ep/{id} 
+Get /ep/recent 
+Get /ep/recent/{max} 
+
+            // 14. Series
+            Get["/serie/list"] = _ => { return GetAllSeries(); ; };
+            Get["/serie/count"] = _ => { return CountSerie(); ; };
+            Get["/serie/{id}"] = x => { return GetSerieById(x.id); ; };
+            Get["/serie/recent"] = _ => { return GetRecentSeries(10); };
+            Get["/serie/recent/{max}"] = x => { return GetRecentSeries((int)x.max); };
+            Get["/serie/search/{query}"] = x => { return null; };
+            Get["/serie/byfolder/{id}"] = x => { return GetSerieByFolderId(x.id, 10); };
+            Get["/serie/byfolder/{id}/{max}"] = x => { return GetSerieByFolderId(x.id, x.max); };
+
+// 15. WebUI
+Get /dashboard => {"queue":{"hash":{"count":0,"state":"Idle","isrunning":true,"ispause":false},"general":{"count":0,"state":"Idle","isrunning":true,"ispause":false},"image":{"count":0,"state":"Idle","isrunning":true,"ispause":false}},"file":[{"id":1,"path":"1.mkv","success":false},{"id":5,"path":"2.avi","success":true}],"folder":[{"ImportFolderID":1,"ImportFolderType":1,"ImportFolderName":"NA","ImportFolderLocation":"C:\\temp","IsDropSource":0,"IsDropDestination":0,"IsWatched":0,"CloudID":null},{"ImportFolderID":2,"ImportFolderType":3,"ImportFolderName":"NA","ImportFolderLocation":"cloud\\anime","IsDropSource":0,"IsDropDestination":0,"IsWatched":0,"CloudID":1}],"file_count":{"count":2},"serie_count":{"count":1}}
+Get /webui/update/stable => { "code": 200, "message": "ok" }
+Get /webui/latest/stable => { "version": "0.1.2" }
+Get /webui/update/unstable => { "code": 200, "message": "ok" }
+Get /webui/latest/unstable => { "version": "2.1.0" }
+
+// 16. OS-based operations
+Get /os/folder/base => {"dir": "jmm", "full_path": "c:\\jmm", "subdir": [ { "dir": "images", "full_path": "c:\\jmm\\images" }, { "dir": "bin", "full_path": "c:\\jmm\bin" } ]}
+Post /os/folder <= { "full_path": "C:\\jmm" } => {"dir": "jmm", "full_path": "c:\\jmm", "subdir": [ { "dir": "images", "full_path": "c:\\jmm\\images" }, { "dir": "bin", "full_path": "c:\\jmm\bin" } ]}
+Get /os/drives => { "dir": "/", "full_path": "/", "subdir": [{ "dir": "C:\\", "full_path": "C:\\" },{ "dir": "D:\\", "full_path": "D:\\" } ]  }
+			
+			            
+            // 17. cloud accounts
+            Get["/cloud/list"] = x => { return null; };
+            Get["/cloud/count"] = x => { return null; };
+            Post["/cloud/add"] = x => { return null; };
+            Post["/cloud/delete"] = x => { return null; };
+            Get["/cloud/import"] = _ => { return null; };
+
+APIv2_unauth_Module:
+/
+/api/version
+
+
+APIv2_database_Module: (/api/) - if !FirstRun RequiresAuthentication
+/db/set
+/db/get
+/db/start
+/db/check
+
+
+APIv2_common_Module: (/api/) - RequiresAuthentication
+/get_image/{type}/{id}
+/get_image/{type}/{id}/{thumb}
+/get_thumb/{type}/{id}/{ratio}
+/get_support_image/{name}
+/get_support_image/{name}/{ratio}
+/get_image_using_path/{path}
+/filters/get
+/metadata/{type}/{id}
+
+
+APIv1_Legacy_Module:
+/JMMServerKodi/GetSupportImage/{name}
+/JMMServerKodi/GetFilters/{uid}
+/JMMServerKodi/GetMetadata/{uid}/{type}/{id}
+/JMMServerKodi/GetUsers
+/JMMServerKodi/GetVersion
+/JMMServerKodi/Search/{uid}/{limit}/{query}
+/JMMServerKodi/Search/{uid}/{limit}/{query}/{searchTag}
+/JMMServerKodi/ToggleWatchedStatusOnEpisode/{uid}/{epid}/{status}
+/JMMServerKodi/VoteAnime/{uid}/{id}/{votevalue}/{votetype}
+/JMMServerKodi/TraktScrobble/{animeid}/{type}/{progress}/{status}
+
+/JMMServerPlex/GetSupportImage/{name}
+/JMMServerPlex/GetFilters/{uid}
+/JMMServerPlex/GetMetadata/{uid}/{type}/{id}/{historyinfo}
+/JMMServerPlex/GetUsers
+/JMMServerPlex/Search/{uid}/{limit}/{query}
+/JMMServerPlex/ToggleWatchedStatusOnEpisode/{uid}/{epid}/{status}
+/JMMServerPlex/VoteAnime/{uid}/{id}/{votevalue}/{votetype}
+
+/JMMServerREST/GetImage/{type}/{id}
+/JMMServerREST/GetThumb/{type}/{id}/{ratio}
+/JMMServerREST/GetSupportImage/{name}/{ratio}
+/JMMServerREST/GetImageUsingPath/{path}
+
+/JMMServerImage/GetImage/{id}/{type}/{thumb}
+/JMMServerImage/GetImageUsingPath/{path}

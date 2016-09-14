@@ -50,6 +50,16 @@ namespace JMMServer.API.Model
             return new APIMessage(400, custom_message);
         }
 
+        public static APIMessage unauthorized()
+        {
+            return new APIMessage(401, "Unauthorized");
+        }
+
+        public static APIMessage adminNeeded()
+        {
+            return new APIMessage(403, "Admin rights needed");
+        }
+
         public static APIMessage internalError()
         {
             return new APIMessage(500, "internal error");
@@ -58,6 +68,11 @@ namespace JMMServer.API.Model
         public static APIMessage internalError(string custom_message)
         {
             return new APIMessage(500, custom_message);
+        }
+
+        public static APIMessage notImplemented()
+        {
+            return new APIMessage(501, "Not Implemented");
         }
 
 

@@ -23,8 +23,5 @@ namespace JMMContracts
         public List<Contract_VideoLocal_Place> Places { get; set; }
         public Media Media { get; set; }
         public long Duration { get; set; }
-        // TODO check if still usable//
-        public string FilePath { get; set; }
-
     }
 }

@@ -1169,6 +1169,20 @@ namespace JMMServer
             }
         }
 
+        public List<AnimeEpisode> GetAllEpisodes()
+        {
+            try
+            {
+                AnimeEpisodeRepository rep = new AnimeEpisodeRepository();
+                return rep.GetAll();
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return null;
+            }
+        }
+
         public Contract_AnimeEpisode GetEpisodeByAniDBEpisodeID(int episodeID, int userID)
         {
             try
@@ -2519,59 +2533,60 @@ namespace JMMServer
             return null;
         }
 
-        public List<Contract_AnimeSeriesFileStats> GetSeriesFileStatsByFolderID(int FolderID, int userID, int max)
-        {
-            try
-            {
-                int limit = 0;
-                Dictionary<int,Contract_AnimeSeriesFileStats> list = new Dictionary<int, Contract_AnimeSeriesFileStats>();
-                VideoLocalRepository reVideo = new VideoLocalRepository();
-                ImportFolderRepository repFolders = new ImportFolderRepository();
-                ImportFolder fldr = repFolders.GetByID(FolderID);
-                if (fldr == null) return list.Values.ToList();
-                string importLocation = fldr.ImportFolderLocation.TrimEnd('\\');
+        // // IT IS NOT POSSIBLE ANYMORE AS FILEPATH WAS WIPE OUT
+        //public List<Contract_AnimeSeriesFileStats> GetSeriesFileStatsByFolderID(int FolderID, int userID, int max)
+        //{
+        //    try
+        //    {
+        //        int limit = 0;
+        //        Dictionary<int,Contract_AnimeSeriesFileStats> list = new Dictionary<int, Contract_AnimeSeriesFileStats>();
+        //        VideoLocalRepository reVideo = new VideoLocalRepository();
+        //        ImportFolderRepository repFolders = new ImportFolderRepository();
+        //        ImportFolder fldr = repFolders.GetByID(FolderID);
+        //        if (fldr == null) return list.Values.ToList();
+        //        string importLocation = fldr.ImportFolderLocation.TrimEnd('\\');
 
-                foreach (VideoLocal vi in reVideo.GetByImportFolder(FolderID))
-                {
-                    foreach (Contract_AnimeEpisode ae in GetEpisodesForFile(vi.VideoLocalID, userID))
-                    {
-                        Contract_AnimeSeries ase = GetSeries(ae.AnimeSeriesID, userID);
-                        Contract_AnimeSeriesFileStats asfs = null;
-                        if (list.TryGetValue(ase.AnimeSeriesID, out asfs) == false)
-                        {
-                            limit++;
-                            if (limit >= max)
-                            {
-                                continue;
-                            }
-                            asfs = new Contract_AnimeSeriesFileStats();
-                            asfs.AnimeSeriesName = ase.AniDBAnime.AniDBAnime.MainTitle;
-                            asfs.FileCount = 0;
-                            asfs.FileSize = 0;
-                            asfs.Folders = new List<string>();
-                            asfs.AnimeSeriesID = ase.AnimeSeriesID;
-                            list.Add(ase.AnimeSeriesID, asfs);
-                        }
-                        asfs.FileCount++;
-                        asfs.FileSize += vi.FileSize;
-                        //todo check if needed vi.FullServerPath
-                        string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FilePath).Replace(importLocation, "");
-                        filePath = filePath.TrimStart('\\');
-                        if (!asfs.Folders.Contains(filePath)) {
-                            asfs.Folders.Add(filePath);
-                        }
+        //        foreach (VideoLocal vi in reVideo.GetByImportFolder(FolderID))
+        //        {
+        //            foreach (Contract_AnimeEpisode ae in GetEpisodesForFile(vi.VideoLocalID, userID))
+        //            {
+        //                Contract_AnimeSeries ase = GetSeries(ae.AnimeSeriesID, userID);
+        //                Contract_AnimeSeriesFileStats asfs = null;
+        //                if (list.TryGetValue(ase.AnimeSeriesID, out asfs) == false)
+        //                {
+        //                    limit++;
+        //                    if (limit >= max)
+        //                    {
+        //                        continue;
+        //                    }
+        //                    asfs = new Contract_AnimeSeriesFileStats();
+        //                    asfs.AnimeSeriesName = ase.AniDBAnime.AniDBAnime.MainTitle;
+        //                    asfs.FileCount = 0;
+        //                    asfs.FileSize = 0;
+        //                    asfs.Folders = new List<string>();
+        //                    asfs.AnimeSeriesID = ase.AnimeSeriesID;
+        //                    list.Add(ase.AnimeSeriesID, asfs);
+        //                }
+        //                asfs.FileCount++;
+        //                asfs.FileSize += vi.FileSize;
+        //                //todo check if needed vi.FullServerPath
+        //                string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FilePath).Replace(importLocation, "");
+        //                filePath = filePath.TrimStart('\\');
+        //                if (!asfs.Folders.Contains(filePath)) {
+        //                    asfs.Folders.Add(filePath);
+        //                }
                         
-                    }
-                }
+        //            }
+        //        }
 
-                return list.Values.ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.ErrorException(ex.ToString(), ex);
-            }
-            return null;
-        }
+        //        return list.Values.ToList();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        logger.ErrorException(ex.ToString(), ex);
+        //    }
+        //    return null;
+        //}
 
         public Contract_AnimeSeries GetSeriesForAnime(int animeID, int userID)
         {
@@ -6659,6 +6674,24 @@ namespace JMMServer
             }
         }
 
+        public VideoLocal GetFileByID(int id)
+        {
+            try
+            {
+                using (var session = JMMService.SessionFactory.OpenSession())
+                {
+                    VideoLocalRepository repVids = new VideoLocalRepository();
+                    VideoLocal vid = repVids.GetByID(id);
+                    return vid;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.ErrorException(ex.ToString(), ex);
+                return new VideoLocal();
+            }
+        }
+
         public List<VideoLocal> GetFilesRecentlyAdded(int max_records)
         {
             try
@@ -7163,7 +7196,13 @@ namespace JMMServer
                 jmmUser.CanEditServerSettings = user.CanEditServerSettings;
                 jmmUser.PlexUsers = string.Join(",", user.PlexUsers);
                 if (string.IsNullOrEmpty(user.Password))
+                {
                     jmmUser.Password = "";
+                }
+                else
+                {
+                    jmmUser.Password = user.Password;
+                }
 
                 // make sure that at least one user is an admin
                 if (jmmUser.IsAdmin == 0)
@@ -7179,7 +7218,11 @@ namespace JMMServer
                                 if (userOld.JMMUserID != jmmUser.JMMUserID) adminExists = true;
                             }
                             else
+                            {
+                                //one admin account is needed
                                 adminExists = true;
+                                break;
+                            }
                         }
                     }
 

@@ -44,8 +44,8 @@ namespace JMMServer.API
             Get["/JMMServerREST/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
 
             // JMMServerImage
-            Get["JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
-            Get["JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
+            Get["/JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
+            Get["/JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
         }
 
 
