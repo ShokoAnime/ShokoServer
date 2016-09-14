@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using JMMContracts.PlexAndKodi;
+using Force.DeepCloner;
 
 namespace JMMServer.PlexAndKodi
 {
@@ -28,7 +29,7 @@ namespace JMMServer.PlexAndKodi
 
         public BreadCrumbs Update(Video v, bool noart = false)
         {
-            BreadCrumbs cache = (BreadCrumbs) this.DeepCopy();
+            BreadCrumbs cache = this.DeepClone();
             cache.GrandParentKey = cache.ParentKey;
             cache.GrandParentTitle = cache.ParentTitle ?? "";
             cache.ParentKey = cache.Key;
@@ -108,7 +109,7 @@ namespace JMMServer.PlexAndKodi
             string md5 = GenMd5();
             if (Cache.ContainsKey(md5))
                 return md5;
-            BreadCrumbs cache = (BreadCrumbs) this.DeepCopy();
+            BreadCrumbs cache = this.DeepClone();
             Cache.Add(md5, cache);
             return md5;
         }
@@ -117,7 +118,7 @@ namespace JMMServer.PlexAndKodi
         {
             if (Cache.ContainsKey(key))
             {
-                BreadCrumbs n = (BreadCrumbs) Cache[key].DeepCopy();
+                BreadCrumbs n = Cache[key].DeepClone();
                 n.UpdateKey(key);
                 return n;
             }

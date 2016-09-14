@@ -531,7 +531,7 @@ namespace JMMServer.Entities
             if (Media != null)
             {
 
-                n = (Media)Media.DeepCopy();
+                n = Media.DeepClone();
                 if (n?.Parts != null)
                 {
                     foreach (Part p in n?.Parts)

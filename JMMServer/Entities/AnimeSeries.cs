@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AniDBAPI;
+using Force.DeepCloner;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
@@ -361,7 +362,7 @@ namespace JMMServer.Entities
 
         public Contract_AnimeSeries GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null)
         {
-            Contract_AnimeSeries contract = (Contract_AnimeSeries) Contract.DeepCopy();
+            Contract_AnimeSeries contract = Contract.DeepClone();
             AnimeSeries_User rr = GetUserRecord(userid);
             if (rr != null)
             {
@@ -636,7 +637,7 @@ namespace JMMServer.Entities
 
         public HashSet<GroupFilterConditionType> UpdateContract(bool onlystats = false)
         {
-            Contract_AnimeSeries contract = (Contract_AnimeSeries) Contract?.DeepCopy();
+            Contract_AnimeSeries contract = Contract?.DeepClone();
             if (contract == null)
             {
                 contract = new Contract_AnimeSeries();
@@ -690,7 +691,7 @@ namespace JMMServer.Entities
             // get AniDB data
             if (animeRec != null)
             {
-                contract.AniDBAnime = (Contract_AniDB_AnimeDetailed) animeRec.Contract.DeepCopy();
+                contract.AniDBAnime = animeRec.Contract.DeepClone();
                 contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToContract();
                 if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
                 {
