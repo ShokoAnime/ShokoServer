@@ -8344,46 +8344,63 @@ namespace JMMServer
             return null;
         }
 
-        public void RecreateAllGroups()
+        public void RecreateAllGroups(bool resume=false)
         {
-            try
-            {
-                // pause queues
-                JMMService.CmdProcessorGeneral.Paused = true;
-                JMMService.CmdProcessorHasher.Paused = true;
-                JMMService.CmdProcessorImages.Paused = true;
+			try
+			{
+				// pause queues
+				JMMService.CmdProcessorGeneral.Paused = true;
+				JMMService.CmdProcessorHasher.Paused = true;
+				JMMService.CmdProcessorImages.Paused = true;
 
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                AnimeGroup_UserRepository repGroupUser = new AnimeGroup_UserRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				AnimeGroupRepository repGroups = new AnimeGroupRepository();
+				AnimeGroup_UserRepository repGroupUser = new AnimeGroup_UserRepository();
+				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
-                // get all the old groups
-                List<AnimeGroup> oldGroups = repGroups.GetAll();
-                List<AnimeGroup_User> oldGroupUsers = repGroupUser.GetAll();
+				// get all the old groups
+				List<AnimeGroup> oldGroups = repGroups.GetAll();
+				List<AnimeGroup_User> oldGroupUsers = repGroupUser.GetAll();
 
-                // create a new group, where we will place all the series temporarily
-                AnimeGroup tempGroup = new AnimeGroup();
-                tempGroup.GroupName = "AAA Migrating Groups AAA";
-                tempGroup.Description = "AAA Migrating Groups AAA";
-                tempGroup.SortName = "AAA Migrating Groups AAA";
-                tempGroup.DateTimeUpdated = DateTime.Now;
-                tempGroup.DateTimeCreated = DateTime.Now;
-                repGroups.Save(tempGroup, true, false);
+				AnimeGroup tempGroup = null;
+				foreach(AnimeGroup temp4 in repGroups.GetAllTopLevelGroups())
+				{
+					if(temp4.GroupName.Equals("AAA Migrating Groups AAA"))
+					{
+						tempGroup = temp4;
+						break;
+					}
+				}
+				// We can't resume if there is nothing to resume
+				if (resume && tempGroup == null) resume = false;
 
-                // move all series to the new group
-                foreach (AnimeSeries ser in repSeries.GetAll())
-                {
-                    ser.AnimeGroupID = tempGroup.AnimeGroupID;
-                    repSeries.Save(ser, false);
-                }
+				if (tempGroup == null)
+				{
+					// create a new group, where we will place all the series temporarily
+					tempGroup = new AnimeGroup();
+					tempGroup.GroupName = "AAA Migrating Groups AAA";
+					tempGroup.Description = "AAA Migrating Groups AAA";
+					tempGroup.SortName = "AAA Migrating Groups AAA";
+					tempGroup.DateTimeUpdated = DateTime.Now;
+					tempGroup.DateTimeCreated = DateTime.Now;
+					repGroups.Save(tempGroup, true, false);
+				}
 
-                // delete all the old groups
-                foreach (AnimeGroup grp in oldGroups)
-                    repGroups.Delete(grp.AnimeGroupID);
+				if (!resume) {  
+					// move all series to the new group
+					foreach (AnimeSeries ser in repSeries.GetAll())
+					{
+						ser.AnimeGroupID = tempGroup.AnimeGroupID;
+						repSeries.Save(ser, true);
+					}
 
-                // delete all the old group user records
-                foreach (AnimeGroup_User grpUser in oldGroupUsers)
-                    repGroupUser.Delete(grpUser.AnimeGroupID);
+					// delete all the old groups
+					foreach (AnimeGroup grp in oldGroups)
+						repGroups.Delete(grp.AnimeGroupID);
+
+					// delete all the old group user records
+					foreach (AnimeGroup_User grpUser in oldGroupUsers)
+						repGroupUser.Delete(grpUser.AnimeGroupID);
+				}
 
 
                 // recreate groups
@@ -8427,7 +8444,7 @@ namespace JMMServer
 											groupHasCustomName = false;
 										}
 									}
-                                    foreach (AnimeSeries series in grp.GetAllSeries())
+                                    foreach (AnimeSeries series in grp.GetAllSeries(true))
                                     {
                                         if (series.AnimeGroupID == groupID) continue;
                                         series.AnimeGroupID = groupID;
@@ -8455,7 +8472,8 @@ namespace JMMServer
                                             }
                                             else
                                             {
-                                                foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
+												// massive speedup
+                                                foreach (Contract_AnimeTitle title in ser.Contract.AniDBAnime.AnimeTitles)
                                                 {
                                                     if (title.Title.Equals(grp.GroupName))
                                                     {
@@ -8481,7 +8499,7 @@ namespace JMMServer
 											}
 										}
 
-                                        repSeries.Save(series, false);
+                                        repSeries.Save(series, false, true, true);
 										// I didn't see this called anywhere, it should also fix the new issue with recreated
 										// groups missing all episodes
 										series.UpdateStats(true, true, false);
@@ -8504,7 +8522,7 @@ namespace JMMServer
                                 grp.Populate(name);
                                 grp.GroupName = newTitle;
                                 grp.SortName = newTitle;
-                                repGroups.Save(grp, true, true);
+                                repGroups.Save(grp, false, false);
                             }
 
                             #endregion
