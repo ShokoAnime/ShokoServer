@@ -56,6 +56,8 @@ namespace JMMServer.Entities
         public long Duration { get; set; }
         public string FileName { get; set; }
 
+        // TODO check if still usable//
+        public string FilePath { get; set; }
 
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 

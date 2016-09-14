@@ -919,7 +919,17 @@ namespace JMMServer
 
                 // delete the import folder
                 repNS.Delete(importFolderID);
-                ServerInfo.Instance.RefreshImportFolders();
+                
+                //TODO APIv2: Delete this hack after migration to headless
+                //hack until gui id dead
+                try
+                {
+                    ServerInfo.Instance.RefreshImportFolders();
+                }
+                catch
+                {
+                    //dont do this at home :-)
+                }
 
                 foreach (AnimeSeries ser in affectedSeries.Values)
                 {

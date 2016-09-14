@@ -24,7 +24,7 @@ namespace JMMServer.Databases
         public static SQLServer Instance { get; } = new SQLServer();
 
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 51;
+        public int RequiredVersion { get; } = 52;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -263,6 +263,7 @@ namespace JMMServer.Databases
                 UpdateSchema_049(versionNumber);
                 UpdateSchema_050(versionNumber);
                 UpdateSchema_051(versionNumber);
+                UpdateSchema_052(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1856,6 +1857,7 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
         }
+
         private void UpdateSchema_048(int currentVersionNumber)
         {
             int thisVersion = 48;
@@ -1892,6 +1894,7 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
         }
+
         private void UpdateSchema_049(int currentVersionNumber)
         {
             int thisVersion = 49;
@@ -1946,6 +1949,7 @@ namespace JMMServer.Databases
             }
             UpdateDatabaseVersion(thisVersion);
         }
+
         private void UpdateSchema_051(int currentVersionNumber)
         {
             int thisVersion = 51;
@@ -1983,6 +1987,42 @@ namespace JMMServer.Databases
             }
             UpdateDatabaseVersion(thisVersion);
         }
+
+        private void UpdateSchema_052(int currentVersionNumber)
+        {
+            int thisVersion = 52;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE AuthTokens ( " +
+                                   " AuthID int IDENTITY(1,1) NOT NULL, " +
+                                   " UserID int NOT NULL, " +
+                                   " DeviceName nvarchar(MAX) NOT NULL, " +
+                                   " Token nvarchar(MAX) NOT NULL " +
+                                   " )");
+
+            using (
+                SqlConnection tmpConn =
+                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
+                    ServerSettings.DatabaseServer,
+                    ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            {
+                tmpConn.Open();
+                foreach (string cmdTable in cmds)
+                {
+                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+        }
+
         private void ExecuteSQLCommands(List<string> cmds)
         {
             using (

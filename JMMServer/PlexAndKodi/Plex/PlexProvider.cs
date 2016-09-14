@@ -93,13 +93,13 @@ namespace JMMServer.PlexAndKodi.Plex
             return Encoding.UTF8.GetString(raw);
         }
     
-        public void AddResponseHeaders()
-        {
-            if (WebOperationContext.Current != null)
-            {
-                WebOperationContext.Current.OutgoingResponse.Headers.Add("X-Plex-Protocol", "1.0");
-                WebOperationContext.Current.OutgoingResponse.Headers.Add("Cache-Control", "no-cache");
-            }
-        }
+        //public void AddResponseHeaders()
+        //{
+        //    if (WebOperationContext.Current != null)
+        //    {
+        //        WebOperationContext.Current.OutgoingResponse.Headers.Add("X-Plex-Protocol", "1.0");
+        //        WebOperationContext.Current.OutgoingResponse.Headers.Add("Cache-Control", "no-cache");
+        //    }
+        //}
     }
 }

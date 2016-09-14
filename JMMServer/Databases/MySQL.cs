@@ -16,7 +16,7 @@ namespace JMMServer.Databases
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 55;
+        public int RequiredVersion { get; } = 56;
 
         public static MySQL Instance { get; } = new MySQL();
 
@@ -41,7 +41,7 @@ namespace JMMServer.Databases
 
 
 
-        public string GetConnectionString()
+        public static string GetConnectionString()
         {
             return string.Format("Server={0};Database={1};User ID={2};Password={3};Default Command Timeout=3600",
                 ServerSettings.MySQL_Hostname, ServerSettings.MySQL_SchemaName, ServerSettings.MySQL_Username,
@@ -221,6 +221,7 @@ namespace JMMServer.Databases
                 UpdateSchema_053(versionNumber);
                 UpdateSchema_054(versionNumber);
                 UpdateSchema_055(versionNumber);
+                UpdateSchema_056(versionNumber);
 
             }
             catch (Exception ex)
@@ -2004,7 +2005,8 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
-        private void UpdateSchema_051(int currentVersionNumber)
+
+        private static void UpdateSchema_051(int currentVersionNumber)
         {
             int thisVersion = 51;
             if (currentVersionNumber >= thisVersion) return;
@@ -2058,7 +2060,8 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
-        private void UpdateSchema_052(int currentVersionNumber)
+
+        private static void UpdateSchema_052(int currentVersionNumber)
         {
             int thisVersion = 52;
             if (currentVersionNumber >= thisVersion) return;
@@ -2089,6 +2092,7 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+
         private void UpdateSchema_053(int currentVersionNumber)
         {
             int thisVersion = 53;
@@ -2106,6 +2110,7 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+
         private void UpdateSchema_054(int currentVersionNumber)
         {
             int thisVersion = 54;
@@ -2119,7 +2124,7 @@ namespace JMMServer.Databases
          " `VideoLocalID` int NOT NULL, " +
          " `FilePath` text character set utf8 NOT NULL, " +
          " `ImportFolderID` int NOT NULL, " +
-         " `ImportFolderType` int NOT NULL, "+
+         " `ImportFolderType` int NOT NULL, " +
          " PRIMARY KEY (`VideoLocal_Place_ID`) ) ; ");
             cmds.Add("ALTER TABLE `VideoLocal` ADD `FileName` text character set utf8 NOT NULL");
             cmds.Add("ALTER TABLE `VideoLocal` ADD `VideoCodec` varchar(100) NOT NULL DEFAULT ''");
@@ -2159,6 +2164,7 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+
         private void UpdateSchema_055(int currentVersionNumber)
         {
             int thisVersion = 55;
@@ -2191,6 +2197,47 @@ namespace JMMServer.Databases
                 logger.Error(ex.Message);
             }
         }
+
+        private void UpdateSchema_056(int currentVersionNumber)
+        {
+            int thisVersion = 56;
+            if (currentVersionNumber >= thisVersion) return;
+
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE `AuthTokens` ( " +
+                                   " `AuthID` INT NOT NULL AUTO_INCREMENT, " +
+                                   " `UserID` int NOT NULL, " +
+                                   " `DeviceName` text character set utf8, " +
+                                   " `Token` text character set utf8, " +
+                                   " PRIMARY KEY (`AuthID`) ) ; ");
+
+
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+        }
+
         private void ExecuteSQLCommands(List<string> cmds)
         {
             using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
@@ -2256,7 +2303,7 @@ namespace JMMServer.Databases
             }
         }
 
-        private void UpdateDatabaseVersion(int versionNumber)
+        private static void UpdateDatabaseVersion(int versionNumber)
         {
             VersionsRepository repVersions = new VersionsRepository();
             Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);

@@ -58,16 +58,5 @@ namespace JMMServer.PlexAndKodi.Kodi
             m.Identifier = "plugin.video.nakamori";
             return m;
         }
-
-        public void AddResponseHeaders()
-        {
-            if (WebOperationContext.Current != null)
-            {
-                WebOperationContext.Current.OutgoingResponse.Headers.Add("X-Nakamori-Protocol", "1.0");
-                WebOperationContext.Current.OutgoingResponse.Headers.Add("Cache-Control", "no-cache");
-            }
-        }
-
-
     }
 }

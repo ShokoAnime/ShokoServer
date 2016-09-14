@@ -178,7 +178,6 @@ namespace JMMServer.Repositories
         }
 
 
-
         public List<AnimeSeries> GetWithMissingEpisodes()
         {
             return
