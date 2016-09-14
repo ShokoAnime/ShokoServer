@@ -600,7 +600,7 @@ namespace JMMContracts
         void SyncMALDownload();
 
         [OperationContract]
-        void RecreateAllGroups();
+        void RecreateAllGroups(bool resume=false);
 
         [OperationContract]
         List<Contract_Playlist> GetAllPlaylists();
