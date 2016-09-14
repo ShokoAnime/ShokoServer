@@ -8410,7 +8410,7 @@ namespace JMMServer
 
                     if (ServerSettings.AutoGroupSeries)
                     {
-                        if (!ser.AnimeGroup.GroupName.Equals("AAA Migrating Groups AAA")) continue;
+                        if (ser.AnimeGroupID != tempGroup.AnimeGroupID) continue;
 
                         List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(ser.AniDB_ID, true);
 
@@ -8421,7 +8421,7 @@ namespace JMMServer
                             string customGroupName = null;
                             foreach (AnimeGroup grp in grps.ToList())
                             {
-                                if (grp.GroupName.Equals("AAA Migrating Groups AAA")) continue;
+                                if (grp.AnimeGroupID == tempGroup.AnimeGroupID) continue;
                                 if (groupID == -1) groupID = grp.AnimeGroupID;
                                 ser.AnimeGroupID = groupID;
                                 bool groupHasCustomName = true;
@@ -8444,7 +8444,7 @@ namespace JMMServer
 											groupHasCustomName = false;
 										}
 									}
-                                    foreach (AnimeSeries series in grp.GetAllSeries(true))
+                                    foreach (AnimeSeries series in grp.GetAllSeries())
                                     {
                                         if (series.AnimeGroupID == groupID) continue;
                                         series.AnimeGroupID = groupID;
@@ -8457,23 +8457,16 @@ namespace JMMServer
                                             {
                                                 name = series;
                                             }
-                                            else
-                                            {
-                                                if (series.AirDate < name.AirDate)
-                                                {
-                                                    name = series;
-                                                }
-                                            }
 
                                             // Check all titles for custom naming, in case user changed language preferences
-                                            if (ser.SeriesNameOverride.Equals(grp.GroupName))
+                                            if (series.SeriesNameOverride.Equals(grp.GroupName))
                                             {
                                                 groupHasCustomName = false;
                                             }
                                             else
                                             {
 												// massive speedup
-                                                foreach (Contract_AnimeTitle title in ser.Contract.AniDBAnime.AnimeTitles)
+                                                foreach (Contract_AnimeTitle title in series.Contract.AniDBAnime.AnimeTitles)
                                                 {
                                                     if (title.Title.Equals(grp.GroupName))
                                                     {
@@ -8483,7 +8476,7 @@ namespace JMMServer
                                                 }
 
 												#region tvdb names
-												List<TvDB_Series> tvdbs = ser.GetTvDBSeries();
+												List<TvDB_Series> tvdbs = series.GetTvDBSeries();
 												if (tvdbs != null && tvdbs.Count != 0)
 												{
 													foreach (TvDB_Series tvdbser in tvdbs)
