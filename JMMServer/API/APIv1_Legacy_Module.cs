@@ -262,12 +262,9 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetImage(string type, string id)
         {
-            using (System.IO.Stream image = _rest.GetImage(type, id, false))
-            {
-                response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
-                return response;
-            }
+            response = new Nancy.Response();
+            response = Response.AsImage(_rest.GetImagePath(type, id, false));
+            return response;
         }
 
         /// <summary>
@@ -297,8 +294,9 @@ namespace JMMServer.API
         {
             using (System.IO.Stream image = _rest.GetSupportImage(name, ratio))
             {
+                image.Position = 0;
                 response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
+                response = Response.FromStream(image, "image/jpeg");
                 return response;
             }
         }
