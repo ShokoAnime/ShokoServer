@@ -1268,13 +1268,18 @@ namespace JMMServer.API
             return _impl.GetSeries(series_id, user.JMMUserID);
         }
 
+        /// <summary>
+        /// Return list of series inside given folder
+        /// </summary>
+        /// <param name="folder_id"></param>
+        /// <param name="max"></param>
+        /// <returns></returns>
         private object GetSerieByFolderId(int folder_id, int max)
         {
-            //Request request = this.Request;
-            //Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            //JMMServiceImplementation _impl = new JMMServiceImplementation();
-            //return _impl.GetSeriesFileStatsByFolderID(folder_id, user.JMMUserID, max);
-            return APIStatus.notImplemented();
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.GetSeriesByFolderID(folder_id, user.JMMUserID, max);
         }
 
         /// <summary>

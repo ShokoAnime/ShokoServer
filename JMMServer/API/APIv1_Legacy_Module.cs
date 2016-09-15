@@ -14,7 +14,7 @@ namespace JMMServer.API
     {
         public APIv1_Legacy_Module() : base("/")
         {
-            this.RequiresAuthentication();
+            //this.RequiresAuthentication();
 
             // KodiImplementation
             Get["/JMMServerKodi/GetSupportImage/{name}"] = parameter => { return GetSupportImage(parameter.name); };
