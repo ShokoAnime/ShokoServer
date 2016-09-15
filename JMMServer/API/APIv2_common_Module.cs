@@ -21,8 +21,9 @@ namespace JMMServer.API
             Get["/get_image_using_path/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };            
             Get["/filters/get"] = _ => { return GetFilters(); };
             Get["/metadata/{type}/{id}"] = x => { return GetMetadata(x.type, x.id); };
+            Get["/metadata/{type}/{id}/nocast"] = x => { return GetMetadata(x.type, x.id, true); };
 
-            
+
             //Get["/Search/{uid}/{limit}/{query}"] = parameter => {  return Search_Kodi(parameter.uid, parameter.limit, parameter.query); };
             //Get["/Search/{uid}/{limit}/{query}/{searchTag}"] = parameter => { return SearchTag(parameter.uid, parameter.limit, parameter.query); };
             //Get["/ToggleWatchedStatusOnEpisode/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnEpisode_Kodi(parameter.uid, parameter.epid, parameter.status); };
@@ -144,13 +145,13 @@ namespace JMMServer.API
             }
         }
 
-        private object GetMetadata(string typeid, string id)
+        private object GetMetadata(string typeid, string id, bool nocast=false)
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             if (user != null)
             {
-                return _impl.GetMetadata(_prov_kodi, user.JMMUserID.ToString(), typeid, id, null);
+                return _impl.GetMetadata(_prov_kodi, user.JMMUserID.ToString(), typeid, id, null, nocast);
             }
             else
             {

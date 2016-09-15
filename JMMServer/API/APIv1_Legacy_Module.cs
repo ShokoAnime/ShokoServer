@@ -20,6 +20,7 @@ namespace JMMServer.API
             Get["/JMMServerKodi/GetSupportImage/{name}"] = parameter => { return GetSupportImage(parameter.name); };
             Get["/JMMServerKodi/GetFilters/{uid}"] = parameter => { request = this.Request; return GetFilters_Kodi(parameter.uid); };
             Get["/JMMServerKodi/GetMetadata/{uid}/{type}/{id}"] = parameter => { request = this.Request; return GetMetadata_Kodi(parameter.uid, parameter.type, parameter.id); };
+            Get["/JMMServerKodi/GetMetadata/{uid}/{type}/{id}/nocast"] = parameter => { request = this.Request; return GetMetadata_Kodi(parameter.uid, parameter.type, parameter.id, true); };
             Get["/JMMServerKodi/GetUsers"] = _ => { return GetUsers_Kodi(); };
             Get["/JMMServerKodi/GetVersion"] = _ => { return GetVersion(); };
             Get["/JMMServerKodi/Search/{uid}/{limit}/{query}"] = parameter => { request = this.Request; return Search_Kodi(parameter.uid, parameter.limit, parameter.query); };
@@ -93,9 +94,9 @@ namespace JMMServer.API
         /// <param name="id">Object ID</param>
         /// <param name="historyinfo">BreadCrumbs string</param>
         /// <returns></returns>
-        private object GetMetadata_Kodi(string uid, string typeid, string id)
+        private object GetMetadata_Kodi(string uid, string typeid, string id, bool nocast=false)
         {
-            return _impl.GetMetadata(_prov_kodi, uid, typeid, id, null);
+            return _impl.GetMetadata(_prov_kodi, uid, typeid, id, null, nocast);
         }
 
         /// <summary>
