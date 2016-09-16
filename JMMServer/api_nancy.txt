@@ -50,7 +50,7 @@ Get /mediainfo_update => { "code": 200, "message": "ok" }
 Get /hash/sync => { "code": 200, "message": "ok" }
 
 // 9. Misc
-Get /MyID => { "userid": 1 }
+Get /myid/get => { "userid": 1 }
 Get /news/get => [{"author": "1", "date": "01/01/2001 01:01:01", "link": "http://url/", "title": "title", "description": "description"}]
 
 // 10. User

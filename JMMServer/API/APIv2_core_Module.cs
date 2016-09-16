@@ -79,7 +79,7 @@ namespace JMMServer.API
             Get["/hash/sync"] = _ => { return HashSync(); };
 
             // 9. Misc
-            Get["/MyID"] = x => { return MyID(x.apikey); };
+            Get["/myid/get"] = _ => { return MyID(); };
             Get["/news/get"] = _ => { return GetNews(5); };
 
             // 10. User
@@ -696,7 +696,7 @@ namespace JMMServer.API
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        private object MyID(string s)
+        private object MyID()
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
