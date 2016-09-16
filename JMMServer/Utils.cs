@@ -246,7 +246,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
 
@@ -267,7 +267,7 @@ namespace JMMServer
         public static void ShowErrorMessage(Exception ex)
         {
             MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            logger.ErrorException(ex.ToString(), ex);
+            logger.Error( ex,ex.ToString());
         }
 
         public static void ShowErrorMessage(string msg)
@@ -1092,7 +1092,7 @@ namespace JMMServer
             {
                 errorMessage = ex.Message;
 
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }

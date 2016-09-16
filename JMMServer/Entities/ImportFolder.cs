@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using NutzCode.CloudFileSystem;
 
 
@@ -31,7 +32,7 @@ namespace JMMServer.Entities
                 {
                     if (CloudID.HasValue)
                     {
-                        CloudAccount cl = new CloudAccountRepository().GetByID(CloudID.Value);
+                        CloudAccount cl = RepoFactory.CloudAccount.GetByID(CloudID.Value);
                         if (cl == null)
                             throw new Exception("Cloud Account Not Found");
                         _filesystem = cl.FileSystem;                        
@@ -78,7 +79,7 @@ namespace JMMServer.Entities
             {
                 if (CloudID.HasValue)
                 {
-                    return new CloudAccountRepository().GetByID(CloudID.Value);
+                    return RepoFactory.CloudAccount.GetByID(CloudID.Value);
                 }
                 return null;
             }

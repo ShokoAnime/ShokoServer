@@ -13,6 +13,8 @@ using JMMServer.Providers.MyAnimeList;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
@@ -28,21 +30,17 @@ namespace JMMServer
 
         public static void RunImport_IntegrityCheck()
         {
-            VideoLocalRepository repVidLocals = new VideoLocalRepository();
-            AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-            AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-            AniDB_AnimeRepository repAniAnime = new AniDB_AnimeRepository();
 
             /*
             // files which don't have a valid import folder
-            List<VideoLocal> filesToDelete = repVidLocals.GetVideosWithoutImportFolder();
+            List<VideoLocal> filesToDelete = RepoFactory.VideoLocal.GetVideosWithoutImportFolder();
             foreach (VideoLocal vl in filesToDelete)
-                repVidLocals.Delete(vl.VideoLocalID);
+                RepoFactory.VideoLocal.Delete(vl.VideoLocalID);
             */
 
             // files which have not been hashed yet
             // or files which do not have a VideoInfo record
-            List<VideoLocal> filesToHash = repVidLocals.GetVideosWithoutHash();
+            List<VideoLocal> filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
             Dictionary<int, VideoLocal> dictFilesToHash = new Dictionary<int, VideoLocal>();
             foreach (VideoLocal vl in filesToHash)
             {
@@ -55,7 +53,7 @@ namespace JMMServer
                 }
             }
 
-            List<VideoLocal> filesToRehash = repVidLocals.GetVideosWithoutVideoInfo();
+            List<VideoLocal> filesToRehash = RepoFactory.VideoLocal.GetVideosWithoutVideoInfo();
             Dictionary<int, VideoLocal> dictFilesToRehash = new Dictionary<int, VideoLocal>();
             foreach (VideoLocal vl in filesToHash)
             {
@@ -82,7 +80,7 @@ namespace JMMServer
             }
 
             // files which have been hashed, but don't have an associated episode
-            foreach(VideoLocal v in repVidLocals.GetVideosWithoutEpisode().Where(a => !string.IsNullOrEmpty(a.Hash)))
+            foreach(VideoLocal v in RepoFactory.VideoLocal.GetVideosWithoutEpisode().Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
                 CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(v.VideoLocalID, false);
                 cmd.Save();
@@ -93,11 +91,11 @@ namespace JMMServer
 
 
             // check that all the episode data is populated
-            foreach (VideoLocal vl in repVidLocals.GetAll().Where(a=>!string.IsNullOrEmpty(a.Hash)))
+            foreach (VideoLocal vl in RepoFactory.VideoLocal.GetAll().Where(a=>!string.IsNullOrEmpty(a.Hash)))
             {
 
                 // if the file is not manually associated, then check for AniDB_File info
-                AniDB_File aniFile = repAniFile.GetByHash(vl.Hash);
+                AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(vl.Hash);
                 foreach (CrossRef_File_Episode xref in vl.EpisodeCrossRefs)
                 {
                     if (xref.CrossRefSource != (int) CrossRefSource.AniDB) continue;
@@ -116,7 +114,7 @@ namespace JMMServer
                 bool missingEpisodes = false;
                 foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
                 {
-                    AniDB_Episode ep = repAniEps.GetByEpisodeID(xref.EpisodeID);
+                    AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                     if (ep == null) missingEpisodes = true;
                 }
 
@@ -132,12 +130,9 @@ namespace JMMServer
 
         public static void SyncHashes()
         {
-            VideoLocalRepository repVidLocals = new VideoLocalRepository();
-            AniDB_FileRepository repFiles=new AniDB_FileRepository();
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                ISessionWrapper sessionWrapper = session.Wrap();
-                List<VideoLocal> allfiles = repVidLocals.GetAll().ToList();
+                List<VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
                 List<VideoLocal> missfiles = allfiles.Where(
                             a =>
                                 string.IsNullOrEmpty(a.CRC32) || string.IsNullOrEmpty(a.SHA1) ||
@@ -147,7 +142,7 @@ namespace JMMServer
                 //Check if we can populate md5,sha and crc from AniDB_Files
                 foreach (VideoLocal v in missfiles.ToList())
                 {
-                    AniDB_File file = repFiles.GetByHash(v.ED2KHash);
+                    AniDB_File file = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
                     if (file != null)
                     {
                         if (!string.IsNullOrEmpty(file.CRC) && !string.IsNullOrEmpty(file.SHA1) &&
@@ -156,7 +151,7 @@ namespace JMMServer
                             v.CRC32 = file.CRC;
                             v.MD5 = file.MD5;
                             v.SHA1 = file.SHA1;
-                            repVidLocals.Save(v,false);
+                            RepoFactory.VideoLocal.Save(v,false);
                             missfiles.Remove(v);
                             withfiles.Add(v);
                         }
@@ -177,7 +172,7 @@ namespace JMMServer
                             v.CRC32 = ls[0].CRC32.ToUpperInvariant();
                             v.MD5 = ls[0].MD5.ToUpperInvariant();
                             v.SHA1 = ls[0].SHA1.ToUpperInvariant();
-                            repVidLocals.Save(v, false);
+                            RepoFactory.VideoLocal.Save(v, false);
                             missfiles.Remove(v);
                         }
                     }
@@ -220,21 +215,18 @@ namespace JMMServer
         {
             // get a complete list of files
             List<string> fileList = new List<string>();
-            ImportFolderRepository repFolders = new ImportFolderRepository();
             int filesFound = 0, videosFound = 0;
             int i = 0;
 
             try
             {
-                ImportFolder fldr = repFolders.GetByID(importFolderID);
+                ImportFolder fldr = RepoFactory.ImportFolder.GetByID(importFolderID);
                 if (fldr == null) return;
 
-                VideoLocalRepository repVidLocals = new VideoLocalRepository();
-                VideoLocal_PlaceRepository repPlace=new VideoLocal_PlaceRepository();
                 // first build a list of files that we already know about, as we don't want to process them again
 
 
-                List<VideoLocal_Place> filesAll = repPlace.GetByImportFolder(fldr.ImportFolderID);
+                List<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(fldr.ImportFolderID);
                 Dictionary<string,VideoLocal_Place> dictFilesExisting = new Dictionary<string, VideoLocal_Place>();
                 foreach (VideoLocal_Place vl in filesAll)
                 {
@@ -281,7 +273,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -290,8 +282,7 @@ namespace JMMServer
         {
             // get a complete list of files
             List<string> fileList = new List<string>();
-            ImportFolderRepository repNetShares = new ImportFolderRepository();
-            foreach (ImportFolder share in repNetShares.GetAll())
+            foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll())
             {
                 if (!share.FolderIsDropSource) continue;
 
@@ -324,10 +315,8 @@ namespace JMMServer
 
         public static void RunImport_NewFiles()
         {
-            VideoLocalRepository repVidLocals = new VideoLocalRepository();
-            VideoLocal_PlaceRepository repPlaces=new VideoLocal_PlaceRepository();
             // first build a list of files that we already know about, as we don't want to process them again
-            List<VideoLocal_Place> filesAll = repPlaces.GetAll();
+            List<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetAll();
             Dictionary<string, VideoLocal_Place> dictFilesExisting = new Dictionary<string, VideoLocal_Place>();
             foreach (VideoLocal_Place vl in filesAll)
             {
@@ -352,8 +341,7 @@ namespace JMMServer
 
             // get a complete list of files
             List<string> fileList = new List<string>();
-            ImportFolderRepository repNetShares = new ImportFolderRepository();
-            foreach (ImportFolder share in repNetShares.GetAll())
+            foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll())
             {
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 try
@@ -362,7 +350,7 @@ namespace JMMServer
                 }
                 catch (Exception ex)
                 {
-                    logger.ErrorException(ex.ToString(), ex);
+                    logger.Error( ex,ex.ToString());
                 }
             }
 
@@ -400,8 +388,7 @@ namespace JMMServer
             List<string> fileList = new List<string>();
             int filesFound = 0, videosFound = 0;
             int i = 0;
-            VideoLocal_PlaceRepository repPlace = new VideoLocal_PlaceRepository();
-            List<VideoLocal_Place> filesAll = repPlace.GetByImportFolder(fldr.ImportFolderID);
+            List<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(fldr.ImportFolderID);
             Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
             HashSet<string> fs = new HashSet<string>(fileList);
             foreach (VideoLocal_Place v in filesAll)
@@ -431,8 +418,7 @@ namespace JMMServer
         public static void RunImport_GetImages()
         {
             // AniDB posters
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            foreach (AniDB_Anime anime in repAnime.GetAll())
+            foreach (AniDB_Anime anime in RepoFactory.AniDB_Anime.GetAll())
             {
                 if (anime.AnimeID == 8580)
                     Console.Write("");
@@ -452,11 +438,10 @@ namespace JMMServer
             // TvDB Posters
             if (ServerSettings.TvDB_AutoPosters)
             {
-                TvDB_ImagePosterRepository repTvPosters = new TvDB_ImagePosterRepository();
                 Dictionary<int, int> postersCount = new Dictionary<int, int>();
 
                 // build a dictionary of series and how many images exist
-                List<TvDB_ImagePoster> allPosters = repTvPosters.GetAll();
+                List<TvDB_ImagePoster> allPosters = RepoFactory.TvDB_ImagePoster.GetAll();
                 foreach (TvDB_ImagePoster tvPoster in allPosters)
                 {
                     if (string.IsNullOrEmpty(tvPoster.FullImagePath)) continue;
@@ -498,9 +483,7 @@ namespace JMMServer
             if (ServerSettings.TvDB_AutoFanart)
             {
                 Dictionary<int, int> fanartCount = new Dictionary<int, int>();
-                TvDB_ImageFanartRepository repTvFanart = new TvDB_ImageFanartRepository();
-
-                List<TvDB_ImageFanart> allFanart = repTvFanart.GetAll();
+                List<TvDB_ImageFanart> allFanart = RepoFactory.TvDB_ImageFanart.GetAll();
                 foreach (TvDB_ImageFanart tvFanart in allFanart)
                 {
                     // build a dictionary of series and how many images exist
@@ -542,11 +525,10 @@ namespace JMMServer
             // TvDB Wide Banners
             if (ServerSettings.TvDB_AutoWideBanners)
             {
-                TvDB_ImageWideBannerRepository repTvBanners = new TvDB_ImageWideBannerRepository();
                 Dictionary<int, int> fanartCount = new Dictionary<int, int>();
 
                 // build a dictionary of series and how many images exist
-                List<TvDB_ImageWideBanner> allBanners = repTvBanners.GetAll();
+                List<TvDB_ImageWideBanner> allBanners = RepoFactory.TvDB_ImageWideBanner.GetAll();
                 foreach (TvDB_ImageWideBanner tvBanner in allBanners)
                 {
                     if (string.IsNullOrEmpty(tvBanner.FullImagePath)) continue;
@@ -586,8 +568,8 @@ namespace JMMServer
             }
 
             // TvDB Episodes
-            TvDB_EpisodeRepository repTvEpisodes = new TvDB_EpisodeRepository();
-            foreach (TvDB_Episode tvEpisode in repTvEpisodes.GetAll())
+
+            foreach (TvDB_Episode tvEpisode in RepoFactory.TvDB_Episode.GetAll())
             {
                 if (string.IsNullOrEmpty(tvEpisode.FullImagePath)) continue;
                 bool fileExists = File.Exists(tvEpisode.FullImagePath);
@@ -602,11 +584,10 @@ namespace JMMServer
             // MovieDB Posters
             if (ServerSettings.MovieDB_AutoPosters)
             {
-                MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
                 Dictionary<int, int> postersCount = new Dictionary<int, int>();
 
                 // build a dictionary of series and how many images exist
-                List<MovieDB_Poster> allPosters = repMoviePosters.GetAll();
+                List<MovieDB_Poster> allPosters = RepoFactory.MovieDB_Poster.GetAll();
                 foreach (MovieDB_Poster moviePoster in allPosters)
                 {
                     if (string.IsNullOrEmpty(moviePoster.FullImagePath)) continue;
@@ -648,11 +629,10 @@ namespace JMMServer
             // MovieDB Fanart
             if (ServerSettings.MovieDB_AutoFanart)
             {
-                MovieDB_FanartRepository repMovieFanarts = new MovieDB_FanartRepository();
                 Dictionary<int, int> fanartCount = new Dictionary<int, int>();
 
                 // build a dictionary of series and how many images exist
-                List<MovieDB_Fanart> allFanarts = repMovieFanarts.GetAll();
+                List<MovieDB_Fanart> allFanarts = RepoFactory.MovieDB_Fanart.GetAll();
                 foreach (MovieDB_Fanart movieFanart in allFanarts)
                 {
                     if (string.IsNullOrEmpty(movieFanart.FullImagePath)) continue;
@@ -667,7 +647,7 @@ namespace JMMServer
                     }
                 }
 
-                foreach (MovieDB_Fanart movieFanart in repMovieFanarts.GetAll())
+                foreach (MovieDB_Fanart movieFanart in RepoFactory.MovieDB_Fanart.GetAll())
                 {
                     if (string.IsNullOrEmpty(movieFanart.FullImagePath)) continue;
                     bool fileExists = File.Exists(movieFanart.FullImagePath);
@@ -694,8 +674,7 @@ namespace JMMServer
             // Trakt Posters
             if (ServerSettings.Trakt_DownloadPosters)
             {
-                Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
-                foreach (Trakt_ImagePoster traktPoster in repTraktPosters.GetAll())
+                foreach (Trakt_ImagePoster traktPoster in RepoFactory.Trakt_ImagePoster.GetAll())
                 {
                     if (string.IsNullOrEmpty(traktPoster.FullImagePath)) continue;
                     bool fileExists = File.Exists(traktPoster.FullImagePath);
@@ -712,8 +691,7 @@ namespace JMMServer
             // Trakt Fanart
             if (ServerSettings.Trakt_DownloadFanart)
             {
-                Trakt_ImageFanartRepository repTraktFanarts = new Trakt_ImageFanartRepository();
-                foreach (Trakt_ImageFanart traktFanart in repTraktFanarts.GetAll())
+                foreach (Trakt_ImageFanart traktFanart in RepoFactory.Trakt_ImageFanart.GetAll())
                 {
                     if (string.IsNullOrEmpty(traktFanart.FullImagePath)) continue;
                     bool fileExists = File.Exists(traktFanart.FullImagePath);
@@ -730,8 +708,7 @@ namespace JMMServer
             // Trakt Episode
             if (ServerSettings.Trakt_DownloadEpisodes)
             {
-                Trakt_EpisodeRepository repTraktEpisodes = new Trakt_EpisodeRepository();
-                foreach (Trakt_Episode traktEp in repTraktEpisodes.GetAll())
+                foreach (Trakt_Episode traktEp in RepoFactory.Trakt_Episode.GetAll())
                 {
                     if (string.IsNullOrEmpty(traktEp.FullImagePath)) continue;
                     if (!traktEp.TraktID.HasValue) continue; // if it doesn't have a TraktID it means it is old data
@@ -749,8 +726,7 @@ namespace JMMServer
             // AniDB Characters
             if (ServerSettings.AniDB_DownloadCharacters)
             {
-                AniDB_CharacterRepository repChars = new AniDB_CharacterRepository();
-                foreach (AniDB_Character chr in repChars.GetAll())
+                foreach (AniDB_Character chr in RepoFactory.AniDB_Character.GetAll())
                 {
                     if (chr.CharID == 75250)
                     {
@@ -771,8 +747,7 @@ namespace JMMServer
             // AniDB Creators
             if (ServerSettings.AniDB_DownloadCreators)
             {
-                AniDB_SeiyuuRepository repSeiyuu = new AniDB_SeiyuuRepository();
-                foreach (AniDB_Seiyuu seiyuu in repSeiyuu.GetAll())
+                foreach (AniDB_Seiyuu seiyuu in RepoFactory.AniDB_Seiyuu.GetAll())
                 {
                     if (string.IsNullOrEmpty(seiyuu.PosterPath)) continue;
                     bool fileExists = File.Exists(seiyuu.PosterPath);
@@ -814,8 +789,7 @@ namespace JMMServer
 
         public static void RunImport_UpdateAllAniDB()
         {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            foreach (AniDB_Anime anime in repAnime.GetAll())
+            foreach (AniDB_Anime anime in RepoFactory.AniDB_Anime.GetAll())
             {
                 CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(anime.AnimeID, true, false);
                 cmd.Save();
@@ -824,10 +798,8 @@ namespace JMMServer
 
         public static void RemoveRecordsWithoutPhysicalFiles()
         {
-            VideoLocal_PlaceRepository repPlace = new VideoLocal_PlaceRepository();
-            VideoLocalRepository repVid=new VideoLocalRepository();
             // get a full list of files
-            Dictionary<ImportFolder, List<VideoLocal_Place>> filesAll = repPlace.GetAll().GroupBy(a => a.ImportFolder).ToDictionary(a => a.Key, a => a.ToList());
+            Dictionary<ImportFolder, List<VideoLocal_Place>> filesAll = RepoFactory.VideoLocalPlace.GetAll().GroupBy(a => a.ImportFolder).ToDictionary(a => a.Key, a => a.ToList());
             foreach (ImportFolder folder in filesAll.Keys)
             {
                 IFileSystem fs = folder.FileSystem;
@@ -842,13 +814,13 @@ namespace JMMServer
                         logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vl.FullServerPath);
                         if (v.Places.Count == 1)
                         {
-                            repPlace.Delete(vl.VideoLocal_Place_ID);
-                            repVid.Delete(v.VideoLocalID);
+                            RepoFactory.VideoLocalPlace.Delete(vl.VideoLocal_Place_ID);
+                            RepoFactory.VideoLocal.Delete(v.VideoLocalID);
                             CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
                             cmdDel.Save();
                         }
                         else
-                            repPlace.Delete(vl.VideoLocal_Place_ID);
+                            RepoFactory.VideoLocalPlace.Delete(vl.VideoLocal_Place_ID);
                     }
                 }
             }
@@ -858,10 +830,9 @@ namespace JMMServer
 
         public static string DeleteCloudAccount(int cloudaccountID)
         {
-            CloudAccountRepository repo=new CloudAccountRepository();
-            CloudAccount cl = repo.GetByID(cloudaccountID);
+            CloudAccount cl = RepoFactory.CloudAccount.GetByID(cloudaccountID);
             if (cl == null) return "Could not find Cloud Account ID: " + cloudaccountID;
-            foreach (ImportFolder f in new ImportFolderRepository().GetByCloudId(cl.CloudID))
+            foreach (ImportFolder f in RepoFactory.ImportFolder.GetByCloudId(cl.CloudID))
             {
                 string r = DeleteImportFolder(f.ImportFolderID);
                 if (!string.IsNullOrEmpty(r))
@@ -874,17 +845,14 @@ namespace JMMServer
         {
             try
             {
-                ImportFolderRepository repNS = new ImportFolderRepository();
-                ImportFolder ns = repNS.GetByID(importFolderID);
+                ImportFolder ns = RepoFactory.ImportFolder.GetByID(importFolderID);
 
                 if (ns == null) return "Could not find Import Folder ID: " + importFolderID;
 
                 // first delete all the files attached  to this import folder
                 Dictionary<int, AnimeSeries> affectedSeries = new Dictionary<int, AnimeSeries>();
 
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal_PlaceRepository repPlace=new VideoLocal_PlaceRepository();
-                foreach (VideoLocal_Place vid in repPlace.GetByImportFolder(importFolderID))
+                foreach (VideoLocal_Place vid in RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID))
                 {
                     //Thread.Sleep(5000);
                     logger.Info("Deleting video local record: {0}", vid.FullServerPath);
@@ -902,23 +870,19 @@ namespace JMMServer
                     logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
                     if (v.Places.Count == 1)
                     {
-                        repPlace.Delete(vid.VideoLocal_Place_ID);
-                        repVids.Delete(v.VideoLocalID);
+                        RepoFactory.VideoLocalPlace.Delete(vid.VideoLocal_Place_ID);
+                        RepoFactory.VideoLocal.Delete(v.VideoLocalID);
                     }
                     else
-                        repPlace.Delete(vid.VideoLocal_Place_ID);
+                        RepoFactory.VideoLocalPlace.Delete(vid.VideoLocal_Place_ID);
                 }
 
                 // delete any duplicate file records which reference this folder
-                DuplicateFileRepository repDupFiles = new DuplicateFileRepository();
-                foreach (DuplicateFile df in repDupFiles.GetByImportFolder1(importFolderID))
-                    repDupFiles.Delete(df.DuplicateFileID);
-
-                foreach (DuplicateFile df in repDupFiles.GetByImportFolder2(importFolderID))
-                    repDupFiles.Delete(df.DuplicateFileID);
+                RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(importFolderID));
+                RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder2(importFolderID));
 
                 // delete the import folder
-                repNS.Delete(importFolderID);
+                RepoFactory.ImportFolder.Delete(importFolderID);
                 
                 //TODO APIv2: Delete this hack after migration to headless
                 //hack until gui id dead
@@ -942,15 +906,14 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
 
         public static void UpdateAllStats()
         {
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            foreach (AnimeSeries ser in repSeries.GetAll())
+            foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
             {
                 ser.QueueUpdateStats();
             }
@@ -962,12 +925,10 @@ namespace JMMServer
             List<int> vidsToUpdate = new List<int>();
             try
             {
-                AniDB_FileRepository repFiles = new AniDB_FileRepository();
-                VideoLocalRepository repVids = new VideoLocalRepository();
 
                 if (missingInfo)
                 {
-                    List<VideoLocal> vids = repVids.GetByAniDBResolution("0x0");
+                    List<VideoLocal> vids = RepoFactory.VideoLocal.GetByAniDBResolution("0x0");
 
                     foreach (VideoLocal vid in vids)
                     {
@@ -978,7 +939,7 @@ namespace JMMServer
 
                 if (outOfDate)
                 {
-                    List<VideoLocal> vids = repVids.GetByInternalVersion(1);
+                    List<VideoLocal> vids = RepoFactory.VideoLocal.GetByInternalVersion(1);
 
                     foreach (VideoLocal vid in vids)
                     {
@@ -998,7 +959,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return vidsToUpdate.Count;
@@ -1006,14 +967,12 @@ namespace JMMServer
 
         public static void CheckForDayFilters()
         {
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-            ScheduledUpdate sched = repSched.GetByUpdateType((int)ScheduledUpdateType.DayFiltersUpdate);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.DayFiltersUpdate);
             if (sched != null)
             {
                 if (DateTime.Now.Day == sched.LastUpdate.Day)
                     return;
             }
-            GroupFilterRepository repos=new GroupFilterRepository();
             //Get GroupFiters that change daily
 
             HashSet<GroupFilterConditionType> conditions = new HashSet<GroupFilterConditionType>
@@ -1024,7 +983,7 @@ namespace JMMServer
                 GroupFilterConditionType.EpisodeWatchedDate,
                 GroupFilterConditionType.EpisodeAddedDate
             };
-            List<GroupFilter> evalfilters=repos.GetWithConditionsTypes(conditions).Where(
+            List<GroupFilter> evalfilters= RepoFactory.GroupFilter.GetWithConditionsTypes(conditions).Where(
                 a=>a.Conditions.Any(b=>conditions.Contains(b.ConditionTypeEnum) && b.ConditionOperatorEnum==GroupFilterOperator.LastXDays)).ToList();
             foreach(GroupFilter g in evalfilters)
                 g.EvaluateAnimeGroups();
@@ -1036,7 +995,7 @@ namespace JMMServer
             }
 
             sched.LastUpdate = DateTime.Now;
-            repSched.Save(sched);
+            RepoFactory.ScheduledUpdate.Save(sched);
         }
 
 
@@ -1046,9 +1005,8 @@ namespace JMMServer
             int freqHours = Utils.GetScheduledHours(ServerSettings.TvDB_UpdateFrequency);
 
             // update tvdb info every 12 hours
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.TvDBInfo);
+           
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TvDBInfo);
             if (sched != null)
             {
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -1084,7 +1042,7 @@ namespace JMMServer
 
             sched.LastUpdate = DateTime.Now;
             sched.UpdateDetails = serverTime;
-            repSched.Save(sched);
+            RepoFactory.ScheduledUpdate.Save(sched);
 
             TvDBHelper.ScanForMatches();
         }
@@ -1097,10 +1055,9 @@ namespace JMMServer
 
             // update the calendar every 12 hours
             // we will always assume that an anime was downloaded via http first
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
+
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
             if (sched != null)
             {
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -1119,9 +1076,8 @@ namespace JMMServer
         {
             // update the anonymous user info every 12 hours
             // we will always assume that an anime was downloaded via http first
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
 
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AzureUserInfo);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AzureUserInfo);
             if (sched != null)
             {
                 // if we have run this in the last 6 hours and are not forcing it, then exit
@@ -1139,7 +1095,7 @@ namespace JMMServer
                 sched.UpdateDetails = "";
             }
             sched.LastUpdate = DateTime.Now;
-            repSched.Save(sched);
+            RepoFactory.ScheduledUpdate.Save(sched);
 
             CommandRequest_Azure_SendUserInfo cmd = new CommandRequest_Azure_SendUserInfo(ServerSettings.AniDB_Username);
             cmd.Save();
@@ -1151,10 +1107,8 @@ namespace JMMServer
             int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Anime_UpdateFrequency);
 
             // check for any updated anime info every 12 hours
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
             if (sched != null)
             {
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -1175,10 +1129,8 @@ namespace JMMServer
             int freqHours = Utils.GetScheduledHours(ServerSettings.MAL_UpdateFrequency);
 
             // check for any updated anime info every 12 hours
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.MALUpdate);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.MALUpdate);
             if (sched != null)
             {
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -1198,7 +1150,7 @@ namespace JMMServer
                 sched.UpdateDetails = "";
             }
             sched.LastUpdate = DateTime.Now;
-            repSched.Save(sched);
+            RepoFactory.ScheduledUpdate.Save(sched);
         }
 
         public static void CheckForMyListStatsUpdate(bool forceRefresh)
@@ -1207,9 +1159,7 @@ namespace JMMServer
                 return;
             int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyListStats_UpdateFrequency);
 
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
             if (sched != null)
             {
                 // if we have run this in the last 24 hours and are not forcing it, then exit
@@ -1231,9 +1181,8 @@ namespace JMMServer
             int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyList_UpdateFrequency);
 
             // update the calendar every 24 hours
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
 
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
             if (sched != null)
             {
                 // if we have run this in the last 24 hours and are not forcing it, then exit
@@ -1255,9 +1204,8 @@ namespace JMMServer
             int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
 
             // update the calendar every xxx hours
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
 
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
             if (sched != null)
             {
                 // if we have run this in the last xxx hours and are not forcing it, then exit
@@ -1282,9 +1230,7 @@ namespace JMMServer
             int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
 
             // update the calendar every xxx hours
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
             if (sched != null)
             {
                 // if we have run this in the last xxx hours and are not forcing it, then exit
@@ -1307,9 +1253,7 @@ namespace JMMServer
                 // by updating the Trakt token regularly, the user won't need to authorize again
                 int freqHours = 24; // we need to update this daily
 
-                ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-
-                ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.TraktToken);
+               ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktToken);
                 if (sched != null)
                 {
                     // if we have run this in the last xxx hours and are not forcing it, then exit
@@ -1329,11 +1273,11 @@ namespace JMMServer
                     sched.UpdateDetails = "";
                 }
                 sched.LastUpdate = DateTime.Now;
-                repSched.Save(sched);
+                RepoFactory.ScheduledUpdate.Save(sched);
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in CheckForTraktTokenUpdate: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in CheckForTraktTokenUpdate: " + ex.ToString());
             }
         }
 
@@ -1343,10 +1287,8 @@ namespace JMMServer
             int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_File_UpdateFrequency);
 
             // check for any updated anime info every 12 hours
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AniDBFileUpdates);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBFileUpdates);
             if (sched != null)
             {
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -1360,8 +1302,7 @@ namespace JMMServer
             UpdateAniDBFileData(true, false, false);
 
             // files which have been hashed, but don't have an associated episode
-            VideoLocalRepository repVidLocals = new VideoLocalRepository();
-            List<VideoLocal> filesWithoutEpisode = repVidLocals.GetVideosWithoutEpisode();
+            List<VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 
             foreach (VideoLocal vl in filesWithoutEpisode)
             {
@@ -1379,7 +1320,7 @@ namespace JMMServer
                 sched.UpdateDetails = "";
             }
             sched.LastUpdate = DateTime.Now;
-            repSched.Save(sched);
+            RepoFactory.ScheduledUpdate.Save(sched);
         }
 
         public static void UpdateAniDBTitles()
@@ -1393,10 +1334,8 @@ namespace JMMServer
             if (!process) return;
 
             // check for any updated anime info every 100 hours
-            ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
-            ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AniDBTitles);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBTitles);
             if (sched != null)
             {
                 // if we have run this in the last 100 hours and are not forcing it, then exit
@@ -1411,7 +1350,7 @@ namespace JMMServer
                 sched.UpdateDetails = "";
             }
             sched.LastUpdate = DateTime.Now;
-            repSched.Save(sched);
+            RepoFactory.ScheduledUpdate.Save(sched);
 
             CommandRequest_GetAniDBTitles cmd = new CommandRequest_GetAniDBTitles();
             cmd.Save();

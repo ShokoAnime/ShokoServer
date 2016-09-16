@@ -5,6 +5,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 
 namespace JMMServer.Commands
 {
@@ -56,8 +57,7 @@ namespace JMMServer.Commands
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
                 logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG02");
 
-                AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-                AnimeEpisode ep = repEpisodes.GetByID(AnimeEpisodeID);
+                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
                 if (ep != null)
                 {
                     logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG03");

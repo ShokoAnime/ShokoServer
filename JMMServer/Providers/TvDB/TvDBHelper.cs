@@ -9,6 +9,8 @@ using ICSharpCode.SharpZipLib.Zip;
 using JMMServer.Commands;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NLog;
 
@@ -129,7 +131,7 @@ namespace JMMServer.Providers.TvDB
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TVDBHelper.Init: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in TVDBHelper.Init: " + ex.ToString());
             }
         }
 
@@ -167,20 +169,19 @@ namespace JMMServer.Providers.TvDB
                 TvDB_Series tvSeries = null;
                 if (docSeries != null)
                 {
-                    TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
-                    tvSeries = repSeries.GetByTvDBID(seriesID);
+                    tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(seriesID);
                     if (tvSeries == null)
                         tvSeries = new TvDB_Series();
 
                     tvSeries.PopulateFromSeriesInfo(docSeries);
-                    repSeries.Save(tvSeries);
+                    RepoFactory.TvDB_Series.Save(tvSeries);
                 }
 
                 return tvSeries;
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TVDBHelper.GetSeriesInfoOnline: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in TVDBHelper.GetSeriesInfoOnline: " + ex.ToString());
             }
 
             return null;
@@ -206,7 +207,7 @@ namespace JMMServer.Providers.TvDB
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString());
             }
 
             return null;
@@ -234,7 +235,7 @@ namespace JMMServer.Providers.TvDB
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TVDBHelper.GetFullSeriesInfo: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in TVDBHelper.GetFullSeriesInfo: " + ex.ToString());
             }
 
             return null;
@@ -265,7 +266,7 @@ namespace JMMServer.Providers.TvDB
                 }
                 catch (XmlException e)
                 {
-                    logger.ErrorException("Error in TVDBHelper.DecompressZipToXmls: " + e.ToString(), e);
+                    logger.Error( e,"Error in TVDBHelper.DecompressZipToXmls: " + e.ToString());
                 }
                 b.Remove(0, b.Length);
             }
@@ -378,7 +379,7 @@ namespace JMMServer.Providers.TvDB
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in TVDBHelper.GetSeriesBannersOnline: " + ex.ToString());
             }
 
             return languages;
@@ -399,27 +400,26 @@ namespace JMMServer.Providers.TvDB
             int numBannersDownloaded = 0;
 
             // find out how many images we already have locally
-            TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
-            TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
-            TvDB_ImageWideBannerRepository repBanners = new TvDB_ImageWideBannerRepository();
 
+
+            
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
 
-                foreach (TvDB_ImageFanart fanart in repFanart.GetBySeriesID(sessionWrapper, seriesID))
+                foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(sessionWrapper, seriesID))
                 {
                     if (!string.IsNullOrEmpty(fanart.FullImagePath) && File.Exists(fanart.FullImagePath))
                         numFanartDownloaded++;
                 }
 
-                foreach (TvDB_ImagePoster poster in repPosters.GetBySeriesID(sessionWrapper, seriesID))
+                foreach (TvDB_ImagePoster poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(sessionWrapper, seriesID))
                 {
                     if (!string.IsNullOrEmpty(poster.FullImagePath) && File.Exists(poster.FullImagePath))
                         numPostersDownloaded++;
                 }
 
-                foreach (TvDB_ImageWideBanner banner in repBanners.GetBySeriesID(session, seriesID))
+                foreach (TvDB_ImageWideBanner banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(session, seriesID))
                 {
                     if (!string.IsNullOrEmpty(banner.FullImagePath) && File.Exists(banner.FullImagePath))
                         numBannersDownloaded++;
@@ -450,7 +450,7 @@ namespace JMMServer.Providers.TvDB
                         // first we check if file was downloaded
                         if (!File.Exists(img.FullImagePath))
                         {
-                            repFanart.Delete(img.TvDB_ImageFanartID);
+                            RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
                         }
                     }
                 }
@@ -476,7 +476,7 @@ namespace JMMServer.Providers.TvDB
                         // first we check if file was downloaded
                         if (!File.Exists(img.FullImagePath))
                         {
-                            repPosters.Delete(img.TvDB_ImagePosterID);
+                            RepoFactory.TvDB_ImagePoster.Delete(img.TvDB_ImagePosterID);
                         }
                     }
                 }
@@ -504,7 +504,7 @@ namespace JMMServer.Providers.TvDB
                         // first we check if file was downloaded
                         if (!File.Exists(img.FullImagePath))
                         {
-                            repBanners.Delete(img.TvDB_ImageWideBannerID);
+                            RepoFactory.TvDB_ImageWideBanner.Delete(img.TvDB_ImageWideBannerID);
                         }
                     }
                 }
@@ -528,9 +528,9 @@ namespace JMMServer.Providers.TvDB
                 // fanart = fanart
                 // poster = filmstrip poster/dvd cover
 
-                TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
-                TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
-                TvDB_ImageWideBannerRepository repWideBanners = new TvDB_ImageWideBannerRepository();
+
+
+
 
                 List<int> validFanartIDs = new List<int>();
                 List<int> validPosterIDs = new List<int>();
@@ -567,7 +567,7 @@ namespace JMMServer.Providers.TvDB
                     if (imageType == JMMImageType.TvDB_FanArt)
                     {
                         int id = int.Parse(node["id"].InnerText);
-                        TvDB_ImageFanart img = repFanart.GetByTvDBID(id);
+                        TvDB_ImageFanart img = RepoFactory.TvDB_ImageFanart.GetByTvDBID(id);
                         if (img == null)
                         {
                             img = new TvDB_ImageFanart();
@@ -575,7 +575,7 @@ namespace JMMServer.Providers.TvDB
                         }
 
                         img.Populate(seriesID, node);
-                        repFanart.Save(img);
+                        RepoFactory.TvDB_ImageFanart.Save(img);
 
                         banners.Add(img);
                         validFanartIDs.Add(id);
@@ -585,7 +585,7 @@ namespace JMMServer.Providers.TvDB
                     {
                         int id = int.Parse(node["id"].InnerText);
 
-                        TvDB_ImageWideBanner img = repWideBanners.GetByTvDBID(id);
+                        TvDB_ImageWideBanner img = RepoFactory.TvDB_ImageWideBanner.GetByTvDBID(id);
                         if (img == null)
                         {
                             img = new TvDB_ImageWideBanner();
@@ -593,7 +593,7 @@ namespace JMMServer.Providers.TvDB
                         }
 
                         img.Populate(seriesID, node, TvDBImageNodeType.Series);
-                        repWideBanners.Save(img);
+                        RepoFactory.TvDB_ImageWideBanner.Save(img);
 
                         banners.Add(img);
                         validBannerIDs.Add(id);
@@ -603,7 +603,7 @@ namespace JMMServer.Providers.TvDB
                     {
                         int id = int.Parse(node["id"].InnerText);
 
-                        TvDB_ImagePoster img = repPosters.GetByTvDBID(id);
+                        TvDB_ImagePoster img = RepoFactory.TvDB_ImagePoster.GetByTvDBID(id);
                         if (img == null)
                         {
                             img = new TvDB_ImagePoster();
@@ -615,7 +615,7 @@ namespace JMMServer.Providers.TvDB
 
 
                         img.Populate(seriesID, node, nodeType);
-                        repPosters.Save(img);
+                        RepoFactory.TvDB_ImagePoster.Save(img);
 
                         banners.Add(img);
                         validPosterIDs.Add(id);
@@ -623,27 +623,27 @@ namespace JMMServer.Providers.TvDB
                 }
 
                 // delete any banners from the database which are no longer valid
-                foreach (TvDB_ImageFanart img in repFanart.GetBySeriesID(seriesID))
+                foreach (TvDB_ImageFanart img in RepoFactory.TvDB_ImageFanart.GetBySeriesID(seriesID))
                 {
                     if (!validFanartIDs.Contains(img.Id))
-                        repFanart.Delete(img.TvDB_ImageFanartID);
+                        RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
                 }
 
-                foreach (TvDB_ImagePoster img in repPosters.GetBySeriesID(seriesID))
+                foreach (TvDB_ImagePoster img in RepoFactory.TvDB_ImagePoster.GetBySeriesID(seriesID))
                 {
                     if (!validPosterIDs.Contains(img.Id))
-                        repPosters.Delete(img.TvDB_ImagePosterID);
+                        RepoFactory.TvDB_ImagePoster.Delete(img.TvDB_ImagePosterID);
                 }
 
-                foreach (TvDB_ImageWideBanner img in repWideBanners.GetBySeriesID(seriesID))
+                foreach (TvDB_ImageWideBanner img in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(seriesID))
                 {
                     if (!validBannerIDs.Contains(img.Id))
-                        repWideBanners.Delete(img.TvDB_ImageWideBannerID);
+                        RepoFactory.TvDB_ImageWideBanner.Delete(img.TvDB_ImageWideBannerID);
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in ParseBanners: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in ParseBanners: " + ex.ToString());
             }
 
             return banners;
@@ -683,7 +683,7 @@ namespace JMMServer.Providers.TvDB
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in SearchSeries: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in SearchSeries: " + ex.ToString());
             }
 
             return results;
@@ -719,7 +719,7 @@ namespace JMMServer.Providers.TvDB
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in GetUpdatedSeriesList: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in GetUpdatedSeriesList: " + ex.ToString());
                 return seriesList;
             }
         }
@@ -736,8 +736,7 @@ namespace JMMServer.Providers.TvDB
         /// <param name="forceRefresh"></param>
         public void UpdateAllInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
         {
-            TvDB_EpisodeRepository repEpisodes = new TvDB_EpisodeRepository();
-            TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
+          
 
             string fileName = string.Format("{0}.xml", ServerSettings.TvDB_Language);
 
@@ -750,12 +749,12 @@ namespace JMMServer.Providers.TvDB
                     XmlDocument xmlDoc = docSeries[fileName];
                     if (xmlDoc != null)
                     {
-                        TvDB_Series tvSeries = repSeries.GetByTvDBID(seriesID);
+                        TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(seriesID);
                         if (tvSeries == null)
                             tvSeries = new TvDB_Series();
 
                         tvSeries.PopulateFromSeriesInfo(xmlDoc);
-                        repSeries.Save(tvSeries);
+                        RepoFactory.TvDB_Series.Save(tvSeries);
                     }
 
                     if (downloadImages)
@@ -782,11 +781,11 @@ namespace JMMServer.Providers.TvDB
                             int id = int.Parse(node["id"].InnerText.Trim());
                             existingEpIds.Add(id);
 
-                            TvDB_Episode ep = repEpisodes.GetByTvDBID(id);
+                            TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByTvDBID(id);
                             if (ep == null)
                                 ep = new TvDB_Episode();
                             ep.Populate(node);
-                            repEpisodes.Save(ep);
+                            RepoFactory.TvDB_Episode.Save(ep);
 
                             //BaseConfig.MyAnimeLog.Write("Refreshing episode info for: {0}", ep.ToString());
 
@@ -808,21 +807,21 @@ namespace JMMServer.Providers.TvDB
                         }
                         catch (Exception ex)
                         {
-                            logger.ErrorException("Error in TVDBHelper.GetEpisodes: " + ex.ToString(), ex);
+                            logger.Error( ex,"Error in TVDBHelper.GetEpisodes: " + ex.ToString());
                         }
                     }
 
                     // get all the existing tvdb episodes, to see if any have been deleted
-                    List<TvDB_Episode> allEps = repEpisodes.GetBySeriesID(seriesID);
+                    List<TvDB_Episode> allEps = RepoFactory.TvDB_Episode.GetBySeriesID(seriesID);
                     foreach (TvDB_Episode oldEp in allEps)
                     {
                         if (!existingEpIds.Contains(oldEp.Id))
-                            repEpisodes.Delete(oldEp.TvDB_EpisodeID);
+                            RepoFactory.TvDB_Episode.Delete(oldEp.TvDB_EpisodeID);
                     }
                 }
                 catch (Exception ex)
                 {
-                    logger.ErrorException("Error in TVDBHelper.GetEpisodes: " + ex.ToString(), ex);
+                    logger.Error( ex,"Error in TVDBHelper.GetEpisodes: " + ex.ToString());
                 }
             }
         }
@@ -833,8 +832,7 @@ namespace JMMServer.Providers.TvDB
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-                List<CrossRef_AniDB_TvDBV2> xrefTemps = repCrossRef.GetByAnimeIDEpTypeEpNumber(session, animeID,
+                List<CrossRef_AniDB_TvDBV2> xrefTemps = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, animeID,
                     (int) aniEpType,
                     aniEpNumber);
                 if (xrefTemps != null && xrefTemps.Count > 0)
@@ -850,8 +848,7 @@ namespace JMMServer.Providers.TvDB
 
                 // check if we have this information locally
                 // if not download it now
-                TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
-                TvDB_Series tvSeries = repSeries.GetByTvDBID(tvDBID);
+                TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(tvDBID);
                 if (tvSeries == null)
                 {
                     // we download the series info here just so that we have the basic info in the
@@ -866,13 +863,12 @@ namespace JMMServer.Providers.TvDB
                         false);
                 //Optimize for batch updates, if there are a lot of LinkAniDBTvDB commands queued 
                 //this will cause only one updateSeriesAndEpisodes command to be created
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                if (repCR.GetByCommandID(cmdSeriesEps.CommandID) == null)
+                if (RepoFactory.CommandRequest.GetByCommandID(cmdSeriesEps.CommandID) == null)
                 {
                     cmdSeriesEps.Save();
                 }
 
-                CrossRef_AniDB_TvDBV2 xref = repCrossRef.GetByTvDBID(session, tvDBID, tvSeasonNumber, tvEpNumber,
+                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvDBID, tvSeasonNumber, tvEpNumber,
                     animeID,
                     (int) aniEpType, aniEpNumber);
                 if (xref == null)
@@ -893,7 +889,7 @@ namespace JMMServer.Providers.TvDB
                 else
                     xref.CrossRefSource = (int) CrossRefSource.User;
 
-                repCrossRef.Save(xref);
+                RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
 
                 AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
@@ -908,8 +904,7 @@ namespace JMMServer.Providers.TvDB
 
                 if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                 {
-                    CrossRef_AniDB_TraktV2Repository repTraktXrefs = new CrossRef_AniDB_TraktV2Repository();
-                    if (repTraktXrefs.GetByAnimeID(animeID).Count == 0)
+                    if (RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID).Count == 0)
                     {
                         // check for Trakt associations
                         CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
@@ -923,15 +918,14 @@ namespace JMMServer.Providers.TvDB
 
         public static void LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID)
         {
-            CrossRef_AniDB_TvDB_EpisodeRepository repCrossRef = new CrossRef_AniDB_TvDB_EpisodeRepository();
-            CrossRef_AniDB_TvDB_Episode xref = repCrossRef.GetByAniDBEpisodeID(aniDBID);
+            CrossRef_AniDB_TvDB_Episode xref = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aniDBID);
             if (xref == null)
                 xref = new CrossRef_AniDB_TvDB_Episode();
 
             xref.AnimeID = animeID;
             xref.AniDBEpisodeID = aniDBID;
             xref.TvDBEpisodeID = tvDBID;
-            repCrossRef.Save(xref);
+            RepoFactory.CrossRef_AniDB_TvDB_Episode.Save(xref);
 
             AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
@@ -942,13 +936,12 @@ namespace JMMServer.Providers.TvDB
         public static void RemoveLinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
             int tvSeasonNumber, int tvEpNumber)
         {
-            CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-            CrossRef_AniDB_TvDBV2 xref = repCrossRef.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID,
+            CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID,
                 (int) aniEpType,
                 aniEpNumber);
             if (xref == null) return;
 
-            repCrossRef.Delete(xref.CrossRef_AniDB_TvDBV2ID);
+            RepoFactory.CrossRef_AniDB_TvDBV2.Delete(xref.CrossRef_AniDB_TvDBV2ID);
 
             AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
@@ -985,11 +978,9 @@ namespace JMMServer.Providers.TvDB
 
         public static void ScanForMatches()
         {
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            List<AnimeSeries> allSeries = repSeries.GetAll();
+            List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
-            CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-            List<CrossRef_AniDB_TvDBV2> allCrossRefs = repCrossRef.GetAll();
+            List<CrossRef_AniDB_TvDBV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetAll();
             List<int> alreadyLinked = new List<int>();
             foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
             {
@@ -1020,8 +1011,7 @@ namespace JMMServer.Providers.TvDB
 
         public static void UpdateAllInfo(bool force)
         {
-            CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-            List<CrossRef_AniDB_TvDBV2> allCrossRefs = repCrossRef.GetAll();
+            List<CrossRef_AniDB_TvDBV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetAll();
             List<int> alreadyLinked = new List<int>();
             foreach (CrossRef_AniDB_TvDBV2 xref in allCrossRefs)
             {
@@ -1048,8 +1038,6 @@ namespace JMMServer.Providers.TvDB
 
             try
             {
-                CrossRef_AniDB_TvDBRepository repCrossRef = new CrossRef_AniDB_TvDBRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
                 // record the tvdb server time when we started
                 // we record the time now instead of after we finish, to include any possible misses
@@ -1060,7 +1048,7 @@ namespace JMMServer.Providers.TvDB
                     return currentTvDBServerTime;
                 }
 
-                foreach (AnimeSeries ser in repSeries.GetAll())
+                foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
                 {
                     List<CrossRef_AniDB_TvDBV2> xrefs = ser.GetCrossRefTvDBV2();
                     if (xrefs == null) continue;
@@ -1074,8 +1062,8 @@ namespace JMMServer.Providers.TvDB
                 // get the time we last did a TvDB update
                 // if this is the first time it will be null
                 // update the anidb info ever 24 hours
-                ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-                ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.TvDBInfo);
+               
+                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TvDBInfo);
 
                 string lastServerTime = "";
                 if (sched != null)
@@ -1113,7 +1101,7 @@ namespace JMMServer.Providers.TvDB
             }
             catch (Exception ex)
             {
-                logger.ErrorException("IncrementalTvDBUpdate: " + ex.ToString(), ex);
+                logger.Error( ex,"IncrementalTvDBUpdate: " + ex.ToString());
                 return "";
             }
         }

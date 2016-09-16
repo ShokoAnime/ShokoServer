@@ -4,6 +4,8 @@ using System.Linq;
 using AniDBAPI;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NLog;
 
@@ -31,18 +33,14 @@ namespace JMMServer.Databases
         public static void DeleteSerieUsersWithoutSeries()
         {
             //DB Fix Series not deleting series_user
-            AnimeSeries_UserRepository seruserrepo=new AnimeSeries_UserRepository();
-            HashSet<int> list = new HashSet<int>(AnimeSeriesRepository.Cache.Keys);
-            foreach (AnimeSeries_User g in AnimeSeries_UserRepository.Cache.Values.Where(a => !list.Contains(a.AnimeSeriesID)).ToList())
-                seruserrepo.Delete(g.AnimeSeries_UserID);
+            HashSet<int> list = new HashSet<int>(RepoFactory.AnimeSeries.Cache.Keys);
+            RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.Cache.Values.Where(a => !list.Contains(a.AnimeSeriesID)).ToList());
         }
         public static void FixHashes()
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-
-                foreach (VideoLocal vid in repVids.GetAll())
+                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetAll())
                 {
                     bool fixedHash = false;
                     if (vid.CRC32.Equals("00000000"))
@@ -62,14 +60,14 @@ namespace JMMServer.Databases
                     }
                     if (fixedHash)
                     {
-                        repVids.Save(vid, false);
+                        RepoFactory.VideoLocal.Save(vid, false);
                         logger.Info("Fixed hashes on file: {0}", vid.FileName);
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -77,21 +75,13 @@ namespace JMMServer.Databases
         {
             try
             {
-                MovieDB_FanartRepository repFanart = new MovieDB_FanartRepository();
-                foreach (MovieDB_Fanart fanart in repFanart.GetAll())
-                {
-                    repFanart.Delete(fanart.MovieDB_FanartID);
-                }
-
-                MovieDB_PosterRepository repPoster = new MovieDB_PosterRepository();
-                foreach (MovieDB_Poster poster in repPoster.GetAll())
-                {
-                    repPoster.Delete(poster.MovieDB_PosterID);
-                }
+                
+                RepoFactory.MovieDB_Fanart.Delete(RepoFactory.MovieDB_Fanart.GetAll());
+                RepoFactory.MovieDB_Poster.Delete(RepoFactory.MovieDB_Poster.GetAll());
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Could not RemoveOldMovieDBImageRecords: " + ex.ToString(), ex);
+                logger.Error( ex,"Could not RemoveOldMovieDBImageRecords: " + ex.ToString());
             }
         }
 
@@ -99,12 +89,11 @@ namespace JMMServer.Databases
         public static void FixContinueWatchingGroupFilter_20160406()
         {
             // group filters
-            GroupFilterRepository repFilters = new GroupFilterRepository();
-
+          
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 // check if it already exists
-                List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters();
+                List<GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
 
                 if (lockedGFs != null)
                 {
@@ -115,7 +104,7 @@ namespace JMMServer.Databases
                             StringComparison.InvariantCultureIgnoreCase))
                         {
                             gf.FilterType = (int) GroupFilterType.ContinueWatching;
-                            repFilters.Save(gf);
+                            RepoFactory.GroupFilter.Save(gf);
                         }
                     }
                 }
@@ -126,16 +115,12 @@ namespace JMMServer.Databases
         {
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                Trakt_EpisodeRepository repEps = new Trakt_EpisodeRepository();
-                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
 
-                CrossRef_AniDB_TraktRepository repCrossRefTrakt = new CrossRef_AniDB_TraktRepository();
-                CrossRef_AniDB_TraktV2Repository repCrossRefTraktNew = new CrossRef_AniDB_TraktV2Repository();
+
 
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    List<CrossRef_AniDB_Trakt> xrefsTrakt = repCrossRefTrakt.GetAll();
+                    List<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
                     foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
                     {
                         CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2();
@@ -157,13 +142,13 @@ namespace JMMServer.Databases
                         xrefNew.AniDBStartEpisodeNumber = 1;
                         xrefNew.TraktStartEpisodeNumber = 1;
 
-                        repCrossRefTraktNew.Save(xrefNew);
+                        RepoFactory.CrossRef_AniDB_TraktV2.Save(xrefNew);
                     }
 
                     // create cross ref's for specials
                     foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
                     {
-                        AniDB_Anime anime = repAnime.GetByAnimeID(xrefTrakt.AnimeID);
+                        AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xrefTrakt.AnimeID);
                         if (anime == null) continue;
 
                         Trakt_Show show = xrefTrakt.GetByTraktShow(session);
@@ -173,11 +158,11 @@ namespace JMMServer.Databases
                         if (anime.EpisodeCountSpecial <= 0) continue;
 
                         // this Trakt series has a season 0 (specials)
-                        List<int> seasons = repEps.GetSeasonNumbersForSeries(show.Trakt_ShowID);
+                        List<int> seasons = RepoFactory.Trakt_Episode.GetSeasonNumbersForSeries(show.Trakt_ShowID);
                         if (!seasons.Contains(0)) continue;
 
                         //make sure we are not doubling up
-                        CrossRef_AniDB_TraktV2 temp = repCrossRefTraktNew.GetByTraktID(xrefTrakt.TraktID, 0, 1,
+                        CrossRef_AniDB_TraktV2 temp = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(xrefTrakt.TraktID, 0, 1,
                             xrefTrakt.AnimeID,
                             (int) enEpisodeType.Special, 1);
                         if (temp != null) continue;
@@ -192,13 +177,13 @@ namespace JMMServer.Databases
                         xrefNew.AniDBStartEpisodeNumber = 1;
                         xrefNew.TraktTitle = show.Title;
 
-                        repCrossRefTraktNew.Save(xrefNew);
+                        RepoFactory.CrossRef_AniDB_TraktV2.Save(xrefNew);
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Could not MigrateTraktLinks_V1_to_V2: " + ex.ToString(), ex);
+                logger.Error( ex,"Could not MigrateTraktLinks_V1_to_V2: " + ex.ToString());
             }
         }
 
@@ -206,16 +191,11 @@ namespace JMMServer.Databases
         {
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                TvDB_EpisodeRepository repEps = new TvDB_EpisodeRepository();
-
-                CrossRef_AniDB_TvDBRepository repCrossRefTvDB = new CrossRef_AniDB_TvDBRepository();
-                CrossRef_AniDB_TvDBV2Repository repCrossRefTvDBNew = new CrossRef_AniDB_TvDBV2Repository();
-
+                
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
-                    List<CrossRef_AniDB_TvDB> xrefsTvDB = repCrossRefTvDB.GetAll();
+                    List<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
                     foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
                     {
                         CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2();
@@ -237,24 +217,24 @@ namespace JMMServer.Databases
                         xrefNew.AniDBStartEpisodeNumber = 1;
                         xrefNew.TvDBStartEpisodeNumber = 1;
 
-                        repCrossRefTvDBNew.Save(xrefNew);
+                        RepoFactory.CrossRef_AniDB_TvDBV2.Save(xrefNew);
                     }
 
                     // create cross ref's for specials
                     foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
                     {
-                        AniDB_Anime anime = repAnime.GetByAnimeID(xrefTvDB.AnimeID);
+                        AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xrefTvDB.AnimeID);
                         if (anime == null) continue;
 
                         // this anime has specials
                         if (anime.EpisodeCountSpecial <= 0) continue;
 
                         // this tvdb series has a season 0 (specials)
-                        List<int> seasons = repEps.GetSeasonNumbersForSeries(xrefTvDB.TvDBID);
+                        List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(xrefTvDB.TvDBID);
                         if (!seasons.Contains(0)) continue;
 
                         //make sure we are not doubling up
-                        CrossRef_AniDB_TvDBV2 temp = repCrossRefTvDBNew.GetByTvDBID(xrefTvDB.TvDBID, 0, 1,
+                        CrossRef_AniDB_TvDBV2 temp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(xrefTvDB.TvDBID, 0, 1,
                             xrefTvDB.AnimeID,
                             (int) enEpisodeType.Special, 1);
                         if (temp != null) continue;
@@ -272,27 +252,25 @@ namespace JMMServer.Databases
                         if (ser != null)
                             xrefNew.TvDBTitle = ser.SeriesName;
 
-                        repCrossRefTvDBNew.Save(xrefNew);
+                        RepoFactory.CrossRef_AniDB_TvDBV2.Save(xrefNew);
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Could not MigrateTvDBLinks_V1_to_V2: " + ex.ToString(), ex);
+                logger.Error( ex,"Could not MigrateTvDBLinks_V1_to_V2: " + ex.ToString());
             }
         }
 
         public static void FixDuplicateTraktLinks()
         {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
             // delete all Trakt link duplicates
-            CrossRef_AniDB_TraktRepository repCrossRefTrakt = new CrossRef_AniDB_TraktRepository();
 
             List<CrossRef_AniDB_Trakt> xrefsTraktProcessed = new List<CrossRef_AniDB_Trakt>();
             List<CrossRef_AniDB_Trakt> xrefsTraktToBeDeleted = new List<CrossRef_AniDB_Trakt>();
 
-            List<CrossRef_AniDB_Trakt> xrefsTrakt = repCrossRefTrakt.GetAll();
+            List<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
             foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
             {
                 bool deleteXref = false;
@@ -312,27 +290,26 @@ namespace JMMServer.Databases
             foreach (CrossRef_AniDB_Trakt xref in xrefsTraktToBeDeleted)
             {
                 string msg = "";
-                AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime != null) msg = anime.MainTitle;
 
                 logger.Warn("Deleting Trakt Link because of a duplicate: {0} ({1}) - {2}/{3}", xref.AnimeID, msg,
                     xref.TraktID,
                     xref.TraktSeasonNumber);
-                repCrossRefTrakt.Delete(xref.CrossRef_AniDB_TraktID);
+                RepoFactory.CrossRef_AniDB_Trakt.Delete(xref.CrossRef_AniDB_TraktID);
             }
         }
 
         public static void FixDuplicateTvDBLinks()
         {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
             // delete all TvDB link duplicates
-            CrossRef_AniDB_TvDBRepository repCrossRefTvDB = new CrossRef_AniDB_TvDBRepository();
+
 
             List<CrossRef_AniDB_TvDB> xrefsTvDBProcessed = new List<CrossRef_AniDB_TvDB>();
             List<CrossRef_AniDB_TvDB> xrefsTvDBToBeDeleted = new List<CrossRef_AniDB_TvDB>();
 
-            List<CrossRef_AniDB_TvDB> xrefsTvDB = repCrossRefTvDB.GetAll();
+            List<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
             foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
             {
                 bool deleteXref = false;
@@ -352,13 +329,13 @@ namespace JMMServer.Databases
             foreach (CrossRef_AniDB_TvDB xref in xrefsTvDBToBeDeleted)
             {
                 string msg = "";
-                AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime != null) msg = anime.MainTitle;
 
                 logger.Warn("Deleting TvDB Link because of a duplicate: {0} ({1}) - {2}/{3}", xref.AnimeID, msg,
                     xref.TvDBID,
                     xref.TvDBSeasonNumber);
-                repCrossRefTvDB.Delete(xref.CrossRef_AniDB_TvDBID);
+                RepoFactory.CrossRef_AniDB_TvDB.Delete(xref.CrossRef_AniDB_TvDBID);
             }
         }
 
@@ -366,16 +343,15 @@ namespace JMMServer.Databases
         {
             try
             {
-                AniDB_Anime_TagRepository repTags = new AniDB_Anime_TagRepository();
-                foreach (AniDB_Anime_Tag atag in repTags.GetAll())
+                foreach (AniDB_Anime_Tag atag in RepoFactory.AniDB_Anime_Tag.GetAll())
                 {
                     atag.Weight = 0;
-                    repTags.Save(atag);
+                    RepoFactory.AniDB_Anime_Tag.Save(atag);
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Could not PopulateTagWeight: " + ex.ToString(), ex);
+                logger.Error( ex,"Could not PopulateTagWeight: " + ex.ToString());
             }
         }
     }

@@ -24,8 +24,7 @@ namespace JMMServer.Entities
             contract.AnimeID = this.AnimeID;
             contract.IgnoreType = this.IgnoreType;
 
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
+            AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
             if (anime != null) contract.Anime = anime.Contract.AniDBAnime;
 
             return contract;

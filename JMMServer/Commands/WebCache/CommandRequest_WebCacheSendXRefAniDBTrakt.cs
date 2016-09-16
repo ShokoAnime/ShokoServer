@@ -3,6 +3,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -40,16 +41,13 @@ namespace JMMServer.Commands
         {
             try
             {
-                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-                CrossRef_AniDB_TraktV2 xref = repCrossRef.GetByID(CrossRef_AniDB_TraktID);
+                CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByID(CrossRef_AniDB_TraktID);
                 if (xref == null) return;
 
-                Trakt_ShowRepository repShow = new Trakt_ShowRepository();
-                Trakt_Show tvShow = repShow.GetByTraktSlug(xref.TraktID);
+                Trakt_Show tvShow = RepoFactory.Trakt_Show.GetByTraktSlug(xref.TraktID);
                 if (tvShow == null) return;
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime == null) return;
 
                 string showName = "";

@@ -6,6 +6,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
@@ -59,20 +60,19 @@ namespace JMMServer.Commands
                     {
                         try
                         {
-                            MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
-
+                   
                             JMMServer.Providers.Azure.CrossRef_AniDB_Other crossRef =
                                 JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefAniDBOther(AnimeID,
                                     CrossRefType.MovieDB);
                             if (crossRef != null)
                             {
                                 int movieID = int.Parse(crossRef.CrossRefID);
-                                MovieDB_Movie movie = repMovies.GetByOnlineID(sessionWrapper, movieID);
+                                MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(sessionWrapper, movieID);
                                 if (movie == null)
                                 {
                                     // update the info from online
                                     MovieDBHelper.UpdateMovieInfo(session, movieID, true);
-                                    movie = repMovies.GetByOnlineID(movieID);
+                                    movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieID);
                                 }
 
                                 if (movie != null)
@@ -89,8 +89,7 @@ namespace JMMServer.Commands
                     }
 
                     string searchCriteria = "";
-                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(sessionWrapper, AnimeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;

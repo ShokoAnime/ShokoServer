@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Entities
 {
@@ -11,14 +12,7 @@ namespace JMMServer.Entities
         public int Season { get; set; }
         public string URL { get; set; }
 
-        public List<Trakt_Episode> Episodes
-        {
-            get
-            {
-                Trakt_EpisodeRepository repEps = new Trakt_EpisodeRepository();
-                return repEps.GetByShowIDAndSeason(Trakt_ShowID, Season);
-            }
-        }
+        public List<Trakt_Episode> Episodes => RepoFactory.Trakt_Episode.GetByShowIDAndSeason(Trakt_ShowID, Season);
 
         public Contract_Trakt_Season ToContract()
         {

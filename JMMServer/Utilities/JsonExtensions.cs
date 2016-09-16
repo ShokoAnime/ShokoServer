@@ -64,7 +64,7 @@ namespace JMMServer.Utilities
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in Serialization: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in Serialization: " + ex.ToString());
                 return new List<T>();
             }
         }

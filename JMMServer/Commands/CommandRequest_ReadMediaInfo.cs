@@ -44,8 +44,7 @@ namespace JMMServer.Commands
 
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vlocal = repVids.GetByID(VideoLocalID);
+                VideoLocal vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
                 VideoLocal_Place place = vlocal?.GetBestVideoLocalPlace();
                 if (place==null)
                 {
@@ -53,7 +52,7 @@ namespace JMMServer.Commands
                     return;
                 }
                 if (place.RefreshMediaInfo())
-                    repVids.Save(place.VideoLocal,true);
+                    RepoFactory.VideoLocal.Save(place.VideoLocal,true);
             }
             catch (Exception ex)
             {

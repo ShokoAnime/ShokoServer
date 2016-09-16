@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NLog;
 
 namespace JMMServer.Commands
@@ -203,11 +204,10 @@ namespace JMMServer.Commands
 
                 //logger.Trace("Looking for next command request (images)...");
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                CommandRequest crdb = repCR.GetNextDBCommandRequestImages();
+                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestImages();
                 if (crdb == null) return;
 
-                QueueCount = repCR.GetQueuedCommandCountImages();
+                QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();
                 //logger.Trace("{0} commands remaining in queue (images)", QueueCount);
 
                 if (workerCommands.CancellationPending)
@@ -237,8 +237,8 @@ namespace JMMServer.Commands
                 icr.ProcessCommand();
 
                 //logger.Trace("Deleting command request (images): {0}", crdb.CommandID);
-                repCR.Delete(crdb.CommandRequestID);
-                QueueCount = repCR.GetQueuedCommandCountImages();
+                RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
+                QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();
             }
         }
     }

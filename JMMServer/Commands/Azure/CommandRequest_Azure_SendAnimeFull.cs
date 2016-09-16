@@ -49,8 +49,7 @@ namespace JMMServer.Commands.Azure
 
                 if (!process) return;
 
-                AniDB_AnimeRepository rep = new AniDB_AnimeRepository();
-                AniDB_Anime anime = rep.GetByAnimeID(AnimeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 if (anime.AllTags.ToUpper().Contains("18 RESTRICTED")) return;

@@ -3,6 +3,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands.WebCache
 {
@@ -40,8 +41,7 @@ namespace JMMServer.Commands.WebCache
         {
             try
             {
-                CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-                JMMServer.Entities.CrossRef_AniDB_MAL xref = repCrossRef.GetByID(CrossRef_AniDB_MALID);
+                JMMServer.Entities.CrossRef_AniDB_MAL xref = RepoFactory.CrossRef_AniDB_MAL.GetByID(CrossRef_AniDB_MALID);
                 if (xref == null) return;
 
 

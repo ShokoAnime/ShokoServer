@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using JMMContracts.PlexAndKodi;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 
 namespace JMMServer.Entities
 {
@@ -70,18 +71,15 @@ namespace JMMServer.Entities
 
         public void UpdateGroupFilter(HashSet<GroupFilterConditionType> types)
         {
-            AnimeSeriesRepository repo = new AnimeSeriesRepository();
-            JMMUserRepository repouser = new JMMUserRepository();
-            AnimeSeries ser = repo.GetByID(AnimeSeriesID);
-            JMMUser usr = repouser.GetByID(JMMUserID);
+            AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+            JMMUser usr = RepoFactory.JMMUser.GetByID(JMMUserID);
             if (ser != null && usr != null)
                 ser.UpdateGroupFilters(types, usr);
         }
 
         public void DeleteFromFilters()
         {
-            GroupFilterRepository repo = new GroupFilterRepository();
-            foreach (GroupFilter gf in repo.GetAll())
+            foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
             {
                 bool change = false;
                 if (gf.SeriesIds.ContainsKey(JMMUserID))
@@ -93,7 +91,7 @@ namespace JMMServer.Entities
                     }
                 }
                 if (change)
-                    repo.Save(gf);
+                    RepoFactory.GroupFilter.Save(gf);
             }
         }
 

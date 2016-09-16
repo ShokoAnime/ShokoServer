@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 
 namespace JMMServer.Entities
 {
@@ -18,45 +19,18 @@ namespace JMMServer.Entities
 
         public override string ToString()
         {
-            return string.Format("{0} --- {1}", FilePathFile1, FilePathFile2);
+            return $"{FilePathFile1} --- {FilePathFile2}";
         }
 
-        public ImportFolder ImportFolder1
-        {
-            get
-            {
-                ImportFolderRepository repNS = new ImportFolderRepository();
-                return repNS.GetByID(ImportFolderIDFile1);
-            }
-        }
+        public ImportFolder ImportFolder1 => RepoFactory.ImportFolder.GetByID(ImportFolderIDFile1);
 
-        public string FullServerPath1
-        {
-            get { return Path.Combine(ImportFolder1.ImportFolderLocation, FilePathFile1); }
-        }
+        public string FullServerPath1 => Path.Combine(ImportFolder1.ImportFolderLocation, FilePathFile1);
 
-        public ImportFolder ImportFolder2
-        {
-            get
-            {
-                ImportFolderRepository repNS = new ImportFolderRepository();
-                return repNS.GetByID(ImportFolderIDFile2);
-            }
-        }
+        public ImportFolder ImportFolder2 => RepoFactory.ImportFolder.GetByID(ImportFolderIDFile2);
 
-        public string FullServerPath2
-        {
-            get { return Path.Combine(ImportFolder2.ImportFolderLocation, FilePathFile2); }
-        }
+        public string FullServerPath2 => Path.Combine(ImportFolder2.ImportFolderLocation, FilePathFile2);
 
-        public AniDB_File AniDBFile
-        {
-            get
-            {
-                AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-                return repAniFile.GetByHash(Hash);
-            }
-        }
+        public AniDB_File AniDBFile => RepoFactory.AniDB_File.GetByHash(Hash);
 
         public Contract_DuplicateFile ToContract()
         {
@@ -86,8 +60,7 @@ namespace JMMServer.Entities
                     contract.EpisodeType = eps[0].EpisodeType;
                     contract.EpisodeName = eps[0].RomajiName;
                     contract.AnimeID = eps[0].AnimeID;
-                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(eps[0].AnimeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(eps[0].AnimeID);
                     if (anime != null)
                         contract.AnimeName = anime.MainTitle;
                 }

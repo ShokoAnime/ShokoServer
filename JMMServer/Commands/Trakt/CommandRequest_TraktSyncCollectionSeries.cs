@@ -5,6 +5,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 
 namespace JMMServer.Commands
 {
@@ -49,8 +50,7 @@ namespace JMMServer.Commands
             {
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries series = repSeries.GetByID(AnimeSeriesID);
+                AnimeSeries series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
                 if (series == null)
                 {
                     logger.Error("Could not find anime series: {0}", AnimeSeriesID);

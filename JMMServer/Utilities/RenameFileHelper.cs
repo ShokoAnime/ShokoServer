@@ -83,7 +83,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -121,7 +121,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -157,7 +157,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -193,7 +193,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -238,7 +238,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -293,7 +293,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -362,7 +362,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -432,7 +432,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -509,7 +509,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -585,7 +585,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -634,7 +634,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -683,7 +683,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -732,7 +732,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -778,7 +778,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -845,7 +845,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -912,7 +912,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -969,7 +969,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -1086,7 +1086,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -1673,7 +1673,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -1722,7 +1722,6 @@ namespace JMMServer
 
             string newFileName = string.Empty;
 
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
             List<AniDB_Episode> episodes = new List<AniDB_Episode>();
             AniDB_Anime anime = null;
@@ -1738,7 +1737,7 @@ namespace JMMServer
 
                 episodes.Add(animeEps[0].AniDB_Episode);
 
-                anime = repAnime.GetByAnimeID(episodes[0].AnimeID);
+                anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
                 if (anime == null) return string.Empty;
             }
             else
@@ -1746,7 +1745,7 @@ namespace JMMServer
                 episodes = aniFile.Episodes;
                 if (episodes.Count == 0) return string.Empty;
 
-                anime = repAnime.GetByAnimeID(episodes[0].AnimeID);
+                anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
                 if (anime == null) return string.Empty;
             }
 
@@ -1861,7 +1860,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -2403,8 +2402,8 @@ namespace JMMServer
         {
             try
             {
-                RenameScriptRepository repScripts = new RenameScriptRepository();
-                RenameScript defaultScript = repScripts.GetDefaultScript();
+
+                RenameScript defaultScript = RepoFactory.RenameScript.GetDefaultScript();
 
                 if (defaultScript == null) return string.Empty;
 
@@ -2412,7 +2411,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return string.Empty;
             }
         }

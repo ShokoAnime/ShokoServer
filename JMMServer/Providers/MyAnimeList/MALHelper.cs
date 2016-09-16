@@ -14,6 +14,8 @@ using JMMServer.Commands.MAL;
 using JMMServer.Commands.WebCache;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 using NLog;
 
 namespace JMMServer.Providers.MyAnimeList
@@ -40,7 +42,7 @@ namespace JMMServer.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return GetEmptyAnimes();
             }
             if (searchResultXML.Trim().Length == 0) return GetEmptyAnimes();
@@ -104,7 +106,7 @@ namespace JMMServer.Providers.MyAnimeList
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        logger.Error( ex,ex.ToString());
                     }
                 }
             }
@@ -197,7 +199,7 @@ namespace JMMServer.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -253,8 +255,7 @@ namespace JMMServer.Providers.MyAnimeList
         public static void LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber,
             bool fromWebCache)
         {
-            CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-            CrossRef_AniDB_MAL xrefTemp = repCrossRef.GetByMALID(malID);
+            CrossRef_AniDB_MAL xrefTemp = RepoFactory.CrossRef_AniDB_MAL.GetByMALID(malID);
             if (xrefTemp != null)
             {
                 string msg = string.Format("Not using MAL link as this MAL ID ({0}) is already in use by {1}", malID,
@@ -274,7 +275,7 @@ namespace JMMServer.Providers.MyAnimeList
             else
                 xref.CrossRefSource = (int) CrossRefSource.User;
 
-            repCrossRef.Save(xref);
+            RepoFactory.CrossRef_AniDB_MAL.Save(xref);
             AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
 
@@ -290,11 +291,10 @@ namespace JMMServer.Providers.MyAnimeList
 
         public static void RemoveLinkAniDBMAL(int animeID, int epType, int epNumber)
         {
-            CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-            CrossRef_AniDB_MAL xref = repCrossRef.GetByAnimeConstraint(animeID, epType, epNumber);
+            CrossRef_AniDB_MAL xref = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeConstraint(animeID, epType, epNumber);
             if (xref == null) return;
 
-            repCrossRef.Delete(xref.CrossRef_AniDB_MALID);
+            RepoFactory.CrossRef_AniDB_MAL.Delete(xref.CrossRef_AniDB_MALID);
 
             AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
@@ -312,10 +312,8 @@ namespace JMMServer.Providers.MyAnimeList
                 return;
             }
 
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            List<AnimeSeries> allSeries = repSeries.GetAll();
+            List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
-            CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
             foreach (AnimeSeries ser in allSeries)
             {
                 AniDB_Anime anime = ser.GetAnime();
@@ -364,7 +362,7 @@ namespace JMMServer.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -388,7 +386,7 @@ namespace JMMServer.Providers.MyAnimeList
 			}
 			catch (Exception ex)
 			{
-				logger.ErrorException(ex.ToString(), ex);
+				logger.Error( ex,ex.ToString());
 			}
 		}*/
 
@@ -424,14 +422,10 @@ namespace JMMServer.Providers.MyAnimeList
                     return;
                 }
 
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AniDB_FileRepository repFiles = new AniDB_FileRepository();
-
                 List<AnimeEpisode> eps = ser.GetAnimeEpisodes();
 
                 // find the anidb user
-                JMMUserRepository repUsers = new JMMUserRepository();
-                List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
+                List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
                 if (aniDBUsers.Count == 0) return;
 
                 JMMUser user = aniDBUsers[0];
@@ -549,7 +543,7 @@ namespace JMMServer.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -593,7 +587,7 @@ namespace JMMServer.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -620,7 +614,7 @@ namespace JMMServer.Providers.MyAnimeList
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }

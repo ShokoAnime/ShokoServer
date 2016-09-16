@@ -24,8 +24,7 @@ namespace JMMServer.Entities
 
         public TvDB_Series GetTvDBSeries(ISessionWrapper session)
         {
-            TvDB_SeriesRepository repTvSeries = new TvDB_SeriesRepository();
-            return repTvSeries.GetByTvDBID(session, TvDBID);
+            return RepoFactory.TvDB_Series.GetByTvDBID(session, TvDBID);
         }
 
         public Contract_CrossRef_AniDB_TvDB ToContract()

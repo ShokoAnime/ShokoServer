@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -79,12 +80,9 @@ namespace JMMServer.Entities
 
         public void UpdateGroupFilters()
         {
-            AnimeGroupRepository repGroups = new AnimeGroupRepository();
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            GroupFilterRepository repGrpFilter = new GroupFilterRepository();
-            List<GroupFilter> gfs = repGrpFilter.GetAll();
-            List<AnimeGroup> allGrps = repGroups.GetAllTopLevelGroups(); // No Need of subgroups
-            List<AnimeSeries> allSeries = repSeries.GetAll();
+            List<GroupFilter> gfs = RepoFactory.GroupFilter.GetAll();
+            List<AnimeGroup> allGrps = RepoFactory.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
+            List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
             foreach (GroupFilter gf in gfs)
             {
                 bool change = false;
@@ -99,7 +97,7 @@ namespace JMMServer.Entities
                     change |= gf.CalculateGroupFilterSeries(cser, Contract, JMMUserID);
                 }
                 if (change)
-                    repGrpFilter.Save(gf);
+                    RepoFactory.GroupFilter.Save(gf);
             }
         }
 
@@ -121,8 +119,7 @@ namespace JMMServer.Entities
 
         public JMMUser(string username)
         {
-            JMMUserRepository repUsers = new JMMUserRepository();
-            foreach (JMMUser us in repUsers.GetAll())
+            foreach (JMMUser us in RepoFactory.JMMUser.GetAll())
             {
                 if (us.Username.ToLower() == username.ToLower())
                 {

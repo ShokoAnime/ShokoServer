@@ -6,6 +6,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -61,8 +62,7 @@ namespace JMMServer.Commands
                             {
                                 // check again to see if there are any links, user may have manually added links while
                                 // this command was in the queue
-                                CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-                                List<CrossRef_AniDB_TvDBV2> xrefTemp = repCrossRef.GetByAnimeID(AnimeID);
+                                List<CrossRef_AniDB_TvDBV2> xrefTemp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
                                 if (xrefTemp != null && xrefTemp.Count > 0) return;
 
                                 foreach (JMMServer.Providers.Azure.CrossRef_AniDB_TvDB xref in cacheResults)
@@ -98,8 +98,7 @@ namespace JMMServer.Commands
                     }
 
                     string searchCriteria = "";
-                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;

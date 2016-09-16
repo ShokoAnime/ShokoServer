@@ -65,7 +65,7 @@ namespace JMMServer.Commands
 
                 zis.Close();
 
-                AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
+
 
                 string[] lines = b.ToString().Split('\n');
                 Dictionary<int, AnimeIDTitle> titles = new Dictionary<int, AnimeIDTitle>();

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NLog;
 
 namespace JMMServer.Providers.TraktTV
@@ -57,7 +58,7 @@ namespace JMMServer.Providers.TraktTV
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        logger.Error( ex,ex.ToString());
                     }
                 }
                 return dictTraktEpisodes;
@@ -97,7 +98,7 @@ namespace JMMServer.Providers.TraktTV
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        logger.Error( ex,ex.ToString());
                     }
                 }
                 return dictTraktSeasons;
@@ -142,7 +143,7 @@ namespace JMMServer.Providers.TraktTV
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        logger.Error( ex,ex.ToString());
                     }
                 }
                 return dictTraktSeasonsSpecials;
@@ -153,16 +154,14 @@ namespace JMMServer.Providers.TraktTV
         {
             try
             {
-                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-                Show = repShows.GetByTraktSlug(TraktID);
+                Show = RepoFactory.Trakt_Show.GetByTraktSlug(TraktID);
                 if (Show == null) return;
 
-                Trakt_EpisodeRepository repTvEps = new Trakt_EpisodeRepository();
-                traktEpisodes = repTvEps.GetByShowID(Show.Trakt_ShowID).OrderBy(a=>a.Season).ThenBy(a=>a.EpisodeNumber).ToList();
+                traktEpisodes = RepoFactory.Trakt_Episode.GetByShowID(Show.Trakt_ShowID).OrderBy(a=>a.Season).ThenBy(a=>a.EpisodeNumber).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 

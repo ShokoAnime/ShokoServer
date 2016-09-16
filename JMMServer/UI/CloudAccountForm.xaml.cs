@@ -16,6 +16,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using NutzCode.CloudFileSystem;
 using Application = System.Windows.Application;
 
@@ -66,9 +67,8 @@ namespace JMMServer
                         SaveAccount.FileSystem = null;
                         SaveAccount = WorkingAccount;
                     }
-                    CloudAccountRepository crepo=new CloudAccountRepository();
                     SaveAccount.FileSystem = WorkingAccount.FileSystem;
-                    crepo.Save(SaveAccount);
+                    RepoFactory.CloudAccount.Save(SaveAccount);
                     DialogResult = true;
                     Close();
                 }

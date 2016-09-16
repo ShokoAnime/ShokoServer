@@ -43,16 +43,14 @@ namespace JMMServer.Entities
         {
             get
             {
-                AniDB_EpisodeRepository repEps = new AniDB_EpisodeRepository();
-                return repEps.GetByEpisodeID(EpisodeID);
+                return RepoFactory.AniDB_Episode.GetByEpisodeID(EpisodeID);
             }
         }
 
         public VideoLocal_User GetVideoLocalUserRecord(int userID)
         {
-            VideoLocalRepository repVids = new VideoLocalRepository();
 
-            VideoLocal vid = repVids.GetByHash(Hash);
+            VideoLocal vid = RepoFactory.VideoLocal.GetByHash(Hash);
             if (vid != null)
             {
                 VideoLocal_User vidUser = vid.GetUserRecord(userID);

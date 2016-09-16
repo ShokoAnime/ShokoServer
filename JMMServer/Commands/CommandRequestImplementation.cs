@@ -4,6 +4,7 @@ using System.Xml;
 using System.Xml.Serialization;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NHibernate;
 using NLog;
 
@@ -71,8 +72,7 @@ namespace JMMServer.Commands
 
         public void Save(ISession session)
         {
-            CommandRequestRepository repCR = new CommandRequestRepository();
-            CommandRequest crTemp = repCR.GetByCommandID(session, this.CommandID);
+            CommandRequest crTemp = RepoFactory.CommandRequest.GetByCommandID(session, this.CommandID);
             if (crTemp != null)
             {
                 // we will always mylist watched state changes
@@ -86,7 +86,7 @@ namespace JMMServer.Commands
             }
 
             CommandRequest cri = this.ToDatabaseObject();
-            repCR.Save(session, cri);
+            RepoFactory.CommandRequest.Save(session, cri);
 
             if (CommandType == (int) CommandRequestType.HashFile)
                 JMMService.CmdProcessorHasher.NotifyOfNewCommand();

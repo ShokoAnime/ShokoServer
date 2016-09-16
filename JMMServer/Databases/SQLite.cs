@@ -7,6 +7,7 @@ using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NHibernate;
 using NLog;
 
@@ -119,8 +120,7 @@ namespace JMMServer.Databases
         #region Schema Updates
         public int GetDatabaseVersion()
         {
-            VersionsRepository repVersions = new VersionsRepository();
-            Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);
+            Versions ver = RepoFactory.Versions.GetByVersionType(Constants.DatabaseTypeKey);
             if (ver == null) return 0;
             int versionNumber = 0;
             int.TryParse(ver.VersionValue, out versionNumber);
@@ -185,7 +185,7 @@ namespace JMMServer.Databases
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error updating schema: " + ex.ToString(), ex);
+                logger.Error( ex,"Error updating schema: " + ex.ToString());
             }
         }
 
@@ -1716,12 +1716,11 @@ namespace JMMServer.Databases
 
         private static void UpdateDatabaseVersion(int versionNumber)
         {
-            VersionsRepository repVersions = new VersionsRepository();
-            Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);
+            Versions ver = RepoFactory.Versions.GetByVersionType(Constants.DatabaseTypeKey);
             if (ver == null) return;
 
             ver.VersionValue = versionNumber.ToString();
-            repVersions.Save(ver);
+            RepoFactory.Versions.Save(ver);
         }
 
         #endregion
@@ -1817,8 +1816,7 @@ namespace JMMServer.Databases
             ver1.VersionType = Constants.DatabaseTypeKey;
             ver1.VersionValue = "1";
 
-            VersionsRepository repVer = new VersionsRepository();
-            repVer.Save(ver1);
+            RepoFactory.Versions.Save(ver1);
             return true;
         }
 

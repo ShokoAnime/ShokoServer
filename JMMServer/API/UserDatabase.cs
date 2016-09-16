@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.API
 {
@@ -23,14 +25,12 @@ namespace JMMServer.API
         {
             try
             {
-                Repositories.JMMUserRepository repUsers = new Repositories.JMMUserRepository();
-                foreach (Entities.JMMUser us in repUsers.GetAll())
+                foreach (Entities.JMMUser us in RepoFactory.JMMUser.GetAll())
                 {
                     Users.Add(new Tuple<int, string, string>(us.JMMUserID, us.Username, us.Password));
                 }
 
-                Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
-                foreach (Entities.AuthTokens at in authRepo.GetAll())
+                foreach (Entities.AuthTokens at in RepoFactory.AuthTokens.GetAll())
                 {
                     ActiveApiKeys.Add(new Tuple<int, string, string>(at.UserID, at.DeviceName, at.Token));
                 }
@@ -90,8 +90,7 @@ namespace JMMServer.API
             {
                 var apiKeyToRemove = ActiveApiKeys.First(x => x.Item3 == apiKey);
                 //remove auth from repository/database
-                Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
-                authRepo.Delete(apiKeyToRemove.Item1);
+                RepoFactory.AuthTokens.Delete(apiKeyToRemove.Item1);
                 //remove from memory
                 ActiveApiKeys.Remove(apiKeyToRemove);
                 return true;

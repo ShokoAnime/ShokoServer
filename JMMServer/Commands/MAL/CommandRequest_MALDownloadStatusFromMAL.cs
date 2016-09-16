@@ -6,6 +6,8 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands.MAL
 {
@@ -45,19 +47,14 @@ namespace JMMServer.Commands.MAL
                     return;
 
                 // find the latest eps to update
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
                 myanimelist mal = MALHelper.GetMALAnimeList();
                 if (mal == null) return;
                 if (mal.anime == null) return;
 
-                CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-                AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
 
                 // find the anidb user
-                JMMUserRepository repUsers = new JMMUserRepository();
-                List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
+                List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
                 if (aniDBUsers.Count == 0) return;
 
                 JMMUser user = aniDBUsers[0];
@@ -66,7 +63,7 @@ namespace JMMServer.Commands.MAL
                 foreach (myanimelistAnime malAnime in mal.anime)
                 {
                     // look up the anime
-                    CrossRef_AniDB_MAL xref = repCrossRef.GetByMALID(malAnime.series_animedb_id);
+                    CrossRef_AniDB_MAL xref = RepoFactory.CrossRef_AniDB_MAL.GetByMALID(malAnime.series_animedb_id);
                     if (xref == null) continue;
 
                     if (malAnime.series_animedb_id == 8107 || malAnime.series_animedb_id == 10737)
@@ -75,19 +72,19 @@ namespace JMMServer.Commands.MAL
                     }
 
                     // check if this anime has any other links
-                    List<CrossRef_AniDB_MAL> allXrefs = repCrossRef.GetByAnimeID(xref.AnimeID);
+                    List<CrossRef_AniDB_MAL> allXrefs = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(xref.AnimeID);
                     if (allXrefs.Count == 0) continue;
 
                     // find the range of watched episodes that this applies to
                     int startEpNumber = xref.StartEpisodeNumber;
                     int endEpNumber = GetUpperEpisodeLimit(allXrefs, xref);
 
-                    List<AniDB_Episode> aniEps = repAniEps.GetByAnimeID(xref.AnimeID);
+                    List<AniDB_Episode> aniEps = RepoFactory.AniDB_Episode.GetByAnimeID(xref.AnimeID);
                     foreach (AniDB_Episode aniep in aniEps)
                     {
                         if (aniep.EpisodeType != xref.StartEpisodeType) continue;
 
-                        AnimeEpisode ep = repEp.GetByAniDBEpisodeID(aniep.EpisodeID);
+                        AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
                         if (ep == null) continue;
 
                         int adjustedWatchedEps = malAnime.my_watched_episodes + xref.StartEpisodeNumber - 1;

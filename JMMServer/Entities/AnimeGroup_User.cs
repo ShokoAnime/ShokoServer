@@ -4,6 +4,7 @@ using JMMContracts.PlexAndKodi;
 using JMMServer.LZ4;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.NHibernate;
 using NLog;
 
@@ -98,18 +99,15 @@ namespace JMMServer.Entities
 
         public void UpdateGroupFilter(HashSet<GroupFilterConditionType> types)
         {
-            AnimeGroupRepository repo = new AnimeGroupRepository();
-            JMMUserRepository repouser = new JMMUserRepository();
-            AnimeGroup grp = repo.GetByID(AnimeGroupID);
-            JMMUser usr = repouser.GetByID(JMMUserID);
+            AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+            JMMUser usr = RepoFactory.JMMUser.GetByID(JMMUserID);
             if (grp != null && usr != null)
                 grp.UpdateGroupFilters(types, usr);
         }
 
         public void DeleteFromFilters()
         {
-            GroupFilterRepository repo = new GroupFilterRepository();
-            foreach (GroupFilter gf in repo.GetAll())
+            foreach (GroupFilter gf in RepoFactory.GroupFilter.GetAll())
             {
                 bool change = false;
                 if (gf.GroupsIds.ContainsKey(JMMUserID))
@@ -121,7 +119,7 @@ namespace JMMServer.Entities
                     }
                 }
                 if (change)
-                    repo.Save(gf);
+                    RepoFactory.GroupFilter.Save(gf);
             }
         }
 
@@ -130,8 +128,7 @@ namespace JMMServer.Entities
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
-                AnimeGroupRepository repo = new AnimeGroupRepository();
-                AnimeGroup grp = repo.GetByID(AnimeGroupID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
                 if (grp == null)
                     return;
                 List<AnimeSeries> series = grp.GetAllSeries(sessionWrapper);

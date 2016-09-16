@@ -14,6 +14,7 @@ using JMMServer.Repositories;
 using System.Linq;
 using Newtonsoft.Json;
 using System.IO;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.API
 {
@@ -1005,9 +1006,7 @@ namespace JMMServer.API
                 }
                 Thread.Sleep(200);
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                foreach (CommandRequest cr in repCR.GetAllCommandRequestHasher())
-                    repCR.Delete(cr.CommandRequestID);
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
 
                 JMMService.CmdProcessorHasher.Init();
 
@@ -1035,9 +1034,7 @@ namespace JMMServer.API
                 }
                 Thread.Sleep(200);
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                foreach (CommandRequest cr in repCR.GetAllCommandRequestGeneral())
-                    repCR.Delete(cr.CommandRequestID);
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
 
                 JMMService.CmdProcessorGeneral.Init();
 
@@ -1065,9 +1062,7 @@ namespace JMMServer.API
                 }
                 Thread.Sleep(200);
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                foreach (CommandRequest cr in repCR.GetAllCommandRequestImages())
-                    repCR.Delete(cr.CommandRequestID);
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestImages());
 
                 JMMService.CmdProcessorImages.Init();
 

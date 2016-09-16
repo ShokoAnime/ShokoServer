@@ -101,7 +101,7 @@ namespace AniDBAPI
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in AniDBHTTPHelper.GetAnimeXMLFromAPI: {0}", ex);
+                logger.Error( ex,"Error in AniDBHTTPHelper.GetAnimeXMLFromAPI: {0}");
                 return null;
             }
         }
@@ -128,7 +128,7 @@ namespace AniDBAPI
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in AniDBHTTPHelper.GetMyListXMLFromAPI: {0}", ex);
+                logger.Error( ex,"Error in AniDBHTTPHelper.GetMyListXMLFromAPI: {0}");
                 return null;
             }
         }
@@ -379,7 +379,7 @@ namespace AniDBAPI
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in AniDBHTTPHelper.ProcessTags: {0}", ex);
+                logger.Error( ex,"Error in AniDBHTTPHelper.ProcessTags: {0}");
                 return null;
             }
 
@@ -415,7 +415,7 @@ namespace AniDBAPI
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in AniDBHTTPHelper.ProcessCharacters: {0}", ex);
+                logger.Error( ex,"Error in AniDBHTTPHelper.ProcessCharacters: {0}");
                 return null;
             }
 
@@ -452,7 +452,7 @@ namespace AniDBAPI
             catch (Exception ex)
             {
                 string msg = string.Format("Error in AniDBHTTPHelper.ProcessTitles: {0} - {1}", animeID, ex.ToString());
-                logger.ErrorException(msg, ex);
+                logger.Error( ex,msg);
                 return null;
             }
 
@@ -488,7 +488,7 @@ namespace AniDBAPI
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in AniDBHTTPHelper.ProcessRelations: {0}", ex);
+                logger.Error( ex,"Error in AniDBHTTPHelper.ProcessRelations: {0}");
                 return null;
             }
 
@@ -524,7 +524,7 @@ namespace AniDBAPI
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in AniDBHTTPHelper.ProcessSimilarAnime: {0}", ex);
+                logger.Error( ex,"Error in AniDBHTTPHelper.ProcessSimilarAnime: {0}");
                 return null;
             }
 
@@ -560,7 +560,7 @@ namespace AniDBAPI
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in AniDBHTTPHelper.ProcessRecommendations: {0}", ex);
+                logger.Error( ex,"Error in AniDBHTTPHelper.ProcessRecommendations: {0}");
                 return null;
             }
 
@@ -594,7 +594,7 @@ namespace AniDBAPI
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in AniDBHTTPHelper.ProcessEpisodes: {0}", ex);
+                logger.Error( ex,"Error in AniDBHTTPHelper.ProcessEpisodes: {0}");
                 return null;
             }
 
@@ -621,14 +621,14 @@ namespace AniDBAPI
                         }
                         catch (Exception ex)
                         {
-                            logger.ErrorException("Error in ProcessEpisodes: {0}" + ex.ToString(), ex);
+                            logger.Error( ex,"Error in ProcessEpisodes: {0}" + ex.ToString());
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in AniDBHTTPHelper.ProcessMyList: {0}", ex);
+                logger.Error( ex,"Error in AniDBHTTPHelper.ProcessMyList: {0}");
                 return null;
             }
 

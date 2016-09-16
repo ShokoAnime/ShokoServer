@@ -1,5 +1,6 @@
 ﻿using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -27,8 +28,7 @@ namespace JMMServer.Entities
 
         public Trakt_Show GetByTraktShow(ISession session)
         {
-            Trakt_ShowRepository repTraktShows = new Trakt_ShowRepository();
-            return repTraktShows.GetByTraktSlug(session, TraktID);
+            return RepoFactory.Trakt_Show.GetByTraktSlug(session, TraktID);
         }
 
         public Contract_CrossRef_AniDB_TraktV2 ToContract()

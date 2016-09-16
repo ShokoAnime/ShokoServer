@@ -48,7 +48,6 @@ namespace JMMServer.Commands
 
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
                 AniDB_Anime anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
 
                 // NOTE - related anime are downloaded when the relations are created

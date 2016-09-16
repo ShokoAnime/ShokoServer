@@ -1,6 +1,7 @@
 ﻿using AniDBAPI;
 using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
@@ -32,8 +33,7 @@ namespace JMMServer.Entities
 
         public AniDB_Character GetCharacter(ISessionWrapper session)
         {
-            AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
-            return repChar.GetByCharID(session, CharID);
+            return RepoFactory.AniDB_Character.GetByCharID(session, CharID);
         }
 
         public Contract_AniDB_Anime_Character ToContract()

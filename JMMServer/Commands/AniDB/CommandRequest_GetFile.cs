@@ -5,6 +5,7 @@ using AniDBAPI;
 using JMMServer.Commands.AniDB;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.NHibernate;
 using NutzCode.CloudFileSystem;
 
@@ -55,12 +56,10 @@ namespace JMMServer.Commands
 
             try
             {
-                AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                vlocal = repVids.GetByID(VideoLocalID);
+                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
                 if (vlocal == null) return;
 
-                AniDB_File aniFile = repAniFile.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
+                AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
 
                 /*// get anidb file info from web cache
 				if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
@@ -99,7 +98,7 @@ namespace JMMServer.Commands
                     string localFileName = vlocal.FileName;
                     aniFile.FileName = localFileName;
 
-                    repAniFile.Save(aniFile, false);
+                    RepoFactory.AniDB_File.Save(aniFile, false);
                     aniFile.CreateLanguages();
                     aniFile.CreateCrossEpisodes(localFileName);
 
@@ -116,9 +115,7 @@ namespace JMMServer.Commands
                             }
                         }
                     }
-                    AnimeSeriesRepository repo = new AnimeSeriesRepository();
-                    AniDB_AnimeRepository animerepo = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = animerepo.GetByAnimeID(aniFile.AnimeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
                     if (anime != null)
                     {
                         using (var session = JMMService.SessionFactory.OpenSession())
@@ -126,7 +123,7 @@ namespace JMMServer.Commands
                             anime.UpdateContractDetailed(session.Wrap());
                         }
                     }
-                    AnimeSeries series = repo.GetByAnimeID(aniFile.AnimeID);
+                    AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
                     series.UpdateStats(false, true, true);
 //					StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
                 }

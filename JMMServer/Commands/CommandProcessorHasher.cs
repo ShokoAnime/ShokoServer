@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NLog;
 
 namespace JMMServer.Commands
@@ -202,8 +203,7 @@ namespace JMMServer.Commands
 
                 //logger.Trace("Looking for next command request (hasher)...");
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                CommandRequest crdb = repCR.GetNextDBCommandRequestHasher();
+                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestHasher();
                 if (crdb == null) return;
 
                 if (workerCommands.CancellationPending)
@@ -212,7 +212,7 @@ namespace JMMServer.Commands
                     return;
                 }
 
-                QueueCount = repCR.GetQueuedCommandCountHasher();
+                QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();
                 //logger.Trace("{0} commands remaining in queue (hasher)", QueueCount);
 
                 //logger.Trace("Next command request (hasher): {0}", crdb.CommandID);
@@ -236,8 +236,8 @@ namespace JMMServer.Commands
                 icr.ProcessCommand();
 
                 //logger.Trace("Deleting command request (hasher): {0}", crdb.CommandID);
-                repCR.Delete(crdb.CommandRequestID);
-                QueueCount = repCR.GetQueuedCommandCountHasher();
+                RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
+                QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();
             }
         }
     }

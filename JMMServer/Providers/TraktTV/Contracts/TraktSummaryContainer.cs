@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NLog;
 
 namespace JMMServer.Providers.TraktTV
@@ -34,12 +35,11 @@ namespace JMMServer.Providers.TraktTV
         {
             try
             {
-                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-                crossRefTraktV2 = repCrossRef.GetByAnimeID(AnimeID);
+                crossRefTraktV2 = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -90,7 +90,7 @@ namespace JMMServer.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -107,7 +107,7 @@ namespace JMMServer.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 

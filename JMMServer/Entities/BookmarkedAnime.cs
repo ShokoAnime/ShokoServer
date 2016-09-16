@@ -23,8 +23,7 @@ namespace JMMServer.Entities
             contract.Downloading = Downloading;
 
             contract.Anime = null;
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            AniDB_Anime an = repAnime.GetByAnimeID(AnimeID);
+            AniDB_Anime an = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
             if (an != null)
                 contract.Anime = an.Contract.AniDBAnime;
 

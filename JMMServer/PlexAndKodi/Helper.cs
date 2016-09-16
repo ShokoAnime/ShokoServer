@@ -17,6 +17,7 @@ using JMMServer.FileHelper;
 using JMMServer.FileHelper.Subtitles;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using Directory = JMMContracts.PlexAndKodi.Directory;
@@ -139,8 +140,7 @@ namespace JMMServer.PlexAndKodi
 
         public static JMMUser GetUser(string userid)
         {
-            JMMUserRepository repUsers = new JMMUserRepository();
-            List<JMMUser> allusers = repUsers.GetAll();
+            List<JMMUser> allusers = RepoFactory.JMMUser.GetAll();
             foreach (JMMUser n in allusers)
             {
                 if (userid.FindIn(n?.Contract?.PlexUsers))
@@ -154,8 +154,7 @@ namespace JMMServer.PlexAndKodi
 
         public static JMMUser GetJMMUser(string userid)
         {
-            JMMUserRepository repUsers = new JMMUserRepository();
-            List<JMMUser> allusers = repUsers.GetAll();
+            List<JMMUser> allusers = RepoFactory.JMMUser.GetAll();
             int id = 0;
             int.TryParse(userid, out id);
             return allusers.FirstOrDefault(a => a.JMMUserID == id) ??
@@ -213,8 +212,7 @@ namespace JMMServer.PlexAndKodi
         {
             if (v.Medias == null || v.Medias.Count == 0)
             {
-                VideoLocalRepository lrepo = new VideoLocalRepository();
-                lrepo.Save(vl, true);
+                RepoFactory.VideoLocal.Save(vl, true);
                 return true;
             }
             return false;
@@ -273,12 +271,11 @@ namespace JMMServer.PlexAndKodi
             Media m = v.Media;
             if (string.IsNullOrEmpty(m?.Duration))
             {
-                VideoLocalRepository lrepo = new VideoLocalRepository();
                 VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                 if (pl != null)
                 {
                     if (pl.RefreshMediaInfo())
-                        lrepo.Save(v, true);
+                        RepoFactory.VideoLocal.Save(v, true);
                 }
                 m = v.Media;
             }
@@ -298,8 +295,6 @@ namespace JMMServer.PlexAndKodi
             Video v = (Video) e.Key.PlexContract?.Clone<Video>();
             if (v?.Thumb != null)
                 v.Thumb = ReplaceSchemeHost(v.Thumb);
-            VideoLocalRepository lrepo = new VideoLocalRepository();
-            AnimeEpisodeRepository erepo = new AnimeEpisodeRepository();
             if (v != null && (v.Medias == null || v.Medias.Count == 0))
             {
                 foreach (VideoLocal vl2 in e.Key.GetVideoLocals())
@@ -310,11 +305,11 @@ namespace JMMServer.PlexAndKodi
                         if (pl != null)
                         {
                             if (pl.RefreshMediaInfo())
-                                lrepo.Save(vl2, true);
+                                RepoFactory.VideoLocal.Save(vl2, true);
                         }
                     }
                 }
-                erepo.Save(e.Key);
+                RepoFactory.AnimeEpisode.Save(e.Key);
                 v = (Video) e.Key.PlexContract?.Clone<Video>();
             }
             if (v != null)
@@ -355,10 +350,9 @@ namespace JMMServer.PlexAndKodi
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
             l.Id = ep.AnimeEpisodeID.ToString();
             l.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString();
-            VideoLocalRepository repo = new VideoLocalRepository();
             if (vids.Count > 0)
             {
-                List<string> hashes = vids.Select(a => a.Hash).Distinct().ToList();
+                //List<string> hashes = vids.Select(a => a.Hash).Distinct().ToList();
                 l.Title = Path.GetFileNameWithoutExtension(vids[0].FileName);
                 l.AddedAt = vids[0].DateTimeCreated.ToUnixTime();
                 l.UpdatedAt = vids[0].DateTimeUpdated.ToUnixTime();
@@ -373,7 +367,7 @@ namespace JMMServer.PlexAndKodi
                         if (pl != null)
                         {
                             if (pl.RefreshMediaInfo())
-                                repo.Save(v,true);
+                                RepoFactory.VideoLocal.Save(v,true);
                         }
                     }
                     if (v.Media != null)
@@ -406,10 +400,9 @@ namespace JMMServer.PlexAndKodi
             return l;
         }
 
-        private static void GetValidVideoRecursive(AnimeGroupRepository repGroups,GroupFilter f, int userid, Directory pp)
+        private static void GetValidVideoRecursive(GroupFilter f, int userid, Directory pp)
         {
-            GroupFilterRepository repo=new GroupFilterRepository();
-            List<GroupFilter> gfs = repo.GetByParentID(f.GroupFilterID).Where(a=>a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0).ToList();
+            List<GroupFilter> gfs = RepoFactory.GroupFilter.GetByParentID(f.GroupFilterID).Where(a=>a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count>0).ToList();
 
             foreach (GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == 0))
             {
@@ -420,7 +413,7 @@ namespace JMMServer.PlexAndKodi
                     {
                         foreach (int grp in groups)
                         {
-                            AnimeGroup ag = repGroups.GetByID(grp);
+                            AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
                             Video v = ag.GetPlexContract(userid);
                             if (v?.Art != null && v.Thumb != null)
                             {
@@ -438,7 +431,7 @@ namespace JMMServer.PlexAndKodi
             {
                 foreach (GroupFilter gg in gfs.Where(a => (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory && a.InvisibleInClients==0))
                 {
-                    GetValidVideoRecursive(repGroups, gg, userid, pp);
+                    GetValidVideoRecursive(gg, userid, pp);
                     if (pp.Art != null)
                         break;
                 }
@@ -446,7 +439,7 @@ namespace JMMServer.PlexAndKodi
             pp.LeafCount = gfs.Count.ToString();
             pp.ViewedLeafCount = "0";        
         }
-        public static Directory DirectoryFromFilter(AnimeGroupRepository repGroups, IProvider prov, GroupFilter gg,
+        public static Directory DirectoryFromFilter(IProvider prov, GroupFilter gg,
             int userid)
         {
             Directory pp = new Directory {Type = "show"};
@@ -456,7 +449,7 @@ namespace JMMServer.PlexAndKodi
             pp.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroupFilter.ToString();
             if ((gg.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
-                GetValidVideoRecursive(repGroups, gg, userid, pp);
+                GetValidVideoRecursive(gg, userid, pp);
             }
             else if (gg.GroupsIds.ContainsKey(userid))
             {
@@ -467,7 +460,7 @@ namespace JMMServer.PlexAndKodi
                     pp.ViewedLeafCount = "0";
                     foreach (int grp in groups)
                     {
-                        AnimeGroup ag = repGroups.GetByID(grp);
+                        AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
                         Video v = ag.GetPlexContract(userid);
                         if (v?.Art != null && v.Thumb != null)
                         {

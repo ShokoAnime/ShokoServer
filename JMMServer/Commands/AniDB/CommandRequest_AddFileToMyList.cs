@@ -52,10 +52,8 @@ namespace JMMServer.Commands
 
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
 
-                vid = repVids.GetByHash(this.Hash);
+                vid = RepoFactory.VideoLocal.GetByHash(this.Hash);
                 List<AnimeEpisode> animeEpisodes = new List<AnimeEpisode>();
                 if (vid != null) animeEpisodes = vid.GetAnimeEpisodes();
 
@@ -81,8 +79,7 @@ namespace JMMServer.Commands
                         newWatchedStatus = JMMService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate);
 
                     // do for all AniDB users
-                    JMMUserRepository repUsers = new JMMUserRepository();
-                    List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
+                    List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
 
                     if (aniDBUsers.Count > 0)

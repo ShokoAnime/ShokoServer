@@ -2,6 +2,7 @@
 using JMMContracts;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 
 namespace JMMServer.Entities
 {
@@ -34,11 +35,9 @@ namespace JMMServer.Entities
                     _contract = CompressionHelper.DeserializeObject<Contract_AnimeEpisode>(ContractBlob, ContractSize);
                 if (_contract != null)
                 {
-                    AnimeSeries_UserRepository asrepo = new AnimeSeries_UserRepository();
-                    AnimeSeries_User seuse = asrepo.GetByUserAndSeriesID(JMMUserID, AnimeSeriesID);
-                    AnimeEpisodeRepository aerepo = new AnimeEpisodeRepository();
+                    AnimeSeries_User seuse = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(JMMUserID, AnimeSeriesID);
                     _contract.UnwatchedEpCountSeries = seuse?.UnwatchedEpisodeCount ?? 0;
-                    AnimeEpisode aep = aerepo.GetByID(AnimeEpisodeID);
+                    AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
                     _contract.LocalFileCount = aep?.GetVideoLocals().Count ?? 0;
                 }
                 return _contract;

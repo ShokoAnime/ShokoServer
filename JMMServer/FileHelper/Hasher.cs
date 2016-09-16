@@ -132,7 +132,7 @@ namespace JMMServer.FileHelper
                 }
                 catch (Exception ex)
                 {
-                    logger.ErrorException(ex.ToString(), ex);
+                    logger.Error( ex,ex.ToString());
                 }
 
                 if (!gotHash)

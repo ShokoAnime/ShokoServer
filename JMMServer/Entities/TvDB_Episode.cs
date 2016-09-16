@@ -137,7 +137,7 @@ namespace JMMServer.Entities
             }
             catch (Exception ex)
             {
-                //logger.ErrorException("Error in TvDB_Episode.TryGetProperty: " + ex.ToString(), ex);
+                //logger.Error( ex,"Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
             }
 
             return "";
@@ -152,7 +152,7 @@ namespace JMMServer.Entities
             }
             catch (Exception ex)
             {
-                //logger.ErrorException("Error in TvDB_Episode.TryGetProperty: " + ex.ToString(), ex);
+                //logger.Error( ex,"Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
             }
 
             return "";

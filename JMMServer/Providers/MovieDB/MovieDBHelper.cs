@@ -5,6 +5,8 @@ using System.Text;
 using JMMServer.Commands;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
@@ -41,16 +43,15 @@ namespace JMMServer.Providers.MovieDB
 
         public static void SaveMovieToDatabase(ISession session, MovieDB_Movie_Result searchResult, bool saveImages)
         {
-            MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
-            MovieDB_FanartRepository repFanart = new MovieDB_FanartRepository();
-            MovieDB_PosterRepository repPosters = new MovieDB_PosterRepository();
+
+           
             ISessionWrapper sessionWrapper = session.Wrap();
 
             // save to the DB
-            MovieDB_Movie movie = repMovies.GetByOnlineID(searchResult.MovieID);
+            MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(searchResult.MovieID);
             if (movie == null) movie = new MovieDB_Movie();
             movie.Populate(searchResult);
-            repMovies.Save(session, movie);
+            RepoFactory.MovieDb_Movie.Save(session, movie);
 
             if (!saveImages) return;
 
@@ -62,10 +63,10 @@ namespace JMMServer.Providers.MovieDB
             {
                 if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    MovieDB_Poster poster = repPosters.GetByOnlineID(session, img.URL);
+                    MovieDB_Poster poster = RepoFactory.MovieDB_Poster.GetByOnlineID(session, img.URL);
                     if (poster == null) poster = new MovieDB_Poster();
                     poster.Populate(img, movie.MovieId);
-                    repPosters.Save(session, poster);
+                    RepoFactory.MovieDB_Poster.Save(session, poster);
 
                     if (!string.IsNullOrEmpty(poster.FullImagePath) && File.Exists(poster.FullImagePath))
                         numPostersDownloaded++;
@@ -73,10 +74,10 @@ namespace JMMServer.Providers.MovieDB
                 else
                 {
                     // fanart (backdrop)
-                    MovieDB_Fanart fanart = repFanart.GetByOnlineID(session, img.URL);
+                    MovieDB_Fanart fanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(session, img.URL);
                     if (fanart == null) fanart = new MovieDB_Fanart();
                     fanart.Populate(img, movie.MovieId);
-                    repFanart.Save(session, fanart);
+                    RepoFactory.MovieDB_Fanart.Save(session, fanart);
 
                     if (!string.IsNullOrEmpty(fanart.FullImagePath) && File.Exists(fanart.FullImagePath))
                         numFanartDownloaded++;
@@ -86,7 +87,7 @@ namespace JMMServer.Providers.MovieDB
             // download the posters
             if (ServerSettings.MovieDB_AutoPosters)
             {
-                foreach (MovieDB_Poster poster in repPosters.GetByMovieID(sessionWrapper, movie.MovieId))
+                foreach (MovieDB_Poster poster in RepoFactory.MovieDB_Poster.GetByMovieID(sessionWrapper, movie.MovieId))
                 {
                     if (numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
                     {
@@ -106,7 +107,7 @@ namespace JMMServer.Providers.MovieDB
                         // first we check if file was downloaded
                         if (!File.Exists(poster.FullImagePath))
                         {
-                            repPosters.Delete(poster.MovieDB_PosterID);
+                            RepoFactory.MovieDB_Poster.Delete(poster.MovieDB_PosterID);
                         }
                     }
                 }
@@ -115,7 +116,7 @@ namespace JMMServer.Providers.MovieDB
             // download the fanart
             if (ServerSettings.MovieDB_AutoFanart)
             {
-                foreach (MovieDB_Fanart fanart in repFanart.GetByMovieID(sessionWrapper, movie.MovieId))
+                foreach (MovieDB_Fanart fanart in RepoFactory.MovieDB_Fanart.GetByMovieID(sessionWrapper, movie.MovieId))
                 {
                     if (numFanartDownloaded < ServerSettings.MovieDB_AutoFanartAmount)
                     {
@@ -135,7 +136,7 @@ namespace JMMServer.Providers.MovieDB
                         // first we check if file was downloaded
                         if (!File.Exists(fanart.FullImagePath))
                         {
-                            repFanart.Delete(fanart.MovieDB_FanartID);
+                            RepoFactory.MovieDB_Fanart.Delete(fanart.MovieDB_FanartID);
                         }
                     }
                 }
@@ -194,7 +195,7 @@ namespace JMMServer.Providers.MovieDB
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in ParseBanners: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in ParseBanners: " + ex.ToString());
             }
         }
 
@@ -202,22 +203,21 @@ namespace JMMServer.Providers.MovieDB
         {
             // check if we have this information locally
             // if not download it now
-            MovieDB_MovieRepository repMovies = new MovieDB_MovieRepository();
-            MovieDB_Movie movie = repMovies.GetByOnlineID(movieDBID);
+
+            MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieDBID);
             if (movie == null)
             {
                 // we download the series info here just so that we have the basic info in the
                 // database before the queued task runs later
                 UpdateMovieInfo(movieDBID, false);
-                movie = repMovies.GetByOnlineID(movieDBID);
+                movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieDBID);
                 if (movie == null) return;
             }
 
             // download and update series info and images
             UpdateMovieInfo(movieDBID, true);
 
-            CrossRef_AniDB_OtherRepository repCrossRef = new CrossRef_AniDB_OtherRepository();
-            CrossRef_AniDB_Other xref = repCrossRef.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
             if (xref == null)
                 xref = new CrossRef_AniDB_Other();
 
@@ -229,7 +229,7 @@ namespace JMMServer.Providers.MovieDB
 
             xref.CrossRefType = (int) CrossRefType.MovieDB;
             xref.CrossRefID = movieDBID.ToString();
-            repCrossRef.Save(xref);
+            RepoFactory.CrossRef_AniDB_Other.Save(xref);
             AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed moviedb association: {0}", animeID);
@@ -241,11 +241,10 @@ namespace JMMServer.Providers.MovieDB
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
         {
-            CrossRef_AniDB_OtherRepository repCrossRef = new CrossRef_AniDB_OtherRepository();
-            CrossRef_AniDB_Other xref = repCrossRef.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
             if (xref == null) return;
 
-            repCrossRef.Delete(xref.CrossRef_AniDB_OtherID);
+            RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
 
             CommandRequest_WebCacheDeleteXRefAniDBOther req = new CommandRequest_WebCacheDeleteXRefAniDBOther(animeID,
                 CrossRefType.MovieDB);
@@ -254,10 +253,8 @@ namespace JMMServer.Providers.MovieDB
 
         public static void ScanForMatches()
         {
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            List<AnimeSeries> allSeries = repSeries.GetAll();
+            List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
-            CrossRef_AniDB_OtherRepository repCrossRef = new CrossRef_AniDB_OtherRepository();
             foreach (AnimeSeries ser in allSeries)
             {
                 AniDB_Anime anime = ser.GetAnime();

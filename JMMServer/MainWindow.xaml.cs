@@ -26,6 +26,8 @@ using JMMServer.ImageDownload;
 using JMMServer.MyAnime2Helper;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 using JMMServer.UI;
 using JMMServer.WCFCompression;
 using Microsoft.SqlServer.Management.Smo;
@@ -347,7 +349,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
             }
         }
 
@@ -393,7 +395,7 @@ namespace JMMServer
                         if (evt.FullPath.StartsWith("|CLOUD|"))
                         {
                             int shareid = int.Parse(evt.Name);
-                            Importer.RunImport_ImportFolderNewFiles(new ImportFolderRepository().GetByID(shareid));
+                            Importer.RunImport_ImportFolderNewFiles(RepoFactory.ImportFolder.GetByID(shareid));
                         }
                         else
                         {
@@ -427,7 +429,7 @@ namespace JMMServer
                 }
                 catch (Exception ex)
                 {
-                    logger.ErrorException(ex.Message, ex);
+                    logger.Error( ex,ex.Message);
                     queueFileEvents.Remove(evt);
                     Thread.Sleep(1000);
                 }
@@ -436,8 +438,7 @@ namespace JMMServer
 
         void btnUploadAzureCache_Click(object sender, RoutedEventArgs e)
         {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            List<AniDB_Anime> allAnime = repAnime.GetAll();
+            List<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
             int cnt = 0;
             foreach (AniDB_Anime anime in allAnime)
             {
@@ -469,9 +470,7 @@ namespace JMMServer
                 }
                 Thread.Sleep(200);
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                foreach (CommandRequest cr in repCR.GetAllCommandRequestImages())
-                    repCR.Delete(cr.CommandRequestID);
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestImages());
 
                 JMMService.CmdProcessorImages.Init();
             }
@@ -496,9 +495,7 @@ namespace JMMServer
                 }
                 Thread.Sleep(200);
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                foreach (CommandRequest cr in repCR.GetAllCommandRequestGeneral())
-                    repCR.Delete(cr.CommandRequestID);
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
 
                 JMMService.CmdProcessorGeneral.Init();
             }
@@ -523,9 +520,7 @@ namespace JMMServer
                 }
                 Thread.Sleep(200);
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                foreach (CommandRequest cr in repCR.GetAllCommandRequestHasher())
-                    repCR.Delete(cr.CommandRequestID);
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
 
                 JMMService.CmdProcessorHasher.Init();
             }
@@ -825,7 +820,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
                 MessageBox.Show(JMMServer.Properties.Resources.Server_FailedToStart + ex.Message,
                     JMMServer.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -929,8 +924,7 @@ namespace JMMServer
                     frm.ShowDialog();
                 }
 
-                ImportFolderRepository repFolders = new ImportFolderRepository();
-                List<ImportFolder> folders = repFolders.GetAll();
+                List<ImportFolder> folders = RepoFactory.ImportFolder.GetAll();
                 if (folders.Count == 0)
                 {
                     tabControl1.SelectedIndex = 1;
@@ -956,7 +950,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 MessageBox.Show(ex.Message, JMMServer.Properties.Resources.Error, MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -997,8 +991,7 @@ namespace JMMServer
         {
             try
             {
-                ImportFolderRepository repNetShares = new ImportFolderRepository();
-                foreach (ImportFolder share in repNetShares.GetAll().Where(a => a.CloudID.HasValue && a.FolderIsWatched))
+                foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll().Where(a => a.CloudID.HasValue && a.FolderIsWatched))
                 {
                     //Little hack in there to reuse the file queue
                     FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Created, "|CLOUD|", share.ImportFolderID.ToString());
@@ -1008,7 +1001,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -1114,8 +1107,7 @@ namespace JMMServer
 
                 DownloadAllImages();
 
-                ImportFolderRepository repFolders = new ImportFolderRepository();
-                List<ImportFolder> folders = repFolders.GetAll();
+                List<ImportFolder> folders = RepoFactory.ImportFolder.GetAll();
 
                 if (ServerSettings.ScanDropFoldersOnStart) ScanDropFolders();
                 if (ServerSettings.RunImportOnStart && folders.Count > 0) RunImport();
@@ -1125,7 +1117,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 ServerState.Instance.CurrentSetupStatus = ex.Message;
                 e.Result = false;
             }
@@ -1145,11 +1137,9 @@ namespace JMMServer
 
         void workerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
         {
-            VideoLocalRepository repVidLocals = new VideoLocalRepository();
 
             // first build a list of files that we already know about, as we don't want to process them again
-            List<VideoLocal> filesAll = repVidLocals.GetAll();
-            Dictionary<string, VideoLocal> dictFilesExisting = new Dictionary<string, VideoLocal>();
+            List<VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
             foreach (VideoLocal vl in filesAll)
             {
                 CommandRequest_ReadMediaInfo cr = new CommandRequest_ReadMediaInfo(vl.VideoLocalID);
@@ -1206,13 +1196,9 @@ namespace JMMServer
                 myConn.Open();
 
                 // get a list of unlinked files
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                AniDB_AnimeRepository repAniAnime = new AniDB_AnimeRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
 
-                List<VideoLocal> vids = repVids.GetVideosWithoutEpisode();
+
+                List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
                 ma2Progress.TotalFiles = vids.Count;
 
                 foreach (VideoLocal vid in vids.Where(a=>!string.IsNullOrEmpty(a.Hash)))
@@ -1247,7 +1233,7 @@ namespace JMMServer
                             // so now we have all the needed details we can link the file to the episode
                             // as long as wehave the details in JMM
                             AniDB_Anime anime = null;
-                            AniDB_Episode ep = repAniEps.GetByEpisodeID(episodeID);
+                            AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeID);
                             if (ep == null)
                             {
                                 logger.Debug("Getting Anime record from AniDB....");
@@ -1255,7 +1241,7 @@ namespace JMMServer
                                     ServerSettings.AutoGroupSeries);
                             }
                             else
-                                anime = repAniAnime.GetByAnimeID(animeID);
+                                anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
 
                             // create the group/series/episode records if needed
                             AnimeSeries ser = null;
@@ -1263,7 +1249,7 @@ namespace JMMServer
 
                             logger.Debug("Creating groups, series and episodes....");
                             // check if there is an AnimeSeries Record associated with this AnimeID
-                            ser = repSeries.GetByAnimeID(animeID);
+                            ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                             if (ser == null)
                             {
                                 // create a new AnimeSeries record
@@ -1275,8 +1261,7 @@ namespace JMMServer
 
                             // check if we have any group status data for this associated anime
                             // if not we will download it now
-                            AniDB_GroupStatusRepository repStatus = new AniDB_GroupStatusRepository();
-                            if (repStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+                            if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
                             {
                                 CommandRequest_GetReleaseGroupStatus cmdStatus =
                                     new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
@@ -1285,18 +1270,16 @@ namespace JMMServer
 
                             // update stats
                             ser.EpisodeAddedDate = DateTime.Now;
-                            repSeries.Save(ser, false, false);
+                            RepoFactory.AnimeSeries.Save(ser, false, false);
 
-                            AnimeGroupRepository repGroups = new AnimeGroupRepository();
                             foreach (AnimeGroup grp in ser.AllGroupsAbove)
                             {
                                 grp.EpisodeAddedDate = DateTime.Now;
-                                repGroups.Save(grp, false, false);
+                                RepoFactory.AnimeGroup.Save(grp, false, false);
                             }
 
 
-                            AnimeEpisode epAnime = repEps.GetByAniDBEpisodeID(episodeID);
-                            CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
+                            AnimeEpisode epAnime = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episodeID);
                             JMMServer.Entities.CrossRef_File_Episode xref =
                                 new JMMServer.Entities.CrossRef_File_Episode();
 
@@ -1311,7 +1294,7 @@ namespace JMMServer
                                 throw;
                             }
 
-                            repXRefs.Save(xref);
+                            RepoFactory.CrossRef_File_Episode.Save(xref);
                             vid.Places.ForEach(a =>
                             {
                                 a.RenameIfRequired();
@@ -1353,7 +1336,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 ma2Progress.ErrorMessage = ex.Message;
                 workerMyAnime2.ReportProgress(0, ma2Progress);
             }
@@ -1438,7 +1421,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 MessageBox.Show(ex.Message, JMMServer.Properties.Resources.Error, MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -1649,8 +1632,7 @@ namespace JMMServer
         private void GenerateAzureList()
         {
             // get a lst of anime's that we already have
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            List<AniDB_Anime> allAnime = repAnime.GetAll();
+            List<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
             Dictionary<int, int> localAnimeIDs = new Dictionary<int, int>();
             foreach (AniDB_Anime anime in allAnime)
             {
@@ -1703,11 +1685,10 @@ namespace JMMServer
         private void SendToAzureXML()
         {
             DateTime dt = DateTime.Now.AddYears(-2);
-            AniDB_AnimeRepository rep = new AniDB_AnimeRepository();
-            List<AniDB_Anime> allAnime = rep.GetAll();
+            List<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
 
             int sentAnime = 0;
-            foreach (AniDB_Anime anime in rep.GetAll())
+            foreach (AniDB_Anime anime in allAnime)
             {
                 if (!anime.EndDate.HasValue) continue;
 
@@ -1847,7 +1828,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -1889,7 +1870,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
             }
         }
 
@@ -1906,7 +1887,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
             }
         }
 
@@ -2044,7 +2025,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -2157,8 +2138,7 @@ namespace JMMServer
             StopCloudWatchTimer();
             watcherVids = new List<FileSystemWatcher>();
 
-            ImportFolderRepository repNetShares = new ImportFolderRepository();
-            foreach (ImportFolder share in repNetShares.GetAll())
+            foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll())
             {
                 try
                 {
@@ -2181,7 +2161,7 @@ namespace JMMServer
                 }
                 catch (Exception ex)
                 {
-                    logger.ErrorException(ex.ToString(), ex);
+                    logger.Error( ex,ex.ToString());
                 }
             }
             StartCloudWatchTimer();
@@ -2208,7 +2188,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -2259,7 +2239,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
             }
         }
 
@@ -2272,7 +2252,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
             }
         }
 
@@ -2284,7 +2264,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
             }
         }
 
@@ -2296,7 +2276,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
             }
         }
 
@@ -2327,7 +2307,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -2599,8 +2579,7 @@ namespace JMMServer
 
             // get a complete list of files
             List<string> fileList = new List<string>();
-            ImportFolderRepository repNetShares = new ImportFolderRepository();
-            foreach (ImportFolder share in repNetShares.GetAll())
+            foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll())
             {
                 logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 
@@ -2781,8 +2760,7 @@ namespace JMMServer
 
         private static void UpdateStatsTest()
         {
-            AnimeGroupRepository repGroups = new AnimeGroupRepository();
-            foreach (AnimeGroup grp in repGroups.GetAllTopLevelGroups())
+            foreach (AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
             {
                 grp.UpdateStatsFromTopLevel(true, true);
             }
@@ -2792,16 +2770,15 @@ namespace JMMServer
         private static void CreateImportFolders_Test()
         {
             logger.Debug("Creating import folders...");
-            ImportFolderRepository repImportFolders = new ImportFolderRepository();
 
-            ImportFolder sn = repImportFolders.GetByImportLocation(@"M:\[ Anime Test ]");
+            ImportFolder sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime Test ]");
             if (sn == null)
             {
                 sn = new ImportFolder();
                 sn.ImportFolderName = "Anime";
                 sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderLocation = @"M:\[ Anime Test ]";
-                repImportFolders.Save(sn);
+                RepoFactory.ImportFolder.Save(sn);
             }
 
             logger.Debug("Complete!");
@@ -2821,46 +2798,45 @@ namespace JMMServer
         private static void CreateImportFolders()
         {
             logger.Debug("Creating shares...");
-            ImportFolderRepository repNetShares = new ImportFolderRepository();
 
-            ImportFolder sn = repNetShares.GetByImportLocation(@"M:\[ Anime 2011 ]");
+            ImportFolder sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime 2011 ]");
             if (sn == null)
             {
                 sn = new ImportFolder();
                 sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime 2011";
                 sn.ImportFolderLocation = @"M:\[ Anime 2011 ]";
-                repNetShares.Save(sn);
+                RepoFactory.ImportFolder.Save(sn);
             }
 
-            sn = repNetShares.GetByImportLocation(@"M:\[ Anime - DVD and Bluray IN PROGRESS ]");
+            sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime - DVD and Bluray IN PROGRESS ]");
             if (sn == null)
             {
                 sn = new ImportFolder();
                 sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime - DVD and Bluray IN PROGRESS";
                 sn.ImportFolderLocation = @"M:\[ Anime - DVD and Bluray IN PROGRESS ]";
-                repNetShares.Save(sn);
+                RepoFactory.ImportFolder.Save(sn);
             }
 
-            sn = repNetShares.GetByImportLocation(@"M:\[ Anime - DVD and Bluray COMPLETE ]");
+            sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime - DVD and Bluray COMPLETE ]");
             if (sn == null)
             {
                 sn = new ImportFolder();
                 sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime - DVD and Bluray COMPLETE";
                 sn.ImportFolderLocation = @"M:\[ Anime - DVD and Bluray COMPLETE ]";
-                repNetShares.Save(sn);
+                RepoFactory.ImportFolder.Save(sn);
             }
 
-            sn = repNetShares.GetByImportLocation(@"M:\[ Anime ]");
+            sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime ]");
             if (sn == null)
             {
                 sn = new ImportFolder();
                 sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime";
                 sn.ImportFolderLocation = @"M:\[ Anime ]";
-                repNetShares.Save(sn);
+                RepoFactory.ImportFolder.Save(sn);
             }
 
             logger.Debug("Creating shares complete!");
@@ -2869,36 +2845,35 @@ namespace JMMServer
         private static void CreateImportFolders2()
         {
             logger.Debug("Creating shares...");
-            ImportFolderRepository repNetShares = new ImportFolderRepository();
 
-            ImportFolder sn = repNetShares.GetByImportLocation(@"F:\Anime1");
+            ImportFolder sn = RepoFactory.ImportFolder.GetByImportLocation(@"F:\Anime1");
             if (sn == null)
             {
                 sn = new ImportFolder();
                 sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime1";
                 sn.ImportFolderLocation = @"F:\Anime1";
-                repNetShares.Save(sn);
+                RepoFactory.ImportFolder.Save(sn);
             }
 
-            sn = repNetShares.GetByImportLocation(@"H:\Anime2");
+            sn = RepoFactory.ImportFolder.GetByImportLocation(@"H:\Anime2");
             if (sn == null)
             {
                 sn = new ImportFolder();
                 sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime2";
                 sn.ImportFolderLocation = @"H:\Anime2";
-                repNetShares.Save(sn);
+                RepoFactory.ImportFolder.Save(sn);
             }
 
-            sn = repNetShares.GetByImportLocation(@"G:\Anime3");
+            sn = RepoFactory.ImportFolder.GetByImportLocation(@"G:\Anime3");
             if (sn == null)
             {
                 sn = new ImportFolder();
                 sn.ImportFolderType = (int)ImportFolderType.HDD;
                 sn.ImportFolderName = "Anime3";
                 sn.ImportFolderLocation = @"G:\Anime3";
-                repNetShares.Save(sn);
+                RepoFactory.ImportFolder.Save(sn);
             }
 
             logger.Debug("Creating shares complete!");

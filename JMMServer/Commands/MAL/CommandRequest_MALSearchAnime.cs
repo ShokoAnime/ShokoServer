@@ -72,8 +72,7 @@ namespace JMMServer.Commands.MAL
                 }
 
                 string searchCriteria = "";
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 searchCriteria = anime.MainTitle;

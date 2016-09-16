@@ -5,6 +5,7 @@ using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using JMMServer.WebCache;
 using NLog;
 
@@ -62,14 +63,11 @@ namespace JMMServer.Entities
             {
                 List<Language> lans = new List<Language>();
 
-                CrossRef_Languages_AniDB_FileRepository repFileLanguages = new CrossRef_Languages_AniDB_FileRepository();
-                LanguageRepository repLanguages = new LanguageRepository();
-
-                List<CrossRef_Languages_AniDB_File> fileLanguages = repFileLanguages.GetByFileID(this.FileID);
+                List<CrossRef_Languages_AniDB_File> fileLanguages = RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(this.FileID);
 
                 foreach (CrossRef_Languages_AniDB_File crossref in fileLanguages)
                 {
-                    Language lan = repLanguages.GetByID(crossref.LanguageID);
+                    Language lan = RepoFactory.Language.GetByID(crossref.LanguageID);
                     if (lan != null) lans.Add(lan);
                 }
                 return lans;
@@ -84,15 +82,12 @@ namespace JMMServer.Entities
             {
                 List<Language> subs = new List<Language>();
 
-                CrossRef_Subtitles_AniDB_FileRepository repFileSubtitles = new CrossRef_Subtitles_AniDB_FileRepository();
-                LanguageRepository repLanguages = new LanguageRepository();
-
-                List<CrossRef_Subtitles_AniDB_File> fileSubtitles = repFileSubtitles.GetByFileID(this.FileID);
+                List<CrossRef_Subtitles_AniDB_File> fileSubtitles =RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(this.FileID);
 
 
                 foreach (CrossRef_Subtitles_AniDB_File crossref in fileSubtitles)
                 {
-                    Language sub = repLanguages.GetByID(crossref.LanguageID);
+                    Language sub = RepoFactory.Language.GetByID(crossref.LanguageID);
                     if (sub != null) subs.Add(sub);
                 }
                 return subs;
@@ -106,8 +101,7 @@ namespace JMMServer.Entities
             {
                 List<int> ids = new List<int>();
 
-                CrossRef_File_EpisodeRepository repFileEps = new CrossRef_File_EpisodeRepository();
-                List<CrossRef_File_Episode> fileEps = repFileEps.GetByHash(this.Hash);
+                List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
 
                 foreach (CrossRef_File_Episode crossref in fileEps)
                 {
@@ -124,8 +118,7 @@ namespace JMMServer.Entities
             {
                 List<AniDB_Episode> eps = new List<AniDB_Episode>();
 
-                CrossRef_File_EpisodeRepository repFileEps = new CrossRef_File_EpisodeRepository();
-                List<CrossRef_File_Episode> fileEps = repFileEps.GetByHash(this.Hash);
+                List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
 
                 foreach (CrossRef_File_Episode crossref in fileEps)
                 {
@@ -140,8 +133,7 @@ namespace JMMServer.Entities
         {
             get
             {
-                CrossRef_File_EpisodeRepository repFileEps = new CrossRef_File_EpisodeRepository();
-                return repFileEps.GetByHash(this.Hash);
+                return RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
             }
         }
 
@@ -381,20 +373,15 @@ namespace JMMServer.Entities
         {
             char apostrophe = "'".ToCharArray()[0];
 
-            LanguageRepository repLanguages = new LanguageRepository();
-
             if (languagesRAW != null) //Only create relations if the origin of the data if from Raw (WebService/AniDB)
             {
                 if (languagesRAW.Trim().Length == 0) return;
                 // Delete old if changed
 
-                CrossRef_Languages_AniDB_FileRepository repFileLanguages = new CrossRef_Languages_AniDB_FileRepository();
-
-
-                List<CrossRef_Languages_AniDB_File> fileLanguages = repFileLanguages.GetByFileID(this.FileID);
+                List<CrossRef_Languages_AniDB_File> fileLanguages = RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(this.FileID);
                 foreach (CrossRef_Languages_AniDB_File fLan in fileLanguages)
                 {
-                    repFileLanguages.Delete(fLan.CrossRef_Languages_AniDB_FileID);
+                    RepoFactory.CrossRef_Languages_AniDB_File.Delete(fLan.CrossRef_Languages_AniDB_FileID);
                 }
 
 
@@ -404,17 +391,17 @@ namespace JMMServer.Entities
                     string rlan = language.Trim().ToLower();
                     if (rlan.Length > 0)
                     {
-                        Language lan = repLanguages.GetByLanguageName(rlan);
+                        Language lan = RepoFactory.Language.GetByLanguageName(rlan);
                         if (lan == null)
                         {
                             lan = new Language();
                             lan.LanguageName = rlan;
-                            repLanguages.Save(lan);
+                            RepoFactory.Language.Save(lan);
                         }
                         CrossRef_Languages_AniDB_File cross = new CrossRef_Languages_AniDB_File();
                         cross.LanguageID = lan.LanguageID;
                         cross.FileID = FileID;
-                        repFileLanguages.Save(cross);
+                        RepoFactory.CrossRef_Languages_AniDB_File.Save(cross);
                     }
                 }
             }
@@ -424,12 +411,11 @@ namespace JMMServer.Entities
                 if (subtitlesRAW.Trim().Length == 0) return;
 
                 // Delete old if changed
-                CrossRef_Subtitles_AniDB_FileRepository repFileSubtitles = new CrossRef_Subtitles_AniDB_FileRepository();
-                List<CrossRef_Subtitles_AniDB_File> fileSubtitles = repFileSubtitles.GetByFileID(this.FileID);
+                List<CrossRef_Subtitles_AniDB_File> fileSubtitles = RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(this.FileID);
 
                 foreach (CrossRef_Subtitles_AniDB_File fSub in fileSubtitles)
                 {
-                    repFileSubtitles.Delete(fSub.CrossRef_Subtitles_AniDB_FileID);
+                    RepoFactory.CrossRef_Subtitles_AniDB_File.Delete(fSub.CrossRef_Subtitles_AniDB_FileID);
                 }
 
                 string[] subs = subtitlesRAW.Split(apostrophe);
@@ -438,17 +424,17 @@ namespace JMMServer.Entities
                     string rlan = language.Trim().ToLower();
                     if (rlan.Length > 0)
                     {
-                        Language lan = repLanguages.GetByLanguageName(rlan);
+                        Language lan = RepoFactory.Language.GetByLanguageName(rlan);
                         if (lan == null)
                         {
                             lan = new Language();
                             lan.LanguageName = rlan;
-                            repLanguages.Save(lan);
+                            RepoFactory.Language.Save(lan);
                         }
                         CrossRef_Subtitles_AniDB_File cross = new CrossRef_Subtitles_AniDB_File();
                         cross.LanguageID = lan.LanguageID;
                         cross.FileID = FileID;
-                        repFileSubtitles.Save(cross);
+                        RepoFactory.CrossRef_Subtitles_AniDB_File.Save(cross);
                     }
                 }
             }
@@ -458,11 +444,10 @@ namespace JMMServer.Entities
         {
             if (episodesRAW != null) //Only create relations if the origin of the data if from Raw (AniDB)
             {
-                CrossRef_File_EpisodeRepository repFileEpisodes = new CrossRef_File_EpisodeRepository();
-                List<CrossRef_File_Episode> fileEps = repFileEpisodes.GetByHash(this.Hash);
+                List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
 
                 foreach (CrossRef_File_Episode fileEp in fileEps)
-                    repFileEpisodes.Delete(fileEp.CrossRef_File_EpisodeID);
+                    RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
 
                 char apostrophe = "'".ToCharArray()[0];
                 char epiSplit = ',';
@@ -496,7 +481,7 @@ namespace JMMServer.Entities
                             cross.EpisodeOrder = x + 1;
                             cross.FileName = localFileName;
                             cross.FileSize = FileSize;
-                            repFileEpisodes.Save(cross);
+                            RepoFactory.CrossRef_File_Episode.Save(cross);
                         }
                     }
                 }

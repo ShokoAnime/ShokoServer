@@ -82,7 +82,7 @@ namespace JMMServer.Entities
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TvDB_ImageFanart.Init: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in TvDB_ImageFanart.Init: " + ex.ToString());
                 return false;
             }
         }

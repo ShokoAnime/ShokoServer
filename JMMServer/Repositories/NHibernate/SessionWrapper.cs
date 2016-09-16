@@ -45,5 +45,7 @@ namespace JMMServer.Repositories.NHibernate
         {
             get { return _session.Connection; }
         }
+
+
     }
 }

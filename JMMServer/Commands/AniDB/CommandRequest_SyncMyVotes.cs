@@ -8,6 +8,7 @@ using JMMServer.AniDB_API.Commands;
 using JMMServer.AniDB_API.Raws;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -42,7 +43,6 @@ namespace JMMServer.Commands
 
             try
             {
-                AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
 
                 AniDBHTTPCommand_GetVotes cmd = new AniDBHTTPCommand_GetVotes();
                 cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
@@ -51,7 +51,7 @@ namespace JMMServer.Commands
                 {
                     foreach (Raw_AniDB_Vote_HTTP myVote in cmd.MyVotes)
                     {
-                        List<AniDB_Vote> dbVotes = repVotes.GetByEntity(myVote.EntityID);
+                        List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(myVote.EntityID);
                         AniDB_Vote thisVote = null;
                         foreach (AniDB_Vote dbVote in dbVotes)
                         {
@@ -78,7 +78,7 @@ namespace JMMServer.Commands
                         thisVote.VoteType = (int) myVote.VoteType;
                         thisVote.VoteValue = myVote.VoteValue;
 
-                        repVotes.Save(thisVote);
+                        RepoFactory.AniDB_Vote.Save(thisVote);
 
                         if (myVote.VoteType == enAniDBVoteType.Anime || myVote.VoteType == enAniDBVoteType.AnimeTemp)
                         {

@@ -5,6 +5,8 @@ using System.Threading;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -46,12 +48,9 @@ namespace JMMServer.Commands
             try
             {
                 List<int> animeIDsToUpdate = new List<int>();
-                ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
                 // check the automated update table to see when the last time we ran this command
-                ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
+                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
                 if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Anime_UpdateFrequency);
@@ -97,7 +96,7 @@ namespace JMMServer.Commands
                 // we will use this next time as a starting point when querying the web cache
                 sched.LastUpdate = DateTime.Now;
                 sched.UpdateDetails = webUpdateTimeNew.ToString();
-                repSched.Save(sched);
+                RepoFactory.ScheduledUpdate.Save(sched);
 
                 if (animeIDsToUpdate.Count == 0)
                 {
@@ -111,7 +110,7 @@ namespace JMMServer.Commands
                 foreach (int animeID in animeIDsToUpdate)
                 {
                     // update the anime from HTTP
-                    AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                     if (anime == null)
                     {
                         logger.Trace("No local record found for Anime ID: {0}, so skipping...", animeID);
@@ -132,7 +131,7 @@ namespace JMMServer.Commands
                     // update the group status
                     // this will allow us to determine which anime has missing episodes
                     // so we wonly get by an amime where we also have an associated series
-                    AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+                    AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                     if (ser != null)
                     {
                         CommandRequest_GetReleaseGroupStatus cmdStatus =

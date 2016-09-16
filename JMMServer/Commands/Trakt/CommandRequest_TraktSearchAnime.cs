@@ -9,6 +9,7 @@ using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TraktTV.Contracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
@@ -87,15 +88,14 @@ namespace JMMServer.Commands
                         }
                         catch (Exception ex)
                         {
-                            logger.ErrorException(ex.ToString(), ex);
+                            logger.Error( ex,ex.ToString());
                         }
                     }
 
 
                     // lets try to see locally if we have a tvDB link for this anime
                     // Trakt allows the use of TvDB ID's or their own Trakt ID's
-                    CrossRef_AniDB_TvDBV2Repository repCrossRefTvDB = new CrossRef_AniDB_TvDBV2Repository();
-                    List<CrossRef_AniDB_TvDBV2> xrefTvDBs = repCrossRefTvDB.GetByAnimeID(sessionWrapper, AnimeID);
+                    List<CrossRef_AniDB_TvDBV2> xrefTvDBs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(sessionWrapper, AnimeID);
                     if (xrefTvDBs != null && xrefTvDBs.Count > 0)
                     {
                         foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
@@ -123,12 +123,10 @@ namespace JMMServer.Commands
                                     if (showInfo != null && showInfo.ids != null)
                                     {
                                         // make sure the season specified by TvDB also exists on Trakt
-                                        Trakt_ShowRepository repShow = new Trakt_ShowRepository();
-                                        Trakt_Show traktShow = repShow.GetByTraktSlug(session, showInfo.ids.slug);
+                                        Trakt_Show traktShow = RepoFactory.Trakt_Show.GetByTraktSlug(session, showInfo.ids.slug);
                                         if (traktShow != null)
                                         {
-                                            Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
-                                            Trakt_Season traktSeason = repSeasons.GetByShowIDAndSeason(session,
+                                            Trakt_Season traktSeason = RepoFactory.Trakt_Season.GetByShowIDAndSeason(session,
                                                 traktShow.Trakt_ShowID,
                                                 xrefTvDBs[0].TvDBSeasonNumber);
                                             if (traktSeason != null)
@@ -151,8 +149,7 @@ namespace JMMServer.Commands
 
                     // finally lets try searching Trakt directly
                     string searchCriteria = "";
-                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(sessionWrapper, AnimeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;

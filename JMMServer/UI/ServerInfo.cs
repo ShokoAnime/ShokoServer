@@ -9,6 +9,7 @@ using System.Windows.Media;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using NutzCode.CloudFileSystem;
 
 namespace JMMServer
@@ -441,7 +442,7 @@ namespace JMMServer
             ImportFolders.Clear();
             try
             {
-                new ImportFolderRepository().GetAll().ForEach(a=>ImportFolders.Add(a));
+                RepoFactory.ImportFolder.GetAll().ForEach(a=>ImportFolders.Add(a));
             }
             catch (Exception ex)
             {
@@ -454,7 +455,7 @@ namespace JMMServer
             CloudAccounts.Clear();
             try
             {
-                new CloudAccountRepository().GetAll().ForEach(a=>CloudAccounts.Add(a));
+                RepoFactory.CloudAccount.GetAll().ForEach(a=>CloudAccounts.Add(a));
             }
             catch (Exception ex)
             {
@@ -467,7 +468,7 @@ namespace JMMServer
             FolderProviders.Clear();
             CloudAccount lfs = new CloudAccount() {Name = "NA", Provider = "Local File System"};
             FolderProviders.Add(lfs);
-            new CloudAccountRepository().GetAll().ForEach(a => FolderProviders.Add(a));
+            RepoFactory.CloudAccount.GetAll().ForEach(a => FolderProviders.Add(a));
         }
         #endregion
     }

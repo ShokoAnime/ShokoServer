@@ -4,6 +4,7 @@ using System.Threading;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands.AniDB
 {
@@ -45,8 +46,8 @@ namespace JMMServer.Commands.AniDB
             try
             {
                 // we will always assume that an anime was downloaded via http first
-                ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-                ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
+
+                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate();
@@ -66,7 +67,7 @@ namespace JMMServer.Commands.AniDB
                 }
 
                 sched.LastUpdate = DateTime.Now;
-                repSched.Save(sched);
+                RepoFactory.ScheduledUpdate.Save(sched);
 
                 JMMService.AnidbProcessor.UpdateMyListStats();
             }

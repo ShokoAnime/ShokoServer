@@ -38,7 +38,7 @@ namespace JMMServer.FileServer
                     catch (Exception ex)
                     {
                         if (!stop)
-                            logger.ErrorException(ex.ToString(), ex);
+                            logger.Error( ex,ex.ToString());
                     }
                 }
             });
@@ -214,8 +214,7 @@ namespace JMMServer.FileServer
                         obj.Response.StatusDescription = "Stream Id missing.";
                         return;
                     }
-                    VideoLocalRepository rep = new VideoLocalRepository();
-                    loc = rep.GetByID(sid);
+                    loc = RepoFactory.VideoLocal.GetByID(sid);
                     if (loc == null)
                     {
                         obj.Response.StatusCode = (int)HttpStatusCode.NotFound;

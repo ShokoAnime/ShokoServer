@@ -11,6 +11,7 @@ using JMMServer.FileHelper;
 using JMMServer.FileHelper.MediaInfo;
 using JMMServer.FileHelper.Subtitles;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Stream = System.IO.Stream;
@@ -25,9 +26,9 @@ namespace JMMServer.Entities
         public int ImportFolderID { get; set; }
         public int ImportFolderType { get; set; }
 
-        public ImportFolder ImportFolder => new ImportFolderRepository().GetByID(ImportFolderID);
+        public ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
         public string FullServerPath => Path.Combine(ImportFolder.ImportFolderLocation, FilePath);
-        public VideoLocal VideoLocal => new VideoLocalRepository().GetByID(VideoLocalID);
+        public VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -36,8 +37,6 @@ namespace JMMServer.Entities
             string renamed = RenameFileHelper.GetNewFileName(VideoLocal, renameScript);
             if (string.IsNullOrEmpty(renamed)) return;
 
-            ImportFolderRepository repFolders = new ImportFolderRepository();
-            VideoLocal_PlaceRepository repVids = new VideoLocal_PlaceRepository();
             IFileSystem filesys = ImportFolder.FileSystem;
             if (filesys == null)
                 return;
@@ -80,7 +79,7 @@ namespace JMMServer.Entities
                             return;
                         }
                         this.FilePath = tup.Item2;
-                        repVids.Save(this);
+                        RepoFactory.VideoLocalPlace.Save(this);
                     }
                     else
                     {
@@ -91,7 +90,7 @@ namespace JMMServer.Entities
             catch (Exception ex)
             {
                 logger.Info($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
         public IFile GetFile()
@@ -189,8 +188,7 @@ namespace JMMServer.Entities
         {
             try
             {
-                RenameScriptRepository repScripts = new RenameScriptRepository();
-                RenameScript defaultScript = repScripts.GetDefaultScript();
+                RenameScript defaultScript = RepoFactory.RenameScript.GetDefaultScript();
 
                 if (defaultScript == null) return;
 
@@ -198,7 +196,7 @@ namespace JMMServer.Entities
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return;
             }
         }
@@ -238,8 +236,7 @@ namespace JMMServer.Entities
                 }
                 // find the default destination
                 ImportFolder destFolder = null;
-                ImportFolderRepository repFolders = new ImportFolderRepository();
-                foreach (ImportFolder fldr in repFolders.GetAll().Where(a => a.CloudID == ImportFolder.CloudID))
+                foreach (ImportFolder fldr in RepoFactory.ImportFolder.GetAll().Where(a => a.CloudID == ImportFolder.CloudID))
                 {
                     if (fldr.IsDropDestination == 1)
                     {
@@ -263,8 +260,7 @@ namespace JMMServer.Entities
                 CrossRef_File_Episode xref = xrefs[0];
 
                 // find the series associated with this episode
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries series = repSeries.GetByAnimeID(xref.AnimeID);
+                AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                 if (series == null) return;
 
                 // find where the other files are stored for this series
@@ -275,15 +271,13 @@ namespace JMMServer.Entities
                 // sort the episodes by air date, so that we will move the file to the location of the latest episode
                 List<AnimeEpisode> allEps = series.GetAnimeEpisodes().OrderByDescending(a => a.AniDB_EpisodeID).ToList();
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                CrossRef_File_EpisodeRepository repFileEpXref = new CrossRef_File_EpisodeRepository();
                 IDirectory destination = null;
 
                 foreach (AnimeEpisode ep in allEps)
                 {
                     // check if this episode belongs to more than one anime
                     // if it does we will ignore it
-                    List<CrossRef_File_Episode> fileEpXrefs = repFileEpXref.GetByEpisodeID(ep.AniDB_EpisodeID);
+                    List<CrossRef_File_Episode> fileEpXrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
                     int? animeID = null;
                     bool crossOver = false;
                     foreach (CrossRef_File_Episode fileEpXref in fileEpXrefs)
@@ -345,8 +339,7 @@ namespace JMMServer.Entities
                         destination = (IDirectory) dirn.Result;
                     }
                 }
-                VideoLocal_PlaceRepository repVids = new VideoLocal_PlaceRepository();
-
+                
                 //int newFolderID = 0;
                 //string newPartialPath = "";
                 string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
@@ -373,7 +366,7 @@ namespace JMMServer.Entities
                     }
                     this.ImportFolderID = tup.Item1.ImportFolderID;
                     this.FilePath = tup.Item2;
-                    repVids.Save(this);
+                    RepoFactory.VideoLocalPlace.Save(this);
                 }
                 else
                 {
@@ -388,7 +381,7 @@ namespace JMMServer.Entities
 
                     this.ImportFolderID = tup.Item1.ImportFolderID;
                     this.FilePath = tup.Item2;
-                    repVids.Save(this);
+                    RepoFactory.VideoLocalPlace.Save(this);
 
                     try
                     {
@@ -423,7 +416,7 @@ namespace JMMServer.Entities
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        logger.Error( ex,ex.ToString());
                     }
 
                     // check for any empty folders in drop folder
@@ -439,7 +432,7 @@ namespace JMMServer.Entities
             catch (Exception ex)
             {
                 string msg = $"Could not move file: {this.FullServerPath} -- {ex.ToString()}";
-                logger.ErrorException(msg, ex);
+                logger.Error( ex,msg);
             }
         }
 

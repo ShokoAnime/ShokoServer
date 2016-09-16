@@ -6,6 +6,8 @@ using System.Xml;
 using AniDBAPI;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -49,12 +51,10 @@ namespace JMMServer.Commands
             try
             {
                 // only get group status if we have an associated series
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries series = repSeries.GetByAnimeID(AnimeID);
+                AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
                 if (series == null) return;
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 // don't get group status if the anime has already ended more than 50 days ago
@@ -69,8 +69,7 @@ namespace JMMServer.Commands
                             if (ts.TotalDays > 50)
                             {
                                 // don't skip if we have never downloaded this info before
-                                AniDB_GroupStatusRepository repGrpStatus = new AniDB_GroupStatusRepository();
-                                List<AniDB_GroupStatus> grpStatuses = repGrpStatus.GetByAnimeID(AnimeID);
+                                List<AniDB_GroupStatus> grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID);
                                 if (grpStatuses != null && grpStatuses.Count > 0)
                                 {
                                     skip = true;

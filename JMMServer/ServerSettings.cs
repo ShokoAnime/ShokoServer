@@ -9,6 +9,7 @@ using JMMContracts;
 using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NLog;
 
 namespace JMMServer
@@ -1520,8 +1521,7 @@ namespace JMMServer
 
             try
             {
-                VersionsRepository repVersions = new VersionsRepository();
-                Versions ver = repVersions.GetByVersionType(Constants.DatabaseTypeKey);
+                Versions ver = RepoFactory.Versions.GetByVersionType(Constants.DatabaseTypeKey);
                 if (ver != null)
                     logger.Info(string.Format("Database Version: {0}", ver.VersionValue));
             }

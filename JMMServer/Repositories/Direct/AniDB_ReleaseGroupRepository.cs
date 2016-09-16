@@ -1,0 +1,25 @@
+﻿using JMMServer.Entities;
+using NHibernate.Criterion;
+using NLog;
+
+namespace JMMServer.Repositories.Direct
+{
+    public class AniDB_ReleaseGroupRepository : BaseDirectRepository<AniDB_ReleaseGroup, int>
+    {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
+
+        public AniDB_ReleaseGroup GetByGroupID(int id)
+        {
+            using (var session = JMMService.SessionFactory.OpenSession())
+            {
+                AniDB_ReleaseGroup cr = session
+                    .CreateCriteria(typeof(AniDB_ReleaseGroup))
+                    .Add(Restrictions.Eq("GroupID", id))
+                    .UniqueResult<AniDB_ReleaseGroup>();
+                return cr;
+            }
+        }
+
+    }
+}

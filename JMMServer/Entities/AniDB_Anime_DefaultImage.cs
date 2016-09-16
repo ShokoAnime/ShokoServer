@@ -1,5 +1,6 @@
 ﻿using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
@@ -70,38 +71,25 @@ namespace JMMServer.Entities
             switch (imgType)
             {
                 case JMMImageType.TvDB_Banner:
-                    TvDB_ImageWideBannerRepository repBanners = new TvDB_ImageWideBannerRepository();
-
-                    parentImage = repBanners.GetByID(session, ImageParentID);
+                    parentImage = RepoFactory.TvDB_ImageWideBanner.GetByID(session, ImageParentID);
                     break;
                 case JMMImageType.TvDB_Cover:
-                    TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
-
-                    parentImage = repPosters.GetByID(session, ImageParentID);
+                    parentImage = RepoFactory.TvDB_ImagePoster.GetByID(session, ImageParentID);
                     break;
                 case JMMImageType.TvDB_FanArt:
-                    TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
-
-                    parentImage = repFanart.GetByID(session, ImageParentID);
+                    parentImage = RepoFactory.TvDB_ImageFanart.GetByID(session, ImageParentID);
                     break;
                 case JMMImageType.MovieDB_Poster:
-                    MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
-
-                    parentImage = repMoviePosters.GetByID(session, ImageParentID);
+                    parentImage = RepoFactory.MovieDB_Poster.GetByID(session, ImageParentID);
                     break;
                 case JMMImageType.MovieDB_FanArt:
-                    MovieDB_FanartRepository repMovieFanart = new MovieDB_FanartRepository();
-
-                    parentImage = repMovieFanart.GetByID(session, ImageParentID);
+                    parentImage = RepoFactory.MovieDB_Fanart.GetByID(session, ImageParentID);
                     break;
                 case JMMImageType.Trakt_Fanart:
-                    Trakt_ImageFanartRepository repTraktFanart = new Trakt_ImageFanartRepository();
-                    parentImage = repTraktFanart.GetByID(session, ImageParentID);
+                    parentImage = RepoFactory.Trakt_ImageFanart.GetByID(session, ImageParentID);
                     break;
                 case JMMImageType.Trakt_Poster:
-                    Trakt_ImagePosterRepository repTraktPoster = new Trakt_ImagePosterRepository();
-
-                    parentImage = repTraktPoster.GetByID(session, ImageParentID);
+                    parentImage = RepoFactory.Trakt_ImagePoster.GetByID(session, ImageParentID);
                     break;
             }
 

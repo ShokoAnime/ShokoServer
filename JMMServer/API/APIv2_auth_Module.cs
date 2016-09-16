@@ -1,4 +1,6 @@
 ﻿using JMMServer.API.Model;
+using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using Nancy;
 using Nancy.ModelBinding;
 
@@ -31,13 +33,12 @@ namespace JMMServer.API
                 else
                 {
                     //get user knowing his username
-                    Repositories.JMMUserRepository userRepo = new Repositories.JMMUserRepository();
                     try
                     {
-                        int uid = userRepo.GetByUsername(auth.user).JMMUserID;
+                        int uid = RepoFactory.JMMUser.GetByUsername(auth.user).JMMUserID;
                         Entities.AuthTokens token = new Entities.AuthTokens(uid, (auth.device).ToLower(), apiKey);
                         //save token for auth user
-                        Auth.authRepo.Save(token);
+                        RepoFactory.AuthTokens.Save(token);
                     }
                     catch
                     {
@@ -65,12 +66,5 @@ namespace JMMServer.API
         }
     }
 
-    /// <summary>
-    /// Static class so AuthRepo dont have to be recreate
-    /// </summary>
-    public static class Auth
-    {
-        public static Repositories.AuthTokensRepository authRepo = new Repositories.AuthTokensRepository();
-    }
     
 }

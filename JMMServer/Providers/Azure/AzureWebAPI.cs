@@ -6,6 +6,7 @@ using System.Text;
 using System.Web;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using NLog;
 
 namespace JMMServer.Providers.Azure
@@ -461,7 +462,7 @@ namespace JMMServer.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error(2) in XMLServiceQueue.SendData: {0}", ex);
+                logger.Error( ex,"Error(2) in XMLServiceQueue.SendData: {0}");
             }
 
             return null;
@@ -536,7 +537,7 @@ namespace JMMServer.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error(2) in XMLServiceQueue.SendData: {0}", ex);
+                logger.Error( ex,"Error(2) in XMLServiceQueue.SendData: {0}");
             }
             finally
             {
@@ -582,7 +583,7 @@ namespace JMMServer.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error(2) in AzureWebAPI.GetData: {0}", ex);
+                logger.Error( ex,"Error(2) in AzureWebAPI.GetData: {0}");
             }
 
             return "";
@@ -623,7 +624,7 @@ namespace JMMServer.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error(2) in AzureWebAPI.GetData: {0}", ex);
+                logger.Error( ex,"Error(2) in AzureWebAPI.GetData: {0}");
             }
 
             return "";
@@ -669,7 +670,7 @@ namespace JMMServer.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error(2) in AzureWebAPI.GetData: {0}", ex);
+                logger.Error( ex,"Error(2) in AzureWebAPI.GetData: {0}");
             }
 
             return "";
@@ -710,14 +711,11 @@ namespace JMMServer.Providers.Azure
                 // this field is not actually used
                 uinfo.LastEpisodeWatchedAsDate = DateTime.Now.AddDays(-5);
 
-                JMMUserRepository repUsers = new JMMUserRepository();
-                uinfo.LocalUserCount = (int) repUsers.GetTotalRecordCount();
+                uinfo.LocalUserCount = (int)RepoFactory.JMMUser.GetTotalRecordCount();
 
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                uinfo.FileCount = repVids.GetTotalRecordCount();
+                uinfo.FileCount = RepoFactory.VideoLocal.GetTotalRecordCount();
 
-                AnimeEpisode_UserRepository repEps = new AnimeEpisode_UserRepository();
-                AnimeEpisode_User rec = repEps.GetLastWatchedEpisode();
+                AnimeEpisode_User rec = RepoFactory.AnimeEpisode_User.GetLastWatchedEpisode();
                 uinfo.LastEpisodeWatched = 0;
                 if (rec != null)
                     uinfo.LastEpisodeWatched = Utils.GetAniDBDateAsSeconds(rec.WatchedDate);
@@ -726,7 +724,7 @@ namespace JMMServer.Providers.Azure
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }

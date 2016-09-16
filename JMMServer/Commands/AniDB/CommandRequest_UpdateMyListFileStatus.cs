@@ -5,6 +5,7 @@ using System.Threading;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 
 namespace JMMServer.Commands
 {
@@ -54,11 +55,9 @@ namespace JMMServer.Commands
 
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-
+ 
                 // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
-                VideoLocal vid = repVids.GetByHash(this.Hash);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByHash(this.Hash);
                 if (vid != null)
                 {
                     bool isManualLink = false;
@@ -87,7 +86,7 @@ namespace JMMServer.Commands
                     if (UpdateSeriesStats)
                     {
                         // update watched stats
-                        List<AnimeEpisode> eps = repEpisodes.GetByHash(vid.ED2KHash);
+                        List<AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
                         if (eps.Count > 0)
                         {
                             // all the eps should belong to the same anime

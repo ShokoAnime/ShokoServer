@@ -16,6 +16,8 @@ namespace JMMServer.Repositories.NHibernate
 
         TObj Get<TObj>(object id);
 
-        IDbConnection Connection { get; } 
+        IDbConnection Connection { get; }
+
+
     }
 }

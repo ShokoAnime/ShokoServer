@@ -5,6 +5,8 @@ using System.Xml;
 using AniDBAPI;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -46,10 +48,8 @@ namespace JMMServer.Commands
             try
             {
                 // we will always assume that an anime was downloaded via http first
-                ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-
-                ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
+                
+                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate();
@@ -69,7 +69,7 @@ namespace JMMServer.Commands
                 }
 
                 sched.LastUpdate = DateTime.Now;
-                repSched.Save(sched);
+                RepoFactory.ScheduledUpdate.Save(sched);
 
                 CalendarCollection colCalendars = JMMService.AnidbProcessor.GetCalendarUDP();
                 if (colCalendars == null || colCalendars.Calendars == null)
@@ -79,7 +79,7 @@ namespace JMMServer.Commands
                 }
                 foreach (AniDBAPI.Calendar cal in colCalendars.Calendars)
                 {
-                    AniDB_Anime anime = repAnime.GetByAnimeID(cal.AnimeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
                     if (anime != null)
                     {
                         // don't update if the local data is less 2 days old
@@ -96,11 +96,10 @@ namespace JMMServer.Commands
                             if (anime.AirDate != cal.ReleaseDate)
                             {
                                 anime.AirDate = cal.ReleaseDate;
-                                repAnime.Save(anime);
-                                AnimeSeriesRepository srepo = new AnimeSeriesRepository();
-                                AnimeSeries ser = srepo.GetByAnimeID(anime.AnimeID);
+                                RepoFactory.AniDB_Anime.Save(anime);
+                                AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
                                 if (ser != null)
-                                    srepo.Save(ser, true, false);
+                                    RepoFactory.AnimeSeries.Save(ser, true, false);
                             }
                         }
                     }
@@ -113,7 +112,7 @@ namespace JMMServer.Commands
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error processing CommandRequest_GetCalendar: " + ex.ToString(), ex);
+                logger.Error( ex,"Error processing CommandRequest_GetCalendar: " + ex.ToString());
                 return;
             }
         }

@@ -14,6 +14,8 @@ using JMMServer.Commands;
 using JMMServer.Commands.MAL;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
@@ -83,7 +85,7 @@ namespace JMMServer.Entities
             }
         }
 
-        public List<VideoLocal_Place> Places => new VideoLocal_PlaceRepository().GetByVideoLocal(VideoLocalID);
+        public List<VideoLocal_Place> Places => RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
 
         public void CollectContractMemory()
@@ -131,15 +133,13 @@ namespace JMMServer.Entities
 
         public AniDB_File GetAniDBFile()
         {
-            AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-            return repAniFile.GetByHash(Hash);
+            return RepoFactory.AniDB_File.GetByHash(Hash);
         }
 
 
         public VideoLocal_User GetUserRecord(int userID)
         {
-            VideoLocal_UserRepository repVidUser = new VideoLocal_UserRepository();
-            return repVidUser.GetByUserIDAndVideoLocalID(userID, this.VideoLocalID);
+            return RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, VideoLocalID);
         }
 
         public AniDB_ReleaseGroup ReleaseGroup
@@ -149,15 +149,13 @@ namespace JMMServer.Entities
                 AniDB_File anifile = GetAniDBFile();
                 if (anifile == null) return null;
 
-                AniDB_ReleaseGroupRepository repRG = new AniDB_ReleaseGroupRepository();
-                return repRG.GetByGroupID(anifile.GroupID);
+                return RepoFactory.AniDB_ReleaseGroup.GetByGroupID(anifile.GroupID);
             }
         }
 
         public List<AnimeEpisode> GetAnimeEpisodes()
         {
-            AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-            return repEps.GetByHash(Hash);
+            return RepoFactory.AnimeEpisode.GetByHash(Hash);
         }
 
 
@@ -168,15 +166,13 @@ namespace JMMServer.Entities
             {
                 if (Hash.Length == 0) return new List<CrossRef_File_Episode>();
 
-                CrossRef_File_EpisodeRepository rep = new CrossRef_File_EpisodeRepository();
-                return rep.GetByHash(Hash);
+                return RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
             }
         }
         
         private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
         {
-            VideoLocal_UserRepository repVidUsers = new VideoLocal_UserRepository();
-            VideoLocal_User vidUserRecord = this.GetUserRecord(userID);
+            VideoLocal_User vidUserRecord = GetUserRecord(userID);
             if (watched)
             {
                 if (vidUserRecord?.WatchedDate == null)
@@ -193,14 +189,14 @@ namespace JMMServer.Entities
                         vidUserRecord.WatchedDate = watchedDate.Value;
                 }
 
-                repVidUsers.Save(vidUserRecord);
+                RepoFactory.VideoLocalUser.Save(vidUserRecord);
             }
             else
             {
                 if (vidUserRecord != null)
                 {
                     vidUserRecord.WatchedDate = null;
-                    repVidUsers.Save(vidUserRecord);
+                    RepoFactory.VideoLocalUser.Save(vidUserRecord);
 
                 }
             }
@@ -253,7 +249,7 @@ namespace JMMServer.Entities
                 vuser.VideoLocalID = VideoLocalID;
                 vuser.ResumePosition = resumeposition;
             }
-            new VideoLocal_UserRepository().Save(vuser);
+            RepoFactory.VideoLocalUser.Save(vuser);
         }
 
         public void ToggleWatchedStatus(bool watched, int userID)
@@ -265,18 +261,11 @@ namespace JMMServer.Entities
             bool updateStatsCache, int userID,
             bool syncTrakt, bool updateWatchedDate)
         {
-            VideoLocalRepository repVids = new VideoLocalRepository();
-            AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-            AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-            CrossRef_File_EpisodeRepository repCross = new CrossRef_File_EpisodeRepository();
-            VideoLocal_UserRepository repVidUsers = new VideoLocal_UserRepository();
-            JMMUserRepository repUsers = new JMMUserRepository();
-            AnimeEpisode_UserRepository repEpisodeUsers = new AnimeEpisode_UserRepository();
 
-            JMMUser user = repUsers.GetByID(userID);
+            JMMUser user = RepoFactory.JMMUser.GetByID(userID);
             if (user == null) return;
 
-            List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
+            List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
             // update the video file to watched
             int mywatched = watched ? 1 : 0;
@@ -298,7 +287,7 @@ namespace JMMServer.Entities
             // now lets find all the associated AniDB_File record if there is one
             if (user.IsAniDBUser == 1)
             {
-                AniDB_File aniFile = repAniFile.GetByHash(this.Hash);
+                AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(this.Hash);
                 if (aniFile != null)
                 {
                     aniFile.IsWatched = mywatched;
@@ -314,7 +303,7 @@ namespace JMMServer.Entities
                         aniFile.WatchedDate = null;
 
 
-                    repAniFile.Save(aniFile, false);
+                    RepoFactory.AniDB_File.Save(aniFile, false);
                 }
 
                 if (updateOnline)
@@ -337,7 +326,7 @@ namespace JMMServer.Entities
 
             AnimeSeries ser = null;
             // get all files associated with this episode
-            List<CrossRef_File_Episode> xrefs = repCross.GetByHash(this.Hash);
+            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
             Dictionary<int, AnimeSeries> toUpdateSeries = new Dictionary<int, AnimeSeries>();
             if (watched)
             {
@@ -348,7 +337,7 @@ namespace JMMServer.Entities
                 foreach (CrossRef_File_Episode xref in xrefs)
                 {
                     // get the episodes for this file, may be more than one (One Piece x Toriko)
-                    AnimeEpisode ep = repEpisodes.GetByAniDBEpisodeID(xref.EpisodeID);
+                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
                     // get all the files for this episode
                     int epPercentWatched = 0;
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
@@ -405,7 +394,7 @@ namespace JMMServer.Entities
                 foreach (CrossRef_File_Episode xrefEp in xrefs)
                 {
                     // get the episodes for this file, may be more than one (One Piece x Toriko)
-                    AnimeEpisode ep = repEpisodes.GetByAniDBEpisodeID(xrefEp.EpisodeID);
+                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xrefEp.EpisodeID);
                     ser = ep.GetAnimeSeries();
                     if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
                         toUpdateSeries.Add(ser.AnimeSeriesID, ser);
@@ -522,7 +511,7 @@ namespace JMMServer.Entities
                     {
                         if (pl.RefreshMediaInfo())
                         {
-                            new VideoLocalRepository().Save(pl.VideoLocal,true);
+                            RepoFactory.VideoLocal.Save(pl.VideoLocal,true);
                         }
                     }
                 }

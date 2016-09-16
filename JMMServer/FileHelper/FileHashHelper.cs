@@ -65,7 +65,7 @@ namespace JMMServer.FileHelper
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in GetVideoExtensions: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in GetVideoExtensions: " + ex.ToString());
             }
 
             return extList;

@@ -6,6 +6,7 @@ using System.Xml;
 using AniDBAPI;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 
 namespace JMMServer.Commands.AniDB
 {
@@ -52,15 +53,13 @@ namespace JMMServer.Commands.AniDB
                 // and we only use it for the "Other Episodes" section of the FILE command
                 // because that field doesn't tell you what anime it belongs to
 
-                CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
-                List<CrossRef_File_Episode> xrefs = repCrossRefs.GetByEpisodeID(EpisodeID);
+                List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID);
                 if (xrefs.Count == 0) return;
 
                 Raw_AniDB_Episode epInfo = JMMService.AnidbProcessor.GetEpisodeInfo(EpisodeID);
 
                 if (epInfo != null)
                 {
-                    AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
                     //Change, AniDB_File do not create Series Episodes does.
 
@@ -69,15 +68,15 @@ namespace JMMServer.Commands.AniDB
                     {
                         int oldAnimeID = xref.AnimeID;
                         xref.AnimeID = epInfo.AnimeID;
-                        repCrossRefs.Save(xref);
+                        RepoFactory.CrossRef_File_Episode.Save(xref);
 
 
-                        AnimeSeries ser = repSeries.GetByAnimeID(oldAnimeID);
+                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(oldAnimeID);
                         if (ser != null)
                             ser.QueueUpdateStats();
                         //StatsCache.Instance.UpdateUsingAnime(oldAnimeID);
 
-                        ser = repSeries.GetByAnimeID(epInfo.AnimeID);
+                        ser = RepoFactory.AnimeSeries.GetByAnimeID(epInfo.AnimeID);
                         if (ser != null)
                             ser.QueueUpdateStats();
                         //StatsCache.Instance.UpdateUsingAnime(epInfo.AnimeID);

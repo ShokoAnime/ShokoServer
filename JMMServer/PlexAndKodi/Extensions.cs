@@ -236,8 +236,7 @@ namespace JMMServer.PlexAndKodi
                 case JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode:
                     if (v.Medias!=null)
                     {
-                        VideoLocalRepository vrepo=new VideoLocalRepository();
-                        VideoLocal_User vl=v.Medias.Select(a=>vrepo.GetByID(int.Parse(a.Id))).Where(a => a != null).Select(a => a.GetUserRecord(userid))
+                        VideoLocal_User vl=v.Medias.Select(a=> RepoFactory.VideoLocal.GetByID(int.Parse(a.Id))).Where(a => a != null).Select(a => a.GetUserRecord(userid))
                                 .Where(a => a != null)
                                 .OrderByDescending(a => a.ResumePosition)
                                 .FirstOrDefault();                       
@@ -251,7 +250,7 @@ namespace JMMServer.PlexAndKodi
                     break;
                 case JMMContracts.PlexAndKodi.AnimeTypes.AnimeFile:
                     int vid = int.Parse(v.Id); //This suxx, but adding regeneration at videolocal_user is worst.
-                    VideoLocal_User vl2 = new VideoLocalRepository().GetByID(vid)?.GetUserRecord(userid);
+                    VideoLocal_User vl2 = RepoFactory.VideoLocal.GetByID(vid)?.GetUserRecord(userid);
                     if (vl2 != null && vl2.ResumePosition > 0)
                     {
                         v.ViewOffset = vl2.ResumePosition.ToString();

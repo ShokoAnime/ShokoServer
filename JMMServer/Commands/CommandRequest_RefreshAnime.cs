@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Threading;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 
 namespace JMMServer.Commands
 {
@@ -39,8 +40,7 @@ namespace JMMServer.Commands
 
         public override void ProcessCommand()
         {
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            AnimeSeries ser = repSeries.GetByAnimeID(AnimeID);
+            AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
             if (ser != null)
                 ser.UpdateStats(true, true, true);
         }

@@ -1,5 +1,6 @@
 ﻿using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
@@ -25,8 +26,7 @@ namespace JMMServer.Entities
         {
             if (CrossRefType != (int) JMMServer.CrossRefType.MovieDB)
                 return null;
-            MovieDB_MovieRepository repMovieDBMovie = new MovieDB_MovieRepository();
-            return repMovieDBMovie.GetByOnlineID(session, int.Parse(CrossRefID));
+            return RepoFactory.MovieDb_Movie.GetByOnlineID(session, int.Parse(CrossRefID));
         }
 
         public Contract_CrossRef_AniDB_Other ToContract()

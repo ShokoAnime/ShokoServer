@@ -9,6 +9,8 @@ using JMMServer.Entities;
 using JMMServer.FileHelper;
 using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 using Path = Pri.LongPath.Path;
 using File = Pri.LongPath.File;
 using FileInfo = Pri.LongPath.FileInfo;
@@ -144,13 +146,9 @@ namespace JMMServer.Commands
                 filesize = source_file.Size;
             nshareID = folder.ImportFolderID;
             // check if we have already processed this file
-            VideoLocalRepository repVidLocal = new VideoLocalRepository();
-            FileNameHashRepository repFNHash = new FileNameHashRepository();
-            VideoLocal_PlaceRepository repPlaces=new VideoLocal_PlaceRepository();
-            
 
-
-            VideoLocal_Place vlocalplace = repPlaces.GetByFilePathAndShareID(filePath, nshareID);
+         
+            VideoLocal_Place vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(filePath, nshareID);
             VideoLocal vlocal;
 
             if (vlocalplace!=null)
@@ -191,8 +189,7 @@ namespace JMMServer.Commands
                 // try getting the hash from the CrossRef
                 if (!ForceHash)
                 {
-                    CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
-                    List<CrossRef_File_Episode> crossRefs = repCrossRefs.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
+                    List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
                     if (crossRefs.Count == 1)
                     {
                         vlocal.Hash = crossRefs[0].Hash;
@@ -203,14 +200,14 @@ namespace JMMServer.Commands
                 // try getting the hash from the LOCAL cache
                 if (!ForceHash && string.IsNullOrEmpty(vlocal.Hash))
                 {
-                    List<FileNameHash> fnhashes = repFNHash.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
+                    List<FileNameHash> fnhashes = RepoFactory.FileNameHash.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
                     if (fnhashes != null && fnhashes.Count > 1)
                     {
                         // if we have more than one record it probably means there is some sort of corruption
                         // lets delete the local records
                         foreach (FileNameHash fnh in fnhashes)
                         {
-                            repFNHash.Delete(fnh.FileNameHashID);
+                            RepoFactory.FileNameHash.Delete(fnh.FileNameHashID);
                         }
                     }
 
@@ -227,11 +224,11 @@ namespace JMMServer.Commands
                 {
                     //Cloud and no hash, Nothing to do, except maybe Get the mediainfo....
 
-                    repVidLocal.Save(vlocal,false);
+                    RepoFactory.VideoLocal.Save(vlocal,false);
                     vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-                    repPlaces.Save(vlocalplace);
+                    RepoFactory.VideoLocalPlace.Save(vlocalplace);
                     if (vlocalplace.RefreshMediaInfo())
-                        repVidLocal.Save(vlocalplace.VideoLocal, true);
+                        RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
                     return vlocalplace;
                 }
                 // hash the file
@@ -281,7 +278,7 @@ namespace JMMServer.Commands
                 // We should have a hash by now
                 // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
 
-                VideoLocal tlocal = repVidLocal.GetByHash(vlocal.Hash);
+                VideoLocal tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
 
                 bool intercloudfolder = false;
                 VideoLocal_Place prep= tlocal?.Places.FirstOrDefault(a => a.ImportFolder.CloudID == folder.CloudID && vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
@@ -295,12 +292,11 @@ namespace JMMServer.Commands
                     logger.Warn("---------------------------------------------");
 
                     // check if we have a record of this in the database, if not create one
-                    DuplicateFileRepository repDups = new DuplicateFileRepository();
-                    List<DuplicateFile> dupFiles = repDups.GetByFilePathsAndImportFolder(vlocalplace.FilePath,
+                    List<DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(vlocalplace.FilePath,
                         prep.FilePath,
                         vlocalplace.ImportFolderID, prep.ImportFolderID);
                     if (dupFiles.Count == 0)
-                        dupFiles = repDups.GetByFilePathsAndImportFolder(prep.FilePath, vlocalplace.FilePath, prep.ImportFolderID, vlocalplace.ImportFolderID);
+                        dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(prep.FilePath, vlocalplace.FilePath, prep.ImportFolderID, vlocalplace.ImportFolderID);
 
                     if (dupFiles.Count == 0)
                     {
@@ -311,7 +307,7 @@ namespace JMMServer.Commands
                         dup.ImportFolderIDFile1 = vlocalplace.ImportFolderID;
                         dup.ImportFolderIDFile2 = prep.ImportFolderID;
                         dup.Hash = vlocal.Hash;
-                        repDups.Save(dup);
+                        RepoFactory.DuplicateFile.Save(dup);
                     }
                     //Notify duplicate, don't delete
                 }
@@ -323,10 +319,10 @@ namespace JMMServer.Commands
 
 
                 if (!intercloudfolder)
-                    repVidLocal.Save(vlocal, true);
+                    RepoFactory.VideoLocal.Save(vlocal, true);
 
                 vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-                repPlaces.Save(vlocalplace);
+                RepoFactory.VideoLocalPlace.Save(vlocalplace);
 
                 if (intercloudfolder)
                     return vlocalplace;
@@ -334,14 +330,14 @@ namespace JMMServer.Commands
                 // also save the filename to hash record
                 // replace the existing records just in case it was corrupt
                 FileNameHash fnhash = null;
-                List<FileNameHash> fnhashes2 = repFNHash.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
+                List<FileNameHash> fnhashes2 = RepoFactory.FileNameHash.GetByFileNameAndSize(vlocal.FileName,vlocal.FileSize);
                 if (fnhashes2 != null && fnhashes2.Count > 1)
                 {
                     // if we have more than one record it probably means there is some sort of corruption
                     // lets delete the local records
                     foreach (FileNameHash fnh in fnhashes2)
                     {
-                        repFNHash.Delete(fnh.FileNameHashID);
+                        RepoFactory.FileNameHash.Delete(fnh.FileNameHashID);
                     }
                 }
 
@@ -354,7 +350,7 @@ namespace JMMServer.Commands
                 fnhash.FileSize = vlocal.FileSize;
                 fnhash.Hash = vlocal.Hash;
                 fnhash.DateTimeUpdated = DateTime.Now;
-                repFNHash.Save(fnhash);
+                RepoFactory.FileNameHash.Save(fnhash);
 
             }
 
@@ -362,7 +358,7 @@ namespace JMMServer.Commands
             if ((vlocal.Media == null) || vlocal.MediaVersion < VideoLocal.MEDIA_VERSION || vlocal.Duration==0)
             {
                 if (vlocalplace.RefreshMediaInfo()) 
-                    repVidLocal.Save(vlocalplace.VideoLocal,true);
+                    RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal,true);
             }
             // now add a command to process the file
             CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);
@@ -375,11 +371,10 @@ namespace JMMServer.Commands
         {
             using (var session = JMMService.SessionFactory.OpenSession())
             {
-                VideoLocalRepository vlrepo = new VideoLocalRepository();
-                AniDB_FileRepository frepo = new AniDB_FileRepository();
+      
                 if (!string.IsNullOrEmpty(v.ED2KHash))
                 {
-                    VideoLocal n = vlrepo.GetByHash(v.ED2KHash);
+                    VideoLocal n = RepoFactory.VideoLocal.GetByHash(v.ED2KHash);
                     if (n != null)
                     {
                         v.CRC32 = n.CRC32.ToUpperInvariant();
@@ -387,7 +382,7 @@ namespace JMMServer.Commands
                         v.SHA1 = n.SHA1.ToUpperInvariant();
                         return;
                     }
-                    AniDB_File f = frepo.GetByHash(v.ED2KHash);
+                    AniDB_File f = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
                     if (f != null)
                     {
                         v.CRC32 = f.CRC.ToUpperInvariant();
@@ -407,7 +402,7 @@ namespace JMMServer.Commands
                 }
                 if (!string.IsNullOrEmpty(v.SHA1))
                 {
-                    VideoLocal n = vlrepo.GetBySHA1(v.SHA1);
+                    VideoLocal n = RepoFactory.VideoLocal.GetBySHA1(v.SHA1);
                     if (n != null)
                     {
                         v.CRC32 = n.CRC32.ToUpperInvariant();
@@ -415,7 +410,7 @@ namespace JMMServer.Commands
                         v.ED2KHash = n.ED2KHash.ToUpperInvariant();
                         return;
                     }
-                    AniDB_File f = frepo.GetBySHA1(v.SHA1);
+                    AniDB_File f = RepoFactory.AniDB_File.GetBySHA1(v.SHA1);
                     if (f != null)
                     {
                         v.CRC32 = f.CRC.ToUpperInvariant();
@@ -435,7 +430,7 @@ namespace JMMServer.Commands
                 }
                 if (!string.IsNullOrEmpty(v.MD5))
                 {
-                    VideoLocal n = vlrepo.GetByMD5(v.MD5);
+                    VideoLocal n = RepoFactory.VideoLocal.GetByMD5(v.MD5);
                     if (n != null)
                     {
                         v.CRC32 = n.CRC32.ToUpperInvariant();
@@ -443,7 +438,7 @@ namespace JMMServer.Commands
                         v.ED2KHash = n.ED2KHash.ToUpperInvariant();
                         return;
                     }
-                    AniDB_File f = frepo.GetByMD5(v.MD5);
+                    AniDB_File f = RepoFactory.AniDB_File.GetByMD5(v.MD5);
                     if (f != null)
                     {
                         v.CRC32 = f.CRC.ToUpperInvariant();

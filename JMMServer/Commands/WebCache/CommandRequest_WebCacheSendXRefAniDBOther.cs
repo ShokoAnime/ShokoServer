@@ -3,6 +3,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -40,8 +41,7 @@ namespace JMMServer.Commands
         {
             try
             {
-                CrossRef_AniDB_OtherRepository repCrossRef = new CrossRef_AniDB_OtherRepository();
-                JMMServer.Entities.CrossRef_AniDB_Other xref = repCrossRef.GetByID(CrossRef_AniDB_OtherID);
+                JMMServer.Entities.CrossRef_AniDB_Other xref = RepoFactory.CrossRef_AniDB_Other.GetByID(CrossRef_AniDB_OtherID);
                 if (xref == null) return;
 
                 AzureWebAPI.Send_CrossRefAniDBOther(xref);

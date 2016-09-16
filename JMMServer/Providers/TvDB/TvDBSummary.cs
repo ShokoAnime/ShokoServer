@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NLog;
 
 namespace JMMServer.Providers.TvDB
@@ -34,12 +35,11 @@ namespace JMMServer.Providers.TvDB
         {
             try
             {
-                CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-                crossRefTvDBV2 = repCrossRef.GetByAnimeID(AnimeID);
+                crossRefTvDBV2 = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -114,7 +114,7 @@ namespace JMMServer.Providers.TvDB
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -122,12 +122,11 @@ namespace JMMServer.Providers.TvDB
         {
             try
             {
-                CrossRef_AniDB_TvDB_EpisodeRepository repCrossRef = new CrossRef_AniDB_TvDB_EpisodeRepository();
-                crossRefTvDBEpisodes = repCrossRef.GetByAnimeID(AnimeID);
+                crossRefTvDBEpisodes = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -144,7 +143,7 @@ namespace JMMServer.Providers.TvDB
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 

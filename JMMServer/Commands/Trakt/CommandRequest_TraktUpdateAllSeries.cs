@@ -5,6 +5,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -45,8 +46,7 @@ namespace JMMServer.Commands
 
             try
             {
-                ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-                ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
+                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate();
@@ -65,7 +65,7 @@ namespace JMMServer.Commands
                     }
                 }
                 sched.LastUpdate = DateTime.Now;
-                repSched.Save(sched);
+                RepoFactory.ScheduledUpdate.Save(sched);
 
                 // update all info
                 TraktTVHelper.UpdateAllInfo();

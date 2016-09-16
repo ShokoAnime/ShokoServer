@@ -5,6 +5,7 @@ using AniDBAPI;
 using JMMContracts;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NHibernate;
 
 namespace JMMServer.Entities
@@ -158,14 +159,12 @@ namespace JMMServer.Entities
 
         public AniDB_Seiyuu GetSeiyuu(ISession session)
         {
-            AniDB_Character_SeiyuuRepository repCharSeiyuu = new AniDB_Character_SeiyuuRepository();
-            List<AniDB_Character_Seiyuu> charSeiyuus = repCharSeiyuu.GetByCharID(session, CharID);
+            List<AniDB_Character_Seiyuu> charSeiyuus = RepoFactory.AniDB_Character_Seiyuu.GetByCharID(session, CharID);
 
             if (charSeiyuus.Count > 0)
             {
                 // just use the first creator
-                AniDB_SeiyuuRepository repCreators = new AniDB_SeiyuuRepository();
-                return repCreators.GetBySeiyuuID(session, charSeiyuus[0].SeiyuuID);
+                return RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(session, charSeiyuus[0].SeiyuuID);
             }
 
             return null;

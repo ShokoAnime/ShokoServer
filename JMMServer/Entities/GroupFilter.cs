@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 
@@ -166,7 +167,6 @@ namespace JMMServer.Entities
 
         public Contract_GroupFilter ToContract(ISession session)
         {
-            GroupFilterRepository repo = new GroupFilterRepository();
             Contract_GroupFilter contract = new Contract_GroupFilter();
             contract.GroupFilterID = this.GroupFilterID;
             contract.GroupFilterName = this.GroupFilterName;
@@ -182,7 +182,7 @@ namespace JMMServer.Entities
                 contract.FilterConditions.Add(gfc.ToContract());
             contract.Groups = this.GroupsIds;
             contract.Series = this.SeriesIds;
-            contract.Childs = GroupFilterID==0 ? new HashSet<int>() : repo.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet();
+            contract.Childs = GroupFilterID==0 ? new HashSet<int>() : RepoFactory.GroupFilter.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet();
             return contract;
         }
 
@@ -362,10 +362,8 @@ namespace JMMServer.Entities
 
         public void EvaluateAnimeGroups()
         {
-            AnimeGroupRepository grepo = new AnimeGroupRepository();
-            JMMUserRepository repUsers = new JMMUserRepository();
-            List<JMMUser> users = repUsers.GetAll();
-            foreach (AnimeGroup grp in grepo.GetAllTopLevelGroups())
+            List<JMMUser> users = RepoFactory.JMMUser.GetAll();
+            foreach (AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
             {
                 foreach (JMMUser user in users)
                 {
@@ -376,10 +374,8 @@ namespace JMMServer.Entities
 
         public void EvaluateAnimeSeries()
         {
-            AnimeSeriesRepository srepo = new AnimeSeriesRepository();
-            JMMUserRepository repUsers = new JMMUserRepository();
-            List<JMMUser> users = repUsers.GetAll();
-            foreach (AnimeSeries ser in srepo.GetAll())
+            List<JMMUser> users = RepoFactory.JMMUser.GetAll();
+            foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
             {
                 CalculateGroupFilterSeries(ser.Contract, null, 0); //Default no filter for JMM Client
                 foreach (JMMUser user in users)

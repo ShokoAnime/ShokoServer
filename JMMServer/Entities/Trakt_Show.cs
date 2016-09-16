@@ -2,6 +2,7 @@
 using JMMContracts;
 using JMMServer.Providers.TraktTV.Contracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Entities
 {
@@ -19,8 +20,7 @@ namespace JMMServer.Entities
         {
             get
             {
-                Trakt_SeasonRepository repSeasons = new Trakt_SeasonRepository();
-                return repSeasons.GetByShowID(Trakt_ShowID);
+                return RepoFactory.Trakt_Season.GetByShowID(Trakt_ShowID);
             }
         }
 

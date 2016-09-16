@@ -5,6 +5,7 @@ using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using Stream = JMMContracts.PlexAndKodi.Stream;
@@ -64,8 +65,7 @@ namespace JMMServer.Entities
         {
             get
             {
-                AniDB_EpisodeRepository repEps = new AniDB_EpisodeRepository();
-                return repEps.GetByEpisodeID(this.AniDB_EpisodeID);
+                return RepoFactory.AniDB_Episode.GetByEpisodeID(this.AniDB_EpisodeID);
             }
         }
 
@@ -78,14 +78,12 @@ namespace JMMServer.Entities
 
         public AnimeEpisode_User GetUserRecord(int userID)
         {
-            AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
-            return repEpUser.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
+            return RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
         }
 
         public AnimeEpisode_User GetUserRecord(ISession session, int userID)
         {
-            AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
-            return repEpUser.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
+            return RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, this.AnimeEpisodeID);
         }
 
 
@@ -102,8 +100,7 @@ namespace JMMServer.Entities
 
         public AnimeSeries GetAnimeSeries(ISessionWrapper session)
         {
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            return repSeries.GetByID(this.AnimeSeriesID);
+            return RepoFactory.AnimeSeries.GetByID(this.AnimeSeriesID);
         }
 
         public List<VideoLocal> GetVideoLocals()
@@ -116,22 +113,19 @@ namespace JMMServer.Entities
 
         public List<VideoLocal> GetVideoLocals(ISession session)
         {
-            VideoLocalRepository repVidLocals = new VideoLocalRepository();
-            return repVidLocals.GetByAniDBEpisodeID(AniDB_EpisodeID);
+            return RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
         }
 
         public List<CrossRef_File_Episode> FileCrossRefs
         {
             get
             {
-                CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
-                return repCrossRefs.GetByEpisodeID(AniDB_EpisodeID);
+                return RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
             }
         }
 
         public void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
         {
-            AnimeEpisode_UserRepository repEpisodeUsers = new AnimeEpisode_UserRepository();
             AnimeEpisode_User epUserRecord = this.GetUserRecord(userID);
 
             if (watched)
@@ -168,25 +162,24 @@ namespace JMMServer.Entities
 
                 if (!epUserRecord.WatchedDate.HasValue) epUserRecord.WatchedDate = DateTime.Now;
 
-                repEpisodeUsers.Save(epUserRecord);
+                RepoFactory.AnimeEpisode_User.Save(epUserRecord);
             }
             else
             {
                 if (epUserRecord != null)
-                    repEpisodeUsers.Delete(epUserRecord.AnimeEpisode_UserID);
+                    RepoFactory.AnimeEpisode_User.Delete(epUserRecord.AnimeEpisode_UserID);
             }
         }
 
 
         public List<Contract_VideoDetailed> GetVideoDetailedContracts(int userID)
         {
-            VideoLocalRepository repVids = new VideoLocalRepository();
             List<Contract_VideoDetailed> contracts = new List<Contract_VideoDetailed>();
 
             // get all the cross refs
             foreach (CrossRef_File_Episode xref in FileCrossRefs)
             {
-                VideoLocal v=repVids.GetByHash(xref.Hash);
+                VideoLocal v=RepoFactory.VideoLocal.GetByHash(xref.Hash);
                 if (v != null)
                     contracts.Add(v.ToContractDetailed(userID));
             }
@@ -212,8 +205,7 @@ namespace JMMServer.Entities
                 rr.AnimeSeriesID = this.AnimeSeriesID;
                 rr.JMMUserID = userid;
                 rr.WatchedDate = null;
-                AnimeEpisode_UserRepository repo = new AnimeEpisode_UserRepository();
-                repo.Save(rr);
+                RepoFactory.AnimeEpisode_User.Save(rr);
                 return rr.Contract;
             }
         }

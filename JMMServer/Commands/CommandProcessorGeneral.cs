@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 using NLog;
 
 namespace JMMServer.Commands
@@ -206,8 +207,7 @@ namespace JMMServer.Commands
 
                 //logger.Trace("Looking for next command request...");
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                CommandRequest crdb = repCR.GetNextDBCommandRequestGeneral();
+                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral();
                 if (crdb == null) return;
 
                 if (workerCommands.CancellationPending)
@@ -216,7 +216,7 @@ namespace JMMServer.Commands
                     return;
                 }
 
-                QueueCount = repCR.GetQueuedCommandCountGeneral();
+                QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
                 //logger.Trace("{0} commands remaining in queue", QueueCount);
 
                 //logger.Trace("Next command request: {0}", crdb.CommandID);
@@ -241,9 +241,9 @@ namespace JMMServer.Commands
                 }
 
                 logger.Trace("Deleting command request: {0}", crdb.CommandID);
-                repCR.Delete(crdb.CommandRequestID);
+                RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
 
-                QueueCount = repCR.GetQueuedCommandCountGeneral();
+                QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
             }
         }
     }

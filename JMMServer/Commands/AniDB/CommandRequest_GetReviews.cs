@@ -49,8 +49,8 @@ namespace JMMServer.Commands
                 return;
 
                 // we will always assume that an anime was downloaded via http first
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
+             
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
                 if (anime != null)
                 {

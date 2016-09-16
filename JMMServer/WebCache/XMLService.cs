@@ -34,7 +34,7 @@ namespace JMMServer.WebCache
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in XMLService.GetAppVersions:: {0}", ex);
+                logger.Error( ex,"Error in XMLService.GetAppVersions:: {0}");
                 return null;
             }
         }
@@ -78,7 +78,7 @@ namespace JMMServer.WebCache
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error(2) in XMLService.GetData: {0}", ex);
+                logger.Error( ex,"Error(2) in XMLService.GetData: {0}");
             }
 
             return "";
@@ -115,7 +115,7 @@ namespace JMMServer.WebCache
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error(2) in XMLServiceQueue.SendData: {0}", ex);
+                logger.Error( ex,"Error(2) in XMLServiceQueue.SendData: {0}");
             }
             finally
             {

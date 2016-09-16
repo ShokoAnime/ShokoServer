@@ -107,7 +107,7 @@ namespace AniDBAPI.Commands
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        logger.Error( ex,ex.ToString());
                         //MyAnimeLog.Write(ex.ToString());
                         errorOccurred = true;
                         errorMessage = ex.ToString();
@@ -146,13 +146,13 @@ namespace AniDBAPI.Commands
                     catch (SocketException sex)
                     {
                         // most likely we have timed out
-                        logger.ErrorException(sex.ToString(), sex);
+                        logger.Error( sex,sex.ToString());
                         errorOccurred = true;
                         errorMessage = sex.ToString();
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        logger.Error( ex,ex.ToString());
                         errorOccurred = true;
                         errorMessage = ex.ToString();
                     }
@@ -338,7 +338,7 @@ namespace AniDBAPI.Commands
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
     }

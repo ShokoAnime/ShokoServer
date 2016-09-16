@@ -6,6 +6,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Providers.MyAnimeList;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 
 namespace JMMServer.Commands.MAL
 {
@@ -47,16 +48,14 @@ namespace JMMServer.Commands.MAL
             try
             {
                 // find the latest eps to update
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(AnimeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 List<CrossRef_AniDB_MAL> crossRefs = anime.GetCrossRefMAL();
                 if (crossRefs == null || crossRefs.Count == 0)
                     return;
 
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries ser = repSeries.GetByAnimeID(AnimeID);
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
                 if (ser == null) return;
 
                 MALHelper.UpdateMALSeries(ser);

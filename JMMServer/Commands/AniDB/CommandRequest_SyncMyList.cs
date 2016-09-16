@@ -8,6 +8,7 @@ using AniDBAPI;
 using AniDBAPI.Commands;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -49,11 +50,10 @@ namespace JMMServer.Commands
             try
             {
                 // we will always assume that an anime was downloaded via http first
-                ScheduledUpdateRepository repSched = new ScheduledUpdateRepository();
-                AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-                VideoLocalRepository repVidLocals = new VideoLocalRepository();
 
-                ScheduledUpdate sched = repSched.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
+
+
+                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate();
@@ -89,12 +89,12 @@ namespace JMMServer.Commands
                         onlineFiles[myitem.FileID] = myitem;
 
                     Dictionary<string, AniDB_File> dictAniFiles = new Dictionary<string, AniDB_File>();
-                    List<AniDB_File> allAniFiles = repAniFile.GetAll();
+                    List<AniDB_File> allAniFiles = RepoFactory.AniDB_File.GetAll();
                     foreach (AniDB_File anifile in allAniFiles)
                         dictAniFiles[anifile.Hash] = anifile;
 
                     int missingFiles = 0;
-                    foreach (VideoLocal vid in repVidLocals.GetAll().Where(a=>!string.IsNullOrEmpty(a.Hash)))
+                    foreach (VideoLocal vid in RepoFactory.VideoLocal.GetAll().Where(a=>!string.IsNullOrEmpty(a.Hash)))
                     {
                         if (!dictAniFiles.ContainsKey(vid.Hash)) continue;
 
@@ -110,11 +110,8 @@ namespace JMMServer.Commands
                     }
                     logger.Info(string.Format("MYLIST Missing Files: {0} Added to queue for inclusion", missingFiles));
 
-                    JMMUserRepository repUsers = new JMMUserRepository();
-                    List<JMMUser> aniDBUsers = repUsers.GetAniDBUsers();
+                    List<JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
-                    VideoLocal_UserRepository repVidUsers = new VideoLocal_UserRepository();
-                    CrossRef_File_EpisodeRepository repFileEp = new CrossRef_File_EpisodeRepository();
 
                     // 1 . sync mylist items
                     foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
@@ -131,13 +128,13 @@ namespace JMMServer.Commands
 
                         string hash = string.Empty;
 
-                        AniDB_File anifile = repAniFile.GetByFileID(myitem.FileID);
+                        AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
                         if (anifile != null)
                             hash = anifile.Hash;
                         else
                         {
                             // look for manually linked files
-                            List<CrossRef_File_Episode> xrefs = repFileEp.GetByEpisodeID(myitem.EpisodeID);
+                            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
                             foreach (CrossRef_File_Episode xref in xrefs)
                             {
                                 if (xref.CrossRefSource != (int) CrossRefSource.AniDB)
@@ -152,7 +149,7 @@ namespace JMMServer.Commands
                         if (!string.IsNullOrEmpty(hash))
                         {
                             // find the video associated with this record
-                            VideoLocal vl = repVidLocals.GetByHash(hash);
+                            VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
                             if (vl == null) continue;
 
                             foreach (JMMUser juser in aniDBUsers)
@@ -214,7 +211,7 @@ namespace JMMServer.Commands
                         modifiedItems);
 
                     sched.LastUpdate = DateTime.Now;
-                    repSched.Save(sched);
+                    RepoFactory.ScheduledUpdate.Save(sched);
                 }
             }
             catch (Exception ex)

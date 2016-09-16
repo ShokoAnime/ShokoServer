@@ -28,6 +28,8 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Directory = System.IO.Directory;
 using JMMServer.Commands.TvDB;
+using JMMServer.Repositories.Cached;
+using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 
 namespace JMMServer
@@ -42,13 +44,11 @@ namespace JMMServer
             List<Contract_AnimeGroup> grps = new List<Contract_AnimeGroup>();
             try
             {
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                AnimeGroup_UserRepository repUserGroups = new AnimeGroup_UserRepository();
-                return repGroups.GetAll().Select(a => a.GetUserContract(userID)).OrderBy(a => a.GroupName).ToList();
+                return RepoFactory.AnimeGroup.GetAll().Select(a => a.GetUserContract(userID)).OrderBy(a => a.GroupName).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return grps;
         }
@@ -58,27 +58,22 @@ namespace JMMServer
             List<Contract_AnimeGroup> grps = new List<Contract_AnimeGroup>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                int? grpid = animeGroupID;
+                while (grpid.HasValue)
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
-                    AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                    int? grpid = animeGroupID;
-                    while (grpid.HasValue)
+                    grpid = null;
+                    AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+                    if (grp != null)
                     {
-                        grpid = null;
-                        AnimeGroup grp = repGroups.GetByID(animeGroupID);
-                        if (grp != null)
-                        {
-                            grps.Add(grp.GetUserContract(userID));
-                            grpid = grp.AnimeGroupParentID;
-                        }
+                        grps.Add(grp.GetUserContract(userID));
+                        grpid = grp.AnimeGroupParentID;
                     }
                 }
                 return grps;
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return grps;
         }
@@ -89,10 +84,8 @@ namespace JMMServer
             try
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
-                {
-                    ISessionWrapper sessionWrapper = session.Wrap();
-                    AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                    AnimeSeries series = repSeries.GetByID(animeSeriesID);
+                {           
+                    AnimeSeries series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                     if (series == null)
                         return grps;
 
@@ -106,7 +99,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return grps;
         }
@@ -115,12 +108,11 @@ namespace JMMServer
         {
             try
             {
-                AnimeGroupRepository rep = new AnimeGroupRepository();
-                return rep.GetByID(animeGroupID)?.GetUserContract(userID);
+                return RepoFactory.AnimeGroup.GetByID(animeGroupID)?.GetUserContract(userID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return null;
         }
@@ -129,10 +121,8 @@ namespace JMMServer
         {
             try
             {
-                AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
 
-                AnimeGroup grp = repGroups.GetByID(animeGroupID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
                 if (grp == null) return "Group does not exist";
 
                 int? parentGroupID = grp.AnimeGroupParentID;
@@ -147,9 +137,8 @@ namespace JMMServer
                 {
                     DeleteAnimeGroup(subGroup.AnimeGroupID, deleteFiles);
                 }
-                GroupFilterRepository repGf = new GroupFilterRepository();
                 List<GroupFilter> gfs =
-                    repGf.GetWithConditionsTypes(new HashSet<GroupFilterConditionType>()
+                    RepoFactory.GroupFilter.GetWithConditionsTypes(new HashSet<GroupFilterConditionType>()
                     {
                         GroupFilterConditionType.AnimeGroup
                     });
@@ -171,23 +160,23 @@ namespace JMMServer
                     if (change)
                     {
                         if (gf.Conditions.Count == 0)
-                            repGf.Delete(gf.GroupFilterID);
+                            RepoFactory.GroupFilter.Delete(gf.GroupFilterID);
                         else
                         {
                             gf.EvaluateAnimeGroups();
-                            repGf.Save(gf);
+                            RepoFactory.GroupFilter.Save(gf);
                         }
                     }
                 }
 
 
-                repGroups.Delete(grp.AnimeGroupID);
+                RepoFactory.AnimeGroup.Delete(grp.AnimeGroupID);
 
                 // finally update stats
 
                 if (parentGroupID.HasValue)
                 {
-                    AnimeGroup grpParent = repGroups.GetByID(parentGroupID.Value);
+                    AnimeGroup grpParent = RepoFactory.AnimeGroup.GetByID(parentGroupID.Value);
 
                     if (grpParent != null)
                     {
@@ -200,7 +189,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -213,23 +202,18 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
-                    AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                    GroupFilterRepository repGF = new GroupFilterRepository();
-                    JMMUserRepository repUsers = new JMMUserRepository();
-                    JMMUser user = repUsers.GetByID(userID);
+                    JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                     if (user == null) return retGroups;
                     GroupFilter gf;
-                    gf = repGF.GetByID(groupFilterID);
+                    gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
                     if ((gf != null) && gf.GroupsIds.ContainsKey(userID))
                         retGroups =
-                            gf.GroupsIds[userID].Select(a => repGroups.GetByID(a))
+                            gf.GroupsIds[userID].Select(a => RepoFactory.AnimeGroup.GetByID(a))
                                 .Where(a => a != null)
                                 .Select(a => a.GetUserContract(userID))
                                 .ToList();
                     if (getSingleSeriesGroups)
                     {
-                        AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                         List<Contract_AnimeGroup> nGroups = new List<Contract_AnimeGroup>();
                         foreach (Contract_AnimeGroup cag in retGroups)
                         {
@@ -238,12 +222,12 @@ namespace JMMServer
                             {
                                 if (cag.DefaultAnimeSeriesID.HasValue)
                                     ng.SeriesForNameOverride =
-                                        repSeries.GetByGroupID(ng.AnimeGroupID)
+                                        RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID)
                                             .FirstOrDefault(a => a.AnimeSeriesID == cag.DefaultAnimeSeriesID.Value)?
                                             .GetUserContract(userID);
                                 if (ng.SeriesForNameOverride == null)
                                     ng.SeriesForNameOverride =
-                                        repSeries.GetByGroupID(ng.AnimeGroupID)
+                                        RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID)
                                             .FirstOrDefault()?.GetUserContract(userID);
                             }
                             nGroups.Add(ng);
@@ -256,7 +240,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return retGroups;
         }
@@ -281,7 +265,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -292,13 +276,10 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
-                    GroupFilterRepository repGF = new GroupFilterRepository();
-                    GroupFilter gf = repGF.GetByID(groupFilterID);
+                    GroupFilter gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
                     if (gf == null) return null;
 
-                    JMMUserRepository repUsers = new JMMUserRepository();
-                    JMMUser user = repUsers.GetByID(userID);
+                    JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                     if (user == null) return null;
 
                     Contract_GroupFilterExtended contract = gf.ToContractExtended(session, user);
@@ -308,7 +289,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return null;
         }
@@ -318,11 +299,9 @@ namespace JMMServer
             List<Contract_GroupFilterExtended> gfs = new List<Contract_GroupFilterExtended>();
             try
             {
-                GroupFilterRepository repGF = new GroupFilterRepository();
-                JMMUserRepository repUsers = new JMMUserRepository();
-                JMMUser user = repUsers.GetByID(userID);
+                JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return gfs;
-                List<GroupFilter> allGfs = repGF.GetAll();
+                List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetAll();
                 foreach (GroupFilter gf in allGfs)
                 {
                     Contract_GroupFilter gfContract = gf.ToContract();
@@ -337,7 +316,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return gfs;
         }
@@ -347,11 +326,9 @@ namespace JMMServer
             List<Contract_GroupFilterExtended> gfs = new List<Contract_GroupFilterExtended>();
             try
             {
-                GroupFilterRepository repGF = new GroupFilterRepository();
-                JMMUserRepository repUsers = new JMMUserRepository();
-                JMMUser user = repUsers.GetByID(userID);
+                JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return gfs;
-                List<GroupFilter> allGfs = gfparentid == 0 ? repGF.GetTopLevel() : repGF.GetByParentID(gfparentid);
+                List<GroupFilter> allGfs = gfparentid == 0 ? RepoFactory.GroupFilter.GetTopLevel() : RepoFactory.GroupFilter.GetByParentID(gfparentid);
                 foreach (GroupFilter gf in allGfs)
                 {
                     Contract_GroupFilter gfContract = gf.ToContract();
@@ -366,7 +343,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return gfs;
         }
@@ -379,9 +356,8 @@ namespace JMMServer
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     DateTime start = DateTime.Now;
-                    GroupFilterRepository repGF = new GroupFilterRepository();
 
-                    List<GroupFilter> allGfs = repGF.GetAll();
+                    List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetAll();
                     TimeSpan ts = DateTime.Now - start;
                     logger.Info("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
 
@@ -394,7 +370,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return gfs;
         }
@@ -407,9 +383,8 @@ namespace JMMServer
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     DateTime start = DateTime.Now;
-                    GroupFilterRepository repGF = new GroupFilterRepository();
 
-                    List<GroupFilter> allGfs = gfparentid == 0 ? repGF.GetTopLevel() : repGF.GetByParentID(gfparentid);
+                    List<GroupFilter> allGfs = gfparentid == 0 ? RepoFactory.GroupFilter.GetTopLevel() : RepoFactory.GroupFilter.GetByParentID(gfparentid);
                     TimeSpan ts = DateTime.Now - start;
                     logger.Info("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
 
@@ -422,22 +397,20 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return gfs;
         }
 
         public Contract_GroupFilter GetGroupFilter(int gf)
         {
-            List<Contract_GroupFilter> gfs = new List<Contract_GroupFilter>();
             try
             {
-                GroupFilterRepository repGF = new GroupFilterRepository();
-                return repGF.GetByID(gf)?.ToContract();
+                return RepoFactory.GroupFilter.GetByID(gf)?.ToContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return null;
         }
@@ -450,7 +423,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return new Contract_GroupFilter();
             }
         }
@@ -460,16 +433,13 @@ namespace JMMServer
             List<Contract_Playlist> pls = new List<Contract_Playlist>();
             try
             {
-                PlaylistRepository repPlaylist = new PlaylistRepository();
-
-
-                List<Playlist> allPls = repPlaylist.GetAll();
+                List<Playlist> allPls = RepoFactory.Playlist.GetAll();
                 foreach (Playlist pl in allPls)
                     pls.Add(pl.ToContract());
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return pls;
         }
@@ -480,17 +450,15 @@ namespace JMMServer
         {
             try
             {
-                CustomTagRepository repCustomTags = new CustomTagRepository();
-
                 List<Contract_CustomTag> ret = new List<Contract_CustomTag>();
-                foreach (CustomTag ctag in repCustomTags.GetAll())
+                foreach (CustomTag ctag in RepoFactory.CustomTag.GetAll())
                     ret.Add(ctag.ToContract());
 
                 return ret;
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -502,8 +470,6 @@ namespace JMMServer
 
             try
             {
-                CrossRef_CustomTagRepository repCustomTagsXRefs = new CrossRef_CustomTagRepository();
-
                 // this is an update
                 CrossRef_CustomTag xref = null;
                 if (contract.CrossRef_CustomTagID.HasValue)
@@ -521,14 +487,14 @@ namespace JMMServer
                 xref.CrossRefType = contract.CrossRefType;
                 xref.CustomTagID = contract.CustomTagID;
 
-                repCustomTagsXRefs.Save(xref);
+                RepoFactory.CrossRef_CustomTag.Save(xref);
 
                 contractRet.CrossRef_CustomTag = xref.ToContract();
                 AniDB_Anime.UpdateStatsByAnimeID(contract.CrossRefID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 contractRet.ErrorMessage = ex.Message;
                 return contractRet;
             }
@@ -540,19 +506,17 @@ namespace JMMServer
         {
             try
             {
-                CrossRef_CustomTagRepository repCustomTagsXrefs = new CrossRef_CustomTagRepository();
-
-                CrossRef_CustomTag pl = repCustomTagsXrefs.GetByID(xrefID);
+                CrossRef_CustomTag pl = RepoFactory.CrossRef_CustomTag.GetByID(xrefID);
                 if (pl == null)
                     return "Custom Tag not found";
 
-                repCustomTagsXrefs.Delete(xrefID);
+                RepoFactory.CrossRef_CustomTag.Delete(xrefID);
 
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -561,20 +525,18 @@ namespace JMMServer
         {
             try
             {
-                CrossRef_CustomTagRepository repCustomTagsXrefs = new CrossRef_CustomTagRepository();
-
-                List<CrossRef_CustomTag> xrefs = repCustomTagsXrefs.GetByUniqueID(customTagID, crossRefType, crossRefID);
+                List<CrossRef_CustomTag> xrefs = RepoFactory.CrossRef_CustomTag.GetByUniqueID(customTagID, crossRefType, crossRefID);
 
                 if (xrefs == null || xrefs.Count == 0)
                     return "Custom Tag not found";
 
-                repCustomTagsXrefs.Delete(xrefs[0].CrossRef_CustomTagID);
+                RepoFactory.CrossRef_CustomTag.Delete(xrefs[0].CrossRef_CustomTagID);
                 AniDB_Anime.UpdateStatsByAnimeID(crossRefID);
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -586,13 +548,11 @@ namespace JMMServer
 
             try
             {
-                CustomTagRepository repCustomTags = new CustomTagRepository();
-
                 // this is an update
                 CustomTag ctag = null;
                 if (contract.CustomTagID.HasValue)
                 {
-                    ctag = repCustomTags.GetByID(contract.CustomTagID.Value);
+                    ctag = RepoFactory.CustomTag.GetByID(contract.CustomTagID.Value);
                     if (ctag == null)
                     {
                         contractRet.ErrorMessage = "Could not find existing custom tag with ID: " +
@@ -612,13 +572,13 @@ namespace JMMServer
                 ctag.TagName = contract.TagName;
                 ctag.TagDescription = contract.TagDescription;
 
-                repCustomTags.Save(ctag);
+                RepoFactory.CustomTag.Save(ctag);
 
                 contractRet.CustomTag = ctag.ToContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 contractRet.ErrorMessage = ex.Message;
                 return contractRet;
             }
@@ -630,17 +590,15 @@ namespace JMMServer
         {
             try
             {
-                CustomTagRepository repCustomTags = new CustomTagRepository();
-
-                CustomTag pl = repCustomTags.GetByID(customTagID);
+                
+                CustomTag pl = RepoFactory.CustomTag.GetByID(customTagID);
                 if (pl == null)
                     return "Custom Tag not found";
 
                 // first get a list of all the anime that referenced this tag
-                CrossRef_CustomTagRepository repCustomTagsXRefs = new CrossRef_CustomTagRepository();
-                List<CrossRef_CustomTag> xrefs = repCustomTagsXRefs.GetByCustomTagID(customTagID);
+                List<CrossRef_CustomTag> xrefs = RepoFactory.CrossRef_CustomTag.GetByCustomTagID(customTagID);
 
-                repCustomTags.Delete(customTagID);
+                RepoFactory.CustomTag.Delete(customTagID);
 
                 // update cached data for any anime that were affected
                 foreach (CrossRef_CustomTag xref in xrefs)
@@ -653,7 +611,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -662,17 +620,11 @@ namespace JMMServer
         {
             try
             {
-                CustomTagRepository repCustomTags = new CustomTagRepository();
-
-                CustomTag ctag = repCustomTags.GetByID(customTagID);
-                if (ctag == null)
-                    return null;
-
-                return ctag.ToContract();
+                return RepoFactory.CustomTag.GetByID(customTagID)?.ToContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -686,13 +638,13 @@ namespace JMMServer
 
             try
             {
-                PlaylistRepository repPlaylist = new PlaylistRepository();
+                
 
                 // Process the playlist
                 Playlist pl = null;
                 if (contract.PlaylistID.HasValue)
                 {
-                    pl = repPlaylist.GetByID(contract.PlaylistID.Value);
+                    pl = RepoFactory.Playlist.GetByID(contract.PlaylistID.Value);
                     if (pl == null)
                     {
                         contractRet.ErrorMessage = "Could not find existing Playlist with ID: " +
@@ -715,13 +667,13 @@ namespace JMMServer
                 pl.PlayUnwatched = contract.PlayUnwatched;
                 pl.PlayWatched = contract.PlayWatched;
 
-                repPlaylist.Save(pl);
+                RepoFactory.Playlist.Save(pl);
 
                 contractRet.Playlist = pl.ToContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 contractRet.ErrorMessage = ex.Message;
                 return contractRet;
             }
@@ -733,19 +685,18 @@ namespace JMMServer
         {
             try
             {
-                PlaylistRepository repPlaylist = new PlaylistRepository();
 
-                Playlist pl = repPlaylist.GetByID(playlistID);
+                Playlist pl = RepoFactory.Playlist.GetByID(playlistID);
                 if (pl == null)
                     return "Playlist not found";
 
-                repPlaylist.Delete(playlistID);
+                RepoFactory.Playlist.Delete(playlistID);
 
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -754,9 +705,7 @@ namespace JMMServer
         {
             try
             {
-                PlaylistRepository repPlaylist = new PlaylistRepository();
-
-                Playlist pl = repPlaylist.GetByID(playlistID);
+                Playlist pl = RepoFactory.Playlist.GetByID(playlistID);
                 if (pl == null)
                     return null;
 
@@ -764,7 +713,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -774,16 +723,11 @@ namespace JMMServer
             List<Contract_BookmarkedAnime> baList = new List<Contract_BookmarkedAnime>();
             try
             {
-                BookmarkedAnimeRepository repBA = new BookmarkedAnimeRepository();
-
-
-                List<BookmarkedAnime> allBAs = repBA.GetAll();
-                foreach (BookmarkedAnime ba in allBAs)
-                    baList.Add(ba.ToContract());
+                return RepoFactory.BookmarkedAnime.GetAll().Select(a => a.ToContract()).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return baList;
         }
@@ -795,12 +739,11 @@ namespace JMMServer
 
             try
             {
-                BookmarkedAnimeRepository repBA = new BookmarkedAnimeRepository();
 
                 BookmarkedAnime ba = null;
                 if (contract.BookmarkedAnimeID.HasValue)
                 {
-                    ba = repBA.GetByID(contract.BookmarkedAnimeID.Value);
+                    ba = RepoFactory.BookmarkedAnime.GetByID(contract.BookmarkedAnimeID.Value);
                     if (ba == null)
                     {
                         contractRet.ErrorMessage = "Could not find existing Bookmark with ID: " +
@@ -811,7 +754,7 @@ namespace JMMServer
                 else
                 {
                     // if a new record, check if it is allowed
-                    BookmarkedAnime baTemp = repBA.GetByAnimeID(contract.AnimeID);
+                    BookmarkedAnime baTemp = RepoFactory.BookmarkedAnime.GetByAnimeID(contract.AnimeID);
                     if (baTemp != null)
                     {
                         contractRet.ErrorMessage = "A bookmark with the AnimeID already exists: " +
@@ -827,13 +770,13 @@ namespace JMMServer
                 ba.Notes = contract.Notes;
                 ba.Downloading = contract.Downloading;
 
-                repBA.Save(ba);
+                RepoFactory.BookmarkedAnime.Save(ba);
 
                 contractRet.BookmarkedAnime = ba.ToContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 contractRet.ErrorMessage = ex.Message;
                 return contractRet;
             }
@@ -845,19 +788,18 @@ namespace JMMServer
         {
             try
             {
-                BookmarkedAnimeRepository repBA = new BookmarkedAnimeRepository();
 
-                BookmarkedAnime ba = repBA.GetByID(bookmarkedAnimeID);
+                BookmarkedAnime ba = RepoFactory.BookmarkedAnime.GetByID(bookmarkedAnimeID);
                 if (ba == null)
                     return "Bookmarked not found";
 
-                repBA.Delete(bookmarkedAnimeID);
+                RepoFactory.BookmarkedAnime.Delete(bookmarkedAnimeID);
 
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -866,17 +808,11 @@ namespace JMMServer
         {
             try
             {
-                BookmarkedAnimeRepository repBA = new BookmarkedAnimeRepository();
-
-                BookmarkedAnime ba = repBA.GetByID(bookmarkedAnimeID);
-                if (ba == null)
-                    return null;
-
-                return ba.ToContract();
+                return RepoFactory.BookmarkedAnime.GetByID(bookmarkedAnimeID)?.ToContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -888,13 +824,12 @@ namespace JMMServer
             response.GroupFilter = null;
 
 
-            GroupFilterRepository repGF = new GroupFilterRepository();
 
             // Process the group
             GroupFilter gf;
             if (contract.GroupFilterID.HasValue && contract.GroupFilterID.Value!=0)
             {
-                gf = repGF.GetByID(contract.GroupFilterID.Value);
+                gf = RepoFactory.GroupFilter.GetByID(contract.GroupFilterID.Value);
                 if (gf == null)
                 {
                     response.ErrorMessage = "Could not find existing Group Filter with ID: " +
@@ -905,7 +840,7 @@ namespace JMMServer
             gf = GroupFilter.FromContract(contract);
             gf.EvaluateAnimeGroups();
             gf.EvaluateAnimeSeries();
-            repGF.Save(gf);
+            RepoFactory.GroupFilter.Save(gf);
             response.GroupFilter = gf.ToContract();
             return response;
         }
@@ -914,20 +849,17 @@ namespace JMMServer
         {
             try
             {
-                GroupFilterRepository repGF = new GroupFilterRepository();
-                GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
-
-                GroupFilter gf = repGF.GetByID(groupFilterID);
+                GroupFilter gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
                 if (gf == null)
                     return "Group Filter not found";
 
-                repGF.Delete(groupFilterID);
+                RepoFactory.GroupFilter.Delete(groupFilterID);
 
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -939,11 +871,10 @@ namespace JMMServer
             contractout.AnimeGroup = null;
             try
             {
-                AnimeGroupRepository repGroup = new AnimeGroupRepository();
                 AnimeGroup grp = null;
                 if (contract.AnimeGroupID.HasValue)
                 {
-                    grp = repGroup.GetByID(contract.AnimeGroupID.Value);
+                    grp = RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID.Value);
                     if (grp == null)
                     {
                         contractout.ErrorMessage = "Could not find existing group with ID: " +
@@ -982,13 +913,12 @@ namespace JMMServer
                 else
                     grp.SortName = contract.SortName;
 
-                repGroup.Save(grp, true, true);
+                RepoFactory.AnimeGroup.Save(grp, true, true);
 
                 AnimeGroup_User userRecord = grp.GetUserRecord(userID);
                 if (userRecord == null) userRecord = new AnimeGroup_User(userID, grp.AnimeGroupID);
                 userRecord.IsFave = contract.IsFave;
-                AnimeGroup_UserRepository repUserRecords = new AnimeGroup_UserRepository();
-                repUserRecords.Save(userRecord);
+                RepoFactory.AnimeGroup_User.Save(userRecord);
 
                 contractout.AnimeGroup = grp.GetUserContract(userID);
 
@@ -997,7 +927,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 contractout.ErrorMessage = ex.Message;
                 return contractout;
             }
@@ -1010,10 +940,9 @@ namespace JMMServer
             contractout.AnimeSeries = null;
             try
             {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                 AnimeSeries ser = null;
 
-                ser = repSeries.GetByID(animeSeriesID);
+                ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null)
                 {
                     contractout.ErrorMessage = "Could not find existing series with ID: " + animeSeriesID.ToString();
@@ -1021,8 +950,7 @@ namespace JMMServer
                 }
 
                 // make sure the group exists
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                AnimeGroup grpTemp = repGroups.GetByID(newAnimeGroupID);
+                AnimeGroup grpTemp = RepoFactory.AnimeGroup.GetByID(newAnimeGroupID);
                 if (grpTemp == null)
                 {
                     contractout.ErrorMessage = "Could not find existing group with ID: " + newAnimeGroupID.ToString();
@@ -1042,20 +970,19 @@ namespace JMMServer
                 ser.UpdateStats(true, true, true);
 
                 // update stats for old groups
-                AnimeGroup grp = repGroups.GetByID(oldGroupID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(oldGroupID);
                 if (grp != null)
                 {
 					AnimeGroup topGroup = grp.TopLevelAnimeGroup;
 					if (grp.GetAllSeries().Count == 0)
 					{
-						repGroups.Delete(grp.AnimeGroupID);
+                        RepoFactory.AnimeGroup.Delete(grp.AnimeGroupID);
 					}
                     if (topGroup.AnimeGroupID!=grp.AnimeGroupID)
     					topGroup.UpdateStatsFromTopLevel(true, true, true);
                 }
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(ser.AniDB_ID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
                 if (anime == null)
                 {
                     contractout.ErrorMessage = string.Format("Could not find anime record with ID: {0}", ser.AniDB_ID);
@@ -1068,7 +995,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 contractout.ErrorMessage = ex.Message;
                 return contractout;
             }
@@ -1081,13 +1008,13 @@ namespace JMMServer
             contractout.AnimeSeries = null;
             try
             {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+               
                 AnimeSeries ser = null;
 
                 int? oldGroupID = null;
                 if (contract.AnimeSeriesID.HasValue)
                 {
-                    ser = repSeries.GetByID(contract.AnimeSeriesID.Value);
+                    ser = RepoFactory.AnimeSeries.GetByID(contract.AnimeSeriesID.Value);
                     if (ser == null)
                     {
                         contractout.ErrorMessage = "Could not find existing series with ID: " +
@@ -1119,8 +1046,7 @@ namespace JMMServer
                 ser.SeriesNameOverride = contract.SeriesNameOverride;
                 ser.DefaultFolder = contract.DefaultFolder;
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(ser.AniDB_ID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
                 if (anime == null)
                 {
                     contractout.ErrorMessage = string.Format("Could not find anime record with ID: {0}", ser.AniDB_ID);
@@ -1137,8 +1063,7 @@ namespace JMMServer
 
                 if (oldGroupID.HasValue)
                 {
-                    AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                    AnimeGroup grp = repGroups.GetByID(oldGroupID.Value);
+                    AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(oldGroupID.Value);
                     if (grp != null)
                     {
                         grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
@@ -1149,7 +1074,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 contractout.ErrorMessage = ex.Message;
                 return contractout;
             }
@@ -1159,12 +1084,11 @@ namespace JMMServer
         {
             try
             {
-                AnimeEpisodeRepository rep = new AnimeEpisodeRepository();
-                return rep.GetByID(animeEpisodeID)?.GetUserContract(userID);
+                return RepoFactory.AnimeEpisode.GetByID(animeEpisodeID)?.GetUserContract(userID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -1173,12 +1097,11 @@ namespace JMMServer
         {
             try
             {
-                AnimeEpisodeRepository rep = new AnimeEpisodeRepository();
-                return rep.GetAll();
+                return RepoFactory.AnimeEpisode.GetAll();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -1187,13 +1110,11 @@ namespace JMMServer
         {
             try
             {
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeEpisode ep = repEps.GetByAniDBEpisodeID(episodeID);
-                return ep?.GetUserContract(userID);
+                return RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episodeID)?.GetUserContract(userID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -1202,10 +1123,8 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
 
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video record";
                 if (string.IsNullOrEmpty(vid.Hash)) //this shouldn't happen
@@ -1217,7 +1136,7 @@ namespace JMMServer
                     if (ep.AniDB_EpisodeID != aniDBEpisodeID) continue;
 
                     animeSeriesID = ep.AnimeSeriesID;
-                    CrossRef_File_Episode xref = repXRefs.GetByHashAndEpisodeID(vid.Hash, ep.AniDB_EpisodeID);
+                    CrossRef_File_Episode xref = RepoFactory.CrossRef_File_Episode.GetByHashAndEpisodeID(vid.Hash, ep.AniDB_EpisodeID);
                     if (xref != null)
                     {
                         if (xref.CrossRefSource == (int) CrossRefSource.AniDB)
@@ -1229,14 +1148,13 @@ namespace JMMServer
                                 ep.AniDB_EpisodeID);
                         cr.Save();
 
-                        repXRefs.Delete(xref.CrossRef_File_EpisodeID);
+                        RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
                     }
                 }
 
                 if (animeSeriesID.HasValue)
                 {
-                    AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                    AnimeSeries ser = repSeries.GetByID(animeSeriesID.Value);
+                    AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID.Value);
                     if (ser != null)
                         ser.QueueUpdateStats();
                 }
@@ -1244,7 +1162,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -1253,17 +1171,16 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video record";
                 vid.IsIgnored = isIgnored ? 1 : 0;
-                repVids.Save(vid, false);
+                RepoFactory.VideoLocal.Save(vid, false);
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -1272,17 +1189,16 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video record";
                 vid.IsVariation = isVariation ? 1 : 0;
-                repVids.Save(vid, false);
+                RepoFactory.VideoLocal.Save(vid, false);
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -1291,18 +1207,16 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video record";
                 if (string.IsNullOrEmpty(vid.Hash))
                     return "Could not associate a cloud file without hash, hash it locally first";
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeEpisode ep = repEps.GetByID(animeEpisodeID);
+
+                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
                 if (ep == null)
                     return "Could not find episode record";
 
-                CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
                 CrossRef_File_Episode xref = new CrossRef_File_Episode();
                 try
                 {
@@ -1313,7 +1227,7 @@ namespace JMMServer
                     string msg = string.Format("Error populating XREF: {0}", vid.ToStringDetailed());
                     throw;
                 }
-                repXRefs.Save(xref);
+                RepoFactory.CrossRef_File_Episode.Save(xref);
                 CommandRequest_WebCacheSendXRefFileEpisode cr = new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
                 cr.Save();
                 vid.Places.ForEach(a =>
@@ -1322,20 +1236,18 @@ namespace JMMServer
                     a.MoveFileIfRequired();
                 });
 
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
                 AnimeSeries ser = ep.GetAnimeSeries();
                 ser.EpisodeAddedDate = DateTime.Now;
-                repSeries.Save(ser, false, true);
+                RepoFactory.AnimeSeries.Save(ser, false, true);
 
                 //Update will re-save
                 ser.QueueUpdateStats();
 
 
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
                 foreach (AnimeGroup grp in ser.AllGroupsAbove)
                 {
                     grp.EpisodeAddedDate = DateTime.Now;
-                    repGroups.Save(grp, false, false);
+                    RepoFactory.AnimeGroup.Save(grp, false, false);
                 }
 
                 CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
@@ -1344,7 +1256,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return "";
@@ -1355,35 +1267,30 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video record";
                 if (vid.Hash == null)
                     return "Could not associate a cloud file without hash, hash it locally first";
-                AnimeSeries ser = repSeries.GetByID(animeSeriesID);
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null)
                     return "Could not find anime series record";
                 for (int i = startEpNum; i <= endEpNum; i++)
                 {
-                    List<AniDB_Episode> anieps = repAniEps.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, i);
+                    List<AniDB_Episode> anieps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, i);
                     if (anieps.Count == 0)
                         return "Could not find the AniDB episode record";
 
                     AniDB_Episode aniep = anieps[0];
 
-                    AnimeEpisode ep = repEps.GetByAniDBEpisodeID(aniep.EpisodeID);
+                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
                     if (ep == null)
                         return "Could not find episode record";
 
 
                     CrossRef_File_Episode xref = new CrossRef_File_Episode();
                     xref.PopulateManually(vid, ep);
-                    repXRefs.Save(xref);
+                    RepoFactory.CrossRef_File_Episode.Save(xref);
 
                     CommandRequest_WebCacheSendXRefFileEpisode cr =
                         new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
@@ -1396,13 +1303,12 @@ namespace JMMServer
                     a.MoveFileIfRequired();
                 });
                 ser.EpisodeAddedDate = DateTime.Now;
-                repSeries.Save(ser, false, true);
+                RepoFactory.AnimeSeries.Save(ser, false, true);
 
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
                 foreach (AnimeGroup grp in ser.AllGroupsAbove)
                 {
                     grp.EpisodeAddedDate = DateTime.Now;
-                    repGroups.Save(grp, false, false);
+                    RepoFactory.AnimeGroup.Save(grp, false, false);
                 }
 
                 //Update will re-save
@@ -1412,7 +1318,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return "";
@@ -1423,13 +1329,9 @@ namespace JMMServer
         {
             try
             {
-                CrossRef_File_EpisodeRepository repXRefs = new CrossRef_File_EpisodeRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
 
-                AnimeSeries ser = repSeries.GetByID(animeSeriesID);
+
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null)
                     return "Could not find anime series record";
 
@@ -1439,19 +1341,19 @@ namespace JMMServer
 
                 foreach (int videoLocalID in videoLocalIDs)
                 {
-                    VideoLocal vid = repVids.GetByID(videoLocalID);
+                    VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                     if (vid == null)
                         return "Could not find video local record";
                     if (vid.Hash == null)
                         return "Could not associate a cloud file without hash, hash it locally first";
 
-                    List<AniDB_Episode> anieps = repAniEps.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, epNumber);
+                    List<AniDB_Episode> anieps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, epNumber);
                     if (anieps.Count == 0)
                         return "Could not find the AniDB episode record";
 
                     AniDB_Episode aniep = anieps[0];
 
-                    AnimeEpisode ep = repEps.GetByAniDBEpisodeID(aniep.EpisodeID);
+                    AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
                     if (ep == null)
                         return "Could not find episode record";
 
@@ -1469,7 +1371,7 @@ namespace JMMServer
                             xref.Percentage = GetEpisodePercentages(videoLocalIDs.Count)[count - 1];
                     }
 
-                    repXRefs.Save(xref);
+                    RepoFactory.CrossRef_File_Episode.Save(xref);
                     CommandRequest_WebCacheSendXRefFileEpisode cr =
                         new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
                     cr.Save();
@@ -1483,13 +1385,12 @@ namespace JMMServer
                     if (!singleEpisode) epNumber++;
                 }
                 ser.EpisodeAddedDate = DateTime.Now;
-                repSeries.Save(ser, false, true);
+                RepoFactory.AnimeSeries.Save(ser, false, true);
 
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
                 foreach (AnimeGroup grp in ser.AllGroupsAbove)
                 {
                     grp.EpisodeAddedDate = DateTime.Now;
-                    repGroups.Save(grp, false, false);
+                    RepoFactory.AnimeGroup.Save(grp, false, false);
                 }
 
                 // update epidsode added stats
@@ -1497,7 +1398,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return "";
@@ -1524,10 +1425,9 @@ namespace JMMServer
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
-                    AnimeGroupRepository repGroups = new AnimeGroupRepository();
                     if (animeGroupID.HasValue)
                     {
-                        AnimeGroup grp = repGroups.GetByID(animeGroupID.Value);
+                        AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
                         if (grp == null)
                         {
                             response.ErrorMessage = "Could not find the specified group";
@@ -1536,8 +1436,7 @@ namespace JMMServer
                     }
 
                     // make sure a series doesn't already exists for this anime
-                    AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                    AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+                    AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                     if (ser != null)
                     {
                         response.ErrorMessage = "A series already exists for this anime";
@@ -1545,8 +1444,7 @@ namespace JMMServer
                     }
 
                     // make sure the anime exists first
-                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(sessionWrapper, animeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
                     if (anime == null)
                         anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(session, animeID, false, false);
 
@@ -1561,7 +1459,7 @@ namespace JMMServer
                         ser = new AnimeSeries();
                         ser.Populate(anime);
                         ser.AnimeGroupID = animeGroupID.Value;
-                        repSeries.Save(ser, false);
+                        RepoFactory.AnimeSeries.Save(ser, false);
                     }
                     else
                     {
@@ -1572,8 +1470,7 @@ namespace JMMServer
 
                     // check if we have any group status data for this associated anime
                     // if not we will download it now
-                    AniDB_GroupStatusRepository repStatus = new AniDB_GroupStatusRepository();
-                    if (repStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+                    if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
                     {
                         CommandRequest_GetReleaseGroupStatus cmdStatus =
                             new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
@@ -1599,7 +1496,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 response.ErrorMessage = ex.Message;
             }
 
@@ -1616,11 +1513,7 @@ namespace JMMServer
 
                     // also find any files for this anime which don't have proper media info data
                     // we can usually tell this if the Resolution == '0x0'
-                    VideoLocalRepository repVids = new VideoLocalRepository();
-                    AniDB_FileRepository repFiles = new AniDB_FileRepository();
-                    ISessionWrapper sessionWrapper = session.Wrap();
-
-                    foreach (VideoLocal vid in repVids.GetByAniDBAnimeID(animeID))
+                    foreach (VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                     {
                         AniDB_File aniFile = vid.GetAniDBFile();
                         if (aniFile == null) continue;
@@ -1640,7 +1533,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return "";
         }
@@ -1653,7 +1546,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return "";
         }
@@ -1667,15 +1560,14 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return "File could not be found";
                 CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
                 cmd.Save();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
             return "";
@@ -1690,7 +1582,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
             return "";
@@ -1700,8 +1592,7 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return "File could not be found";
                 if (string.IsNullOrEmpty(vid.Hash)) return "Could not Update a cloud file without hash, hash it locally first";
                 CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vid.VideoLocalID, true);
@@ -1709,7 +1600,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
                 return ex.Message;
             }
             return "";
@@ -1723,7 +1614,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return "";
         }
@@ -1736,7 +1627,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return "";
         }
@@ -1745,8 +1636,7 @@ namespace JMMServer
         {
             try
             {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                 if (ser == null) return "Could not find Anime Series";
 
                 CommandRequest_TraktSyncCollectionSeries cmd =
@@ -1758,7 +1648,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -1771,26 +1661,24 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return "";
         }
 
         public Contract_AniDBAnime GetAnime(int animeID)
         {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-
             try
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    AniDB_Anime anime = repAnime.GetByAnimeID(session.Wrap(), animeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(session.Wrap(), animeID);
                     return anime?.Contract.AniDBAnime;
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return null;
         }
@@ -1799,12 +1687,11 @@ namespace JMMServer
         {
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                return repAnime.GetAll().Select(a => a.Contract.AniDBAnime).ToList();
+                return RepoFactory.AniDB_Anime.GetAll().Select(a => a.Contract.AniDBAnime).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return new List<Contract_AniDBAnime>();
         }
@@ -1816,8 +1703,7 @@ namespace JMMServer
 
             try
             {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                List<AnimeSeries> series = repSeries.GetAll();
+                List<AnimeSeries> series = RepoFactory.AnimeSeries.GetAll();
                 Dictionary<int, AnimeSeries> dictSeries = new Dictionary<int, AnimeSeries>();
                 foreach (AnimeSeries ser in series)
                     dictSeries[ser.AniDB_ID] = ser;
@@ -1828,7 +1714,6 @@ namespace JMMServer
 
                 DateTime start = DateTime.Now;
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
                 /*
 				// build a dictionary of categories
@@ -1895,14 +1780,12 @@ namespace JMMServer
 				Dictionary<int, AnimeVideoQualityStat> dictAnimeEpisodeVideoQualStats = rep.GetEpisodeVideoQualityStatsByAnime();
 				 * */
 
-                List<AniDB_Anime> animes = repAnime.GetAll();
+                List<AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
 
                 // user votes
-                AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
-                List<AniDB_Vote> allVotes = repVotes.GetAll();
+                List<AniDB_Vote> allVotes = RepoFactory.AniDB_Vote.GetAll();
 
-                JMMUserRepository repUsers = new JMMUserRepository();
-                JMMUser user = repUsers.GetByID(userID);
+                JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return contracts;
 
                 int i = 0;
@@ -1998,7 +1881,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contracts;
         }
@@ -2007,26 +1890,24 @@ namespace JMMServer
         {
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                return repAnime.GetAll().Select(a => a.Contract).ToList();
+                return RepoFactory.AniDB_Anime.GetAll().Select(a => a.Contract).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return new List<Contract_AniDB_AnimeDetailed>();
         }
 
         public List<Contract_AnimeSeries> GetAllSeries(int userID)
         {
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
             try
             {
-                return repSeries.GetAll().Select(a => a.GetUserContract(userID)).ToList();
+                return RepoFactory.AnimeSeries.GetAll().Select(a => a.GetUserContract(userID)).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return new List<Contract_AnimeSeries>();
         }
@@ -2035,15 +1916,14 @@ namespace JMMServer
             Contract_Changes<Contract_GroupFilter> c=new Contract_Changes<Contract_GroupFilter>();
             try
             {
-                Changes<int> changes = GroupFilterRepository.GetChangeTracker().GetChanges(date);
-                GroupFilterRepository gfrepo = new GroupFilterRepository();
-                c.ChangedItems = changes.ChangedItems.Select(a => gfrepo.GetByID(a).ToContract()).Where(a => a != null).ToList();
+                Changes<int> changes = RepoFactory.GroupFilter.GetChangeTracker().GetChanges(date);
+                c.ChangedItems = changes.ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a).ToContract()).Where(a => a != null).ToList();
                 c.RemovedItems = changes.RemovedItems.ToList();
                 c.LastChange = changes.LastChange;
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return c;
         }
@@ -2055,17 +1935,14 @@ namespace JMMServer
             {
                 List<Changes<int>> changes = ChangeTracker<int>.GetChainedChanges(new List<ChangeTracker<int>>
                 {
-                    GroupFilterRepository.GetChangeTracker(),
-                    AnimeGroupRepository.GetChangeTracker(),
-                    AnimeGroup_UserRepository.GetChangeTracker(userID),
-                    AnimeSeriesRepository.GetChangeTracker(),
-                    AnimeSeries_UserRepository.GetChangeTracker(userID)
+                    RepoFactory.GroupFilter.GetChangeTracker(),
+                    RepoFactory.AnimeGroup.GetChangeTracker(),
+                    RepoFactory.AnimeGroup_User.GetChangeTracker(userID),
+                    RepoFactory.AnimeSeries.GetChangeTracker(),
+                    RepoFactory.AnimeSeries_User.GetChangeTracker(userID)
                 }, date);
-                GroupFilterRepository gfrepo=new GroupFilterRepository();
-                AnimeGroupRepository agrepo = new AnimeGroupRepository();
-                AnimeSeriesRepository asrepo=new AnimeSeriesRepository();
                 c.Filters=new Contract_Changes<Contract_GroupFilter>();
-                c.Filters.ChangedItems=changes[0].ChangedItems.Select(a=>gfrepo.GetByID(a).ToContract()).Where(a=>a!=null).ToList();
+                c.Filters.ChangedItems=changes[0].ChangedItems.Select(a=> RepoFactory.GroupFilter.GetByID(a).ToContract()).Where(a=>a!=null).ToList();
                 c.Filters.RemovedItems= changes[0].RemovedItems.ToList();
                 c.Filters.LastChange = changes[0].LastChange;
 
@@ -2079,7 +1956,7 @@ namespace JMMServer
                         if (!c.Filters.ChangedItems.Any(a => a.GroupFilterID == ag.ParentGroupFilterID.Value))
                         {
                             end = false;
-                            Contract_GroupFilter cag = gfrepo.GetByID(ag.ParentGroupFilterID.Value).ToContract();
+                            Contract_GroupFilter cag = RepoFactory.GroupFilter.GetByID(ag.ParentGroupFilterID.Value).ToContract();
                             if (cag != null)
                                 c.Filters.ChangedItems.Add(cag);
                         }
@@ -2091,7 +1968,7 @@ namespace JMMServer
                 changes[1].ChangedItems.UnionWith(changes[2].RemovedItems);
                 if (changes[2].LastChange > changes[1].LastChange)
                     changes[1].LastChange = changes[2].LastChange;
-                c.Groups.ChangedItems=changes[1].ChangedItems.Select(a=>agrepo.GetByID(a)).Where(a => a != null).Select(a=>a.GetUserContract(userID)).ToList();
+                c.Groups.ChangedItems=changes[1].ChangedItems.Select(a=> RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null).Select(a=>a.GetUserContract(userID)).ToList();
 
 
 
@@ -2102,7 +1979,7 @@ namespace JMMServer
                 changes[3].ChangedItems.UnionWith(changes[4].RemovedItems);
                 if (changes[4].LastChange > changes[3].LastChange)
                     changes[3].LastChange = changes[4].LastChange;
-                c.Series.ChangedItems = changes[3].ChangedItems.Select(a => asrepo.GetByID(a)).Where(a=>a!=null).Select(a=>a.GetUserContract(userID)).ToList();
+                c.Series.ChangedItems = changes[3].ChangedItems.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a=>a!=null).Select(a=>a.GetUserContract(userID)).ToList();
                 c.Series.RemovedItems = changes[3].RemovedItems.ToList();
                 c.Series.LastChange = changes[3].LastChange;
                 c.LastChange = c.Filters.LastChange;
@@ -2113,7 +1990,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return c;
         }
@@ -2122,26 +1999,24 @@ namespace JMMServer
         {
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                return repAnime.GetByAnimeID(animeID)?.Contract;
+                return RepoFactory.AniDB_Anime.GetByAnimeID(animeID)?.Contract;
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
 
         public List<string> GetAllTagNames()
         {
-            AniDB_TagRepository repTags = new AniDB_TagRepository();
             List<string> allTagNames = new List<string>();
 
             try
             {
                 DateTime start = DateTime.Now;
 
-                foreach (AniDB_Tag tag in repTags.GetAll())
+                foreach (AniDB_Tag tag in RepoFactory.AniDB_Tag.GetAll())
                 {
                     allTagNames.Add(tag.TagName);
                 }
@@ -2153,7 +2028,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return allTagNames;
@@ -2164,8 +2039,7 @@ namespace JMMServer
             List<Contract_AnimeGroup> retGroups = new List<Contract_AnimeGroup>();
             try
             {
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                AnimeGroup grp = repGroups.GetByID(animeGroupID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
                 if (grp == null) return retGroups;
                 foreach (AnimeGroup grpChild in grp.GetChildGroups())
                 {
@@ -2178,7 +2052,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return retGroups;
         }
@@ -2188,8 +2062,7 @@ namespace JMMServer
             List<Contract_AnimeSeries> series = new List<Contract_AnimeSeries>();
             try
             {
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                AnimeGroup grp = repGroups.GetByID(animeGroupID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
                 if (grp == null) return series;
 
                 foreach (AnimeSeries ser in grp.GetSeries())
@@ -2203,7 +2076,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return series;
             }
         }
@@ -2213,8 +2086,7 @@ namespace JMMServer
             List<Contract_AnimeSeries> series = new List<Contract_AnimeSeries>();
             try
             {
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                AnimeGroup grp = repGroups.GetByID(animeGroupID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
                 if (grp == null) return series;
 
                 foreach (AnimeSeries ser in grp.GetAllSeries())
@@ -2228,7 +2100,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return series;
             }
         }
@@ -2238,8 +2110,7 @@ namespace JMMServer
             List<Contract_AniDB_Episode> eps = new List<Contract_AniDB_Episode>();
             try
             {
-                AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(animeID);
+                List<AniDB_Episode> aniEpList = RepoFactory.AniDB_Episode.GetByAnimeID(animeID);
 
                 foreach (AniDB_Episode ep in aniEpList)
                     eps.Add(ep.ToContract());
@@ -2247,7 +2118,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return eps;
@@ -2267,7 +2138,7 @@ namespace JMMServer
                 }
                 else
                 {
-                    CloudAccount cl = new CloudAccountRepository().GetByID(cloudaccountid);
+                    CloudAccount cl = RepoFactory.CloudAccount.GetByID(cloudaccountid);
                     if (cl != null)
                        n = cl.FileSystem;
                 }
@@ -2285,7 +2156,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return result;
         }
@@ -2296,11 +2167,11 @@ namespace JMMServer
             try
             {
                 ls.Add(new CloudAccount() {Name = "NA", Provider = "Local File System"}.ToContactCloudProvider());
-                new CloudAccountRepository().GetAll().ForEach(a => ls.Add(a.ToContactCloudProvider()));
+                RepoFactory.CloudAccount.GetAll().ForEach(a => ls.Add(a.ToContactCloudProvider()));
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return ls;
         }
@@ -2309,8 +2180,7 @@ namespace JMMServer
         {
             try
             {
-                VideoLocal_UserRepository grepo = new VideoLocal_UserRepository();
-                VideoLocal_User vlu=grepo.GetByUserIDAndVideoLocalID(jmmuserID, videolocalid);
+                VideoLocal_User vlu= RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(jmmuserID, videolocalid);
                 if (vlu == null)
                 {
                     vlu = new VideoLocal_User();
@@ -2319,11 +2189,11 @@ namespace JMMServer
                     vlu.WatchedDate = null;
                 }
                 vlu.ResumePosition = position;
-                grepo.Save(vlu);
+                RepoFactory.VideoLocalUser.Save(vlu);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -2332,9 +2202,8 @@ namespace JMMServer
             List<Contract_AnimeEpisode> eps = new List<Contract_AnimeEpisode>();
             try
             {
-                AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
                 return
-                    repEp.GetBySeriesID(animeSeriesID)
+                    RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
                         .Select(a => a.GetUserContract(userID))
                         .Where(a => a != null)
                         .ToList();
@@ -2411,7 +2280,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return eps;
@@ -2422,8 +2291,7 @@ namespace JMMServer
             List<Contract_AnimeEpisode> eps = new List<Contract_AnimeEpisode>();
             try
             {
-                JMMUserRepository urepo = new JMMUserRepository();
-                JMMUser user = urepo.GetByID(1) ?? urepo.GetAll().FirstOrDefault(a => a.Username == "Default");
+                JMMUser user = RepoFactory.JMMUser.GetByID(1) ?? RepoFactory.JMMUser.GetAll().FirstOrDefault(a => a.Username == "Default");
                 //HACK (We should have a default user locked)
                 if (user != null)
                     return GetEpisodesForSeries(animeSeriesID, user.JMMUserID);
@@ -2478,7 +2346,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return eps;
@@ -2486,15 +2354,14 @@ namespace JMMServer
 
         public Contract_AnimeSeries GetSeries(int animeSeriesID, int userID)
         {
-            AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
 
             try
             {
-                return repAnimeSer.GetByID(animeSeriesID)?.GetUserContract(userID);
+                return RepoFactory.AnimeSeries.GetByID(animeSeriesID)?.GetUserContract(userID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return null;
         }
@@ -2506,8 +2373,7 @@ namespace JMMServer
                 int limit = 0;
                 List<Contract_AnimeSeries> list = new List<Contract_AnimeSeries>();
 
-                VideoLocalRepository reVideo = new VideoLocalRepository();
-                foreach (VideoLocal vi in reVideo.GetByImportFolder(FolderID))
+                foreach (VideoLocal vi in RepoFactory.VideoLocal.GetByImportFolder(FolderID))
                 {
                     foreach (Contract_AnimeEpisode ae in GetEpisodesForFile(vi.VideoLocalID, userID))
                     {
@@ -2528,7 +2394,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return null;
         }
@@ -2583,40 +2449,37 @@ namespace JMMServer
         //    }
         //    catch (Exception ex)
         //    {
-        //        logger.ErrorException(ex.ToString(), ex);
+        //        logger.Error( ex,ex.ToString());
         //    }
         //    return null;
         //}
 
         public Contract_AnimeSeries GetSeriesForAnime(int animeID, int userID)
         {
-            AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-
             try
             {
-                return repAnimeSer.GetByAnimeID(animeID)?.GetUserContract(userID);
+                return RepoFactory.AnimeSeries.GetByAnimeID(animeID)?.GetUserContract(userID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return null;
         }
 
         public bool GetSeriesExistingForAnime(int animeID)
         {
-            AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
 
             try
             {
-                AnimeSeries series = repAnimeSer.GetByAnimeID(animeID);
+                AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                 if (series == null)
                     return false;
                 return true;
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return true;
         }
@@ -2625,8 +2488,7 @@ namespace JMMServer
         {
             try
             {
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeEpisode ep = repEps.GetByID(episodeID);
+                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
                 if (ep != null)
                     return ep.GetVideoDetailedContracts(userID);
                 else
@@ -2634,7 +2496,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return new List<Contract_VideoDetailed>();
         }
@@ -2644,8 +2506,7 @@ namespace JMMServer
             List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
             try
             {
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeEpisode ep = repEps.GetByID(episodeID);
+                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
                 if (ep != null)
                 {
                     foreach (VideoLocal vid in ep.GetVideoLocals())
@@ -2656,7 +2517,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contracts;
         }
@@ -2666,15 +2527,14 @@ namespace JMMServer
             List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                foreach (VideoLocal vid in repVids.GetIgnoredVideos())
+                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetIgnoredVideos())
                 {
                     contracts.Add(vid.ToContract(userID));
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contracts;
         }
@@ -2684,15 +2544,14 @@ namespace JMMServer
             List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                foreach (VideoLocal vid in repVids.GetManuallyLinkedVideos())
+                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
                 {
                     contracts.Add(vid.ToContract(userID));
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contracts;
         }
@@ -2702,15 +2561,14 @@ namespace JMMServer
             List<Contract_VideoLocal> contracts = new List<Contract_VideoLocal>();
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                foreach (VideoLocal vid in repVids.GetVideosWithoutEpisode())
+                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
                 {
                     contracts.Add(vid.ToContract(userID));
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contracts;
         }
@@ -2742,7 +2600,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contract;
         }
@@ -2922,7 +2780,7 @@ namespace JMMServer
             catch (Exception ex)
             {
                 contract.ErrorMessage = ex.Message;
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contract;
         }
@@ -2937,7 +2795,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contract;
         }
@@ -2946,8 +2804,7 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video local record";
                 vid.SetResumePosition(resumeposition, userID);
@@ -2955,7 +2812,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
 
@@ -2964,8 +2821,7 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return "Could not find video local record";
                 vid.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, true, true, userID, true, true);
@@ -2973,7 +2829,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -2988,8 +2844,7 @@ namespace JMMServer
 
             try
             {
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeEpisode ep = repEps.GetByID(animeEpisodeID);
+                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
                 if (ep == null)
                 {
                     response.ErrorMessage = "Could not find anime episode record";
@@ -3009,7 +2864,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 response.ErrorMessage = ex.Message;
                 return response;
             }
@@ -3028,8 +2883,7 @@ namespace JMMServer
         {
             try
             {
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                List<AnimeEpisode> eps = repEps.GetBySeriesID(animeSeriesID);
+                List<AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID);
 
                 AnimeSeries ser = null;
                 foreach (AnimeEpisode ep in eps)
@@ -3064,7 +2918,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -3073,16 +2927,15 @@ namespace JMMServer
         {
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return;
 
                 anime.DisableExternalLinksFlag = flags;
-                repAnime.Save(anime);
+                RepoFactory.AniDB_Anime.Save(anime);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -3090,8 +2943,7 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return null;
 
@@ -3099,7 +2951,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -3109,8 +2961,7 @@ namespace JMMServer
             List<Contract_AnimeEpisode> contracts = new List<Contract_AnimeEpisode>();
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                     return contracts;
 
@@ -3125,7 +2976,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return contracts;
             }
         }
@@ -3143,13 +2994,11 @@ namespace JMMServer
 
             try
             {
-                AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                AniDB_Episode aniEp = repAniEps.GetByEpisodeID(aniDBEpisodeID);
+                AniDB_Episode aniEp = RepoFactory.AniDB_Episode.GetByEpisodeID(aniDBEpisodeID);
                 if (aniEp == null) return relGroups;
                 if (aniEp.EpisodeTypeEnum != AniDBAPI.enEpisodeType.Episode) return relGroups;
 
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries series = repSeries.GetByAnimeID(aniEp.AnimeID);
+                AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniEp.AnimeID);
                 if (series == null) return relGroups;
 
                 // get a list of all the release groups the user is collecting
@@ -3173,8 +3022,7 @@ namespace JMMServer
                 }
 
                 // get all the release groups for this series
-                AniDB_GroupStatusRepository repGrpStatus = new AniDB_GroupStatusRepository();
-                List<AniDB_GroupStatus> grpStatuses = repGrpStatus.GetByAnimeID(aniEp.AnimeID);
+                List<AniDB_GroupStatus> grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(aniEp.AnimeID);
                 foreach (AniDB_GroupStatus gs in grpStatuses)
                 {
                     if (userReleaseGroups.ContainsKey(gs.GroupID))
@@ -3196,7 +3044,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return relGroups;
         }
@@ -3206,15 +3054,11 @@ namespace JMMServer
             List<Contract_ImportFolder> ifolders = new List<Contract_ImportFolder>();
             try
             {
-                ImportFolderRepository repNS = new ImportFolderRepository();
-                foreach (ImportFolder ns in repNS.GetAll())
-                {
-                    ifolders.Add(ns.ToContract());
-                }
+                return RepoFactory.ImportFolder.GetAll().Select(a => a.ToContract()).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return ifolders;
         }
@@ -3227,12 +3071,11 @@ namespace JMMServer
 
             try
             {
-                ImportFolderRepository repNS = new ImportFolderRepository();
                 ImportFolder ns = null;
                 if (contract.ImportFolderID.HasValue && contract.ImportFolderID != 0)
                 {
                     // update
-                    ns = repNS.GetByID(contract.ImportFolderID.Value);
+                    ns = RepoFactory.ImportFolder.GetByID(contract.ImportFolderID.Value);
                     if (ns == null)
                     {
                         response.ErrorMessage = "Could not find Import Folder ID: " +
@@ -3266,7 +3109,7 @@ namespace JMMServer
 
                 if (!contract.ImportFolderID.HasValue)
                 {
-                    ImportFolder nsTemp = repNS.GetByImportLocation(contract.ImportFolderLocation);
+                    ImportFolder nsTemp = RepoFactory.ImportFolder.GetByImportLocation(contract.ImportFolderLocation);
                     if (nsTemp != null)
                     {
                         response.ErrorMessage = "An entry already exists for the specified Import Folder location";
@@ -3281,7 +3124,7 @@ namespace JMMServer
                 }
 
                 // check to make sure we don't have multiple drop folders
-                List<ImportFolder> allFolders = repNS.GetAll();
+                List<ImportFolder> allFolders = RepoFactory.ImportFolder.GetAll();
 
                 if (contract.IsDropDestination == 1)
                 {
@@ -3290,7 +3133,7 @@ namespace JMMServer
                         if (contract.CloudID==imf.CloudID && imf.IsDropDestination == 1 && (!contract.ImportFolderID.HasValue || (contract.ImportFolderID.Value != imf.ImportFolderID)))
                         {
                             imf.IsDropDestination = 0;
-                            repNS.Save(imf);
+                            RepoFactory.ImportFolder.Save(imf);
                         }
                     }
                 }
@@ -3302,7 +3145,7 @@ namespace JMMServer
                 ns.IsWatched = contract.IsWatched;
                 ns.ImportFolderType = contract.ImportFolderType;
                 ns.CloudID = contract.CloudID;
-                repNS.Save(ns);
+                RepoFactory.ImportFolder.Save(ns);
 
                 response.ImportFolder = ns.ToContract();
 
@@ -3313,7 +3156,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error(ex, ex.ToString());
                 response.ErrorMessage = ex.Message;
                 return response;
             }
@@ -3376,8 +3219,7 @@ namespace JMMServer
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                VideoLocalRepository repVidLocals = new VideoLocalRepository();
-                List<VideoLocal> filesWithoutEpisode = repVidLocals.GetVideosWithoutEpisode();
+                List<VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 
                 foreach (VideoLocal vl in filesWithoutEpisode.Where(a=>!string.IsNullOrEmpty(a.Hash)))
                 {
@@ -3387,7 +3229,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
             }
         }
 
@@ -3396,8 +3238,7 @@ namespace JMMServer
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                VideoLocalRepository repVidLocals = new VideoLocalRepository();
-                List<VideoLocal> files = repVidLocals.GetManuallyLinkedVideos();
+                List<VideoLocal> files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
 
                 foreach (VideoLocal vl in files.Where(a=>!string.IsNullOrEmpty(a.Hash)))
                 {
@@ -3407,7 +3248,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.Message, ex);
+                logger.Error( ex,ex.Message);
             }
         }
 
@@ -3440,14 +3281,13 @@ namespace JMMServer
                 }
                 Thread.Sleep(200);
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                repCR.Delete(repCR.GetAllCommandRequestHasher());
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
 
                 JMMService.CmdProcessorHasher.Init();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -3464,13 +3304,12 @@ namespace JMMServer
                 }
                 Thread.Sleep(200);
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                repCR.Delete(repCR.GetAllCommandRequestImages());
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestImages());
                 JMMService.CmdProcessorImages.Init();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -3487,20 +3326,18 @@ namespace JMMServer
                 }
                 Thread.Sleep(200);
 
-                CommandRequestRepository repCR = new CommandRequestRepository();
-                repCR.Delete(repCR.GetAllCommandRequestGeneral());
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
                 JMMService.CmdProcessorGeneral.Init();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
         public void RehashFile(int videoLocalID)
         {
-            VideoLocalRepository repVidLocals = new VideoLocalRepository();
-            VideoLocal vl = repVidLocals.GetByID(videoLocalID);
+            VideoLocal vl = RepoFactory.VideoLocal.GetByID(videoLocalID);
 
             if (vl != null)
             {
@@ -3561,7 +3398,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in EnterTraktPIN: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in EnterTraktPIN: " + ex.ToString());
                 return ex.Message;
             }
         }
@@ -3577,7 +3414,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TestMALLogin: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in TestMALLogin: " + ex.ToString());
                 return ex.Message;
             }
         }
@@ -3592,7 +3429,7 @@ namespace JMMServer
 			}
 			catch (Exception ex)
 			{
-				logger.ErrorException("Error in TraktFriendRequestDeny: " + ex.ToString(), ex);
+				logger.Error( ex,"Error in TraktFriendRequestDeny: " + ex.ToString());
 				returnMessage = ex.Message;
 				return false;
 			}*/
@@ -3608,7 +3445,7 @@ namespace JMMServer
 			}
 			catch (Exception ex)
 			{
-				logger.ErrorException("Error in TraktFriendRequestDeny: " + ex.ToString(), ex);
+				logger.Error( ex,"Error in TraktFriendRequestDeny: " + ex.ToString());
 				returnMessage = ex.Message;
 				return false;
 			}*/
@@ -3626,8 +3463,7 @@ namespace JMMServer
             logger.Info(msg);
 
             // lets save to the database and assume it will work
-            AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
-            List<AniDB_Vote> dbVotes = repVotes.GetByEntity(animeID);
+            List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(animeID);
             AniDB_Vote thisVote = null;
             foreach (AniDB_Vote dbVote in dbVotes)
             {
@@ -3663,7 +3499,7 @@ namespace JMMServer
             logger.Info(msg);
 
             thisVote.VoteValue = iVoteValue;
-            repVotes.Save(thisVote);
+            RepoFactory.AniDB_Vote.Save(thisVote);
 
             CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(animeID, voteType, voteValue);
             cmdVote.Save();
@@ -3672,8 +3508,8 @@ namespace JMMServer
         public void VoteAnimeRevoke(int animeID)
         {
             // lets save to the database and assume it will work
-            AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
-            List<AniDB_Vote> dbVotes = repVotes.GetByEntity(animeID);
+     
+            List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(animeID);
             AniDB_Vote thisVote = null;
             foreach (AniDB_Vote dbVote in dbVotes)
             {
@@ -3689,7 +3525,7 @@ namespace JMMServer
             CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(animeID, thisVote.VoteType, -1);
             cmdVote.Save();
 
-            repVotes.Delete(thisVote.AniDB_VoteID);
+            RepoFactory.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
         }
 
         public string RenameAllGroups()
@@ -3700,7 +3536,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
 
@@ -3711,12 +3547,11 @@ namespace JMMServer
         {
             try
             {
-                AdhocRepository rep = new AdhocRepository();
-                return rep.GetAllVideoQuality();
+                return RepoFactory.Adhoc.GetAllVideoQuality();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return new List<string>();
             }
         }
@@ -3725,12 +3560,11 @@ namespace JMMServer
         {
             try
             {
-                AdhocRepository rep = new AdhocRepository();
-                return rep.GetAllUniqueAudioLanguages();
+                return RepoFactory.Adhoc.GetAllUniqueAudioLanguages();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return new List<string>();
             }
         }
@@ -3739,12 +3573,11 @@ namespace JMMServer
         {
             try
             {
-                AdhocRepository rep = new AdhocRepository();
-                return rep.GetAllUniqueSubtitleLanguages();
+                return RepoFactory.Adhoc.GetAllUniqueSubtitleLanguages();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return new List<string>();
             }
         }
@@ -3754,17 +3587,11 @@ namespace JMMServer
             List<Contract_DuplicateFile> dupFiles = new List<Contract_DuplicateFile>();
             try
             {
-                DuplicateFileRepository repDupFiles = new DuplicateFileRepository();
-                foreach (DuplicateFile df in repDupFiles.GetAll())
-                {
-                    dupFiles.Add(df.ToContract());
-                }
-
-                return dupFiles;
+                return RepoFactory.DuplicateFile.GetAll().Select(a=>a.ToContract()).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return dupFiles;
             }
         }
@@ -3779,8 +3606,7 @@ namespace JMMServer
         {
             try
             {
-                DuplicateFileRepository repDupFiles = new DuplicateFileRepository();
-                DuplicateFile df = repDupFiles.GetByID(duplicateFileID);
+                DuplicateFile df = RepoFactory.DuplicateFile.GetByID(duplicateFileID);
                 if (df == null) return "Database entry does not exist";
 
                 if (fileNumber == 1 || fileNumber == 2)
@@ -3792,13 +3618,13 @@ namespace JMMServer
                     file?.Delete(true);
                 }
 
-                repDupFiles.Delete(duplicateFileID);
+                RepoFactory.DuplicateFile.Delete(duplicateFileID);
 
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -3812,9 +3638,7 @@ namespace JMMServer
         {
             try
             {
-                VideoLocal_PlaceRepository repPlaces=new VideoLocal_PlaceRepository();
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal_Place place = repPlaces.GetByID(videolocalplaceid);
+                VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(videolocalplaceid);
                 if ((place==null) || (place.VideoLocal==null))
                     return "Database entry does not exist";
                 VideoLocal vid = place.VideoLocal;
@@ -3855,8 +3679,8 @@ namespace JMMServer
 
                 CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
                 cmdDel.Save();
-                repPlaces.Delete(place.VideoLocal_Place_ID);
-                repVids.Delete(vid.VideoLocalID);
+                RepoFactory.VideoLocalPlace.Delete(place.VideoLocal_Place_ID);
+                RepoFactory.VideoLocal.Delete(vid.VideoLocalID);
                 if (ser != null)
                 {
                     ser.QueueUpdateStats();
@@ -3869,7 +3693,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -3879,8 +3703,7 @@ namespace JMMServer
             List<Contract_VideoLocal> manualFiles = new List<Contract_VideoLocal>();
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                foreach (VideoLocal vid in repVids.GetManuallyLinkedVideos())
+                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
                 {
                     manualFiles.Add(vid.ToContract(userID));
                 }
@@ -3889,7 +3712,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return manualFiles;
             }
         }
@@ -3900,9 +3723,6 @@ namespace JMMServer
             List<Contract_AnimeEpisode> eps = new List<Contract_AnimeEpisode>();
             try
             {
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
 
                 Dictionary<int, int> dictSeriesAnime = new Dictionary<int, int>();
                 Dictionary<int, bool> dictAnimeFinishedAiring = new Dictionary<int, bool>();
@@ -3910,11 +3730,11 @@ namespace JMMServer
 
                 if (onlyFinishedSeries)
                 {
-                    List<AnimeSeries> allSeries = repSeries.GetAll();
+                    List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
                     foreach (AnimeSeries ser in allSeries)
                         dictSeriesAnime[ser.AnimeSeriesID] = ser.AniDB_ID;
 
-                    List<AniDB_Anime> allAnime = repAnime.GetAll();
+                    List<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
                     foreach (AniDB_Anime anime in allAnime)
                         dictAnimeFinishedAiring[anime.AnimeID] = anime.FinishedAiring;
 
@@ -3925,7 +3745,7 @@ namespace JMMServer
                     }
                 }
 
-                foreach (AnimeEpisode ep in repEps.GetEpisodesWithMultipleFiles(ignoreVariations))
+                foreach (AnimeEpisode ep in RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(ignoreVariations))
                 {
                     if (onlyFinishedSeries)
                     {
@@ -3944,7 +3764,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return eps;
             }
         }
@@ -3953,8 +3773,7 @@ namespace JMMServer
         {
             try
             {
-                DuplicateFileRepository repDupFiles = new DuplicateFileRepository();
-                foreach (DuplicateFile df in repDupFiles.GetAll())
+                foreach (DuplicateFile df in RepoFactory.DuplicateFile.GetAll())
                 {
                     if (df.ImportFolder1 == null || df.ImportFolder2 == null)
                     {
@@ -3963,7 +3782,7 @@ namespace JMMServer
                                 "Deleting duplicate file record as one of the import folders can't be found: {0} --- {1}",
                                 df.FilePathFile1, df.FilePathFile2);
                         logger.Info(msg);
-                        repDupFiles.Delete(df.DuplicateFileID);
+                        RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
                         continue;
                     }
 
@@ -3975,7 +3794,7 @@ namespace JMMServer
                                 "Deleting duplicate file record as they are actually point to the same file: {0}",
                                 df.FullServerPath1);
                         logger.Info(msg);
-                        repDupFiles.Delete(df.DuplicateFileID);
+                        RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
                     }
 
                     // check if both files still exist
@@ -3988,13 +3807,13 @@ namespace JMMServer
                                 "Deleting duplicate file record as one of the files can't be found: {0} --- {1}",
                                 df.FullServerPath1, df.FullServerPath2);
                         logger.Info(msg);
-                        repDupFiles.Delete(df.DuplicateFileID);
+                        RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -4004,19 +3823,12 @@ namespace JMMServer
         {
             List<Contract_VideoDetailed> vids = new List<Contract_VideoDetailed>();
 
-            List<Contract_GroupVideoQuality> vidQuals = new List<Contract_GroupVideoQuality>();
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            VideoLocalRepository repVids = new VideoLocalRepository();
-            AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-
-
             try
             {
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return vids;
 
-                foreach (VideoLocal vid in repVids.GetByAniDBAnimeID(animeID))
+                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
                     int thisBitDepth = 8;
 
@@ -4068,7 +3880,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return vids;
             }
         }
@@ -4077,17 +3889,12 @@ namespace JMMServer
         {
             List<Contract_VideoDetailed> vids = new List<Contract_VideoDetailed>();
 
-            List<Contract_GroupVideoQuality> vidQuals = new List<Contract_GroupVideoQuality>();
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            VideoLocalRepository repVids = new VideoLocalRepository();
-
-
             try
             {
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return vids;
 
-                foreach (VideoLocal vid in repVids.GetByAniDBAnimeID(animeID))
+                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
 
                     List<AnimeEpisode> eps = vid.GetAnimeEpisodes();
@@ -4119,7 +3926,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return vids;
             }
         }
@@ -4146,10 +3953,8 @@ namespace JMMServer
         public List<Contract_GroupVideoQuality> GetGroupVideoQualitySummary(int animeID)
         {
             List<Contract_GroupVideoQuality> vidQuals = new List<Contract_GroupVideoQuality>();
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            VideoLocalRepository repVids = new VideoLocalRepository();
-            AniDB_FileRepository repAniFile = new AniDB_FileRepository();
+
+
 
             try
             {
@@ -4168,7 +3973,7 @@ namespace JMMServer
                 DateTime oStart = DateTime.Now;
 
                 start = DateTime.Now;
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 ts = DateTime.Now - start;
                 timingAnime += ts.TotalMilliseconds;
 
@@ -4179,7 +3984,7 @@ namespace JMMServer
                 timingVids += ts.TotalMilliseconds;
 
 
-                foreach (VideoLocal vid in repVids.GetByAniDBAnimeID(animeID))
+                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
 
                     start = DateTime.Now;
@@ -4427,7 +4232,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return vidQuals;
             }
         }
@@ -4436,19 +4241,15 @@ namespace JMMServer
         public List<Contract_GroupFileSummary> GetGroupFileSummary(int animeID)
         {
             List<Contract_GroupFileSummary> vidQuals = new List<Contract_GroupFileSummary>();
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            VideoLocalRepository repVids = new VideoLocalRepository();
-            AniDB_FileRepository repAniFile = new AniDB_FileRepository();
 
             try
             {
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
 
                 if (anime == null) return vidQuals;
 
 
-                foreach (VideoLocal vid in repVids.GetByAniDBAnimeID(animeID))
+                foreach (VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
 
                     List<AnimeEpisode> eps = vid.GetAnimeEpisodes();
@@ -4632,7 +4433,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return vidQuals;
             }
         }
@@ -4647,57 +4448,51 @@ namespace JMMServer
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
-                    TvDB_SeriesRepository repSeries = new TvDB_SeriesRepository();
-                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                     if (anime == null) return result;
 
 
-                    TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
-                    TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
-                    TvDB_ImageWideBannerRepository repBanners = new TvDB_ImageWideBannerRepository();
+                    
+
 
                     // TvDB
                     foreach (CrossRef_AniDB_TvDBV2 xref in anime.GetCrossRefTvDBV2())
                     {
                         result.CrossRef_AniDB_TvDB.Add(xref.ToContract());
 
-                        TvDB_Series ser = repSeries.GetByTvDBID(sessionWrapper, xref.TvDBID);
+                        TvDB_Series ser = RepoFactory.TvDB_Series.GetByTvDBID(sessionWrapper, xref.TvDBID);
                         if (ser != null)
                             result.TvDBSeries.Add(ser.ToContract());
 
                         foreach (TvDB_Episode ep in anime.GetTvDBEpisodes())
                             result.TvDBEpisodes.Add(ep.ToContract());
 
-                        foreach (TvDB_ImageFanart fanart in repFanart.GetBySeriesID(sessionWrapper, xref.TvDBID))
+                        foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(sessionWrapper, xref.TvDBID))
                             result.TvDBImageFanarts.Add(fanart.ToContract());
 
-                        foreach (TvDB_ImagePoster poster in repPosters.GetBySeriesID(sessionWrapper, xref.TvDBID))
+                        foreach (TvDB_ImagePoster poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(sessionWrapper, xref.TvDBID))
                             result.TvDBImagePosters.Add(poster.ToContract());
 
-                        foreach (TvDB_ImageWideBanner banner in repBanners.GetBySeriesID(xref.TvDBID))
+                        foreach (TvDB_ImageWideBanner banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(xref.TvDBID))
                             result.TvDBImageWideBanners.Add(banner.ToContract());
                     }
 
                     // Trakt
 
-                    Trakt_ImageFanartRepository repTraktFanart = new Trakt_ImageFanartRepository();
-                    Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
-                    Trakt_ShowRepository repTrakt = new Trakt_ShowRepository();
-
+                     
                     foreach (CrossRef_AniDB_TraktV2 xref in anime.GetCrossRefTraktV2())
                     {
                         result.CrossRef_AniDB_Trakt.Add(xref.ToContract());
 
-                        Trakt_Show show = repTrakt.GetByTraktSlug(session, xref.TraktID);
+                        Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(session, xref.TraktID);
                         if (show != null)
                         {
                             result.TraktShows.Add(show.ToContract());
 
-                            foreach (Trakt_ImageFanart fanart in repTraktFanart.GetByShowID(session, show.Trakt_ShowID))
+                            foreach (Trakt_ImageFanart fanart in RepoFactory.Trakt_ImageFanart.GetByShowID(session, show.Trakt_ShowID))
                                 result.TraktImageFanarts.Add(fanart.ToContract());
 
-                            foreach (Trakt_ImagePoster poster in repTraktPosters.GetByShowID(session, show.Trakt_ShowID)
+                            foreach (Trakt_ImagePoster poster in RepoFactory.Trakt_ImagePoster.GetByShowID(session, show.Trakt_ShowID)
                                 )
                                 result.TraktImagePosters.Add(poster.ToContract());
                         }
@@ -4747,7 +4542,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return result;
             }
         }
@@ -4762,96 +4557,88 @@ namespace JMMServer
                 {
                     case JMMImageType.AniDB_Cover:
 
-                        AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                        AniDB_Anime anime = repAnime.GetByAnimeID(imageID);
+                        AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(imageID);
                         if (anime == null) return "Could not find anime";
 
                         anime.ImageEnabled = enabled ? 1 : 0;
-                        repAnime.Save(anime);
+                        RepoFactory.AniDB_Anime.Save(anime);
 
                         break;
 
                     case JMMImageType.TvDB_Banner:
 
-                        TvDB_ImageWideBannerRepository repBanners = new TvDB_ImageWideBannerRepository();
-                        TvDB_ImageWideBanner banner = repBanners.GetByID(imageID);
+                        TvDB_ImageWideBanner banner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
 
                         if (banner == null) return "Could not find image";
 
                         banner.Enabled = enabled ? 1 : 0;
-                        repBanners.Save(banner);
+                        RepoFactory.TvDB_ImageWideBanner.Save(banner);
 
                         break;
 
                     case JMMImageType.TvDB_Cover:
 
-                        TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
-                        TvDB_ImagePoster poster = repPosters.GetByID(imageID);
+                        TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
 
                         if (poster == null) return "Could not find image";
 
                         poster.Enabled = enabled ? 1 : 0;
-                        repPosters.Save(poster);
+                        RepoFactory.TvDB_ImagePoster.Save(poster);
 
                         break;
 
                     case JMMImageType.TvDB_FanArt:
 
-                        TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
-                        TvDB_ImageFanart fanart = repFanart.GetByID(imageID);
+                        TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
 
                         if (fanart == null) return "Could not find image";
 
                         fanart.Enabled = enabled ? 1 : 0;
-                        repFanart.Save(fanart);
+                        RepoFactory.TvDB_ImageFanart.Save(fanart);
 
                         break;
 
                     case JMMImageType.MovieDB_Poster:
 
-                        MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
-                        MovieDB_Poster moviePoster = repMoviePosters.GetByID(imageID);
+                        MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
 
                         if (moviePoster == null) return "Could not find image";
 
                         moviePoster.Enabled = enabled ? 1 : 0;
-                        repMoviePosters.Save(moviePoster);
+                        RepoFactory.MovieDB_Poster.Save(moviePoster);
 
                         break;
 
                     case JMMImageType.MovieDB_FanArt:
 
-                        MovieDB_FanartRepository repMovieFanart = new MovieDB_FanartRepository();
-                        MovieDB_Fanart movieFanart = repMovieFanart.GetByID(imageID);
+                        MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
 
                         if (movieFanart == null) return "Could not find image";
 
                         movieFanart.Enabled = enabled ? 1 : 0;
-                        repMovieFanart.Save(movieFanart);
+                        RepoFactory.MovieDB_Fanart.Save(movieFanart);
 
                         break;
 
                     case JMMImageType.Trakt_Poster:
 
-                        Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
-                        Trakt_ImagePoster traktPoster = repTraktPosters.GetByID(imageID);
+                        Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(imageID);
 
                         if (traktPoster == null) return "Could not find image";
 
                         traktPoster.Enabled = enabled ? 1 : 0;
-                        repTraktPosters.Save(traktPoster);
+                        RepoFactory.Trakt_ImagePoster.Save(traktPoster);
 
                         break;
 
                     case JMMImageType.Trakt_Fanart:
 
-                        Trakt_ImageFanartRepository repTraktFanart = new Trakt_ImageFanartRepository();
-                        Trakt_ImageFanart traktFanart = repTraktFanart.GetByID(imageID);
+                        Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(imageID);
 
                         if (traktFanart == null) return "Could not find image";
 
-                        traktFanart.Enabled = enabled ? 1 : 0;
-                        repTraktFanart.Save(traktFanart);
+                        traktFanart.Enabled = enabled ? 1 : 0; 
+                        RepoFactory.Trakt_ImageFanart.Save(traktFanart);
 
                         break;
                 }
@@ -4860,7 +4647,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -4869,7 +4656,6 @@ namespace JMMServer
         {
             try
             {
-                AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
 
                 JMMImageType imgType = (JMMImageType) imageType;
                 ImageSizeType sizeType = ImageSizeType.Poster;
@@ -4899,14 +4685,14 @@ namespace JMMServer
                     // this mean we are removing an image as deafult
                     // which esssential means deleting the record
 
-                    AniDB_Anime_DefaultImage img = repDefaults.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
+                    AniDB_Anime_DefaultImage img = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
                     if (img != null)
-                        repDefaults.Delete(img.AniDB_Anime_DefaultImageID);
+                        RepoFactory.AniDB_Anime_DefaultImage.Delete(img.AniDB_Anime_DefaultImageID);
                 }
                 else
                 {
                     // making the image the default for it's type (poster, fanart etc)
-                    AniDB_Anime_DefaultImage img = repDefaults.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
+                    AniDB_Anime_DefaultImage img = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
                     if (img == null)
                         img = new AniDB_Anime_DefaultImage();
 
@@ -4914,18 +4700,17 @@ namespace JMMServer
                     img.ImageParentID = imageID;
                     img.ImageParentType = (int) imgType;
                     img.ImageType = (int) sizeType;
-                    repDefaults.Save(img);
+                    RepoFactory.AniDB_Anime_DefaultImage.Save(img);
                 }
 
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries series = repSeries.GetByAnimeID(animeID);
-                repSeries.Save(series,false);
+                AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                RepoFactory.AnimeSeries.Save(series,false);
 
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -4941,7 +4726,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return false;
             }
         }
@@ -4971,7 +4756,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -4992,7 +4777,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5007,7 +4792,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5020,7 +4805,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5034,12 +4819,10 @@ namespace JMMServer
             try
             {
                 // Get all the links for this user and anime
-                CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-                List<CrossRef_AniDB_TvDBV2> xrefs = repCrossRef.GetByAnimeID(animeID);
+                List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(animeID);
                 if (xrefs == null) return "No Links found to use";
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return "Anime not found";
 
                 // make sure the user doesn't alreday have links
@@ -5091,7 +4874,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5108,7 +4891,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5121,7 +4904,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5135,12 +4918,10 @@ namespace JMMServer
             try
             {
                 // Get all the links for this user and anime
-                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-                List<CrossRef_AniDB_TraktV2> xrefs = repCrossRef.GetByAnimeID(animeID);
+                List<CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
                 if (xrefs == null) return "No Links found to use";
 
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return "Anime not found";
 
                 // make sure the user doesn't alreday have links
@@ -5194,7 +4975,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5225,7 +5006,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5235,20 +5016,11 @@ namespace JMMServer
         {
             try
             {
-                List<Contract_CrossRef_AniDB_TvDBV2> ret = new List<Contract_CrossRef_AniDB_TvDBV2>();
-
-                CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-                List<CrossRef_AniDB_TvDBV2> xrefs = repCrossRef.GetByAnimeID(animeID);
-                if (xrefs == null) return ret;
-
-                foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-                    ret.Add(xref.ToContract());
-
-                return ret;
+                return RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(animeID).Select(a => a.ToContract()).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5257,19 +5029,11 @@ namespace JMMServer
         {
             try
             {
-                List<Contract_CrossRef_AniDB_TvDB_Episode> contracts = new List<Contract_CrossRef_AniDB_TvDB_Episode>();
-
-                CrossRef_AniDB_TvDB_EpisodeRepository repCrossRef = new CrossRef_AniDB_TvDB_EpisodeRepository();
-                List<CrossRef_AniDB_TvDB_Episode> xrefs = repCrossRef.GetByAnimeID(animeID);
-
-                foreach (CrossRef_AniDB_TvDB_Episode xref in xrefs)
-                    contracts.Add(xref.ToContract());
-
-                return contracts;
+                return RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID).Select(a=>a.ToContract()).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5289,7 +5053,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return results;
             }
         }
@@ -5303,14 +5067,13 @@ namespace JMMServer
                 // refresh data from TvDB
                 JMMService.TvdbHelper.UpdateAllInfoAndImages(seriesID, true, false);
 
-                TvDB_EpisodeRepository repEps = new TvDB_EpisodeRepository();
-                seasonNumbers = repEps.GetSeasonNumbersForSeries(seriesID);
+                seasonNumbers = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(seriesID);
 
                 return seasonNumbers;
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return seasonNumbers;
             }
         }
@@ -5320,25 +5083,23 @@ namespace JMMServer
         {
             try
             {
-                CrossRef_AniDB_TvDBV2Repository repXref = new CrossRef_AniDB_TvDBV2Repository();
-
+            
                 if (crossRef_AniDB_TvDBV2ID.HasValue)
                 {
-                    CrossRef_AniDB_TvDBV2 xrefTemp = repXref.GetByID(crossRef_AniDB_TvDBV2ID.Value);
+                    CrossRef_AniDB_TvDBV2 xrefTemp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByID(crossRef_AniDB_TvDBV2ID.Value);
                     // delete the existing one if we are updating
                     TvDBHelper.RemoveLinkAniDBTvDB(xrefTemp.AnimeID, (enEpisodeType) xrefTemp.AniDBStartEpisodeType,
                         xrefTemp.AniDBStartEpisodeNumber,
                         xrefTemp.TvDBID, xrefTemp.TvDBSeasonNumber, xrefTemp.TvDBStartEpisodeNumber);
                 }
 
-                CrossRef_AniDB_TvDBV2 xref = repXref.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID, aniEpType,
+                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID, aniEpType,
                     aniEpNumber);
                 if (xref != null)
                 {
                     string msg = string.Format("You have already linked Anime ID {0} to this TvDB show/season/ep",
                         xref.AnimeID);
-                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                     if (anime != null)
                     {
                         msg = string.Format("You have already linked Anime {0} ({1}) to this TvDB show/season/ep",
@@ -5356,7 +5117,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5371,7 +5132,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5385,20 +5146,17 @@ namespace JMMServer
         {
             try
             {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
                 if (ser == null) return "Could not find Series for Anime!";
 
-                CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
-                List<CrossRef_AniDB_TvDBV2> xrefs = repCrossRef.GetByAnimeID(animeID);
+                List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(animeID);
                 if (xrefs == null) return "";
 
-                AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
                 foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
                 {
                     // check if there are default images used associated
-                    List<AniDB_Anime_DefaultImage> images = repDefaults.GetByAnimeID(animeID);
+                    List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                     foreach (AniDB_Anime_DefaultImage image in images)
                     {
                         if (image.ImageParentType == (int) JMMImageType.TvDB_Banner ||
@@ -5406,7 +5164,7 @@ namespace JMMServer
                             image.ImageParentType == (int) JMMImageType.TvDB_FanArt)
                         {
                             if (image.ImageParentID == xref.TvDBID)
-                                repDefaults.Delete(image.AniDB_Anime_DefaultImageID);
+                                RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                         }
                     }
 
@@ -5419,7 +5177,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5429,14 +5187,12 @@ namespace JMMServer
         {
             try
             {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
                 if (ser == null) return "Could not find Series for Anime!";
 
                 // check if there are default images used associated
-                AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
-                List<AniDB_Anime_DefaultImage> images = repDefaults.GetByAnimeID(animeID);
+                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                 foreach (AniDB_Anime_DefaultImage image in images)
                 {
                     if (image.ImageParentType == (int) JMMImageType.TvDB_Banner ||
@@ -5444,7 +5200,7 @@ namespace JMMServer
                         image.ImageParentType == (int) JMMImageType.TvDB_FanArt)
                     {
                         if (image.ImageParentID == tvDBID)
-                            repDefaults.Delete(image.AniDB_Anime_DefaultImageID);
+                            RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                     }
                 }
 
@@ -5455,7 +5211,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5464,23 +5220,21 @@ namespace JMMServer
         {
             try
             {
-                CrossRef_AniDB_TvDB_EpisodeRepository repXrefs = new CrossRef_AniDB_TvDB_EpisodeRepository();
-                AniDB_EpisodeRepository repEps = new AniDB_EpisodeRepository();
-                AniDB_Episode ep = repEps.GetByEpisodeID(aniDBEpisodeID);
+                AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(aniDBEpisodeID);
 
                 if (ep == null) return "Could not find Episode";
 
-                CrossRef_AniDB_TvDB_Episode xref = repXrefs.GetByAniDBEpisodeID(aniDBEpisodeID);
+                CrossRef_AniDB_TvDB_Episode xref = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aniDBEpisodeID);
                 if (xref == null) return "Could not find Link!";
 
 
-                repXrefs.Delete(xref.CrossRef_AniDB_TvDB_EpisodeID);
+                RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(xref.CrossRef_AniDB_TvDB_EpisodeID);
 
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5490,12 +5244,11 @@ namespace JMMServer
             List<Contract_TvDB_ImagePoster> allImages = new List<Contract_TvDB_ImagePoster>();
             try
             {
-                TvDB_ImagePosterRepository repImages = new TvDB_ImagePosterRepository();
-                List<TvDB_ImagePoster> allPosters = null;
+                List<TvDB_ImagePoster> allPosters;
                 if (tvDBID.HasValue)
-                    allPosters = repImages.GetBySeriesID(tvDBID.Value);
+                    allPosters = RepoFactory.TvDB_ImagePoster.GetBySeriesID(tvDBID.Value);
                 else
-                    allPosters = repImages.GetAll();
+                    allPosters = RepoFactory.TvDB_ImagePoster.GetAll();
 
                 foreach (TvDB_ImagePoster img in allPosters)
                     allImages.Add(img.ToContract());
@@ -5504,7 +5257,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return allImages;
             }
         }
@@ -5514,12 +5267,11 @@ namespace JMMServer
             List<Contract_TvDB_ImageWideBanner> allImages = new List<Contract_TvDB_ImageWideBanner>();
             try
             {
-                TvDB_ImageWideBannerRepository repImages = new TvDB_ImageWideBannerRepository();
-                List<TvDB_ImageWideBanner> allBanners = null;
+                List<TvDB_ImageWideBanner> allBanners;
                 if (tvDBID.HasValue)
-                    allBanners = repImages.GetBySeriesID(tvDBID.Value);
+                    allBanners = RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(tvDBID.Value);
                 else
-                    allBanners = repImages.GetAll();
+                    allBanners = RepoFactory.TvDB_ImageWideBanner.GetAll();
 
                 foreach (TvDB_ImageWideBanner img in allBanners)
                     allImages.Add(img.ToContract());
@@ -5528,7 +5280,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return allImages;
             }
         }
@@ -5538,12 +5290,11 @@ namespace JMMServer
             List<Contract_TvDB_ImageFanart> allImages = new List<Contract_TvDB_ImageFanart>();
             try
             {
-                TvDB_ImageFanartRepository repImages = new TvDB_ImageFanartRepository();
-                List<TvDB_ImageFanart> allFanart = null;
+                List<TvDB_ImageFanart> allFanart;
                 if (tvDBID.HasValue)
-                    allFanart = repImages.GetBySeriesID(tvDBID.Value);
+                    allFanart = RepoFactory.TvDB_ImageFanart.GetBySeriesID(tvDBID.Value);
                 else
-                    allFanart = repImages.GetAll();
+                    allFanart = RepoFactory.TvDB_ImageFanart.GetAll();
 
                 foreach (TvDB_ImageFanart img in allFanart)
                     allImages.Add(img.ToContract());
@@ -5552,7 +5303,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return allImages;
             }
         }
@@ -5562,12 +5313,11 @@ namespace JMMServer
             List<Contract_TvDB_Episode> allImages = new List<Contract_TvDB_Episode>();
             try
             {
-                TvDB_EpisodeRepository repImages = new TvDB_EpisodeRepository();
-                List<TvDB_Episode> allEpisodes = null;
+                List<TvDB_Episode> allEpisodes;
                 if (tvDBID.HasValue)
-                    allEpisodes = repImages.GetBySeriesID(tvDBID.Value);
+                    allEpisodes = RepoFactory.TvDB_Episode.GetBySeriesID(tvDBID.Value);
                 else
-                    allEpisodes = repImages.GetAll();
+                    allEpisodes = RepoFactory.TvDB_Episode.GetAll();
 
                 foreach (TvDB_Episode img in allEpisodes)
                     allImages.Add(img.ToContract());
@@ -5576,7 +5326,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return allImages;
             }
         }
@@ -5590,12 +5340,11 @@ namespace JMMServer
             List<Contract_Trakt_ImageFanart> allImages = new List<Contract_Trakt_ImageFanart>();
             try
             {
-                Trakt_ImageFanartRepository repImages = new Trakt_ImageFanartRepository();
-                List<Trakt_ImageFanart> allFanart = null;
+                List<Trakt_ImageFanart> allFanart;
                 if (traktShowID.HasValue)
-                    allFanart = repImages.GetByShowID(traktShowID.Value);
+                    allFanart = RepoFactory.Trakt_ImageFanart.GetByShowID(traktShowID.Value);
                 else
-                    allFanart = repImages.GetAll();
+                    allFanart = RepoFactory.Trakt_ImageFanart.GetAll();
 
                 foreach (Trakt_ImageFanart img in allFanart)
                     allImages.Add(img.ToContract());
@@ -5604,7 +5353,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return allImages;
             }
         }
@@ -5614,12 +5363,11 @@ namespace JMMServer
             List<Contract_Trakt_ImagePoster> allImages = new List<Contract_Trakt_ImagePoster>();
             try
             {
-                Trakt_ImagePosterRepository repImages = new Trakt_ImagePosterRepository();
-                List<Trakt_ImagePoster> allPosters = null;
+                List<Trakt_ImagePoster> allPosters;
                 if (traktShowID.HasValue)
-                    allPosters = repImages.GetByShowID(traktShowID.Value);
+                    allPosters = RepoFactory.Trakt_ImagePoster.GetByShowID(traktShowID.Value);
                 else
-                    allPosters = repImages.GetAll();
+                    allPosters = RepoFactory.Trakt_ImagePoster.GetAll();
 
                 foreach (Trakt_ImagePoster img in allPosters)
                     allImages.Add(img.ToContract());
@@ -5628,7 +5376,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return allImages;
             }
         }
@@ -5638,12 +5386,11 @@ namespace JMMServer
             List<Contract_Trakt_Episode> allEps = new List<Contract_Trakt_Episode>();
             try
             {
-                Trakt_EpisodeRepository repEpisodes = new Trakt_EpisodeRepository();
-                List<Trakt_Episode> allEpisodes = null;
+                List<Trakt_Episode> allEpisodes;
                 if (traktShowID.HasValue)
-                    allEpisodes = repEpisodes.GetByShowID(traktShowID.Value);
+                    allEpisodes = RepoFactory.Trakt_Episode.GetByShowID(traktShowID.Value);
                 else
-                    allEpisodes = repEpisodes.GetAll();
+                    allEpisodes = RepoFactory.Trakt_Episode.GetAll();
 
                 foreach (Trakt_Episode ep in allEpisodes)
                     allEps.Add(ep.ToContract());
@@ -5652,7 +5399,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return allEps;
             }
         }
@@ -5662,8 +5409,7 @@ namespace JMMServer
             List<Contract_Trakt_Episode> allEps = new List<Contract_Trakt_Episode>();
             try
             {
-                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-                Trakt_Show show = repShows.GetByTraktSlug(traktID);
+                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
                 if (show != null)
                     allEps = GetAllTraktEpisodes(show.Trakt_ShowID);
 
@@ -5671,7 +5417,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return allEps;
             }
         }
@@ -5697,7 +5443,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5707,26 +5453,24 @@ namespace JMMServer
         {
             try
             {
-                CrossRef_AniDB_TraktV2Repository repXref = new CrossRef_AniDB_TraktV2Repository();
 
                 if (crossRef_AniDB_TraktV2ID.HasValue)
                 {
-                    CrossRef_AniDB_TraktV2 xrefTemp = repXref.GetByID(crossRef_AniDB_TraktV2ID.Value);
+                    CrossRef_AniDB_TraktV2 xrefTemp = RepoFactory.CrossRef_AniDB_TraktV2.GetByID(crossRef_AniDB_TraktV2ID.Value);
                     // delete the existing one if we are updating
                     TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (enEpisodeType) xrefTemp.AniDBStartEpisodeType,
                         xrefTemp.AniDBStartEpisodeNumber,
                         xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
                 }
 
-                CrossRef_AniDB_TraktV2 xref = repXref.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID,
+                CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID,
                     aniEpType,
                     aniEpNumber);
                 if (xref != null)
                 {
                     string msg = string.Format("You have already linked Anime ID {0} to this Trakt show/season/ep",
                         xref.AnimeID);
-                    AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                    AniDB_Anime anime = repAnime.GetByAnimeID(xref.AnimeID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                     if (anime != null)
                     {
                         msg = string.Format("You have already linked Anime {0} ({1}) to this Trakt show/season/ep",
@@ -5742,7 +5486,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5754,8 +5498,7 @@ namespace JMMServer
             {
                 List<Contract_CrossRef_AniDB_TraktV2> contracts = new List<Contract_CrossRef_AniDB_TraktV2>();
 
-                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-                List<CrossRef_AniDB_TraktV2> xrefs = repCrossRef.GetByAnimeID(animeID);
+                List<CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
                 if (xrefs == null) return contracts;
 
                 foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
@@ -5765,7 +5508,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5774,20 +5517,11 @@ namespace JMMServer
         {
             try
             {
-                List<Contract_CrossRef_AniDB_Trakt_Episode> contracts =
-                    new List<Contract_CrossRef_AniDB_Trakt_Episode>();
-
-                CrossRef_AniDB_Trakt_EpisodeRepository repCrossRef = new CrossRef_AniDB_Trakt_EpisodeRepository();
-                List<CrossRef_AniDB_Trakt_Episode> xrefs = repCrossRef.GetByAnimeID(animeID);
-
-                foreach (CrossRef_AniDB_Trakt_Episode xref in xrefs)
-                    contracts.Add(xref.ToContract());
-
-                return contracts;
+                return RepoFactory.CrossRef_AniDB_Trakt_Episode.GetByAnimeID(animeID).Select(a=>a.ToContract()).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5806,7 +5540,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return results;
             }
         }
@@ -5815,25 +5549,22 @@ namespace JMMServer
         {
             try
             {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
                 if (ser == null) return "Could not find Series for Anime!";
 
                 // check if there are default images used associated
-                AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
-                List<AniDB_Anime_DefaultImage> images = repDefaults.GetByAnimeID(animeID);
+                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                 foreach (AniDB_Anime_DefaultImage image in images)
                 {
                     if (image.ImageParentType == (int) JMMImageType.Trakt_Fanart ||
                         image.ImageParentType == (int) JMMImageType.Trakt_Poster)
                     {
-                        repDefaults.Delete(image.AniDB_Anime_DefaultImageID);
+                        RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                     }
                 }
 
-                CrossRef_AniDB_TraktV2Repository repXrefTrakt = new CrossRef_AniDB_TraktV2Repository();
-                foreach (CrossRef_AniDB_TraktV2 xref in repXrefTrakt.GetByAnimeID(animeID))
+                foreach (CrossRef_AniDB_TraktV2 xref in RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID))
                 {
                     TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (enEpisodeType) xref.AniDBStartEpisodeType,
                         xref.AniDBStartEpisodeNumber,
@@ -5844,7 +5575,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5855,20 +5586,18 @@ namespace JMMServer
         {
             try
             {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries ser = repSeries.GetByAnimeID(animeID);
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
                 if (ser == null) return "Could not find Series for Anime!";
 
                 // check if there are default images used associated
-                AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
-                List<AniDB_Anime_DefaultImage> images = repDefaults.GetByAnimeID(animeID);
+                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                 foreach (AniDB_Anime_DefaultImage image in images)
                 {
                     if (image.ImageParentType == (int) JMMImageType.Trakt_Fanart ||
                         image.ImageParentType == (int) JMMImageType.Trakt_Poster)
                     {
-                        repDefaults.Delete(image.AniDB_Anime_DefaultImageID);
+                        RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                     }
                 }
 
@@ -5879,7 +5608,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5892,8 +5621,7 @@ namespace JMMServer
                 // refresh show info including season numbers from trakt
                 TraktV2ShowExtended tvshow = TraktTVHelper.GetShowInfoV2(traktID);
 
-                Trakt_ShowRepository repShows = new Trakt_ShowRepository();
-                Trakt_Show show = repShows.GetByTraktSlug(traktID);
+                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
                 if (show == null) return seasonNumbers;
 
                 foreach (Trakt_Season season in show.Seasons)
@@ -5903,7 +5631,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return seasonNumbers;
             }
         }
@@ -5924,7 +5652,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -5943,7 +5671,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return results;
             }
         }
@@ -5953,15 +5681,13 @@ namespace JMMServer
         {
             try
             {
-                CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-                CrossRef_AniDB_MAL xrefTemp = repCrossRef.GetByMALID(malID);
+                CrossRef_AniDB_MAL xrefTemp = RepoFactory.CrossRef_AniDB_MAL.GetByMALID(malID);
                 if (xrefTemp != null)
                 {
                     string animeName = "";
                     try
                     {
-                        AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                        AniDB_Anime anime = repAnime.GetByAnimeID(xrefTemp.AnimeID);
+                        AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xrefTemp.AnimeID);
                         if (anime != null) animeName = anime.MainTitle;
                     }
                     catch
@@ -5971,11 +5697,11 @@ namespace JMMServer
                         xrefTemp.AnimeID, animeName);
                 }
 
-                xrefTemp = repCrossRef.GetByAnimeConstraint(animeID, epType, epNumber);
+                xrefTemp = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeConstraint(animeID, epType, epNumber);
                 if (xrefTemp != null)
                 {
                     // delete the link first because we are over-writing it
-                    repCrossRef.Delete(xrefTemp.CrossRef_AniDB_MALID);
+                    RepoFactory.CrossRef_AniDB_MAL.Delete(xrefTemp.CrossRef_AniDB_MALID);
                     //return string.Format("Not using MAL link as this Anime ID ({0}) is already in use by {1}/{2}/{3} ({4})", animeID, xrefTemp.MALID, epType, epNumber, xrefTemp.MALTitle);
                 }
 
@@ -5985,7 +5711,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -5995,18 +5721,17 @@ namespace JMMServer
         {
             try
             {
-                CrossRef_AniDB_MALRepository repCrossRef = new CrossRef_AniDB_MALRepository();
-                CrossRef_AniDB_MAL xrefTemp = repCrossRef.GetByAnimeConstraint(animeID, oldEpType, oldEpNumber);
+                CrossRef_AniDB_MAL xrefTemp = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeConstraint(animeID, oldEpType, oldEpNumber);
                 if (xrefTemp == null)
                     return string.Format("Could not find MAL link ({0}/{1}/{2})", animeID, oldEpType, oldEpNumber);
 
-                repCrossRef.Delete(xrefTemp.CrossRef_AniDB_MALID);
+                RepoFactory.CrossRef_AniDB_MAL.Delete(xrefTemp.CrossRef_AniDB_MALID);
 
                 return LinkAniDBMAL(animeID, malID, malTitle, newEpType, newEpNumber);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -6022,7 +5747,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -6043,7 +5768,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -6052,15 +5777,11 @@ namespace JMMServer
         {
             try
             {
-                CrossRef_AniDB_OtherRepository repCrossRef = new CrossRef_AniDB_OtherRepository();
-                CrossRef_AniDB_Other xref = repCrossRef.GetByAnimeIDAndType(animeID, (CrossRefType) crossRefType);
-                if (xref == null) return null;
-
-                return xref.ToContract();
+                return RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, (CrossRefType) crossRefType)?.ToContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -6082,7 +5803,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -6091,8 +5812,7 @@ namespace JMMServer
         {
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
 
                 if (anime == null) return "Could not find Anime!";
 
@@ -6102,14 +5822,13 @@ namespace JMMServer
                     case CrossRefType.MovieDB:
 
                         // check if there are default images used associated
-                        AniDB_Anime_DefaultImageRepository repDefaults = new AniDB_Anime_DefaultImageRepository();
-                        List<AniDB_Anime_DefaultImage> images = repDefaults.GetByAnimeID(animeID);
+                        List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                         foreach (AniDB_Anime_DefaultImage image in images)
                         {
                             if (image.ImageParentType == (int) JMMImageType.MovieDB_FanArt ||
                                 image.ImageParentType == (int) JMMImageType.MovieDB_Poster)
                             {
-                                repDefaults.Delete(image.AniDB_Anime_DefaultImageID);
+                                RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                             }
                         }
 
@@ -6121,7 +5840,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -6144,7 +5863,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return results;
             }
         }
@@ -6154,12 +5873,11 @@ namespace JMMServer
             List<Contract_MovieDB_Poster> allImages = new List<Contract_MovieDB_Poster>();
             try
             {
-                MovieDB_PosterRepository repImages = new MovieDB_PosterRepository();
-                List<MovieDB_Poster> allPosters = null;
+                List<MovieDB_Poster> allPosters;
                 if (movieID.HasValue)
-                    allPosters = repImages.GetByMovieID(movieID.Value);
+                    allPosters = RepoFactory.MovieDB_Poster.GetByMovieID(movieID.Value);
                 else
-                    allPosters = repImages.GetAllOriginal();
+                    allPosters = RepoFactory.MovieDB_Poster.GetAllOriginal();
 
                 foreach (MovieDB_Poster img in allPosters)
                     allImages.Add(img.ToContract());
@@ -6168,7 +5886,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return allImages;
             }
         }
@@ -6178,12 +5896,11 @@ namespace JMMServer
             List<Contract_MovieDB_Fanart> allImages = new List<Contract_MovieDB_Fanart>();
             try
             {
-                MovieDB_FanartRepository repImages = new MovieDB_FanartRepository();
-                List<MovieDB_Fanart> allFanart = null;
+                List<MovieDB_Fanart> allFanart;
                 if (movieID.HasValue)
-                    allFanart = repImages.GetByMovieID(movieID.Value);
+                    allFanart = RepoFactory.MovieDB_Fanart.GetByMovieID(movieID.Value);
                 else
-                    allFanart = repImages.GetAllOriginal();
+                    allFanart = RepoFactory.MovieDB_Fanart.GetAllOriginal();
 
                 foreach (MovieDB_Fanart img in allFanart)
                     allImages.Add(img.ToContract());
@@ -6192,7 +5909,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return allImages;
             }
         }
@@ -6217,23 +5934,20 @@ namespace JMMServer
 
                 if (epNum <= 0) return null;
 
-                AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-                AnimeSeries series = repAnimeSer.GetByID(animeSeriesID);
+                AnimeSeries series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (series == null) return null;
 
-                List<AniDB_Episode> anieps = repAniEps.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID,
+                List<AniDB_Episode> anieps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID,
                     (enEpisodeType) epType,
                     epNum);
                 if (anieps.Count == 0) return null;
 
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeEpisode ep = repEps.GetByAniDBEpisodeID(anieps[0].EpisodeID);
+                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anieps[0].EpisodeID);
                 return ep?.GetUserContract(userID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -6250,23 +5964,20 @@ namespace JMMServer
         {
             try
             {
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-                AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
 
                 // get all the data first
                 // we do this to reduce the amount of database calls, which makes it a lot faster
-                AnimeSeries series = repAnimeSer.GetByID(animeSeriesID);
+                AnimeSeries series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (series == null) return null;
 
                 //List<AnimeEpisode> epList = repEps.GetUnwatchedEpisodes(animeSeriesID, userID);
                 List<AnimeEpisode> epList = new List<AnimeEpisode>();
                 Dictionary<int, AnimeEpisode_User> dictEpUsers = new Dictionary<int, AnimeEpisode_User>();
                 foreach (
-                    AnimeEpisode_User userRecord in repEpUser.GetByUserIDAndSeriesID(userID, animeSeriesID))
+                    AnimeEpisode_User userRecord in RepoFactory.AnimeEpisode_User.GetByUserIDAndSeriesID(userID, animeSeriesID))
                     dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
 
-                foreach (AnimeEpisode animeep in repEps.GetBySeriesID(animeSeriesID))
+                foreach (AnimeEpisode animeep in RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID))
                 {
                     if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
                     {
@@ -6279,8 +5990,7 @@ namespace JMMServer
                         epList.Add(animeep);
                 }
 
-                AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(series.AniDB_ID);
+                List<AniDB_Episode> aniEpList = RepoFactory.AniDB_Episode.GetByAnimeID(series.AniDB_ID);
                 Dictionary<int, AniDB_Episode> dictAniEps = new Dictionary<int, AniDB_Episode>();
                 foreach (AniDB_Episode aniep in aniEpList)
                     dictAniEps[aniep.EpisodeID] = aniep;
@@ -6314,7 +6024,7 @@ namespace JMMServer
                 foreach (Contract_AnimeEpisode canEp in candidateEps.OrderBy(a=>a.EpisodeType).ThenBy(a=>a.EpisodeNumber))
                 {
                     // now refresh from the database to get file count
-                    AnimeEpisode epFresh = repEps.GetByID(canEp.AnimeEpisodeID);
+                    AnimeEpisode epFresh = RepoFactory.AnimeEpisode.GetByID(canEp.AnimeEpisodeID);
                     if (epFresh.GetVideoLocals().Count > 0)
                         return epFresh.GetUserContract(userID);
                 }
@@ -6323,7 +6033,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -6334,10 +6044,9 @@ namespace JMMServer
 
             try
             {
-                AnimeEpisodeRepository repEp = new AnimeEpisodeRepository();
 
                 return
-                    repEp.GetBySeriesID(animeSeriesID).Select(a => a.GetUserContract(userID)).Where(a => a != null)
+                    RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID).Select(a => a.GetUserContract(userID)).Where(a => a != null)
                         .Where(a => a.WatchedCount == 0)
                         .OrderBy(a => a.EpisodeType).ThenBy(a => a.EpisodeNumber)
                         .ToList();
@@ -6416,7 +6125,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ret;
             }
         }
@@ -6425,11 +6134,7 @@ namespace JMMServer
         {
             try
             {
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-
-                AnimeGroup grp = repGroups.GetByID(animeGroupID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
                 if (grp == null) return null;
 
                 List<AnimeSeries> allSeries = grp.GetAllSeries().OrderBy(a=>a.AirDate).ToList();
@@ -6445,7 +6150,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
@@ -6458,15 +6163,12 @@ namespace JMMServer
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
-                    GroupFilterRepository repGF = new GroupFilterRepository();
-                    AnimeGroup_UserRepository repGroupsUser = new AnimeGroup_UserRepository();
-                    JMMUserRepository repUsers = new JMMUserRepository();
-                    JMMUser user = repUsers.GetByID(userID);
+                    JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                     if (user == null) return retEps;
 
                     // find the locked Continue Watching Filter
                     GroupFilter gf = null;
-                    List<GroupFilter> lockedGFs = repGF.GetLockedGroupFilters();
+                    List<GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
                     if (lockedGFs != null)
                     {
                         // if it already exists we can leave
@@ -6482,9 +6184,8 @@ namespace JMMServer
 
                     if ((gf == null) || !gf.GroupsIds.ContainsKey(userID))
                         return retEps;
-                    AnimeGroupRepository repGroups = new AnimeGroupRepository();
                     IEnumerable<Contract_AnimeGroup> comboGroups =
-                        gf.GroupsIds[userID].Select(a => repGroups.GetByID(a))
+                        gf.GroupsIds[userID].Select(a => RepoFactory.AnimeGroup.GetByID(a))
                             .Where(a => a != null)
                             .Select(a => a.GetUserContract(userID));
                             
@@ -6493,10 +6194,10 @@ namespace JMMServer
                     // apply sorting
                     comboGroups = GroupFilterHelper.Sort(comboGroups, gf);
 
-                    AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+
                     foreach (Contract_AnimeGroup grp in comboGroups)
                     {
-                        List<AnimeSeries> sers = repSeries.GetByGroupID(grp.AnimeGroupID).OrderBy(a=>a.AirDate).ToList();
+                        List<AnimeSeries> sers = RepoFactory.AnimeSeries.GetByGroupID(grp.AnimeGroupID).OrderBy(a=>a.AirDate).ToList();
 
                         List<int> seriesWatching = new List<int>();
 
@@ -6540,7 +6241,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return retEps;
         }
@@ -6558,18 +6259,14 @@ namespace JMMServer
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
-                    AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                    AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-                    AnimeSeries_UserRepository repSeriesUser = new AnimeSeries_UserRepository();
-                    JMMUserRepository repUsers = new JMMUserRepository();
 
                     DateTime start = DateTime.Now;
 
-                    JMMUser user = repUsers.GetByID(jmmuserID);
+                    JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retEps;
 
                     // get a list of series that is applicable
-                    List<AnimeSeries_User> allSeriesUser = repSeriesUser.GetMostRecentlyWatched(jmmuserID);
+                    List<AnimeSeries_User> allSeriesUser = RepoFactory.AnimeSeries_User.GetMostRecentlyWatched(jmmuserID);
 
                     TimeSpan ts = DateTime.Now - start;
                     logger.Info(string.Format("GetEpisodesToWatch_RecentlyWatched:Series: {0}", ts.TotalMilliseconds));
@@ -6577,7 +6274,7 @@ namespace JMMServer
 
                     foreach (AnimeSeries_User userRecord in allSeriesUser)
                     {
-                        AnimeSeries series = repAnimeSer.GetByID(userRecord.AnimeSeriesID);
+                        AnimeSeries series = RepoFactory.AnimeSeries.GetByID(userRecord.AnimeSeriesID);
                         if (series == null) continue;
 
                         if (!user.AllowedSeries(series)) continue;
@@ -6603,7 +6300,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return retEps;
@@ -6614,12 +6311,10 @@ namespace JMMServer
             List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
             try
             {
-                AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-
+                
                 return
-                    repEpUser.GetMostRecentlyWatched(jmmuserID, maxRecords)
-                        .Select(a => repEps.GetByID(a.AnimeEpisodeID).GetUserContract(jmmuserID))
+                    RepoFactory.AnimeEpisode_User.GetMostRecentlyWatched(jmmuserID, maxRecords)
+                        .Select(a => RepoFactory.AnimeEpisode.GetByID(a.AnimeEpisodeID).GetUserContract(jmmuserID))
                         .ToList();
                 /*
                                 using (var session = JMMService.SessionFactory.OpenSession())
@@ -6650,7 +6345,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return retEps;
@@ -6660,16 +6355,11 @@ namespace JMMServer
         {
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
-                {
-                    VideoLocalRepository repVids = new VideoLocalRepository();
-                    List<VideoLocal> vids = repVids.GetAll();
-                    return vids;
-                }
+                return RepoFactory.VideoLocal.GetAll();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return new List<VideoLocal>();
             }
         }
@@ -6678,16 +6368,11 @@ namespace JMMServer
         {
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
-                {
-                    VideoLocalRepository repVids = new VideoLocalRepository();
-                    VideoLocal vid = repVids.GetByID(id);
-                    return vid;
-                }
+                return RepoFactory.VideoLocal.GetByID(id);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return new VideoLocal();
             }
         }
@@ -6696,16 +6381,11 @@ namespace JMMServer
         {
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
-                {
-                    VideoLocalRepository repVids = new VideoLocalRepository();
-                    List<VideoLocal> vids = repVids.GetMostRecentlyAdded(max_records);
-                    return vids;
-                }
+                return RepoFactory.VideoLocal.GetMostRecentlyAdded(max_records);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return new List<VideoLocal>();
             }
         }
@@ -6718,15 +6398,12 @@ namespace JMMServer
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
-                    AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                    AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
-                    JMMUserRepository repUsers = new JMMUserRepository();
-                    VideoLocalRepository repVids = new VideoLocalRepository();
 
-                    JMMUser user = repUsers.GetByID(jmmuserID);
+
+                    JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retEps;
 
-                    List<VideoLocal> vids = repVids.GetMostRecentlyAdded(maxRecords);
+                    List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords);
                     int numEps = 0;
                     List<string> hashes = vids.Where(a => !string.IsNullOrEmpty(a.Hash)).Select(a => a.Hash).ToList();
                     foreach (string s in hashes)
@@ -6752,7 +6429,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return retEps;
@@ -6763,16 +6440,10 @@ namespace JMMServer
             List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
             try
             {
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                JMMUserRepository repUsers = new JMMUserRepository();
-                VideoLocalRepository repVids = new VideoLocalRepository();
 
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
-                    JMMUser user = repUsers.GetByID(jmmuserID);
+                    JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retEps;
 
                     DateTime start = DateTime.Now;
@@ -6794,12 +6465,12 @@ namespace JMMServer
                     {
                         int animeSeriesID = int.Parse(res[0].ToString());
 
-                        AnimeSeries ser = repSeries.GetByID(animeSeriesID);
+                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                         if (ser == null) continue;
 
                         if (!user.AllowedSeries(ser)) continue;
 
-                        List<VideoLocal> vids = repVids.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
+                        List<VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
                         if (vids.Count == 0) continue;
 
                         List<AnimeEpisode> eps = vids[0].GetAnimeEpisodes();
@@ -6828,7 +6499,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return retEps;
@@ -6841,14 +6512,12 @@ namespace JMMServer
             {
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
-                    JMMUserRepository repUsers = new JMMUserRepository();
-                    AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
-                    JMMUser user = repUsers.GetByID(jmmuserID);
+
+                    JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retSeries;
 
-                    List<AnimeSeries> series = repSeries.GetMostRecentlyAdded(maxRecords);
+                    List<AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(maxRecords);
                     int numSeries = 0;
                     foreach (AnimeSeries ser in series)
                     {
@@ -6869,7 +6538,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return retSeries;
@@ -6879,8 +6548,7 @@ namespace JMMServer
         {
             try
             {
-                AnimeEpisode_UserRepository repEpUser = new AnimeEpisode_UserRepository();
-                return repEpUser.GetLastWatchedEpisodeForSeries(animeSeriesID, jmmuserID)?.Contract;
+                return RepoFactory.AnimeEpisode_User.GetLastWatchedEpisodeForSeries(animeSeriesID, jmmuserID)?.Contract;
                 /*
                                 using (var session = JMMService.SessionFactory.OpenSession())
                                 {
@@ -6901,7 +6569,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return null;
@@ -6918,13 +6586,7 @@ namespace JMMServer
         {
             try
             {
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal_PlaceRepository repPlaces = new VideoLocal_PlaceRepository();
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
-
-                AnimeSeries ser = repAnimeSer.GetByID(animeSeriesID);
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null) return "Series does not exist";
 
                 int animeGroupID = ser.AnimeGroupID;
@@ -6964,18 +6626,18 @@ namespace JMMServer
                                     return $"Unable to delete file '{place.FullServerPath}'";
                                 }
                             }
-                            repPlaces.Delete(place.VideoLocal_Place_ID);
+                            RepoFactory.VideoLocalPlace.Delete(place.VideoLocal_Place_ID);
                         }
                         CommandRequest_DeleteFileFromMyList cmdDel = new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
                         cmdDel.Save();
-                        repVids.Delete(vid.VideoLocalID);
+                        RepoFactory.VideoLocal.Delete(vid.VideoLocalID);
                     }
-                    repEps.Delete(ep.AnimeEpisodeID);
+                    RepoFactory.AnimeEpisode.Delete(ep.AnimeEpisodeID);
                 }
-                repAnimeSer.Delete(ser.AnimeSeriesID);
+                RepoFactory.AnimeSeries.Delete(ser.AnimeSeriesID);
 
                 // finally update stats
-                AnimeGroup grp = repGroups.GetByID(animeGroupID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
                 if (grp != null)
                 {
                     if (grp.GetAllSeries().Count == 0)
@@ -6993,7 +6655,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -7001,39 +6663,37 @@ namespace JMMServer
 
         public List<Contract_AnimeSeries> GetSeriesWithMissingEpisodes(int maxRecords, int jmmuserID)
         {
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-            JMMUserRepository repUsers = new JMMUserRepository();
+
             try
             {
-                JMMUser user = repUsers.GetByID(jmmuserID);
+                JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                 if (user != null)
                     return
-                        repSeries.GetWithMissingEpisodes()
+                        RepoFactory.AnimeSeries.GetWithMissingEpisodes()
                             .Select(a => a.GetUserContract(jmmuserID))
                             .Where(a => a != null)
                             .ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return new List<Contract_AnimeSeries>();
         }
 
         public List<Contract_AniDBAnime> GetMiniCalendar(int jmmuserID, int numberOfDays)
         {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            JMMUserRepository repUsers = new JMMUserRepository();
+
 
             // get all the series
             List<Contract_AniDBAnime> animeList = new List<Contract_AniDBAnime>();
 
             try
             {
-                JMMUser user = repUsers.GetByID(jmmuserID);
+                JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                 if (user == null) return animeList;
 
-                List<AniDB_Anime> animes = repAnime.GetForDate(DateTime.Today.AddDays(0 - numberOfDays),
+                List<AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetForDate(DateTime.Today.AddDays(0 - numberOfDays),
                     DateTime.Today.AddDays(numberOfDays));
                 foreach (AniDB_Anime anime in animes)
                 {
@@ -7045,29 +6705,26 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return animeList;
         }
 
         public List<Contract_AniDBAnime> GetAnimeForMonth(int jmmuserID, int month, int year)
         {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            JMMUserRepository repUsers = new JMMUserRepository();
-
             // get all the series
             List<Contract_AniDBAnime> animeList = new List<Contract_AniDBAnime>();
 
             try
             {
-                JMMUser user = repUsers.GetByID(jmmuserID);
+                JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                 if (user == null) return animeList;
 
                 DateTime startDate = new DateTime(year, month, 1, 0, 0, 0);
                 DateTime endDate = startDate.AddMonths(1);
                 endDate = endDate.AddMinutes(-10);
 
-                List<AniDB_Anime> animes = repAnime.GetForDate(startDate, endDate);
+                List<AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetForDate(startDate, endDate);
                 foreach (AniDB_Anime anime in animes)
                 {
                     if (anime?.Contract?.AniDBAnime == null)
@@ -7078,7 +6735,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return animeList;
         }
@@ -7104,7 +6761,7 @@ namespace JMMServer
 			}
 			catch (Exception ex)
 			{
-				logger.ErrorException(ex.ToString(), ex);
+				logger.Error( ex,ex.ToString());
 			}
 			return animeList;
 		}*/
@@ -7113,46 +6770,42 @@ namespace JMMServer
         {
             try
             {
-                JMMUserRepository repUsers = new JMMUserRepository();
-                return repUsers.GetAll().Select(a => a.Contract).ToList();
+                return RepoFactory.JMMUser.GetAll().Select(a => a.Contract).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return new List<Contract_JMMUser>();
             }
         }
 
         public Contract_JMMUser AuthenticateUser(string username, string password)
         {
-            JMMUserRepository repUsers = new JMMUserRepository();
 
             try
             {
-                return repUsers.AuthenticateUser(username, password)?.Contract;
+                return RepoFactory.JMMUser.AuthenticateUser(username, password)?.Contract;
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return null;
             }
         }
 
         public string ChangePassword(int userID, string newPassword)
         {
-            JMMUserRepository repUsers = new JMMUserRepository();
-
             try
             {
-                JMMUser jmmUser = repUsers.GetByID(userID);
+                JMMUser jmmUser = RepoFactory.JMMUser.GetByID(userID);
                 if (jmmUser == null) return "User not found";
 
                 jmmUser.Password = Digest.Hash(newPassword);
-                repUsers.Save(jmmUser, false);
+                RepoFactory.JMMUser.Save(jmmUser, false);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
 
@@ -7161,8 +6814,7 @@ namespace JMMServer
 
         public string SaveUser(Contract_JMMUser user)
         {
-            JMMUserRepository repUsers = new JMMUserRepository();
-
+            
             try
             {
                 bool existingUser = false;
@@ -7171,7 +6823,7 @@ namespace JMMServer
                 JMMUser jmmUser = null;
                 if (user.JMMUserID.HasValue)
                 {
-                    jmmUser = repUsers.GetByID(user.JMMUserID.Value);
+                    jmmUser = RepoFactory.JMMUser.GetByID(user.JMMUserID.Value);
                     if (jmmUser == null) return "User not found";
                     existingUser = true;
                 }
@@ -7208,7 +6860,7 @@ namespace JMMServer
                 if (jmmUser.IsAdmin == 0)
                 {
                     bool adminExists = false;
-                    List<JMMUser> users = repUsers.GetAll();
+                    List<JMMUser> users = RepoFactory.JMMUser.GetAll();
                     foreach (JMMUser userOld in users)
                     {
                         if (userOld.IsAdmin == 1)
@@ -7229,19 +6881,18 @@ namespace JMMServer
                     if (!adminExists) return "At least one user must be an administrator";
                 }
 
-                repUsers.Save(jmmUser, updateGf);
+                RepoFactory.JMMUser.Save(jmmUser, updateGf);
 
                 // update stats
                 if (updateStats)
                 {
-                    AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                    foreach (AnimeSeries ser in repSeries.GetAll())
+                    foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
                         ser.QueueUpdateStats();
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
 
@@ -7250,18 +6901,17 @@ namespace JMMServer
 
         public string DeleteUser(int userID)
         {
-            JMMUserRepository repUsers = new JMMUserRepository();
-
+            
             try
             {
-                JMMUser jmmUser = repUsers.GetByID(userID);
+                JMMUser jmmUser = RepoFactory.JMMUser.GetByID(userID);
                 if (jmmUser == null) return "User not found";
 
                 // make sure that at least one user is an admin
                 if (jmmUser.IsAdmin == 1)
                 {
                     bool adminExists = false;
-                    List<JMMUser> users = repUsers.GetAll();
+                    List<JMMUser> users = RepoFactory.JMMUser.GetAll();
                     foreach (JMMUser userOld in users)
                     {
                         if (userOld.IsAdmin == 1)
@@ -7273,28 +6923,17 @@ namespace JMMServer
                     if (!adminExists) return "At least one user must be an administrator";
                 }
 
-                repUsers.Delete(userID);
+                RepoFactory.JMMUser.Delete(userID);
 
                 // delete all user records
-                AnimeSeries_UserRepository repSeries = new AnimeSeries_UserRepository();
-                foreach (AnimeSeries_User ser in repSeries.GetByUserID(userID))
-                    repSeries.Delete(ser.AnimeSeries_UserID);
-
-                AnimeGroup_UserRepository repGroup = new AnimeGroup_UserRepository();
-                foreach (AnimeGroup_User grp in repGroup.GetByUserID(userID))
-                    repGroup.Delete(grp.AnimeGroup_UserID);
-
-                AnimeEpisode_UserRepository repEpisode = new AnimeEpisode_UserRepository();
-                foreach (AnimeEpisode_User ep in repEpisode.GetByUserID(userID))
-                    repEpisode.Delete(ep.AnimeEpisode_UserID);
-
-                VideoLocal_UserRepository repVids = new VideoLocal_UserRepository();
-                foreach (VideoLocal_User vid in repVids.GetByUserID(userID))
-                    repVids.Delete(vid.VideoLocal_UserID);
+                RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetByUserID(userID));
+                RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByUserID(userID));
+                RepoFactory.AnimeEpisode_User.Delete(RepoFactory.AnimeEpisode_User.GetByUserID(userID));
+                RepoFactory.VideoLocalUser.Delete(RepoFactory.VideoLocalUser.GetByUserID(userID));
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
 
@@ -7306,26 +6945,23 @@ namespace JMMServer
             List<Contract_AniDB_Anime_Similar> links = new List<Contract_AniDB_Anime_Similar>();
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return links;
 
-                JMMUserRepository repUsers = new JMMUserRepository();
-                JMMUser juser = repUsers.GetByID(userID);
+                JMMUser juser = RepoFactory.JMMUser.GetByID(userID);
                 if (juser == null) return links;
 
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
                 foreach (AniDB_Anime_Similar link in anime.GetSimilarAnime())
                 {
-                    AniDB_Anime animeLink = repAnime.GetByAnimeID(link.SimilarAnimeID);
+                    AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.SimilarAnimeID);
                     if (animeLink != null)
                     {
                         if (!juser.AllowedAnime(animeLink)) continue;
                     }
 
                     // check if this anime has a series
-                    AnimeSeries ser = repSeries.GetByAnimeID(link.SimilarAnimeID);
+                    AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
 
                     links.Add(link.ToContract(animeLink, ser, userID));
                 }
@@ -7334,7 +6970,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return links;
             }
         }
@@ -7344,26 +6980,23 @@ namespace JMMServer
             List<Contract_AniDB_Anime_Relation> links = new List<Contract_AniDB_Anime_Relation>();
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return links;
 
-                JMMUserRepository repUsers = new JMMUserRepository();
-                JMMUser juser = repUsers.GetByID(userID);
+                JMMUser juser = RepoFactory.JMMUser.GetByID(userID);
                 if (juser == null) return links;
 
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
                 foreach (AniDB_Anime_Relation link in anime.GetRelatedAnime())
                 {
-                    AniDB_Anime animeLink = repAnime.GetByAnimeID(link.RelatedAnimeID);
+                    AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.RelatedAnimeID);
                     if (animeLink != null)
                     {
                         if (!juser.AllowedAnime(animeLink)) continue;
                     }
 
                     // check if this anime has a series
-                    AnimeSeries ser = repSeries.GetByAnimeID(link.RelatedAnimeID);
+                    AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.RelatedAnimeID);
 
                     links.Add(link.ToContract(animeLink, ser, userID));
                 }
@@ -7372,7 +7005,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return links;
             }
         }
@@ -7389,12 +7022,8 @@ namespace JMMServer
 
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
-                JMMUserRepository repUsers = new JMMUserRepository();
-                JMMUser juser = repUsers.GetByID(userID);
+                JMMUser juser = RepoFactory.JMMUser.GetByID(userID);
                 if (juser == null) return recs;
 
                 // get all the anime the user has chosen to ignore
@@ -7408,15 +7037,14 @@ namespace JMMServer
                         ignoreType = 2;
                         break;
                 }
-                IgnoreAnimeRepository repIgnore = new IgnoreAnimeRepository();
-                List<IgnoreAnime> ignored = repIgnore.GetByUserAndType(userID, ignoreType);
+                List<IgnoreAnime> ignored = RepoFactory.IgnoreAnime.GetByUserAndType(userID, ignoreType);
                 Dictionary<int, IgnoreAnime> dictIgnored = new Dictionary<int, Entities.IgnoreAnime>();
                 foreach (IgnoreAnime ign in ignored)
                     dictIgnored[ign.AnimeID] = ign;
 
 
                 // find all the series which the user has rated
-                List<AniDB_Vote> allVotes = repVotes.GetAll().OrderByDescending(a=>a.VoteValue).ToList();
+                List<AniDB_Vote> allVotes = RepoFactory.AniDB_Vote.GetAll().OrderByDescending(a=>a.VoteValue).ToList();
                 if (allVotes.Count == 0) return recs;
 
 
@@ -7431,7 +7059,7 @@ namespace JMMServer
                     if (dictIgnored.ContainsKey(vote.EntityID)) continue;
 
                     // check if the user has this anime
-                    AniDB_Anime anime = repAnime.GetByAnimeID(vote.EntityID);
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(vote.EntityID);
                     if (anime == null) continue;
 
                     // get similar anime
@@ -7442,7 +7070,7 @@ namespace JMMServer
                     {
                         if (dictIgnored.ContainsKey(link.SimilarAnimeID)) continue;
 
-                        AniDB_Anime animeLink = repAnime.GetByAnimeID(link.SimilarAnimeID);
+                        AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.SimilarAnimeID);
                         if (animeLink != null)
                             if (!juser.AllowedAnime(animeLink)) continue;
 
@@ -7450,7 +7078,7 @@ namespace JMMServer
                         if (animeLink == null && recommendationType == 1) continue;
 
                         // don't recommend to watch series that the user doesn't have
-                        AnimeSeries ser = repSeries.GetByAnimeID(link.SimilarAnimeID);
+                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
                         if (ser == null && recommendationType == 1) continue;
 
 
@@ -7497,7 +7125,7 @@ namespace JMMServer
                         if (ser != null)
                             rec.Recommended_AnimeSeries = ser.GetUserContract(userID);
 
-                        AnimeSeries serBasedOn = repSeries.GetByAnimeID(anime.AnimeID);
+                        AnimeSeries serBasedOn = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
                         if (serBasedOn == null) continue;
 
                         rec.BasedOn_AnimeSeries = serBasedOn.GetUserContract(userID);
@@ -7526,7 +7154,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return recs;
             }
         }
@@ -7558,8 +7186,7 @@ namespace JMMServer
 
             try
             {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                AnimeSeries series = repSeries.GetByAnimeID(animeID);
+                AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                 if (series == null) return relGroups;
 
                 // get a list of all the release groups the user is collecting
@@ -7584,8 +7211,7 @@ namespace JMMServer
                 }
 
                 // get all the release groups for this series
-                AniDB_GroupStatusRepository repGrpStatus = new AniDB_GroupStatusRepository();
-                List<AniDB_GroupStatus> grpStatuses = repGrpStatus.GetByAnimeID(animeID);
+                List<AniDB_GroupStatus> grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(animeID);
                 foreach (AniDB_GroupStatus gs in grpStatuses)
                 {
                     Contract_AniDBReleaseGroup contract = new Contract_AniDBReleaseGroup();
@@ -7609,7 +7235,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return relGroups;
         }
@@ -7620,13 +7246,12 @@ namespace JMMServer
 
             try
             {
-                AniDB_AnimeRepository animerepo = new AniDB_AnimeRepository();
-                AniDB_Anime anime = animerepo.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 return anime.GetCharactersContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return chars;
         }
@@ -7637,26 +7262,20 @@ namespace JMMServer
 
             try
             {
-                AniDB_SeiyuuRepository repSeiyuu = new AniDB_SeiyuuRepository();
-                AniDB_Seiyuu seiyuu = repSeiyuu.GetByID(aniDB_SeiyuuID);
+                AniDB_Seiyuu seiyuu = RepoFactory.AniDB_Seiyuu.GetByID(aniDB_SeiyuuID);
                 if (seiyuu == null) return chars;
 
-                AniDB_Character_SeiyuuRepository repCharSei = new AniDB_Character_SeiyuuRepository();
-                List<AniDB_Character_Seiyuu> links = repCharSei.GetBySeiyuuID(seiyuu.SeiyuuID);
-
-                AniDB_Anime_CharacterRepository repAnimeChar = new AniDB_Anime_CharacterRepository();
-                AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
+                List<AniDB_Character_Seiyuu> links = RepoFactory.AniDB_Character_Seiyuu.GetBySeiyuuID(seiyuu.SeiyuuID);
 
                 foreach (AniDB_Character_Seiyuu chrSei in links)
                 {
-                    AniDB_Character chr = repChar.GetByCharID(chrSei.CharID);
+                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(chrSei.CharID);
                     if (chr != null)
                     {
-                        List<AniDB_Anime_Character> aniChars = repAnimeChar.GetByCharID(chr.CharID);
+                        List<AniDB_Anime_Character> aniChars = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID);
                         if (aniChars.Count > 0)
                         {
-                            AniDB_Anime anime = repAnime.GetByAnimeID(aniChars[0].AnimeID);
+                            AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniChars[0].AnimeID);
                             if (anime != null)
                             {
                                 Contract_AniDB_Character contract = chr.ToContract(aniChars[0].CharType);
@@ -7669,7 +7288,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return chars;
         }
@@ -7683,7 +7302,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -7704,12 +7323,6 @@ namespace JMMServer
 
 			return contracts;*/
 
-            AniDB_FileRepository repAniFile = new AniDB_FileRepository();
-            CrossRef_File_EpisodeRepository repFileEp = new CrossRef_File_EpisodeRepository();
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            AniDB_EpisodeRepository repEpisodes = new AniDB_EpisodeRepository();
-            VideoLocalRepository repVids = new VideoLocalRepository();
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
             Dictionary<int, AniDB_Anime> animeCache = new Dictionary<int, AniDB_Anime>();
             Dictionary<int, AnimeSeries> animeSeriesCache = new Dictionary<int, AnimeSeries>();
@@ -7726,13 +7339,13 @@ namespace JMMServer
                         // let's check if the file on AniDB actually exists in the user's local collection
                         string hash = string.Empty;
 
-                        AniDB_File anifile = repAniFile.GetByFileID(myitem.FileID);
+                        AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
                         if (anifile != null)
                             hash = anifile.Hash;
                         else
                         {
                             // look for manually linked files
-                            List<CrossRef_File_Episode> xrefs = repFileEp.GetByEpisodeID(myitem.EpisodeID);
+                            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
                             foreach (CrossRef_File_Episode xref in xrefs)
                             {
                                 if (xref.CrossRefSource != (int) CrossRefSource.AniDB)
@@ -7749,7 +7362,7 @@ namespace JMMServer
                         else
                         {
                             // now check if the file actually exists on disk
-                            VideoLocal v = repVids.GetByHash(hash);
+                            VideoLocal v = RepoFactory.VideoLocal.GetByHash(hash);
                             fileMissing = true;
                             foreach (VideoLocal_Place p in v.Places)
                             {
@@ -7774,7 +7387,7 @@ namespace JMMServer
                                 anime = animeCache[myitem.AnimeID];
                             else
                             {
-                                anime = repAnime.GetByAnimeID(myitem.AnimeID);
+                                anime = RepoFactory.AniDB_Anime.GetByAnimeID(myitem.AnimeID);
                                 animeCache[myitem.AnimeID] = anime;
                             }
 
@@ -7783,7 +7396,7 @@ namespace JMMServer
                                 ser = animeSeriesCache[myitem.AnimeID];
                             else
                             {
-                                ser = repSeries.GetByAnimeID(myitem.AnimeID);
+                                ser = RepoFactory.AnimeSeries.GetByAnimeID(myitem.AnimeID);
                                 animeSeriesCache[myitem.AnimeID] = ser;
                             }
 
@@ -7793,7 +7406,7 @@ namespace JMMServer
                             missingFile.AnimeTitle = "Data Missing";
                             if (anime != null) missingFile.AnimeTitle = anime.MainTitle;
                             missingFile.EpisodeID = myitem.EpisodeID;
-                            AniDB_Episode ep = repEpisodes.GetByEpisodeID(myitem.EpisodeID);
+                            AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(myitem.EpisodeID);
                             missingFile.EpisodeNumber = -1;
                             missingFile.EpisodeType = 1;
                             if (ep != null)
@@ -7814,7 +7427,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contracts;
         }
@@ -7835,14 +7448,12 @@ namespace JMMServer
         {
             List<Contract_AnimeSeries> contracts = new List<Contract_AnimeSeries>();
 
-            VideoLocalRepository repVids = new VideoLocalRepository();
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
             try
             {
-                foreach (AnimeSeries ser in repSeries.GetAll())
+                foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
                 {
-                    if (repVids.GetByAniDBAnimeID(ser.AniDB_ID).Count == 0)
+                    if (RepoFactory.VideoLocal.GetByAniDBAnimeID(ser.AniDB_ID).Count == 0)
                     {
                         Contract_AnimeSeries can = ser.GetUserContract(userID);
                         if (can != null)
@@ -7852,7 +7463,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contracts;
         }
@@ -7868,7 +7479,6 @@ namespace JMMServer
             int airingState)
         {
             List<Contract_MissingEpisode> contracts = new List<Contract_MissingEpisode>();
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
             AiringState airState = (AiringState) airingState;
 
@@ -7881,7 +7491,7 @@ namespace JMMServer
             try
             {
                 int i = 0;
-                List<AnimeSeries> allSeries = repSeries.GetAll();
+                List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
                 foreach (AnimeSeries ser in allSeries)
                 {
                     i++;
@@ -8024,7 +7634,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contracts;
         }
@@ -8033,16 +7643,13 @@ namespace JMMServer
         {
             try
             {
-                AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                AniDB_Anime anime = repAnime.GetByAnimeID(animeID);
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return;
 
-                JMMUserRepository repUser = new JMMUserRepository();
-                JMMUser user = repUser.GetByID(userID);
+                JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return;
 
-                IgnoreAnimeRepository repIgnore = new IgnoreAnimeRepository();
-                IgnoreAnime ignore = repIgnore.GetByAnimeUserType(animeID, userID, ignoreType);
+                IgnoreAnime ignore = RepoFactory.IgnoreAnime.GetByAnimeUserType(animeID, userID, ignoreType);
                 if (ignore != null) return; // record already exists
 
                 ignore = new IgnoreAnime();
@@ -8050,11 +7657,11 @@ namespace JMMServer
                 ignore.IgnoreType = ignoreType;
                 ignore.JMMUserID = userID;
 
-                repIgnore.Save(ignore);
+                RepoFactory.IgnoreAnime.Save(ignore);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -8071,7 +7678,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return false;
         }
@@ -8081,8 +7688,7 @@ namespace JMMServer
             List<Contract_CrossRef_AniDB_TraktV2> contracts = new List<Contract_CrossRef_AniDB_TraktV2>();
             try
             {
-                CrossRef_AniDB_TraktV2Repository repCrossRef = new CrossRef_AniDB_TraktV2Repository();
-                List<CrossRef_AniDB_TraktV2> allCrossRefs = repCrossRef.GetAll();
+                List<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
 
                 foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
                 {
@@ -8091,7 +7697,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return contracts;
         }
@@ -8102,8 +7708,7 @@ namespace JMMServer
 
             try
             {
-                Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
-
+                
                 List<TraktV2Comment> commentsTemp = TraktTVHelper.GetShowCommentsV2(animeID);
                 if (commentsTemp == null || commentsTemp.Count == 0) return comments;
 
@@ -8111,7 +7716,7 @@ namespace JMMServer
                 {
                     Contract_Trakt_CommentUser comment = new Contract_Trakt_CommentUser();
 
-                    Trakt_Friend traktFriend = repFriends.GetByUsername(sht.user.username);
+                    Trakt_Friend traktFriend = RepoFactory.Trakt_Friend.GetByUsername(sht.user.username);
 
                     // user details
                     comment.User = new Contract_Trakt_User();
@@ -8138,7 +7743,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return comments;
         }
@@ -8147,14 +7752,13 @@ namespace JMMServer
         {
             try
             {
-                AniDB_VoteRepository repVotes = new AniDB_VoteRepository();
-                List<AniDB_Vote> dbVotes = repVotes.GetByEntity(animeID);
+                List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(animeID);
                 if (dbVotes.Count == 0) return null;
                 return dbVotes[0].ToContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return null;
         }
@@ -8163,11 +7767,9 @@ namespace JMMServer
         {
             try
             {
-                AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-                AnimeEpisode ep = repEpisodes.GetByID(animeEpisodeID);
+                AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
                 if (ep == null) return;
 
-                AnimeEpisode_UserRepository repEpisodeUsers = new AnimeEpisode_UserRepository();
                 AnimeEpisode_User epUserRecord = ep.GetUserRecord(userID);
 
                 if (epUserRecord == null)
@@ -8195,12 +7797,11 @@ namespace JMMServer
                         break;
                 }
 
-                repEpisodeUsers.Save(epUserRecord);
+                RepoFactory.AnimeEpisode_User.Save(epUserRecord);
 
                 AnimeSeries ser = ep.GetAnimeSeries();
                 if (ser == null) return;
 
-                AnimeSeries_UserRepository repSeriesUser = new AnimeSeries_UserRepository();
                 AnimeSeries_User userRecord = ser.GetUserRecord(userID);
                 if (userRecord == null)
                     userRecord = new AnimeSeries_User(userID, ser.AnimeSeriesID);
@@ -8218,11 +7819,11 @@ namespace JMMServer
                         break;
                 }
 
-                repSeriesUser.Save(userRecord);
+                RepoFactory.AnimeSeries_User.Save(userRecord);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -8231,18 +7832,16 @@ namespace JMMServer
             List<Contract_IgnoreAnime> retAnime = new List<Contract_IgnoreAnime>();
             try
             {
-                JMMUserRepository repUser = new JMMUserRepository();
-                JMMUser user = repUser.GetByID(userID);
+                JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return retAnime;
 
-                IgnoreAnimeRepository repIgnore = new IgnoreAnimeRepository();
-                List<IgnoreAnime> ignoredAnime = repIgnore.GetByUser(userID);
+                List<IgnoreAnime> ignoredAnime = RepoFactory.IgnoreAnime.GetByUser(userID);
                 foreach (IgnoreAnime ign in ignoredAnime)
                     retAnime.Add(ign.ToContract());
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return retAnime;
@@ -8253,15 +7852,14 @@ namespace JMMServer
         {
             try
             {
-                IgnoreAnimeRepository repIgnore = new IgnoreAnimeRepository();
-                IgnoreAnime ignore = repIgnore.GetByID(ignoreAnimeID);
+                IgnoreAnime ignore = RepoFactory.IgnoreAnime.GetByID(ignoreAnimeID);
                 if (ignore == null) return;
 
-                repIgnore.Delete(ignoreAnimeID);
+                RepoFactory.IgnoreAnime.Delete(ignoreAnimeID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -8269,21 +7867,19 @@ namespace JMMServer
         {
             try
             {
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
-                AnimeGroup grp = repGroups.GetByID(animeGroupID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
                 if (grp == null) return;
 
-                AnimeSeries ser = repSeries.GetByID(animeSeriesID);
+                AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null) return;
 
                 grp.DefaultAnimeSeriesID = animeSeriesID;
-                repGroups.Save(grp, false, false);
+                RepoFactory.AnimeGroup.Save(grp, false, false);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -8291,17 +7887,16 @@ namespace JMMServer
         {
             try
             {
-                AnimeGroupRepository repGroups = new AnimeGroupRepository();
 
-                AnimeGroup grp = repGroups.GetByID(animeGroupID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
                 if (grp == null) return;
 
                 grp.DefaultAnimeSeriesID = null;
-                repGroups.Save(grp, false, false);
+                RepoFactory.AnimeGroup.Save(grp, false, false);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -8318,7 +7913,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return retLanguages;
@@ -8333,12 +7928,11 @@ namespace JMMServer
         {
             try
             {
-                AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
-                return repSeries.GetByID(animeSeriesID)?.TopLevelAnimeGroup?.GetUserContract(userID);
+                return RepoFactory.AnimeSeries.GetByID(animeSeriesID)?.TopLevelAnimeGroup?.GetUserContract(userID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return null;
@@ -8353,16 +7947,14 @@ namespace JMMServer
 				JMMService.CmdProcessorHasher.Paused = true;
 				JMMService.CmdProcessorImages.Paused = true;
 
-				AnimeGroupRepository repGroups = new AnimeGroupRepository();
-				AnimeGroup_UserRepository repGroupUser = new AnimeGroup_UserRepository();
-				AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
+				
 
 				// get all the old groups
-				List<AnimeGroup> oldGroups = repGroups.GetAll();
-				List<AnimeGroup_User> oldGroupUsers = repGroupUser.GetAll();
+				List<AnimeGroup> oldGroups = RepoFactory.AnimeGroup.GetAll();
+				List<AnimeGroup_User> oldGroupUsers = RepoFactory.AnimeGroup_User.GetAll();
 
 				AnimeGroup tempGroup = null;
-				foreach(AnimeGroup temp4 in repGroups.GetAllTopLevelGroups())
+				foreach(AnimeGroup temp4 in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
 				{
 					if(temp4.GroupName.Equals("AAA Migrating Groups AAA"))
 					{
@@ -8382,29 +7974,28 @@ namespace JMMServer
 					tempGroup.SortName = "AAA Migrating Groups AAA";
 					tempGroup.DateTimeUpdated = DateTime.Now;
 					tempGroup.DateTimeCreated = DateTime.Now;
-					repGroups.Save(tempGroup, true, false);
+					RepoFactory.AnimeGroup.Save(tempGroup, true, false);
 				}
 
 				if (!resume) {  
 					// move all series to the new group
-					foreach (AnimeSeries ser in repSeries.GetAll())
+					foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
 					{
 						ser.AnimeGroupID = tempGroup.AnimeGroupID;
-						repSeries.Save(ser, true);
+                        RepoFactory.AnimeSeries.Save(ser, true);
 					}
 
 					// delete all the old groups
 					foreach (AnimeGroup grp in oldGroups)
-						repGroups.Delete(grp.AnimeGroupID);
+						RepoFactory.AnimeGroup.Delete(grp.AnimeGroupID);
 
 					// delete all the old group user records
-					foreach (AnimeGroup_User grpUser in oldGroupUsers)
-						repGroupUser.Delete(grpUser.AnimeGroupID);
+					RepoFactory.AnimeGroup_User.Delete(oldGroupUsers);
 				}
 
 
                 // recreate groups
-                foreach (AnimeSeries ser in repSeries.GetAll())
+                foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
                 {
                     bool createNewGroup = true;
 
@@ -8432,7 +8023,7 @@ namespace JMMServer
                                 {
                                     if (grp.DefaultAnimeSeriesID.HasValue)
                                     {
-                                        name = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value);
+                                        name = RepoFactory.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value);
 										if (name == null)
 										{
 											grp.DefaultAnimeSeriesID = null;
@@ -8492,7 +8083,7 @@ namespace JMMServer
 											}
 										}
 
-                                        repSeries.Save(series, false, true, true);
+                                        RepoFactory.AnimeSeries.Save(series, false, true, true);
 										// I didn't see this called anywhere, it should also fix the new issue with recreated
 										// groups missing all episodes
 										series.UpdateStats(true, true, false);
@@ -8505,17 +8096,17 @@ namespace JMMServer
                             //after moving everything, rename and repopulate
                             if (name != null)
                             {
-                                AnimeGroup grp = repGroups.GetByID(groupID);
+                                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(groupID);
 								string newTitle = name.GetSeriesName();
 								if (grp.DefaultAnimeSeriesID.HasValue &&
 									grp.DefaultAnimeSeriesID.Value != name.AnimeSeriesID)
-									newTitle = new AnimeSeriesRepository().GetByID(grp.DefaultAnimeSeriesID.Value).GetSeriesName();
+									newTitle = RepoFactory.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value).GetSeriesName();
 								if (customGroupName != null) newTitle = customGroupName;
                                 // reset tags, description, etc to new series
                                 grp.Populate(name);
                                 grp.GroupName = newTitle;
                                 grp.SortName = newTitle;
-                                repGroups.Save(grp, false, false);
+                                RepoFactory.AnimeGroup.Save(grp, false, false);
                             }
 
                             #endregion
@@ -8524,7 +8115,7 @@ namespace JMMServer
                             {
                                 if (grp.GetAllSeries().Count == 0)
                                 {
-                                    repGroups.Delete(grp.AnimeGroupID);
+                                    RepoFactory.AnimeGroup.Delete(grp.AnimeGroupID);
                                 }
                             }
                         }
@@ -8534,20 +8125,20 @@ namespace JMMServer
                     {
                         AnimeGroup anGroup = new AnimeGroup();
                         anGroup.Populate(ser);
-                        repGroups.Save(anGroup, true, true);
+                        RepoFactory.AnimeGroup.Save(anGroup, true, true);
 
                         ser.AnimeGroupID = anGroup.AnimeGroupID;
                     }
 
-                    repSeries.Save(ser, false);
+                    RepoFactory.AnimeSeries.Save(ser, false);
                 }
 
                 // delete the temp group
                 if (tempGroup.GetAllSeries().Count == 0)
-                    repGroups.Delete(tempGroup.AnimeGroupID);
+                    RepoFactory.AnimeGroup.Delete(tempGroup.AnimeGroupID);
 
                 // create group user records and update group stats
-                foreach (AnimeGroup grp in repGroups.GetAll())
+                foreach (AnimeGroup grp in RepoFactory.AnimeGroup.GetAll())
                     grp.UpdateStatsFromTopLevel(true, true, true);
 
 
@@ -8558,7 +8149,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -8573,7 +8164,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return null;
@@ -8581,40 +8172,36 @@ namespace JMMServer
 
         public Contract_AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID)
         {
-            AniDB_SeiyuuRepository repSeiyuu = new AniDB_SeiyuuRepository();
 
             try
             {
-                AniDB_Seiyuu seiyuu = repSeiyuu.GetByID(seiyuuID);
+                AniDB_Seiyuu seiyuu = RepoFactory.AniDB_Seiyuu.GetByID(seiyuuID);
                 if (seiyuu == null) return null;
 
                 return seiyuu.ToContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return null;
         }
 
         public Contract_FileFfdshowPreset GetFFDPreset(int videoLocalID)
         {
-            VideoLocalRepository repVids = new VideoLocalRepository();
-            FileFfdshowPresetRepository repFFD = new FileFfdshowPresetRepository();
-
             try
             {
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return null;
 
-                FileFfdshowPreset ffd = repFFD.GetByHashAndSize(vid.Hash, vid.FileSize);
+                FileFfdshowPreset ffd = RepoFactory.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
                 if (ffd == null) return null;
 
                 return ffd.ToContract();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return null;
         }
@@ -8623,20 +8210,18 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                FileFfdshowPresetRepository repFFD = new FileFfdshowPresetRepository();
 
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return;
 
-                FileFfdshowPreset ffd = repFFD.GetByHashAndSize(vid.Hash, vid.FileSize);
+                FileFfdshowPreset ffd = RepoFactory.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
                 if (ffd == null) return;
 
-                repFFD.Delete(ffd.FileFfdshowPresetID);
+                RepoFactory.FileFfdshowPreset.Delete(ffd.FileFfdshowPresetID);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -8644,24 +8229,21 @@ namespace JMMServer
         {
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                FileFfdshowPresetRepository repFFD = new FileFfdshowPresetRepository();
-
-                VideoLocal vid = repVids.GetByHashAndSize(preset.Hash, preset.FileSize);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByHashAndSize(preset.Hash, preset.FileSize);
                 if (vid == null) return;
 
-                FileFfdshowPreset ffd = repFFD.GetByHashAndSize(preset.Hash, preset.FileSize);
+                FileFfdshowPreset ffd = RepoFactory.FileFfdshowPreset.GetByHashAndSize(preset.Hash, preset.FileSize);
                 if (ffd == null) ffd = new FileFfdshowPreset();
 
                 ffd.FileSize = preset.FileSize;
                 ffd.Hash = preset.Hash;
                 ffd.Preset = preset.Preset;
 
-                repFFD.Save(ffd);
+                RepoFactory.FileFfdshowPreset.Save(ffd);
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
@@ -8673,12 +8255,12 @@ namespace JMMServer
 
                 FileSearchCriteria sType = (FileSearchCriteria) searchType;
 
-                VideoLocalRepository repVids = new VideoLocalRepository();
+
                 switch (sType)
                 {
                     case FileSearchCriteria.Name:
 
-                        List<VideoLocal> results1 = repVids.GetByName(searchCriteria.Trim());
+                        List<VideoLocal> results1 = RepoFactory.VideoLocal.GetByName(searchCriteria.Trim());
                         foreach (VideoLocal vid in results1)
                             vids.Add(vid.ToContract(userID));
 
@@ -8686,7 +8268,7 @@ namespace JMMServer
 
                     case FileSearchCriteria.ED2KHash:
 
-                        VideoLocal vidl = repVids.GetByHash(searchCriteria.Trim());
+                        VideoLocal vidl = RepoFactory.VideoLocal.GetByHash(searchCriteria.Trim());
                         if (vidl!=null)
                             vids.Add(vidl.ToContract(userID));
                         
@@ -8698,7 +8280,7 @@ namespace JMMServer
 
                     case FileSearchCriteria.LastOneHundred:
 
-                        List<VideoLocal> results2 = repVids.GetMostRecentlyAdded(100);
+                        List<VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(100);
                         foreach (VideoLocal vid in results2)
                             vids.Add(vid.ToContract(userID));
 
@@ -8709,7 +8291,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return new List<Contract_VideoLocal>();
         }
@@ -8731,7 +8313,7 @@ namespace JMMServer
 			}
 			catch (Exception ex)
 			{
-				logger.ErrorException(ex.ToString(), ex);
+				logger.Error( ex,ex.ToString());
 				
 			}
 			return ret;
@@ -8739,18 +8321,15 @@ namespace JMMServer
 
         public List<Contract_VideoLocal> RandomFileRenamePreview(int maxResults, int userID)
         {
-            List<Contract_VideoLocal> ret = new List<Contract_VideoLocal>();
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                foreach (VideoLocal vid in repVids.GetRandomFiles(maxResults))
-                    ret.Add(vid.ToContract(userID));
+                return RepoFactory.VideoLocal.GetRandomFiles(maxResults).Select(a => a.ToContract(userID)).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
+                return new List<Contract_VideoLocal>();
             }
-            return ret;
         }
 
         public Contract_VideoLocalRenamed RenameFilePreview(int videoLocalID, string renameRules)
@@ -8761,8 +8340,7 @@ namespace JMMServer
 
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                 {
                     ret.VideoLocal = null;
@@ -8781,7 +8359,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 ret.VideoLocal = null;
                 ret.NewFileName = string.Format("ERROR: {0}", ex.Message);
                 ret.Success = false;
@@ -8796,9 +8374,7 @@ namespace JMMServer
             ret.Success = true;
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
-                VideoLocal_PlaceRepository repPlace=new VideoLocal_PlaceRepository();
-                VideoLocal vid = repVids.GetByID(videoLocalID);
+                VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                 {
                     ret.VideoLocal = null;
@@ -8856,7 +8432,7 @@ namespace JMMServer
                                         var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
                                         place.FilePath = tup.Item2;
                                         name = Path.GetFileName(tup.Item2);
-                                        repPlace.Save(place);
+                                        RepoFactory.VideoLocalPlace.Save(place);
                                     }
                                 }
                                 catch (Exception ex)
@@ -8864,20 +8440,20 @@ namespace JMMServer
                                     logger.Info(string.Format("Renaming file FAIL From ({0}) to ({1}) - {2}",
                                         fullFileName,
                                         newFullName, ex.Message));
-                                    logger.ErrorException(ex.ToString(), ex);
+                                    logger.Error( ex,ex.ToString());
                                     ret.Success = false;
                                     ret.NewFileName = ex.Message;
                                 }
                             }
                             vid.FileName = name;
-                            repVids.Save(vid,true);
+                            RepoFactory.VideoLocal.Save(vid,true);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 ret.VideoLocal = null;
                 ret.NewFileName = string.Format("ERROR: {0}", ex.Message);
                 ret.Success = false;
@@ -8890,7 +8466,6 @@ namespace JMMServer
             List<Contract_VideoLocalRenamed> ret = new List<Contract_VideoLocalRenamed>();
             try
             {
-                VideoLocalRepository repVids = new VideoLocalRepository();
                 foreach (int vid in videoLocalIDs)
                 {
                     RenameFile(vid, renameRules);
@@ -8898,7 +8473,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return ret;
         }
@@ -8907,11 +8482,11 @@ namespace JMMServer
         {
             try
             {
-                return new VideoLocalRepository().GetByAniDBAnimeID(animeID).Select(a => a.ToContract(userID)).ToList();
+                return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Select(a => a.ToContract(userID)).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return new List<Contract_VideoLocal>();
         }
@@ -8921,15 +8496,13 @@ namespace JMMServer
             List<Contract_RenameScript> ret = new List<Contract_RenameScript>();
             try
             {
-                RenameScriptRepository repScripts = new RenameScriptRepository();
-
-                List<RenameScript> allScripts = repScripts.GetAll();
+                List<RenameScript> allScripts = RepoFactory.RenameScript.GetAll();
                 foreach (RenameScript scr in allScripts)
                     ret.Add(scr.ToContract());
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
             return ret;
         }
@@ -8942,12 +8515,11 @@ namespace JMMServer
 
             try
             {
-                RenameScriptRepository repScripts = new RenameScriptRepository();
                 RenameScript script = null;
                 if (contract.RenameScriptID.HasValue)
                 {
                     // update
-                    script = repScripts.GetByID(contract.RenameScriptID.Value);
+                    script = RepoFactory.RenameScript.GetByID(contract.RenameScriptID.Value);
                     if (script == null)
                     {
                         response.ErrorMessage = "Could not find Rename Script ID: " +
@@ -8968,7 +8540,7 @@ namespace JMMServer
                 }
 
                 // check to make sure we multiple scripts enable on import (only one can be selected)
-                List<RenameScript> allScripts = repScripts.GetAll();
+                List<RenameScript> allScripts = RepoFactory.RenameScript.GetAll();
 
                 if (contract.IsEnabledOnImport == 1)
                 {
@@ -8978,7 +8550,7 @@ namespace JMMServer
                             (!contract.RenameScriptID.HasValue || (contract.RenameScriptID.Value != rs.RenameScriptID)))
                         {
                             rs.IsEnabledOnImport = 0;
-                            repScripts.Save(rs);
+                            RepoFactory.RenameScript.Save(rs);
                         }
                     }
                 }
@@ -8986,7 +8558,7 @@ namespace JMMServer
                 script.IsEnabledOnImport = contract.IsEnabledOnImport;
                 script.Script = contract.Script;
                 script.ScriptName = contract.ScriptName;
-                repScripts.Save(script);
+                RepoFactory.RenameScript.Save(script);
 
                 response.RenameScript = script.ToContract();
 
@@ -8994,7 +8566,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 response.ErrorMessage = ex.Message;
                 return response;
             }
@@ -9004,17 +8576,16 @@ namespace JMMServer
         {
             try
             {
-                RenameScriptRepository repScripts = new RenameScriptRepository();
-                RenameScript df = repScripts.GetByID(renameScriptID);
-                if (df == null) return "Database entry does not exist";
 
-                repScripts.Delete(renameScriptID);
+                RenameScript df = RepoFactory.RenameScript.GetByID(renameScriptID);
+                if (df == null) return "Database entry does not exist";
+                RepoFactory.RenameScript.Delete(renameScriptID);
 
                 return "";
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return ex.Message;
             }
         }
@@ -9024,16 +8595,14 @@ namespace JMMServer
             List<Contract_AniDB_Recommendation> contracts = new List<Contract_AniDB_Recommendation>();
             try
             {
-                AniDB_RecommendationRepository repBA = new AniDB_RecommendationRepository();
-
-                foreach (AniDB_Recommendation rec in repBA.GetByAnimeID(animeID))
+                foreach (AniDB_Recommendation rec in RepoFactory.AniDB_Recommendation.GetByAnimeID(animeID))
                     contracts.Add(rec.ToContract());
 
                 return contracts;
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
                 return contracts;
             }
         }
@@ -9042,7 +8611,6 @@ namespace JMMServer
         {
             List<Contract_AnimeSearch> retTitles = new List<Contract_AnimeSearch>();
 
-            AnimeSeriesRepository repSeries = new AnimeSeriesRepository();
 
             try
             {
@@ -9066,7 +8634,7 @@ namespace JMMServer
                                 StringSplitOptions.RemoveEmptyEntries));
 
                         // check for existing series and group details
-                        AnimeSeries ser = repSeries.GetByAnimeID(anime.AnimeID);
+                        AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
                         if (ser != null)
                         {
                             res.SeriesExists = true;
@@ -9099,7 +8667,7 @@ namespace JMMServer
                                     StringSplitOptions.RemoveEmptyEntries));
 
                             // check for existing series and group details
-                            AnimeSeries ser = repSeries.GetByAnimeID(tit.AnimeID);
+                            AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
                             if (ser != null)
                             {
                                 res.SeriesExists = true;
@@ -9119,7 +8687,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
 
             return retTitles;

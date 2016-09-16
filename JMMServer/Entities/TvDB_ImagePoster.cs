@@ -72,7 +72,7 @@ namespace JMMServer.Entities
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Error in TvDB_ImagePoster.Populate: " + ex.ToString(), ex);
+                logger.Error( ex,"Error in TvDB_ImagePoster.Populate: " + ex.ToString());
                 return false;
             }
         }

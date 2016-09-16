@@ -4,6 +4,7 @@ using System.Threading;
 using System.Xml;
 using JMMServer.Entities;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -46,8 +47,7 @@ namespace JMMServer.Commands
 
             try
             {
-                AniDB_ReleaseGroupRepository repRelGrp = new AniDB_ReleaseGroupRepository();
-                AniDB_ReleaseGroup relGroup = repRelGrp.GetByGroupID(GroupID);
+                AniDB_ReleaseGroup relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
 
                 if (ForceRefresh || relGroup == null)
                 {

@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Media.Imaging;
 using JMMContracts;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Cached;
 using NutzCode.CloudFileSystem;
 
 using AuthProvider = JMMServer.UI.AuthProvider;
@@ -46,7 +47,7 @@ namespace JMMServer.Entities
                 {
                     ServerState.Instance.ConnectedFileSystems[Name] = Connect(MainWindow.Instance);
                     if (NeedSave)
-                        new CloudAccountRepository().Save(this);
+                        RepoFactory.CloudAccount.Save(this);
                 }
                 return ServerState.Instance.ConnectedFileSystems[Name];
             }

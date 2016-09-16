@@ -77,7 +77,7 @@ namespace JMMServer.Entities
             }
             catch (Exception ex)
             {
-                logger.ErrorException("Erorr in TryGetProperty: " + ex.ToString(), ex);
+                logger.Error( ex,"Erorr in TryGetProperty: " + ex.ToString());
             }
 
             return "";

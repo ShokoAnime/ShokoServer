@@ -8,6 +8,7 @@ using System.Xml;
 using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
+using JMMServer.Repositories.Direct;
 
 namespace JMMServer.Commands
 {
@@ -60,8 +61,7 @@ namespace JMMServer.Commands
                 switch (EntityTypeEnum)
                 {
                     case JMMImageType.AniDB_Cover:
-                        AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-                        AniDB_Anime anime = repAnime.GetByID(EntityID);
+                        AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(EntityID);
                         if (anime == null) return;
 
                         req = new ImageDownloadRequest(EntityTypeEnum, anime, ForceDownload);
@@ -69,8 +69,7 @@ namespace JMMServer.Commands
 
                     case JMMImageType.TvDB_Episode:
 
-                        TvDB_EpisodeRepository repTvEp = new TvDB_EpisodeRepository();
-                        TvDB_Episode ep = repTvEp.GetByID(EntityID);
+                        TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(EntityID);
                         if (ep == null) return;
                         if (string.IsNullOrEmpty(ep.Filename)) return;
 
@@ -79,8 +78,7 @@ namespace JMMServer.Commands
 
                     case JMMImageType.TvDB_FanArt:
 
-                        TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
-                        TvDB_ImageFanart fanart = repFanart.GetByID(EntityID);
+                        TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
                         if (fanart == null) return;
                         if (string.IsNullOrEmpty(fanart.BannerPath)) return;
 
@@ -89,8 +87,7 @@ namespace JMMServer.Commands
 
                     case JMMImageType.TvDB_Cover:
 
-                        TvDB_ImagePosterRepository repPoster = new TvDB_ImagePosterRepository();
-                        TvDB_ImagePoster poster = repPoster.GetByID(EntityID);
+                        TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
                         if (poster == null) return;
                         if (string.IsNullOrEmpty(poster.BannerPath)) return;
 
@@ -99,8 +96,7 @@ namespace JMMServer.Commands
 
                     case JMMImageType.TvDB_Banner:
 
-                        TvDB_ImageWideBannerRepository repBanners = new TvDB_ImageWideBannerRepository();
-                        TvDB_ImageWideBanner wideBanner = repBanners.GetByID(EntityID);
+                        TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
                         if (wideBanner == null) return;
                         if (string.IsNullOrEmpty(wideBanner.BannerPath)) return;
 
@@ -109,8 +105,7 @@ namespace JMMServer.Commands
 
                     case JMMImageType.MovieDB_Poster:
 
-                        MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
-                        MovieDB_Poster moviePoster = repMoviePosters.GetByID(EntityID);
+                        MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
                         if (moviePoster == null) return;
                         if (string.IsNullOrEmpty(moviePoster.URL)) return;
 
@@ -119,8 +114,7 @@ namespace JMMServer.Commands
 
                     case JMMImageType.MovieDB_FanArt:
 
-                        MovieDB_FanartRepository repMovieFanart = new MovieDB_FanartRepository();
-                        MovieDB_Fanart movieFanart = repMovieFanart.GetByID(EntityID);
+                        MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
                         if (movieFanart == null) return;
                         if (string.IsNullOrEmpty(movieFanart.URL)) return;
 
@@ -129,8 +123,7 @@ namespace JMMServer.Commands
 
                     case JMMImageType.Trakt_Poster:
 
-                        Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
-                        Trakt_ImagePoster traktPoster = repTraktPosters.GetByID(EntityID);
+                        Trakt_ImagePoster traktPoster = RepoFactory.Trakt_ImagePoster.GetByID(EntityID);
                         if (traktPoster == null) return;
                         if (string.IsNullOrEmpty(traktPoster.ImageURL)) return;
 
@@ -139,8 +132,7 @@ namespace JMMServer.Commands
 
                     case JMMImageType.Trakt_Fanart:
 
-                        Trakt_ImageFanartRepository repTraktFanarts = new Trakt_ImageFanartRepository();
-                        Trakt_ImageFanart traktFanart = repTraktFanarts.GetByID(EntityID);
+                        Trakt_ImageFanart traktFanart = RepoFactory.Trakt_ImageFanart.GetByID(EntityID);
                         if (traktFanart == null) return;
                         if (string.IsNullOrEmpty(traktFanart.ImageURL)) return;
 
@@ -149,8 +141,7 @@ namespace JMMServer.Commands
 
                     case JMMImageType.Trakt_Friend:
 
-                        Trakt_FriendRepository repFriends = new Trakt_FriendRepository();
-                        Trakt_Friend friend = repFriends.GetByID(EntityID);
+                        Trakt_Friend friend = RepoFactory.Trakt_Friend.GetByID(EntityID);
                         if (friend == null) return;
                         if (string.IsNullOrEmpty(friend.Avatar)) return;
 
@@ -159,8 +150,7 @@ namespace JMMServer.Commands
 
                     case JMMImageType.Trakt_Episode:
 
-                        Trakt_EpisodeRepository repTraktEpisodes = new Trakt_EpisodeRepository();
-                        Trakt_Episode traktEp = repTraktEpisodes.GetByID(EntityID);
+                        Trakt_Episode traktEp = RepoFactory.Trakt_Episode.GetByID(EntityID);
                         if (traktEp == null) return;
                         if (string.IsNullOrEmpty(traktEp.EpisodeImage)) return;
 
@@ -168,16 +158,14 @@ namespace JMMServer.Commands
                         break;
 
                     case JMMImageType.AniDB_Character:
-                        AniDB_CharacterRepository repChars = new AniDB_CharacterRepository();
-                        AniDB_Character chr = repChars.GetByID(EntityID);
+                        AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(EntityID);
                         if (chr == null) return;
 
                         req = new ImageDownloadRequest(EntityTypeEnum, chr, ForceDownload);
                         break;
 
                     case JMMImageType.AniDB_Creator:
-                        AniDB_SeiyuuRepository repCreator = new AniDB_SeiyuuRepository();
-                        AniDB_Seiyuu creator = repCreator.GetByID(EntityID);
+                        AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(EntityID);
                         if (creator == null) return;
 
                         req = new ImageDownloadRequest(EntityTypeEnum, creator, ForceDownload);

@@ -52,7 +52,7 @@ namespace JMMServer.Providers.TvDB
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        logger.Error( ex,ex.ToString());
                     }
                 }
                 return dictTvDBEpisodes;
@@ -93,7 +93,7 @@ namespace JMMServer.Providers.TvDB
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        logger.Error( ex,ex.ToString());
                     }
                 }
                 return dictTvDBSeasons;
@@ -140,7 +140,7 @@ namespace JMMServer.Providers.TvDB
                     }
                     catch (Exception ex)
                     {
-                        logger.ErrorException(ex.ToString(), ex);
+                        logger.Error( ex,ex.ToString());
                     }
                 }
                 return dictTvDBSeasonsSpecials;
@@ -151,12 +151,11 @@ namespace JMMServer.Providers.TvDB
         {
             try
             {
-                TvDB_EpisodeRepository repTvEps = new TvDB_EpisodeRepository();
-                tvDBEpisodes = repTvEps.GetBySeriesID(TvDBID).OrderBy(a=>a.SeasonNumber).ThenBy(a=>a.EpisodeNumber).ToList();
+                tvDBEpisodes = RepoFactory.TvDB_Episode.GetBySeriesID(TvDBID).OrderBy(a=>a.SeasonNumber).ThenBy(a=>a.EpisodeNumber).ToList();
             }
             catch (Exception ex)
             {
-                logger.ErrorException(ex.ToString(), ex);
+                logger.Error( ex,ex.ToString());
             }
         }
 
