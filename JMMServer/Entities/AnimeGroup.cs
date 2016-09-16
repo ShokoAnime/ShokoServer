@@ -224,7 +224,7 @@ namespace JMMServer.Entities
                     //Filter these relations these will fix messes, like Gundam , Clamp, etc.
                     continue;
                 }
-                AniDB_Anime relAnime = repAniAnime.GetByAnimeID(rel.RelatedAnimeID);
+                AniDB_Anime relAnime = RepoFactory.AniDB_Anime.GetByAnimeID(rel.RelatedAnimeID);
                 if (relAnime != null)
                 {
                     // Don't include movies or OVA's if excluded
