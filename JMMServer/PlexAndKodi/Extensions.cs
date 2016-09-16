@@ -65,11 +65,20 @@ namespace JMMServer.PlexAndKodi
 
         public static string ConstructFilterIdUrl(this IProvider prov, int userid, int gfid)
         {
-            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            //in case legacy_module request is null
+            try
             {
-                return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.GroupFilter + "/" + gfid);
+                if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+                {
+                    //TODO apiv2: this is wrong but until path will be decided i leave this here
+                    return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.GroupFilter + "/" + gfid);
+                }
+                else
+                {
+                    return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupFilter + "/" + gfid);
+                }
             }
-            else
+            catch
             {
                 return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/GetMetadata/" + userid + "/" + (int)JMMType.GroupFilter + "/" + gfid);
             }
