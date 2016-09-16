@@ -29,7 +29,7 @@
                 {
                     //try to take "apikey" from header
                     string apiKey = nancyContext.Request.Headers["apikey"].FirstOrDefault();
-                    if (apiKey == "")
+                    if (string.IsNullOrEmpty(apiKey))
                     {
                         //take out value of "apikey" from query that was pass in request and check for User
                         apiKey = (string)nancyContext.Request.Query.apikey.Value;

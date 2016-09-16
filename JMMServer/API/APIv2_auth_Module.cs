@@ -11,10 +11,8 @@ namespace JMMServer.API
         /// </summary>
         public APIv2_auth_Module() : base("/api/auth")
         {
-            //you pass those value as ?user=xxx&device=yyy&pass=zzz
-            // or 
-            // as Request Body (safer) { "user":"usrname", "pass":"password", "device":"device name" }
-            //return apikey=yzx
+            // Request Body (safer) { "user":"usrname", "pass":"password", "device":"device name" }
+            // return apikey=yzx
             Post["/"] = x =>
             {
                 string apiKey = "";

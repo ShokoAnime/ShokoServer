@@ -123,8 +123,8 @@ Get /os/drives => { "dir": "/", "full_path": "/", "subdir": [{ "dir": "C:\\", "f
             Get["/cloud/import"] = _ => { return null; };
 
 APIv2_unauth_Module:
-/
-/api/version
+GET / => redirect you to /webui/index.html
+/api/version 
 
 
 APIv2_database_Module: (/api/) - if !FirstRun RequiresAuthentication
