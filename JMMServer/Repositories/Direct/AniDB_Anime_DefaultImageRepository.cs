@@ -7,8 +7,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class AniDB_Anime_DefaultImageRepository : BaseDirectRepository<AniDB_Anime_DefaultImage, int>
     {
-        
+        private AniDB_Anime_DefaultImageRepository()
+        {
+            
+        }
 
+        public static AniDB_Anime_DefaultImageRepository Create()
+        {
+            return new AniDB_Anime_DefaultImageRepository();
+        }
         public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(int animeid, int imageType)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

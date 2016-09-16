@@ -12,6 +12,15 @@ namespace JMMServer.Repositories.Direct
     public class TvDB_ImageFanartRepository : BaseDirectRepository<TvDB_ImageFanart, int>
     {
 
+        private TvDB_ImageFanartRepository()
+        {
+            
+        }
+
+        public static TvDB_ImageFanartRepository Create()
+        {
+            return new TvDB_ImageFanartRepository();
+        }
         public TvDB_ImageFanart GetByTvDBID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

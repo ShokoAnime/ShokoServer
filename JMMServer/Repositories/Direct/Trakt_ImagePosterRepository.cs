@@ -8,7 +8,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class Trakt_ImagePosterRepository : BaseDirectRepository<Trakt_ImagePoster, int>
     {
+        private Trakt_ImagePosterRepository()
+        {
+           
+        }
 
+        public static Trakt_ImagePosterRepository Create()
+        {
+            return new Trakt_ImagePosterRepository();
+        }
         public List<Trakt_ImagePoster> GetByShowID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

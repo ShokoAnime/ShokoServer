@@ -20,7 +20,15 @@ namespace JMMServer.Repositories
 
         public override void RegenerateDb() { }
 
+        private CrossRef_CustomTagRepository()
+        {
+            
+        }
 
+        public static CrossRef_CustomTagRepository Create()
+        {
+            return new CrossRef_CustomTagRepository();
+        }
         public List<CrossRef_CustomTag> GetByAnimeID(int id)
         {
             return Refs.GetMultiple(id, (int) CustomTagCrossRefType.Anime);

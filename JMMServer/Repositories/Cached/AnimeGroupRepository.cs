@@ -18,7 +18,7 @@ namespace JMMServer.Repositories.Cached
 
         private ChangeTracker<int> Changes = new ChangeTracker<int>();
 
-        public AnimeGroupRepository()
+        private AnimeGroupRepository()
         {
             BeginDeleteCallback = (cr) =>
             {
@@ -37,6 +37,11 @@ namespace JMMServer.Repositories.Cached
                 }
             };
 
+        }
+
+        public static AnimeGroupRepository Create()
+        {
+            return new AnimeGroupRepository();
         }
         public override void PopulateIndexes()
         {

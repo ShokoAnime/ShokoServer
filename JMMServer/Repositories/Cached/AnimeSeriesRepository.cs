@@ -18,7 +18,7 @@ namespace JMMServer.Repositories.Cached
 
         private ChangeTracker<int> Changes = new ChangeTracker<int>();
 
-        public AnimeSeriesRepository()
+        private AnimeSeriesRepository()
         {
             BeginDeleteCallback = (cr) =>
             {
@@ -39,6 +39,10 @@ namespace JMMServer.Repositories.Cached
 
         }
 
+        public static AnimeSeriesRepository Create()
+        {
+            return new AnimeSeriesRepository();
+        }
         public override void PopulateIndexes()
         {
             Changes.AddOrUpdateRange(Cache.Keys);

@@ -23,7 +23,7 @@ namespace JMMServer.Repositories.Cached
 
         public List<GroupFilter> PostProcessFilters { get; set; }=new List<GroupFilter>();
 
-        public GroupFilterRepository()
+        private GroupFilterRepository()
         {
             EndSaveCallback = (obj) =>
                             {
@@ -37,6 +37,10 @@ namespace JMMServer.Repositories.Cached
                             };
         }
 
+        public static GroupFilterRepository Create()
+        {
+            return new GroupFilterRepository();
+        }
 
         public override void PopulateIndexes()
         {

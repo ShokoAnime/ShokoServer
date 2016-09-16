@@ -8,10 +8,19 @@ namespace JMMServer.Repositories.Cached
 {
     public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place,int>
     {
-        private static PocoIndex<int, VideoLocal_Place, int> VideoLocals;
-        private static PocoIndex<int, VideoLocal_Place, int> ImportFolders;
-        private static PocoIndex<int, VideoLocal_Place, string> Paths;
+        private PocoIndex<int, VideoLocal_Place, int> VideoLocals;
+        private PocoIndex<int, VideoLocal_Place, int> ImportFolders;
+        private PocoIndex<int, VideoLocal_Place, string> Paths;
 
+        private VideoLocal_PlaceRepository()
+        {
+            
+        }
+
+        public static VideoLocal_PlaceRepository Create()
+        {
+            return new VideoLocal_PlaceRepository();
+        }
         public override void PopulateIndexes()
         {
             VideoLocals = new PocoIndex<int, VideoLocal_Place, int>(Cache, a => a.VideoLocalID);

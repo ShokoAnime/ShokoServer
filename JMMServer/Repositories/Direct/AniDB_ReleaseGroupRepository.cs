@@ -8,7 +8,13 @@ namespace JMMServer.Repositories.Direct
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        private AniDB_ReleaseGroupRepository()
+        { }
 
+        public static AniDB_ReleaseGroupRepository Create()
+        {
+            return new AniDB_ReleaseGroupRepository();
+        }
         public AniDB_ReleaseGroup GetByGroupID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

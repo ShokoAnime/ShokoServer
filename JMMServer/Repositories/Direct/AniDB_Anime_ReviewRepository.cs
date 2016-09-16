@@ -7,7 +7,15 @@ namespace JMMServer.Repositories.Direct
     public class AniDB_Anime_ReviewRepository : BaseDirectRepository<AniDB_Anime_Review, int>
     {
 
+        private AniDB_Anime_ReviewRepository()
+        {
+            
+        }
 
+        public static AniDB_Anime_ReviewRepository Create()
+        {
+            return new AniDB_Anime_ReviewRepository();
+        }
         public AniDB_Anime_Review GetByAnimeIDAndReviewID(int animeid, int reviewid)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

@@ -8,7 +8,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int>
     {
+        private MovieDB_PosterRepository()
+        {
+            
+        }
 
+        public static MovieDB_PosterRepository Create()
+        {
+            return new MovieDB_PosterRepository();
+        }
         public MovieDB_Poster GetByOnlineID(string url)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

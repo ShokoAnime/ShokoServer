@@ -7,8 +7,16 @@ namespace JMMServer.Repositories.Direct
 {
     public class CrossRef_AniDB_TraktV2Repository : BaseDirectRepository<CrossRef_AniDB_TraktV2, int>
     {
-   
 
+        private CrossRef_AniDB_TraktV2Repository()
+        {
+            
+        }
+
+        public static CrossRef_AniDB_TraktV2Repository Create()
+        {
+            return new CrossRef_AniDB_TraktV2Repository();
+        }
         public List<CrossRef_AniDB_TraktV2> GetByAnimeID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

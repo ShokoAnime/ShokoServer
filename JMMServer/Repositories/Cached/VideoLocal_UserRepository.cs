@@ -10,7 +10,15 @@ namespace JMMServer.Repositories.Cached
         private PocoIndex<int, VideoLocal_User, int> Users;
         private PocoIndex<int, VideoLocal_User, int, int> UsersVideoLocals;
 
+        private VideoLocal_UserRepository()
+        {
+            
+        }
 
+        public static VideoLocal_UserRepository Create()
+        {
+            return new VideoLocal_UserRepository();
+        }
         public override void PopulateIndexes()
         {
             VideoLocalIDs = new PocoIndex<int, VideoLocal_User, int>(Cache, a => a.VideoLocalID);

@@ -9,7 +9,13 @@ namespace JMMServer.Repositories.Direct
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public AniDB_GroupStatusRepository()
+        public static AniDB_GroupStatusRepository Create()
+        {
+            return new AniDB_GroupStatusRepository();
+        }
+
+
+        private AniDB_GroupStatusRepository()
         {
             EndDeleteCallback = (obj) =>
             {

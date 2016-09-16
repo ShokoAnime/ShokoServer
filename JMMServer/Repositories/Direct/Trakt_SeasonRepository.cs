@@ -7,7 +7,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class Trakt_SeasonRepository : BaseDirectRepository<Trakt_Season, int>
     {
+        private Trakt_SeasonRepository()
+        {
+            
+        }
 
+        public static Trakt_SeasonRepository Create()
+        {
+            return new Trakt_SeasonRepository();
+        }
         public List<Trakt_Season> GetByShowID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

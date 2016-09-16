@@ -5,8 +5,16 @@ using NHibernate.Criterion;
 namespace JMMServer.Repositories.Direct
 {
     public class CrossRef_AniDB_TvDBRepository : BaseDirectRepository<CrossRef_AniDB_TvDB, int>
-    {      
+    {
+        private CrossRef_AniDB_TvDBRepository()
+        {
+            
+        }
 
+        public static CrossRef_AniDB_TvDBRepository Create()
+        {
+            return new CrossRef_AniDB_TvDBRepository();
+        }
         public CrossRef_AniDB_TvDB GetByAnimeID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

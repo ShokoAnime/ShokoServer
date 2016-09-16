@@ -23,7 +23,7 @@ namespace JMMServer.Repositories
         private PocoIndex<int, AniDB_File, string> Resolutions;
         private PocoIndex<int, AniDB_File, int> InternalVersions;
 
-        public AniDB_FileRepository()
+        private AniDB_FileRepository()
         {
             EndDeleteCallback = (cr) =>
             {
@@ -32,6 +32,10 @@ namespace JMMServer.Repositories
             };
         }
 
+        public static AniDB_FileRepository Create()
+        {
+            return new AniDB_FileRepository();
+        }
         public override void PopulateIndexes()
         {
             Hashes = new PocoIndex<int, AniDB_File, string>(Cache, a => a.Hash);

@@ -12,12 +12,17 @@ namespace JMMServer.Repositories
 {
     public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
     {
-        public CustomTagRepository()
+        private CustomTagRepository()
         {
             DeleteWithOpenTransactionCallback = (ses, obj) =>
             {
                 RepoFactory.CrossRef_CustomTag.DeleteWithOpenTransaction(ses, RepoFactory.CrossRef_CustomTag.GetByCustomTagID(obj.CustomTagID));
             };
+        }
+
+        public static CustomTagRepository Create()
+        {
+            return new CustomTagRepository();
         }
         public override void PopulateIndexes()
         {

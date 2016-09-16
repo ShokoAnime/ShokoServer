@@ -134,6 +134,7 @@ namespace JMMServer.Entities
                     PlexUsers = us.PlexUsers;
                     _contract = us._contract;
                     Claims = us.Claims;
+                    break;
                 }
             }
         }

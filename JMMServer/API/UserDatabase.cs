@@ -12,7 +12,7 @@ namespace JMMServer.API
     public class UserDatabase
     {
         //ActiveApiKeys: userid, device, apikey
-        static readonly List<Tuple<int, string, string>> ActiveApiKeys = new List<Tuple<int, string, string>>();
+        internal static readonly List<Tuple<int, string, string>> ActiveApiKeys = new List<Tuple<int, string, string>>();
         //Users: userid, username, password
         private static readonly List<Tuple<int, string, string>> Users = new List<Tuple<int, string, string>>();
 
@@ -79,6 +79,8 @@ namespace JMMServer.API
             {
                 apiKey = Guid.NewGuid().ToString();
                 ActiveApiKeys.Add(new Tuple<int, string, string>(uid, device.ToLower(), apiKey));
+                Entities.AuthTokens token = new Entities.AuthTokens(uid, (device).ToLower(), apiKey);
+                RepoFactory.AuthTokens.Save(token);
             }
 
             return apiKey;

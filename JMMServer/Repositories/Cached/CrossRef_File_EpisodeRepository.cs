@@ -31,7 +31,7 @@ namespace JMMServer.Repositories
 
         }
 
-        public CrossRef_File_EpisodeRepository()
+        private CrossRef_File_EpisodeRepository()
         {
             EndSaveCallback = (obj) =>
             {
@@ -48,6 +48,10 @@ namespace JMMServer.Repositories
             };
         }
 
+        public static CrossRef_File_EpisodeRepository Create()
+        {
+            return new CrossRef_File_EpisodeRepository();
+        }
 
         public List<CrossRef_File_Episode> GetByHash(string hash)
         {

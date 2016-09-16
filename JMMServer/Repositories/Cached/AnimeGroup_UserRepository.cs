@@ -19,7 +19,7 @@ namespace JMMServer.Repositories.Cached
         private Dictionary<int, ChangeTracker<int>> Changes = new Dictionary<int, ChangeTracker<int>>();
 
 
-        public AnimeGroup_UserRepository()
+        private AnimeGroup_UserRepository()
         {
 
             EndDeleteCallback = (cr) =>
@@ -32,6 +32,10 @@ namespace JMMServer.Repositories.Cached
             };
         }
 
+        public static AnimeGroup_UserRepository Create()
+        {
+            return new AnimeGroup_UserRepository();
+        }
 
 
         public override void PopulateIndexes()

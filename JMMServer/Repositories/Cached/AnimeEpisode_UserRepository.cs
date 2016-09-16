@@ -17,7 +17,15 @@ namespace JMMServer.Repositories.Cached
         private PocoIndex<int, AnimeEpisode_User, int> Episodes;
         private PocoIndex<int, AnimeEpisode_User, int, int> UsersSeries;
 
+        private AnimeEpisode_UserRepository()
+        {
+            
+        }
 
+        public static AnimeEpisode_UserRepository Create()
+        {
+            return new AnimeEpisode_UserRepository();
+        }
         public override void PopulateIndexes()
         {
             Series = Cache.CreateIndex(a => a.AnimeSeriesID);

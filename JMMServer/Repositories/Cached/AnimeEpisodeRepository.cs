@@ -14,7 +14,7 @@ namespace JMMServer.Repositories.Cached
         private PocoIndex<int, AnimeEpisode, int> Series;
         private PocoIndex<int, AnimeEpisode, int> EpisodeIDs;
 
-        public AnimeEpisodeRepository()
+        private AnimeEpisodeRepository()
         {
             EndDeleteCallback = (cr) =>
             {
@@ -22,6 +22,10 @@ namespace JMMServer.Repositories.Cached
             };
         }
 
+        public static AnimeEpisodeRepository Create()
+        {
+            return new AnimeEpisodeRepository();
+        }
         public override void PopulateIndexes()
         {
             Series = Cache.CreateIndex(a => a.AnimeSeriesID);

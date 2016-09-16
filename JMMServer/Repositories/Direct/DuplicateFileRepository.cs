@@ -6,6 +6,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
     {
+        private DuplicateFileRepository()
+        {
+            
+        }
+
+        public static DuplicateFileRepository Create()
+        {
+            return new DuplicateFileRepository();
+        }
         public List<DuplicateFile> GetByFilePathsAndImportFolder(string filePath1, string filePath2, int folderID1,
             int folderID2)
         {

@@ -25,6 +25,15 @@ namespace JMMServer.Repositories
             Animes = new PocoIndex<int, AniDB_Episode, int>(Cache, a => a.AnimeID);
         }
 
+        private AniDB_EpisodeRepository()
+        {
+            
+        }
+
+        public static AniDB_EpisodeRepository Create()
+        {
+            return new AniDB_EpisodeRepository();
+        }
         public override void RegenerateDb()
         {
 

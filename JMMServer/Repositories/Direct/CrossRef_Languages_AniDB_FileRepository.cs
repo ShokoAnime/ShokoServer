@@ -6,7 +6,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class CrossRef_Languages_AniDB_FileRepository : BaseDirectRepository<CrossRef_Languages_AniDB_File, int>
     {
+        private CrossRef_Languages_AniDB_FileRepository()
+        {
+            
+        }
 
+        public static CrossRef_Languages_AniDB_FileRepository Create()
+        {
+            return new CrossRef_Languages_AniDB_FileRepository();
+        }
         public List<CrossRef_Languages_AniDB_File> GetByFileID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

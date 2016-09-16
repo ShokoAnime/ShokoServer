@@ -13,6 +13,15 @@ namespace JMMServer.Repositories.Cached
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        private JMMUserRepository()
+        {
+            
+        }
+
+        public static JMMUserRepository Create()
+        {
+            return new JMMUserRepository();
+        }
         public override void PopulateIndexes()
         {
 

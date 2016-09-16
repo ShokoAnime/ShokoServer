@@ -80,7 +80,7 @@ namespace JMMServer.API
             Get["/hash/sync"] = _ => { return HashSync(); };
 
             // 9. Misc
-            Get["/MyID"] = x => { return MyID(x.apikey); };
+            Get["/myid/get"] = _ => { return MyID(); };
             Get["/news/get"] = _ => { return GetNews(5); };
 
             // 10. User
@@ -119,6 +119,7 @@ namespace JMMServer.API
             // 13. Episodes
             Get["/ep/list"] = _ => { return GetAllEpisodes(); ; };
             Get["/ep/{id}"] = x => { return GetEpisodeById(x.id); };
+            //Get["/ep/{id}/image"] = x => { return GetEpisodeImage(x.id); };
             Get["/ep/recent"] = x => { return GetRecentEpisodes(10); };
             Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int)x.max); };
 
@@ -150,7 +151,17 @@ namespace JMMServer.API
             Post["/cloud/add"] = x => { return AddCloudAccount(); };
             Post["/cloud/delete"] = x => { return DeleteCloudAccount(); };
             Get["/cloud/import"] = _ => { return RunCloudImport(); };
+
+            // 18. Images
+            //Get["/cover/{id}"] = x => { return GetImage(x.id, "1/5", false); };
+            Get["/banner/{id}"] = x => { return GetImage(x.id, "4", false); };
+            //Get["/fanart/{id}"] = x => { return GetImage(x.id, "7/11/8", false); };
+            //Get["/poster/{id}"] = x => { return GetImage(x.id, "10/9", false); };
+            Get["/fanart/{id}"] = x => { return GetImage(x.id, "7", false); };
+            Get["/image/{type}/{id}"] = x => { return GetImage(x.id, x.type, false); };
         }
+
+        JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
 
         #region 1.Import Folders
 
@@ -697,7 +708,7 @@ namespace JMMServer.API
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        private object MyID(string s)
+        private object MyID()
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
@@ -1194,11 +1205,30 @@ namespace JMMServer.API
         {
             if (ep_id != 0)
             {
-                Request request = this.Request;
-                Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+                return GetEpisode(ep_id);
+            }
+            else
+            {
+                return APIStatus.badRequest();
+            }
+        }
 
-                JMMServiceImplementation _impl = new JMMServiceImplementation();
-                return _impl.GetEpisode(ep_id, user.JMMUserID);
+        internal Contract_AnimeEpisode GetEpisode(int ep_id)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.GetEpisode(ep_id, user.JMMUserID);
+        }
+
+        private object GetEpisodeImage(int ep_id)
+        {
+            if (ep_id != 0)
+            {
+                //_rest.GetImage("6/12", )
+                //GetEpisode(ep_id).
+                return APIStatus.notImplemented();
             }
             else
             {
@@ -1665,5 +1695,23 @@ namespace JMMServer.API
 
         #endregion
 
+        #region 18. Images
+
+        /// <summary>
+        /// Return image with given Id type and information if its should be thumb
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="type"></param>
+        /// <param name="thumb"></param>
+        /// <returns></returns>
+        private object GetImage(string id, string type, bool thumb)
+        {
+            System.IO.Stream image = _rest.GetImage(type, id, thumb);
+            Nancy.Response response = new Nancy.Response();
+            response = Response.FromStream(image, "image/png");
+            return response;
+        }
+
+        #endregion
     }
 }

@@ -7,6 +7,16 @@ namespace JMMServer.Repositories.Direct
 {
     public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int>
     {
+        private CommandRequestRepository()
+        {
+            
+        }
+
+        public static CommandRequestRepository Create()
+        {
+            return new CommandRequestRepository();
+        }
+
         public CommandRequest GetByCommandID(string cmdid)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

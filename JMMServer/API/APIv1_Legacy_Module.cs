@@ -277,12 +277,10 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetThumb(string type, string id, string ratio)
         {
-            using (System.IO.Stream image = _rest.GetThumb(type, id, ratio))
-            {
-                response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
-                return response;
-            }
+            System.IO.Stream image = _rest.GetThumb(type, id, ratio);
+            response = new Nancy.Response();
+            response = Response.FromStream(image, "image/png");
+            return response;
         }
 
         /// <summary>
@@ -293,13 +291,10 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetSupportImage(string name, string ratio)
         {
-            using (System.IO.Stream image = _rest.GetSupportImage(name, ratio))
-            {
-                image.Position = 0;
-                response = new Nancy.Response();
-                response = Response.FromStream(image, "image/jpeg");
-                return response;
-            }
+            System.IO.Stream image = _rest.GetSupportImage(name, ratio);
+            response = new Nancy.Response();
+            response = Response.FromStream(image, "image/png");
+            return response;
         }
 
         /// <summary>
@@ -309,27 +304,25 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetImageUsingPath(string path)
         {
-            using (System.IO.Stream image = _rest.GetImageUsingPath(path))
-            {
-                response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
-                return response;
-            }
+            System.IO.Stream image = _rest.GetImageUsingPath(path);
+            response = new Nancy.Response();
+            response = Response.FromStream(image, "image/png");
+            return response;
         }
 
-        //Image
-
+        /// <summary>
+        /// Return image with given Id type and information if its should be thumb
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="type"></param>
+        /// <param name="thumb"></param>
+        /// <returns></returns>
         private object GetImage(string id, string type, bool thumb)
         {
-            using (System.IO.Stream image = _rest.GetImage(type, id, thumb))
-            {
-                response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
-                return response;
-            }
+            System.IO.Stream image = _rest.GetImage(type, id, thumb);
+            response = new Nancy.Response();
+            response = Response.FromStream(image, "image/png");
+            return response;
         }
-
-        
     }
- 
 }

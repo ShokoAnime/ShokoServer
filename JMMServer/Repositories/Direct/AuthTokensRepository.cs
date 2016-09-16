@@ -5,6 +5,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class AuthTokensRepository : BaseDirectRepository<AuthTokens, int>
     {
+        private AuthTokensRepository()
+        {
+            
+        }
+
+        public static AuthTokensRepository Create()
+        {
+            return new AuthTokensRepository();
+        }
         public AuthTokens GetByAuthID(int authID)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

@@ -7,6 +7,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class CrossRef_AniDB_OtherRepository : BaseDirectRepository<CrossRef_AniDB_Other,int>
     {
+        private CrossRef_AniDB_OtherRepository()
+        {
+            
+        }
+
+        public static CrossRef_AniDB_OtherRepository Create()
+        {
+            return new CrossRef_AniDB_OtherRepository();
+        }
 
         public CrossRef_AniDB_Other GetByAnimeIDAndType(int animeID, CrossRefType xrefType)
         {

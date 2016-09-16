@@ -11,7 +11,14 @@ namespace JMMServer.Repositories.Direct
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-
+        private AniDB_RecommendationRepository()
+        {
+            
+        }
+        public static AniDB_RecommendationRepository Create()
+        {
+            return new AniDB_RecommendationRepository();
+        }
 
         public List<AniDB_Recommendation> GetByAnimeID(int id)
         {

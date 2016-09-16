@@ -7,7 +7,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class Trakt_FriendRepository : BaseDirectRepository<Trakt_Friend, int>
     {
+        private Trakt_FriendRepository()
+        {
+            
+        }
 
+        public static Trakt_FriendRepository Create()
+        {
+            return new Trakt_FriendRepository();
+        }
         public Trakt_Friend GetByUsername(string username)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

@@ -5,6 +5,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class AniDB_ReviewRepository : BaseDirectRepository<AniDB_Review, int>
     {
+        private AniDB_ReviewRepository()
+        {
+            
+        }
+
+        public static AniDB_ReviewRepository Create()
+        {
+            return new AniDB_ReviewRepository();
+        }
         public AniDB_Review GetByReviewID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

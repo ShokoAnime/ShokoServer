@@ -4,7 +4,7 @@ namespace JMMServer.Repositories.Cached
 {
     public class CloudAccountRepository : BaseCachedRepository<CloudAccount, int>
     {
-        public CloudAccountRepository()
+        private CloudAccountRepository()
         {
             EndSaveCallback = (obj) =>
             {
@@ -12,6 +12,10 @@ namespace JMMServer.Repositories.Cached
             };
         }
 
+        public static CloudAccountRepository Create()
+        {
+            return new CloudAccountRepository();
+        }
         public override void PopulateIndexes()
         {
             

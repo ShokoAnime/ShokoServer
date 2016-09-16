@@ -7,7 +7,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class TvDB_EpisodeRepository : BaseDirectRepository<TvDB_Episode, int>
     {
+        private TvDB_EpisodeRepository()
+        {
+            
+        }
 
+        public static TvDB_EpisodeRepository Create()
+        {
+            return new TvDB_EpisodeRepository();
+        }
         public TvDB_Episode GetByTvDBID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

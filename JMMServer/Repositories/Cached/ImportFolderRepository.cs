@@ -14,6 +14,15 @@ namespace JMMServer.Repositories.Cached
         {
         }
 
+        private ImportFolderRepository()
+        {
+            
+        }
+
+        public static ImportFolderRepository Create()
+        {
+            return new ImportFolderRepository();
+        }
         public ImportFolder GetByImportLocation(string importloc)
         {
             return Cache.Values.FirstOrDefault(a => a.ImportFolderLocation == importloc);

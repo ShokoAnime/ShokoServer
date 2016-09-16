@@ -22,6 +22,15 @@ namespace JMMServer.Repositories
             Tags = new PocoIndex<int, AniDB_Tag, int>(Cache, a => a.TagID);
         }
 
+        private AniDB_TagRepository()
+        {
+            
+        }
+
+        public static AniDB_TagRepository Create()
+        {
+            return new AniDB_TagRepository();
+        }
         public override void RegenerateDb()
         {
         }

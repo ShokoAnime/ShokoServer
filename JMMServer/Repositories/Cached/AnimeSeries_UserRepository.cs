@@ -21,7 +21,8 @@ namespace JMMServer.Repositories.Cached
         private PocoIndex<int, AnimeSeries_User, int, int> UsersSeries;
         private Dictionary<int, ChangeTracker<int>> Changes = new Dictionary<int, ChangeTracker<int>>();
 
-        public AnimeSeries_UserRepository()
+
+        private AnimeSeries_UserRepository()
         {
             EndDeleteCallback = (cr) =>
             {
@@ -32,6 +33,10 @@ namespace JMMServer.Repositories.Cached
             };
         }
 
+        public static AnimeSeries_UserRepository Create()
+        {
+            return new AnimeSeries_UserRepository();
+        }
 
         public override void PopulateIndexes()
         {

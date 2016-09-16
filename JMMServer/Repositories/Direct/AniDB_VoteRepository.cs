@@ -10,7 +10,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class AniDB_VoteRepository : BaseDirectRepository<AniDB_Vote, int>
     {
-        public AniDB_VoteRepository()
+        private AniDB_VoteRepository()
         {
             EndSaveCallback = (cr) =>
             {
@@ -28,7 +28,11 @@ namespace JMMServer.Repositories.Direct
 
             };
         }
-        
+
+        public static AniDB_VoteRepository Create()
+        {
+            return new AniDB_VoteRepository();
+        }
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

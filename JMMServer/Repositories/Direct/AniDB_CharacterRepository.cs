@@ -11,7 +11,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class AniDB_CharacterRepository : BaseDirectRepository<AniDB_Character, int>
     {
+        private AniDB_CharacterRepository()
+        {
+            
+        }
 
+        public static AniDB_CharacterRepository Create()
+        {
+            return new AniDB_CharacterRepository();
+        }
         public AniDB_Character GetByCharID(int id)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

@@ -16,7 +16,7 @@ namespace JMMServer.Repositories.Cached
         private PocoIndex<int, VideoLocal, string> MD5;
         private PocoIndex<int, VideoLocal, int> Ignored;
 
-        public VideoLocalRepository()
+        private VideoLocalRepository()
         {
             DeleteWithOpenTransactionCallback = (ses, obj) =>
             {
@@ -25,6 +25,10 @@ namespace JMMServer.Repositories.Cached
             };
         }
 
+        public static VideoLocalRepository Create()
+        {
+            return new VideoLocalRepository();
+        }
         public override void PopulateIndexes()
         {
             //Fix null hashes

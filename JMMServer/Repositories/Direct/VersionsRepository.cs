@@ -5,6 +5,13 @@ namespace JMMServer.Repositories.Direct
 {
     public class VersionsRepository : BaseDirectRepository<Versions, int>
     {
+        private VersionsRepository()
+        { }
+
+        public static VersionsRepository Create()
+        {
+            return new VersionsRepository();
+        }
         public Versions GetByVersionType(string vertype)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

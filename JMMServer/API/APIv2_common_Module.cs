@@ -133,7 +133,7 @@ namespace JMMServer.API
 
         private object GetFilters()
         {
-            Request request = this.Request;
+            API.APIv1_Legacy_Module.request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             if (user != null)
             {
@@ -147,7 +147,7 @@ namespace JMMServer.API
 
         private object GetMetadata(string typeid, string id, bool nocast=false)
         {
-            Request request = this.Request;
+            API.APIv1_Legacy_Module.request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             if (user != null)
             {

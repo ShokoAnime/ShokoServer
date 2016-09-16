@@ -621,8 +621,7 @@ namespace JMMServer
 
                 case JMMImageType.AniDB_Character:
 
-                    AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
-                    AniDB_Character chr = repChar.GetByID(int.Parse(ImageID));
+                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(int.Parse(ImageID));
                     if (chr == null) return null;
 
                     if (File.Exists(chr.PosterPath))
@@ -637,8 +636,7 @@ namespace JMMServer
 
                 case JMMImageType.AniDB_Creator:
 
-                    AniDB_SeiyuuRepository repCreator = new AniDB_SeiyuuRepository();
-                    AniDB_Seiyuu creator = repCreator.GetByID(int.Parse(ImageID));
+                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(int.Parse(ImageID));
                     if (creator == null) return "";
 
                     if (File.Exists(creator.PosterPath))

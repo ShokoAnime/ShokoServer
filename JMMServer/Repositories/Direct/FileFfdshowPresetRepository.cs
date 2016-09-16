@@ -5,6 +5,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class FileFfdshowPresetRepository : BaseDirectRepository<FileFfdshowPreset, int>
     {
+        private FileFfdshowPresetRepository()
+        {
+            
+        }
+
+        public static FileFfdshowPresetRepository Create()
+        {
+            return new FileFfdshowPresetRepository();
+        }
         public FileFfdshowPreset GetByHashAndSize(string hash, long fsize)
         {
             using (var session = JMMService.SessionFactory.OpenSession())

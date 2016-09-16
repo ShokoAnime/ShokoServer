@@ -15,17 +15,17 @@ namespace JMMServer.Repositories
     {
         private PocoIndex<int, AniDB_Anime_Tag, int> Animes;
 
+        private AniDB_Anime_TagRepository() { }
+        public override void RegenerateDb() { }
 
+        public static AniDB_Anime_TagRepository Create()
+        {
+            return new AniDB_Anime_TagRepository();
+        }
         public override void PopulateIndexes()
         {
             Animes = new PocoIndex<int, AniDB_Anime_Tag, int>(Cache, a => a.AnimeID);
         }
-
-        public override void RegenerateDb()
-        {
-        }
-
-
 
         public AniDB_Anime_Tag GetByAnimeIDAndTagID(int animeid, int tagid)
         {

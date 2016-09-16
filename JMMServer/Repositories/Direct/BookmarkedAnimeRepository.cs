@@ -9,8 +9,15 @@ namespace JMMServer.Repositories.Direct
 {
     public class BookmarkedAnimeRepository : BaseDirectRepository<BookmarkedAnime, int>
     {
-       
+        private BookmarkedAnimeRepository()
+        {
+            
+        }
 
+        public static BookmarkedAnimeRepository Create()
+        {
+            return new BookmarkedAnimeRepository();
+        }
         public BookmarkedAnime GetByAnimeID(int animeID)
         {
             using (var session = JMMService.SessionFactory.OpenSession())
