@@ -224,6 +224,12 @@ namespace JMMServer.Entities
                     //Filter these relations these will fix messes, like Gundam , Clamp, etc.
                     continue;
                 }
+                AniDB_Anime relAnime = repAniAnime.GetByAnimeID(rel.RelatedAnimeID);
+                if (relAnime != null)
+                {
+                    // Don't include movies or OVA's if excluded
+                    if (AnimeGroup.IsRelationTypeInExclusions(relAnime.AnimeTypeDescription.ToLower())) continue;
+                }
 
                 // we actually need to get the series, because it might have been added to another group already
                 AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(rel.RelatedAnimeID);

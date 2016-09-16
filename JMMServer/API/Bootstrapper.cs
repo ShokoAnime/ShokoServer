@@ -68,6 +68,7 @@
 
         public bool HandlesStatusCode(HttpStatusCode statusCode, NancyContext context)
         {
+            // If == is true, then 'Handle' will be triggered
             return statusCode == HttpStatusCode.NotFound;
         }
 
