@@ -19,16 +19,32 @@ namespace JMMServer.API
 
                 //Bind POST body
                 AuthUser auth = this.Bind();
-                //create and save new token for authenticated user or return known one
-                apiKey = UserDatabase.ValidateUser(auth.user, Digest.Hash(auth.pass), auth.device);
-
-                if (string.IsNullOrEmpty(apiKey))
+                if (!string.IsNullOrEmpty(auth.user))
                 {
-                    return new Response { StatusCode = HttpStatusCode.Unauthorized };
+                    if (!string.IsNullOrEmpty(auth.device) & !string.IsNullOrEmpty(auth.pass))
+                    {
+                        //create and save new token for authenticated user or return known one
+                        apiKey = UserDatabase.ValidateUser(auth.user, Digest.Hash(auth.pass), auth.device);
+
+                        if (string.IsNullOrEmpty(apiKey))
+                        {
+                            return new Response { StatusCode = HttpStatusCode.Unauthorized };
+                        }
+                        else
+                        {
+                            return this.Response.AsJson(new { apikey = apiKey });
+                        }
+                    }
+                    else
+                    {
+                        //if password or device is missing
+                        return new Response { StatusCode = HttpStatusCode.BadRequest };
+                    }
                 }
                 else
                 {
-                    return this.Response.AsJson(new { apikey = apiKey });
+                    //if bind failed
+                    return new Response { StatusCode = HttpStatusCode.ExpectationFailed };
                 }
             };
 
