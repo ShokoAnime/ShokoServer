@@ -21,7 +21,7 @@ namespace JMMServer.API
                 AuthUser auth = this.Bind();
                 if (!string.IsNullOrEmpty(auth.user))
                 {
-                    if (!string.IsNullOrEmpty(auth.device) & !string.IsNullOrEmpty(auth.pass))
+                    if (!string.IsNullOrEmpty(auth.device) & auth.pass != null)
                     {
                         //create and save new token for authenticated user or return known one
                         apiKey = UserDatabase.ValidateUser(auth.user, Digest.Hash(auth.pass), auth.device);
