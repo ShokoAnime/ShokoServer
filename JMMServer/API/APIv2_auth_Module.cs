@@ -21,7 +21,7 @@ namespace JMMServer.API
 
                 //Bind POST body
                 AuthUser auth = this.Bind();
-                //create new token for authenticated user or return known one
+                //create and save new token for authenticated user or return known one
                 apiKey = UserDatabase.ValidateUser(auth.user, Digest.Hash(auth.pass), auth.device);
 
                 if (string.IsNullOrEmpty(apiKey))
@@ -30,20 +30,6 @@ namespace JMMServer.API
                 }
                 else
                 {
-                    //get user knowing his username
-                    Repositories.JMMUserRepository userRepo = new Repositories.JMMUserRepository();
-                    try
-                    {
-                        int uid = userRepo.GetByUsername(auth.user).JMMUserID;
-                        Entities.AuthTokens token = new Entities.AuthTokens(uid, (auth.device).ToLower(), apiKey);
-                        //save token for auth user
-                        Auth.authRepo.Save(token);
-                    }
-                    catch
-                    {
-                        apiKey = "";
-                    }
-
                     return this.Response.AsJson(new { apikey = apiKey });
                 }
             };
