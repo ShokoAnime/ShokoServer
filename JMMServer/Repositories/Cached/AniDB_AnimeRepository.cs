@@ -57,44 +57,29 @@ namespace JMMServer.Repositories
             }
         }
 
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(List<AniDB_Anime> objs) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, List<AniDB_Anime> objs) { throw new NotSupportedException(); }
 
 
-        public override void Save(AniDB_Anime obj)
+        public override void Save(List<AniDB_Anime> objs)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                Save(session, obj);
-            }
+            foreach(AniDB_Anime o in objs)
+                Save(o);
         }
 
-        public override void Save(ISession session, AniDB_Anime obj)
+        public override void Save(AniDB_Anime obj)
         {
             lock (obj)
             {
                 if (obj.AniDB_AnimeID == 0)
                 {
                     obj.Contract = null;
-                    using (var transaction = session.BeginTransaction())
-                    {
-                        base.Save(session, obj);
-                        transaction.Commit();
-                    }
+                    base.Save(obj);
                 }
-
-                obj.UpdateContractDetailed(session.Wrap());
-                // populate the database
-
-                using (var transaction = session.BeginTransaction())
+                using (var session = JMMService.SessionFactory.OpenSession())
                 {
-                    base.Save(session, obj);
-                    transaction.Commit();
+                    obj.UpdateContractDetailed(session.Wrap());
                 }
+                // populate the database
+                base.Save(obj);
             }
         }
 

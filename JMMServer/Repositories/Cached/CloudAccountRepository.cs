@@ -6,7 +6,7 @@ namespace JMMServer.Repositories.Cached
     {
         public CloudAccountRepository()
         {
-            SaveCallback = (ses, obj) =>
+            EndSaveCallback = (obj) =>
             {
                 obj.NeedSave = false;
             };

@@ -18,7 +18,26 @@ namespace JMMServer.Repositories.Cached
 
         private ChangeTracker<int> Changes = new ChangeTracker<int>();
 
+        public AnimeGroupRepository()
+        {
+            BeginDeleteCallback = (cr) =>
+            {
+                RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(cr.AnimeGroupID));
+                cr.DeleteFromFilters();
+            };
+            EndDeleteCallback = (cr) =>
+            {
+                if (cr.AnimeGroupParentID.HasValue && cr.AnimeGroupParentID.Value > 0)
+                {
+                    logger.Trace("Updating group stats by group from AnimeGroupRepository.Delete: {0}",
+                        cr.AnimeGroupParentID.Value);
+                    AnimeGroup ngrp = GetByID(cr.AnimeGroupParentID.Value);
+                    if (ngrp != null)
+                        Save(ngrp, false, true);
+                }
+            };
 
+        }
         public override void PopulateIndexes()
         {
             Changes.AddOrUpdateRange(Cache.Keys);
@@ -51,13 +70,7 @@ namespace JMMServer.Repositories.Cached
         public override void Save(AnimeGroup obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(ISession session, AnimeGroup obj) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
         public override void Save(List<AnimeGroup> objs) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, List<AnimeGroup> objs) { throw new NotSupportedException(); }
 
         public void Save(AnimeGroup grp, bool updategrpcontractstats, bool recursive, bool verifylockedFilters = true)
         {
@@ -82,7 +95,7 @@ namespace JMMServer.Repositories.Cached
                     //Types will contains the affected GroupFilterConditionTypes
                     using (var transaction = session.BeginTransaction())
                     {
-                        base.Save(session, grp);
+                        base.SaveWithOpenTransaction(session, grp);
                         transaction.Commit();
                     }
                     Changes.AddOrUpdate(grp.AnimeGroupID);
@@ -125,43 +138,6 @@ namespace JMMServer.Repositories.Cached
         public ChangeTracker<int> GetChangeTracker()
         {
             return Changes;
-        }
-
-        public override void Delete(int id)
-        {
-            Delete(GetByID(id));
-        }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(List<AnimeGroup> objs) { throw new NotSupportedException(); }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(ISession session, int id) { throw new NotSupportedException(); }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(ISession session, AnimeGroup cr) { throw new NotSupportedException(); }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(ISession session, List<AnimeGroup> objs) { throw new NotSupportedException(); }
-
-        public override void Delete(AnimeGroup cr)
-        {
-            if (cr == null)
-                return;
-            // delete user records
-            RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(cr.AnimeGroupID));
-            cr.DeleteFromFilters();
-            base.Delete(cr);
-            if (cr.AnimeGroupParentID.HasValue && cr.AnimeGroupParentID.Value > 0)
-            {
-                logger.Trace("Updating group stats by group from AnimeGroupRepository.Delete: {0}", cr.AnimeGroupParentID.Value);
-                AnimeGroup ngrp = GetByID(cr.AnimeGroupParentID.Value);
-                if (ngrp != null)
-                    Save(ngrp, false, true);
-            }
         }
     }
 }

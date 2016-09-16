@@ -11,7 +11,7 @@ namespace JMMServer.Repositories.Direct
 
         public AniDB_GroupStatusRepository()
         {
-            DeleteCallback = (ses, obj) =>
+            EndDeleteCallback = (obj) =>
             {
                 if (obj.AnimeID > 0)
                 {

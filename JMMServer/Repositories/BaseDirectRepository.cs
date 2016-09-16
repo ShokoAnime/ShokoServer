@@ -8,9 +8,13 @@ namespace JMMServer.Repositories
 {
     public class BaseDirectRepository<T, S> : IRepository<T, S> where T : class
     {
-        public Action<ISession, T> DeleteCallback { get; set; }
-        public Action<ISession, T> SaveCallback { get; set; }
-        public Action<T> AfterCommitCallback { get; set; }
+
+        public Action<T> BeginDeleteCallback { get; set; }
+        public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
+        public Action<T> EndDeleteCallback { get; set; }
+        public Action<T> BeginSaveCallback { get; set; }
+        public Action<ISession, T> SaveWithOpenTransactionCallback { get; set; }
+        public Action<T> EndSaveCallback { get; set; }
 
         public virtual T GetByID(S id)
         {
@@ -58,15 +62,17 @@ namespace JMMServer.Repositories
         {
             if (cr != null)
             {
+                BeginDeleteCallback?.Invoke(cr);
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     using (var transaction = session.BeginTransaction())
                     {
-                        DeleteCallback?.Invoke(session, cr);
+                        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
                         session.Delete(cr);
                         transaction.Commit();
                     }
                 }
+                EndDeleteCallback?.Invoke(cr);
             }
         }
 
@@ -74,62 +80,69 @@ namespace JMMServer.Repositories
         {
             if (objs.Count == 0)
                 return;
+            foreach(T obj in objs)
+                BeginDeleteCallback?.Invoke(obj);
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
                 {
                     foreach (T cr in objs)
                     {
-                        DeleteCallback?.Invoke(session, cr);
+                        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
                         session.Delete(cr);
                     }
                     transaction.Commit();
                 }
             }
+            foreach (T obj in objs)
+                EndDeleteCallback?.Invoke(obj);
         }
-
-        public virtual void Delete(ISession session, S id)
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void DeleteWithOpenTransaction(ISession session, S id)
         {
-            Delete(session, GetByID(id));
+            DeleteWithOpenTransaction(session, GetByID(id));
         }
-
-        public virtual void Delete(ISession session, T cr)
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void DeleteWithOpenTransaction(ISession session, T cr)
         {
             if (cr != null)
             {
                 session.Delete(cr);
             }
         }
-
-        public virtual void Delete(ISession session, List<T> objs)
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void DeleteWithOpenTransaction(ISession session, List<T> objs)
         {
             if (objs.Count == 0)
                 return;
             foreach (T cr in objs)
             {
-                DeleteCallback?.Invoke(session, cr);
+                DeleteWithOpenTransactionCallback?.Invoke(session, cr);
                 session.Delete(cr);
             }
         }
 
         public virtual void Save(T obj)
         {
+            BeginSaveCallback?.Invoke(obj);
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
                 {
                     session.SaveOrUpdate(obj);
-                    SaveCallback?.Invoke(session, obj);
+                    SaveWithOpenTransactionCallback?.Invoke(session, obj);
                     transaction.Commit();
-                    AfterCommitCallback?.Invoke(obj);
                 }
             }
+            EndSaveCallback?.Invoke(obj);
         }
 
         public virtual void Save(List<T> objs)
         {
             if (objs.Count == 0)
                 return;
+            foreach(T obj in objs)
+                BeginSaveCallback?.Invoke(obj);
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
@@ -137,31 +150,31 @@ namespace JMMServer.Repositories
                     foreach (T obj in objs)
                     {
                         session.SaveOrUpdate(obj);
-                        SaveCallback?.Invoke(session, obj);
+                        SaveWithOpenTransactionCallback?.Invoke(session, obj);
                     }
-                    transaction.Commit();
-                    if (AfterCommitCallback != null)
-                    {
-                        foreach (T obj in objs)
-                            AfterCommitCallback?.Invoke(obj);
-                    }
+                    transaction.Commit();   
                 }
             }
+            foreach(T obj in objs)
+                EndSaveCallback?.Invoke(obj);
         }
-        //This two do not have after commit, parent should handle that after commit.
-        public virtual void Save(ISession session, T obj)
+
+
+
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void SaveWithOpenTransaction(ISession session, T obj)
         {
             session.SaveOrUpdate(obj);
         }
-        //This two do not have after commit, parent should handle that after commit.
-        public virtual void Save(ISession session, List<T> objs)
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void SaveWithOpenTransaction(ISession session, List<T> objs)
         {
             if (objs.Count == 0)
                 return;
             foreach (T obj in objs)
             {
                 session.SaveOrUpdate(obj);
-                SaveCallback?.Invoke(session, obj);
+                SaveWithOpenTransactionCallback?.Invoke(session, obj);
             }
         }
     }

@@ -12,14 +12,14 @@ namespace JMMServer.Repositories.Direct
     {
         public AniDB_VoteRepository()
         {
-            AfterCommitCallback = (obj) =>
+            EndSaveCallback = (cr) =>
             {
-                if (obj.VoteType == (int) AniDBVoteType.Anime || obj.VoteType == (int) AniDBVoteType.AnimeTemp)
+                if (cr.VoteType == (int) AniDBVoteType.Anime || cr.VoteType == (int) AniDBVoteType.AnimeTemp)
                 {
-                    AniDB_Anime.UpdateStatsByAnimeID(obj.EntityID);
+                    AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
                 }
             };
-            DeleteCallback = (ses, cr) =>
+            EndDeleteCallback = (cr) =>
             {
                 if (cr.VoteType == (int)AniDBVoteType.Anime || cr.VoteType == (int)AniDBVoteType.AnimeTemp)
                 {

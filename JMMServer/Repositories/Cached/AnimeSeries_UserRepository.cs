@@ -23,7 +23,7 @@ namespace JMMServer.Repositories.Cached
 
         public AnimeSeries_UserRepository()
         {
-            DeleteCallback = (ses, cr) =>
+            EndDeleteCallback = (cr) =>
             {
                 if (!Changes.ContainsKey(cr.JMMUserID))
                     Changes[cr.JMMUserID] = new ChangeTracker<int>();
@@ -66,16 +66,12 @@ namespace JMMServer.Repositories.Cached
         }
 
 
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, AnimeSeries_User obj) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(List<AnimeSeries_User> objs) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, List<AnimeSeries_User> objs) { throw new NotSupportedException(); }
+
+        public override void Save(List<AnimeSeries_User> objs)
+        {
+            foreach(AnimeSeries_User s in objs)
+                Save(s);
+        }
 
 
         public override void Save(AnimeSeries_User obj)

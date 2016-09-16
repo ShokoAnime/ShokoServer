@@ -21,7 +21,8 @@ namespace JMMServer.Repositories.Cached
 
         public AnimeGroup_UserRepository()
         {
-            DeleteCallback = (ses, cr) =>
+
+            EndDeleteCallback = (cr) =>
             {
                 if (!Changes.ContainsKey(cr.JMMUserID))
                     Changes[cr.JMMUserID] = new ChangeTracker<int>();
@@ -66,16 +67,11 @@ namespace JMMServer.Repositories.Cached
                 " DbRegen - " + max + "/" + max);
         }
 
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, AnimeGroup_User obj) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(List<AnimeGroup_User> objs) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, List<AnimeGroup_User> objs) { throw new NotSupportedException(); }
+        public override void Save(List<AnimeGroup_User> objs)
+        {
+            foreach(AnimeGroup_User grp in objs)
+                Save(grp);
+        }
 
 
         public override void Save(AnimeGroup_User obj)

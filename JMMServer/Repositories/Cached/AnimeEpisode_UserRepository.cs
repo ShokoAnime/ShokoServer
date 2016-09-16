@@ -49,16 +49,11 @@ namespace JMMServer.Repositories.Cached
 
 
 
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, AnimeEpisode_User obj) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(List<AnimeEpisode_User> objs) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, List<AnimeEpisode_User> objs) { throw new NotSupportedException(); }
+        public override void Save(List<AnimeEpisode_User> objs)
+        {
+            foreach(AnimeEpisode_User e in objs)
+                Save(e);
+        }
 
         public override void Save(AnimeEpisode_User obj)
         {

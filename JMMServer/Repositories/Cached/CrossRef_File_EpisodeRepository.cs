@@ -33,14 +33,14 @@ namespace JMMServer.Repositories
 
         public CrossRef_File_EpisodeRepository()
         {
-            SaveCallback = (ses, obj) =>
+            EndSaveCallback = (obj) =>
             {
                 logger.Trace("Updating group stats by file from CrossRef_File_EpisodeRepository.Save: {0}", obj.Hash);
                 AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
             };
-            DeleteCallback = (ses, obj) =>
+            EndDeleteCallback = (obj) =>
             {
-                if (obj.AnimeID > 0)
+                if (obj!=null && obj.AnimeID > 0)
                 {
                     logger.Trace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {0}", obj.AnimeID);
                     AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);

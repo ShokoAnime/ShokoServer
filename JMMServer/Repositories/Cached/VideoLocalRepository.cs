@@ -18,10 +18,10 @@ namespace JMMServer.Repositories.Cached
 
         public VideoLocalRepository()
         {
-            DeleteCallback = (ses, obj) =>
+            DeleteWithOpenTransactionCallback = (ses, obj) =>
             {
-                RepoFactory.VideoLocalPlace.Delete(ses, obj.Places.ToList());
-                RepoFactory.VideoLocalUser.Delete(ses, RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID));
+                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(ses, obj.Places.ToList());
+                RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(ses, RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID));
             };
         }
 
@@ -57,11 +57,7 @@ namespace JMMServer.Repositories.Cached
 
         public List<VideoLocal> GetByImportFolder(int importFolderID)
         {
-
-            //TODO FIX THIS
-            // todo check if needed anymore
-            // return ImportFolders.GetMultiple(importFolderID);
-            return null;
+            return RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID).Select(a=>a.VideoLocal).Where(a=>a!=null).Distinct().ToList();
         }
 
         private void UpdateMediaContracts(VideoLocal obj)
@@ -79,13 +75,7 @@ namespace JMMServer.Repositories.Cached
         public override void Save(VideoLocal obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(ISession session, VideoLocal obj) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
         public override void Save(List<VideoLocal> objs) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, List<VideoLocal> objs) { throw new NotSupportedException(); }
 
 
         public void Save(VideoLocal obj, bool updateEpisodes)

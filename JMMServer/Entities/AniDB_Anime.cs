@@ -1418,7 +1418,7 @@ namespace JMMServer.Entities
             Populate(animeInfo);
 
             // save now for FK purposes
-            RepoFactory.AniDB_Anime.Save(session, this);
+            RepoFactory.AniDB_Anime.Save(this);
 
             taskTimer.Start();
 

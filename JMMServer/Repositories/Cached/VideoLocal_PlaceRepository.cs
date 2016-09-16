@@ -23,8 +23,6 @@ namespace JMMServer.Repositories.Cached
         {
         }
 
-
-
         public List<VideoLocal_Place> GetByImportFolder(int importFolderID)
         {
             return ImportFolders.GetMultiple(importFolderID);

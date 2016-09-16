@@ -18,7 +18,26 @@ namespace JMMServer.Repositories.Cached
 
         private ChangeTracker<int> Changes = new ChangeTracker<int>();
 
+        public AnimeSeriesRepository()
+        {
+            BeginDeleteCallback = (cr) =>
+            {
+                RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(cr.AnimeSeriesID));
+                Changes.Remove(cr.AnimeSeriesID);
+            };
+            EndDeleteCallback = (cr) =>
+            {
+                cr.DeleteFromFilters();
+                if (cr.AnimeGroupID > 0)
+                {
+                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}", cr.AnimeGroupID);
+                    AnimeGroup oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
+                    if (oldGroup != null)
+                        RepoFactory.AnimeGroup.Save(oldGroup, true, true);
+                }
+            };
 
+        }
 
         public override void PopulateIndexes()
         {
@@ -64,13 +83,7 @@ namespace JMMServer.Repositories.Cached
         public override void Save(AnimeSeries obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(ISession session, AnimeSeries obj) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
         public override void Save(List<AnimeSeries> objs) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, List<AnimeSeries> objs) { throw new NotSupportedException(); }
 
 
         public void Save(AnimeSeries obj, bool onlyupdatestats)
@@ -170,45 +183,6 @@ namespace JMMServer.Repositories.Cached
         public List<AnimeSeries> GetMostRecentlyAdded(int maxResults)
         {
             return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
-        }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(List<AnimeSeries> objs) { throw new NotSupportedException(); }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(ISession session, int id) { throw new NotSupportedException(); }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(ISession session, AnimeSeries cr) { throw new NotSupportedException(); }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Delete(ISession session, List<AnimeSeries> objs) { throw new NotSupportedException(); }
-
-        public override void Delete(int id)
-        {
-            AnimeSeries cr = GetByID(id);
-            Delete(cr);
-        }
-        public override void Delete(AnimeSeries cr)
-        {
-            if (cr == null)
-                return;
-            // delete user records
-            RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(cr.AnimeSeriesID));
-            Changes.Remove(cr.AnimeSeriesID);
-            base.Delete(cr);
-            cr.DeleteFromFilters();
-            if (cr.AnimeGroupID > 0)
-            {
-                logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}", cr.AnimeGroupID);
-                AnimeGroup oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
-                if (oldGroup != null)
-                    RepoFactory.AnimeGroup.Save(oldGroup, true, true);
-            }
         }
 
     }

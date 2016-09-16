@@ -25,7 +25,7 @@ namespace JMMServer.Repositories
 
         public AniDB_FileRepository()
         {
-            DeleteCallback = (ses, cr) =>
+            EndDeleteCallback = (cr) =>
             {
                 if (cr.AnimeID > 0)
                     AniDB_Anime.UpdateStatsByAnimeID(cr.AnimeID);
@@ -53,13 +53,7 @@ namespace JMMServer.Repositories
         public override void Save(AniDB_File obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(ISession session, AniDB_File obj) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
         public override void Save(List<AniDB_File> objs) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, List<AniDB_File> objs) { throw new NotSupportedException(); }
 
         public void Save(AniDB_File obj, bool updateStats)
         {

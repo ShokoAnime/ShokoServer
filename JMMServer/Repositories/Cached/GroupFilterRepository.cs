@@ -25,12 +25,12 @@ namespace JMMServer.Repositories.Cached
 
         public GroupFilterRepository()
         {
-            AfterCommitCallback = (obj) =>
+            EndSaveCallback = (obj) =>
                             {
                                 Types[obj.GroupFilterID] = obj.Types;
                                 Changes.AddOrUpdate(obj.GroupFilterID);
                             };
-            DeleteCallback = (ses, obj) =>
+            EndDeleteCallback = (obj) =>
                             {
                                 Types.Remove(obj.GroupFilterID);
                                 Changes.Remove(obj.GroupFilterID);
@@ -326,13 +326,9 @@ namespace JMMServer.Repositories.Cached
         }
 
         //Disable base saves.
-        public override void Save(ISession session, GroupFilter obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
         public override void Save(List<GroupFilter> objs) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, List<GroupFilter> objs) { throw new NotSupportedException(); }
 
         public override void Save(GroupFilter obj)
         {

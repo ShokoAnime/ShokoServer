@@ -14,9 +14,9 @@ namespace JMMServer.Repositories
     {
         public CustomTagRepository()
         {
-            DeleteCallback = (ses, obj) =>
+            DeleteWithOpenTransactionCallback = (ses, obj) =>
             {
-                RepoFactory.CrossRef_CustomTag.Delete(ses, RepoFactory.CrossRef_CustomTag.GetByCustomTagID(obj.CustomTagID));
+                RepoFactory.CrossRef_CustomTag.DeleteWithOpenTransaction(ses, RepoFactory.CrossRef_CustomTag.GetByCustomTagID(obj.CustomTagID));
             };
         }
         public override void PopulateIndexes()

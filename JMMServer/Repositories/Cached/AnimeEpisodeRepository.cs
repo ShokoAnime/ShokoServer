@@ -16,7 +16,7 @@ namespace JMMServer.Repositories.Cached
 
         public AnimeEpisodeRepository()
         {
-            DeleteCallback = (ses, cr) =>
+            EndDeleteCallback = (cr) =>
             {
                 RepoFactory.AnimeEpisode_User.Delete(RepoFactory.AnimeEpisode_User.GetByEpisodeID(cr.AnimeEpisodeID));
             };
@@ -58,16 +58,11 @@ namespace JMMServer.Repositories.Cached
         }
 
 
-        //Disable base saves.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, AnimeEpisode obj) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(List<AnimeEpisode> objs) { throw new NotSupportedException(); }
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        [Obsolete("...", false)]
-        public override void Save(ISession session, List<AnimeEpisode> objs) { throw new NotSupportedException(); }
+        public override void Save(List<AnimeEpisode> objs)
+        {
+            foreach(AnimeEpisode ep in objs)
+                Save(ep);
+        }
 
         public override void Save(AnimeEpisode obj)
         {

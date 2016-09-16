@@ -20,15 +20,14 @@ namespace JMMServer.Repositories
         void Delete(S id);
         void Delete(T cr);
         void Delete(List<T> objs);
-        void Delete(ISession session, S id);
-        void Delete(ISession session, T cr);
-        void Delete(ISession session, List<T> objs);
         void Save(T obj);
         void Save(List<T> objs);
-        void Save(ISession session, T obj);
-        void Save(ISession session, List<T> objs);
-        Action<ISession, T> DeleteCallback { get; set; }
-        Action<ISession, T> SaveCallback { get; set; }
-        Action<T> AfterCommitCallback { get; set; }
+
+        Action<T> BeginDeleteCallback { get; set; }
+        Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
+        Action<T> EndDeleteCallback { get; set; }
+        Action<T> BeginSaveCallback { get; set; }
+        Action<ISession, T> SaveWithOpenTransactionCallback { get; set; }
+        Action<T> EndSaveCallback { get; set; }
     }
 }

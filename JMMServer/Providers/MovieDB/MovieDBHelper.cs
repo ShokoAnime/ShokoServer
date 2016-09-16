@@ -51,7 +51,7 @@ namespace JMMServer.Providers.MovieDB
             MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(searchResult.MovieID);
             if (movie == null) movie = new MovieDB_Movie();
             movie.Populate(searchResult);
-            RepoFactory.MovieDb_Movie.Save(session, movie);
+            RepoFactory.MovieDb_Movie.Save(movie);
 
             if (!saveImages) return;
 
@@ -66,7 +66,7 @@ namespace JMMServer.Providers.MovieDB
                     MovieDB_Poster poster = RepoFactory.MovieDB_Poster.GetByOnlineID(session, img.URL);
                     if (poster == null) poster = new MovieDB_Poster();
                     poster.Populate(img, movie.MovieId);
-                    RepoFactory.MovieDB_Poster.Save(session, poster);
+                    RepoFactory.MovieDB_Poster.Save(poster);
 
                     if (!string.IsNullOrEmpty(poster.FullImagePath) && File.Exists(poster.FullImagePath))
                         numPostersDownloaded++;
@@ -77,7 +77,7 @@ namespace JMMServer.Providers.MovieDB
                     MovieDB_Fanart fanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(session, img.URL);
                     if (fanart == null) fanart = new MovieDB_Fanart();
                     fanart.Populate(img, movie.MovieId);
-                    RepoFactory.MovieDB_Fanart.Save(session, fanart);
+                    RepoFactory.MovieDB_Fanart.Save(fanart);
 
                     if (!string.IsNullOrEmpty(fanart.FullImagePath) && File.Exists(fanart.FullImagePath))
                         numFanartDownloaded++;

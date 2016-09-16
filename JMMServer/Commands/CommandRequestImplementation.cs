@@ -86,7 +86,7 @@ namespace JMMServer.Commands
             }
 
             CommandRequest cri = this.ToDatabaseObject();
-            RepoFactory.CommandRequest.Save(session, cri);
+            RepoFactory.CommandRequest.Save(cri);
 
             if (CommandType == (int) CommandRequestType.HashFile)
                 JMMService.CmdProcessorHasher.NotifyOfNewCommand();

@@ -14,10 +14,13 @@ namespace JMMServer.Repositories
 
         public abstract void PopulateIndexes();
         public abstract void RegenerateDb();
+        public Action<T> BeginDeleteCallback { get; set; }
+        public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
+        public Action<T> EndDeleteCallback { get; set; }
+        public Action<T> BeginSaveCallback { get; set; }
+        public Action<ISession, T> SaveWithOpenTransactionCallback { get; set; }
+        public Action<T> EndSaveCallback { get; set; }
 
-        public Action<ISession, T> DeleteCallback { get; set; }
-        public Action<ISession, T> SaveCallback { get; set; }
-        public Action<T> AfterCommitCallback { get; set; }
 
         public virtual void Populate(Func<T, S> key, bool displayname = true)
         {
@@ -96,73 +99,86 @@ namespace JMMServer.Repositories
         {
             if (cr != null)
             {
+                BeginDeleteCallback?.Invoke(cr);
                 using (var session = JMMService.SessionFactory.OpenSession())
                 {
                     using (var transaction = session.BeginTransaction())
                     {
-                        DeleteCallback?.Invoke(session, cr);
+                        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
                         Cache.Remove(cr);
                         session.Delete(cr);
                         transaction.Commit();
                     }
                 }
+                EndDeleteCallback?.Invoke(cr);
             }
         }
         public virtual void Delete(List<T> objs)
         {
             if (objs.Count == 0)
                 return;
+            foreach (T cr in objs)
+                BeginDeleteCallback?.Invoke(cr);
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
                 {
                     foreach (T cr in objs)
                     {
-                        DeleteCallback?.Invoke(session, cr);
+                        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
                         Cache.Remove(cr);
                         session.Delete(cr);
                     }
                     transaction.Commit();
                 }
             }
+            foreach (T cr in objs)
+            {
+                EndDeleteCallback?.Invoke(cr);
+            }
         }
-        public virtual void Delete(ISession session, S id)
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void DeleteWithOpenTransaction(ISession session, S id)
         {
-            Delete(session, GetByID(id));
+            DeleteWithOpenTransaction(session, GetByID(id));
         }
-        public virtual void Delete(ISession session, T cr)
+
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void DeleteWithOpenTransaction(ISession session, T cr)
         {
             if (cr != null)
             {
-                DeleteCallback?.Invoke(session, cr);
+                DeleteWithOpenTransactionCallback?.Invoke(session, cr);
                 Cache.Remove(cr);
                 session.Delete(cr);
             }
         }
-        public virtual void Delete(ISession session, List<T> objs)
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void DeleteWithOpenTransaction(ISession session, List<T> objs)
         {
             if (objs.Count == 0)
                 return;
             foreach (T cr in objs)
             {
-                DeleteCallback?.Invoke(session, cr);
+                DeleteWithOpenTransactionCallback?.Invoke(session, cr);
                 Cache.Remove(cr);
                 session.Delete(cr);
             }
         }
         public virtual void Save(T obj)
         {
+            BeginSaveCallback?.Invoke(obj);
             using (var session = JMMService.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
                 {
+                    SaveWithOpenTransactionCallback?.Invoke(session, obj);
                     session.SaveOrUpdate(obj);
-                    SaveCallback?.Invoke(session, obj);
                     transaction.Commit();
-                    Cache.Update(obj);
-                    AfterCommitCallback?.Invoke(obj);
                 }
             }
+            Cache.Update(obj);
+            EndSaveCallback?.Invoke(obj);
         }
 
         public virtual void Save(List<T> objs)
@@ -176,51 +192,36 @@ namespace JMMServer.Repositories
                     foreach (T obj in objs)
                     {
                         session.SaveOrUpdate(obj);
-                        SaveCallback?.Invoke(session, obj);
+                        SaveWithOpenTransactionCallback?.Invoke(session, obj);
                     }
                     transaction.Commit();
-                    foreach (T obj in objs)
-                    {
-                       Cache.Update(obj);
-                       AfterCommitCallback?.Invoke(obj);
-                    }
+
                 }
+            }
+            foreach (T obj in objs)
+            {
+                Cache.Update(obj);
+                EndSaveCallback?.Invoke(obj);
             }
         }
 
-        //This two do not have after commit, and no cache update, the "UpdateCache" below should be used after commit
-        public virtual void Save(ISession session, T obj)
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void SaveWithOpenTransaction(ISession session, T obj)
         {
             session.SaveOrUpdate(obj);
-            SaveCallback?.Invoke(session, obj);
+            SaveWithOpenTransactionCallback?.Invoke(session, obj);
             Cache.Update(obj);
         }
-        //This two do not have after commit, and no cache update, the "UpdateCache" below should be used after commit
-        public virtual void Save(ISession session, List<T> objs)
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void SaveWithOpenTransaction(ISession session, List<T> objs)
         {
             if (objs.Count == 0)
                 return;
             foreach (T obj in objs)
+            {
                 session.SaveOrUpdate(obj);
-            foreach (T obj in objs)
-            {
+                SaveWithOpenTransactionCallback?.Invoke(session, obj);
                 Cache.Update(obj);
-                SaveCallback?.Invoke(session, obj);
-            }
-        }
-
-        public virtual void UpdateCache(T obj)
-        {
-            Cache.Update(obj);
-            AfterCommitCallback?.Invoke(obj);
-        }
-
-        public virtual void UpdateCache(List<T> objs)
-        {
-            foreach (T obj in objs)
-            {
-                Cache.Update(obj);
-                AfterCommitCallback?.Invoke(obj);
             }
         }
     }
