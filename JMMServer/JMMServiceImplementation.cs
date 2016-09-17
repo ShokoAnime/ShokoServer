@@ -2399,60 +2399,44 @@ namespace JMMServer
             return null;
         }
 
-        // // IT IS NOT POSSIBLE ANYMORE AS FILEPATH WAS WIPE OUT
-        //public List<Contract_AnimeSeriesFileStats> GetSeriesFileStatsByFolderID(int FolderID, int userID, int max)
-        //{
-        //    try
-        //    {
-        //        int limit = 0;
-        //        Dictionary<int,Contract_AnimeSeriesFileStats> list = new Dictionary<int, Contract_AnimeSeriesFileStats>();
-        //        VideoLocalRepository reVideo = new VideoLocalRepository();
-        //        ImportFolderRepository repFolders = new ImportFolderRepository();
-        //        ImportFolder fldr = repFolders.GetByID(FolderID);
-        //        if (fldr == null) return list.Values.ToList();
-        //        string importLocation = fldr.ImportFolderLocation.TrimEnd('\\');
+        public List<Contract_AnimeSeriesFileStats> GetSeriesFileStatsByFolderID(int FolderID, int userID, int max)
+        {
+            try
+            {
+                int limit = 0;
+                Dictionary<int, Contract_AnimeSeriesFileStats> list = new Dictionary<int, Contract_AnimeSeriesFileStats>();
+                foreach (VideoLocal vi in RepoFactory.VideoLocal.GetByImportFolder(FolderID))
+                {
+                    foreach (Contract_AnimeEpisode ae in GetEpisodesForFile(vi.VideoLocalID, userID))
+                    {
+                        Contract_AnimeSeries ase = GetSeries(ae.AnimeSeriesID, userID);
+                        Contract_AnimeSeriesFileStats asfs = null;
+                        if (list.TryGetValue(ase.AnimeSeriesID, out asfs) == false)
+                        {
+                            limit++;
+                            if (limit >= max)
+                            {
+                                continue;
+                            }
+                            asfs = new Contract_AnimeSeriesFileStats();
+                            asfs.AnimeSeriesName = ase.AniDBAnime.AniDBAnime.MainTitle;
+                            asfs.FileCount = 0;
+                            asfs.FileSize = 0;
+                            asfs.Folders = new List<string>();
+                            asfs.AnimeSeriesID = ase.AnimeSeriesID;
+                            list.Add(ase.AnimeSeriesID, asfs);
+                        }
+                    }
+                }
 
-        //        foreach (VideoLocal vi in reVideo.GetByImportFolder(FolderID))
-        //        {
-        //            foreach (Contract_AnimeEpisode ae in GetEpisodesForFile(vi.VideoLocalID, userID))
-        //            {
-        //                Contract_AnimeSeries ase = GetSeries(ae.AnimeSeriesID, userID);
-        //                Contract_AnimeSeriesFileStats asfs = null;
-        //                if (list.TryGetValue(ase.AnimeSeriesID, out asfs) == false)
-        //                {
-        //                    limit++;
-        //                    if (limit >= max)
-        //                    {
-        //                        continue;
-        //                    }
-        //                    asfs = new Contract_AnimeSeriesFileStats();
-        //                    asfs.AnimeSeriesName = ase.AniDBAnime.AniDBAnime.MainTitle;
-        //                    asfs.FileCount = 0;
-        //                    asfs.FileSize = 0;
-        //                    asfs.Folders = new List<string>();
-        //                    asfs.AnimeSeriesID = ase.AnimeSeriesID;
-        //                    list.Add(ase.AnimeSeriesID, asfs);
-        //                }
-        //                asfs.FileCount++;
-        //                asfs.FileSize += vi.FileSize;
-        //                //todo check if needed vi.FullServerPath
-        //                string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FilePath).Replace(importLocation, "");
-        //                filePath = filePath.TrimStart('\\');
-        //                if (!asfs.Folders.Contains(filePath)) {
-        //                    asfs.Folders.Add(filePath);
-        //                }
-                        
-        //            }
-        //        }
-
-        //        return list.Values.ToList();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        logger.Error( ex,ex.ToString());
-        //    }
-        //    return null;
-        //}
+                return list.Values.ToList();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+            return null;
+        }
 
         public Contract_AnimeSeries GetSeriesForAnime(int animeID, int userID)
         {
