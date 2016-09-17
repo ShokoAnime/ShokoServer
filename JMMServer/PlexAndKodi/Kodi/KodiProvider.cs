@@ -3,7 +3,7 @@ using System.ServiceModel.Web;
 using System.Text;
 using System.Xml.Serialization;
 using JMMContracts.PlexAndKodi;
-using System.Text.RegularExpressions;
+using System;
 
 namespace JMMServer.PlexAndKodi.Kodi
 {
@@ -22,9 +22,6 @@ namespace JMMServer.PlexAndKodi.Kodi
         public bool EnableAnimeTitlesInLists { get; } = true;
         public bool EnableGenresInLists { get; } = true;
 
-		//TODO improve this
-        private static Regex _removeIp=new Regex(@"(\d+\.\d+\.\d+\.\d+):(\d+)",RegexOptions.Compiled);
-
         public string Proxyfy(string url)
         {
             return url;
@@ -32,17 +29,17 @@ namespace JMMServer.PlexAndKodi.Kodi
 
         public string ShortUrl(string url)
         {
-            Match remove_this = _removeIp.Match(url);
-            if (remove_this.Success)
-            {
-                //remove http, host, port because we already know whats that
-                //return url.Substring(url.IndexOf(":" + ServicePort + "/") + ServicePort.ToString().Length + 2);
-                return url.Replace("http://","").Replace(remove_this.Groups[1].Value, "");
-            }
-            else
-            {
-                return url;
-            }
+			// Faster and More accurate than regex
+			try
+			{
+				Uri uri = new Uri(url);
+				return uri.PathAndQuery;
+			}
+			catch
+			{
+				// if this fails, then there is a problem
+				return url;
+			}
         }
 
         public MediaContainer NewMediaContainer(MediaContainerTypes type, string title = null, bool allowsync = false, bool nocache = false, BreadCrumbs info = null)
