@@ -3455,6 +3455,7 @@ namespace JMMServer
         /// <param name="voteType"></param>
         public void VoteAnime(int animeID, decimal voteValue, int voteType)
         {
+            //TODO missing userID ?! - brm
             string msg = string.Format("Voting for anime: {0} - Value: {1}", animeID, voteValue);
             logger.Info(msg);
 

@@ -81,20 +81,27 @@
 
         public void Handle(HttpStatusCode statusCode, NancyContext context)
         {
-            if (context.ResolvedRoute.Description.Path.StartsWith("/webui/"))
+            try
             {
-                context.Response.Contents = stream =>
+                if (context.ResolvedRoute.Description.Path.StartsWith("/webui/"))
                 {
-                    var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
-                    using (var file = File.OpenRead(filename))
+                    context.Response.Contents = stream =>
                     {
-                        file.CopyTo(stream);
-                    }
-                };
+                        var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
+                        using (var file = File.OpenRead(filename))
+                        {
+                            file.CopyTo(stream);
+                        }
+                    };
+                }
+                else
+                {
+                    context.Response = @"<html><body>File not Found (404)</body></html>";
+                }
             }
-            else
+            catch
             {
-                context.Response = @"<html><body>File not Found (404)</body></html>";
+                context.Response = @"<html><body>Internal Error: #$%^&*(</body></html>";
             }
         }
     }
