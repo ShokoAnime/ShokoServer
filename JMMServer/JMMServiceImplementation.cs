@@ -2411,6 +2411,7 @@ namespace JMMServer
                     {
                         Contract_AnimeSeries ase = GetSeries(ae.AnimeSeriesID, userID);
                         Contract_AnimeSeriesFileStats asfs = null;
+                        //check if series is in list if not add it
                         if (list.TryGetValue(ase.AnimeSeriesID, out asfs) == false)
                         {
                             limit++;
@@ -2425,6 +2426,17 @@ namespace JMMServer
                             asfs.Folders = new List<string>();
                             asfs.AnimeSeriesID = ase.AnimeSeriesID;
                             list.Add(ase.AnimeSeriesID, asfs);
+                        }
+
+                        asfs.FileCount++;
+                        asfs.FileSize += vi.FileSize;
+
+                        //string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FilePath).Replace(importLocation, "");
+                        //filePath = filePath.TrimStart('\\');
+                        string filePath = RepoFactory.VideoLocalPlace.GetByVideoLocal(vi.VideoLocalID)[0].FilePath;
+                        if (!asfs.Folders.Contains(filePath))
+                        {
+                            asfs.Folders.Add(filePath);
                         }
                     }
                 }
