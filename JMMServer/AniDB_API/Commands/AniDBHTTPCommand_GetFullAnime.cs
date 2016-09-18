@@ -121,8 +121,8 @@ namespace AniDBAPI.Commands
 
         private XmlDocument LoadAnimeHTTPFromFile(int animeID)
         {
-            string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            string filePath = Path.Combine(appPath, "Anime_HTTP");
+            string filePath = ServerSettings.AnimeXmlDirectory;
+
 
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);
@@ -146,8 +146,8 @@ namespace AniDBAPI.Commands
 
         private void WriteAnimeHTTPToFile(int animeID, string xml)
         {
-            string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            string filePath = Path.Combine(appPath, "Anime_HTTP");
+            string filePath = ServerSettings.AnimeXmlDirectory;
+
 
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);
@@ -163,9 +163,8 @@ namespace AniDBAPI.Commands
 
         public virtual enHelperActivityType Process()
         {
-            string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            string filePath = Path.Combine(appPath, "Anime_HTTP");
-
+            string filePath = ServerSettings.AnimeXmlDirectory;
+            
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);
 

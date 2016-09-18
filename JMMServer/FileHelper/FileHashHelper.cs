@@ -44,14 +44,12 @@ namespace JMMServer.FileHelper
         {
             List<string> extList = new List<string>();
 
-            // Get the AppSettings section.
-            NameValueCollection appSettings = ConfigurationManager.AppSettings;
 
             try
             {
-                string exts = appSettings["VideoExtensions"];
+                string exts = ServerSettings.VideoExtensions;
 
-                if (appSettings.Count == 0 || exts == null || exts.Trim().Length == 0)
+                if (exts == null || exts.Trim().Length == 0)
                 {
                     logger.Error("Could not find VideoExtensions app setting in config file");
                     return extList;

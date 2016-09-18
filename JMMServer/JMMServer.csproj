@@ -60,9 +60,7 @@
   <PropertyGroup>
     <ApplicationIcon>db.ico</ApplicationIcon>
   </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-  </PropertyGroup>
+  <PropertyGroup />
   <PropertyGroup>
     <StartupObject>JMMServer.App</StartupObject>
   </PropertyGroup>
@@ -313,7 +311,6 @@
     <Compile Include="API\Model\WebNews.cs" />
     <Compile Include="API\UserDatabase.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
-    <Compile Include="DataAccessHelper.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
     <Compile Include="Entities\AuthTokens.cs" />
@@ -995,9 +992,6 @@
       <LastGenOutput>Resources.ru.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="app.config">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="app.manifest">
       <SubType>Designer</SubType>
     </None>
     <None Include="default.config">

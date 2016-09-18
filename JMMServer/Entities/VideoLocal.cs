@@ -175,11 +175,9 @@ namespace JMMServer.Entities
             VideoLocal_User vidUserRecord = GetUserRecord(userID);
             if (watched)
             {
-                if (vidUserRecord?.WatchedDate == null)
-                {
+                if (vidUserRecord == null)
                     vidUserRecord = new VideoLocal_User();
-                    vidUserRecord.WatchedDate = DateTime.Now;
-                }
+                vidUserRecord.WatchedDate = DateTime.Now;
                 vidUserRecord.JMMUserID = userID;
                 vidUserRecord.VideoLocalID = this.VideoLocalID;
 
@@ -197,7 +195,6 @@ namespace JMMServer.Entities
                 {
                     vidUserRecord.WatchedDate = null;
                     RepoFactory.VideoLocalUser.Save(vidUserRecord);
-
                 }
             }
         }

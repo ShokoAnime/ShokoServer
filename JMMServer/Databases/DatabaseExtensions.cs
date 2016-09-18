@@ -36,8 +36,7 @@ namespace JMMServer.Databases
         {
             //TODO this need to be fixed if we want to remove JMMServer Administration dependency, 
             // all the storage should be outside program files.
-            string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            string backupath = Path.Combine(appPath, "DatabaseBackup");
+            string backupath = ServerSettings.DatabaseBackupDirectory;
             try { Directory.CreateDirectory(backupath); } catch { }
             string fname = ServerSettings.DatabaseName + "_" + version.ToString("D3") + "_" +
                            DateTime.Now.Year.ToString("D4") + DateTime.Now.Month.ToString("D2") +

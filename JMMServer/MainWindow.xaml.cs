@@ -331,7 +331,35 @@ namespace JMMServer
 
             InitCulture();
             Instance = this;
-            StartNancyHost();
+            try
+            {
+                StartNancyHost();
+            }
+            catch (Exception e)
+            {
+                if (Utils.IsAdministrator())
+                {
+                    MessageBox.Show("Settings the ports, after that JMMServer will quit, run again in normal mode");
+                    Utils.SetNetworkRequirements(ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort);
+                    try
+                    {
+                        StartNancyHost();
+                        Application.Current.Shutdown();
+                    }
+                    catch (Exception)
+                    {
+                        MessageBox.Show("Unable to set the ports");
+                        Application.Current.Shutdown();
+                    }
+
+                }
+                else
+                {
+                    MessageBox.Show("Unable to start hosting, please run JMMServer as administrator once.");
+                    Application.Current.Shutdown();
+                }
+
+            }
         }
         public static MainWindow Instance { get; private set; }
         private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
@@ -552,9 +580,7 @@ namespace JMMServer
         {
             try
             {
-                string appPath =
-                    System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                string logPath = Path.Combine(appPath, "logs");
+                string logPath = Path.Combine(ServerSettings.ApplicationPath , "logs");
 
                 Process.Start(new ProcessStartInfo(logPath));
             }
@@ -1371,6 +1397,7 @@ namespace JMMServer
 
         void btnApplyServerPort_Click(object sender, RoutedEventArgs e)
         {
+
             if (string.IsNullOrEmpty(txtServerPort.Text))
             {
                 MessageBox.Show(JMMServer.Properties.Resources.Server_EnterAnyValue,
@@ -1390,7 +1417,12 @@ namespace JMMServer
                 txtServerPort.Focus();
                 return;
             }
-
+            if (!Utils.IsAdministrator())
+            {
+                MessageBox.Show(
+                    "You cannot change server port in normal mode, you need administration rights to do that, please start JMMServer as administrator");
+                return;
+            }
             try
             {
                 this.Cursor = Cursors.Wait;
@@ -2556,6 +2588,7 @@ namespace JMMServer
 
         private static void StartNancyHost()
         {
+            //nancy will rewrite localhost into http://+:port
             hostNancy = new Nancy.Hosting.Self.NancyHost(new Uri("http://localhost:"+ ServerSettings.JMMServerPort));
             hostNancy.Start();
         }

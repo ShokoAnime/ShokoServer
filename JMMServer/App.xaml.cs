@@ -9,6 +9,7 @@ namespace JMMServer
     {
         public App()
         {
+            ServerSettings.LoadSettings();
             //ServerSettings.CreateDefaultConfig();
         }
     }

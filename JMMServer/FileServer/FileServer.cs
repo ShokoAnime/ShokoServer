@@ -175,7 +175,7 @@ namespace JMMServer.FileServer
         public FileServer(int port, int maxthreads = 100)
         {
             _listener = new HttpListener();
-            _listener.Prefixes.Add($@"http://*:{port}/");
+            _listener.Prefixes.Add($@"http://+:{port}/");
             _listener.TimeoutManager.MinSendBytesPerSecond = uint.MaxValue;
             _listener.TimeoutManager.IdleConnection = new TimeSpan(8, 0, 0);
             _listener.Start();

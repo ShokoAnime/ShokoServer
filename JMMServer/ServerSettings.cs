@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Principal;
+using System.Windows;
 using AniDBAPI;
 using JMMContracts;
 using JMMServer.Entities;
@@ -11,24 +14,192 @@ using JMMServer.ImageDownload;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
 using NLog;
+using Newtonsoft.Json;
+using NLog.Targets;
 
 namespace JMMServer
 {
-    public class ServerSettings
+    public static class ServerSettings
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static void CreateDefaultConfig()
-        {
-            System.Reflection.Assembly assm = System.Reflection.Assembly.GetExecutingAssembly();
-            // check if the app config file exists
+        private static Dictionary<string, string> appSettings = new Dictionary<string, string>();
 
-            string appConfigPath = assm.Location + ".config";
-            string defaultConfigPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(assm.Location),
-                "default.config");
-            if (!File.Exists(appConfigPath) && File.Exists(defaultConfigPath))
+        private static string Get(string key)
+        {
+            if (appSettings.ContainsKey(key))
+                return appSettings[key];
+            return null;
+        }
+
+        private static void Set(string key, string value)
+        {
+            string orig = Get(key);
+            if (value != orig)
             {
-                File.Copy(defaultConfigPath, appConfigPath);
+                appSettings[key] = value;
+                SaveSettings();
+            }
+        }
+        public static string ApplicationPath
+        {
+            get
+            {
+                string basepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    System.Reflection.Assembly.GetExecutingAssembly().GetName().Name);
+                if (!Directory.Exists(basepath))
+                    Directory.CreateDirectory(basepath);
+                return basepath;
+            }
+        }
+
+        public static void LoadSettings()
+        {
+            string path = Path.Combine(ApplicationPath, "settings.json");
+            string programlocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            string dbPath = Path.Combine(programlocation, "SQLite");
+            string backupath = Path.Combine(programlocation, "DatabaseBackup");
+            string mylistPath = Path.Combine(programlocation, "MyList");
+            string animexmlPath = Path.Combine(programlocation, "Anime_HTTP");
+            string imagePath = Path.Combine(programlocation, "images");
+
+            bool proc = false;
+            if (!File.Exists(path) || Directory.Exists(dbPath) || Directory.Exists(backupath) || Directory.Exists(mylistPath) || Directory.Exists(animexmlPath) || (Directory.Exists(imagePath) && (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))))
+            {
+                if (!Utils.IsAdministrator())
+                {
+                    MessageBox.Show("We need to perform the migration of the settings, for that prupose we need administration privileges, run this program as administrator to run the migration", "Migration", MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    System.Windows.Application.Current.Shutdown();
+                }
+                else
+                {
+                    MessageBox.Show("We're going to migrate your settings from the program files folder to " + ApplicationPath +
+                    " after that the program will quit, and you can run it as normal", "Migration", MessageBoxButton.OK, MessageBoxImage.Information);
+                    proc = true;
+                }
+            }
+            //Move Settings if necesary
+            if (File.Exists(path))
+                appSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
+            else
+            {
+                NameValueCollection col = ConfigurationManager.AppSettings;
+                appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
+                SaveSettings();
+            }
+            //Move existing directories to programdata
+            if (Directory.Exists(dbPath))
+                Directory.Move(dbPath,MySqliteDirectory);
+            if (Directory.Exists(backupath))
+                Directory.Move(backupath, DatabaseBackupDirectory);
+            if (Directory.Exists(mylistPath))
+                Directory.Move(mylistPath, MyListDirectory);
+            if (Directory.Exists(animexmlPath))
+                Directory.Move(animexmlPath, AnimeXmlDirectory);
+            if (Directory.Exists(imagePath) && (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath)))
+                Directory.Move(imagePath, DefaultImagePath);
+
+            if (proc)
+                Application.Current.Shutdown();
+            //Reconfigure log file to applicationpath
+            var target = (FileTarget)LogManager.Configuration.FindTargetByName("file");
+            target.FileName = ApplicationPath+"/logs/${shortdate}.txt";
+            LogManager.ReconfigExistingLoggers();
+        }
+
+        public static void SaveSettings()
+        {
+            lock (appSettings)
+            {
+                string path = Path.Combine(ApplicationPath, "settings.json");
+                File.WriteAllText(path, JsonConvert.SerializeObject(appSettings));
+            }
+        }
+        public static string AnimeXmlDirectory
+        {
+            get
+            {
+                string dir = Get("AnimeXmlDirectory");
+                if (string.IsNullOrEmpty(dir))
+                {
+                    dir = Path.Combine(ApplicationPath, "Anime_HTTP");
+                    Set("AnimeXmlDirectory", dir);
+                }
+                return dir;
+            }
+            set
+            {
+                Set("AnimeXmlDirectory", value);
+            }
+        }
+        public static string DefaultImagePath
+        {
+            get
+            {
+                string dir = Get("DefaultImagePath");
+                if (string.IsNullOrEmpty(dir))
+                {
+                    dir = Path.Combine(ApplicationPath, "images");
+                    Set("DefaultImagePath", dir);
+                }
+                return dir;
+            }
+            set
+            {
+                Set("DefaultImagePath", value);
+            }
+        }
+        public static string MyListDirectory
+        {
+            get
+            {
+                string dir = Get("MyListDirectory");
+                if (string.IsNullOrEmpty(dir))
+                {
+                    dir = Path.Combine(ApplicationPath, "MyList");
+                    Set("MyListDirectory", dir);
+                }
+                return dir;
+            }
+            set
+            {
+                Set("MyListDirectory", value);
+            }
+        }
+
+        public static string MySqliteDirectory
+        {
+            get
+            {
+                string dir = Get("MySqliteDirectory");
+                if (string.IsNullOrEmpty(dir))
+                {
+                    dir = Path.Combine(ApplicationPath, "SQLite");
+                    Set("MySqliteDirectory", dir);
+                }
+                return dir;
+            }
+            set
+            {
+                Set("MySqliteDirectory", value);
+            }
+        }
+        public static string DatabaseBackupDirectory
+        {
+            get
+            {
+                string dir = Get("DatabaseBackupDirectory");
+                if (string.IsNullOrEmpty(dir))
+                {
+                    dir = Path.Combine(ApplicationPath, "DatabaseBackup");
+                    Set("DatabaseBackupDirectory", dir);
+                }
+                return dir;
+            }
+            set
+            {
+                Set("DatabaseBackupDirectory", value);
             }
         }
 
@@ -36,87 +207,85 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
 
-                string serverPort = appSettings["JMMServerPort"];
+                string serverPort = Get("JMMServerPort");
                 if (string.IsNullOrEmpty(serverPort))
                 {
                     serverPort = "8111";
-                    UpdateSetting("JMMServerPort", serverPort);
+                    Set("JMMServerPort", serverPort);
                 }
-
                 return serverPort;
             }
-            set { UpdateSetting("JMMServerPort", value); }
+            set { Set("JMMServerPort", value); }
         }
 
         public static string JMMServerFilePort
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
 
-                string serverPort = appSettings["JMMServerFilePort"];
+                string serverPort = Get("JMMServerFilePort");
                 if (string.IsNullOrEmpty(serverPort))
                 {
                     serverPort = "8112";
-                    UpdateSetting("JMMServerFilePort", serverPort);
+                    Set("JMMServerFilePort", serverPort);
                 }
 
                 return serverPort;
             }
-            set { UpdateSetting("JMMServerFilePort", value); }
+            set { Set("JMMServerFilePort", value); }
         }
         public static string PluginAutoWatchThreshold
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
 
-                string th = appSettings["PluginAutoWatchThreshold"];
+                string th = Get("PluginAutoWatchThreshold");
                 if (string.IsNullOrEmpty(th))
                 {
                     th = "0.89";
-                    UpdateSetting("PluginAutoWatchThreshold", th);
+                    Set("PluginAutoWatchThreshold", th);
                 }
 
                 return th;
             }
-            set { UpdateSetting("PluginAutoWatchThreshold", value); }
+            set { Set("PluginAutoWatchThreshold", value); }
         }
         public static string PlexThumbnailAspects
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string thumbaspect = appSettings["PlexThumbnailAspects"];
+                
+                string thumbaspect = Get("PlexThumbnailAspects");
                 if (string.IsNullOrEmpty(thumbaspect))
                 {
                     thumbaspect = "Default, 0.6667, IOS, 1.0, Android, 1.3333";
-                    UpdateSetting("PlexThumbnailAspects", thumbaspect);
+                    Set("PlexThumbnailAspects", thumbaspect);
                 }
 
                 return thumbaspect;
             }
-            set { UpdateSetting("PlexThumbnailAspect", value); }
+            set { Set("PlexThumbnailAspect", value); }
         }
 
         public static string Culture
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
 
-                string cult = appSettings["Culture"];
+                string cult = Get("Culture");
                 if (string.IsNullOrEmpty(cult))
                 {
                     // default value
                     cult = "en";
-                    UpdateSetting("Culture", cult);
+                    Set("Culture", cult);
                 }
                 return cult;
             }
-            set { UpdateSetting("Culture", value); }
+            set { Set("Culture", value); }
         }
 
         /// <summary>
@@ -126,15 +295,15 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = true;
-                if (appSettings.AllKeys.Contains("FirstRun"))
-                { bool.TryParse(appSettings["FirstRun"], out val); }
+                if ( !string.IsNullOrEmpty(Get("FirstRun")))
+                { bool.TryParse(Get("FirstRun"), out val); }
                 else
                 { FirstRun = val; }
                 return val;
             }
-            set { UpdateSetting("FirstRun", value.ToString()); }
+            set { Set("FirstRun", value.ToString()); }
         }
 
         #region Database
@@ -143,100 +312,100 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["DatabaseType"];
+                
+                return Get("DatabaseType");
             }
-            set { UpdateSetting("DatabaseType", value); }
+            set { Set("DatabaseType", value); }
         }
 
         public static string DatabaseServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["SQLServer_DatabaseServer"];
+                
+                return Get("SQLServer_DatabaseServer");
             }
-            set { UpdateSetting("SQLServer_DatabaseServer", value); }
+            set { Set("SQLServer_DatabaseServer", value); }
         }
 
         public static string DatabaseName
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["SQLServer_DatabaseName"];
+                
+                return Get("SQLServer_DatabaseName");
             }
-            set { UpdateSetting("SQLServer_DatabaseName", value); }
+            set { Set("SQLServer_DatabaseName", value); }
         }
 
         public static string DatabaseUsername
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["SQLServer_Username"];
+                
+                return Get("SQLServer_Username");
             }
-            set { UpdateSetting("SQLServer_Username", value); }
+            set { Set("SQLServer_Username", value); }
         }
 
         public static string DatabasePassword
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["SQLServer_Password"];
+                
+                return Get("SQLServer_Password");
             }
-            set { UpdateSetting("SQLServer_Password", value); }
+            set { Set("SQLServer_Password", value); }
         }
 
         public static string DatabaseFile
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["SQLite_DatabaseFile"];
+                
+                return Get("SQLite_DatabaseFile");
             }
-            set { UpdateSetting("SQLite_DatabaseFile", value); }
+            set { Set("SQLite_DatabaseFile", value); }
         }
 
         public static string MySQL_Hostname
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["MySQL_Hostname"];
+                
+                return Get("MySQL_Hostname");
             }
-            set { UpdateSetting("MySQL_Hostname", value); }
+            set { Set("MySQL_Hostname", value); }
         }
 
         public static string MySQL_SchemaName
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["MySQL_SchemaName"];
+                
+                return Get("MySQL_SchemaName");
             }
-            set { UpdateSetting("MySQL_SchemaName", value); }
+            set { Set("MySQL_SchemaName", value); }
         }
 
         public static string MySQL_Username
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["MySQL_Username"];
+                
+                return Get("MySQL_Username");
             }
-            set { UpdateSetting("MySQL_Username", value); }
+            set { Set("MySQL_Username", value); }
         }
 
         public static string MySQL_Password
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["MySQL_Password"];
+                
+                return Get("MySQL_Password");
             }
-            set { UpdateSetting("MySQL_Password", value); }
+            set { Set("MySQL_Password", value); }
         }
 
         #endregion
@@ -247,300 +416,300 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["AniDB_Username"];
+                
+                return Get("AniDB_Username");
             }
-            set { UpdateSetting("AniDB_Username", value); }
+            set { Set("AniDB_Username", value); }
         }
 
         public static string AniDB_Password
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["AniDB_Password"];
+                
+                return Get("AniDB_Password");
             }
-            set { UpdateSetting("AniDB_Password", value); }
+            set { Set("AniDB_Password", value); }
         }
 
         public static string AniDB_ServerAddress
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["AniDB_ServerAddress"];
+                
+                return Get("AniDB_ServerAddress");
             }
-            set { UpdateSetting("AniDB_ServerAddress", value); }
+            set { Set("AniDB_ServerAddress", value); }
         }
 
         public static string AniDB_ServerPort
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["AniDB_ServerPort"];
+                
+                return Get("AniDB_ServerPort");
             }
-            set { UpdateSetting("AniDB_ServerPort", value); }
+            set { Set("AniDB_ServerPort", value); }
         }
 
         public static string AniDB_ClientPort
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["AniDB_ClientPort"];
+                
+                return Get("AniDB_ClientPort");
             }
-            set { UpdateSetting("AniDB_ClientPort", value); }
+            set { Set("AniDB_ClientPort", value); }
         }
 
         public static string AniDB_AVDumpKey
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["AniDB_AVDumpKey"];
+                
+                return Get("AniDB_AVDumpKey");
             }
-            set { UpdateSetting("AniDB_AVDumpKey", value); }
+            set { Set("AniDB_AVDumpKey", value); }
         }
 
         public static string AniDB_AVDumpClientPort
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["AniDB_AVDumpClientPort"];
+                
+                return Get("AniDB_AVDumpClientPort");
             }
-            set { UpdateSetting("AniDB_AVDumpClientPort", value); }
+            set { Set("AniDB_AVDumpClientPort", value); }
         }
 
         public static bool AniDB_DownloadRelatedAnime
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool download = false;
-                bool.TryParse(appSettings["AniDB_DownloadRelatedAnime"], out download);
+                bool.TryParse(Get("AniDB_DownloadRelatedAnime"), out download);
                 return download;
             }
-            set { UpdateSetting("AniDB_DownloadRelatedAnime", value.ToString()); }
+            set { Set("AniDB_DownloadRelatedAnime", value.ToString()); }
         }
 
         public static bool AniDB_DownloadSimilarAnime
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool download = false;
-                bool.TryParse(appSettings["AniDB_DownloadSimilarAnime"], out download);
+                bool.TryParse(Get("AniDB_DownloadSimilarAnime"), out download);
                 return download;
             }
-            set { UpdateSetting("AniDB_DownloadSimilarAnime", value.ToString()); }
+            set { Set("AniDB_DownloadSimilarAnime", value.ToString()); }
         }
 
         public static bool AniDB_DownloadReviews
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool download = false;
-                bool.TryParse(appSettings["AniDB_DownloadReviews"], out download);
+                bool.TryParse(Get("AniDB_DownloadReviews"), out download);
                 return download;
             }
-            set { UpdateSetting("AniDB_DownloadReviews", value.ToString()); }
+            set { Set("AniDB_DownloadReviews", value.ToString()); }
         }
 
         public static bool AniDB_DownloadReleaseGroups
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool download = false;
-                bool.TryParse(appSettings["AniDB_DownloadReleaseGroups"], out download);
+                bool.TryParse(Get("AniDB_DownloadReleaseGroups"), out download);
                 return download;
             }
-            set { UpdateSetting("AniDB_DownloadReleaseGroups", value.ToString()); }
+            set { Set("AniDB_DownloadReleaseGroups", value.ToString()); }
         }
 
         public static bool AniDB_MyList_AddFiles
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["AniDB_MyList_AddFiles"], out val);
+                bool.TryParse(Get("AniDB_MyList_AddFiles"), out val);
                 return val;
             }
-            set { UpdateSetting("AniDB_MyList_AddFiles", value.ToString()); }
+            set { Set("AniDB_MyList_AddFiles", value.ToString()); }
         }
 
         public static AniDBFileStatus AniDB_MyList_StorageState
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 1;
-                int.TryParse(appSettings["AniDB_MyList_StorageState"], out val);
+                int.TryParse(Get("AniDB_MyList_StorageState"), out val);
 
                 return (AniDBFileStatus) val;
             }
-            set { UpdateSetting("AniDB_MyList_StorageState", ((int) value).ToString()); }
+            set { Set("AniDB_MyList_StorageState", ((int) value).ToString()); }
         }
 
         public static AniDBFileDeleteType AniDB_MyList_DeleteType
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 0;
-                int.TryParse(appSettings["AniDB_MyList_DeleteType"], out val);
+                int.TryParse(Get("AniDB_MyList_DeleteType"), out val);
 
                 return (AniDBFileDeleteType) val;
             }
-            set { UpdateSetting("AniDB_MyList_DeleteType", ((int) value).ToString()); }
+            set { Set("AniDB_MyList_DeleteType", ((int) value).ToString()); }
         }
 
         public static bool AniDB_MyList_ReadUnwatched
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["AniDB_MyList_ReadUnwatched"], out val);
+                bool.TryParse(Get("AniDB_MyList_ReadUnwatched"), out val);
                 return val;
             }
-            set { UpdateSetting("AniDB_MyList_ReadUnwatched", value.ToString()); }
+            set { Set("AniDB_MyList_ReadUnwatched", value.ToString()); }
         }
 
         public static bool AniDB_MyList_ReadWatched
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["AniDB_MyList_ReadWatched"], out val);
+                bool.TryParse(Get("AniDB_MyList_ReadWatched"), out val);
                 return val;
             }
-            set { UpdateSetting("AniDB_MyList_ReadWatched", value.ToString()); }
+            set { Set("AniDB_MyList_ReadWatched", value.ToString()); }
         }
 
         public static bool AniDB_MyList_SetWatched
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["AniDB_MyList_SetWatched"], out val);
+                bool.TryParse(Get("AniDB_MyList_SetWatched"), out val);
                 return val;
             }
-            set { UpdateSetting("AniDB_MyList_SetWatched", value.ToString()); }
+            set { Set("AniDB_MyList_SetWatched", value.ToString()); }
         }
 
         public static bool AniDB_MyList_SetUnwatched
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["AniDB_MyList_SetUnwatched"], out val);
+                bool.TryParse(Get("AniDB_MyList_SetUnwatched"), out val);
                 return val;
             }
-            set { UpdateSetting("AniDB_MyList_SetUnwatched", value.ToString()); }
+            set { Set("AniDB_MyList_SetUnwatched", value.ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_MyList_UpdateFrequency
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 1;
-                if (int.TryParse(appSettings["AniDB_MyList_UpdateFrequency"], out val))
+                if (int.TryParse(Get("AniDB_MyList_UpdateFrequency"), out val))
                     return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
-            set { UpdateSetting("AniDB_MyList_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("AniDB_MyList_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_Calendar_UpdateFrequency
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 1;
-                if (int.TryParse(appSettings["AniDB_Calendar_UpdateFrequency"], out val))
+                if (int.TryParse(Get("AniDB_Calendar_UpdateFrequency"), out val))
                     return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
-            set { UpdateSetting("AniDB_Calendar_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("AniDB_Calendar_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_Anime_UpdateFrequency
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 1;
-                if (int.TryParse(appSettings["AniDB_Anime_UpdateFrequency"], out val))
+                if (int.TryParse(Get("AniDB_Anime_UpdateFrequency"), out val))
                     return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
-            set { UpdateSetting("AniDB_Anime_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("AniDB_Anime_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_MyListStats_UpdateFrequency
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 1;
-                if (int.TryParse(appSettings["AniDB_MyListStats_UpdateFrequency"], out val))
+                if (int.TryParse(Get("AniDB_MyListStats_UpdateFrequency"), out val))
                     return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
-            set { UpdateSetting("AniDB_MyListStats_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("AniDB_MyListStats_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency AniDB_File_UpdateFrequency
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 1;
-                if (int.TryParse(appSettings["AniDB_File_UpdateFrequency"], out val))
+                if (int.TryParse(Get("AniDB_File_UpdateFrequency"), out val))
                     return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
-            set { UpdateSetting("AniDB_File_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("AniDB_File_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static bool AniDB_DownloadCharacters
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = true;
-                if (!bool.TryParse(appSettings["AniDB_DownloadCharacters"], out val))
+                if (!bool.TryParse(Get("AniDB_DownloadCharacters"), out val))
                     val = true; // default
                 return val;
             }
-            set { UpdateSetting("AniDB_DownloadCharacters", value.ToString()); }
+            set { Set("AniDB_DownloadCharacters", value.ToString()); }
         }
 
         public static bool AniDB_DownloadCreators
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = true;
-                if (!bool.TryParse(appSettings["AniDB_DownloadCreators"], out val))
+                if (!bool.TryParse(Get("AniDB_DownloadCreators"), out val))
                     val = true; // default
                 return val;
             }
-            set { UpdateSetting("AniDB_DownloadCreators", value.ToString()); }
+            set { Set("AniDB_DownloadCreators", value.ToString()); }
         }
 
         #endregion
@@ -551,144 +720,144 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["WebCache_Address"];
+                
+                return Get("WebCache_Address");
             }
-            set { UpdateSetting("WebCache_Address", value); }
+            set { Set("WebCache_Address", value); }
         }
 
         public static bool WebCache_Anonymous
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["WebCache_Anonymous"], out val);
+                bool.TryParse(Get("WebCache_Anonymous"), out val);
                 return val;
             }
-            set { UpdateSetting("WebCache_Anonymous", value.ToString()); }
+            set { Set("WebCache_Anonymous", value.ToString()); }
         }
 
         public static bool WebCache_XRefFileEpisode_Get
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool usecache = false;
-                bool.TryParse(appSettings["WebCache_XRefFileEpisode_Get"], out usecache);
+                bool.TryParse(Get("WebCache_XRefFileEpisode_Get"), out usecache);
                 return usecache;
             }
-            set { UpdateSetting("WebCache_XRefFileEpisode_Get", value.ToString()); }
+            set { Set("WebCache_XRefFileEpisode_Get", value.ToString()); }
         }
 
         public static bool WebCache_XRefFileEpisode_Send
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool usecache = false;
-                bool.TryParse(appSettings["WebCache_XRefFileEpisode_Send"], out usecache);
+                bool.TryParse(Get("WebCache_XRefFileEpisode_Send"), out usecache);
                 return usecache;
             }
-            set { UpdateSetting("WebCache_XRefFileEpisode_Send", value.ToString()); }
+            set { Set("WebCache_XRefFileEpisode_Send", value.ToString()); }
         }
 
         public static bool WebCache_TvDB_Get
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool usecache = true;
-                if (bool.TryParse(appSettings["WebCache_TvDB_Get"], out usecache))
+                if (bool.TryParse(Get("WebCache_TvDB_Get"), out usecache))
                     return usecache;
                 else
                     return true; // default
             }
-            set { UpdateSetting("WebCache_TvDB_Get", value.ToString()); }
+            set { Set("WebCache_TvDB_Get", value.ToString()); }
         }
 
         public static bool WebCache_TvDB_Send
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool usecache = true;
-                if (bool.TryParse(appSettings["WebCache_TvDB_Send"], out usecache))
+                if (bool.TryParse(Get("WebCache_TvDB_Send"), out usecache))
                     return usecache;
                 else
                     return true; // default
             }
-            set { UpdateSetting("WebCache_TvDB_Send", value.ToString()); }
+            set { Set("WebCache_TvDB_Send", value.ToString()); }
         }
 
         public static bool WebCache_Trakt_Get
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool usecache = true;
-                if (bool.TryParse(appSettings["WebCache_Trakt_Get"], out usecache))
+                if (bool.TryParse(Get("WebCache_Trakt_Get"), out usecache))
                     return usecache;
                 else
                     return true; // default
             }
-            set { UpdateSetting("WebCache_Trakt_Get", value.ToString()); }
+            set { Set("WebCache_Trakt_Get", value.ToString()); }
         }
 
         public static bool WebCache_Trakt_Send
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool usecache = true;
-                if (bool.TryParse(appSettings["WebCache_Trakt_Send"], out usecache))
+                if (bool.TryParse(Get("WebCache_Trakt_Send"), out usecache))
                     return usecache;
                 else
                     return true; // default
             }
-            set { UpdateSetting("WebCache_Trakt_Send", value.ToString()); }
+            set { Set("WebCache_Trakt_Send", value.ToString()); }
         }
 
         public static bool WebCache_MAL_Get
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool usecache = true;
-                if (bool.TryParse(appSettings["WebCache_MAL_Get"], out usecache))
+                if (bool.TryParse(Get("WebCache_MAL_Get"), out usecache))
                     return usecache;
                 else
                     return true; // default
             }
-            set { UpdateSetting("WebCache_MAL_Get", value.ToString()); }
+            set { Set("WebCache_MAL_Get", value.ToString()); }
         }
 
         public static bool WebCache_MAL_Send
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool usecache = true;
-                if (bool.TryParse(appSettings["WebCache_MAL_Send"], out usecache))
+                if (bool.TryParse(Get("WebCache_MAL_Send"), out usecache))
                     return usecache;
                 else
                     return true; // default
             }
-            set { UpdateSetting("WebCache_MAL_Send", value.ToString()); }
+            set { Set("WebCache_MAL_Send", value.ToString()); }
         }
 
         public static bool WebCache_UserInfo
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool usecache = false;
-                if (bool.TryParse(appSettings["WebCache_UserInfo"], out usecache))
+                if (bool.TryParse(Get("WebCache_UserInfo"), out usecache))
                     return usecache;
                 else
                     return true; // default
             }
-            set { UpdateSetting("WebCache_UserInfo", value.ToString()); }
+            set { Set("WebCache_UserInfo", value.ToString()); }
         }
 
         #endregion
@@ -699,102 +868,102 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["TvDB_AutoFanart"], out val);
+                bool.TryParse(Get("TvDB_AutoFanart"), out val);
                 return val;
             }
-            set { UpdateSetting("TvDB_AutoFanart", value.ToString()); }
+            set { Set("TvDB_AutoFanart", value.ToString()); }
         }
 
         public static int TvDB_AutoFanartAmount
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 0;
-                int.TryParse(appSettings["TvDB_AutoFanartAmount"], out val);
+                int.TryParse(Get("TvDB_AutoFanartAmount"), out val);
                 return val;
             }
-            set { UpdateSetting("TvDB_AutoFanartAmount", value.ToString()); }
+            set { Set("TvDB_AutoFanartAmount", value.ToString()); }
         }
 
         public static bool TvDB_AutoWideBanners
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["TvDB_AutoWideBanners"], out val);
+                bool.TryParse(Get("TvDB_AutoWideBanners"), out val);
                 return val;
             }
-            set { UpdateSetting("TvDB_AutoWideBanners", value.ToString()); }
+            set { Set("TvDB_AutoWideBanners", value.ToString()); }
         }
 
         public static int TvDB_AutoWideBannersAmount
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 0;
-                if (!int.TryParse(appSettings["TvDB_AutoWideBannersAmount"], out val))
+                if (!int.TryParse(Get("TvDB_AutoWideBannersAmount"), out val))
                     val = 10; // default
                 return val;
             }
-            set { UpdateSetting("TvDB_AutoWideBannersAmount", value.ToString()); }
+            set { Set("TvDB_AutoWideBannersAmount", value.ToString()); }
         }
 
         public static bool TvDB_AutoPosters
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["TvDB_AutoPosters"], out val);
+                bool.TryParse(Get("TvDB_AutoPosters"), out val);
                 return val;
             }
-            set { UpdateSetting("TvDB_AutoPosters", value.ToString()); }
+            set { Set("TvDB_AutoPosters", value.ToString()); }
         }
 
         public static int TvDB_AutoPostersAmount
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 0;
-                if (!int.TryParse(appSettings["TvDB_AutoPostersAmount"], out val))
+                if (!int.TryParse(Get("TvDB_AutoPostersAmount"), out val))
                     val = 10; // default
                 return val;
             }
-            set { UpdateSetting("TvDB_AutoPostersAmount", value.ToString()); }
+            set { Set("TvDB_AutoPostersAmount", value.ToString()); }
         }
 
         public static ScheduledUpdateFrequency TvDB_UpdateFrequency
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 1;
-                if (int.TryParse(appSettings["TvDB_UpdateFrequency"], out val))
+                if (int.TryParse(Get("TvDB_UpdateFrequency"), out val))
                     return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.HoursTwelve; // default value
             }
-            set { UpdateSetting("TvDB_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("TvDB_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static string TvDB_Language
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string language = appSettings["TvDB_Language"];
+                
+                string language = Get("TvDB_Language");
                 if (string.IsNullOrEmpty(language))
                     return "en";
                 else
                     return language;
             }
-            set { UpdateSetting("TvDB_Language", value); }
+            set { Set("TvDB_Language", value); }
         }
 
         #endregion
@@ -805,49 +974,49 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["MovieDB_AutoFanart"], out val);
+                bool.TryParse(Get("MovieDB_AutoFanart"), out val);
                 return val;
             }
-            set { UpdateSetting("MovieDB_AutoFanart", value.ToString()); }
+            set { Set("MovieDB_AutoFanart", value.ToString()); }
         }
 
         public static int MovieDB_AutoFanartAmount
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 0;
-                int.TryParse(appSettings["MovieDB_AutoFanartAmount"], out val);
+                int.TryParse(Get("MovieDB_AutoFanartAmount"), out val);
                 return val;
             }
-            set { UpdateSetting("MovieDB_AutoFanartAmount", value.ToString()); }
+            set { Set("MovieDB_AutoFanartAmount", value.ToString()); }
         }
 
         public static bool MovieDB_AutoPosters
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["MovieDB_AutoPosters"], out val);
+                bool.TryParse(Get("MovieDB_AutoPosters"), out val);
                 return val;
             }
-            set { UpdateSetting("MovieDB_AutoPosters", value.ToString()); }
+            set { Set("MovieDB_AutoPosters", value.ToString()); }
         }
 
         public static int MovieDB_AutoPostersAmount
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 0;
-                if (!int.TryParse(appSettings["MovieDB_AutoPostersAmount"], out val))
+                if (!int.TryParse(Get("MovieDB_AutoPostersAmount"), out val))
                     val = 10; // default
                 return val;
             }
-            set { UpdateSetting("MovieDB_AutoPostersAmount", value.ToString()); }
+            set { Set("MovieDB_AutoPostersAmount", value.ToString()); }
         }
 
         #endregion
@@ -858,10 +1027,10 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["VideoExtensions"];
+                
+                return Get("VideoExtensions");
             }
-            set { UpdateSetting("VideoExtensions", value); }
+            set { Set("VideoExtensions", value); }
         }
 
         public static RenamingLanguage DefaultSeriesLanguage
@@ -869,16 +1038,16 @@ namespace JMMServer
             get
             {
                 RenamingLanguage rl = RenamingLanguage.Romaji;
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
 
-                string rls = appSettings["DefaultSeriesLanguage"];
+                string rls = Get("DefaultSeriesLanguage");
                 if (string.IsNullOrEmpty(rls)) return rl;
 
                 rl = (RenamingLanguage) int.Parse(rls);
 
                 return rl;
             }
-            set { UpdateSetting("DefaultSeriesLanguage", ((int) value).ToString()); }
+            set { Set("DefaultSeriesLanguage", ((int) value).ToString()); }
         }
 
         public static RenamingLanguage DefaultEpisodeLanguage
@@ -886,100 +1055,100 @@ namespace JMMServer
             get
             {
                 RenamingLanguage rl = RenamingLanguage.Romaji;
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
 
-                string rls = appSettings["DefaultEpisodeLanguage"];
+                string rls = Get("DefaultEpisodeLanguage");
                 if (string.IsNullOrEmpty(rls)) return rl;
 
                 rl = (RenamingLanguage) int.Parse(rls);
 
                 return rl;
             }
-            set { UpdateSetting("DefaultEpisodeLanguage", ((int) value).ToString()); }
+            set { Set("DefaultEpisodeLanguage", ((int) value).ToString()); }
         }
 
         public static bool RunImportOnStart
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["RunImportOnStart"], out val);
+                bool.TryParse(Get("RunImportOnStart"), out val);
                 return val;
             }
-            set { UpdateSetting("RunImportOnStart", value.ToString()); }
+            set { Set("RunImportOnStart", value.ToString()); }
         }
 
         public static bool ScanDropFoldersOnStart
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["ScanDropFoldersOnStart"], out val);
+                bool.TryParse(Get("ScanDropFoldersOnStart"), out val);
                 return val;
             }
-            set { UpdateSetting("ScanDropFoldersOnStart", value.ToString()); }
+            set { Set("ScanDropFoldersOnStart", value.ToString()); }
         }
 
         public static bool Hash_CRC32
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool bval = false;
-                bool.TryParse(appSettings["Hash_CRC32"], out bval);
+                bool.TryParse(Get("Hash_CRC32"), out bval);
                 return bval;
             }
-            set { UpdateSetting("Hash_CRC32", value.ToString()); }
+            set { Set("Hash_CRC32", value.ToString()); }
         }
 
         public static bool Hash_MD5
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool bval = false;
-                bool.TryParse(appSettings["Hash_MD5"], out bval);
+                bool.TryParse(Get("Hash_MD5"), out bval);
                 return bval;
             }
-            set { UpdateSetting("Hash_MD5", value.ToString()); }
+            set { Set("Hash_MD5", value.ToString()); }
         }
 
         public static bool ExperimentalUPnP
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool bval = false;
-                bool.TryParse(appSettings["ExperimentalUPnP"], out bval);
+                bool.TryParse(Get("ExperimentalUPnP"), out bval);
                 return bval;
             }
-            set { UpdateSetting("ExperimentalUPnP", value.ToString()); }
+            set { Set("ExperimentalUPnP", value.ToString()); }
         }
 
         public static bool Hash_SHA1
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool bval = false;
-                bool.TryParse(appSettings["Hash_SHA1"], out bval);
+                bool.TryParse(Get("Hash_SHA1"), out bval);
                 return bval;
             }
-            set { UpdateSetting("Hash_SHA1", value.ToString()); }
+            set { Set("Hash_SHA1", value.ToString()); }
         }
 
         public static bool Import_UseExistingFileWatchedStatus
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool bval = false;
-                bool.TryParse(appSettings["Import_UseExistingFileWatchedStatus"], out bval);
+                bool.TryParse(Get("Import_UseExistingFileWatchedStatus"), out bval);
                 return bval;
             }
-            set { UpdateSetting("Import_UseExistingFileWatchedStatus", value.ToString()); }
+            set { Set("Import_UseExistingFileWatchedStatus", value.ToString()); }
         }
 
         #endregion
@@ -988,121 +1157,121 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["AutoGroupSeries"], out val);
+                bool.TryParse(Get("AutoGroupSeries"), out val);
                 return val;
             }
-            set { UpdateSetting("AutoGroupSeries", value.ToString()); }
+            set { Set("AutoGroupSeries", value.ToString()); }
         }
 
         public static string AutoGroupSeriesRelationExclusions
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 string val = "same setting|alternative setting|character|other";
                 try
                 {
-                    val = appSettings["AutoGroupSeriesRelationExclusions"];
+                    val = Get("AutoGroupSeriesRelationExclusions");
                 }
                 catch (Exception e)
                 {
                 }
                 return val;
             }
-            set { UpdateSetting("AutoGroupSeriesRelationExclusions", value); }
+            set { Set("AutoGroupSeriesRelationExclusions", value); }
         }
 
         public static string LanguagePreference
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["LanguagePreference"];
+                
+                return Get("LanguagePreference");
             }
-            set { UpdateSetting("LanguagePreference", value); }
+            set { Set("LanguagePreference", value); }
         }
 
         public static bool LanguageUseSynonyms
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["LanguageUseSynonyms"], out val);
+                bool.TryParse(Get("LanguageUseSynonyms"), out val);
                 return val;
             }
-            set { UpdateSetting("LanguageUseSynonyms", value.ToString()); }
+            set { Set("LanguageUseSynonyms", value.ToString()); }
         }
         public static int CloudWatcherTime
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val;
-                int.TryParse(appSettings["CloudWatcherTime"], out val);
+                int.TryParse(Get("CloudWatcherTime"), out val);
                 if (val == 0)
                     val = 3;
                 return val;
             }
-            set { UpdateSetting("CloudWatcherTime", ((int)value).ToString()); }
+            set { Set("CloudWatcherTime", ((int)value).ToString()); }
         }
         public static DataSourceType EpisodeTitleSource
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 0;
-                int.TryParse(appSettings["EpisodeTitleSource"], out val);
+                int.TryParse(Get("EpisodeTitleSource"), out val);
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
                     return (DataSourceType) val;
             }
-            set { UpdateSetting("EpisodeTitleSource", ((int) value).ToString()); }
+            set { Set("EpisodeTitleSource", ((int) value).ToString()); }
         }
 
         public static DataSourceType SeriesDescriptionSource
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 0;
-                int.TryParse(appSettings["SeriesDescriptionSource"], out val);
+                int.TryParse(Get("SeriesDescriptionSource"), out val);
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
                     return (DataSourceType) val;
             }
-            set { UpdateSetting("SeriesDescriptionSource", ((int) value).ToString()); }
+            set { Set("SeriesDescriptionSource", ((int) value).ToString()); }
         }
 
         public static DataSourceType SeriesNameSource
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 0;
-                int.TryParse(appSettings["SeriesNameSource"], out val);
+                int.TryParse(Get("SeriesNameSource"), out val);
                 if (val <= 0)
                     return DataSourceType.AniDB;
                 else
                     return (DataSourceType) val;
             }
-            set { UpdateSetting("SeriesNameSource", ((int) value).ToString()); }
+            set { Set("SeriesNameSource", ((int) value).ToString()); }
         }
 
         public static string BaseImagesPath
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["BaseImagesPath"];
+                
+                return Get("BaseImagesPath");
             }
             set
             {
-                UpdateSetting("BaseImagesPath", value);
+                Set("BaseImagesPath", value);
                 ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
             }
         }
@@ -1112,8 +1281,8 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string basePath = appSettings["BaseImagesPathIsDefault"];
+                
+                string basePath = Get("BaseImagesPathIsDefault");
                 if (!string.IsNullOrEmpty(basePath))
                 {
                     bool val = true;
@@ -1124,7 +1293,7 @@ namespace JMMServer
             }
             set
             {
-                UpdateSetting("BaseImagesPathIsDefault", value.ToString());
+                Set("BaseImagesPathIsDefault", value.ToString());
                 ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
             }
         }
@@ -1133,12 +1302,12 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["VLCLocation"];
+                
+                return Get("VLCLocation");
             }
             set
             {
-                UpdateSetting("VLCLocation", value);
+                Set("VLCLocation", value);
                 ServerState.Instance.VLCLocation = value;
             }
         }
@@ -1147,25 +1316,25 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                bool.TryParse(appSettings["MinimizeOnStartup"], out val);
+                bool.TryParse(Get("MinimizeOnStartup"), out val);
                 return val;
             }
-            set { UpdateSetting("MinimizeOnStartup", value.ToString()); }
+            set { Set("MinimizeOnStartup", value.ToString()); }
         }
 
         public static bool AllowMultipleInstances
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = false;
-                if (!bool.TryParse(appSettings["AllowMultipleInstances"], out val))
+                if (!bool.TryParse(Get("AllowMultipleInstances"), out val))
                     val = false;
                 return val;
             }
-            set { UpdateSetting("AllowMultipleInstances", value.ToString()); }
+            set { Set("AllowMultipleInstances", value.ToString()); }
         }
 
         #region Trakt
@@ -1174,13 +1343,13 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = true;
-                if (!bool.TryParse(appSettings["Trakt_IsEnabled"], out val))
+                if (!bool.TryParse(Get("Trakt_IsEnabled"), out val))
                     val = true;
                 return val;
             }
-            set { UpdateSetting("Trakt_IsEnabled", value.ToString()); }
+            set { Set("Trakt_IsEnabled", value.ToString()); }
         }
 
         public static string Trakt_PIN { get; set; }
@@ -1189,97 +1358,97 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["Trakt_AuthToken"];
+                
+                return Get("Trakt_AuthToken");
             }
-            set { UpdateSetting("Trakt_AuthToken", value); }
+            set { Set("Trakt_AuthToken", value); }
         }
 
         public static string Trakt_RefreshToken
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["Trakt_RefreshToken"];
+                
+                return Get("Trakt_RefreshToken");
             }
-            set { UpdateSetting("Trakt_RefreshToken", value); }
+            set { Set("Trakt_RefreshToken", value); }
         }
 
         public static string Trakt_TokenExpirationDate
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["Trakt_TokenExpirationDate"];
+                
+                return Get("Trakt_TokenExpirationDate");
             }
-            set { UpdateSetting("Trakt_TokenExpirationDate", value); }
+            set { Set("Trakt_TokenExpirationDate", value); }
         }
 
         public static ScheduledUpdateFrequency Trakt_UpdateFrequency
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 1;
-                if (int.TryParse(appSettings["Trakt_UpdateFrequency"], out val))
+                if (int.TryParse(Get("Trakt_UpdateFrequency"), out val))
                     return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
-            set { UpdateSetting("Trakt_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("Trakt_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static ScheduledUpdateFrequency Trakt_SyncFrequency
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 1;
-                if (int.TryParse(appSettings["Trakt_SyncFrequency"], out val))
+                if (int.TryParse(Get("Trakt_SyncFrequency"), out val))
                     return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Never; // default value
             }
-            set { UpdateSetting("Trakt_SyncFrequency", ((int) value).ToString()); }
+            set { Set("Trakt_SyncFrequency", ((int) value).ToString()); }
         }
 
         public static bool Trakt_DownloadFanart
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = true;
-                if (!bool.TryParse(appSettings["Trakt_DownloadFanart"], out val))
+                if (!bool.TryParse(Get("Trakt_DownloadFanart"), out val))
                     val = true; // default
                 return val;
             }
-            set { UpdateSetting("Trakt_DownloadFanart", value.ToString()); }
+            set { Set("Trakt_DownloadFanart", value.ToString()); }
         }
 
         public static bool Trakt_DownloadPosters
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = true;
-                if (!bool.TryParse(appSettings["Trakt_DownloadPosters"], out val))
+                if (!bool.TryParse(Get("Trakt_DownloadPosters"), out val))
                     val = true; // default
                 return val;
             }
-            set { UpdateSetting("Trakt_DownloadPosters", value.ToString()); }
+            set { Set("Trakt_DownloadPosters", value.ToString()); }
         }
 
         public static bool Trakt_DownloadEpisodes
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 bool val = true;
-                if (!bool.TryParse(appSettings["Trakt_DownloadEpisodes"], out val))
+                if (!bool.TryParse(Get("Trakt_DownloadEpisodes"), out val))
                     val = true; // default
                 return val;
             }
-            set { UpdateSetting("Trakt_DownloadEpisodes", value.ToString()); }
+            set { Set("Trakt_DownloadEpisodes", value.ToString()); }
         }
 
         #endregion
@@ -1290,42 +1459,42 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["MAL_Username"];
+                
+                return Get("MAL_Username");
             }
-            set { UpdateSetting("MAL_Username", value); }
+            set { Set("MAL_Username", value); }
         }
 
         public static string MAL_Password
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["MAL_Password"];
+                
+                return Get("MAL_Password");
             }
-            set { UpdateSetting("MAL_Password", value); }
+            set { Set("MAL_Password", value); }
         }
 
         public static ScheduledUpdateFrequency MAL_UpdateFrequency
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                
                 int val = 1;
-                if (int.TryParse(appSettings["MAL_UpdateFrequency"], out val))
+                if (int.TryParse(Get("MAL_UpdateFrequency"), out val))
                     return (ScheduledUpdateFrequency) val;
                 else
                     return ScheduledUpdateFrequency.Daily; // default value
             }
-            set { UpdateSetting("MAL_UpdateFrequency", ((int) value).ToString()); }
+            set { Set("MAL_UpdateFrequency", ((int) value).ToString()); }
         }
 
         public static bool MAL_NeverDecreaseWatchedNums
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string wtchNum = appSettings["MAL_NeverDecreaseWatchedNums"];
+                
+                string wtchNum = Get("MAL_NeverDecreaseWatchedNums");
                 if (!string.IsNullOrEmpty(wtchNum))
                 {
                     bool val = true;
@@ -1334,7 +1503,7 @@ namespace JMMServer
                 }
                 else return true;
             }
-            set { UpdateSetting("MAL_NeverDecreaseWatchedNums", value.ToString()); }
+            set { Set("MAL_NeverDecreaseWatchedNums", value.ToString()); }
         }
 
         #endregion
@@ -1343,18 +1512,18 @@ namespace JMMServer
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                return appSettings["WebCacheAuthKey"];
+                
+                return Get("WebCacheAuthKey");
             }
-            set { UpdateSetting("WebCacheAuthKey", value); }
+            set { Set("WebCacheAuthKey", value); }
         }
 
         public static bool EnablePlex
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string basePath = appSettings["EnablePlex"];
+                
+                string basePath = Get("EnablePlex");
                 if (!string.IsNullOrEmpty(basePath))
                 {
                     bool val = true;
@@ -1363,15 +1532,15 @@ namespace JMMServer
                 }
                 else return true;
             }
-            set { UpdateSetting("EnablePlex", value.ToString()); }
+            set { Set("EnablePlex", value.ToString()); }
         }
 
         public static bool EnableKodi
         {
             get
             {
-                NameValueCollection appSettings = ConfigurationManager.AppSettings;
-                string basePath = appSettings["EnableKodi"];
+                
+                string basePath = Get("EnableKodi");
                 if (!string.IsNullOrEmpty(basePath))
                 {
                     bool val = true;
@@ -1380,22 +1549,9 @@ namespace JMMServer
                 }
                 else return true;
             }
-            set { UpdateSetting("EnableKodi", value.ToString()); }
+            set { Set("EnableKodi", value.ToString()); }
         }
 
-        public static void UpdateSetting(string key, string value)
-        {
-            System.Configuration.Configuration config =
-                ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-
-            if (config.AppSettings.Settings.AllKeys.Contains(key))
-                config.AppSettings.Settings[key].Value = value;
-            else
-                config.AppSettings.Settings.Add(key, value);
-
-            config.Save();
-            ConfigurationManager.RefreshSection("appSettings");
-        }
 
         public static Contract_ServerSettings ToContract()
         {

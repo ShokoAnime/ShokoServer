@@ -1606,7 +1606,7 @@ namespace JMMServer.Databases
             }
 
             UpdateDatabaseVersion(thisVersion);
-            this.CreateInitialCustomTags();
+
         }
 
         private void UpdateSchema_036(int currentVersionNumber)

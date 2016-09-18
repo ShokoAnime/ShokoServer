@@ -1122,12 +1122,13 @@ namespace JMMServer
             if (getAnimeCmd.Anime != null)
             {
                 anime = SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd);
-
+                //this endpoint is not working, so comenting...
+/*
                 if (forceRefresh)
                 {
                     CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
                     cmdAzure.Save(session);
-                }
+                }*/
             }
 
             return anime;

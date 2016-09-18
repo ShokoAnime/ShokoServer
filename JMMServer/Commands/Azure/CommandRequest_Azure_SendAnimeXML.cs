@@ -52,9 +52,7 @@ namespace JMMServer.Commands.Azure
                 AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
-                string appPath =
-                    System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                string filePath = Path.Combine(appPath, "Anime_HTTP");
+                string filePath = ServerSettings.AnimeXmlDirectory;
 
                 if (!Directory.Exists(filePath))
                     Directory.CreateDirectory(filePath);

@@ -19,11 +19,7 @@ namespace JMMServer.ImageDownload
             if (overrideFolder)
                 filePath = ServerSettings.BaseImagesPath;
             else
-            {
-                string appPath =
-                    System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                filePath = Path.Combine(appPath, "Images");
-            }
+                filePath = ServerSettings.DefaultImagePath;
 
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);

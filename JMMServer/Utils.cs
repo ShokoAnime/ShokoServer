@@ -7,6 +7,7 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -94,7 +95,7 @@ namespace JMMServer
                     cost = t.Substring(j - 1, 1) == s.Substring(i - 1, 1) ? 0 : 1;
 
                     // Step 6
-                    d[i, j] = System.Math.Min(System.Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                    d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
                         d[i - 1, j - 1] + cost);
                 }
             }
@@ -110,6 +111,105 @@ namespace JMMServer
         /// <param name="Port">The port JMMServer will be running on.</param>
         /// <param name="FilePort">The port JMMServer will use for files.</param>
         /// <param name="oldFilePort">The port JMMServer was set to use for files.</param>
+
+        public static List<string> Paths = new List<string>
+        {
+            "JMMServerImage", "JMMServerBinary", "JMMServerMetro", "JMMServerPlex",
+            "JMMServerKodi", "JMMServerREST", "JMMServerStreaming", ""
+        };
+
+        public static void NetSh(this StreamWriter sw, string path, string verb, string port)
+        {
+            if (verb == "add")
+                sw.WriteLine($@"netsh http add urlacl url=http://+:{port}/{path} sddl=D:(A;;GX;;;S-1-1-0)");
+            else
+                sw.WriteLine($@"netsh http delete urlacl url=http://+:{port}/{path}");
+
+        }
+        public static bool SetNetworkRequirements(string Port = null, string FilePort = null, string oldPort = null,
+        string oldFilePort = null)
+        {
+            string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "NetworkConfig.bat");
+            int exitCode = -1;
+            Process proc = new Process();
+
+            proc.StartInfo.FileName = "cmd.exe";
+            proc.StartInfo.Arguments = String.Format(@"/c {0}", BatchFile);
+            proc.StartInfo.Verb = "runas";
+            proc.StartInfo.CreateNoWindow = true;
+            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            proc.StartInfo.UseShellExecute = true;
+
+
+            try
+            {
+                StreamWriter BatchFileStream = new StreamWriter(BatchFile);
+
+                #region Cleanup Default Ports
+
+
+                if (ServerSettings.JMMServerPort != 8111.ToString())
+                {
+                    Paths.ForEach(a=>BatchFileStream.NetSh(a,"delete","8111"));
+                    BatchFileStream.WriteLine($@"netsh advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport={8111}");
+                }
+
+                if (ServerSettings.JMMServerFilePort != 8112.ToString())
+                {
+                    BatchFileStream.NetSh("", "delete", "8112");
+                    BatchFileStream.WriteLine($@"netsh advfirewall firewall delete rule name=""JMM Server - File Port"" protocol=TCP localport={8112}");
+                }
+
+                #endregion
+                if (oldPort!=Port)
+                {
+                    if (!String.IsNullOrEmpty(oldPort))
+                    {
+                        BatchFileStream.WriteLine($@"netsh advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport={oldPort}");
+                        Paths.ForEach(a => BatchFileStream.NetSh(a, "delete", oldPort));
+                    }
+
+                    if (!String.IsNullOrEmpty(Port))
+                    {
+                        BatchFileStream.WriteLine($@"netsh advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport={Port}");
+                        Paths.ForEach(a => BatchFileStream.NetSh(a, "add", Port));
+                    }
+                }
+                if (oldFilePort != FilePort)
+                {
+                    if (!String.IsNullOrEmpty(oldFilePort))
+                    {
+                        BatchFileStream.WriteLine($@"netsh advfirewall firewall delete rule name=""JMM Server - File Port"" protocol=TCP localport={oldFilePort}");
+                        BatchFileStream.NetSh("", "delete", "8112");
+                    }
+                    if (!String.IsNullOrEmpty(FilePort))
+                    {
+                        BatchFileStream.WriteLine($@"netsh advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport={FilePort}");
+                        BatchFileStream.NetSh("", "add", "8112");
+                    }
+
+                }
+
+
+                BatchFileStream.Close();
+
+                proc.Start();
+                proc.WaitForExit();
+                exitCode = proc.ExitCode;
+                proc.Close();
+                File.Delete(BatchFile);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return false;
+            }
+
+            logger.Info("Network requirements set.");
+
+            return true;
+        }
+        /*
         public static bool SetNetworkRequirements(string Port = null, string FilePort = null, string oldPort = null,
             string oldFilePort = null)
         {
@@ -186,6 +286,7 @@ namespace JMMServer
                     BatchFileStream.WriteLine(
                         string.Format(@"netsh http add urlacl url=http://+:{0}/JMMServerMetro user=everyone",
                             Port));
+                    BatchFileStream.WriteLine(string.Format(@"netsh http add urlacl url=http://+:{0} user=everyone",Port));
                     BatchFileStream.WriteLine(string.Format(
                         @"netsh http add urlacl url=http://+:{0}/JMMServerMetroImage user=everyone", Port));
                     BatchFileStream.WriteLine(
@@ -254,7 +355,7 @@ namespace JMMServer
 
             return true;
         }
-
+        */
         // Function to display parent function
         public static string GetParentMethodName()
         {
@@ -405,7 +506,7 @@ namespace JMMServer
                 else
                 {
                     // find the last day of the month
-                    int numberOfDays = DateTime.DaysInMonth(int.Parse(year), int.Parse(month));
+                    int numberOfDays = DateTime.DaysInMonth(Int32.Parse(year), Int32.Parse(month));
                     day = numberOfDays.ToString();
                 }
             }
@@ -413,7 +514,7 @@ namespace JMMServer
             //BaseConfig.MyAnimeLog.Write("Date = {0}/{1}/{2}", year, month, day);
 
 
-            DateTime actualDate = new DateTime(int.Parse(year), int.Parse(month), int.Parse(day), 0, 0, 0);
+            DateTime actualDate = new DateTime(Int32.Parse(year), Int32.Parse(month), Int32.Parse(day), 0, 0, 0);
             //startDate = startDate.AddDays(-1);
 
             return GetAniDBDateAsSeconds(actualDate);
@@ -431,7 +532,7 @@ namespace JMMServer
             // 16 = normal start and end date (2010-01-31)
 
             double secs = 0;
-            double.TryParse(dateInSeconds, out secs);
+            Double.TryParse(dateInSeconds, out secs);
             if (secs == 0) return null;
 
             DateTime thisDate = new DateTime(1970, 1, 1, 0, 0, 0);
@@ -615,10 +716,10 @@ namespace JMMServer
             TimeSpan t = TimeSpan.FromSeconds(secs);
 
             if (t.Hours > 0)
-                return string.Format("{0}:{1}:{2}", t.Hours, t.Minutes.ToString().PadLeft(2, '0'),
+                return String.Format("{0}:{1}:{2}", t.Hours, t.Minutes.ToString().PadLeft(2, '0'),
                     t.Seconds.ToString().PadLeft(2, '0'));
             else
-                return string.Format("{0}:{1}", t.Minutes, t.Seconds.ToString().PadLeft(2, '0'));
+                return String.Format("{0}:{1}", t.Minutes, t.Seconds.ToString().PadLeft(2, '0'));
         }
 
         public static string FormatAniDBRating(double rat)
@@ -631,10 +732,10 @@ namespace JMMServer
 
         public static int? ProcessNullableInt(string sint)
         {
-            if (string.IsNullOrEmpty(sint))
+            if (String.IsNullOrEmpty(sint))
                 return null;
             else
-                return int.Parse(sint);
+                return Int32.Parse(sint);
         }
 
         public static string RemoveInvalidFolderNameCharacters(string folderName)
@@ -916,7 +1017,7 @@ namespace JMMServer
             if (videoResolution.Trim().Length > 0)
             {
                 string[] dimensions = videoResolution.Split('x');
-                if (dimensions.Length > 0) int.TryParse(dimensions[0], out videoWidth);
+                if (dimensions.Length > 0) Int32.TryParse(dimensions[0], out videoWidth);
             }
             return videoWidth;
         }
@@ -927,7 +1028,7 @@ namespace JMMServer
             if (videoResolution.Trim().Length > 0)
             {
                 string[] dimensions = videoResolution.Split('x');
-                if (dimensions.Length > 1) int.TryParse(dimensions[1], out videoHeight);
+                if (dimensions.Length > 1) Int32.TryParse(dimensions[1], out videoHeight);
             }
             return videoHeight;
         }
@@ -979,10 +1080,10 @@ namespace JMMServer
                 case ScheduledUpdateFrequency.MonthOne:
                     return 24*30;
                 case ScheduledUpdateFrequency.Never:
-                    return int.MaxValue;
+                    return Int32.MaxValue;
             }
 
-            return int.MaxValue;
+            return Int32.MaxValue;
         }
 
         /*public static void GetFilesForImportFolder(string folderLocation, ref List<string> fileList)
@@ -1037,7 +1138,7 @@ namespace JMMServer
 //                        continue;
                 }
             }
-            catch (System.Exception excpt)
+            catch (Exception excpt)
             {
                 Console.WriteLine(excpt.Message);
             }
@@ -1059,7 +1160,7 @@ namespace JMMServer
                 // VLC cannot handle FLAC audio - a buf was submitted for this
 
                 errorMessage = "";
-                streamingUri = string.Format("http://{0}:{1}", ipAddress, port);
+                streamingUri = String.Format("http://{0}:{1}", ipAddress, port);
 
                 string encoderOptions =
                     "vcodec=h264,vb=1768,venc=x264{profile=baseline,preset=faster,no-cabac,trellis=0,keyint=50},deinterlace=-1,aenc=ffmpeg{aac-profile=low},acodec=mp4a,ab=512,samplerate=48000,channels=2,audio-sync";
@@ -1078,7 +1179,7 @@ namespace JMMServer
 
                 string vlcStop = @"/F /IM vlc.exe";
                 //string vlcStart = string.Format(vlcStartTemplate, fileName, vidBitRate, fps, resWidth, audioBitRate, audioSamplerate, port);
-                string vlcStart = string.Format(vlcStartTemplate, fileName, sout);
+                string vlcStart = String.Format(vlcStartTemplate, fileName, sout);
                 vlcStart = vlcStart.Replace("%", "{");
                 vlcStart = vlcStart.Replace("+", "}");
 
@@ -1105,8 +1206,8 @@ namespace JMMServer
                 // and "/c " as the parameters.
                 // Incidentally, /c tells cmd that we want it to execute the command that follows,
                 // and then exit.
-                System.Diagnostics.ProcessStartInfo procStartInfo =
-                    new System.Diagnostics.ProcessStartInfo("cmd", "/c " + command);
+                ProcessStartInfo procStartInfo =
+                    new ProcessStartInfo("cmd", "/c " + command);
 
                 // The following commands are needed to redirect the standard output.
                 // This means that it will be redirected to the Process.StandardOutput StreamReader.
@@ -1115,7 +1216,7 @@ namespace JMMServer
                 // Do not create the black window.
                 procStartInfo.CreateNoWindow = true;
                 // Now we create a process, assign its ProcessStartInfo and start it
-                System.Diagnostics.Process proc = new System.Diagnostics.Process();
+                Process proc = new Process();
                 proc.StartInfo = procStartInfo;
                 proc.Start();
                 // Get the output into a string
@@ -1133,6 +1234,13 @@ namespace JMMServer
         {
             // rmdir /s /q "%userprofile%\wc"
             ExecuteCommandSync("rmdir /s /q \"%userprofile%\\wc\"");
+        }
+
+        public static bool IsAdministrator()
+        {
+            var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
     }
 }

@@ -52,8 +52,7 @@ namespace AniDBAPI.Commands
 
         private void WriteAnimeMyListToFile(string xml)
         {
-            string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            string filePath = Path.Combine(appPath, "MyList");
+            string filePath = ServerSettings.MyListDirectory;
 
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);
@@ -70,9 +69,8 @@ namespace AniDBAPI.Commands
 
         private XmlDocument LoadAnimeMyListFromFile()
         {
-            string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            string filePath = Path.Combine(appPath, "MyList");
-
+            string filePath = ServerSettings.MyListDirectory;
+            
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);
 

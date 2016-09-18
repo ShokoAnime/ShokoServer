@@ -35,9 +35,7 @@ namespace JMMServer.Databases
 
         public static string GetDatabasePath()
         {
-            string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            string dbPath = Path.Combine(appPath, "SQLite");
-            return dbPath;
+            return ServerSettings.MySqliteDirectory;
         }
 
         public static string GetDatabaseFilePath()
@@ -1225,7 +1223,7 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
 
-            this.CreateInitialCustomTags();
+
         }
 
         private void UpdateSchema_036(int currentVersionNumber)
