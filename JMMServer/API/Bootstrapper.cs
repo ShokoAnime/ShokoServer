@@ -1,17 +1,18 @@
 ﻿namespace JMMServer.API
 {
-    using Nancy;
-    using Nancy.Authentication.Stateless;
-    using Nancy.Bootstrapper;
-    using Nancy.Conventions;
-    using Nancy.TinyIoc;
-    using System.Linq;
-    using Nancy.Extensions;
-    using Nancy.ViewEngines;
-    using Nancy.ErrorHandling;
-    using Pri.LongPath;
+	using Nancy;
+	using Nancy.Authentication.Stateless;
+	using Nancy.Bootstrapper;
+	using Nancy.Conventions;
+	using Nancy.TinyIoc;
+	using System.Linq;
+	using Nancy.Extensions;
+	using Nancy.ViewEngines;
+	using Nancy.ErrorHandling;
+	using Pri.LongPath;
+	using Nancy.Diagnostics;
 
-    public class Bootstrapper : DefaultNancyBootstrapper
+	public class Bootstrapper : DefaultNancyBootstrapper
     {
         protected virtual Nancy.Bootstrapper.NancyInternalConfiguration InternalConfiguration
         {
@@ -43,6 +44,7 @@
                         return null;
                     }
                 });
+			StaticConfiguration.DisableErrorTraces = false;
             StatelessAuthentication.Enable(pipelines, configuration);
         }
 
@@ -55,7 +57,12 @@
             nancyConventions.StaticContentsConventions.Add(StaticContentConventionBuilder.AddDirectory("webui", @"webui"));
             base.ConfigureConventions(nancyConventions);
         }
-    }
+
+		protected override DiagnosticsConfiguration DiagnosticsConfiguration
+		{
+			get { return new DiagnosticsConfiguration { Password = @"jmmserver" }; }
+		}
+	}
 
     public class StatusCodeHandler : IStatusCodeHandler
     {
@@ -74,20 +81,27 @@
 
         public void Handle(HttpStatusCode statusCode, NancyContext context)
         {
-            if (context.ResolvedRoute.Description.Path.StartsWith("/webui/"))
+            try
             {
-                context.Response.Contents = stream =>
+                if (context.ResolvedRoute.Description.Path.StartsWith("/webui/"))
                 {
-                    var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
-                    using (var file = File.OpenRead(filename))
+                    context.Response.Contents = stream =>
                     {
-                        file.CopyTo(stream);
-                    }
-                };
+                        var filename = Path.Combine(_rootPathProvider.GetRootPath(), @"webui\\index.html");
+                        using (var file = File.OpenRead(filename))
+                        {
+                            file.CopyTo(stream);
+                        }
+                    };
+                }
+                else
+                {
+                    context.Response = @"<html><body>File not Found (404)</body></html>";
+                }
             }
-            else
+            catch
             {
-                context.Response = @"<html><body>File not Found (404)</body></html>";
+                context.Response = @"<html><body>Internal Error: #$%^&*(</body></html>";
             }
         }
     }

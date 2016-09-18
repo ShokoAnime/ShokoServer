@@ -192,6 +192,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Net" />
     <Reference Include="System.Net.Http" />
@@ -287,6 +288,9 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="API\Model\Logs.cs" />
+    <Compile Include="API\Model\Rating.cs" />
+    <Compile Include="API\Model\Search.cs" />
     <Compile Include="Collections\EmptyLookup.cs" />
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Collections\LazyLookup.cs" />
@@ -328,6 +332,7 @@
     <Compile Include="FileHelper\Subtitles\SubtitleHelper.cs" />
     <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
     <Compile Include="FileHelper\Subtitles\VobSubSubtitles.cs" />
+    <Compile Include="LogRotator.cs" />
     <Compile Include="LZ4\CompressionHelper.cs" />
     <Compile Include="LZ4\LZ4Codec.cs" />
     <Compile Include="LZ4\LZ4Codec.Safe.cs" />

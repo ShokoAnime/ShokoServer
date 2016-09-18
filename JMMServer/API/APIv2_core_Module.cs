@@ -122,6 +122,10 @@ namespace JMMServer.API
             //Get["/ep/{id}/image"] = x => { return GetEpisodeImage(x.id); };
             Get["/ep/recent"] = x => { return GetRecentEpisodes(10); };
             Get["/ep/recent/{max}"] = x => { return GetRecentEpisodes((int)x.max); };
+            Post["/ep/watch"] = x => { return MarkEpisodeWatched(true); };
+            Post["/ep/unwatch"] = x => { return MarkEpisodeWatched(false); };
+            Post["/ep/vote"] = x => { return VoteOnEpisode(); };
+            Post["/ep/trakt"] = x => { return EpisodeScrobble(); };
 
             // 14. Series
             Get["/serie/list"] = _ => { return GetAllSeries(); ; };
@@ -129,9 +133,13 @@ namespace JMMServer.API
             Get["/serie/{id}"] = x => { return GetSerieById(x.id); ; };
             Get["/serie/recent"] = _ => { return GetRecentSeries(10); };
             Get["/serie/recent/{max}"] = x => { return GetRecentSeries((int)x.max); };
-            Get["/serie/search/{query}"] = x => { return null; };
+            Post["/serie/search"] = x => { return SearchForSerie(); };
+            Post["/serie/search/{limit}"] = x => { return SearchForSerie((int)x.limit); };
             Get["/serie/byfolder/{id}"] = x => { return GetSerieByFolderId(x.id, 10); };
             Get["/serie/byfolder/{id}/{max}"] = x => { return GetSerieByFolderId(x.id, x.max); };
+            Post["/serie/watch/{type}/{max}"] = x => { return MarkSerieWatched(true, x.max, x.type); };
+            Post["/serie/unwatch/{type}/{max}"] = x => { return MarkSerieWatched(false, x.max, x.type); };
+            Post["/serie/vote"] = x => { return VoteOnSerie(); };
 
             // 15. WebUI
             Get["/dashboard"] = _ => { return GetDashboard(); };
@@ -159,6 +167,12 @@ namespace JMMServer.API
             //Get["/poster/{id}"] = x => { return GetImage(x.id, "10/9", false); };
             Get["/fanart/{id}"] = x => { return GetImage(x.id, "7", false); };
             Get["/image/{type}/{id}"] = x => { return GetImage(x.id, x.type, false); };
+
+            // 19. Logs
+            Get["/log/get"] = x => { return null; };
+            Post["/log/rotate"] = x => { return SetRotateLogs(); };
+            Get["/log/rotate"] = x => { return GetRotateLogs(); };
+            Get["/log/rotate/start"] = x => { return StartRotateLogs(); };
         }
 
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
@@ -1250,6 +1264,44 @@ namespace JMMServer.API
             return _impl.GetEpisodesRecentlyAdded(max_limit, user.JMMUserID);
         }
 
+        /// <summary>
+        /// Set watch status (true) or unwatch (false) for episode that 'id' was given in post body
+        /// </summary>
+        /// <param name="status"></param>
+        /// <returns></returns>
+        private object MarkEpisodeWatched(bool status)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            //we need just 'id'
+            Rating epi = this.Bind();
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.ToggleWatchedStatusOnEpisode(epi.id, status, user.JMMUserID);
+        }
+
+        /// <summary>
+        /// Set score for episode
+        /// </summary>
+        /// <returns></returns>
+        private object VoteOnEpisode()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            Rating epi = this.Bind();
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+
+            _impl.VoteAnime(epi.id, (decimal)epi.score, (int)AniDBAPI.enAniDBVoteType.Episode);
+
+            return APIStatus.statusOK();
+        }
+
+        private object EpisodeScrobble()
+        {
+            return APIStatus.notImplemented();
+        }
+
         #endregion
 
         #region 14.Series
@@ -1304,7 +1356,7 @@ namespace JMMServer.API
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             JMMServiceImplementation _impl = new JMMServiceImplementation();
-            return _impl.GetSeriesByFolderID(folder_id, user.JMMUserID, max);
+            return _impl.GetSeriesFileStatsByFolderID(folder_id, user.JMMUserID, max);
         }
 
         /// <summary>
@@ -1318,6 +1370,91 @@ namespace JMMServer.API
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             return _impl.GetSeriesRecentlyAdded(max_limit, user.JMMUserID);
+        }
+
+        /// <summary>
+        /// Mark given number files of given type for series as un/watched
+        /// </summary>
+        /// <param name="status">true = watched, false = unwatched</param>
+        /// <param name="max_episodes">max number or episode to mark</param>
+        /// <param name="type">1 = episodes, 2 = credits, 3 = special, 4 = trailer, 5 = parody, 6 = other</param>
+        /// <returns></returns>
+        private object MarkSerieWatched(bool status, int max_episodes, int type)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            //we need just 'id'
+            Rating ser = this.Bind();
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            return _impl.SetWatchedStatusOnSeries(ser.id, status, max_episodes, type, user.JMMUserID);
+        }
+
+        /// <summary>
+        /// Set score for serie
+        /// </summary>
+        /// <returns></returns>
+        private object VoteOnSerie()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            Rating ser = this.Bind();
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+
+            _impl.VoteAnime(ser.id, (decimal)ser.score, (int)AniDBAPI.enAniDBVoteType.Anime);
+
+            return APIStatus.statusOK();
+        }
+
+        /// <summary>
+        /// Search for serie that contain given query
+        /// </summary>
+        /// <returns>first 100 results</returns>
+        private object SearchForSerie()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            Search ser = this.Bind();
+
+            return Search(ser.query, 100, false, user.JMMUserID);
+        }
+
+        /// <summary>
+        /// Search for serie that contain given query, limit your results with variable
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
+        private object SearchForSerie(int limit)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            Search ser = this.Bind();
+
+            return Search(ser.query, limit, false, user.JMMUserID);
+        }
+
+
+        /// <summary>
+        /// search for tag with given query inside
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
+        private object SearchForTag()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            Search ser = this.Bind();
+
+            return Search(ser.query, 100, true, user.JMMUserID);
+        }
+
+        internal object Search(string query, int limit, bool tag_search, int userid)
+        {
+            CommonImplementation _comm = new CommonImplementation();
+            IProvider _prov_kodi = new PlexAndKodi.Kodi.KodiProvider();
+
+            return _comm.Search(_prov_kodi, userid.ToString(), limit.ToString(), query, tag_search);
         }
 
         #endregion
@@ -1710,6 +1847,61 @@ namespace JMMServer.API
             Nancy.Response response = new Nancy.Response();
             response = Response.FromStream(image, "image/png");
             return response;
+        }
+
+        #endregion
+
+        #region 19. Logs
+
+        /// <summary>
+        /// Run LogRotator
+        /// </summary>
+        /// <returns></returns>
+        private object StartRotateLogs()
+        {
+            MainWindow.logrotator.Start();
+            return APIStatus.statusOK();
+        }
+
+        /// <summary>
+        /// Set settings for LogRotator
+        /// </summary>
+        /// <returns></returns>
+        private object SetRotateLogs()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            Logs rotator = this.Bind();
+
+            if (user.IsAdmin == 1)
+            {
+                ServerSettings.RotateLogs = rotator.rotate;
+                ServerSettings.RotateLogs_Zip = rotator.zip;
+                ServerSettings.RotateLogs_Delete = rotator.delete;
+                ServerSettings.RotateLogs_Delete_Days = rotator.days.ToString();
+
+                return APIStatus.statusOK();
+            }
+            else
+            {
+                return APIStatus.adminNeeded();
+            }
+        }
+
+        private object GetRotateLogs()
+        {
+            Logs rotator = new Logs();
+            rotator.rotate= ServerSettings.RotateLogs;
+            rotator.zip = ServerSettings.RotateLogs_Zip;
+            rotator.delete=ServerSettings.RotateLogs_Delete;
+            int day = 0;
+            if (!String.IsNullOrEmpty(ServerSettings.RotateLogs_Delete_Days))
+            {
+                int.TryParse(ServerSettings.RotateLogs_Delete_Days, out day);
+            }
+            rotator.days = day;
+
+            return rotator;
         }
 
         #endregion

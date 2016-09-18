@@ -24,9 +24,11 @@ namespace JMMServer.API
             Get["/JMMServerKodi/GetUsers"] = _ => { return GetUsers_Kodi(); };
             Get["/JMMServerKodi/GetVersion"] = _ => { return GetVersion(); };
             Get["/JMMServerKodi/Search/{uid}/{limit}/{query}"] = parameter => { request = this.Request; return Search_Kodi(parameter.uid, parameter.limit, parameter.query); };
-            Get["/JMMServerKodi/Search/{uid}/{limit}/{query}/{searchTag}"] = parameter => { request = this.Request; return SearchTag(parameter.uid, parameter.limit, parameter.query); };
-            Get["/JMMServerKodi/ToggleWatchedStatusOnEpisode/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnEpisode_Kodi(parameter.uid, parameter.epid, parameter.status); };
-            Get["/JMMServerKodi/VoteAnime/{uid}/{id}/{votevalue}/{votetype}"] = parameter => { return VoteAnime_Kodi(parameter.uid, parameter.id, parameter.votevalue, parameter.votetype); };
+            Get["/JMMServerKodi/SearchTag/{uid}/{limit}/{query}"] = parameter => { request = this.Request; return SearchTag(parameter.uid, parameter.limit, parameter.query); };
+            Get["/JMMServerKodi/Watch/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnEpisode_Kodi(parameter.uid, parameter.epid, parameter.status); };
+			Get["/JMMServerKodi/WatchSeries/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnSeries_Kodi(parameter.uid, parameter.epid, parameter.status); };
+			Get["/JMMServerKodi/WatchGroup/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnGroup_Kodi(parameter.uid, parameter.epid, parameter.status); };
+			Get["/JMMServerKodi/Vote/{uid}/{id}/{votevalue}/{votetype}"] = parameter => { return VoteAnime_Kodi(parameter.uid, parameter.id, parameter.votevalue, parameter.votetype); };
             Get["/JMMServerKodi/TraktScrobble/{animeid}/{type}/{progress}/{status}"] = parameter => { return TraktScrobble(parameter.animeid, parameter.type, parameter.progress, parameter.status); };
 
             // PlexImplementation
@@ -35,8 +37,8 @@ namespace JMMServer.API
             Get["/JMMServerPlex/GetMetadata/{uid}/{type}/{id}/{historyinfo}"] = parameter => { request = this.Request; return GetMetadata_Plex(parameter.uid, parameter.type, parameter.id, parameter.historyinfo); };
             Get["/JMMServerPlex/GetUsers"] = _ => { return GetUsers_Plex(); };
             Get["/JMMServerPlex/Search/{uid}/{limit}/{query}"] = parameter => { request = this.Request; return Search_Plex(parameter.uid, parameter.limit, parameter.query); };
-            Get["/JMMServerPlex/ToggleWatchedStatusOnEpisode/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnEpisode_Plex(parameter.uid, parameter.epid, parameter.status); };
-            Get["/JMMServerPlex/VoteAnime/{uid}/{id}/{votevalue}/{votetype}"] = parameter => { return VoteAnime_Plex(parameter.uid, parameter.id, parameter.votevalue, parameter.votetype); };
+            Get["/JMMServerPlex/Watch/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnEpisode_Plex(parameter.uid, parameter.epid, parameter.status); };
+            Get["/JMMServerPlex/Vote/{uid}/{id}/{votevalue}/{votetype}"] = parameter => { return VoteAnime_Plex(parameter.uid, parameter.id, parameter.votevalue, parameter.votetype); };
 
             // JMMServerRest
             Get["/JMMServerREST/GetImage/{type}/{id}"] = parameter => { return GetImage(parameter.type, parameter.id); };
@@ -155,15 +157,39 @@ namespace JMMServer.API
             return _impl.ToggleWatchedStatusOnEpisode(_prov_kodi, userid, episodeid, watchedstatus);
         }
 
-        /// <summary>
-        /// KODI: Rate episode/movie
-        /// </summary>
-        /// <param name="uid">User ID</param>
-        /// <param name="id">Object ID</param>
-        /// <param name="votevalue">Rating</param>
-        /// <param name="votetype">Vote type: Anime = 1, AnimeTemp = 2, Group = 3, Episode = 4</param>
-        /// <returns></returns>
-        private object VoteAnime_Kodi(string uid, string id, string votevalue, string votetype)
+		/// <summary>
+		/// KODI: Set watch status for given series id
+		/// </summary>
+		/// <param name="userid">User ID</param>
+		/// <param name="seriesid">Series ID (JMM ID)</param>
+		/// <param name="watchedstatu">Watched status 1:true 0:false</param>
+		/// <returns></returns>
+		private object ToggleWatchedStatusOnSeries_Kodi(string userid, string seriesid, string watchedstatus)
+		{
+			return _impl.ToggleWatchedStatusOnSeries(_prov_kodi, userid, seriesid, watchedstatus);
+		}
+
+		/// <summary>
+		/// KODI: Set watch status for given group id
+		/// </summary>
+		/// <param name="userid">User ID</param>
+		/// <param name="groupid">Group ID (JMM ID)</param>
+		/// <param name="watchedstatu">Watched status 1:true 0:false</param>
+		/// <returns></returns>
+		private object ToggleWatchedStatusOnGroup_Kodi(string userid, string groupid, string watchedstatus)
+		{
+			return _impl.ToggleWatchedStatusOnGroup(_prov_kodi, userid, groupid, watchedstatus);
+		}
+
+		/// <summary>
+		/// KODI: Rate episode/movie
+		/// </summary>
+		/// <param name="uid">User ID</param>
+		/// <param name="id">Object ID</param>
+		/// <param name="votevalue">Rating</param>
+		/// <param name="votetype">Vote type: Anime = 1, AnimeTemp = 2, Group = 3, Episode = 4</param>
+		/// <returns></returns>
+		private object VoteAnime_Kodi(string uid, string id, string votevalue, string votetype)
         {
             return _impl.VoteAnime(_prov_kodi, uid, id, votevalue, votetype);
         }

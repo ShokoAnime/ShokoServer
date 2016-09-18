@@ -41,12 +41,18 @@ namespace JMMServer
                 SaveSettings();
             }
         }
+
+
+        //TODO add command line parameter, so we can change the default instance name (JMMServer) to other, 
+        //in this way, we could host two JMMServers int the same machine
+
+        public static string DefaultInstance { get; set; } = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+
         public static string ApplicationPath
         {
             get
             {
-                string basepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    System.Reflection.Assembly.GetExecutingAssembly().GetName().Name);
+                string basepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),DefaultInstance);
                 if (!Directory.Exists(basepath))
                     Directory.CreateDirectory(basepath);
                 return basepath;
@@ -305,6 +311,66 @@ namespace JMMServer
             }
             set { Set("FirstRun", value.ToString()); }
         }
+
+        #region LogRotator
+
+        public static bool RotateLogs
+        {
+            get
+            {
+                bool val = true;
+                if (!string.IsNullOrEmpty(Get("RotateLogs")))
+                { bool.TryParse(Get("RotateLogs"), out val); }
+                else
+                { RotateLogs = val; }
+                return val;
+
+            }
+            set { Set("RotateLogs", value.ToString()); }
+        }
+
+        public static bool RotateLogs_Zip
+        {
+            get
+            {
+                bool val = true;
+                if (!string.IsNullOrEmpty(Get("RotateLogs_Zip")))
+                { bool.TryParse(Get("RotateLogs_Zip"), out val); }
+                else
+                { RotateLogs = val; }
+                return val;
+            }
+            set { Set("RotateLogs_Zip", value.ToString()); }
+        }
+
+        public static bool RotateLogs_Delete
+        {
+            get
+            {
+                bool val = true;
+                if (!string.IsNullOrEmpty(Get("RotateLogs_Delete")))
+                { bool.TryParse(Get("RotateLogs_Delete"), out val); }
+                else
+                { RotateLogs = val; }
+                return val;
+            }
+            set { Set("RotateLogs_Delete", value.ToString()); }
+        }
+
+        public static string RotateLogs_Delete_Days
+        {
+            get
+            {
+                string val = "90";
+                if (string.IsNullOrEmpty(Get("RotateLogs_Delete_Days")))
+                { RotateLogs_Delete_Days = val; }
+                return Get("RotateLogs_Delete_Days");
+
+            }
+            set { Set("RotateLogs_Delete_Days", value); }
+        }
+
+        #endregion
 
         #region Database
 
