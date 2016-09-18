@@ -347,12 +347,12 @@ namespace JMMServer
 
         private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            throw new NotImplementedException();
+            // for later use
         }
 
         private void LogRotatorWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            throw new NotImplementedException();
+            logrotator.Start();
         }
 
         public static MainWindow Instance { get; private set; }
