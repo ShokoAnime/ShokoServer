@@ -167,6 +167,12 @@ namespace JMMServer.API
             //Get["/poster/{id}"] = x => { return GetImage(x.id, "10/9", false); };
             Get["/fanart/{id}"] = x => { return GetImage(x.id, "7", false); };
             Get["/image/{type}/{id}"] = x => { return GetImage(x.id, x.type, false); };
+
+            // 19. Logs
+            Get["/log/get"] = x => { return null; };
+            Post["/log/rotate"] = x => { return SetRotateLogs(); };
+            Get["/log/rotate"] = x => { return GetRotateLogs(); };
+            Get["/log/rotate/start"] = x => { return StartRotateLogs(); };
         }
 
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
@@ -1841,6 +1847,61 @@ namespace JMMServer.API
             Nancy.Response response = new Nancy.Response();
             response = Response.FromStream(image, "image/png");
             return response;
+        }
+
+        #endregion
+
+        #region 19. Logs
+
+        /// <summary>
+        /// Run LogRotator
+        /// </summary>
+        /// <returns></returns>
+        private object StartRotateLogs()
+        {
+            MainWindow.logrotator.Start();
+            return APIStatus.statusOK();
+        }
+
+        /// <summary>
+        /// Set settings for LogRotator
+        /// </summary>
+        /// <returns></returns>
+        private object SetRotateLogs()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            Logs rotator = this.Bind();
+
+            if (user.IsAdmin == 1)
+            {
+                ServerSettings.RotateLogs = rotator.rotate;
+                ServerSettings.RotateLogs_Zip = rotator.zip;
+                ServerSettings.RotateLogs_Delete = rotator.delete;
+                ServerSettings.RotateLogs_Delete_Days = rotator.days.ToString();
+
+                return APIStatus.statusOK();
+            }
+            else
+            {
+                return APIStatus.adminNeeded();
+            }
+        }
+
+        private object GetRotateLogs()
+        {
+            Logs rotator = new Logs();
+            rotator.rotate= ServerSettings.RotateLogs;
+            rotator.zip = ServerSettings.RotateLogs_Zip;
+            rotator.delete=ServerSettings.RotateLogs_Delete;
+            int day = 0;
+            if (!String.IsNullOrEmpty(ServerSettings.RotateLogs_Delete_Days))
+            {
+                int.TryParse(ServerSettings.RotateLogs_Delete_Days, out day);
+            }
+            rotator.days = day;
+
+            return rotator;
         }
 
         #endregion

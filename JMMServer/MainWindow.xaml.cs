@@ -47,6 +47,7 @@ namespace JMMServer
         private bool isAppExiting = false;
         private static bool doneFirstTrakTinfo = false;
         private static Logger logger = LogManager.GetCurrentClassLogger();
+        internal static LogRotator logrotator = new LogRotator();
         private static DateTime lastTraktInfoUpdate = DateTime.Now;
         private static DateTime lastVersionCheck = DateTime.Now;
 
@@ -93,12 +94,13 @@ namespace JMMServer
 
         private static BackgroundWorker workerSyncHashes= new BackgroundWorker();
 
-
         internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
+        internal static BackgroundWorker LogRotatorWorker = new BackgroundWorker();
 
         private static System.Timers.Timer autoUpdateTimer = null;
         private static System.Timers.Timer autoUpdateTimerShort = null;
         private static System.Timers.Timer cloudWatchTimer = null;
+        internal static System.Timers.Timer LogRotatorTimer = null;
 
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
         private static List<FileSystemWatcher> watcherVids = null;
@@ -181,6 +183,11 @@ namespace JMMServer
             workerFileEvents.RunWorkerCompleted +=
                 new RunWorkerCompletedEventHandler(workerFileEvents_RunWorkerCompleted);
 
+            //logrotator worker setup
+            LogRotatorWorker.WorkerReportsProgress = false;
+            LogRotatorWorker.WorkerSupportsCancellation = false;
+            LogRotatorWorker.DoWork += new DoWorkEventHandler(LogRotatorWorker_DoWork);
+            LogRotatorWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(LogRotatorWorker_RunWorkerCompleted);
 
             //Create an instance of the NotifyIcon Class
             TippuTrayNotify = new System.Windows.Forms.NotifyIcon();
@@ -332,7 +339,22 @@ namespace JMMServer
             InitCulture();
             Instance = this;
             StartNancyHost();
+
+            // run rotator once and set 24h delay
+            logrotator.Start();
+            StartLogRotatorTimer();
         }
+
+        private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void LogRotatorWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
         public static MainWindow Instance { get; private set; }
         private void BtnSyncHashes_Click(object sender, RoutedEventArgs e)
         {
@@ -981,6 +1003,21 @@ namespace JMMServer
             cloudWatchTimer.Interval = ServerSettings.CloudWatcherTime*60 * 1000;
             cloudWatchTimer.Elapsed += CloudWatchTimer_Elapsed;
             cloudWatchTimer.Start();
+        }
+
+        public static void StartLogRotatorTimer()
+        {
+            LogRotatorTimer = new System.Timers.Timer();
+            LogRotatorTimer.AutoReset = true;
+            // 86400000 = 24h
+            LogRotatorTimer.Interval = 86400000;
+            LogRotatorTimer.Elapsed += LogRotatorTimer_Elapsed;
+            LogRotatorTimer.Start();
+        }
+
+        private static void LogRotatorTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            logrotator.Start();
         }
 
         public static void StopCloudWatchTimer()

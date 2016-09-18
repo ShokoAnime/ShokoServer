@@ -137,6 +137,69 @@ namespace JMMServer
             set { UpdateSetting("FirstRun", value.ToString()); }
         }
 
+        #region LogRotator
+
+        public static bool RotateLogs
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                bool val = false;
+                if (appSettings.AllKeys.Contains("RotateLogs"))
+                { bool.TryParse(appSettings["RotateLogs"], out val); }
+                else
+                { RotateLogs = val; }
+                return val;
+            }
+            set { UpdateSetting("RotateLogs", value.ToString()); }
+        }
+
+        public static bool RotateLogs_Zip
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                bool val = true;
+                if (appSettings.AllKeys.Contains("RotateLogs_Zip"))
+                { bool.TryParse(appSettings["RotateLogs_Zip"], out val); }
+                else
+                { RotateLogs_Zip = val; }
+                return val;
+            }
+            set { UpdateSetting("RotateLogs_Zip", value.ToString()); }
+        }
+
+        public static bool RotateLogs_Delete
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                bool val = false;
+                if (appSettings.AllKeys.Contains("RotateLogs_Delete"))
+                { bool.TryParse(appSettings["RotateLogs_Delete"], out val); }
+                else
+                { RotateLogs_Delete = val; }
+                return val;
+            }
+            set { UpdateSetting("RotateLogs_Delete", value.ToString()); }
+        }
+
+        public static string RotateLogs_Delete_Days
+        {
+            get
+            {
+                NameValueCollection appSettings = ConfigurationManager.AppSettings;
+                string val = "90";
+                if (!appSettings.AllKeys.Contains("RotateLogs_Delete_Days"))
+                { RotateLogs_Delete_Days = val; }
+                return appSettings["RotateLogs_Delete_Days"];
+
+            }
+            set { UpdateSetting("RotateLogs_Delete_Days", value); }
+        }
+
+        #endregion
+
         #region Database
 
         public static string DatabaseType
