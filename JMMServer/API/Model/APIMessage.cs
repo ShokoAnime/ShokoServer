@@ -58,6 +58,18 @@ namespace JMMServer.API.Model
         public static APIMessage adminNeeded()
         {
             return new APIMessage(403, "Admin rights needed");
+
+        }
+
+        public static APIMessage accessDenied()
+        {
+            return new APIMessage(403, "Access Denied");
+
+        }
+
+        public static APIMessage notFound404()
+        {
+            return new APIMessage(404, "Not found");
         }
 
         public static APIMessage internalError()

@@ -288,6 +288,7 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="API\Model\Art.cs" />
     <Compile Include="API\Model\Logs.cs" />
     <Compile Include="API\Model\Rating.cs" />
     <Compile Include="API\Model\Search.cs" />

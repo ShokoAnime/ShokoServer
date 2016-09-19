@@ -140,6 +140,7 @@ namespace JMMServer.API
             Post["/serie/watch/{type}/{max}"] = x => { return MarkSerieWatched(true, x.max, x.type); };
             Post["/serie/unwatch/{type}/{max}"] = x => { return MarkSerieWatched(false, x.max, x.type); };
             Post["/serie/vote"] = x => { return VoteOnSerie(); };
+            Get["/serie/{id}/art"] = x => { return GetSerieArt((int)x.id); };
 
             // 15. WebUI
             Get["/dashboard"] = _ => { return GetDashboard(); };
@@ -1405,6 +1406,30 @@ namespace JMMServer.API
             _impl.VoteAnime(ser.id, (decimal)ser.score, (int)AniDBAPI.enAniDBVoteType.Anime);
 
             return APIStatus.statusOK();
+        }
+
+        private object GetSerieArt(int serie_id)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+
+            AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(serie_id);
+            if (ser == null) { return APIStatus.notFound404(); }
+            Contract_AnimeSeries cseries = ser.GetUserContract(user.JMMUserID);
+            if (cseries == null) { return APIStatus.accessDenied(); }
+            if (cseries.AniDBAnime != null && cseries.AniDBAnime.AniDBAnime != null)
+            {
+                //cseries.AniDBAnime.AniDBAnime.Banners
+                // TODO Apiv2 - This is all around aproche We dont need > Series then contract just to access this lets ask directly image with animeid = id but how?!
+                return cseries.AniDBAnime.AniDBAnime.Fanarts;
+            }
+            else
+            {
+                return APIStatus.internalError();
+            }
+            
         }
 
         /// <summary>
