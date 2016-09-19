@@ -215,12 +215,13 @@ namespace JMMServer.API
                 {
                     if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
                     {
-                        return new APIMessage(200, "folder can't be destination and source simpulteniouse");
+                        return new APIMessage(400, "Bad Request: The Folder Can't be both Destination and Source Simultaneously");
                     }
                     else
                     {
                         Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder);
 
+						// This shouldn't be needed now, but idk
                         if (!string.IsNullOrEmpty(response.ErrorMessage))
                         {
                             return new APIMessage(500, response.ErrorMessage);
@@ -236,7 +237,7 @@ namespace JMMServer.API
             }
             else
             {
-                return new APIMessage(400, "Bad request");
+                return new APIMessage(400, "Bad Request: The Folder path must not be Empty");
             }
         }
 
@@ -253,7 +254,7 @@ namespace JMMServer.API
                 {
                     if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
                     {
-                        return new APIMessage(409, "conflict");
+                        return new APIMessage(409, "The Folder Can't be both Destination and Source Simultaneously");
                     }
                     else
                     {
@@ -271,7 +272,7 @@ namespace JMMServer.API
                         }
                         else
                         {
-                            return new APIMessage(409, "conflict");
+                            return new APIMessage(409, "The Import Folder must have an ID");
                         }
                     }
                 }
@@ -365,7 +366,7 @@ namespace JMMServer.API
             }
             else
             {
-                return new APIMessage(400, "Port missing");
+                return new APIMessage(400, "Port Missing");
             }
         }
 
@@ -403,12 +404,12 @@ namespace JMMServer.API
                     }
                     else
                     {
-                        return new APIMessage(404, "Directory not found");
+                        return new APIMessage(404, "Directory Not Found on Host");
                     }
                 }
                 else
                 {
-                    return new APIMessage(400, "Path missing");
+                    return new APIMessage(400, "Path Missing");
                 }
             }
         }

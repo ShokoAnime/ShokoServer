@@ -42,7 +42,7 @@ namespace JMMServer.API.Model
 
         public static APIMessage badRequest()
         {
-            return new APIMessage(400, "bad request");
+            return new APIMessage(400, "Bad Request");
         }
 
         public static APIMessage badRequest(string custom_message)
@@ -67,17 +67,12 @@ namespace JMMServer.API.Model
 
         }
 
-        public static APIMessage notFound404()
+        public static APIMessage notFound404(string message="Not Found")
         {
-            return new APIMessage(404, "Not found");
+            return new APIMessage(404, message);
         }
 
-        public static APIMessage internalError()
-        {
-            return new APIMessage(500, "internal error");
-        }
-
-        public static APIMessage internalError(string custom_message)
+        public static APIMessage internalError(string custom_message="Internal Error")
         {
             return new APIMessage(500, custom_message);
         }
