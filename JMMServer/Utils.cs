@@ -161,6 +161,8 @@ namespace JMMServer
                 }
 
                 #endregion
+
+                #region Adding Ports
                 if (oldPort!=Port)
                 {
                     if (!String.IsNullOrEmpty(oldPort))
@@ -190,6 +192,7 @@ namespace JMMServer
 
                 }
 
+                #endregion
 
                 BatchFileStream.Close();
 

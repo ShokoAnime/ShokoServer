@@ -338,35 +338,8 @@ namespace JMMServer
 
             InitCulture();
             Instance = this;
-            try
-            {
-                StartNancyHost();
-            }
-            catch (Exception e)
-            {
-                if (Utils.IsAdministrator())
-                {
-                    MessageBox.Show("Settings the ports, after that JMMServer will quit, run again in normal mode");
-                    Utils.SetNetworkRequirements(ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort);
-                    try
-                    {
-                        StartNancyHost();
-                        Application.Current.Shutdown();
-                    }
-                    catch (Exception)
-                    {
-                        MessageBox.Show("Unable to set the ports");
-                        Application.Current.Shutdown();
-                    }
 
-                }
-                else
-                {
-                    MessageBox.Show("Unable to start hosting, please run JMMServer as administrator once.");
-                    Application.Current.Shutdown();
-                }
-
-            }
+            StartNancyHost();
             // run rotator once and set 24h delay
             logrotator.Start();
             StartLogRotatorTimer();
@@ -2377,7 +2350,6 @@ namespace JMMServer
             }
         }
 
-
         private static void StartBinaryHost()
         {
             BinaryMessageEncodingBindingElement encoding = new BinaryMessageEncodingBindingElement();
@@ -2560,7 +2532,6 @@ namespace JMMServer
         //    logger.Trace("Now Accepting client connections for images (metro)...");
         //}
 
-
         private static void StartMetroHost()
         {
             BasicHttpBinding binding = new BasicHttpBinding();
@@ -2591,7 +2562,6 @@ namespace JMMServer
             logger.Trace("Now Accepting client connections for metro apps...");
         }
 
-
         private static void AddCompressableEndpoint(ServiceHost host, Type t, SerializationFilter filter, object address = null)
         {
             CustomBinding custom = new CustomBinding(new WebHttpBinding() { ContentTypeMapper = new MultiContentTypeMapper() });
@@ -2620,11 +2590,34 @@ namespace JMMServer
             ep.EndpointBehaviors.Add(new CompressionSelectionEndpointBehavior(filter));
         }
 
+        /// <summary>
+        /// Running Nancy and Validating all require aspects before running it
+        /// </summary>
         private static void StartNancyHost()
         {
-            //nancy will rewrite localhost into http://+:port
-            hostNancy = new Nancy.Hosting.Self.NancyHost(new Uri("http://localhost:"+ ServerSettings.JMMServerPort));
-            hostNancy.Start();
+            hostNancy = new Nancy.Hosting.Self.NancyHost(new Uri("http://localhost:" + ServerSettings.JMMServerPort));
+
+            if (Utils.IsAdministrator())
+            {
+                //until we can't check for proper ports its better to readdem as we not need runing as admin anymore
+                // todo as we dont need run as admin this could be left alone or we will need to make util that check for ports
+                Utils.SetNetworkRequirements(ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort);
+
+                hostNancy.Start();
+            }
+            else
+            {
+                try
+                {
+                    //nancy will rewrite localhost into http://+:port
+                    hostNancy.Start();
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show("Unable to start hosting, please run JMMServer as administrator once or install it using official installer.");
+                    Application.Current.Shutdown();
+                }
+            }
         }
 
         private static void StartFileHost()
@@ -2824,7 +2817,6 @@ namespace JMMServer
             logger.Info("Hashed {0} in {1} ms --- {2}", fileSize3, doubleFile3, hashes3.ed2k);
         }
 
-
         private static void UpdateStatsTest()
         {
             foreach (AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
@@ -2832,7 +2824,6 @@ namespace JMMServer
                 grp.UpdateStatsFromTopLevel(true, true);
             }
         }
-
 
         private static void CreateImportFolders_Test()
         {
@@ -2860,7 +2851,6 @@ namespace JMMServer
             CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(15350, false);
             cr_procfile.Save();
         }
-
 
         private static void CreateImportFolders()
         {
@@ -2945,7 +2935,6 @@ namespace JMMServer
 
             logger.Debug("Creating shares complete!");
         }
-
 
         private static void CreateTestCommandRequests()
         {
