@@ -112,15 +112,15 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\JMM Server"; Filen
 [Run]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerImage user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerBinary user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetro user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetroImage user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerPlex user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerKodi user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerREST user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
-Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8112/JMMFilePort user=everyone"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerImage sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerBinary sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetro sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetroImage sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerPlex sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerKodi sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerREST sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
+Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8112/JMMFilePort sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
 Filename: "{app}\JMMServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,JMM Server}"Filename: "http://jmediamanager.org/version-3-6-brings-speed-and-streaming/"; Flags: shellexec runasoriginaluser postinstall; Description: "View Release Notes"
 
 [UninstallRun]

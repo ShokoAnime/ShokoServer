@@ -2069,6 +2069,42 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to JMM Server is unable to migrate your settings using the current user access. Run JMM Server as an Administrator to start the migration..
+        /// </summary>
+        internal static string Migration_AdminFail {
+            get {
+                return ResourceManager.GetString("Migration_AdminFail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to JMM Server will now start migrating your settings from this location to.
+        /// </summary>
+        internal static string Migration_AdminPass1 {
+            get {
+                return ResourceManager.GetString("Migration_AdminPass1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to once this process is complete JMM Server will restart and no longer need Administrative Privileges to run..
+        /// </summary>
+        internal static string Migration_AdminPass2 {
+            get {
+                return ResourceManager.GetString("Migration_AdminPass2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Migration Status.
+        /// </summary>
+        internal static string Migration_Header {
+            get {
+                return ResourceManager.GetString("Migration_Header", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to MySQL.
         /// </summary>
         internal static string MySQL {

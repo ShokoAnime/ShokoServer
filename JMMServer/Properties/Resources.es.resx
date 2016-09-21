@@ -1003,4 +1003,67 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Toolbar_Contribute" xml:space="preserve">
     <value>¡Hacer JMM mejor!</value>
   </data>
+  <data name="CloudAccounts_Add" xml:space="preserve">
+    <value>Agregar cuenta de</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Llene la información requerida sobre las cuentas de nube aquí</value>
+  </data>
+  <data name="CloudAccounts_Remove" xml:space="preserve">
+    <value>Quitar</value>
+  </data>
+  <data name="CloudAccounts_Title" xml:space="preserve">
+    <value>Cuentas de nube</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://localhost</value>
+  </data>
+  <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
+    <value>Agregar cuenta de Cloud</value>
+  </data>
+  <data name="CloudAccounts_Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
+    <value>¿Está seguro que desea eliminar el siguiente la nube cuenta '{0}' {1}? Se eliminará cualquier carpeta importar utilizando esta cuenta, y cada enlace de archivo asociados con ésos importación carpetas serán eliminadas también.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Seleccione el proveedor de servicios</value>
+  </data>
+  <data name="CloudAccounts_Connect" xml:space="preserve">
+    <value>Conectar</value>
+  </data>
+  <data name="CloudAccounts_CloudNameAlreadyExists" xml:space="preserve">
+    <value>Ya existe el nombre de cuenta seleccionado de nube</value>
+  </data>
+  <data name="ImportFolders_Provider" xml:space="preserve">
+    <value>Proveedor</value>
+  </data>
+  <data name="ImportFolders_SelectCloudFolder" xml:space="preserve">
+    <value>Seleccione carpeta de nube...</value>
+  </data>
+  <data name="MessageBox_NewFolder" xml:space="preserve">
+    <value>Nueva carpeta</value>
+  </data>
+  <data name="Tab_CloudAccounts" xml:space="preserve">
+    <value>Cuentas de nube</value>
+  </data>
+  <data name="CloudAccount_Connected" xml:space="preserve">
+    <value>Conectado</value>
+  </data>
+  <data name="CloudAccount_NotConnected" xml:space="preserve">
+    <value>No conectado</value>
+  </data>
+  <data name="Migration_Header" xml:space="preserve">
+    <value>Estado de la migración</value>
+  </data>
+  <data name="Migration_AdminFail" xml:space="preserve">
+    <value>Servidor de JMM es incapaz de migrar los valores mediante el acceso del usuario actual. Ejecutar servidor de JMM como administrador para iniciar la migración.</value>
+  </data>
+  <data name="Migration_AdminPass1" xml:space="preserve">
+    <value>Servidor de JMM ahora comenzará a migrar la configuración de esta ubicación a</value>
+  </data>
+  <data name="Migration_AdminPass2" xml:space="preserve">
+    <value>una vez este proceso completo servidor de JMM reinicie y ya no necesitan privilegios administrativos para ejecutarse.</value>
+  </data>
 </root>

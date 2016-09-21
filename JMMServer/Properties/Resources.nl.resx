@@ -1003,4 +1003,67 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Toolbar_Contribute" xml:space="preserve">
     <value>Help JMM beter te maken!</value>
   </data>
+  <data name="CloudAccounts_Add" xml:space="preserve">
+    <value>Account toevoegen</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Vul de vereiste informatie over cloud-accounts hier</value>
+  </data>
+  <data name="CloudAccounts_Remove" xml:space="preserve">
+    <value>Verwijderen</value>
+  </data>
+  <data name="CloudAccounts_Title" xml:space="preserve">
+    <value>Cloud-Accounts</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://localhost</value>
+  </data>
+  <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
+    <value>Cloud-Account toevoegen</value>
+  </data>
+  <data name="CloudAccounts_Name" xml:space="preserve">
+    <value>Naam</value>
+  </data>
+  <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
+    <value>Weet u zeker dat u wilt verwijderen van de volgende handelingen uit de Cloud Account '{0}' {1}? Elke importeren map met behulp van deze account worden verwijderd, en elke bestandskoppeling verbonden met deze import mappen worden ook verwijderd.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Selecteer de serviceprovider</value>
+  </data>
+  <data name="CloudAccounts_Connect" xml:space="preserve">
+    <value>Verbinding maken</value>
+  </data>
+  <data name="CloudAccounts_CloudNameAlreadyExists" xml:space="preserve">
+    <value>De geselecteerde Cloud accountnaam bestaat al</value>
+  </data>
+  <data name="ImportFolders_Provider" xml:space="preserve">
+    <value>Provider</value>
+  </data>
+  <data name="ImportFolders_SelectCloudFolder" xml:space="preserve">
+    <value>Selecteer Cloud map...</value>
+  </data>
+  <data name="MessageBox_NewFolder" xml:space="preserve">
+    <value>Nieuwe map</value>
+  </data>
+  <data name="Tab_CloudAccounts" xml:space="preserve">
+    <value>Cloud-Accounts</value>
+  </data>
+  <data name="CloudAccount_Connected" xml:space="preserve">
+    <value>Aangesloten</value>
+  </data>
+  <data name="CloudAccount_NotConnected" xml:space="preserve">
+    <value>Niet aangesloten</value>
+  </data>
+  <data name="Migration_Header" xml:space="preserve">
+    <value>De migratiestatus van de</value>
+  </data>
+  <data name="Migration_AdminFail" xml:space="preserve">
+    <value>JMM Server is niet in staat om uw instellingen met behulp van de huidige gebruikerstoegang te migreren. JMM Server uitvoeren als beheerder om te beginnen met de migratie.</value>
+  </data>
+  <data name="Migration_AdminPass1" xml:space="preserve">
+    <value>JMM Server zal nu beginnen met het migreren van uw instellingen vanaf deze locatie te</value>
+  </data>
+  <data name="Migration_AdminPass2" xml:space="preserve">
+    <value>Zodra dit proces is zal volledige JMM Server start en niet meer nodig hebt beheerdersrechten nodig om uit te voeren.</value>
+  </data>
 </root>

@@ -1103,4 +1103,16 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="CloudAccount_NotConnected" xml:space="preserve">
     <value>Not Connected</value>
   </data>
+  <data name="Migration_Header" xml:space="preserve">
+    <value>Migration Status</value>
+  </data>
+  <data name="Migration_AdminFail" xml:space="preserve">
+    <value>JMM Server is unable to migrate your settings using the current user access. Run JMM Server as an Administrator to start the migration.</value>
+  </data>
+  <data name="Migration_AdminPass1" xml:space="preserve">
+    <value>JMM Server will now start migrating your settings from this location to</value>
+  </data>
+  <data name="Migration_AdminPass2" xml:space="preserve">
+    <value>once this process is complete JMM Server will restart and no longer need Administrative Privileges to run.</value>
+  </data>
 </root>

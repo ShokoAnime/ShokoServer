@@ -1003,4 +1003,67 @@
   <data name="Toolbar_Contribute" xml:space="preserve">
     <value>Помогите сделать JMM лучше!</value>
   </data>
+  <data name="CloudAccounts_Add" xml:space="preserve">
+    <value>Добавить учетную запись</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Заполните необходимую информацию об учетных записях облачных здесь</value>
+  </data>
+  <data name="CloudAccounts_Remove" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="CloudAccounts_Title" xml:space="preserve">
+    <value>Облачные учетные записи</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://localhost</value>
+  </data>
+  <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
+    <value>Добавить учетную запись Cloud</value>
+  </data>
+  <data name="CloudAccounts_Name" xml:space="preserve">
+    <value>Имя</value>
+  </data>
+  <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
+    <value>Вы действительно хотите удалить следующие облачной учетной записи {0} из {1}? Любой импорт папки, с помощью этой учетной записи будут удалены, и каждый файл ссылки, связанные с этими импорта папки будут также удалены.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Выберите поставщика услуг</value>
+  </data>
+  <data name="CloudAccounts_Connect" xml:space="preserve">
+    <value>Подключение</value>
+  </data>
+  <data name="CloudAccounts_CloudNameAlreadyExists" xml:space="preserve">
+    <value>Имя выбранного облака учетной записи уже существует</value>
+  </data>
+  <data name="ImportFolders_Provider" xml:space="preserve">
+    <value>Провайдер</value>
+  </data>
+  <data name="ImportFolders_SelectCloudFolder" xml:space="preserve">
+    <value>Выберите папку облака...</value>
+  </data>
+  <data name="MessageBox_NewFolder" xml:space="preserve">
+    <value>Новая папка</value>
+  </data>
+  <data name="Tab_CloudAccounts" xml:space="preserve">
+    <value>Облачные учетные записи</value>
+  </data>
+  <data name="CloudAccount_Connected" xml:space="preserve">
+    <value>Подключение</value>
+  </data>
+  <data name="CloudAccount_NotConnected" xml:space="preserve">
+    <value>Не подключен</value>
+  </data>
+  <data name="Migration_Header" xml:space="preserve">
+    <value>Состояние миграции</value>
+  </data>
+  <data name="Migration_AdminFail" xml:space="preserve">
+    <value>JMM сервер не удается перенести параметры с помощью доступа текущего пользователя. Запустите JMM сервер в качестве администратора начать процесс миграции.</value>
+  </data>
+  <data name="Migration_AdminPass1" xml:space="preserve">
+    <value>JMM сервер начнет перенос параметров из этого местоположения в</value>
+  </data>
+  <data name="Migration_AdminPass2" xml:space="preserve">
+    <value>После завершения этого процесса завершения JMM сервер перезапустится и больше не нужны привилегии администратора для запуска.</value>
+  </data>
 </root>

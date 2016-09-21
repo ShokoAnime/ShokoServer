@@ -1003,4 +1003,67 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Toolbar_Contribute" xml:space="preserve">
     <value>Aider à améliorer les JMM !</value>
   </data>
+  <data name="CloudAccounts_Add" xml:space="preserve">
+    <value>Ajouter un compte</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Remplissez les informations requises sur les comptes de nuages ici</value>
+  </data>
+  <data name="CloudAccounts_Remove" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="CloudAccounts_Title" xml:space="preserve">
+    <value>Comptes de nuage</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://localhost</value>
+  </data>
+  <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
+    <value>Ajouter compte nuage</value>
+  </data>
+  <data name="CloudAccounts_Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir supprimer ce qui suit le nuage compte « {0} » dans {1} ? N’importe quel dossier à importer à l’aide de ce compte seront supprimé, et chaque lien de fichier associées à ces importations dossiers seront également supprimés.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Fournisseur de Service élite</value>
+  </data>
+  <data name="CloudAccounts_Connect" xml:space="preserve">
+    <value>Se connecter</value>
+  </data>
+  <data name="CloudAccounts_CloudNameAlreadyExists" xml:space="preserve">
+    <value>Le nom du compte sélectionné nuage existe déjà</value>
+  </data>
+  <data name="ImportFolders_Provider" xml:space="preserve">
+    <value>Fournisseur de</value>
+  </data>
+  <data name="ImportFolders_SelectCloudFolder" xml:space="preserve">
+    <value>Sélectionnez le dossier de nuage...</value>
+  </data>
+  <data name="MessageBox_NewFolder" xml:space="preserve">
+    <value>Nouveau dossier</value>
+  </data>
+  <data name="Tab_CloudAccounts" xml:space="preserve">
+    <value>Comptes de nuage</value>
+  </data>
+  <data name="CloudAccount_Connected" xml:space="preserve">
+    <value>Relié</value>
+  </data>
+  <data name="CloudAccount_NotConnected" xml:space="preserve">
+    <value>Pas connecté</value>
+  </data>
+  <data name="Migration_Header" xml:space="preserve">
+    <value>État de la migration</value>
+  </data>
+  <data name="Migration_AdminFail" xml:space="preserve">
+    <value>JMM serveur n’est pas en mesure de migrer vos paramètres à l’aide de l’accès de l’utilisateur actuel. Exécutez JMM Server en tant qu’administrateur pour démarrer la migration.</value>
+  </data>
+  <data name="Migration_AdminPass1" xml:space="preserve">
+    <value>JMM serveur va maintenant commencer à migrer vos paramètres depuis cet emplacement à</value>
+  </data>
+  <data name="Migration_AdminPass2" xml:space="preserve">
+    <value>une fois ce processus complet JMM serveur va redémarrer et n’est plus besoin de privilèges d’administrateur pour exécuter.</value>
+  </data>
 </root>
