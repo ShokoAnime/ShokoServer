@@ -71,8 +71,6 @@ namespace JMMServer
             string animexmlPath = Path.Combine(programlocation, "Anime_HTTP");
             string imagePath = Path.Combine(programlocation, "images");
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
             bool proc = false;
             if (!File.Exists(path) || Directory.Exists(dbPath) || Directory.Exists(backupath) || Directory.Exists(mylistPath) || Directory.Exists(animexmlPath) || (Directory.Exists(imagePath) && (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))))
             {
@@ -83,7 +81,7 @@ namespace JMMServer
                 }
                 else
                 {
-                    MessageBox.Show(Properties.Resources.Migration_AdminPass1 + " " + ApplicationPath + ", " + Properties.Resources.Migration_AdminPass2, Properties.Resources.Migration_Header, MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(string.Format("{0} {1}, {2}", Properties.Resources.Migration_AdminPass1, ApplicationPath, Properties.Resources.Migration_AdminPass2), Properties.Resources.Migration_Header, MessageBoxButton.OK, MessageBoxImage.Information);
                     proc = true;
                 }
             }
@@ -110,10 +108,14 @@ namespace JMMServer
 
             if (proc)
                 Application.Current.Shutdown();
+
             //Reconfigure log file to applicationpath
             var target = (FileTarget)LogManager.Configuration.FindTargetByName("file");
             target.FileName = ApplicationPath+"/logs/${shortdate}.txt";
             LogManager.ReconfigExistingLoggers();
+
+            // Get culture info after migration
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
         }
 
         public static void SaveSettings()
