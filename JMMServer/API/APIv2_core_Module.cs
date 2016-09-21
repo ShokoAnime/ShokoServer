@@ -170,7 +170,8 @@ namespace JMMServer.API
             Get["/image/{type}/{id}"] = x => { return GetImage(x.id, x.type, false); };
 
             // 19. Logs
-            Get["/log/get"] = x => { return null; };
+            Get["/log/get"] = x => { return GetLog(10); };
+            Get["/log/get/{max}"] = x => { return GetLog((int)x.max); };
             Post["/log/rotate"] = x => { return SetRotateLogs(); };
             Get["/log/rotate"] = x => { return GetRotateLogs(); };
             Get["/log/rotate/start"] = x => { return StartRotateLogs(); };
@@ -1880,7 +1881,7 @@ namespace JMMServer.API
         #region 19. Logs
 
         /// <summary>
-        /// Run LogRotator
+        /// Run LogRotator with current settings
         /// </summary>
         /// <returns></returns>
         private object StartRotateLogs()
@@ -1914,6 +1915,10 @@ namespace JMMServer.API
             }
         }
 
+        /// <summary>
+        /// Get settings for LogRotator
+        /// </summary>
+        /// <returns></returns>
         private object GetRotateLogs()
         {
             Logs rotator = new Logs();
@@ -1928,6 +1933,32 @@ namespace JMMServer.API
             rotator.days = day;
 
             return rotator;
+        }
+
+        /// <summary>
+        /// return string[] of lines from current log file
+        /// </summary>
+        /// <param name="lines">max lines to return</param>
+        /// <returns></returns>
+        private object GetLog(int lines)
+        {
+            string log_file = LogRotator.GetCurrentLogFile();
+            if (!string.IsNullOrEmpty(log_file))
+            {
+                if (File.Exists(log_file))
+                {
+                    TextReader tr = File.OpenText(@log_file);
+                    return Utils.Tail(tr, lines);
+                }
+                else
+                {
+                    return APIStatus.notFound404();
+                }
+            }
+            else
+            {
+                return APIStatus.notFound404("Could not find current log name. Sorry");
+            }                
         }
 
         #endregion
