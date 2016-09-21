@@ -17,7 +17,7 @@ namespace JMMServer.Databases
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 56;
+        public int RequiredVersion { get; } = 57;
 
         public static MySQL Instance { get; } = new MySQL();
 
@@ -222,6 +222,7 @@ namespace JMMServer.Databases
                 UpdateSchema_054(versionNumber);
                 UpdateSchema_055(versionNumber);
                 UpdateSchema_056(versionNumber);
+                UpdateSchema_057(versionNumber);
 
             }
             catch (Exception ex)
@@ -2237,7 +2238,58 @@ namespace JMMServer.Databases
 
             UpdateDatabaseVersion(thisVersion);
         }
+        private void UpdateSchema_057(int currentVersionNumber)
+        {
+            int thisVersion = 57;
+            if (currentVersionNumber >= thisVersion) return;
 
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE `Scan` ( " +
+                                   " `ScanID` INT NOT NULL AUTO_INCREMENT, " +
+                                   " `CreationTime` datetime NOT NULL, " +
+                                   " `ImportFolders` text character set utf8, " +
+                                   " `Status` int NOT NULL, " +
+                                   " PRIMARY KEY (`ScanID`) ) ; ");
+
+            cmds.Add("CREATE TABLE `ScanFile` ( " +
+                       " `ScanFileID` INT NOT NULL AUTO_INCREMENT, " +
+                       " `ScanID` int NOT NULL, " +
+                       " `ImportFolderID` int NOT NULL, " +
+                       " `VideoLocal_Place_ID` int NOT NULL, " +
+                       " `FullName` text character set utf8, " +
+                       " `FileSize` bigint NOT NULL, " +
+                       " `Status` int NOT NULL, " +
+                       " `CheckDate` datetime NULL, " +
+                       " `Hash` text character set utf8, " +
+                       " `HashResult` text character set utf8 NULL, " +
+                       " PRIMARY KEY (`ScanFileID`) ) ; ");
+
+            cmds.Add("ALTER TABLE `ScanFile` ADD  INDEX `UIX_ScanFileStatus` (`ScanID` ASC, `Status` ASC, `CheckDate` ASC) ;");
+            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                foreach (string sql in cmds)
+                {
+                    using (MySqlCommand command = new MySqlCommand(sql, conn))
+                    {
+                        try
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(sql + " - " + ex.Message);
+                        }
+                    }
+                }
+            }
+
+            UpdateDatabaseVersion(thisVersion);
+        }
         private void ExecuteSQLCommands(List<string> cmds)
         {
             using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))

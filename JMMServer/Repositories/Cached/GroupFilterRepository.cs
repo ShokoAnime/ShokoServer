@@ -25,6 +25,8 @@ namespace JMMServer.Repositories.Cached
 
         private GroupFilterRepository()
         {
+            PostProcessFilters = new List<GroupFilter>();
+
             EndSaveCallback = (obj) =>
                             {
                                 Types[obj.GroupFilterID] = obj.Types;
@@ -51,7 +53,6 @@ namespace JMMServer.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            PostProcessFilters = new List<GroupFilter>();
             foreach (GroupFilter g in Cache.Values.ToList())
             {
                 if (g.GroupFilterID != 0 && g.GroupsIdsVersion < GroupFilter.GROUPFILTER_VERSION ||

@@ -1658,7 +1658,7 @@ namespace JMMServer.Databases
 
             cmds.Add("CREATE TABLE Scan ( " +
                                    " ScanID INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                                   " CreationTime WatchedDate timestamp NOT NULL, " +
+                                   " CreationTime timestamp NOT NULL, " +
                                    " ImportFolders text NOT NULL, " +
                                    " Status int NOT NULL " +
                                    " )");
