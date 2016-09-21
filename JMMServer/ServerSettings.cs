@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Principal;
+using System.Threading;
 using System.Windows;
 using AniDBAPI;
 using JMMContracts;
@@ -69,19 +71,19 @@ namespace JMMServer
             string animexmlPath = Path.Combine(programlocation, "Anime_HTTP");
             string imagePath = Path.Combine(programlocation, "images");
 
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
             bool proc = false;
             if (!File.Exists(path) || Directory.Exists(dbPath) || Directory.Exists(backupath) || Directory.Exists(mylistPath) || Directory.Exists(animexmlPath) || (Directory.Exists(imagePath) && (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))))
             {
                 if (!Utils.IsAdministrator())
                 {
-                    MessageBox.Show("We need to perform the migration of the settings, for that prupose we need administration privileges, run this program as administrator to run the migration", "Migration", MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+                    MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header, MessageBoxButton.OK, MessageBoxImage.Information);
                     System.Windows.Application.Current.Shutdown();
                 }
                 else
                 {
-                    MessageBox.Show("We're going to migrate your settings from the program files folder to " + ApplicationPath +
-                    " after that the program will quit, and you can run it as normal", "Migration", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Properties.Resources.Migration_AdminPass1 + " " + ApplicationPath + ", " + Properties.Resources.Migration_AdminPass2, Properties.Resources.Migration_Header, MessageBoxButton.OK, MessageBoxImage.Information);
                     proc = true;
                 }
             }
