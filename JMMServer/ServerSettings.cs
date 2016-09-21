@@ -98,15 +98,15 @@ namespace JMMServer
             }
             //Move existing directories to programdata
             if (Directory.Exists(dbPath))
-                Directory.Move(dbPath,MySqliteDirectory);
+                Utilities.DirectoryMover.Move(dbPath, MySqliteDirectory);
             if (Directory.Exists(backupath))
-                Directory.Move(backupath, DatabaseBackupDirectory);
+                Utilities.DirectoryMover.Move(backupath, DatabaseBackupDirectory);
             if (Directory.Exists(mylistPath))
-                Directory.Move(mylistPath, MyListDirectory);
+                Utilities.DirectoryMover.Move(mylistPath, MyListDirectory);
             if (Directory.Exists(animexmlPath))
-                Directory.Move(animexmlPath, AnimeXmlDirectory);
+                Utilities.DirectoryMover.Move(animexmlPath, AnimeXmlDirectory);
             if (Directory.Exists(imagePath) && (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath)))
-                Directory.Move(imagePath, DefaultImagePath);
+                Utilities.DirectoryMover.Move(imagePath, DefaultImagePath);
 
             if (proc)
                 Application.Current.Shutdown();
