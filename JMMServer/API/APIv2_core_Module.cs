@@ -140,6 +140,7 @@ namespace JMMServer.API
             Post["/serie/watch/{type}/{max}"] = x => { return MarkSerieWatched(true, x.max, x.type); };
             Post["/serie/unwatch/{type}/{max}"] = x => { return MarkSerieWatched(false, x.max, x.type); };
             Post["/serie/vote"] = x => { return VoteOnSerie(); };
+            Get["/serie/{id}/art"] = x => { return GetSerieArt((int)x.id); };
 
             // 15. WebUI
             Get["/dashboard"] = _ => { return GetDashboard(); };
@@ -169,7 +170,8 @@ namespace JMMServer.API
             Get["/image/{type}/{id}"] = x => { return GetImage(x.id, x.type, false); };
 
             // 19. Logs
-            Get["/log/get"] = x => { return null; };
+            Get["/log/get"] = x => { return GetLog(10); };
+            Get["/log/get/{max}"] = x => { return GetLog((int)x.max); };
             Post["/log/rotate"] = x => { return SetRotateLogs(); };
             Get["/log/rotate"] = x => { return GetRotateLogs(); };
             Get["/log/rotate/start"] = x => { return StartRotateLogs(); };
@@ -214,12 +216,13 @@ namespace JMMServer.API
                 {
                     if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
                     {
-                        return new APIMessage(200, "folder can't be destination and source simpulteniouse");
+                        return new APIMessage(400, "Bad Request: The Folder Can't be both Destination and Source Simultaneously");
                     }
                     else
                     {
                         Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder);
 
+						// This shouldn't be needed now, but idk
                         if (!string.IsNullOrEmpty(response.ErrorMessage))
                         {
                             return new APIMessage(500, response.ErrorMessage);
@@ -235,7 +238,7 @@ namespace JMMServer.API
             }
             else
             {
-                return new APIMessage(400, "Bad request");
+                return new APIMessage(400, "Bad Request: The Folder path must not be Empty");
             }
         }
 
@@ -252,7 +255,7 @@ namespace JMMServer.API
                 {
                     if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
                     {
-                        return new APIMessage(409, "conflict");
+                        return new APIMessage(409, "The Folder Can't be both Destination and Source Simultaneously");
                     }
                     else
                     {
@@ -270,7 +273,7 @@ namespace JMMServer.API
                         }
                         else
                         {
-                            return new APIMessage(409, "conflict");
+                            return new APIMessage(409, "The Import Folder must have an ID");
                         }
                     }
                 }
@@ -364,7 +367,7 @@ namespace JMMServer.API
             }
             else
             {
-                return new APIMessage(400, "Port missing");
+                return new APIMessage(400, "Port Missing");
             }
         }
 
@@ -402,12 +405,12 @@ namespace JMMServer.API
                     }
                     else
                     {
-                        return new APIMessage(404, "Directory not found");
+                        return new APIMessage(404, "Directory Not Found on Host");
                     }
                 }
                 else
                 {
-                    return new APIMessage(400, "Path missing");
+                    return new APIMessage(400, "Path Missing");
                 }
             }
         }
@@ -1407,6 +1410,30 @@ namespace JMMServer.API
             return APIStatus.statusOK();
         }
 
+        private object GetSerieArt(int serie_id)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+            JMMServiceImplementation _impl = new JMMServiceImplementation();
+
+            AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(serie_id);
+            if (ser == null) { return APIStatus.notFound404(); }
+            Contract_AnimeSeries cseries = ser.GetUserContract(user.JMMUserID);
+            if (cseries == null) { return APIStatus.accessDenied(); }
+            if (cseries.AniDBAnime != null && cseries.AniDBAnime.AniDBAnime != null)
+            {
+                //cseries.AniDBAnime.AniDBAnime.Banners
+                // TODO Apiv2 - This is all around aproche We dont need > Series then contract just to access this lets ask directly image with animeid = id but how?!
+                return cseries.AniDBAnime.AniDBAnime.Fanarts;
+            }
+            else
+            {
+                return APIStatus.internalError();
+            }
+            
+        }
+
         /// <summary>
         /// Search for serie that contain given query
         /// </summary>
@@ -1854,7 +1881,7 @@ namespace JMMServer.API
         #region 19. Logs
 
         /// <summary>
-        /// Run LogRotator
+        /// Run LogRotator with current settings
         /// </summary>
         /// <returns></returns>
         private object StartRotateLogs()
@@ -1888,6 +1915,10 @@ namespace JMMServer.API
             }
         }
 
+        /// <summary>
+        /// Get settings for LogRotator
+        /// </summary>
+        /// <returns></returns>
         private object GetRotateLogs()
         {
             Logs rotator = new Logs();
@@ -1902,6 +1933,32 @@ namespace JMMServer.API
             rotator.days = day;
 
             return rotator;
+        }
+
+        /// <summary>
+        /// return string[] of lines from current log file
+        /// </summary>
+        /// <param name="lines">max lines to return</param>
+        /// <returns></returns>
+        private object GetLog(int lines)
+        {
+            string log_file = LogRotator.GetCurrentLogFile();
+            if (!string.IsNullOrEmpty(log_file))
+            {
+                if (File.Exists(log_file))
+                {
+                    TextReader tr = File.OpenText(@log_file);
+                    return Utils.Tail(tr, lines);
+                }
+                else
+                {
+                    return APIStatus.notFound404();
+                }
+            }
+            else
+            {
+                return APIStatus.notFound404("Could not find current log name. Sorry");
+            }                
         }
 
         #endregion

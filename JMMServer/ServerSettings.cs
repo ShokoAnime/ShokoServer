@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Principal;
+using System.Security.RightsManagement;
+using System.Threading;
 using System.Windows;
 using AniDBAPI;
 using JMMContracts;
@@ -54,7 +57,17 @@ namespace JMMServer
             {
                 string basepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),DefaultInstance);
                 if (!Directory.Exists(basepath))
+                {
                     Directory.CreateDirectory(basepath);
+                    try
+                    {
+                        Utils.GrantAccess(basepath);
+                    }
+                    catch (Exception e)
+                    {
+                        
+                    }
+                }
                 return basepath;
             }
         }
@@ -92,6 +105,8 @@ namespace JMMServer
                 appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
                 SaveSettings();
             }
+            // Get culture info after settings
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
 
             bool proc = false;
@@ -99,21 +114,31 @@ namespace JMMServer
             {
                 if (!Utils.IsAdministrator())
                 {
-                    MessageBox.Show("We need to perform the migration of the settings, for that prupose we need administration privileges, run this program as administrator to run the migration", "Migration", MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-                    System.Windows.Application.Current.Shutdown();                    
+                    MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header, MessageBoxButton.OK, MessageBoxImage.Information);
+                    System.Windows.Application.Current.Shutdown();
                     return;
                 }
                 else
                 {
-                    MessageBox.Show("We're going to migrate your settings from the program files folder to " + ApplicationPath +
-                    " after that the program will quit, and you can run it as normal", "Migration", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}", Properties.Resources.Migration_Header, MessageBoxButton.OK, MessageBoxImage.Information);
                     proc = true;
                 }
             }
 
-            //Move existing directories to programdata
+            //Make Sure ProgramData/JMMServer has the right permissions
+            if (proc)
+            {
+                try
+                {
+                    Utils.GrantAccess(ApplicationPath);
+                }
+                catch (Exception e)
+                {
 
+                }
+            }
+
+            //Move existing directories to programdata
             SafeMove(dbPath, MySqliteDirectory);
             SafeMove(backupath, DatabaseBackupDirectory);
             SafeMove(mylistPath, MyListDirectory);
@@ -129,6 +154,7 @@ namespace JMMServer
             var target = (FileTarget)LogManager.Configuration.FindTargetByName("file");
             target.FileName = ApplicationPath+"/logs/${shortdate}.txt";
             LogManager.ReconfigExistingLoggers();
+
         }
 
         public static void SaveSettings()
@@ -136,7 +162,7 @@ namespace JMMServer
             lock (appSettings)
             {
                 if (appSettings.Count == 1)
-                    return;//Somehow debugging may fuck up the settings
+                    return;//Somehow debugging may fuck up the settings so this shit will eject
                 string path = Path.Combine(ApplicationPath, "settings.json");
                 File.WriteAllText(path, JsonConvert.SerializeObject(appSettings));
             }

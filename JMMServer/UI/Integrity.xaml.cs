@@ -27,12 +27,14 @@ namespace JMMServer.UI
         {
             InitializeComponent();
             btnAddcheck.Click += BtnAddcheck_Click;
-            btnHasherClear.Click += BtnHasherClear_Click;
-            btnHasherPause.Click += BtnHasherPause_Click;
-            btnHasherResume.Click += BtnHasherResume_Click;
+            btnDelete.Click += BtnDeleteClick;
+            btnPause.Click += BtnPauseClick;
+            btnResume.Click += BtnResumeClick;
             comboProvider.SelectionChanged += ComboProvider_SelectionChanged;
+            btnReAddAll.Click += BtnReAddAll_Click;
 
         }
+
 
         private void ComboProvider_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -40,17 +42,17 @@ namespace JMMServer.UI
                 Scanner.Instance.ActiveScan = (Scan)comboProvider.SelectedItem;
         }
 
-        private void BtnHasherResume_Click(object sender, RoutedEventArgs e)
+        private void BtnResumeClick(object sender, RoutedEventArgs e)
         {
             Scanner.Instance.StartScan();
         }
 
-        private void BtnHasherPause_Click(object sender, RoutedEventArgs e)
+        private void BtnPauseClick(object sender, RoutedEventArgs e)
         {
             Scanner.Instance.CancelScan();
         }
 
-        private void BtnHasherClear_Click(object sender, RoutedEventArgs e)
+        private void BtnDeleteClick(object sender, RoutedEventArgs e)
         {
             if (
                 MessageBox.Show("Are you sure you want to delete this Integrity Check?", "Delete Integrity Check",
@@ -109,6 +111,54 @@ namespace JMMServer.UI
             } while (dpParent.GetType().BaseType != typeof(Window));
 
             return dpParent as Window;
+        }
+        private void BtnReAddAll_Click(object sender, RoutedEventArgs e)
+        {
+            Scan scan = Scanner.Instance.ActiveScan;
+            if ((scan != null) && (Scanner.Instance.ActiveErrorFiles.Count>0))
+            {
+                if (scan.ScanStatus == ScanStatus.Running)
+                {
+                    MessageBox.Show("You Cannot Re Add Files when the Integrity Check is running", "Re Add Files", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                if (scan.ScanStatus == ScanStatus.Finish)
+                {
+                    scan.Status = (int)ScanStatus.Standby;
+                    RepoFactory.Scan.Save(scan);
+                }
+                List<ScanFile> files = Scanner.Instance.ActiveErrorFiles.ToList();
+                Scanner.Instance.ActiveErrorFiles.Clear();
+                files.ForEach(a =>
+                {
+                    a.Status = (int) ScanFileStatus.Waiting;
+                });
+                RepoFactory.ScanFile.Save(files);
+                Scanner.Instance.Refresh();
+            }
+        }
+
+        private void Add_Click(object sender, RoutedEventArgs e)
+        {
+            ScanFile item = (ScanFile)(sender as Button).DataContext;
+            Scan scan = Scanner.Instance.ActiveScan;
+            if (scan != null && scan.ScanID == item.ScanID)
+            {
+                if (scan.ScanStatus == ScanStatus.Running)
+                {
+                    MessageBox.Show("You Cannot Re Add a File when the Integrity Check is running", "Re Add File",MessageBoxButton.OK,MessageBoxImage.Information);
+                    return;
+                }
+                if (scan.ScanStatus == ScanStatus.Finish)
+                {
+                    scan.Status=(int)ScanStatus.Standby;
+                    RepoFactory.Scan.Save(scan);
+                }
+                item.Status = (int) ScanFileStatus.Waiting;
+                RepoFactory.ScanFile.Save(item);
+                Scanner.Instance.ActiveErrorFiles.Remove(item);
+                Scanner.Instance.Refresh();
+            }
         }
     }
 }

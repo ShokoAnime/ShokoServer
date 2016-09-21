@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
@@ -51,7 +52,14 @@ namespace JMMServer
                 output.Write(buffer, 0, bytesRead);
             }
         }
-
+        public static bool GrantAccess(string fullPath)
+        {
+            DirectoryInfo dInfo = new DirectoryInfo(fullPath);
+            DirectorySecurity dSecurity = dInfo.GetAccessControl();
+            dSecurity.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null), FileSystemRights.FullControl, InheritanceFlags.ObjectInherit | InheritanceFlags.ContainerInherit, PropagationFlags.NoPropagateInherit, AccessControlType.Allow));
+            dInfo.SetAccessControl(dSecurity);
+            return true;
+        }
         public static string CalculateSHA1(string text, Encoding enc)
         {
             byte[] buffer = enc.GetBytes(text);
@@ -161,6 +169,8 @@ namespace JMMServer
                 }
 
                 #endregion
+
+                #region Adding Ports
                 if (oldPort!=Port)
                 {
                     if (!String.IsNullOrEmpty(oldPort))
@@ -190,6 +200,7 @@ namespace JMMServer
 
                 }
 
+                #endregion
 
                 BatchFileStream.Close();
 
@@ -1241,6 +1252,37 @@ namespace JMMServer
             var identity = WindowsIdentity.GetCurrent();
             var principal = new WindowsPrincipal(identity);
             return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        ///<summary>Returns the end of a text reader.</summary>
+        ///<param name="reader">The reader to read from.</param>
+        ///<param name="lineCount">The number of lines to return.</param>
+        ///<returns>The last lneCount lines from the reader.</returns>
+        public static string[] Tail(this TextReader reader, int lineCount)
+        {
+            var buffer = new List<string>(lineCount);
+            string line;
+            for (int i = 0; i < lineCount; i++)
+            {
+                line = reader.ReadLine();
+                if (line == null) return buffer.ToArray();
+                buffer.Add(line);
+            }
+
+            int lastLine = lineCount - 1;           //The index of the last line read from the buffer.  Everything > this index was read earlier than everything <= this indes
+
+            while (null != (line = reader.ReadLine()))
+            {
+                lastLine++;
+                if (lastLine == lineCount) lastLine = 0;
+                buffer[lastLine] = line;
+            }
+
+            if (lastLine == lineCount - 1) return buffer.ToArray();
+            var retVal = new string[lineCount];
+            buffer.CopyTo(lastLine + 1, retVal, 0, lineCount - lastLine - 1);
+            buffer.CopyTo(0, retVal, lineCount - lastLine - 1, lastLine + 1);
+            return retVal;
         }
     }
 }

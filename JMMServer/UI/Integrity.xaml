@@ -31,8 +31,8 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" HorizontalAlignment="Left" Name="btnAddItem" Margin="5,0,5,0"
-                    Style="{DynamicResource RoundButtonStyle}" Width="Auto">
+                        <Button Grid.Column="0" HorizontalAlignment="Left" Margin="5,0,5,0"
+                    Style="{DynamicResource RoundButtonStyle}" Width="Auto" Click="Add_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Image Height="16" Width="17" Source="/Images/16_add.png" Margin="1,0,5,0" />
                                 <TextBlock VerticalAlignment="Center"
@@ -109,7 +109,7 @@
 
                 <!-- hasher command queue -->
                 <!-- clear -->
-                <Button Grid.Column="0" Grid.Row="0" Name="btnHasherClear" Margin="2,2,2,2"
+                <Button Grid.Column="0" Grid.Row="0" Name="btnDelete" Margin="2,2,2,2"
                         Style="{DynamicResource RoundButtonStyle}">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Image Height="16" Width="16" Source="/Images/16_delete.png" Margin="0,0,0,0" />
@@ -121,7 +121,7 @@
                 </Button>
 
                 <!-- pause queue -->
-                <Button Grid.Column="1" Grid.Row="0" Name="btnHasherPause" Margin="2,2,2,2"
+                <Button Grid.Column="1" Grid.Row="0" Name="btnPause" Margin="2,2,2,2"
                         Style="{DynamicResource RoundButtonStyle}"
                         Visibility="{Binding Source={x:Static jmmServer:Scanner.Instance},Path=QueueRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -129,7 +129,7 @@
                     </StackPanel>
                 </Button>
                 <!-- resume queue -->
-                <Button Grid.Column="1" Grid.Row="0" Name="btnHasherResume" Margin="2,2,2,2"
+                <Button Grid.Column="1" Grid.Row="0" Name="btnResume" Margin="2,2,2,2"
                         Style="{DynamicResource RoundButtonStyle}"
                         Visibility="{Binding Source={x:Static jmmServer:Scanner.Instance},Path=QueuePaused, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

@@ -37,7 +37,7 @@ namespace JMMServer.API
             }
             else
             {
-                return new APIMessage(500, "Internal server error");
+                return new APIMessage(500, "Unable to get User");
             }
         }
 
@@ -51,7 +51,7 @@ namespace JMMServer.API
             }
             else
             {
-                return new APIMessage(500, "Internal server error");
+                return new APIMessage(500, "Unable to get User");
             }
         }
 

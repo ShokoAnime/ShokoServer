@@ -24,7 +24,7 @@ namespace JMMServer
             }
         }
 
-        private string GetCurrentLogFile()
+        internal static string GetCurrentLogFile()
         {
             var fileTarget = (FileTarget)LogManager.Configuration.FindTargetByName("file");
             return fileTarget == null ? string.Empty : Path.GetFullPath(fileTarget.FileName.Render(new LogEventInfo { Level = LogLevel.Info }));

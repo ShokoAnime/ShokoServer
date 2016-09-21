@@ -34,6 +34,7 @@ using Microsoft.SqlServer.Management.Smo;
 using NHibernate;
 using NLog;
 using Microsoft.Win32.TaskScheduler;
+using Action = System.Action;
 
 namespace JMMServer
 {
@@ -155,8 +156,9 @@ namespace JMMServer
             {
                 UnhandledExceptionManager.AddHandler();
             }
-            catch
+            catch (Exception e)
             {
+                logger.Log(LogLevel.Error,e);
             }
 
             if (!ServerSettings.AllowMultipleInstances)
@@ -339,9 +341,20 @@ namespace JMMServer
 
             InitCulture();
             Instance = this;
+
+            NetPermissionWrapper(StartNancyHost);
+
+            // run rotator once and set 24h delay
+            logrotator.Start();
+            StartLogRotatorTimer();
+        }
+
+
+        public bool NetPermissionWrapper(Action action)
+        {
             try
             {
-                StartNancyHost();
+                action();
             }
             catch (Exception e)
             {
@@ -351,15 +364,15 @@ namespace JMMServer
                     Utils.SetNetworkRequirements(ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort);
                     try
                     {
-                        StartNancyHost();
+                        action();
                         Application.Current.Shutdown();
-                        return;
+                        return false;
                     }
                     catch (Exception)
                     {
                         MessageBox.Show("Unable to set the ports");
                         Application.Current.Shutdown();
-                        return;
+                        return false;
                     }
 
                 }
@@ -367,16 +380,12 @@ namespace JMMServer
                 {
                     MessageBox.Show("Unable to start hosting, please run JMMServer as administrator once.");
                     Application.Current.Shutdown();
-                    return;
+                    return false;
                 }
 
             }
-            // run rotator once and set 24h delay
-            logrotator.Start();
-            StartLogRotatorTimer();
+            return true;
         }
-
-
 
 
         private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -1141,12 +1150,24 @@ namespace JMMServer
                 logger.Info("Initializing Hosts...");
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingHosts;
                 SetupAniDBProcessor();
-                //StartImageHost();
-                StartBinaryHost();
-                StartMetroHost();
-                //StartImageHostMetro();
-                StartStreamingHost();
-                //StartNancyHost();
+                NetPermissionWrapper(() =>
+                {
+                    try
+                    {
+                        //StartImageHost();
+                        StartBinaryHost();
+                        StartMetroHost();
+                        //StartImageHostMetro();
+                        StartStreamingHost();
+                        //StartNancyHost();
+                    }
+                    catch (Exception)
+                    {
+                        StopHost();
+                        throw;
+                    }
+                });
+
 
 
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
@@ -1482,12 +1503,21 @@ namespace JMMServer
                 else
                     txtServerPort.Text = ServerSettings.JMMServerPort;
 
-                StartBinaryHost();
-                //StartImageHost();
-                //StartImageHostMetro();
-                StartFileHost();
-                StartStreamingHost();
-                StartNancyHost();
+                NetPermissionWrapper(() =>
+                {
+                    try
+                    {
+                        StartNancyHost();
+                        StartBinaryHost();
+                        StartFileHost();
+                        StartStreamingHost();
+                    }
+                    catch (Exception)
+                    {
+                        StopHost();
+                        throw;
+                    }
+                });
 
                 JMMService.CmdProcessorGeneral.Paused = false;
                 JMMService.CmdProcessorHasher.Paused = false;
@@ -2387,7 +2417,6 @@ namespace JMMServer
             }
         }
 
-
         private static void StartBinaryHost()
         {
             BinaryMessageEncodingBindingElement encoding = new BinaryMessageEncodingBindingElement();
@@ -2570,7 +2599,6 @@ namespace JMMServer
         //    logger.Trace("Now Accepting client connections for images (metro)...");
         //}
 
-
         private static void StartMetroHost()
         {
             BasicHttpBinding binding = new BasicHttpBinding();
@@ -2601,7 +2629,6 @@ namespace JMMServer
             logger.Trace("Now Accepting client connections for metro apps...");
         }
 
-
         private static void AddCompressableEndpoint(ServiceHost host, Type t, SerializationFilter filter, object address = null)
         {
             CustomBinding custom = new CustomBinding(new WebHttpBinding() { ContentTypeMapper = new MultiContentTypeMapper() });
@@ -2630,6 +2657,9 @@ namespace JMMServer
             ep.EndpointBehaviors.Add(new CompressionSelectionEndpointBehavior(filter));
         }
 
+        /// <summary>
+        /// Running Nancy and Validating all require aspects before running it
+        /// </summary>
         private static void StartNancyHost()
         {
             //nancy will rewrite localhost into http://+:port
@@ -2834,7 +2864,6 @@ namespace JMMServer
             logger.Info("Hashed {0} in {1} ms --- {2}", fileSize3, doubleFile3, hashes3.ed2k);
         }
 
-
         private static void UpdateStatsTest()
         {
             foreach (AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
@@ -2842,7 +2871,6 @@ namespace JMMServer
                 grp.UpdateStatsFromTopLevel(true, true);
             }
         }
-
 
         private static void CreateImportFolders_Test()
         {
@@ -2870,7 +2898,6 @@ namespace JMMServer
             CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(15350, false);
             cr_procfile.Save();
         }
-
 
         private static void CreateImportFolders()
         {
@@ -2955,7 +2982,6 @@ namespace JMMServer
 
             logger.Debug("Creating shares complete!");
         }
-
 
         private static void CreateTestCommandRequests()
         {

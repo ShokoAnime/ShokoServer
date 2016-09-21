@@ -1003,4 +1003,67 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Toolbar_Contribute" xml:space="preserve">
     <value>Pomóc w ulepszeniu JMM!</value>
   </data>
+  <data name="CloudAccounts_Add" xml:space="preserve">
+    <value>Dodaj konto</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Wypełnij wymagane informacje o chmurze tutaj</value>
+  </data>
+  <data name="CloudAccounts_Remove" xml:space="preserve">
+    <value>Usuń</value>
+  </data>
+  <data name="CloudAccounts_Title" xml:space="preserve">
+    <value>Kont w chmurze</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://localhost</value>
+  </data>
+  <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
+    <value>Dodawanie konta w chmurze</value>
+  </data>
+  <data name="CloudAccounts_Name" xml:space="preserve">
+    <value>Nazwa</value>
+  </data>
+  <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
+    <value>Czy na pewno chcesz usunąć następujące konta w chmurze '{0}' z {1}? Dowolnego folderu Import za pomocą tego konta zostaną usunięte, a każdy plik link związane z tych Importuj foldery zostaną również usunięte.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Wybierz dostawcę usług</value>
+  </data>
+  <data name="CloudAccounts_Connect" xml:space="preserve">
+    <value>Połączyć</value>
+  </data>
+  <data name="CloudAccounts_CloudNameAlreadyExists" xml:space="preserve">
+    <value>Wybrana nazwa konta chmury już istnieje</value>
+  </data>
+  <data name="ImportFolders_Provider" xml:space="preserve">
+    <value>Dostawcy</value>
+  </data>
+  <data name="ImportFolders_SelectCloudFolder" xml:space="preserve">
+    <value>Wybierz Cloud Folder...</value>
+  </data>
+  <data name="MessageBox_NewFolder" xml:space="preserve">
+    <value>Dodaj zasób</value>
+  </data>
+  <data name="Tab_CloudAccounts" xml:space="preserve">
+    <value>Kont w chmurze</value>
+  </data>
+  <data name="CloudAccount_Connected" xml:space="preserve">
+    <value>Podłączony</value>
+  </data>
+  <data name="CloudAccount_NotConnected" xml:space="preserve">
+    <value>Nie podłączony</value>
+  </data>
+  <data name="Migration_Header" xml:space="preserve">
+    <value>Stan migracji</value>
+  </data>
+  <data name="Migration_AdminFail" xml:space="preserve">
+    <value>JMM serwera jest w stanie przeprowadzić migrację ustawień przy użyciu bieżącego dostępu użytkownika. JMM serwera należy uruchomić jako Administrator do rozpocząć migrację.</value>
+  </data>
+  <data name="Migration_AdminPass1" xml:space="preserve">
+    <value>JMM serwer będzie teraz rozpocząć migrację ustawień z tej lokalizacji, aby</value>
+  </data>
+  <data name="Migration_AdminPass2" xml:space="preserve">
+    <value>gdy proces ten jest kompletny JMM serwera uruchomi się nie są już potrzebne uprawnienia administracyjne, aby uruchomić.</value>
+  </data>
 </root>
