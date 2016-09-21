@@ -170,7 +170,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\packages\NLog.4.3.8\lib\net45\NLog.dll</HintPath>
+      <HintPath>..\packages\NLog.4.3.9\lib\net45\NLog.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Pri.LongPath, Version=2.0.32.0, Culture=neutral, processorArchitecture=MSIL">
@@ -320,6 +320,8 @@
     <Compile Include="Entities\AuthTokens.cs" />
     <Compile Include="Entities\IImageEntity.cs" />
     <Compile Include="Entities\CloudAccount.cs" />
+    <Compile Include="Entities\Scan.cs" />
+    <Compile Include="Entities\ScanFile.cs" />
     <Compile Include="Entities\VideoLocal_Place.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="FileHelper\Crc32.cs" />
@@ -347,6 +349,8 @@
     <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
     <Compile Include="Mappings\AuthTokensMap.cs" />
     <Compile Include="Mappings\CloudAccountMap.cs" />
+    <Compile Include="Mappings\ScanFileMap.cs" />
+    <Compile Include="Mappings\ScanMap.cs" />
     <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
@@ -597,6 +601,8 @@
     <Compile Include="Providers\TvDB\TvDBSummary.cs" />
     <Compile Include="Repositories\BaseCachedRepository.cs" />
     <Compile Include="Repositories\BaseDirectRepository.cs" />
+    <Compile Include="Repositories\Direct\ScanFileRepository.cs" />
+    <Compile Include="Repositories\Direct\ScanRepository.cs" />
     <Compile Include="Repositories\IRepository.cs" />
     <Compile Include="Repositories\RepoFactory.cs" />
     <Compile Include="Repositories\Direct\AniDB_MylistStatsRepository.cs" />
@@ -621,6 +627,7 @@
     <Compile Include="Repositories\Direct\PlaylistRepository.cs" />
     <Compile Include="Repositories\Direct\RenameScriptRepository.cs" />
     <Compile Include="Repositories\Cached\VideoLocal_PlaceRepository.cs" />
+    <Compile Include="Scanner.cs" />
     <Compile Include="Security\CRC32.cs" />
     <Compile Include="Security\Digest.cs" />
     <Compile Include="MyAnime2Helper\MA2Progress.cs" />
@@ -839,10 +846,16 @@
     <Compile Include="UI\InitialSetupForm.xaml.cs">
       <DependentUpon>InitialSetupForm.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\Integrity.xaml.cs">
+      <DependentUpon>Integrity.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\LoginForm.xaml.cs">
       <DependentUpon>LoginForm.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\PasswordBoxAssistant.cs" />
+    <Compile Include="UI\ScanImportFolders.xaml.cs">
+      <DependentUpon>ScanImportFolders.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\ServerInfo.cs" />
     <Compile Include="UI\UpdateForm.xaml.cs">
       <DependentUpon>UpdateForm.xaml</DependentUpon>
@@ -932,9 +945,17 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="UI\Integrity.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="UI\LoginForm.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="UI\ScanImportFolders.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\UIStyles.xaml">
       <SubType>Designer</SubType>

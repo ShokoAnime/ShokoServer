@@ -81,6 +81,8 @@ namespace JMMServer.Repositories
         public static AniDB_Anime_DefaultImageRepository AniDB_Anime_DefaultImage { get; } = AniDB_Anime_DefaultImageRepository.Create();
         public static AniDB_Anime_CharacterRepository AniDB_Anime_Character { get; } = AniDB_Anime_CharacterRepository.Create();
 
+        public static ScanRepository Scan { get; } = ScanRepository.Create();
+        public static ScanFileRepository ScanFile { get; } = ScanFileRepository.Create();
 
         //AdHoc Repo
         public static AdhocRepository Adhoc { get; } = AdhocRepository.Create();

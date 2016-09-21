@@ -97,6 +97,7 @@ namespace JMMServer
         internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
         internal static BackgroundWorker LogRotatorWorker = new BackgroundWorker();
 
+
         private static System.Timers.Timer autoUpdateTimer = null;
         private static System.Timers.Timer autoUpdateTimerShort = null;
         private static System.Timers.Timer cloudWatchTimer = null;
@@ -352,11 +353,13 @@ namespace JMMServer
                     {
                         StartNancyHost();
                         Application.Current.Shutdown();
+                        return;
                     }
                     catch (Exception)
                     {
                         MessageBox.Show("Unable to set the ports");
                         Application.Current.Shutdown();
+                        return;
                     }
 
                 }
@@ -364,6 +367,7 @@ namespace JMMServer
                 {
                     MessageBox.Show("Unable to start hosting, please run JMMServer as administrator once.");
                     Application.Current.Shutdown();
+                    return;
                 }
 
             }
@@ -371,6 +375,10 @@ namespace JMMServer
             logrotator.Start();
             StartLogRotatorTimer();
         }
+
+
+
+
         private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             // for later use
@@ -1122,6 +1130,8 @@ namespace JMMServer
                     ServerState.Instance.DatabaseAvailable = true;
                 logger.Info("Initializing Session Factory...");
 
+                Scanner.Instance.Init();
+
 
                 //init session factory
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingSession;
@@ -1828,7 +1838,7 @@ namespace JMMServer
 
             if (ServerSettings.MinimizeOnStartup) MinimizeToTray();
 
-            tabControl1.SelectedIndex = 5; // setup
+            tabControl1.SelectedIndex = 6; // setup
 
             if (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
                 ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase))

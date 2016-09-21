@@ -59,6 +59,20 @@ namespace JMMServer
             }
         }
 
+        private static void SafeMove(string from, string to)
+        {
+            try
+            {
+                if (Directory.Exists(from))
+                    Directory.Move(from, to);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show($"We are unable to move the directory '{from}' to '{to}', please move the directory with explorer", "Migration ERROR", MessageBoxButton.OK,
+    MessageBoxImage.Error);
+                Application.Current.Shutdown();
+            }
+        }
         public static void LoadSettings()
         {
             string path = Path.Combine(ApplicationPath, "settings.json");
@@ -69,22 +83,6 @@ namespace JMMServer
             string animexmlPath = Path.Combine(programlocation, "Anime_HTTP");
             string imagePath = Path.Combine(programlocation, "images");
 
-            bool proc = false;
-            if (!File.Exists(path) || Directory.Exists(dbPath) || Directory.Exists(backupath) || Directory.Exists(mylistPath) || Directory.Exists(animexmlPath) || (Directory.Exists(imagePath) && (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))))
-            {
-                if (!Utils.IsAdministrator())
-                {
-                    MessageBox.Show("We need to perform the migration of the settings, for that prupose we need administration privileges, run this program as administrator to run the migration", "Migration", MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-                    System.Windows.Application.Current.Shutdown();
-                }
-                else
-                {
-                    MessageBox.Show("We're going to migrate your settings from the program files folder to " + ApplicationPath +
-                    " after that the program will quit, and you can run it as normal", "Migration", MessageBoxButton.OK, MessageBoxImage.Information);
-                    proc = true;
-                }
-            }
             //Move Settings if necesary
             if (File.Exists(path))
                 appSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
@@ -94,20 +92,39 @@ namespace JMMServer
                 appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
                 SaveSettings();
             }
-            //Move existing directories to programdata
-            if (Directory.Exists(dbPath))
-                Directory.Move(dbPath,MySqliteDirectory);
-            if (Directory.Exists(backupath))
-                Directory.Move(backupath, DatabaseBackupDirectory);
-            if (Directory.Exists(mylistPath))
-                Directory.Move(mylistPath, MyListDirectory);
-            if (Directory.Exists(animexmlPath))
-                Directory.Move(animexmlPath, AnimeXmlDirectory);
-            if (Directory.Exists(imagePath) && (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath)))
-                Directory.Move(imagePath, DefaultImagePath);
 
+
+            bool proc = false;
+            if (Directory.Exists(dbPath) || Directory.Exists(backupath) || Directory.Exists(mylistPath) || Directory.Exists(animexmlPath) || (Directory.Exists(imagePath) && (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))))
+            {
+                if (!Utils.IsAdministrator())
+                {
+                    MessageBox.Show("We need to perform the migration of the settings, for that prupose we need administration privileges, run this program as administrator to run the migration", "Migration", MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    System.Windows.Application.Current.Shutdown();                    
+                    return;
+                }
+                else
+                {
+                    MessageBox.Show("We're going to migrate your settings from the program files folder to " + ApplicationPath +
+                    " after that the program will quit, and you can run it as normal", "Migration", MessageBoxButton.OK, MessageBoxImage.Information);
+                    proc = true;
+                }
+            }
+
+            //Move existing directories to programdata
+
+            SafeMove(dbPath, MySqliteDirectory);
+            SafeMove(backupath, DatabaseBackupDirectory);
+            SafeMove(mylistPath, MyListDirectory);
+            SafeMove(animexmlPath, AnimeXmlDirectory);
+            if (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))
+                SafeMove(imagePath, DefaultImagePath);
             if (proc)
+            {
                 Application.Current.Shutdown();
+                return;
+            }
             //Reconfigure log file to applicationpath
             var target = (FileTarget)LogManager.Configuration.FindTargetByName("file");
             target.FileName = ApplicationPath+"/logs/${shortdate}.txt";
@@ -118,6 +135,8 @@ namespace JMMServer
         {
             lock (appSettings)
             {
+                if (appSettings.Count == 1)
+                    return;//Somehow debugging may fuck up the settings
                 string path = Path.Combine(ApplicationPath, "settings.json");
                 File.WriteAllText(path, JsonConvert.SerializeObject(appSettings));
             }

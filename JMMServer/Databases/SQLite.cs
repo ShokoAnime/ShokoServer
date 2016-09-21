@@ -23,7 +23,7 @@ namespace JMMServer.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 48;
+        public int RequiredVersion { get; } = 49;
 
 
 
@@ -180,6 +180,7 @@ namespace JMMServer.Databases
                 UpdateSchema_046(versionNumber);
                 UpdateSchema_047(versionNumber);
                 UpdateSchema_048(versionNumber);
+                UpdateSchema_049(versionNumber);
             }
             catch (Exception ex)
             {
@@ -1632,6 +1633,48 @@ namespace JMMServer.Databases
                                    " Token text NOT NULL " +
                                    " )");
 
+
+            foreach (string cmdTable in cmds)
+            {
+                SQLiteCommand sqCommand = new SQLiteCommand(cmdTable);
+                sqCommand.Connection = myConn;
+                sqCommand.ExecuteNonQuery();
+            }
+
+            myConn.Close();
+
+            UpdateDatabaseVersion(thisVersion);
+        }
+        private void UpdateSchema_049(int currentVersionNumber)
+        {
+            int thisVersion = 49;
+            if (currentVersionNumber >= thisVersion) return;
+            logger.Info("Updating schema to VERSION: {0}", thisVersion);
+
+            SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
+
+            List<string> cmds = new List<string>();
+
+            cmds.Add("CREATE TABLE Scan ( " +
+                                   " ScanID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                   " CreationTime WatchedDate timestamp NOT NULL, " +
+                                   " ImportFolders text NOT NULL, " +
+                                   " Status int NOT NULL " +
+                                   " )");
+            cmds.Add("CREATE TABLE ScanFile ( " +
+                                   " ScanFileID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                   " ScanID int NOT NULL, "+
+                                   " ImportFolderID int NOT NULL, "+
+                                   " VideoLocal_Place_ID int NOT NULL, " +
+                                   " FullName text NOT NULL, " +
+                                   " FileSize bigint NOT NULL, " +
+                                   " Status int NOT NULL, " +
+                                   " CheckDate timestamp NULL, " +
+                                   " Hash text NOT NULL, " +
+                                   " HashResult text NULL " +
+                                   " )");
+            cmds.Add("CREATE INDEX UIX_ScanFileStatus ON ScanFile(ScanID,Status,CheckDate);");
 
             foreach (string cmdTable in cmds)
             {
