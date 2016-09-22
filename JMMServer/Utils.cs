@@ -52,13 +52,20 @@ namespace JMMServer
                 output.Write(buffer, 0, bytesRead);
             }
         }
-        public static bool GrantAccess(string fullPath)
+
+
+        public static void GrantAccess(string fullPath)
         {
-            DirectoryInfo dInfo = new DirectoryInfo(fullPath);
-            DirectorySecurity dSecurity = dInfo.GetAccessControl();
-            dSecurity.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null), FileSystemRights.FullControl, InheritanceFlags.ObjectInherit | InheritanceFlags.ContainerInherit, PropagationFlags.NoPropagateInherit, AccessControlType.Allow));
-            dInfo.SetAccessControl(dSecurity);
-            return true;
+            //C# version do not work, do not inherit permissions to childs.
+            Process proc = new Process();
+
+            proc.StartInfo.FileName = "icacls";
+            proc.StartInfo.Arguments = "\"" + fullPath + "\" /grant *S-1-1-0:(OI)(CI)F /T";
+            proc.StartInfo.Verb = "runas";
+            proc.StartInfo.CreateNoWindow = true;
+            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            proc.StartInfo.UseShellExecute = true;
+            proc.Start();
         }
         public static string CalculateSHA1(string text, Encoding enc)
         {

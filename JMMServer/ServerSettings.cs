@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Security.RightsManagement;
 using System.Threading;
@@ -16,6 +17,7 @@ using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using JMMServer.UI;
 using NLog;
 using Newtonsoft.Json;
 using NLog.Targets;
@@ -58,6 +60,7 @@ namespace JMMServer
                 string basepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),DefaultInstance);
                 if (!Directory.Exists(basepath))
                 {
+
                     Directory.CreateDirectory(basepath);
                     try
                     {
@@ -72,90 +75,114 @@ namespace JMMServer
             }
         }
 
-        private static void SafeMove(string from, string to)
-        {
-            try
-            {
-                if (Directory.Exists(from))
-                    Directory.Move(from, to);
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show($"We are unable to move the directory '{from}' to '{to}', please move the directory with explorer", "Migration ERROR", MessageBoxButton.OK,
-    MessageBoxImage.Error);
-                Application.Current.Shutdown();
-            }
-        }
+
+
+
+
         public static void LoadSettings()
         {
             try
             {
-                string path = Path.Combine(ApplicationPath, "settings.json");
-                string programlocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                string dbPath = Path.Combine(programlocation, "SQLite");
-                string backupath = Path.Combine(programlocation, "DatabaseBackup");
-                string mylistPath = Path.Combine(programlocation, "MyList");
-                string animexmlPath = Path.Combine(programlocation, "Anime_HTTP");
-                string imagePath = Path.Combine(programlocation, "images");
+                var target = (FileTarget)LogManager.Configuration.FindTargetByName("file");
+                target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
+                LogManager.ReconfigExistingLoggers();
 
-                //Move Settings if necesary
+
+                disabledSave = true;
+                string programlocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>
+                {
+                    new MigrationDirectory
+                    {
+                        From = Path.Combine(programlocation, "SQLite"), To = MySqliteDirectory
+                    },
+                    new MigrationDirectory
+                    {
+                        From = Path.Combine(programlocation, "DatabaseBackup"), To = DatabaseBackupDirectory
+                    },
+                    new MigrationDirectory
+                    {
+                        From = Path.Combine(programlocation, "MyList"), To = MyListDirectory
+                    },
+                    new MigrationDirectory
+                    {
+                        From = Path.Combine(programlocation, "Anime_HTTP"), To = AnimeXmlDirectory
+                    },
+                    new MigrationDirectory
+                    {
+                        From = Path.Combine(programlocation, "logs"), To = Path.Combine(ApplicationPath,"logs")
+                    },
+                };
+                string path = Path.Combine(ApplicationPath, "settings.json");
                 if (File.Exists(path))
                     appSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
                 else
                 {
                     NameValueCollection col = ConfigurationManager.AppSettings;
                     appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
-                    SaveSettings();
                 }
-                // Get culture info after settings
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
-
-                bool proc = false;
-                if (Directory.Exists(dbPath) || Directory.Exists(backupath) || Directory.Exists(mylistPath) || Directory.Exists(animexmlPath) || (Directory.Exists(imagePath) && (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))))
+                if (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))
+                {
+                    migrationdirs.Add(new MigrationDirectory
+                    {
+                        From = Path.Combine(programlocation, "images"),
+                        To = DefaultImagePath
+                    });
+                }
+                bool migrate = false;
+                foreach (MigrationDirectory m in migrationdirs)
+                {
+                    if (m.ShouldMigrate)
+                    {
+                        migrate = true;
+                        break;
+                    }
+                }
+                if (migrate)
                 {
                     if (!Utils.IsAdministrator())
                     {
-                        MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header, MessageBoxButton.OK, MessageBoxImage.Information);
-                        System.Windows.Application.Current.Shutdown();
+                        MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header,
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                        Application.Current.Shutdown();
                         return;
                     }
-                    else
-                    {
-                        MessageBox.Show($"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}", Properties.Resources.Migration_Header, MessageBoxButton.OK, MessageBoxImage.Information);
-                        proc = true;
-                    }
-                }
-
-                //Make Sure ProgramData/JMMServer has the right permissions
-                if (proc)
-                {
+                    Migration m = null;
                     try
                     {
                         Utils.GrantAccess(ApplicationPath);
+                        m =
+                            new Migration(
+                                $"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}");
+                        m.Show();
+                        disabledSave = false;
+                        SaveSettings();
+                        foreach (MigrationDirectory md in migrationdirs)
+                        {
+                            if (!md.SafeMigrate())
+                            {
+                                break;
+                            }
+                        }
                     }
                     catch (Exception e)
                     {
+                        MessageBox.Show("Error Migrating Settings: ", e.ToString());
 
                     }
-                }
-
-                //Move existing directories to programdata
-                SafeMove(dbPath, MySqliteDirectory);
-                SafeMove(backupath, DatabaseBackupDirectory);
-                SafeMove(mylistPath, MyListDirectory);
-                SafeMove(animexmlPath, AnimeXmlDirectory);
-                if (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))
-                    SafeMove(imagePath, DefaultImagePath);
-                if (proc)
-                {
+                    m?.Close();
                     Application.Current.Shutdown();
                     return;
                 }
+                disabledSave = false;
+                if (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))
+                {
+                    ServerSettings.BaseImagesPathIsDefault = true;
+                }
+                SaveSettings();
                 //Reconfigure log file to applicationpath
-                var target = (FileTarget)LogManager.Configuration.FindTargetByName("file");
-                target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
-                LogManager.ReconfigExistingLoggers();
+
             }
             catch (Exception e)
             {
@@ -167,8 +194,11 @@ namespace JMMServer
 
         }
 
+        private static bool disabledSave = false;
         public static void SaveSettings()
         {
+            if (disabledSave)
+                return;
             lock (appSettings)
             {
                 if (appSettings.Count == 1)

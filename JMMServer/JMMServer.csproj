@@ -353,6 +353,7 @@
     <Compile Include="Mappings\ScanFileMap.cs" />
     <Compile Include="Mappings\ScanMap.cs" />
     <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
+    <Compile Include="MigrationDirectory.cs" />
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
     <Compile Include="PlexAndKodi\Plex\PlexProvider.cs" />
@@ -853,6 +854,9 @@
     <Compile Include="UI\LoginForm.xaml.cs">
       <DependentUpon>LoginForm.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\Migration.xaml.cs">
+      <DependentUpon>Migration.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\PasswordBoxAssistant.cs" />
     <Compile Include="UI\ScanImportFolders.xaml.cs">
       <DependentUpon>ScanImportFolders.xaml</DependentUpon>
@@ -955,6 +959,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="UI\Migration.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="UI\ScanImportFolders.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -1014,6 +1022,7 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.ru.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
