@@ -933,45 +933,45 @@ namespace JMMServer.Entities
         {
             get
             {
-                switch (AnimeType)
-                {
-                    case (int) AnimeTypes.Movie:
-                        return "movie";
-                    case (int) AnimeTypes.OVA:
-                        return "ova";
-                    case (int) AnimeTypes.TV_Series:
-                        return "tv series";
-                    case (int) AnimeTypes.TV_Special:
-                        return "tv special";
-                    case (int) AnimeTypes.Web:
-                        return "web";
-                    default:
-                        return "other";
-                }
+                return ConvertToRAW((AnimeTypes)AnimeType);
             }
-            set
+            set { AnimeType = (int) RawToType(value); }
+        }
+
+        public static AnimeTypes RawToType(string raw)
+        {
+            switch (raw.ToLower())
             {
-                switch (value.ToLower())
-                {
-                    case "movie":
-                        AnimeType = (int) AnimeTypes.Movie;
-                        break;
-                    case "ova":
-                        AnimeType = (int) AnimeTypes.OVA;
-                        break;
-                    case "tv series":
-                        AnimeType = (int) AnimeTypes.TV_Series;
-                        break;
-                    case "tv special":
-                        AnimeType = (int) AnimeTypes.TV_Special;
-                        break;
-                    case "web":
-                        AnimeType = (int) AnimeTypes.Web;
-                        break;
-                    default:
-                        AnimeType = (int) AnimeTypes.Other;
-                        break;
-                }
+                case "movie":
+                    return AnimeTypes.Movie;
+                case "ova":
+                    return AnimeTypes.OVA;
+                case "tv series":
+                    return AnimeTypes.TV_Series;
+                case "tv special":
+                    return AnimeTypes.TV_Special;
+                case "web":
+                    return AnimeTypes.Web;
+                default:
+                    return AnimeTypes.Other;
+            }
+        }
+        public static string ConvertToRAW(AnimeTypes t)
+        {
+            switch (t)
+            {
+                case AnimeTypes.Movie:
+                    return "movie";
+                case AnimeTypes.OVA:
+                    return "ova";
+                case AnimeTypes.TV_Series:
+                    return "tv series";
+                case AnimeTypes.TV_Special:
+                    return "tv special";
+                case AnimeTypes.Web:
+                    return "web";
+                default:
+                    return "other";
             }
         }
 

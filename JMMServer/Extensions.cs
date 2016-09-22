@@ -84,14 +84,14 @@ namespace JMMServer
             contract.ServerPosterPath = c.ServerPosterPath;
             contract.SeriesForNameOverride = c.SeriesForNameOverride;
 
-            contract.Stat_AllCustomTags = new HashSet<string>(c.Stat_AllCustomTags);
-            contract.Stat_AllTags = new HashSet<string>(c.Stat_AllTags);
-            contract.Stat_AllTitles = new HashSet<string>(c.Stat_AllTitles);
-            contract.Stat_AnimeTypes = new HashSet<string>(c.Stat_AnimeTypes);
-            contract.Stat_AllVideoQuality = new HashSet<string>(c.Stat_AllVideoQuality);
-            contract.Stat_AllVideoQuality_Episodes = new HashSet<string>(c.Stat_AllVideoQuality_Episodes);
-            contract.Stat_AudioLanguages = new HashSet<string>(c.Stat_AudioLanguages);
-            contract.Stat_SubtitleLanguages = new HashSet<string>(c.Stat_SubtitleLanguages);
+            contract.Stat_AllCustomTags = new HashSet<string>(c.Stat_AllCustomTags,StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AllTags = new HashSet<string>(c.Stat_AllTags, StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AllTitles = new HashSet<string>(c.Stat_AllTitles, StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AnimeTypes = new HashSet<string>(c.Stat_AnimeTypes, StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AllVideoQuality = new HashSet<string>(c.Stat_AllVideoQuality, StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AllVideoQuality_Episodes = new HashSet<string>(c.Stat_AllVideoQuality_Episodes, StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_AudioLanguages = new HashSet<string>(c.Stat_AudioLanguages, StringComparer.InvariantCultureIgnoreCase);
+            contract.Stat_SubtitleLanguages = new HashSet<string>(c.Stat_SubtitleLanguages, StringComparer.InvariantCultureIgnoreCase);
             return contract;
         }
 

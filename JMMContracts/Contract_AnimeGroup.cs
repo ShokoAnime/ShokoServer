@@ -35,10 +35,10 @@ namespace JMMContracts
         public decimal? Stat_UserVotePermanent { get; set; }
         public decimal? Stat_UserVoteTemporary { get; set; }
         public decimal? Stat_UserVoteOverall { get; set; }
-        public HashSet<string> Stat_AllTags { get; set; }=new HashSet<string>();
-        public HashSet<string> Stat_AllCustomTags { get; set; }=new HashSet<string>();
-        public HashSet<string> Stat_AllTitles { get; set; }=new HashSet<string>();
-        public HashSet<string> Stat_AnimeTypes { get; set; }=new HashSet<string>();
+        public HashSet<string> Stat_AllTags { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        public HashSet<string> Stat_AllCustomTags { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        public HashSet<string> Stat_AllTitles { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        public HashSet<string> Stat_AnimeTypes { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         public bool Stat_IsComplete { get; set; }
         public bool Stat_HasFinishedAiring { get; set; }
         public bool Stat_IsCurrentlyAiring { get; set; }
@@ -46,10 +46,10 @@ namespace JMMContracts
         public bool Stat_HasMALLink { get; set; }
         public bool Stat_HasMovieDBLink { get; set; }
         public bool Stat_HasMovieDBOrTvDBLink { get; set; }
-        public HashSet<string> Stat_AllVideoQuality { get; set; }=new HashSet<string>();
-        public HashSet<string> Stat_AllVideoQuality_Episodes { get; set; }=new HashSet<string>();
-        public HashSet<string> Stat_AudioLanguages { get; set; }=new HashSet<string>();
-        public HashSet<string> Stat_SubtitleLanguages { get; set; }=new HashSet<string>();
+        public HashSet<string> Stat_AllVideoQuality { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        public HashSet<string> Stat_AllVideoQuality_Episodes { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        public HashSet<string> Stat_AudioLanguages { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        public HashSet<string> Stat_SubtitleLanguages { get; set; }=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         public int Stat_SeriesCount { get; set; }
         public int Stat_EpisodeCount { get; set; }
         public decimal Stat_AniDBRating { get; set; }

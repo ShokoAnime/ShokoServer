@@ -1188,6 +1188,7 @@ namespace JMMServer.Entities
                 contract.Stat_AllTags = new HashSet<string>(Tags.Select(a => a.TagName).Distinct(StringComparer.InvariantCultureIgnoreCase),StringComparer.InvariantCultureIgnoreCase);
                 contract.Stat_AllCustomTags = new HashSet<string>(CustomTags.Select(a => a.TagName).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
                 contract.Stat_AllTitles = new HashSet<string>(Titles.Select(a => a.Title).Distinct(StringComparer.InvariantCultureIgnoreCase), StringComparer.InvariantCultureIgnoreCase);
+
                 contract.Stat_AnimeTypes =
                     new HashSet<string>(
                         series.Select(a => a.Contract?.AniDBAnime?.AniDBAnime)

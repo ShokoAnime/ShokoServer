@@ -419,8 +419,9 @@ namespace JMMServer.Entities
 
                 if (gfc.ConditionOperatorEnum == GroupFilterOperator.Equals && groupID == contractGroup.AnimeGroupID)
                     return true;
-                if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotEquals && groupID == contractGroup.AnimeGroupID)
-                    return false;
+                if (gfc.ConditionOperatorEnum == GroupFilterOperator.NotEquals && groupID != contractGroup.AnimeGroupID)
+                    return true;
+                return false;
             }
 
             NumberStyles style = NumberStyles.Number;
@@ -457,10 +458,10 @@ namespace JMMServer.Entities
                             contractGroup.MissingEpisodeCountGroups > 0 == true) return false;
                         break;
                     case GroupFilterConditionType.Tag:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            !contractGroup.Stat_AllTags.Contains(gfc.ConditionParameter)) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractGroup.Stat_AllTags.Contains(gfc.ConditionParameter)) return false;
+                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) &&
+                            !contractGroup.Stat_AllTags.Contains(gfc.ConditionParameter,StringComparer.InvariantCultureIgnoreCase)) return false;
+                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) &&
+                            contractGroup.Stat_AllTags.Contains(gfc.ConditionParameter, StringComparer.InvariantCultureIgnoreCase)) return false;
                         break;
                     case GroupFilterConditionType.Year:
                         if (!contractGroup.Stat_AirDate_Min.HasValue)
@@ -735,8 +736,8 @@ namespace JMMServer.Entities
 
                         List<string> ctypes =
                             gfc.ConditionParameter.Trim()
-                                .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant())
+                                .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(a => ((int)AniDB_Anime.RawToType(a.ToLowerInvariant())).ToString())
                                 .ToList();
                         bool foundAnimeType = ctypes.FindInEnumerable(contractGroup.Stat_AnimeTypes);
                         if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;
@@ -826,10 +827,10 @@ namespace JMMServer.Entities
                             contractSerie.MissingEpisodeCountGroups > 0 == true) return false;
                         break;
                     case GroupFilterConditionType.Tag:
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include &&
-                            !contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(gfc.ConditionParameter)) return false;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude &&
-                            contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(gfc.ConditionParameter)) return false;
+                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In || gfc.ConditionOperatorEnum == GroupFilterOperator.Include) &&
+                            !contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(gfc.ConditionParameter, StringComparer.InvariantCultureIgnoreCase)) return false;
+                        if ((gfc.ConditionOperatorEnum == GroupFilterOperator.NotIn || gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude) &&
+                            contractSerie.AniDBAnime.AniDBAnime.AllTags.Contains(gfc.ConditionParameter, StringComparer.InvariantCultureIgnoreCase)) return false;
                         break;
                     case GroupFilterConditionType.Year:
                         if (!contractSerie.AniDBAnime.AniDBAnime.AirDate.HasValue)
@@ -1095,7 +1096,7 @@ namespace JMMServer.Entities
                         List<string> ctypes =
                             gfc.ConditionParameter.Trim()
                                 .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant())
+                                .Select(a => ((int)AniDB_Anime.RawToType(a.ToLowerInvariant())).ToString())
                                 .ToList();
                         bool foundAnimeType = ctypes.Contains(contractSerie.AniDBAnime.AniDBAnime.AnimeType.ToString());
                         if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;

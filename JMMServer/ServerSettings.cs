@@ -57,21 +57,7 @@ namespace JMMServer
         {
             get
             {
-                string basepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),DefaultInstance);
-                if (!Directory.Exists(basepath))
-                {
-
-                    Directory.CreateDirectory(basepath);
-                    try
-                    {
-                        Utils.GrantAccess(basepath);
-                    }
-                    catch (Exception e)
-                    {
-                        
-                    }
-                }
-                return basepath;
+                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),DefaultInstance);
             }
         }
 
@@ -130,7 +116,7 @@ namespace JMMServer
                         To = DefaultImagePath
                     });
                 }
-                bool migrate = false;
+                bool migrate = !Directory.Exists(ApplicationPath);
                 foreach (MigrationDirectory m in migrationdirs)
                 {
                     if (m.ShouldMigrate)
@@ -151,11 +137,15 @@ namespace JMMServer
                     Migration m = null;
                     try
                     {
-                        Utils.GrantAccess(ApplicationPath);
                         m =
                             new Migration(
                                 $"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}");
                         m.Show();
+                        if (!Directory.Exists(ApplicationPath))
+                        {
+                            Directory.CreateDirectory(ApplicationPath);
+                        }
+                        Utils.GrantAccess(ApplicationPath);
                         disabledSave = false;
                         SaveSettings();
                         foreach (MigrationDirectory md in migrationdirs)

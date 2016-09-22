@@ -795,8 +795,8 @@ namespace JMMServer.API
             {
                 Contract_JMMUser user = this.Bind();
                 user.Password = Digest.Hash(user.Password);
-                user.HideCategories = new HashSet<string>();
-                user.PlexUsers = new HashSet<string>();
+                user.HideCategories = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+                user.PlexUsers = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
                 if (new JMMServiceImplementation().SaveUser(user) == "")
                 {
                     return APIStatus.statusOK();

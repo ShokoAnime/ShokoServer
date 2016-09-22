@@ -888,7 +888,10 @@ namespace JMMServer
                 //hack until gui id dead
                 try
                 {
-                    ServerInfo.Instance.RefreshImportFolders();
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        ServerInfo.Instance.RefreshImportFolders();
+                    });
                 }
                 catch
                 {

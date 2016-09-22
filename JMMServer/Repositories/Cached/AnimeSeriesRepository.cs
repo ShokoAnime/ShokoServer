@@ -143,13 +143,10 @@ namespace JMMServer.Repositories.Cached
             }
             if (updateGroups && !isMigrating)
             {
-                if (newSeries)
-                {
-                    logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
-                    AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
-                    if (grp != null)
-                        RepoFactory.AnimeGroup.Save(grp, true, true);
-                }
+                logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
+                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+                if (grp != null)
+                    RepoFactory.AnimeGroup.Save(grp, true, true);
 
                 if (oldGroup != null)
                 {

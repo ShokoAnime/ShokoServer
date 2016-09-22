@@ -51,7 +51,7 @@ namespace JMMServer.Repositories.Cached
                         StringComparer.InvariantCultureIgnoreCase);
             }
             else
-                contract.HideCategories=new HashSet<string>();
+                contract.HideCategories=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
             contract.CanEditServerSettings = user.CanEditServerSettings;
             if (!string.IsNullOrEmpty(user.PlexUsers))
@@ -65,7 +65,7 @@ namespace JMMServer.Repositories.Cached
             }
             else
             {
-                contract.PlexUsers=new HashSet<string>();
+                contract.PlexUsers=new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
             }
             user.Contract = contract;
         }
