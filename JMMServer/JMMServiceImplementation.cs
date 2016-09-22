@@ -3144,7 +3144,10 @@ namespace JMMServer
                 RepoFactory.ImportFolder.Save(ns);
 
                 response.ImportFolder = ns.ToContract();
-
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ServerInfo.Instance.RefreshImportFolders();
+                });
                 MainWindow.StopWatchingFiles();
                 MainWindow.StartWatchingFiles();
 
