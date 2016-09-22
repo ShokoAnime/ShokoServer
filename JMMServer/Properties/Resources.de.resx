@@ -1066,4 +1066,10 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Migration_AdminPass2" xml:space="preserve">
     <value>Sobald dieser Vorgang ist komplett JMM-Server neu starten und nicht mehr benötigen Administratorrechte zum Ausführen.</value>
   </data>
+  <data name="Actions_UpdateImages" xml:space="preserve">
+    <value>Bilder aktualisieren</value>
+  </data>
+  <data name="Server_UpdateImages" xml:space="preserve">
+    <value>Aktualisieren tvdb info und neue Bilder anfordern.</value>
+  </data>
 </root>

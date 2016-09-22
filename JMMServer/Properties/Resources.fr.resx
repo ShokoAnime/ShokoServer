@@ -1066,4 +1066,10 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Migration_AdminPass2" xml:space="preserve">
     <value>une fois ce processus complet JMM serveur va redémarrer et n’est plus besoin de privilèges d’administrateur pour exécuter.</value>
   </data>
+  <data name="Actions_UpdateImages" xml:space="preserve">
+    <value>Mettez à jour les images</value>
+  </data>
+  <data name="Server_UpdateImages" xml:space="preserve">
+    <value>Mise à jour d'informations TVDb et demandant de nouvelles images.</value>
+  </data>
 </root>

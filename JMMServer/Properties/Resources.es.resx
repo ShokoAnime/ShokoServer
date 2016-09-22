@@ -1066,4 +1066,10 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Migration_AdminPass2" xml:space="preserve">
     <value>una vez este proceso completo servidor de JMM reinicie y ya no necesitan privilegios administrativos para ejecutarse.</value>
   </data>
+  <data name="Actions_UpdateImages" xml:space="preserve">
+    <value>Actualización Imágenes</value>
+  </data>
+  <data name="Server_UpdateImages" xml:space="preserve">
+    <value>Actualización de información TVDB y solicitando nuevas imágenes.</value>
+  </data>
 </root>

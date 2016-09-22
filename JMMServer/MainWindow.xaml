@@ -232,7 +232,18 @@
                             </StackPanel>
                         </Button>
 
-                        <!-- btnUploadAzureCache -->
+						<!-- Update Images -->
+						<Button HorizontalAlignment="Left" x:Name="btnUpdateImages" Margin="0,0,0,0"
+                        	Style="{DynamicResource FlatButtonStyle}" Width="Auto">
+							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+								<Image Height="16" Width="16" Source="Images/16_update_data.png" Margin="0,0,5,0" />
+								<TextBlock VerticalAlignment="Center"
+                        				Text="{Resx ResxName=JMMServer.Properties.Resources, Key=Actions_UpdateImages}"
+                        				Margin="0,0,5,0" />
+							</StackPanel>
+						</Button>
+
+						<!-- btnUploadAzureCache -->
                         <Button HorizontalAlignment="Left" Name="btnUploadAzureCache" Margin="0,0,0,0"
                                 Style="{DynamicResource FlatButtonStyle}" Width="Auto" Visibility="Collapsed">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -242,8 +253,9 @@
                                            Margin="0,0,5,0" />
                             </StackPanel>
                         </Button>
+						
 
-                    </StackPanel>
+					</StackPanel>
                 </TabItem>
 
 

@@ -1115,4 +1115,10 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Migration_AdminPass2" xml:space="preserve">
     <value>once this process is complete JMM Server will restart and no longer need Administrative Privileges to run.</value>
   </data>
+  <data name="Actions_UpdateImages" xml:space="preserve">
+    <value>Update Images</value>
+  </data>
+  <data name="Server_UpdateImages" xml:space="preserve">
+    <value>Updating TVDb info and requesting new images.</value>
+  </data>
 </root>

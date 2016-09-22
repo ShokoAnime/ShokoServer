@@ -1066,4 +1066,10 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Migration_AdminPass2" xml:space="preserve">
     <value>gdy proces ten jest kompletny JMM serwera uruchomi się nie są już potrzebne uprawnienia administracyjne, aby uruchomić.</value>
   </data>
+  <data name="Actions_UpdateImages" xml:space="preserve">
+    <value>Aktualizacja Images</value>
+  </data>
+  <data name="Server_UpdateImages" xml:space="preserve">
+    <value>Aktualizacja informacji TVDb i prosząc o nowe zdjęcia.</value>
+  </data>
 </root>
