@@ -236,7 +236,8 @@ namespace JMMServer
             btnSyncTrakt.Click += new RoutedEventHandler(btnSyncTrakt_Click);
             btnImportManualLinks.Click += new RoutedEventHandler(btnImportManualLinks_Click);
             btnUpdateAniDBInfo.Click += new RoutedEventHandler(btnUpdateAniDBInfo_Click);
-            btnUploadAzureCache.Click += new RoutedEventHandler(btnUploadAzureCache_Click);
+			btnUpdateImages.Click += new RoutedEventHandler(btnUpdateImages_Click);
+			btnUploadAzureCache.Click += new RoutedEventHandler(btnUploadAzureCache_Click);
             btnUpdateTraktInfo.Click += BtnUpdateTraktInfo_Click;
 
             this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
@@ -2007,7 +2008,16 @@ namespace JMMServer
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        void btnSyncVotes_Click(object sender, RoutedEventArgs e)
+		// This forces an update of TVDb and tries to get any new Images
+		void btnUpdateImages_Click(object sender, RoutedEventArgs e)
+		{
+			Importer.CheckForTvDBUpdates(true);
+			Importer.RunImport_GetImages();
+			MessageBox.Show(JMMServer.Properties.Resources.Server_UpdateImages, JMMServer.Properties.Resources.Success,
+				MessageBoxButton.OK, MessageBoxImage.Information);
+		}
+
+		void btnSyncVotes_Click(object sender, RoutedEventArgs e)
         {
             CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
             cmdVotes.Save();

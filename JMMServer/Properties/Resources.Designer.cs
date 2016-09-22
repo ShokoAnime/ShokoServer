@@ -22,7 +22,7 @@ namespace JMMServer.Properties {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Resources {
+    public class Resources {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
@@ -36,7 +36,7 @@ namespace JMMServer.Properties {
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Resources.ResourceManager ResourceManager {
+        public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
                     global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("JMMServer.Properties.Resources", typeof(Resources).Assembly);
@@ -51,7 +51,7 @@ namespace JMMServer.Properties {
         ///   resource lookups using this strongly typed resource class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Globalization.CultureInfo Culture {
+        public static global::System.Globalization.CultureInfo Culture {
             get {
                 return resourceCulture;
             }
@@ -63,7 +63,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to JMM Blog.
         /// </summary>
-        internal static string About_Blog {
+        public static string About_Blog {
             get {
                 return ResourceManager.GetString("About_Blog", resourceCulture);
             }
@@ -72,7 +72,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Home Page.
         /// </summary>
-        internal static string About_Home {
+        public static string About_Home {
             get {
                 return ResourceManager.GetString("About_Home", resourceCulture);
             }
@@ -81,7 +81,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Project Page.
         /// </summary>
-        internal static string About_Project {
+        public static string About_Project {
             get {
                 return ResourceManager.GetString("About_Project", resourceCulture);
             }
@@ -90,7 +90,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Check for Updates.
         /// </summary>
-        internal static string About_UpdateCheck {
+        public static string About_UpdateCheck {
             get {
                 return ResourceManager.GetString("About_UpdateCheck", resourceCulture);
             }
@@ -99,7 +99,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Remove Missing Files.
         /// </summary>
-        internal static string Actions_RemoveMissing {
+        public static string Actions_RemoveMissing {
             get {
                 return ResourceManager.GetString("Actions_RemoveMissing", resourceCulture);
             }
@@ -108,7 +108,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Run Import.
         /// </summary>
-        internal static string Actions_RunImport {
+        public static string Actions_RunImport {
             get {
                 return ResourceManager.GetString("Actions_RunImport", resourceCulture);
             }
@@ -117,7 +117,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sync Hashes.
         /// </summary>
-        internal static string Actions_SyncHashes {
+        public static string Actions_SyncHashes {
             get {
                 return ResourceManager.GetString("Actions_SyncHashes", resourceCulture);
             }
@@ -126,7 +126,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sync AniDB MyList.
         /// </summary>
-        internal static string Actions_SyncMyList {
+        public static string Actions_SyncMyList {
             get {
                 return ResourceManager.GetString("Actions_SyncMyList", resourceCulture);
             }
@@ -135,7 +135,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sync Trakt Collection.
         /// </summary>
-        internal static string Actions_SyncTrakt {
+        public static string Actions_SyncTrakt {
             get {
                 return ResourceManager.GetString("Actions_SyncTrakt", resourceCulture);
             }
@@ -144,7 +144,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Upload Local Votes To AniDB And MAL.
         /// </summary>
-        internal static string Actions_SyncVotes {
+        public static string Actions_SyncVotes {
             get {
                 return ResourceManager.GetString("Actions_SyncVotes", resourceCulture);
             }
@@ -153,7 +153,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Update All Media Info.
         /// </summary>
-        internal static string Actions_UpdateAllMediaInfo {
+        public static string Actions_UpdateAllMediaInfo {
             get {
                 return ResourceManager.GetString("Actions_UpdateAllMediaInfo", resourceCulture);
             }
@@ -162,7 +162,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Update All Stats.
         /// </summary>
-        internal static string Actions_UpdateAllStats {
+        public static string Actions_UpdateAllStats {
             get {
                 return ResourceManager.GetString("Actions_UpdateAllStats", resourceCulture);
             }
@@ -171,16 +171,25 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Update All AniDB Series Info.
         /// </summary>
-        internal static string Actions_UpdateAniDB {
+        public static string Actions_UpdateAniDB {
             get {
                 return ResourceManager.GetString("Actions_UpdateAniDB", resourceCulture);
             }
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Update Images.
+        /// </summary>
+        public static string Actions_UpdateImages {
+            get {
+                return ResourceManager.GetString("Actions_UpdateImages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Update All Trakt Info.
         /// </summary>
-        internal static string Actions_UpdateTrakt {
+        public static string Actions_UpdateTrakt {
             get {
                 return ResourceManager.GetString("Actions_UpdateTrakt", resourceCulture);
             }
@@ -189,7 +198,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Update All TvDB Info.
         /// </summary>
-        internal static string Actions_UpdateTvDB {
+        public static string Actions_UpdateTvDB {
             get {
                 return ResourceManager.GetString("Actions_UpdateTvDB", resourceCulture);
             }
@@ -198,7 +207,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Upload All Anime data To Azure Cache.
         /// </summary>
-        internal static string Actions_UploadCache {
+        public static string Actions_UploadCache {
             get {
                 return ResourceManager.GetString("Actions_UploadCache", resourceCulture);
             }
@@ -207,7 +216,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Admin Messages.
         /// </summary>
-        internal static string Admin_AdminMessages {
+        public static string Admin_AdminMessages {
             get {
                 return ResourceManager.GetString("Admin_AdminMessages", resourceCulture);
             }
@@ -216,7 +225,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to More Information.
         /// </summary>
-        internal static string Admin_MoreInfo {
+        public static string Admin_MoreInfo {
             get {
                 return ResourceManager.GetString("Admin_MoreInfo", resourceCulture);
             }
@@ -225,7 +234,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to AniDB Activity.
         /// </summary>
-        internal static string AniDB_Activity {
+        public static string AniDB_Activity {
             get {
                 return ResourceManager.GetString("AniDB_Activity", resourceCulture);
             }
@@ -234,7 +243,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Paused due to BAN from AniDB.
         /// </summary>
-        internal static string AniDB_Ban {
+        public static string AniDB_Ban {
             get {
                 return ResourceManager.GetString("AniDB_Ban", resourceCulture);
             }
@@ -243,7 +252,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting anime XML data from AniDB: {0}.
         /// </summary>
-        internal static string AniDB_GettingAnimeXML {
+        public static string AniDB_GettingAnimeXML {
             get {
                 return ResourceManager.GetString("AniDB_GettingAnimeXML", resourceCulture);
             }
@@ -252,7 +261,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting AniDB titles.
         /// </summary>
-        internal static string AniDB_GetTitles {
+        public static string AniDB_GetTitles {
             get {
                 return ResourceManager.GetString("AniDB_GetTitles", resourceCulture);
             }
@@ -261,7 +270,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Got anime XML Data From AniDB: {0} - {1} - {2}.
         /// </summary>
-        internal static string AniDB_GotAnimeXML {
+        public static string AniDB_GotAnimeXML {
             get {
                 return ResourceManager.GetString("AniDB_GotAnimeXML", resourceCulture);
             }
@@ -270,7 +279,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Last message sent {0} seconds ago.
         /// </summary>
-        internal static string AniDB_LastMessage {
+        public static string AniDB_LastMessage {
             get {
                 return ResourceManager.GetString("AniDB_LastMessage", resourceCulture);
             }
@@ -279,7 +288,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Adding file to MyList: {0}.
         /// </summary>
-        internal static string AniDB_MyListAdd {
+        public static string AniDB_MyListAdd {
             get {
                 return ResourceManager.GetString("AniDB_MyListAdd", resourceCulture);
             }
@@ -288,7 +297,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Deleting file from MyList: {0}_{1}.
         /// </summary>
-        internal static string AniDB_MyListDelete {
+        public static string AniDB_MyListDelete {
             get {
                 return ResourceManager.GetString("AniDB_MyListDelete", resourceCulture);
             }
@@ -297,7 +306,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Paused communications for {0} seconds: {1} .
         /// </summary>
-        internal static string AniDB_Paused {
+        public static string AniDB_Paused {
             get {
                 return ResourceManager.GetString("AniDB_Paused", resourceCulture);
             }
@@ -306,7 +315,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Waiting on response....
         /// </summary>
-        internal static string AniDB_ResponseWait {
+        public static string AniDB_ResponseWait {
             get {
                 return ResourceManager.GetString("AniDB_ResponseWait", resourceCulture);
             }
@@ -315,7 +324,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Waiting on response for {0} seconds....
         /// </summary>
-        internal static string AniDB_ResponseWaitSeconds {
+        public static string AniDB_ResponseWaitSeconds {
             get {
                 return ResourceManager.GetString("AniDB_ResponseWaitSeconds", resourceCulture);
             }
@@ -324,7 +333,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Movie.
         /// </summary>
-        internal static string AnimeType_Movie {
+        public static string AnimeType_Movie {
             get {
                 return ResourceManager.GetString("AnimeType_Movie", resourceCulture);
             }
@@ -333,7 +342,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Other.
         /// </summary>
-        internal static string AnimeType_Other {
+        public static string AnimeType_Other {
             get {
                 return ResourceManager.GetString("AnimeType_Other", resourceCulture);
             }
@@ -342,7 +351,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to OVA.
         /// </summary>
-        internal static string AnimeType_OVA {
+        public static string AnimeType_OVA {
             get {
                 return ResourceManager.GetString("AnimeType_OVA", resourceCulture);
             }
@@ -351,7 +360,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to TV Series.
         /// </summary>
-        internal static string AnimeType_TVSeries {
+        public static string AnimeType_TVSeries {
             get {
                 return ResourceManager.GetString("AnimeType_TVSeries", resourceCulture);
             }
@@ -360,7 +369,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to TV Special.
         /// </summary>
-        internal static string AnimeType_TVSpecial {
+        public static string AnimeType_TVSpecial {
             get {
                 return ResourceManager.GetString("AnimeType_TVSpecial", resourceCulture);
             }
@@ -369,7 +378,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Web.
         /// </summary>
-        internal static string AnimeType_Web {
+        public static string AnimeType_Web {
             get {
                 return ResourceManager.GetString("AnimeType_Web", resourceCulture);
             }
@@ -378,7 +387,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] blank {
+        public static byte[] blank {
             get {
                 object obj = ResourceManager.GetObject("blank", resourceCulture);
                 return ((byte[])(obj));
@@ -388,7 +397,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Close.
         /// </summary>
-        internal static string Close {
+        public static string Close {
             get {
                 return ResourceManager.GetString("Close", resourceCulture);
             }
@@ -397,7 +406,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Connected.
         /// </summary>
-        internal static string CloudAccount_Connected {
+        public static string CloudAccount_Connected {
             get {
                 return ResourceManager.GetString("CloudAccount_Connected", resourceCulture);
             }
@@ -406,7 +415,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Not Connected.
         /// </summary>
-        internal static string CloudAccount_NotConnected {
+        public static string CloudAccount_NotConnected {
             get {
                 return ResourceManager.GetString("CloudAccount_NotConnected", resourceCulture);
             }
@@ -415,7 +424,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Add Account.
         /// </summary>
-        internal static string CloudAccounts_Add {
+        public static string CloudAccounts_Add {
             get {
                 return ResourceManager.GetString("CloudAccounts_Add", resourceCulture);
             }
@@ -424,7 +433,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Add Cloud Account.
         /// </summary>
-        internal static string CloudAccounts_AddCloudAccount {
+        public static string CloudAccounts_AddCloudAccount {
             get {
                 return ResourceManager.GetString("CloudAccounts_AddCloudAccount", resourceCulture);
             }
@@ -433,7 +442,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to The Selected Cloud Account Name already exists.
         /// </summary>
-        internal static string CloudAccounts_CloudNameAlreadyExists {
+        public static string CloudAccounts_CloudNameAlreadyExists {
             get {
                 return ResourceManager.GetString("CloudAccounts_CloudNameAlreadyExists", resourceCulture);
             }
@@ -442,7 +451,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Connect.
         /// </summary>
-        internal static string CloudAccounts_Connect {
+        public static string CloudAccounts_Connect {
             get {
                 return ResourceManager.GetString("CloudAccounts_Connect", resourceCulture);
             }
@@ -451,7 +460,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Fill the required information about cloud accounts here.
         /// </summary>
-        internal static string CloudAccounts_Info {
+        public static string CloudAccounts_Info {
             get {
                 return ResourceManager.GetString("CloudAccounts_Info", resourceCulture);
             }
@@ -460,7 +469,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Name.
         /// </summary>
-        internal static string CloudAccounts_Name {
+        public static string CloudAccounts_Name {
             get {
                 return ResourceManager.GetString("CloudAccounts_Name", resourceCulture);
             }
@@ -469,7 +478,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Remove.
         /// </summary>
-        internal static string CloudAccounts_Remove {
+        public static string CloudAccounts_Remove {
             get {
                 return ResourceManager.GetString("CloudAccounts_Remove", resourceCulture);
             }
@@ -478,7 +487,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to remove the following the Cloud Account &apos;{0}&apos; from {1}? Any Import Folder using this account will be deleted, and every file link associated with those import folders will be also deleted..
         /// </summary>
-        internal static string CloudAccounts_RemoveMessage {
+        public static string CloudAccounts_RemoveMessage {
             get {
                 return ResourceManager.GetString("CloudAccounts_RemoveMessage", resourceCulture);
             }
@@ -487,7 +496,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Select Service Provider.
         /// </summary>
-        internal static string CloudAccounts_Service {
+        public static string CloudAccounts_Service {
             get {
                 return ResourceManager.GetString("CloudAccounts_Service", resourceCulture);
             }
@@ -496,7 +505,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Cloud Accounts.
         /// </summary>
-        internal static string CloudAccounts_Title {
+        public static string CloudAccounts_Title {
             get {
                 return ResourceManager.GetString("CloudAccounts_Title", resourceCulture);
             }
@@ -505,7 +514,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting anime info from HTTP API: {0}.
         /// </summary>
-        internal static string Command_AnimeInfo {
+        public static string Command_AnimeInfo {
             get {
                 return ResourceManager.GetString("Command_AnimeInfo", resourceCulture);
             }
@@ -514,7 +523,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error deleting image: ({0}) - {1}.
         /// </summary>
-        internal static string Command_DeleteError {
+        public static string Command_DeleteError {
             get {
                 return ResourceManager.GetString("Command_DeleteError", resourceCulture);
             }
@@ -523,7 +532,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Downloading Image: {0}.
         /// </summary>
-        internal static string Command_DownloadImage {
+        public static string Command_DownloadImage {
             get {
                 return ResourceManager.GetString("Command_DownloadImage", resourceCulture);
             }
@@ -532,7 +541,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Downloading watched states from MAL.
         /// </summary>
-        internal static string Command_DownloadMalWatched {
+        public static string Command_DownloadMalWatched {
             get {
                 return ResourceManager.GetString("Command_DownloadMalWatched", resourceCulture);
             }
@@ -541,7 +550,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting images from The TvDB: {0}.
         /// </summary>
-        internal static string Command_DownloadTvDBImages {
+        public static string Command_DownloadTvDBImages {
             get {
                 return ResourceManager.GetString("Command_DownloadTvDBImages", resourceCulture);
             }
@@ -550,7 +559,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting file info from UDP API: {0}.
         /// </summary>
-        internal static string Command_FileInfo {
+        public static string Command_FileInfo {
             get {
                 return ResourceManager.GetString("Command_FileInfo", resourceCulture);
             }
@@ -559,7 +568,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting calendar info from UDP API.
         /// </summary>
-        internal static string Command_GetCalendar {
+        public static string Command_GetCalendar {
             get {
                 return ResourceManager.GetString("Command_GetCalendar", resourceCulture);
             }
@@ -568,7 +577,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting episode info from UDP API: {0}.
         /// </summary>
-        internal static string Command_GetEpisodeList {
+        public static string Command_GetEpisodeList {
             get {
                 return ResourceManager.GetString("Command_GetEpisodeList", resourceCulture);
             }
@@ -577,7 +586,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting file info from UDP API: {0}.
         /// </summary>
-        internal static string Command_GetFileInfo {
+        public static string Command_GetFileInfo {
             get {
                 return ResourceManager.GetString("Command_GetFileInfo", resourceCulture);
             }
@@ -586,7 +595,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting group status info from UDP API for Anime: {0}.
         /// </summary>
-        internal static string Command_GetReleaseGroup {
+        public static string Command_GetReleaseGroup {
             get {
                 return ResourceManager.GetString("Command_GetReleaseGroup", resourceCulture);
             }
@@ -595,7 +604,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting release group info from UDP API: {0}.
         /// </summary>
-        internal static string Command_GetReleaseInfo {
+        public static string Command_GetReleaseInfo {
             get {
                 return ResourceManager.GetString("Command_GetReleaseInfo", resourceCulture);
             }
@@ -604,7 +613,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting review info from UDP API for Anime: {0}.
         /// </summary>
-        internal static string Command_GetReviewInfo {
+        public static string Command_GetReviewInfo {
             get {
                 return ResourceManager.GetString("Command_GetReviewInfo", resourceCulture);
             }
@@ -613,7 +622,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting episodes from The TvDB: {0}.
         /// </summary>
-        internal static string Command_GettingTvDB {
+        public static string Command_GettingTvDB {
             get {
                 return ResourceManager.GetString("Command_GettingTvDB", resourceCulture);
             }
@@ -622,7 +631,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Getting list of updated anime from UDP API.
         /// </summary>
-        internal static string Command_GetUpdatedAnime {
+        public static string Command_GetUpdatedAnime {
             get {
                 return ResourceManager.GetString("Command_GetUpdatedAnime", resourceCulture);
             }
@@ -631,7 +640,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Hashing File: {0}.
         /// </summary>
-        internal static string Command_HashingFile {
+        public static string Command_HashingFile {
             get {
                 return ResourceManager.GetString("Command_HashingFile", resourceCulture);
             }
@@ -640,7 +649,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Idle.
         /// </summary>
-        internal static string Command_Idle {
+        public static string Command_Idle {
             get {
                 return ResourceManager.GetString("Command_Idle", resourceCulture);
             }
@@ -649,7 +658,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Updating Changed TvDB association: {0}.
         /// </summary>
-        internal static string Command_LinkAniDBTvDB {
+        public static string Command_LinkAniDBTvDB {
             get {
                 return ResourceManager.GetString("Command_LinkAniDBTvDB", resourceCulture);
             }
@@ -658,7 +667,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Paused.
         /// </summary>
-        internal static string Command_Paused {
+        public static string Command_Paused {
             get {
                 return ResourceManager.GetString("Command_Paused", resourceCulture);
             }
@@ -667,7 +676,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Queued.
         /// </summary>
-        internal static string Command_Queued {
+        public static string Command_Queued {
             get {
                 return ResourceManager.GetString("Command_Queued", resourceCulture);
             }
@@ -676,7 +685,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Reading media info for file: {0}.
         /// </summary>
-        internal static string Command_ReadingMedia {
+        public static string Command_ReadingMedia {
             get {
                 return ResourceManager.GetString("Command_ReadingMedia", resourceCulture);
             }
@@ -685,7 +694,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Refreshing anime stats: {0}.
         /// </summary>
-        internal static string Command_Refresh {
+        public static string Command_Refresh {
             get {
                 return ResourceManager.GetString("Command_Refresh", resourceCulture);
             }
@@ -694,7 +703,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Searching for anime on MAL: {0}.
         /// </summary>
-        internal static string Command_SearchMal {
+        public static string Command_SearchMal {
             get {
                 return ResourceManager.GetString("Command_SearchMal", resourceCulture);
             }
@@ -703,7 +712,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Searching for anime on The MovieDB: {0}.
         /// </summary>
-        internal static string Command_SearchTMDb {
+        public static string Command_SearchTMDb {
             get {
                 return ResourceManager.GetString("Command_SearchTMDb", resourceCulture);
             }
@@ -712,7 +721,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Searching for anime on Trakt.TV: {0}.
         /// </summary>
-        internal static string Command_SearchTrakt {
+        public static string Command_SearchTrakt {
             get {
                 return ResourceManager.GetString("Command_SearchTrakt", resourceCulture);
             }
@@ -721,7 +730,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Searching for anime on The TvDB: {0}.
         /// </summary>
-        internal static string Command_SearchTvDB {
+        public static string Command_SearchTvDB {
             get {
                 return ResourceManager.GetString("Command_SearchTvDB", resourceCulture);
             }
@@ -730,7 +739,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sending anime xml to azure: {0}.
         /// </summary>
-        internal static string Command_SendAnimeAzure {
+        public static string Command_SendAnimeAzure {
             get {
                 return ResourceManager.GetString("Command_SendAnimeAzure", resourceCulture);
             }
@@ -739,7 +748,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sending all anime info to azure: {0}.
         /// </summary>
-        internal static string Command_SendAnimeFull {
+        public static string Command_SendAnimeFull {
             get {
                 return ResourceManager.GetString("Command_SendAnimeFull", resourceCulture);
             }
@@ -748,7 +757,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sending anime title to azure: {0}.
         /// </summary>
-        internal static string Command_SendAnimeTitle {
+        public static string Command_SendAnimeTitle {
             get {
                 return ResourceManager.GetString("Command_SendAnimeTitle", resourceCulture);
             }
@@ -757,7 +766,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sending anonymous usage data to azure.
         /// </summary>
-        internal static string Command_SendAnonymousData {
+        public static string Command_SendAnonymousData {
             get {
                 return ResourceManager.GetString("Command_SendAnonymousData", resourceCulture);
             }
@@ -766,7 +775,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Starting general command worker.
         /// </summary>
-        internal static string Command_StartingGeneral {
+        public static string Command_StartingGeneral {
             get {
                 return ResourceManager.GetString("Command_StartingGeneral", resourceCulture);
             }
@@ -775,7 +784,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Starting hasher command worker.
         /// </summary>
-        internal static string Command_StartingHasher {
+        public static string Command_StartingHasher {
             get {
                 return ResourceManager.GetString("Command_StartingHasher", resourceCulture);
             }
@@ -784,7 +793,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Starting image downloading command worker.
         /// </summary>
-        internal static string Command_StartingImages {
+        public static string Command_StartingImages {
             get {
                 return ResourceManager.GetString("Command_StartingImages", resourceCulture);
             }
@@ -793,7 +802,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Syncing MyList info from HTTP API.
         /// </summary>
-        internal static string Command_SyncMyList {
+        public static string Command_SyncMyList {
             get {
                 return ResourceManager.GetString("Command_SyncMyList", resourceCulture);
             }
@@ -802,7 +811,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Syncing Trakt collection.
         /// </summary>
-        internal static string Command_SyncTrakt {
+        public static string Command_SyncTrakt {
             get {
                 return ResourceManager.GetString("Command_SyncTrakt", resourceCulture);
             }
@@ -811,7 +820,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sync episode to collection on Trakt: {0} - {1}.
         /// </summary>
-        internal static string Command_SyncTraktEpisodes {
+        public static string Command_SyncTraktEpisodes {
             get {
                 return ResourceManager.GetString("Command_SyncTraktEpisodes", resourceCulture);
             }
@@ -820,7 +829,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Syncing Trakt collection for series: {0}.
         /// </summary>
-        internal static string Command_SyncTraktSeries {
+        public static string Command_SyncTraktSeries {
             get {
                 return ResourceManager.GetString("Command_SyncTraktSeries", resourceCulture);
             }
@@ -829,7 +838,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Syncing vote info from HTTP API.
         /// </summary>
-        internal static string Command_SyncVotes {
+        public static string Command_SyncVotes {
             get {
                 return ResourceManager.GetString("Command_SyncVotes", resourceCulture);
             }
@@ -838,7 +847,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Add episode to history on Trakt: {0}.
         /// </summary>
-        internal static string Command_TraktAddHistory {
+        public static string Command_TraktAddHistory {
             get {
                 return ResourceManager.GetString("Command_TraktAddHistory", resourceCulture);
             }
@@ -847,7 +856,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Updating watched status on MAL: {0}.
         /// </summary>
-        internal static string Command_UpdateMALWatched {
+        public static string Command_UpdateMALWatched {
             get {
                 return ResourceManager.GetString("Command_UpdateMALWatched", resourceCulture);
             }
@@ -856,7 +865,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Updating MyList info from UDP API for File: {0}.
         /// </summary>
-        internal static string Command_UpdateMyListInfo {
+        public static string Command_UpdateMyListInfo {
             get {
                 return ResourceManager.GetString("Command_UpdateMyListInfo", resourceCulture);
             }
@@ -865,7 +874,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Updating AniDB MyList Stats.
         /// </summary>
-        internal static string Command_UpdateMyListStats {
+        public static string Command_UpdateMyListStats {
             get {
                 return ResourceManager.GetString("Command_UpdateMyListStats", resourceCulture);
             }
@@ -874,7 +883,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Updating all Trakt series info added to queue.
         /// </summary>
-        internal static string Command_UpdateTrakt {
+        public static string Command_UpdateTrakt {
             get {
                 return ResourceManager.GetString("Command_UpdateTrakt", resourceCulture);
             }
@@ -883,7 +892,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Updating info/images on Trakt.TV: {0}.
         /// </summary>
-        internal static string Command_UpdateTraktData {
+        public static string Command_UpdateTraktData {
             get {
                 return ResourceManager.GetString("Command_UpdateTraktData", resourceCulture);
             }
@@ -892,7 +901,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Uploading watched states to MAL.
         /// </summary>
-        internal static string Command_UploadMALWatched {
+        public static string Command_UploadMALWatched {
             get {
                 return ResourceManager.GetString("Command_UploadMALWatched", resourceCulture);
             }
@@ -901,7 +910,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Voting: {0} - {1}.
         /// </summary>
-        internal static string Command_VoteAnime {
+        public static string Command_VoteAnime {
             get {
                 return ResourceManager.GetString("Command_VoteAnime", resourceCulture);
             }
@@ -910,7 +919,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Deleting cross ref for Anidb to MAL from web cache: {0}.
         /// </summary>
-        internal static string Command_WebCacheDeleteXRefAniDBMAL {
+        public static string Command_WebCacheDeleteXRefAniDBMAL {
             get {
                 return ResourceManager.GetString("Command_WebCacheDeleteXRefAniDBMAL", resourceCulture);
             }
@@ -919,7 +928,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Deleting cross ref for Anidb to Other from web cache: {0}.
         /// </summary>
-        internal static string Command_WebCacheDeleteXRefAniDBOther {
+        public static string Command_WebCacheDeleteXRefAniDBOther {
             get {
                 return ResourceManager.GetString("Command_WebCacheDeleteXRefAniDBOther", resourceCulture);
             }
@@ -928,7 +937,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Deleting cross ref for Anidb to Trakt from web cache: {0}.
         /// </summary>
-        internal static string Command_WebCacheDeleteXRefAniDBTrakt {
+        public static string Command_WebCacheDeleteXRefAniDBTrakt {
             get {
                 return ResourceManager.GetString("Command_WebCacheDeleteXRefAniDBTrakt", resourceCulture);
             }
@@ -937,7 +946,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Deleting cross ref for Anidb to TvDB from web cache: {0}.
         /// </summary>
-        internal static string Command_WebCacheDeleteXRefAniDBTvDB {
+        public static string Command_WebCacheDeleteXRefAniDBTvDB {
             get {
                 return ResourceManager.GetString("Command_WebCacheDeleteXRefAniDBTvDB", resourceCulture);
             }
@@ -946,7 +955,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Deleting cross ref for file to episode to web cache: {0}-{1}.
         /// </summary>
-        internal static string Command_WebCacheDeleteXRefFileEpisode {
+        public static string Command_WebCacheDeleteXRefFileEpisode {
             get {
                 return ResourceManager.GetString("Command_WebCacheDeleteXRefFileEpisode", resourceCulture);
             }
@@ -955,7 +964,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sending cross ref for Anidb to MAL from web cache: {0}.
         /// </summary>
-        internal static string Command_WebCacheSendXRefAniDBMAL {
+        public static string Command_WebCacheSendXRefAniDBMAL {
             get {
                 return ResourceManager.GetString("Command_WebCacheSendXRefAniDBMAL", resourceCulture);
             }
@@ -964,7 +973,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sending cross ref for Anidb to Other from web cache: {0}.
         /// </summary>
-        internal static string Command_WebCacheSendXRefAniDBOther {
+        public static string Command_WebCacheSendXRefAniDBOther {
             get {
                 return ResourceManager.GetString("Command_WebCacheSendXRefAniDBOther", resourceCulture);
             }
@@ -973,7 +982,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sending cross ref for Anidb to Trakt from web cache: {0}.
         /// </summary>
-        internal static string Command_WebCacheSendXRefAniDBTrakt {
+        public static string Command_WebCacheSendXRefAniDBTrakt {
             get {
                 return ResourceManager.GetString("Command_WebCacheSendXRefAniDBTrakt", resourceCulture);
             }
@@ -982,7 +991,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sending cross ref for Anidb to TvDB from web cache: {0}.
         /// </summary>
-        internal static string Command_WebCacheSendXRefAniDBTvDB {
+        public static string Command_WebCacheSendXRefAniDBTvDB {
             get {
                 return ResourceManager.GetString("Command_WebCacheSendXRefAniDBTvDB", resourceCulture);
             }
@@ -991,7 +1000,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sending cross ref for file to episode to web cache: {0}.
         /// </summary>
-        internal static string Command_WebCacheSendXRefFileEpisode {
+        public static string Command_WebCacheSendXRefFileEpisode {
             get {
                 return ResourceManager.GetString("Command_WebCacheSendXRefFileEpisode", resourceCulture);
             }
@@ -1000,7 +1009,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Confirm.
         /// </summary>
-        internal static string Confirm {
+        public static string Confirm {
             get {
                 return ResourceManager.GetString("Confirm", resourceCulture);
             }
@@ -1009,7 +1018,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Waiting for Blu-ray Completion.
         /// </summary>
-        internal static string CustomTag_BlurayComplete {
+        public static string CustomTag_BlurayComplete {
             get {
                 return ResourceManager.GetString("CustomTag_BlurayComplete", resourceCulture);
             }
@@ -1018,7 +1027,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Will start watching this once all episodes are available in Blu-Ray.
         /// </summary>
-        internal static string CustomTag_BlurayCompleteInfo {
+        public static string CustomTag_BlurayCompleteInfo {
             get {
                 return ResourceManager.GetString("CustomTag_BlurayCompleteInfo", resourceCulture);
             }
@@ -1027,7 +1036,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Dropped.
         /// </summary>
-        internal static string CustomTag_Dropped {
+        public static string CustomTag_Dropped {
             get {
                 return ResourceManager.GetString("CustomTag_Dropped", resourceCulture);
             }
@@ -1036,7 +1045,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Started watching this series, but have since dropped it.
         /// </summary>
-        internal static string CustomTag_DroppedInfo {
+        public static string CustomTag_DroppedInfo {
             get {
                 return ResourceManager.GetString("CustomTag_DroppedInfo", resourceCulture);
             }
@@ -1045,7 +1054,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Ongoing.
         /// </summary>
-        internal static string CustomTag_Ongoing {
+        public static string CustomTag_Ongoing {
             get {
                 return ResourceManager.GetString("CustomTag_Ongoing", resourceCulture);
             }
@@ -1054,7 +1063,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to This series does not have an end date.
         /// </summary>
-        internal static string CustomTag_OngoingInfo {
+        public static string CustomTag_OngoingInfo {
             get {
                 return ResourceManager.GetString("CustomTag_OngoingInfo", resourceCulture);
             }
@@ -1063,7 +1072,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Pinned.
         /// </summary>
-        internal static string CustomTag_Pinned {
+        public static string CustomTag_Pinned {
             get {
                 return ResourceManager.GetString("CustomTag_Pinned", resourceCulture);
             }
@@ -1072,7 +1081,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Pinned this series for whatever reason you like.
         /// </summary>
-        internal static string CustomTag_PinnedInfo {
+        public static string CustomTag_PinnedInfo {
             get {
                 return ResourceManager.GetString("CustomTag_PinnedInfo", resourceCulture);
             }
@@ -1081,7 +1090,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Waiting for Series Completion.
         /// </summary>
-        internal static string CustomTag_SeriesComplete {
+        public static string CustomTag_SeriesComplete {
             get {
                 return ResourceManager.GetString("CustomTag_SeriesComplete", resourceCulture);
             }
@@ -1090,7 +1099,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Will start watching this once this series is finished.
         /// </summary>
-        internal static string CustomTag_SeriesCompleteInfo {
+        public static string CustomTag_SeriesCompleteInfo {
             get {
                 return ResourceManager.GetString("CustomTag_SeriesCompleteInfo", resourceCulture);
             }
@@ -1099,7 +1108,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database - Applying Schema Patches....
         /// </summary>
-        internal static string Database_ApplySchema {
+        public static string Database_ApplySchema {
             get {
                 return ResourceManager.GetString("Database_ApplySchema", resourceCulture);
             }
@@ -1108,7 +1117,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to New Version detected. Database Backup in progress....
         /// </summary>
-        internal static string Database_Backup {
+        public static string Database_Backup {
             get {
                 return ResourceManager.GetString("Database_Backup", resourceCulture);
             }
@@ -1117,7 +1126,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database Cache - Caching  - {0}{1}....
         /// </summary>
-        internal static string Database_Cache {
+        public static string Database_Cache {
             get {
                 return ResourceManager.GetString("Database_Cache", resourceCulture);
             }
@@ -1126,7 +1135,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database - Creating Database....
         /// </summary>
-        internal static string Database_CreateDatabase {
+        public static string Database_CreateDatabase {
             get {
                 return ResourceManager.GetString("Database_CreateDatabase", resourceCulture);
             }
@@ -1135,7 +1144,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database - Creating Initial Schema....
         /// </summary>
-        internal static string Database_CreateSchema {
+        public static string Database_CreateSchema {
             get {
                 return ResourceManager.GetString("Database_CreateSchema", resourceCulture);
             }
@@ -1144,7 +1153,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database - Populating Data (Custom Tags)....
         /// </summary>
-        internal static string Database_CustomTags {
+        public static string Database_CustomTags {
             get {
                 return ResourceManager.GetString("Database_CustomTags", resourceCulture);
             }
@@ -1153,7 +1162,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database - Populating Data (Group Filters)....
         /// </summary>
-        internal static string Database_Filters {
+        public static string Database_Filters {
             get {
                 return ResourceManager.GetString("Database_Filters", resourceCulture);
             }
@@ -1162,7 +1171,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Initializing Session Factory....
         /// </summary>
-        internal static string Database_Initializing {
+        public static string Database_Initializing {
             get {
                 return ResourceManager.GetString("Database_Initializing", resourceCulture);
             }
@@ -1171,7 +1180,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database - Populating Data (Locked Group Filters)....
         /// </summary>
-        internal static string Database_LockFilters {
+        public static string Database_LockFilters {
             get {
                 return ResourceManager.GetString("Database_LockFilters", resourceCulture);
             }
@@ -1180,7 +1189,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to The Database Version is bigger than the supported version by JMM Server. You should upgrade JMMServer..
         /// </summary>
-        internal static string Database_NotSupportedVersion {
+        public static string Database_NotSupportedVersion {
             get {
                 return ResourceManager.GetString("Database_NotSupportedVersion", resourceCulture);
             }
@@ -1189,7 +1198,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database - Populating Data (Rename Script)....
         /// </summary>
-        internal static string Database_RenameScripts {
+        public static string Database_RenameScripts {
             get {
                 return ResourceManager.GetString("Database_RenameScripts", resourceCulture);
             }
@@ -1198,7 +1207,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database - Populating Data (Users)....
         /// </summary>
-        internal static string Database_Users {
+        public static string Database_Users {
             get {
                 return ResourceManager.GetString("Database_Users", resourceCulture);
             }
@@ -1207,7 +1216,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Detailed explanation of options.
         /// </summary>
-        internal static string DetailedExplanation {
+        public static string DetailedExplanation {
             get {
                 return ResourceManager.GetString("DetailedExplanation", resourceCulture);
             }
@@ -1216,7 +1225,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Enable Kodi.
         /// </summary>
-        internal static string EnableKodi {
+        public static string EnableKodi {
             get {
                 return ResourceManager.GetString("EnableKodi", resourceCulture);
             }
@@ -1225,7 +1234,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Enable Plex.
         /// </summary>
-        internal static string EnablePlex {
+        public static string EnablePlex {
             get {
                 return ResourceManager.GetString("EnablePlex", resourceCulture);
             }
@@ -1234,7 +1243,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Credit.
         /// </summary>
-        internal static string EpisodeType_Credits {
+        public static string EpisodeType_Credits {
             get {
                 return ResourceManager.GetString("EpisodeType_Credits", resourceCulture);
             }
@@ -1243,7 +1252,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Episodes.
         /// </summary>
-        internal static string EpisodeType_Episodes {
+        public static string EpisodeType_Episodes {
             get {
                 return ResourceManager.GetString("EpisodeType_Episodes", resourceCulture);
             }
@@ -1252,7 +1261,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Other.
         /// </summary>
-        internal static string EpisodeType_Other {
+        public static string EpisodeType_Other {
             get {
                 return ResourceManager.GetString("EpisodeType_Other", resourceCulture);
             }
@@ -1261,7 +1270,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Parody.
         /// </summary>
-        internal static string EpisodeType_Parody {
+        public static string EpisodeType_Parody {
             get {
                 return ResourceManager.GetString("EpisodeType_Parody", resourceCulture);
             }
@@ -1270,7 +1279,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Specials.
         /// </summary>
-        internal static string EpisodeType_Specials {
+        public static string EpisodeType_Specials {
             get {
                 return ResourceManager.GetString("EpisodeType_Specials", resourceCulture);
             }
@@ -1279,7 +1288,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Trailer.
         /// </summary>
-        internal static string EpisodeType_Trailer {
+        public static string EpisodeType_Trailer {
             get {
                 return ResourceManager.GetString("EpisodeType_Trailer", resourceCulture);
             }
@@ -1288,7 +1297,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error.
         /// </summary>
-        internal static string Error {
+        public static string Error {
             get {
                 return ResourceManager.GetString("Error", resourceCulture);
             }
@@ -1297,7 +1306,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Newly Added Series.
         /// </summary>
-        internal static string Filter_Added {
+        public static string Filter_Added {
             get {
                 return ResourceManager.GetString("Filter_Added", resourceCulture);
             }
@@ -1306,7 +1315,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Newly Airing Series.
         /// </summary>
-        internal static string Filter_Airing {
+        public static string Filter_Airing {
             get {
                 return ResourceManager.GetString("Filter_Airing", resourceCulture);
             }
@@ -1315,7 +1324,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to All.
         /// </summary>
-        internal static string Filter_All {
+        public static string Filter_All {
             get {
                 return ResourceManager.GetString("Filter_All", resourceCulture);
             }
@@ -1324,7 +1333,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Continue Watching (SYSTEM).
         /// </summary>
-        internal static string Filter_Continue {
+        public static string Filter_Continue {
             get {
                 return ResourceManager.GetString("Filter_Continue", resourceCulture);
             }
@@ -1333,7 +1342,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Creating All filter.
         /// </summary>
-        internal static string Filter_CreateAll {
+        public static string Filter_CreateAll {
             get {
                 return ResourceManager.GetString("Filter_CreateAll", resourceCulture);
             }
@@ -1342,7 +1351,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Creating Continue Watching filter.
         /// </summary>
-        internal static string Filter_CreateContinueWatching {
+        public static string Filter_CreateContinueWatching {
             get {
                 return ResourceManager.GetString("Filter_CreateContinueWatching", resourceCulture);
             }
@@ -1351,7 +1360,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Creating Tag.
         /// </summary>
-        internal static string Filter_CreatingTag {
+        public static string Filter_CreatingTag {
             get {
                 return ResourceManager.GetString("Filter_CreatingTag", resourceCulture);
             }
@@ -1360,7 +1369,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Creating Year.
         /// </summary>
-        internal static string Filter_CreatingYear {
+        public static string Filter_CreatingYear {
             get {
                 return ResourceManager.GetString("Filter_CreatingYear", resourceCulture);
             }
@@ -1369,7 +1378,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Favorites.
         /// </summary>
-        internal static string Filter_Favorites {
+        public static string Filter_Favorites {
             get {
                 return ResourceManager.GetString("Filter_Favorites", resourceCulture);
             }
@@ -1378,7 +1387,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Filter.
         /// </summary>
-        internal static string Filter_Filter {
+        public static string Filter_Filter {
             get {
                 return ResourceManager.GetString("Filter_Filter", resourceCulture);
             }
@@ -1387,7 +1396,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to TvDB/MovieDB Link Missing.
         /// </summary>
-        internal static string Filter_LinkMissing {
+        public static string Filter_LinkMissing {
             get {
                 return ResourceManager.GetString("Filter_LinkMissing", resourceCulture);
             }
@@ -1396,7 +1405,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Missing Episodes.
         /// </summary>
-        internal static string Filter_MissingEpisodes {
+        public static string Filter_MissingEpisodes {
             get {
                 return ResourceManager.GetString("Filter_MissingEpisodes", resourceCulture);
             }
@@ -1405,7 +1414,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Recalc Filter.
         /// </summary>
-        internal static string Filter_Recalc {
+        public static string Filter_Recalc {
             get {
                 return ResourceManager.GetString("Filter_Recalc", resourceCulture);
             }
@@ -1414,7 +1423,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Recently Watched.
         /// </summary>
-        internal static string Filter_RecentlyWatched {
+        public static string Filter_RecentlyWatched {
             get {
                 return ResourceManager.GetString("Filter_RecentlyWatched", resourceCulture);
             }
@@ -1423,7 +1432,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Tags.
         /// </summary>
-        internal static string Filter_Tags {
+        public static string Filter_Tags {
             get {
                 return ResourceManager.GetString("Filter_Tags", resourceCulture);
             }
@@ -1432,7 +1441,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Votes Needed.
         /// </summary>
-        internal static string Filter_Votes {
+        public static string Filter_Votes {
             get {
                 return ResourceManager.GetString("Filter_Votes", resourceCulture);
             }
@@ -1441,7 +1450,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Years.
         /// </summary>
-        internal static string Filter_Years {
+        public static string Filter_Years {
             get {
                 return ResourceManager.GetString("Filter_Years", resourceCulture);
             }
@@ -1450,7 +1459,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Clear all queued general commands.
         /// </summary>
-        internal static string General_Clear {
+        public static string General_Clear {
             get {
                 return ResourceManager.GetString("General_Clear", resourceCulture);
             }
@@ -1459,7 +1468,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to General - Paused.
         /// </summary>
-        internal static string General_Paused {
+        public static string General_Paused {
             get {
                 return ResourceManager.GetString("General_Paused", resourceCulture);
             }
@@ -1468,7 +1477,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to General - Running.
         /// </summary>
-        internal static string General_Running {
+        public static string General_Running {
             get {
                 return ResourceManager.GetString("General_Running", resourceCulture);
             }
@@ -1477,7 +1486,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Clear all queued hash commands.
         /// </summary>
-        internal static string Hash_Clear {
+        public static string Hash_Clear {
             get {
                 return ResourceManager.GetString("Hash_Clear", resourceCulture);
             }
@@ -1486,7 +1495,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Hasher - Paused.
         /// </summary>
-        internal static string Hash_Paused {
+        public static string Hash_Paused {
             get {
                 return ResourceManager.GetString("Hash_Paused", resourceCulture);
             }
@@ -1495,7 +1504,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Hasher - Running.
         /// </summary>
-        internal static string Hash_Running {
+        public static string Hash_Running {
             get {
                 return ResourceManager.GetString("Hash_Running", resourceCulture);
             }
@@ -1504,7 +1513,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Clear all queued image download commands.
         /// </summary>
-        internal static string Images_Clear {
+        public static string Images_Clear {
             get {
                 return ResourceManager.GetString("Images_Clear", resourceCulture);
             }
@@ -1513,7 +1522,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Custom.
         /// </summary>
-        internal static string Images_Custom {
+        public static string Images_Custom {
             get {
                 return ResourceManager.GetString("Images_Custom", resourceCulture);
             }
@@ -1522,7 +1531,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Default.
         /// </summary>
-        internal static string Images_Default {
+        public static string Images_Default {
             get {
                 return ResourceManager.GetString("Images_Default", resourceCulture);
             }
@@ -1531,7 +1540,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Images - Paused.
         /// </summary>
-        internal static string Images_Paused {
+        public static string Images_Paused {
             get {
                 return ResourceManager.GetString("Images_Paused", resourceCulture);
             }
@@ -1540,7 +1549,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Images - Running.
         /// </summary>
-        internal static string Images_Running {
+        public static string Images_Running {
             get {
                 return ResourceManager.GetString("Images_Running", resourceCulture);
             }
@@ -1549,7 +1558,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Fill out the form below to add an import folder. Select the folder&apos;s location and import type and then click Save to add the import folder..
         /// </summary>
-        internal static string ImportFolders_AddImportFolder {
+        public static string ImportFolders_AddImportFolder {
             get {
                 return ResourceManager.GetString("ImportFolders_AddImportFolder", resourceCulture);
             }
@@ -1558,7 +1567,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to The import folder path cannot be blank, please enter a valid path..
         /// </summary>
-        internal static string ImportFolders_BlankImport {
+        public static string ImportFolders_BlankImport {
             get {
                 return ResourceManager.GetString("ImportFolders_BlankImport", resourceCulture);
             }
@@ -1567,7 +1576,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Please note, updating your drop destination will only affect new series being added. Series you&apos;ve already imported will not be affected..
         /// </summary>
-        internal static string ImportFolders_DDNote {
+        public static string ImportFolders_DDNote {
             get {
                 return ResourceManager.GetString("ImportFolders_DDNote", resourceCulture);
             }
@@ -1576,7 +1585,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Drop Destination.
         /// </summary>
-        internal static string ImportFolders_DropDestination {
+        public static string ImportFolders_DropDestination {
             get {
                 return ResourceManager.GetString("ImportFolders_DropDestination", resourceCulture);
             }
@@ -1585,7 +1594,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Drop Source.
         /// </summary>
-        internal static string ImportFolders_DropSource {
+        public static string ImportFolders_DropSource {
             get {
                 return ResourceManager.GetString("ImportFolders_DropSource", resourceCulture);
             }
@@ -1594,7 +1603,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Fix for using.
         /// </summary>
-        internal static string ImportFolders_Fix {
+        public static string ImportFolders_Fix {
             get {
                 return ResourceManager.GetString("ImportFolders_Fix", resourceCulture);
             }
@@ -1603,7 +1612,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import Folder.
         /// </summary>
-        internal static string ImportFolders_ImportFolder {
+        public static string ImportFolders_ImportFolder {
             get {
                 return ResourceManager.GetString("ImportFolders_ImportFolder", resourceCulture);
             }
@@ -1612,7 +1621,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Each import folder is a location where your anime files are kept that&apos;s used to build your collection. You&apos;ll need at least one import folder to start building your collection..
         /// </summary>
-        internal static string ImportFolders_Info {
+        public static string ImportFolders_Info {
             get {
                 return ResourceManager.GetString("ImportFolders_Info", resourceCulture);
             }
@@ -1621,7 +1630,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import Folder Path.
         /// </summary>
-        internal static string ImportFolders_InputPath {
+        public static string ImportFolders_InputPath {
             get {
                 return ResourceManager.GetString("ImportFolders_InputPath", resourceCulture);
             }
@@ -1630,7 +1639,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Learn more about import folders.
         /// </summary>
-        internal static string ImportFolders_LearnMore {
+        public static string ImportFolders_LearnMore {
             get {
                 return ResourceManager.GetString("ImportFolders_LearnMore", resourceCulture);
             }
@@ -1639,7 +1648,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to New Folder.
         /// </summary>
-        internal static string ImportFolders_NewFolder {
+        public static string ImportFolders_NewFolder {
             get {
                 return ResourceManager.GetString("ImportFolders_NewFolder", resourceCulture);
             }
@@ -1648,7 +1657,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Provider.
         /// </summary>
-        internal static string ImportFolders_Provider {
+        public static string ImportFolders_Provider {
             get {
                 return ResourceManager.GetString("ImportFolders_Provider", resourceCulture);
             }
@@ -1657,7 +1666,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Remove.
         /// </summary>
-        internal static string ImportFolders_Remove {
+        public static string ImportFolders_Remove {
             get {
                 return ResourceManager.GetString("ImportFolders_Remove", resourceCulture);
             }
@@ -1666,7 +1675,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to remove the following Import Folder: {0}?.
         /// </summary>
-        internal static string ImportFolders_RemoveFolder {
+        public static string ImportFolders_RemoveFolder {
             get {
                 return ResourceManager.GetString("ImportFolders_RemoveFolder", resourceCulture);
             }
@@ -1675,7 +1684,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to An import folder cannot be both the drop source and the drop destination..
         /// </summary>
-        internal static string ImportFolders_SameFolder {
+        public static string ImportFolders_SameFolder {
             get {
                 return ResourceManager.GetString("ImportFolders_SameFolder", resourceCulture);
             }
@@ -1684,7 +1693,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Select Cloud Folder....
         /// </summary>
-        internal static string ImportFolders_SelectCloudFolder {
+        public static string ImportFolders_SelectCloudFolder {
             get {
                 return ResourceManager.GetString("ImportFolders_SelectCloudFolder", resourceCulture);
             }
@@ -1693,7 +1702,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import Folder Settings.
         /// </summary>
-        internal static string ImportFolders_ServerFolder {
+        public static string ImportFolders_ServerFolder {
             get {
                 return ResourceManager.GetString("ImportFolders_ServerFolder", resourceCulture);
             }
@@ -1702,7 +1711,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Server Path.
         /// </summary>
-        internal static string ImportFolders_ServerPath {
+        public static string ImportFolders_ServerPath {
             get {
                 return ResourceManager.GetString("ImportFolders_ServerPath", resourceCulture);
             }
@@ -1711,7 +1720,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to JMM Server with shared drives.
         /// </summary>
-        internal static string ImportFolders_Shared {
+        public static string ImportFolders_Shared {
             get {
                 return ResourceManager.GetString("ImportFolders_Shared", resourceCulture);
             }
@@ -1720,7 +1729,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to UPnP Source.
         /// </summary>
-        internal static string ImportFolders_UPnP {
+        public static string ImportFolders_UPnP {
             get {
                 return ResourceManager.GetString("ImportFolders_UPnP", resourceCulture);
             }
@@ -1729,7 +1738,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Watch For New Files.
         /// </summary>
-        internal static string ImportFolders_Watch {
+        public static string ImportFolders_Watch {
             get {
                 return ResourceManager.GetString("ImportFolders_Watch", resourceCulture);
             }
@@ -1738,7 +1747,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to AniDB Client Port.
         /// </summary>
-        internal static string InitalSetup_AniDBPort {
+        public static string InitalSetup_AniDBPort {
             get {
                 return ResourceManager.GetString("InitalSetup_AniDBPort", resourceCulture);
             }
@@ -1747,7 +1756,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to AniDB Password.
         /// </summary>
-        internal static string InitialSetup_AniDBPassword {
+        public static string InitialSetup_AniDBPassword {
             get {
                 return ResourceManager.GetString("InitialSetup_AniDBPassword", resourceCulture);
             }
@@ -1756,7 +1765,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to AniDB Username.
         /// </summary>
-        internal static string InitialSetup_AniDBUsername {
+        public static string InitialSetup_AniDBUsername {
             get {
                 return ResourceManager.GetString("InitialSetup_AniDBUsername", resourceCulture);
             }
@@ -1765,7 +1774,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Disposing....
         /// </summary>
-        internal static string InitialSetup_Disposing {
+        public static string InitialSetup_Disposing {
             get {
                 return ResourceManager.GetString("InitialSetup_Disposing", resourceCulture);
             }
@@ -1774,7 +1783,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Please enter a valid password..
         /// </summary>
-        internal static string InitialSetup_EnterPassword {
+        public static string InitialSetup_EnterPassword {
             get {
                 return ResourceManager.GetString("InitialSetup_EnterPassword", resourceCulture);
             }
@@ -1783,7 +1792,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Please enter a valid client port..
         /// </summary>
-        internal static string InitialSetup_EnterPort {
+        public static string InitialSetup_EnterPort {
             get {
                 return ResourceManager.GetString("InitialSetup_EnterPort", resourceCulture);
             }
@@ -1792,7 +1801,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Please enter a valid username..
         /// </summary>
-        internal static string InitialSetup_EnterUsername {
+        public static string InitialSetup_EnterUsername {
             get {
                 return ResourceManager.GetString("InitialSetup_EnterUsername", resourceCulture);
             }
@@ -1801,7 +1810,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Don&apos;t have an AniDB account? Click here to register for one.
         /// </summary>
-        internal static string InitialSetup_Get {
+        public static string InitialSetup_Get {
             get {
                 return ResourceManager.GetString("InitialSetup_Get", resourceCulture);
             }
@@ -1810,7 +1819,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Initial Setup.
         /// </summary>
-        internal static string InitialSetup_InitialSetup {
+        public static string InitialSetup_InitialSetup {
             get {
                 return ResourceManager.GetString("InitialSetup_InitialSetup", resourceCulture);
             }
@@ -1819,7 +1828,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Logging In....
         /// </summary>
-        internal static string InitialSetup_Login {
+        public static string InitialSetup_Login {
             get {
                 return ResourceManager.GetString("InitialSetup_Login", resourceCulture);
             }
@@ -1828,7 +1837,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to AniDB Login Credentials.
         /// </summary>
-        internal static string InitialSetup_LoginCredentials {
+        public static string InitialSetup_LoginCredentials {
             get {
                 return ResourceManager.GetString("InitialSetup_LoginCredentials", resourceCulture);
             }
@@ -1837,7 +1846,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Login FAILED!.
         /// </summary>
-        internal static string InitialSetup_LoginFail {
+        public static string InitialSetup_LoginFail {
             get {
                 return ResourceManager.GetString("InitialSetup_LoginFail", resourceCulture);
             }
@@ -1846,7 +1855,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Login Success! Logging out....
         /// </summary>
-        internal static string InitialSetup_LoginPass1 {
+        public static string InitialSetup_LoginPass1 {
             get {
                 return ResourceManager.GetString("InitialSetup_LoginPass1", resourceCulture);
             }
@@ -1855,7 +1864,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Login Success! Logged out..
         /// </summary>
-        internal static string InitialSetup_LoginPass2 {
+        public static string InitialSetup_LoginPass2 {
             get {
                 return ResourceManager.GetString("InitialSetup_LoginPass2", resourceCulture);
             }
@@ -1864,7 +1873,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Test and Save Login.
         /// </summary>
-        internal static string InitialSetup_Test {
+        public static string InitialSetup_Test {
             get {
                 return ResourceManager.GetString("InitialSetup_Test", resourceCulture);
             }
@@ -1873,7 +1882,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to JMM Server.
         /// </summary>
-        internal static string JMMServer {
+        public static string JMMServer {
             get {
                 return ResourceManager.GetString("JMMServer", resourceCulture);
             }
@@ -1882,7 +1891,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to JMM Server needs to restart to change the language, click OK to auto restart or Cancel to manually restart..
         /// </summary>
-        internal static string Language_Info {
+        public static string Language_Info {
             get {
                 return ResourceManager.GetString("Language_Info", resourceCulture);
             }
@@ -1891,7 +1900,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Switch Language.
         /// </summary>
-        internal static string Language_Switch {
+        public static string Language_Switch {
             get {
                 return ResourceManager.GetString("Language_Switch", resourceCulture);
             }
@@ -1900,7 +1909,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Learn more about.
         /// </summary>
-        internal static string LearnMore {
+        public static string LearnMore {
             get {
                 return ResourceManager.GetString("LearnMore", resourceCulture);
             }
@@ -1909,7 +1918,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to https://anidb.net/perl-bin/animedb.pl?show=signup.
         /// </summary>
-        internal static string Link_AniDB {
+        public static string Link_AniDB {
             get {
                 return ResourceManager.GetString("Link_AniDB", resourceCulture);
             }
@@ -1918,7 +1927,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/faq/#banned-from-anidb.
         /// </summary>
-        internal static string Link_AniDBBan {
+        public static string Link_AniDBBan {
             get {
                 return ResourceManager.GetString("Link_AniDBBan", resourceCulture);
             }
@@ -1927,7 +1936,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/blog.
         /// </summary>
-        internal static string Link_Blog {
+        public static string Link_Blog {
             get {
                 return ResourceManager.GetString("Link_Blog", resourceCulture);
             }
@@ -1936,7 +1945,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/changelog.
         /// </summary>
-        internal static string Link_Changelog {
+        public static string Link_Changelog {
             get {
                 return ResourceManager.GetString("Link_Changelog", resourceCulture);
             }
@@ -1945,7 +1954,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://localhost.
         /// </summary>
-        internal static string Link_CloudAccounts {
+        public static string Link_CloudAccounts {
             get {
                 return ResourceManager.GetString("Link_CloudAccounts", resourceCulture);
             }
@@ -1954,7 +1963,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/contribute/.
         /// </summary>
-        internal static string Link_Contribute {
+        public static string Link_Contribute {
             get {
                 return ResourceManager.GetString("Link_Contribute", resourceCulture);
             }
@@ -1963,7 +1972,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/downloads.
         /// </summary>
-        internal static string Link_Download {
+        public static string Link_Download {
             get {
                 return ResourceManager.GetString("Link_Download", resourceCulture);
             }
@@ -1972,7 +1981,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to https://github.com/japanesemediamanager.
         /// </summary>
-        internal static string Link_GitHub {
+        public static string Link_GitHub {
             get {
                 return ResourceManager.GetString("Link_GitHub", resourceCulture);
             }
@@ -1981,7 +1990,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/.
         /// </summary>
-        internal static string Link_Home {
+        public static string Link_Home {
             get {
                 return ResourceManager.GetString("Link_Home", resourceCulture);
             }
@@ -1990,7 +1999,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders.
         /// </summary>
-        internal static string Link_ImportFolders {
+        public static string Link_ImportFolders {
             get {
                 return ResourceManager.GetString("Link_ImportFolders", resourceCulture);
             }
@@ -1999,7 +2008,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/setup/mysql/.
         /// </summary>
-        internal static string Link_MySQL {
+        public static string Link_MySQL {
             get {
                 return ResourceManager.GetString("Link_MySQL", resourceCulture);
             }
@@ -2008,7 +2017,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/faq/#jmm-shared-drive.
         /// </summary>
-        internal static string Link_SharedDrive {
+        public static string Link_SharedDrive {
             get {
                 return ResourceManager.GetString("Link_SharedDrive", resourceCulture);
             }
@@ -2017,7 +2026,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to http://jmediamanager.org/setup/sqlserver/.
         /// </summary>
-        internal static string Link_SQLServer {
+        public static string Link_SQLServer {
             get {
                 return ResourceManager.GetString("Link_SQLServer", resourceCulture);
             }
@@ -2026,7 +2035,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
-        internal static string MessageBox_Cancel {
+        public static string MessageBox_Cancel {
             get {
                 return ResourceManager.GetString("MessageBox_Cancel", resourceCulture);
             }
@@ -2035,7 +2044,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to New Folder.
         /// </summary>
-        internal static string MessageBox_NewFolder {
+        public static string MessageBox_NewFolder {
             get {
                 return ResourceManager.GetString("MessageBox_NewFolder", resourceCulture);
             }
@@ -2044,7 +2053,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to No.
         /// </summary>
-        internal static string MessageBox_No {
+        public static string MessageBox_No {
             get {
                 return ResourceManager.GetString("MessageBox_No", resourceCulture);
             }
@@ -2053,7 +2062,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to OK.
         /// </summary>
-        internal static string MessageBox_OK {
+        public static string MessageBox_OK {
             get {
                 return ResourceManager.GetString("MessageBox_OK", resourceCulture);
             }
@@ -2062,7 +2071,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Yes.
         /// </summary>
-        internal static string MessageBox_Yes {
+        public static string MessageBox_Yes {
             get {
                 return ResourceManager.GetString("MessageBox_Yes", resourceCulture);
             }
@@ -2071,7 +2080,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to JMM Server is unable to migrate your settings using the current user access. Run JMM Server as an Administrator to start the migration..
         /// </summary>
-        internal static string Migration_AdminFail {
+        public static string Migration_AdminFail {
             get {
                 return ResourceManager.GetString("Migration_AdminFail", resourceCulture);
             }
@@ -2080,7 +2089,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to JMM Server will now start migrating your settings from this location to.
         /// </summary>
-        internal static string Migration_AdminPass1 {
+        public static string Migration_AdminPass1 {
             get {
                 return ResourceManager.GetString("Migration_AdminPass1", resourceCulture);
             }
@@ -2089,7 +2098,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to once this process is complete JMM Server will restart and no longer need Administrative Privileges to run..
         /// </summary>
-        internal static string Migration_AdminPass2 {
+        public static string Migration_AdminPass2 {
             get {
                 return ResourceManager.GetString("Migration_AdminPass2", resourceCulture);
             }
@@ -2098,7 +2107,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Migration Status.
         /// </summary>
-        internal static string Migration_Header {
+        public static string Migration_Header {
             get {
                 return ResourceManager.GetString("Migration_Header", resourceCulture);
             }
@@ -2107,7 +2116,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to MySQL.
         /// </summary>
-        internal static string MySQL {
+        public static string MySQL {
             get {
                 return ResourceManager.GetString("MySQL", resourceCulture);
             }
@@ -2116,7 +2125,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to MySQL is the mid-tier and recommended database type for JMM users with a large collection, who intend to build a large collection or simply want a speed and performance boost when using JMM. It is easy to setup and using our guide you’ll be up and running in a matter of minutes..
         /// </summary>
-        internal static string MySQL_Info {
+        public static string MySQL_Info {
             get {
                 return ResourceManager.GetString("MySQL_Info", resourceCulture);
             }
@@ -2125,7 +2134,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_404 {
+        public static byte[] plex_404 {
             get {
                 object obj = ResourceManager.GetObject("plex_404", resourceCulture);
                 return ((byte[])(obj));
@@ -2135,7 +2144,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_404V {
+        public static byte[] plex_404V {
             get {
                 object obj = ResourceManager.GetObject("plex_404V", resourceCulture);
                 return ((byte[])(obj));
@@ -2145,7 +2154,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_credits {
+        public static byte[] plex_credits {
             get {
                 object obj = ResourceManager.GetObject("plex_credits", resourceCulture);
                 return ((byte[])(obj));
@@ -2155,7 +2164,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_episodes {
+        public static byte[] plex_episodes {
             get {
                 object obj = ResourceManager.GetObject("plex_episodes", resourceCulture);
                 return ((byte[])(obj));
@@ -2165,7 +2174,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_misc {
+        public static byte[] plex_misc {
             get {
                 object obj = ResourceManager.GetObject("plex_misc", resourceCulture);
                 return ((byte[])(obj));
@@ -2175,7 +2184,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_movies {
+        public static byte[] plex_movies {
             get {
                 object obj = ResourceManager.GetObject("plex_movies", resourceCulture);
                 return ((byte[])(obj));
@@ -2185,7 +2194,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_others {
+        public static byte[] plex_others {
             get {
                 object obj = ResourceManager.GetObject("plex_others", resourceCulture);
                 return ((byte[])(obj));
@@ -2195,7 +2204,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_ovas {
+        public static byte[] plex_ovas {
             get {
                 object obj = ResourceManager.GetObject("plex_ovas", resourceCulture);
                 return ((byte[])(obj));
@@ -2205,7 +2214,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_parodies {
+        public static byte[] plex_parodies {
             get {
                 object obj = ResourceManager.GetObject("plex_parodies", resourceCulture);
                 return ((byte[])(obj));
@@ -2215,7 +2224,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_playlists {
+        public static byte[] plex_playlists {
             get {
                 object obj = ResourceManager.GetObject("plex_playlists", resourceCulture);
                 return ((byte[])(obj));
@@ -2225,7 +2234,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_specials {
+        public static byte[] plex_specials {
             get {
                 object obj = ResourceManager.GetObject("plex_specials", resourceCulture);
                 return ((byte[])(obj));
@@ -2235,7 +2244,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_trailers {
+        public static byte[] plex_trailers {
             get {
                 object obj = ResourceManager.GetObject("plex_trailers", resourceCulture);
                 return ((byte[])(obj));
@@ -2245,7 +2254,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_tvepisodes {
+        public static byte[] plex_tvepisodes {
             get {
                 object obj = ResourceManager.GetObject("plex_tvepisodes", resourceCulture);
                 return ((byte[])(obj));
@@ -2255,7 +2264,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_unsort {
+        public static byte[] plex_unsort {
             get {
                 object obj = ResourceManager.GetObject("plex_unsort", resourceCulture);
                 return ((byte[])(obj));
@@ -2265,7 +2274,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] plex_webclips {
+        public static byte[] plex_webclips {
             get {
                 object obj = ResourceManager.GetObject("plex_webclips", resourceCulture);
                 return ((byte[])(obj));
@@ -2275,7 +2284,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Default.
         /// </summary>
-        internal static string Rename_Default {
+        public static string Rename_Default {
             get {
                 return ResourceManager.GetString("Rename_Default", resourceCulture);
             }
@@ -2284,7 +2293,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Save.
         /// </summary>
-        internal static string Save {
+        public static string Save {
             get {
                 return ResourceManager.GetString("Save", resourceCulture);
             }
@@ -2293,7 +2302,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Alternative Setting.
         /// </summary>
-        internal static string SeriesType_AltSetting {
+        public static string SeriesType_AltSetting {
             get {
                 return ResourceManager.GetString("SeriesType_AltSetting", resourceCulture);
             }
@@ -2302,7 +2311,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Alternative Version.
         /// </summary>
-        internal static string SeriesType_AltVersion {
+        public static string SeriesType_AltVersion {
             get {
                 return ResourceManager.GetString("SeriesType_AltVersion", resourceCulture);
             }
@@ -2311,7 +2320,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Character.
         /// </summary>
-        internal static string SeriesType_Character {
+        public static string SeriesType_Character {
             get {
                 return ResourceManager.GetString("SeriesType_Character", resourceCulture);
             }
@@ -2320,7 +2329,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Full Story.
         /// </summary>
-        internal static string SeriesType_FullStory {
+        public static string SeriesType_FullStory {
             get {
                 return ResourceManager.GetString("SeriesType_FullStory", resourceCulture);
             }
@@ -2329,7 +2338,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Music Video.
         /// </summary>
-        internal static string SeriesType_MusicVideo {
+        public static string SeriesType_MusicVideo {
             get {
                 return ResourceManager.GetString("SeriesType_MusicVideo", resourceCulture);
             }
@@ -2338,7 +2347,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Parent Story.
         /// </summary>
-        internal static string SeriesType_ParentStory {
+        public static string SeriesType_ParentStory {
             get {
                 return ResourceManager.GetString("SeriesType_ParentStory", resourceCulture);
             }
@@ -2347,7 +2356,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Prequel.
         /// </summary>
-        internal static string SeriesType_Prequel {
+        public static string SeriesType_Prequel {
             get {
                 return ResourceManager.GetString("SeriesType_Prequel", resourceCulture);
             }
@@ -2356,7 +2365,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Same Setting.
         /// </summary>
-        internal static string SeriesType_SameSetting {
+        public static string SeriesType_SameSetting {
             get {
                 return ResourceManager.GetString("SeriesType_SameSetting", resourceCulture);
             }
@@ -2365,7 +2374,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Sequel.
         /// </summary>
-        internal static string SeriesType_Sequel {
+        public static string SeriesType_Sequel {
             get {
                 return ResourceManager.GetString("SeriesType_Sequel", resourceCulture);
             }
@@ -2374,7 +2383,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Side Story.
         /// </summary>
-        internal static string SeriesType_SideStory {
+        public static string SeriesType_SideStory {
             get {
                 return ResourceManager.GetString("SeriesType_SideStory", resourceCulture);
             }
@@ -2383,7 +2392,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Summary.
         /// </summary>
-        internal static string SeriesType_Summary {
+        public static string SeriesType_Summary {
             get {
                 return ResourceManager.GetString("SeriesType_Summary", resourceCulture);
             }
@@ -2392,7 +2401,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Updating all files video media info added to queue..
         /// </summary>
-        internal static string Serrver_VideoMediaUpdate {
+        public static string Serrver_VideoMediaUpdate {
             get {
                 return ResourceManager.GetString("Serrver_VideoMediaUpdate", resourceCulture);
             }
@@ -2401,7 +2410,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Updating all series AniDB info added to queue..
         /// </summary>
-        internal static string Server_AniDBInfoUpdate {
+        public static string Server_AniDBInfoUpdate {
             get {
                 return ResourceManager.GetString("Server_AniDBInfoUpdate", resourceCulture);
             }
@@ -2410,7 +2419,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Cleaning up....
         /// </summary>
-        internal static string Server_Cleaning {
+        public static string Server_Cleaning {
             get {
                 return ResourceManager.GetString("Server_Cleaning", resourceCulture);
             }
@@ -2419,7 +2428,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Complete!.
         /// </summary>
-        internal static string Server_Complete {
+        public static string Server_Complete {
             get {
                 return ResourceManager.GetString("Server_Complete", resourceCulture);
             }
@@ -2428,7 +2437,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Please select and configure your database..
         /// </summary>
-        internal static string Server_DatabaseConfig {
+        public static string Server_DatabaseConfig {
             get {
                 return ResourceManager.GetString("Server_DatabaseConfig", resourceCulture);
             }
@@ -2437,7 +2446,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to start. Please review database settings..
         /// </summary>
-        internal static string Server_DatabaseFail {
+        public static string Server_DatabaseFail {
             get {
                 return ResourceManager.GetString("Server_DatabaseFail", resourceCulture);
             }
@@ -2446,7 +2455,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Setting up database....
         /// </summary>
-        internal static string Server_DatabaseSetup {
+        public static string Server_DatabaseSetup {
             get {
                 return ResourceManager.GetString("Server_DatabaseSetup", resourceCulture);
             }
@@ -2455,7 +2464,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Please enter a value.
         /// </summary>
-        internal static string Server_EnterAnyValue {
+        public static string Server_EnterAnyValue {
             get {
                 return ResourceManager.GetString("Server_EnterAnyValue", resourceCulture);
             }
@@ -2464,7 +2473,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Please enter a value between 1 and 65535.
         /// </summary>
-        internal static string Server_EnterCertainValue {
+        public static string Server_EnterCertainValue {
             get {
                 return ResourceManager.GetString("Server_EnterCertainValue", resourceCulture);
             }
@@ -2473,7 +2482,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to set start: .
         /// </summary>
-        internal static string Server_FailedToStart {
+        public static string Server_FailedToStart {
             get {
                 return ResourceManager.GetString("Server_FailedToStart", resourceCulture);
             }
@@ -2482,7 +2491,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Please fill in all of the required fields.
         /// </summary>
-        internal static string Server_FillOutSettings {
+        public static string Server_FillOutSettings {
             get {
                 return ResourceManager.GetString("Server_FillOutSettings", resourceCulture);
             }
@@ -2491,7 +2500,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Scanning for newly added files added to queue..
         /// </summary>
-        internal static string Server_Import {
+        public static string Server_Import {
             get {
                 return ResourceManager.GetString("Server_Import", resourceCulture);
             }
@@ -2500,7 +2509,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import file processing added to queue.
         /// </summary>
-        internal static string Server_ImportRunning {
+        public static string Server_ImportRunning {
             get {
                 return ResourceManager.GetString("Server_ImportRunning", resourceCulture);
             }
@@ -2509,7 +2518,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Initializing....
         /// </summary>
-        internal static string Server_Initializing {
+        public static string Server_Initializing {
             get {
                 return ResourceManager.GetString("Server_Initializing", resourceCulture);
             }
@@ -2518,7 +2527,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Initializing File Watchers....
         /// </summary>
-        internal static string Server_InitializingFile {
+        public static string Server_InitializingFile {
             get {
                 return ResourceManager.GetString("Server_InitializingFile", resourceCulture);
             }
@@ -2527,7 +2536,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Initializing Hosts....
         /// </summary>
-        internal static string Server_InitializingHosts {
+        public static string Server_InitializingHosts {
             get {
                 return ResourceManager.GetString("Server_InitializingHosts", resourceCulture);
             }
@@ -2536,7 +2545,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Initializing Queue Processors....
         /// </summary>
-        internal static string Server_InitializingQueue {
+        public static string Server_InitializingQueue {
             get {
                 return ResourceManager.GetString("Server_InitializingQueue", resourceCulture);
             }
@@ -2545,7 +2554,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Initializing Session Factory....
         /// </summary>
-        internal static string Server_InitializingSession {
+        public static string Server_InitializingSession {
             get {
                 return ResourceManager.GetString("Server_InitializingSession", resourceCulture);
             }
@@ -2554,7 +2563,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Initializing Stats....
         /// </summary>
-        internal static string Server_InitializingStats {
+        public static string Server_InitializingStats {
             get {
                 return ResourceManager.GetString("Server_InitializingStats", resourceCulture);
             }
@@ -2563,7 +2572,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to JMM Server has been minimized to the system tray. To open the application, double-click the icon in the system tray..
         /// </summary>
-        internal static string Server_MinimizeInfo {
+        public static string Server_MinimizeInfo {
             get {
                 return ResourceManager.GetString("Server_MinimizeInfo", resourceCulture);
             }
@@ -2572,7 +2581,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Removing all missing files added to queue.
         /// </summary>
-        internal static string Server_RemoveMissingFiles {
+        public static string Server_RemoveMissingFiles {
             get {
                 return ResourceManager.GetString("Server_RemoveMissingFiles", resourceCulture);
             }
@@ -2581,7 +2590,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to JMM Server is already running. Please check your system tray (notification area)..
         /// </summary>
-        internal static string Server_Running {
+        public static string Server_Running {
             get {
                 return ResourceManager.GetString("Server_Running", resourceCulture);
             }
@@ -2590,7 +2599,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Folder scanning in progress.
         /// </summary>
-        internal static string Server_ScanFolder {
+        public static string Server_ScanFolder {
             get {
                 return ResourceManager.GetString("Server_ScanFolder", resourceCulture);
             }
@@ -2599,7 +2608,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Updating all series info added to queue. .
         /// </summary>
-        internal static string Server_StatsInfoUpdate {
+        public static string Server_StatsInfoUpdate {
             get {
                 return ResourceManager.GetString("Server_StatsInfoUpdate", resourceCulture);
             }
@@ -2608,7 +2617,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Synchronizing Hashes with the WebCache Running.
         /// </summary>
-        internal static string Server_SyncHashesRunning {
+        public static string Server_SyncHashesRunning {
             get {
                 return ResourceManager.GetString("Server_SyncHashesRunning", resourceCulture);
             }
@@ -2617,7 +2626,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Syncing collection metadata with AniDB MyList added to queue..
         /// </summary>
-        internal static string Server_SyncMyList {
+        public static string Server_SyncMyList {
             get {
                 return ResourceManager.GetString("Server_SyncMyList", resourceCulture);
             }
@@ -2626,7 +2635,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Syncing collection metadata with Trakt added to queue. .
         /// </summary>
-        internal static string Server_SyncTrakt {
+        public static string Server_SyncTrakt {
             get {
                 return ResourceManager.GetString("Server_SyncTrakt", resourceCulture);
             }
@@ -2635,7 +2644,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Syncing local votes with AniDB and MyAnimeList added to queue. .
         /// </summary>
-        internal static string Server_SyncVotes {
+        public static string Server_SyncVotes {
             get {
                 return ResourceManager.GetString("Server_SyncVotes", resourceCulture);
             }
@@ -2644,16 +2653,25 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Updating all series TvDB info added to queue..
         /// </summary>
-        internal static string Server_TvDBInfoUpdate {
+        public static string Server_TvDBInfoUpdate {
             get {
                 return ResourceManager.GetString("Server_TvDBInfoUpdate", resourceCulture);
             }
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Updating TVDb info and requesting new images..
+        /// </summary>
+        public static string Server_UpdateImages {
+            get {
+                return ResourceManager.GetString("Server_UpdateImages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Update AniDB Info.
         /// </summary>
-        internal static string Settings_AniDB {
+        public static string Settings_AniDB {
             get {
                 return ResourceManager.GetString("Settings_AniDB", resourceCulture);
             }
@@ -2662,7 +2680,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Apply.
         /// </summary>
-        internal static string Settings_Apply {
+        public static string Settings_Apply {
             get {
                 return ResourceManager.GetString("Settings_Apply", resourceCulture);
             }
@@ -2671,7 +2689,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Image Path.
         /// </summary>
-        internal static string Settings_ImagePath {
+        public static string Settings_ImagePath {
             get {
                 return ResourceManager.GetString("Settings_ImagePath", resourceCulture);
             }
@@ -2680,7 +2698,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Minimize on Startup.
         /// </summary>
-        internal static string Settings_Minimize {
+        public static string Settings_Minimize {
             get {
                 return ResourceManager.GetString("Settings_Minimize", resourceCulture);
             }
@@ -2689,7 +2707,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Allow Multiple Instances.
         /// </summary>
-        internal static string Settings_Multiple {
+        public static string Settings_Multiple {
             get {
                 return ResourceManager.GetString("Settings_Multiple", resourceCulture);
             }
@@ -2698,7 +2716,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Select Folder.
         /// </summary>
-        internal static string Settings_SelectFolder {
+        public static string Settings_SelectFolder {
             get {
                 return ResourceManager.GetString("Settings_SelectFolder", resourceCulture);
             }
@@ -2707,7 +2725,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Server Port.
         /// </summary>
-        internal static string Settings_ServerPort {
+        public static string Settings_ServerPort {
             get {
                 return ResourceManager.GetString("Settings_ServerPort", resourceCulture);
             }
@@ -2716,7 +2734,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Start With Windows.
         /// </summary>
-        internal static string Settings_Windows {
+        public static string Settings_Windows {
             get {
                 return ResourceManager.GetString("Settings_Windows", resourceCulture);
             }
@@ -2725,7 +2743,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database Name.
         /// </summary>
-        internal static string Setup_DatabaseName {
+        public static string Setup_DatabaseName {
             get {
                 return ResourceManager.GetString("Setup_DatabaseName", resourceCulture);
             }
@@ -2734,7 +2752,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Database Type.
         /// </summary>
-        internal static string Setup_DatabaseType {
+        public static string Setup_DatabaseType {
             get {
                 return ResourceManager.GetString("Setup_DatabaseType", resourceCulture);
             }
@@ -2743,7 +2761,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Password.
         /// </summary>
-        internal static string Setup_Password {
+        public static string Setup_Password {
             get {
                 return ResourceManager.GetString("Setup_Password", resourceCulture);
             }
@@ -2752,7 +2770,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Refresh.
         /// </summary>
-        internal static string Setup_Refresh {
+        public static string Setup_Refresh {
             get {
                 return ResourceManager.GetString("Setup_Refresh", resourceCulture);
             }
@@ -2761,7 +2779,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Save and Start Server.
         /// </summary>
-        internal static string Setup_SaveStart {
+        public static string Setup_SaveStart {
             get {
                 return ResourceManager.GetString("Setup_SaveStart", resourceCulture);
             }
@@ -2770,7 +2788,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Server Address.
         /// </summary>
-        internal static string Setup_ServerAddress {
+        public static string Setup_ServerAddress {
             get {
                 return ResourceManager.GetString("Setup_ServerAddress", resourceCulture);
             }
@@ -2779,7 +2797,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Username.
         /// </summary>
-        internal static string Setup_Username {
+        public static string Setup_Username {
             get {
                 return ResourceManager.GetString("Setup_Username", resourceCulture);
             }
@@ -2788,7 +2806,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to SQLite.
         /// </summary>
-        internal static string SQLite {
+        public static string SQLite {
             get {
                 return ResourceManager.GetString("SQLite", resourceCulture);
             }
@@ -2797,7 +2815,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to While SQLite is the easiest of the three database types to setup with it&apos;s one-click setup. If your collection contains 200 or more series, you will start to experience a lot of issues including slow response times and program lockups when JMM attempts to access your collection via your SQLite database. In regards to how JMM uses the database, it&apos;s simply not designed for large collections. SQLite also has difficulty with handling multiple operations which increases the wait time between operations which ov [rest of string was truncated]&quot;;.
         /// </summary>
-        internal static string SQLite_Info {
+        public static string SQLite_Info {
             get {
                 return ResourceManager.GetString("SQLite_Info", resourceCulture);
             }
@@ -2806,7 +2824,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to SQL Server.
         /// </summary>
-        internal static string SQLServer {
+        public static string SQLServer {
             get {
                 return ResourceManager.GetString("SQLServer", resourceCulture);
             }
@@ -2815,7 +2833,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to SQL Server is meant for users with a large collection that exceeds over 200 series who also want the fastest performance possible. Out of the three available database types, SQL Server is considered the most difficult in setting up but can be setup with ease if you follow the guide we&apos;ve created..
         /// </summary>
-        internal static string SQLServer_Info {
+        public static string SQLServer_Info {
             get {
                 return ResourceManager.GetString("SQLServer_Info", resourceCulture);
             }
@@ -2824,7 +2842,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to SQL Server can use quite a lot of memory..
         /// </summary>
-        internal static string SQLServer_Memory {
+        public static string SQLServer_Memory {
             get {
                 return ResourceManager.GetString("SQLServer_Memory", resourceCulture);
             }
@@ -2833,7 +2851,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Success.
         /// </summary>
-        internal static string Success {
+        public static string Success {
             get {
                 return ResourceManager.GetString("Success", resourceCulture);
             }
@@ -2842,7 +2860,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Actions.
         /// </summary>
-        internal static string Tab_Actions {
+        public static string Tab_Actions {
             get {
                 return ResourceManager.GetString("Tab_Actions", resourceCulture);
             }
@@ -2851,7 +2869,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Cloud Accounts.
         /// </summary>
-        internal static string Tab_CloudAccounts {
+        public static string Tab_CloudAccounts {
             get {
                 return ResourceManager.GetString("Tab_CloudAccounts", resourceCulture);
             }
@@ -2860,7 +2878,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import Folders.
         /// </summary>
-        internal static string Tab_ImportFolders {
+        public static string Tab_ImportFolders {
             get {
                 return ResourceManager.GetString("Tab_ImportFolders", resourceCulture);
             }
@@ -2869,7 +2887,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Settings.
         /// </summary>
-        internal static string Tab_Settings {
+        public static string Tab_Settings {
             get {
                 return ResourceManager.GetString("Tab_Settings", resourceCulture);
             }
@@ -2878,7 +2896,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Setup.
         /// </summary>
-        internal static string Tab_Setup {
+        public static string Tab_Setup {
             get {
                 return ResourceManager.GetString("Tab_Setup", resourceCulture);
             }
@@ -2887,7 +2905,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to About.
         /// </summary>
-        internal static string Toolbar_About {
+        public static string Toolbar_About {
             get {
                 return ResourceManager.GetString("Toolbar_About", resourceCulture);
             }
@@ -2896,7 +2914,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Help Make JMM Better!.
         /// </summary>
-        internal static string Toolbar_Contribute {
+        public static string Toolbar_Contribute {
             get {
                 return ResourceManager.GetString("Toolbar_Contribute", resourceCulture);
             }
@@ -2905,7 +2923,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Logs.
         /// </summary>
-        internal static string Toolbar_Logs {
+        public static string Toolbar_Logs {
             get {
                 return ResourceManager.GetString("Toolbar_Logs", resourceCulture);
             }
@@ -2914,7 +2932,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Messages.
         /// </summary>
-        internal static string Toolbar_Messages {
+        public static string Toolbar_Messages {
             get {
                 return ResourceManager.GetString("Toolbar_Messages", resourceCulture);
             }
@@ -2923,7 +2941,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Show.
         /// </summary>
-        internal static string Toolbar_Show {
+        public static string Toolbar_Show {
             get {
                 return ResourceManager.GetString("Toolbar_Show", resourceCulture);
             }
@@ -2932,7 +2950,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Shutdown.
         /// </summary>
-        internal static string Toolbar_Shutdown {
+        public static string Toolbar_Shutdown {
             get {
                 return ResourceManager.GetString("Toolbar_Shutdown", resourceCulture);
             }
@@ -2943,7 +2961,7 @@ namespace JMMServer.Properties {
         ///
         ///You can only have one folder listed as a Drop Destination..
         /// </summary>
-        internal static string Tooltip_DropDestination {
+        public static string Tooltip_DropDestination {
             get {
                 return ResourceManager.GetString("Tooltip_DropDestination", resourceCulture);
             }
@@ -2954,7 +2972,7 @@ namespace JMMServer.Properties {
         ///
         ///You can have as many Drop Sources as you want, however you must setup a Drop Destination to use Drop Source..
         /// </summary>
-        internal static string Tooltip_DropSource {
+        public static string Tooltip_DropSource {
             get {
                 return ResourceManager.GetString("Tooltip_DropSource", resourceCulture);
             }
@@ -2963,7 +2981,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Scan Folder.
         /// </summary>
-        internal static string Tooltip_ScanFolder {
+        public static string Tooltip_ScanFolder {
             get {
                 return ResourceManager.GetString("Tooltip_ScanFolder", resourceCulture);
             }
@@ -2972,7 +2990,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to JMM Server will monitor this folder and add any files it detects to your collection. Can be used in conjunction with Drop Source and/or Drop Destination checked. .
         /// </summary>
-        internal static string Tooltip_Watch {
+        public static string Tooltip_Watch {
             get {
                 return ResourceManager.GetString("Tooltip_Watch", resourceCulture);
             }
@@ -2981,7 +2999,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Available Version.
         /// </summary>
-        internal static string Update_AvailableVersion {
+        public static string Update_AvailableVersion {
             get {
                 return ResourceManager.GetString("Update_AvailableVersion", resourceCulture);
             }
@@ -2990,7 +3008,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Changelog.
         /// </summary>
-        internal static string Update_Changelog {
+        public static string Update_Changelog {
             get {
                 return ResourceManager.GetString("Update_Changelog", resourceCulture);
             }
@@ -2999,7 +3017,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Download Page.
         /// </summary>
-        internal static string Update_DownloadPage {
+        public static string Update_DownloadPage {
             get {
                 return ResourceManager.GetString("Update_DownloadPage", resourceCulture);
             }
@@ -3008,7 +3026,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Update JMM Server.
         /// </summary>
-        internal static string Update_JMMServer {
+        public static string Update_JMMServer {
             get {
                 return ResourceManager.GetString("Update_JMMServer", resourceCulture);
             }
@@ -3017,7 +3035,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Update Available.
         /// </summary>
-        internal static string Update_UpdateAvailable {
+        public static string Update_UpdateAvailable {
             get {
                 return ResourceManager.GetString("Update_UpdateAvailable", resourceCulture);
             }
@@ -3026,7 +3044,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Your Version.
         /// </summary>
-        internal static string Update_YourVersion {
+        public static string Update_YourVersion {
             get {
                 return ResourceManager.GetString("Update_YourVersion", resourceCulture);
             }
@@ -3035,7 +3053,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Default.
         /// </summary>
-        internal static string Users_Default {
+        public static string Users_Default {
             get {
                 return ResourceManager.GetString("Users_Default", resourceCulture);
             }
@@ -3044,7 +3062,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Family Friendly.
         /// </summary>
-        internal static string Users_FamilyFriendly {
+        public static string Users_FamilyFriendly {
             get {
                 return ResourceManager.GetString("Users_FamilyFriendly", resourceCulture);
             }
@@ -3053,7 +3071,7 @@ namespace JMMServer.Properties {
         /// <summary>
         ///   Looks up a localized string similar to What does this mean?.
         /// </summary>
-        internal static string WhatDoesThisMean {
+        public static string WhatDoesThisMean {
             get {
                 return ResourceManager.GetString("WhatDoesThisMean", resourceCulture);
             }

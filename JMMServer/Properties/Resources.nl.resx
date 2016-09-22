@@ -1066,4 +1066,10 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Migration_AdminPass2" xml:space="preserve">
     <value>Zodra dit proces is zal volledige JMM Server start en niet meer nodig hebt beheerdersrechten nodig om uit te voeren.</value>
   </data>
+  <data name="Actions_UpdateImages" xml:space="preserve">
+    <value>Update Images</value>
+  </data>
+  <data name="Server_UpdateImages" xml:space="preserve">
+    <value>Updaten van TVDb informatie en het aanvragen van nieuwe beelden.</value>
+  </data>
 </root>

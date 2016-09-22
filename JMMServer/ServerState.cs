@@ -332,7 +332,7 @@ namespace JMMServer
         }
 
         /* Swith this to "Registry" when we no longer need elevated run level */
-        public readonly AutostartMethod autostartMethod = AutostartMethod.TaskScheduler;
+        public readonly AutostartMethod autostartMethod = AutostartMethod.Registry;
 
         public readonly string autostartTaskName = "JMMServer";
 

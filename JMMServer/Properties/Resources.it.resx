@@ -1066,4 +1066,10 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Migration_AdminPass2" xml:space="preserve">
     <value>una volta che questo processo è completo JMM Server verrà riavviato e non è più necessario privilegi di amministratore per l'esecuzione.</value>
   </data>
+  <data name="Actions_UpdateImages" xml:space="preserve">
+    <value>Aggiornare le immagini</value>
+  </data>
+  <data name="Server_UpdateImages" xml:space="preserve">
+    <value>Aggiornamento informazioni TVDb e la richiesta di nuove immagini.</value>
+  </data>
 </root>

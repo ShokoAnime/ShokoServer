@@ -1066,4 +1066,10 @@
   <data name="Migration_AdminPass2" xml:space="preserve">
     <value>uma vez que este processo é completa JMM Server irá reiniciar e já não precisa de privilégios administrativos para executar.</value>
   </data>
+  <data name="Actions_UpdateImages" xml:space="preserve">
+    <value>Imagens de atualização</value>
+  </data>
+  <data name="Server_UpdateImages" xml:space="preserve">
+    <value>Atualizando informações TVDB e solicitando novas imagens.</value>
+  </data>
 </root>
