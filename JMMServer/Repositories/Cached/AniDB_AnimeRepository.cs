@@ -17,7 +17,7 @@ namespace JMMServer.Repositories
 
         private static PocoIndex<int, AniDB_Anime, int> Animes;
 
-        private AniDB_AnimeRepository()
+        public AniDB_AnimeRepository()
         {
             
         }

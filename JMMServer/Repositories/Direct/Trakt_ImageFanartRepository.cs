@@ -8,7 +8,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class Trakt_ImageFanartRepository : BaseDirectRepository<Trakt_ImageFanart, int>
     {
-        private Trakt_ImageFanartRepository()
+        public Trakt_ImageFanartRepository()
         {
             
         }

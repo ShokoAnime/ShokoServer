@@ -180,6 +180,7 @@
     <Compile Include="Contract_VideoLocal_Place.cs" />
     <Compile Include="Hashes.cs" />
     <Compile Include="IJMMServer.cs" />
+    <Compile Include="IJMMServerImage.cs" />
     <Compile Include="IJMMServerMetro.cs" />
     <Compile Include="IJMMServerStreaming.cs" />
     <Compile Include="MediaInfoResult.cs" />
