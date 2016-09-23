@@ -13,27 +13,13 @@ namespace JMMServer
 
         public byte[] GetImage(string entityID, int entityType, bool thumnbnailOnly)
         {
-            AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-            TvDB_ImagePosterRepository repPosters = new TvDB_ImagePosterRepository();
-            TvDB_EpisodeRepository repEpisodes = new TvDB_EpisodeRepository();
-            TvDB_ImageFanartRepository repFanart = new TvDB_ImageFanartRepository();
-            TvDB_ImageWideBannerRepository repWideBanners = new TvDB_ImageWideBannerRepository();
-
-            MovieDB_PosterRepository repMoviePosters = new MovieDB_PosterRepository();
-            MovieDB_FanartRepository repMovieFanart = new MovieDB_FanartRepository();
-
-            Trakt_ImageFanartRepository repTraktFanart = new Trakt_ImageFanartRepository();
-            Trakt_ImagePosterRepository repTraktPosters = new Trakt_ImagePosterRepository();
-            Trakt_EpisodeRepository repTraktEpisodes = new Trakt_EpisodeRepository();
-            Trakt_FriendRepository repTraktFriends = new Trakt_FriendRepository();
-
             JMMImageType imageType = (JMMImageType) entityType;
 
             switch (imageType)
             {
                 case JMMImageType.AniDB_Cover:
 
-                    AniDB_Anime anime = repAnime.GetByAnimeID(int.Parse(entityID));
+                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(int.Parse(entityID));
                     if (anime == null) return null;
 
                     if (File.Exists(anime.PosterPath))
@@ -45,9 +31,7 @@ namespace JMMServer
                     }
 
                 case JMMImageType.AniDB_Character:
-
-                    AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
-                    AniDB_Character chr = repChar.GetByID(int.Parse(entityID));
+                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(int.Parse(entityID));
                     if (chr == null) return null;
 
                     if (File.Exists(chr.PosterPath))
@@ -59,9 +43,7 @@ namespace JMMServer
                     }
 
                 case JMMImageType.AniDB_Creator:
-
-                    AniDB_SeiyuuRepository repCreator = new AniDB_SeiyuuRepository();
-                    AniDB_Seiyuu creator = repCreator.GetByID(int.Parse(entityID));
+                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(int.Parse(entityID));
                     if (creator == null) return null;
 
                     if (File.Exists(creator.PosterPath))
@@ -74,7 +56,7 @@ namespace JMMServer
 
                 case JMMImageType.TvDB_Cover:
 
-                    TvDB_ImagePoster poster = repPosters.GetByID(int.Parse(entityID));
+                    TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(int.Parse(entityID));
                     if (poster == null) return null;
 
                     if (File.Exists(poster.FullImagePath))
@@ -87,7 +69,7 @@ namespace JMMServer
 
                 case JMMImageType.TvDB_Banner:
 
-                    TvDB_ImageWideBanner wideBanner = repWideBanners.GetByID(int.Parse(entityID));
+                    TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(int.Parse(entityID));
                     if (wideBanner == null) return null;
 
                     if (File.Exists(wideBanner.FullImagePath))
@@ -100,7 +82,7 @@ namespace JMMServer
 
                 case JMMImageType.TvDB_Episode:
 
-                    TvDB_Episode ep = repEpisodes.GetByID(int.Parse(entityID));
+                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(int.Parse(entityID));
                     if (ep == null) return null;
 
                     if (File.Exists(ep.FullImagePath))
@@ -113,7 +95,7 @@ namespace JMMServer
 
                 case JMMImageType.TvDB_FanArt:
 
-                    TvDB_ImageFanart fanart = repFanart.GetByID(int.Parse(entityID));
+                    TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(int.Parse(entityID));
                     if (fanart == null) return null;
 
                     if (thumnbnailOnly)
@@ -139,11 +121,11 @@ namespace JMMServer
 
                 case JMMImageType.MovieDB_Poster:
 
-                    MovieDB_Poster mPoster = repMoviePosters.GetByID(int.Parse(entityID));
+                    MovieDB_Poster mPoster = RepoFactory.MovieDB_Poster.GetByID(int.Parse(entityID));
                     if (mPoster == null) return null;
 
                     // now find only the original size
-                    mPoster = repMoviePosters.GetByOnlineID(mPoster.URL);
+                    mPoster = RepoFactory.MovieDB_Poster.GetByOnlineID(mPoster.URL);
                     if (mPoster == null) return null;
 
                     if (File.Exists(mPoster.FullImagePath))
@@ -156,10 +138,10 @@ namespace JMMServer
 
                 case JMMImageType.MovieDB_FanArt:
 
-                    MovieDB_Fanart mFanart = repMovieFanart.GetByID(int.Parse(entityID));
+                    MovieDB_Fanart mFanart = RepoFactory.MovieDB_Fanart.GetByID(int.Parse(entityID));
                     if (mFanart == null) return null;
 
-                    mFanart = repMovieFanart.GetByOnlineID(mFanart.URL);
+                    mFanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
                     if (mFanart == null) return null;
 
                     if (File.Exists(mFanart.FullImagePath))
@@ -172,7 +154,7 @@ namespace JMMServer
 
                 case JMMImageType.Trakt_Fanart:
 
-                    Trakt_ImageFanart tFanart = repTraktFanart.GetByID(int.Parse(entityID));
+                    Trakt_ImageFanart tFanart = RepoFactory.Trakt_ImageFanart.GetByID(int.Parse(entityID));
                     if (tFanart == null) return null;
 
                     if (File.Exists(tFanart.FullImagePath))
@@ -185,7 +167,7 @@ namespace JMMServer
 
                 case JMMImageType.Trakt_Poster:
 
-                    Trakt_ImagePoster tPoster = repTraktPosters.GetByID(int.Parse(entityID));
+                    Trakt_ImagePoster tPoster = RepoFactory.Trakt_ImagePoster.GetByID(int.Parse(entityID));
                     if (tPoster == null) return null;
 
                     if (File.Exists(tPoster.FullImagePath))
@@ -199,7 +181,7 @@ namespace JMMServer
                 case JMMImageType.Trakt_Episode:
                 case JMMImageType.Trakt_WatchedEpisode:
 
-                    Trakt_Episode tEpisode = repTraktEpisodes.GetByID(int.Parse(entityID));
+                    Trakt_Episode tEpisode = RepoFactory.Trakt_Episode.GetByID(int.Parse(entityID));
                     if (tEpisode == null) return null;
 
                     if (File.Exists(tEpisode.FullImagePath))
