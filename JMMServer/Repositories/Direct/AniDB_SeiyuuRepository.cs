@@ -6,8 +6,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class AniDB_SeiyuuRepository : BaseDirectRepository<AniDB_Seiyuu, int>
     {
-
-        private AniDB_SeiyuuRepository()
+        public AniDB_SeiyuuRepository()
         {
            
         }

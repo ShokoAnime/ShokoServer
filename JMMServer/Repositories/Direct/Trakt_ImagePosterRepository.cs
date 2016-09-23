@@ -8,7 +8,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class Trakt_ImagePosterRepository : BaseDirectRepository<Trakt_ImagePoster, int>
     {
-        private Trakt_ImagePosterRepository()
+        public Trakt_ImagePosterRepository()
         {
            
         }

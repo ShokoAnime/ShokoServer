@@ -335,6 +335,7 @@
     <Compile Include="FileHelper\Subtitles\SubtitleHelper.cs" />
     <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
     <Compile Include="FileHelper\Subtitles\VobSubSubtitles.cs" />
+    <Compile Include="JMMServiceImplementationImage.cs" />
     <Compile Include="LogRotator.cs" />
     <Compile Include="LZ4\CompressionHelper.cs" />
     <Compile Include="LZ4\LZ4Codec.cs" />

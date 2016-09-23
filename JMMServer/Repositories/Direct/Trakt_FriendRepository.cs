@@ -7,7 +7,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class Trakt_FriendRepository : BaseDirectRepository<Trakt_Friend, int>
     {
-        private Trakt_FriendRepository()
+        public Trakt_FriendRepository()
         {
             
         }

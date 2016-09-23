@@ -7,7 +7,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class TvDB_EpisodeRepository : BaseDirectRepository<TvDB_Episode, int>
     {
-        private TvDB_EpisodeRepository()
+        public TvDB_EpisodeRepository()
         {
             
         }
