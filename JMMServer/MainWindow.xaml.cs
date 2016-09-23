@@ -2011,8 +2011,10 @@ namespace JMMServer
 		// This forces an update of TVDb and tries to get any new Images
 		void btnUpdateImages_Click(object sender, RoutedEventArgs e)
 		{
-			Importer.CheckForTvDBUpdates(true);
-			Importer.RunImport_GetImages();
+			this.Cursor = Cursors.Wait;
+			Importer.RunImport_UpdateTvDB(false);
+			DownloadAllImages();
+			this.Cursor = Cursors.Arrow;
 			MessageBox.Show(JMMServer.Properties.Resources.Server_UpdateImages, JMMServer.Properties.Resources.Success,
 				MessageBoxButton.OK, MessageBoxImage.Information);
 		}
