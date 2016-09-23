@@ -2012,7 +2012,7 @@ namespace JMMServer
 		void btnUpdateImages_Click(object sender, RoutedEventArgs e)
 		{
 			this.Cursor = Cursors.Wait;
-			Importer.RunImport_UpdateTvDB(false);
+			Importer.RunImport_UpdateTvDB(true);
 			DownloadAllImages();
 			this.Cursor = Cursors.Arrow;
 			MessageBox.Show(JMMServer.Properties.Resources.Server_UpdateImages, JMMServer.Properties.Resources.Success,
