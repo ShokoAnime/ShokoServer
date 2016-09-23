@@ -11,7 +11,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class MovieDB_FanartRepository : BaseDirectRepository<MovieDB_Fanart, int>
     {
-        public MovieDB_FanartRepository()
+        private MovieDB_FanartRepository()
         {
             
         }

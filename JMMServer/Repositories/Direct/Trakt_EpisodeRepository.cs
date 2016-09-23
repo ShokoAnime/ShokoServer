@@ -6,7 +6,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode,int>
     {
-        public Trakt_EpisodeRepository()
+        private Trakt_EpisodeRepository()
         {
             
         }

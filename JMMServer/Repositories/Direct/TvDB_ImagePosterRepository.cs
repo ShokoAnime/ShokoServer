@@ -7,7 +7,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class TvDB_ImagePosterRepository : BaseDirectRepository<TvDB_ImagePoster, int>
     {
-        public TvDB_ImagePosterRepository()
+        private TvDB_ImagePosterRepository()
         {
             
         }

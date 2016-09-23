@@ -11,7 +11,8 @@ namespace JMMServer.Repositories.Direct
 {
     public class TvDB_ImageFanartRepository : BaseDirectRepository<TvDB_ImageFanart, int>
     {
-        public TvDB_ImageFanartRepository()
+
+        private TvDB_ImageFanartRepository()
         {
             
         }

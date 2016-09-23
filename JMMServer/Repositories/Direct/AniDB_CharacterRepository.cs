@@ -11,7 +11,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class AniDB_CharacterRepository : BaseDirectRepository<AniDB_Character, int>
     {
-        public AniDB_CharacterRepository()
+        private AniDB_CharacterRepository()
         {
             
         }

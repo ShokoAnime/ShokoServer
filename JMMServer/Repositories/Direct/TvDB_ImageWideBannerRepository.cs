@@ -11,7 +11,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class TvDB_ImageWideBannerRepository : BaseDirectRepository<TvDB_ImageWideBanner, int>
     {
-        public TvDB_ImageWideBannerRepository()
+        private TvDB_ImageWideBannerRepository()
         {
             
         }

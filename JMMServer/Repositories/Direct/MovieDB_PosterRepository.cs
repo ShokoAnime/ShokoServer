@@ -8,7 +8,7 @@ namespace JMMServer.Repositories.Direct
 {
     public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int>
     {
-        public MovieDB_PosterRepository()
+        private MovieDB_PosterRepository()
         {
             
         }
