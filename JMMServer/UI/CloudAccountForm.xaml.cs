@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,6 +19,7 @@ using System.Windows.Shapes;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
+using NLog;
 using NutzCode.CloudFileSystem;
 using Application = System.Windows.Application;
 
@@ -26,7 +29,8 @@ namespace JMMServer
     /// Interaction logic for CloudAccountForm.xaml
     /// </summary>
     public partial class CloudAccountForm : Window, INotifyPropertyChanged
-    { 
+    {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -106,6 +110,28 @@ namespace JMMServer
 
                             WorkingAccount.FileSystem = WorkingAccount.Connect(this);
                             SetConnectStatus();
+                        }
+
+                        catch (ReflectionTypeLoadException ex)
+                        {
+                            StringBuilder sb = new StringBuilder();
+                            foreach (Exception exSub in ex.LoaderExceptions)
+                            {
+                                sb.AppendLine(exSub.Message);
+                                FileNotFoundException exFileNotFound = exSub as FileNotFoundException;
+                                if (exFileNotFound != null)
+                                {
+                                    if (!string.IsNullOrEmpty(exFileNotFound.FusionLog))
+                                    {
+                                        sb.AppendLine("Fusion Log:");
+                                        sb.AppendLine(exFileNotFound.FusionLog);
+                                    }
+                                }
+                                sb.AppendLine();
+                            }
+                            Application.Current.Dispatcher.Invoke(() => { TextStatus.Text = sb.ToString(); });          
+                            logger.Error(sb.ToString());              
+                            //Display or log the error based on your application.
                         }
                         catch (Exception ex)
                         {

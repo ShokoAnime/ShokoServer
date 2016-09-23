@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using FluentNHibernate.Utils;
 using JMMServer.Entities;
 using NHibernate;
 using NutzCode.InMemoryIndex;
@@ -297,8 +298,10 @@ namespace JMMServer.Repositories.Cached
         }
         public List<VideoLocal> GetVideosWithoutEpisode()
         {
-            List<string> hashes = RepoFactory.CrossRef_File_Episode.GetAll().Select(a => a.Hash).ToList();
-            return Cache.Values.Where(a=>!hashes.Contains(a.Hash) && a.IsIgnored==0).OrderBy(a=>a.DateTimeCreated).ToList();
+            HashSet<string> hashes = new HashSet<string>(RepoFactory.CrossRef_File_Episode.GetAll().Select(a => a.Hash));
+            HashSet<string> vlocals=new HashSet<string>(Cache.Values.Where(a=>a.IsIgnored==0).Select(a=>a.Hash));
+            return vlocals.Except(hashes).SelectMany(a=>Hashes.GetMultiple(a)).OrderBy(a=>a.DateTimeCreated).ToList();
+
             /*
             using (var session = JMMService.SessionFactory.OpenSession())
             {
