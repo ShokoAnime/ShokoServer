@@ -42,8 +42,10 @@ namespace JMMServer.Databases
                     new SqlConnection(GetConnectionString()))
             {
                 tmpConn.Open();
+                
                 using (SqlCommand command = new SqlCommand(cmd, tmpConn))
                 {
+                    command.CommandTimeout = 0;
                     command.ExecuteNonQuery();
                 }
             }
