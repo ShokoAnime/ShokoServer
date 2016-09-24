@@ -2190,22 +2190,6 @@ namespace JMMServer
                 }
                 vlu.ResumePosition = position;
                 RepoFactory.VideoLocalUser.Save(vlu);
-
-                // If Trakt is enabled sync item to Trakt history as well
-                if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                {
-                    Contract_VideoDetailed vid = GetVideoDetailed(videolocalid, jmmuserID);
-                    if (vid != null)
-                    {
-                        // AnimeEpisodeID = AniDB episode ID in this case
-                        AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(vid.AnimeEpisodeID);
-
-                        if (ep != null)
-                        {
-                            Providers.TraktTV.TraktTVHelper.SyncEpisodeToTrakt(ep, TraktSyncType.HistoryAdd);
-                        }
-                    }
-                }
             }
             catch (Exception ex)
             {
