@@ -1059,7 +1059,7 @@ namespace JMMServer.Providers.TraktTV
                 int epNumber = 0;
                 int? traktID = GetTraktEpisodeIdV2(ep, ref slugID, ref season, ref epNumber);
                 //2.generate json
-                if (traktID == null && traktID > 0)
+                if (traktID != null && traktID > 0)
                 {
                     switch (scrobbleType)
                     {

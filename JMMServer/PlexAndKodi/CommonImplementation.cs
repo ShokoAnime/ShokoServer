@@ -887,14 +887,14 @@ namespace JMMServer.PlexAndKodi
                 int.TryParse(type, out typeTrakt);
                 switch (typeTrakt)
                 {
-                    //1
+                    // Movie
                     case (int)Providers.TraktTV.ScrobblePlayingType.movie:
                         rsp.Code = Providers.TraktTV.TraktTVHelper.Scrobble(
                             Providers.TraktTV.ScrobblePlayingType.movie, animeId,
                             statusTraktV2, progressTrakt).ToString();
                         rsp.Message = "Movie Scrobbled";
                         break;
-                    //2
+                    // TV episode
                     case (int)Providers.TraktTV.ScrobblePlayingType.episode:
                         rsp.Code =
                             Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.episode,
