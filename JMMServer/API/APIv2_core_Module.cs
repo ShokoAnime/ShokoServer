@@ -1870,9 +1870,10 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetImage(string id, string type, bool thumb)
         {
-            System.IO.Stream image = _rest.GetImage(type, id, thumb);
+	        string contentType;
+            System.IO.Stream image = _rest.GetImage(type, id, thumb, out contentType);
             Nancy.Response response = new Nancy.Response();
-            response = Response.FromStream(image, "image/png");
+            response = Response.FromStream(image, contentType);
             return response;
         }
 
