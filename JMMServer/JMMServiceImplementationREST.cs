@@ -10,6 +10,7 @@ using JMMServer.Entities;
 using JMMServer.Properties;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
+using Nancy;
 using NLog;
 
 namespace JMMServer
@@ -18,23 +19,27 @@ namespace JMMServer
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public System.IO.Stream GetImage(string ImageType, string ImageID, bool thumnbnailOnly)
+        public System.IO.Stream GetImage(string ImageType, string ImageID, bool thumnbnailOnly, out string contentType)
         {
-            
+	        contentType = null;
             
             JMMImageType imageType = (JMMImageType) int.Parse(ImageType);
 
-            switch (imageType)
+	        string path;
+
+	        switch (imageType)
             {
                 case JMMImageType.AniDB_Cover:
 
                     AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(int.Parse(ImageID));
                     if (anime == null) return null;
 
-                    if (File.Exists(anime.PosterPath))
+		            path = anime.PosterPath;
+		            if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(anime.PosterPath);
-                        return fs;
+	                    FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -47,10 +52,12 @@ namespace JMMServer
                     AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(int.Parse(ImageID));
                     if (chr == null) return null;
 
-                    if (File.Exists(chr.PosterPath))
+		            path = chr.PosterPath;
+		            if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(chr.PosterPath);
-                        return fs;
+                        FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -63,10 +70,12 @@ namespace JMMServer
                     AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(int.Parse(ImageID));
                     if (creator == null) return null;
 
-                    if (File.Exists(creator.PosterPath))
+		            path = creator.PosterPath;
+                    if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(creator.PosterPath);
-                        return fs;
+                        FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -79,10 +88,12 @@ namespace JMMServer
                     TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(int.Parse(ImageID));
                     if (poster == null) return null;
 
-                    if (File.Exists(poster.FullImagePath))
+		            path = poster.FullImagePath;
+                    if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(poster.FullImagePath);
-                        return fs;
+                        FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -95,10 +106,12 @@ namespace JMMServer
                     TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(int.Parse(ImageID));
                     if (wideBanner == null) return null;
 
-                    if (File.Exists(wideBanner.FullImagePath))
+		            path = wideBanner.FullImagePath;
+                    if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(wideBanner.FullImagePath);
-                        return fs;
+                        FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -111,10 +124,12 @@ namespace JMMServer
                     TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(int.Parse(ImageID));
                     if (ep == null) return null;
 
-                    if (File.Exists(ep.FullImagePath))
+		            path = ep.FullImagePath;
+                    if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(ep.FullImagePath);
-                        return fs;
+                        FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -129,10 +144,12 @@ namespace JMMServer
 
                     if (thumnbnailOnly)
                     {
-                        if (File.Exists(fanart.FullThumbnailPath))
+	                    path = fanart.FullThumbnailPath;
+                        if (File.Exists(path))
                         {
-                            FileStream fs = File.OpenRead(fanart.FullThumbnailPath);
-                            return fs;
+                            FileStream fs = File.OpenRead(path);
+	                        contentType = MimeTypes.GetMimeType(path);
+	                        return fs;
                         }
                         else
                         {
@@ -142,10 +159,12 @@ namespace JMMServer
                     }
                     else
                     {
-                        if (File.Exists(fanart.FullImagePath))
+	                    path = fanart.FullImagePath;
+                        if (File.Exists(path))
                         {
-                            FileStream fs = File.OpenRead(fanart.FullImagePath);
-                            return fs;
+                            FileStream fs = File.OpenRead(path);
+	                        contentType = MimeTypes.GetMimeType(path);
+	                        return fs;
                         }
                         else
                         {
@@ -163,10 +182,12 @@ namespace JMMServer
                     mPoster = RepoFactory.MovieDB_Poster.GetByOnlineID(mPoster.URL);
                     if (mPoster == null) return null;
 
-                    if (File.Exists(mPoster.FullImagePath))
+		            path = mPoster.FullImagePath;
+                    if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(mPoster.FullImagePath);
-                        return fs;
+                        FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -182,10 +203,12 @@ namespace JMMServer
                     mFanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
                     if (mFanart == null) return null;
 
-                    if (File.Exists(mFanart.FullImagePath))
+		            path = mFanart.FullImagePath;
+                    if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(mFanart.FullImagePath);
-                        return fs;
+                        FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -198,10 +221,12 @@ namespace JMMServer
                     Trakt_ImageFanart tFanart = RepoFactory.Trakt_ImageFanart.GetByID(int.Parse(ImageID));
                     if (tFanart == null) return null;
 
-                    if (File.Exists(tFanart.FullImagePath))
+		            path = tFanart.FullImagePath;
+                    if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(tFanart.FullImagePath);
-                        return fs;
+                        FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -214,10 +239,12 @@ namespace JMMServer
                     Trakt_ImagePoster tPoster = RepoFactory.Trakt_ImagePoster.GetByID(int.Parse(ImageID));
                     if (tPoster == null) return null;
 
-                    if (File.Exists(tPoster.FullImagePath))
+		            path = tPoster.FullImagePath;
+                    if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(tPoster.FullImagePath);
-                        return fs;
+                        FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -231,10 +258,12 @@ namespace JMMServer
                     Trakt_Episode tEpisode = RepoFactory.Trakt_Episode.GetByID(int.Parse(ImageID));
                     if (tEpisode == null) return null;
 
-                    if (File.Exists(tEpisode.FullImagePath))
+		            path = tEpisode.FullImagePath;
+                    if (File.Exists(path))
                     {
-                        FileStream fs = File.OpenRead(tEpisode.FullImagePath);
-                        return fs;
+                        FileStream fs = File.OpenRead(path);
+	                    contentType = MimeTypes.GetMimeType(path);
+	                    return fs;
                     }
                     else
                     {
@@ -578,9 +607,9 @@ namespace JMMServer
             return new MemoryStream();
         }
 
-        public System.IO.Stream GetThumb(string ImageType, string ImageID, string Ratio)
+        public System.IO.Stream GetThumb(string ImageType, string ImageID, string Ratio, out string contentType)
         {
-            using (Stream m = GetImage(ImageType, ImageID, false))
+            using (Stream m = GetImage(ImageType, ImageID, false, out contentType))
             {
                 if (m != null)
                 {

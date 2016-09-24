@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Nancy;
 using JMMServer.PlexAndKodi;
 using JMMServer.PlexAndKodi.Plex;
@@ -17,7 +18,7 @@ namespace JMMServer.API
             //this.RequiresAuthentication();
 
             // KodiImplementation
-            Get["/JMMServerKodi/GetSupportImage/{name}"] = parameter => { return GetSupportImage(parameter.name); };
+            Get["/JMMServerKodi/GetSupportImage/{name}"] = parameter => { return GetSupportImageRest(parameter.name); };
             Get["/JMMServerKodi/GetFilters/{uid}"] = parameter => { request = this.Request; return GetFilters_Kodi(parameter.uid); };
             Get["/JMMServerKodi/GetMetadata/{uid}/{type}/{id}"] = parameter => { request = this.Request; return GetMetadata_Kodi(parameter.uid, parameter.type, parameter.id); };
             Get["/JMMServerKodi/GetMetadata/{uid}/{type}/{id}/nocast"] = parameter => { request = this.Request; return GetMetadata_Kodi(parameter.uid, parameter.type, parameter.id, true); };
@@ -32,7 +33,7 @@ namespace JMMServer.API
             Get["/JMMServerKodi/TraktScrobble/{animeid}/{type}/{progress}/{status}"] = parameter => { return TraktScrobble(parameter.animeid, parameter.type, parameter.progress, parameter.status); };
 
             // PlexImplementation
-            Get["/JMMServerPlex/GetSupportImage/{name}"] = parameter => { return GetSupportImage(parameter.name); };
+            Get["/JMMServerPlex/GetSupportImage/{name}"] = parameter => { return GetSupportImageRest(parameter.name); };
             Get["/JMMServerPlex/GetFilters/{uid}"] = parameter => { request = this.Request; return GetFilters_Plex(parameter.uid); };
             Get["/JMMServerPlex/GetMetadata/{uid}/{type}/{id}/{historyinfo}"] = parameter => { request = this.Request; return GetMetadata_Plex(parameter.uid, parameter.type, parameter.id, parameter.historyinfo); };
             Get["/JMMServerPlex/GetUsers"] = _ => { return GetUsers_Plex(); };
@@ -41,14 +42,14 @@ namespace JMMServer.API
             Get["/JMMServerPlex/Vote/{uid}/{id}/{votevalue}/{votetype}"] = parameter => { return VoteAnime_Plex(parameter.uid, parameter.id, parameter.votevalue, parameter.votetype); };
 
             // JMMServerRest
-            Get["/JMMServerREST/GetImage/{type}/{id}"] = parameter => { return GetImage(parameter.type, parameter.id); };
-            Get["/JMMServerREST/GetThumb/{type}/{id}/{ratio}"] = parameter => { return GetThumb(parameter.type, parameter.id, parameter.ratio); };
-            Get["/JMMServerREST/GetSupportImage/{name}/{ratio}"] = parameter => { return GetSupportImage(parameter.name, parameter.ratio); };
-            Get["/JMMServerREST/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
+            Get["/JMMServerREST/GetImage/{type}/{id}"] = parameter => { return GetImageRest(parameter.type, parameter.id); };
+            Get["/JMMServerREST/GetThumb/{type}/{id}/{ratio}"] = parameter => { return GetThumbRest(parameter.type, parameter.id, parameter.ratio); };
+            Get["/JMMServerREST/GetSupportImage/{name}/{ratio}"] = parameter => { return GetSupportImageRest(parameter.name, parameter.ratio); };
+            Get["/JMMServerREST/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPathRest(parameter.path); };
 
             // JMMServerImage
-            Get["/JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
-            Get["/JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
+            Get["/JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImageRest(parameter.id, parameter.type, parameter.thumb); };
+            Get["/JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPathRest(parameter.path); };
         }
 
 
@@ -56,7 +57,8 @@ namespace JMMServer.API
         IProvider _prov_kodi = new KodiProvider();
         IProvider _prov_plex = new PlexProvider();
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
-        Nancy.Response response;
+	    JMMServiceImplementationImage _image = new JMMServiceImplementationImage();
+	    Nancy.Response response;
         public static Nancy.Request request;
 
         //Common
@@ -66,7 +68,7 @@ namespace JMMServer.API
         /// </summary>
         /// <param name="name">name of image inside resource</param>
         /// <returns></returns>
-        private object GetSupportImage(string name)
+        private object GetSupportImageRest(string name)
         {
             using (System.IO.Stream image = _impl.GetSupportImage(name))
             {
@@ -287,7 +289,7 @@ namespace JMMServer.API
         /// <param name="type">image type</param>
         /// <param name="id">image id</param>
         /// <returns></returns>
-        private object GetImage(string type, string id)
+        private object GetImageRest(string type, string id)
         {
             response = new Nancy.Response();
             response = Response.AsImage(_rest.GetImagePath(type, id, false));
@@ -301,11 +303,12 @@ namespace JMMServer.API
         /// <param name="id"></param>
         /// <param name="ratio"></param>
         /// <returns></returns>
-        private object GetThumb(string type, string id, string ratio)
+        private object GetThumbRest(string type, string id, string ratio)
         {
-            System.IO.Stream image = _rest.GetThumb(type, id, ratio);
+	        string contentType;
+            System.IO.Stream image = _rest.GetThumb(type, id, ratio, out contentType);
             response = new Nancy.Response();
-            response = Response.FromStream(image, "image/png");
+            response = Response.FromStream(image, contentType);
             return response;
         }
 
@@ -315,10 +318,11 @@ namespace JMMServer.API
         /// <param name="name"></param>
         /// <param name="ratio"></param>
         /// <returns></returns>
-        private object GetSupportImage(string name, string ratio)
+        private object GetSupportImageRest(string name, string ratio)
         {
             System.IO.Stream image = _rest.GetSupportImage(name, ratio);
             response = new Nancy.Response();
+	        // This will always be png, so we are ok
             response = Response.FromStream(image, "image/png");
             return response;
         }
@@ -328,11 +332,11 @@ namespace JMMServer.API
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        private object GetImageUsingPath(string path)
+        private object GetImageUsingPathRest(string path)
         {
             System.IO.Stream image = _rest.GetImageUsingPath(path);
             response = new Nancy.Response();
-            response = Response.FromStream(image, "image/png");
+            response = Response.FromStream(image, MimeTypes.GetMimeType(path));
             return response;
         }
 
@@ -343,12 +347,32 @@ namespace JMMServer.API
         /// <param name="type"></param>
         /// <param name="thumb"></param>
         /// <returns></returns>
-        private object GetImage(string id, string type, bool thumb)
+        private object GetImageRest(string id, string type, bool thumb)
         {
-            System.IO.Stream image = _rest.GetImage(type, id, thumb);
+	        string contentType;
+            System.IO.Stream image = _rest.GetImage(type, id, thumb, out contentType);
             response = new Nancy.Response();
-            response = Response.FromStream(image, "image/png");
+	        // This is not always png
+            response = Response.FromStream(image, contentType);
             return response;
         }
+
+	    /// <summary>
+	    /// Return image with given Id type and information if its should be thumb
+	    /// </summary>
+	    /// <param name="id"></param>
+	    /// <param name="type"></param>
+	    /// <param name="thumb"></param>
+	    /// <returns></returns>
+	    private object GetImage(string id, string type, bool thumb)
+	    {
+		    int imgtype = int.Parse(type);
+		    byte[] image = _image.GetImage(id, imgtype, thumb);
+		    response = new Nancy.Response();
+		    MemoryStream stream = new MemoryStream(image.Length);
+		    stream.Write(image, 0, image.Length);
+		    response = Response.FromStream(stream, "image");
+		    return response;
+	    }
     }
 }
