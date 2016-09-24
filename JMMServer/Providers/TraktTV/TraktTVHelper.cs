@@ -2024,20 +2024,20 @@ namespace JMMServer.Providers.TraktTV
                 bool localCollection = false;
                 bool localWatched = false;
 
+                // If we have local files check for watched count
                 if (ep.GetVideoLocals().Count > 0)
                 {
-                    // let's check if this episode has a user record against it
-                    // if it does, it means a user has watched it
                     localCollection = true;
 
                     AnimeEpisode_User userRecord = null;
                     foreach (JMMUser juser in traktUsers)
                     {
                         userRecord = ep.GetUserRecord(juser.JMMUserID);
-                        if (userRecord != null) break;
-                    }
 
-                    if (userRecord != null) localWatched = true;
+                        // If there's a watch count we mark it as locally watched
+                        if (userRecord?.WatchedCount > 0)
+                            localWatched = true;
+                    }
                 }
 
                 string msg1 =
