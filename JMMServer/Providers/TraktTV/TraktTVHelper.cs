@@ -907,7 +907,7 @@ namespace JMMServer.Providers.TraktTV
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.MarkEpisodeWatched: " + ex.ToString());
+                logger.Error( ex,"Error in TraktTVHelper.SyncEpisodeToTrakt: " + ex.ToString());
             }
         }
 

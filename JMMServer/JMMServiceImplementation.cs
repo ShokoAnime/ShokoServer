@@ -2186,10 +2186,26 @@ namespace JMMServer
                     vlu = new VideoLocal_User();
                     vlu.JMMUserID = jmmuserID;
                     vlu.VideoLocalID = videolocalid;
-                    vlu.WatchedDate = null;
+                    vlu.WatchedDate = null;                 
                 }
                 vlu.ResumePosition = position;
                 RepoFactory.VideoLocalUser.Save(vlu);
+
+                // If Trakt is enabled sync item to Trakt history as well
+                if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                {
+                    Contract_VideoDetailed vid = GetVideoDetailed(videolocalid, jmmuserID);
+                    if (vid != null)
+                    {
+                        // AnimeEpisodeID = AniDB episode ID in this case
+                        AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(vid.AnimeEpisodeID);
+
+                        if (ep != null)
+                        {
+                            Providers.TraktTV.TraktTVHelper.SyncEpisodeToTrakt(ep, TraktSyncType.HistoryAdd);
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -2227,12 +2243,12 @@ namespace JMMServer
                         case (int) Providers.TraktTV.ScrobblePlayingType.movie:
                             Providers.TraktTV.TraktTVHelper.Scrobble(
                                 Providers.TraktTV.ScrobblePlayingType.movie, animeId.ToString(),
-                                statusTraktV2, progressTrakt).ToString();
+                                statusTraktV2, progressTrakt);
                             break;
                         // TV episode
                         case (int) Providers.TraktTV.ScrobblePlayingType.episode:
                             Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.episode,
-                                animeId.ToString(), statusTraktV2, progressTrakt).ToString();
+                                animeId.ToString(), statusTraktV2, progressTrakt);
                             break;
                     }
                 }
