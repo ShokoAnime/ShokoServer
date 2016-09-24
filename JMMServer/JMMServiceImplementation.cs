@@ -2197,6 +2197,52 @@ namespace JMMServer
             }
         }
 
+        public void TraktScrobble(int animeId, int type, int progress, int status)
+        {
+            try
+            {
+                Providers.TraktTV.ScrobblePlayingStatus statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
+                float progressTrakt;
+
+                switch (status)
+                {
+                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Start:
+                        statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
+                        break;
+                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Pause:
+                        statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Pause;
+                        break;
+                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Stop:
+                        statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Stop;
+                        break;
+                }
+
+                bool isValidProgress = float.TryParse(progress.ToString(), out progressTrakt);
+
+                if (isValidProgress)
+                {
+                    switch (type)
+                    {
+                        // Movie
+                        case (int) Providers.TraktTV.ScrobblePlayingType.movie:
+                            Providers.TraktTV.TraktTVHelper.Scrobble(
+                                Providers.TraktTV.ScrobblePlayingType.movie, animeId.ToString(),
+                                statusTraktV2, progressTrakt).ToString();
+                            break;
+                        // TV episode
+                        case (int) Providers.TraktTV.ScrobblePlayingType.episode:
+                            Providers.TraktTV.TraktTVHelper.Scrobble(Providers.TraktTV.ScrobblePlayingType.episode,
+                                animeId.ToString(), statusTraktV2, progressTrakt).ToString();
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+        }
+
         public List<Contract_AnimeEpisode> GetEpisodesForSeries(int animeSeriesID, int userID)
         {
             List<Contract_AnimeEpisode> eps = new List<Contract_AnimeEpisode>();
