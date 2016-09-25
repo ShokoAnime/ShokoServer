@@ -973,14 +973,8 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Anno di creazione</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Ogni cartella di importazione è un percorso dove sono conservati i file di anime che viene utilizzato per costruire la vostra collezione. Avrai bisogno di almeno una cartella di importazione per iniziare a costruire la vostra collezione.</value>
-  </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM Server controllerà questa cartella e aggiungere qualsiasi file che rileva alla tua collezione. Può essere utilizzato in combinazione con Drop fonte e/o destinazione Drop controllato. </value>
-  </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Ulteriori informazioni sulle cartelle di importazione</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Ulteriori informazioni su</value>
@@ -1006,17 +1000,11 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Aggiungere Account</value>
   </data>
-  <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Compilare le informazioni richieste sull'account cloud qui</value>
-  </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Rimuovere</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Account di cloud</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Aggiungere Account Cloud</value>
@@ -1026,9 +1014,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
     <value>Sei sicuro di voler rimuovere il seguente l'Account di Cloud '{0}' da {1}? Qualsiasi cartella importare utilizzando questo account verrà eliminato, e ogni collegamento di file associati a quelli importazione cartelle verranno eliminate anche.</value>
-  </data>
-  <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Selezionare il Provider di servizi</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Collegare</value>

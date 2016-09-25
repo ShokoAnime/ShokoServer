@@ -973,14 +973,8 @@
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Создание год</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Каждая папка импорта является местом, где хранятся ваши файлы аниме, используемый для построения вашей коллекции. Вам нужно по крайней мере одна папка импорта, чтобы начать строительство вашей коллекции.</value>
-  </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>Модель памяти JMM сервер будет отслеживать эту папку и добавить любые файлы, которые он обнаруживает в вашей коллекции. Может использоваться в сочетании с Drop источник и/или Drop назначения проверяются. </value>
-  </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Узнайте больше о импорта папки</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Узнайте больше о</value>
@@ -1006,17 +1000,11 @@
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Добавить учетную запись</value>
   </data>
-  <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Заполните необходимую информацию об учетных записях облачных здесь</value>
-  </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Удалить</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Облачные учетные записи</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Добавить учетную запись Cloud</value>
@@ -1026,9 +1014,6 @@
   </data>
   <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
     <value>Вы действительно хотите удалить следующие облачной учетной записи {0} из {1}? Любой импорт папки, с помощью этой учетной записи будут удалены, и каждый файл ссылки, связанные с этими импорта папки будут также удалены.</value>
-  </data>
-  <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Выберите поставщика услуг</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Подключение</value>

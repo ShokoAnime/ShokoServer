@@ -973,14 +973,8 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Año de creación</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Cada carpeta de importación es un lugar donde se guardan los archivos de anime que se utiliza para crear su colección. Necesitarás al menos una carpeta de importación para comenzar a construir su colección.</value>
-  </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>Servidor de JMM supervisará esta carpeta y añadir los archivos que detecta a su colección. Puede utilizarse en conjunción con fuente de la gota o gota destino comprobado. </value>
-  </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Más información sobre carpetas de importación</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Más información sobre</value>
@@ -1006,17 +1000,11 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Agregar cuenta de</value>
   </data>
-  <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Llene la información requerida sobre las cuentas de nube aquí</value>
-  </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Quitar</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Cuentas de nube</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Agregar cuenta de Cloud</value>
@@ -1026,9 +1014,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
     <value>¿Está seguro que desea eliminar el siguiente la nube cuenta '{0}' {1}? Se eliminará cualquier carpeta importar utilizando esta cuenta, y cada enlace de archivo asociados con ésos importación carpetas serán eliminadas también.</value>
-  </data>
-  <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Seleccione el proveedor de servicios</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Conectar</value>

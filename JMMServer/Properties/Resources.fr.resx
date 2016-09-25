@@ -973,14 +973,8 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Année de création</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Chaque dossier d’importation est un endroit où vos fichiers anime sont conservés qui permet de créer votre collection. Vous aurez besoin d’au moins un dossier d’importation pour commencer à construire votre collection.</value>
-  </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM Server surveillera ce dossier et ajouter tous les fichiers qu’il détecte à votre collection. Peut être utilisé en conjonction avec Drop Source et/ou de la Destination de Drop vérifié. </value>
-  </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>En savoir plus sur Importer les dossiers</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>En savoir plus sur</value>
@@ -1006,17 +1000,11 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Ajouter un compte</value>
   </data>
-  <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Remplissez les informations requises sur les comptes de nuages ici</value>
-  </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Supprimer</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Comptes de nuage</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Ajouter compte nuage</value>
@@ -1026,9 +1014,6 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
     <value>Êtes-vous sûr de vouloir supprimer ce qui suit le nuage compte « {0} » dans {1} ? N’importe quel dossier à importer à l’aide de ce compte seront supprimé, et chaque lien de fichier associées à ces importations dossiers seront également supprimés.</value>
-  </data>
-  <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Fournisseur de Service élite</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Se connecter</value>

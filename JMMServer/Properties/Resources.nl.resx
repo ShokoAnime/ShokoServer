@@ -973,14 +973,8 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Creëren van jaar</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Elke invoer-map is een locatie waar uw anime-bestanden worden opgeslagen die wordt gebruikt voor het bouwen van uw collectie. U moet ten minste één map import om te beginnen met het opbouwen van uw collectie.</value>
-  </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM Server controleert deze map en alle bestanden het detecteert aan je collectie toevoegen. Kan worden gebruikt in combinatie met Drop bron en/of Drop bestemming gecontroleerd. </value>
-  </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Meer informatie over mappen importeren</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Meer weten over</value>
@@ -1006,17 +1000,11 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Account toevoegen</value>
   </data>
-  <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Vul de vereiste informatie over cloud-accounts hier</value>
-  </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Verwijderen</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Cloud-Accounts</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Cloud-Account toevoegen</value>
@@ -1026,9 +1014,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
     <value>Weet u zeker dat u wilt verwijderen van de volgende handelingen uit de Cloud Account '{0}' {1}? Elke importeren map met behulp van deze account worden verwijderd, en elke bestandskoppeling verbonden met deze import mappen worden ook verwijderd.</value>
-  </data>
-  <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Selecteer de serviceprovider</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Verbinding maken</value>

@@ -973,14 +973,8 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Tworzenie rok</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Każdy folder importu jest miejsce gdzie przechowywane są pliki anime, który jest używany do tworzenia kolekcji. Musisz mieć co najmniej jeden folder importu, aby rozpocząć budowę swojej kolekcji.</value>
-  </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM serwer monitorowania tego folderu i dodać wszystkie pliki, które wykrywa do swojej kolekcji. Może służyć w połączeniu z źródło Drop lub upuść przeznaczenia sprawdzane. </value>
-  </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Dowiedz się więcej o Importuj foldery</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Dowiedz się więcej o</value>
@@ -1006,17 +1000,11 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Dodaj konto</value>
   </data>
-  <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Wypełnij wymagane informacje o chmurze tutaj</value>
-  </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Usuń</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Kont w chmurze</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Dodawanie konta w chmurze</value>
@@ -1026,9 +1014,6 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
     <value>Czy na pewno chcesz usunąć następujące konta w chmurze '{0}' z {1}? Dowolnego folderu Import za pomocą tego konta zostaną usunięte, a każdy plik link związane z tych Importuj foldery zostaną również usunięte.</value>
-  </data>
-  <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Wybierz dostawcę usług</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Połączyć</value>

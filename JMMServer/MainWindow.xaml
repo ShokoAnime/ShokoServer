@@ -271,7 +271,7 @@
                     <local:CloudAccountAdmin />
                 </TabItem>
                 <!-- Integrity tab-->
-                <TabItem Header="Integrity"
+                <TabItem Header="{Resx ResxName=JMMServer.Properties.Resources, Key=Tab_Integrity}"
                          Visibility="{Binding Source={x:Static local:ServerState.Instance}, Path=ServerOnline, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <ui:Integrity />
                 </TabItem>

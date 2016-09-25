@@ -973,14 +973,8 @@
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Ano de criação</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Cada pasta de importação é um local onde ficam seus arquivos de anime que é usado para criar sua coleção. Você precisará de pelo menos uma pasta de importação para começar a construir sua coleção.</value>
-  </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM servidor irá monitorar esta pasta e adicionar quaisquer arquivos que detecta a sua coleção. Pode ser usado em conjunto com a fonte larga e/ou destino Drop verificado. </value>
-  </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Saiba mais sobre pastas de importação</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Saiba mais sobre</value>
@@ -1006,17 +1000,11 @@
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Adicionar conta</value>
   </data>
-  <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Preencha as informações necessárias sobre as contas da nuvem aqui</value>
-  </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Remover</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Contas de nuvem</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Adicionar conta Cloud</value>
@@ -1026,9 +1014,6 @@
   </data>
   <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
     <value>Tem certeza que deseja remover o seguinte conta a nuvem '{0}' de {1}? Qualquer pasta importar usando essa conta será excluída, e todos os links de arquivo associado com aqueles importar pastas também serão excluídas.</value>
-  </data>
-  <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Selecione o provedor de serviço</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Conectar-se</value>

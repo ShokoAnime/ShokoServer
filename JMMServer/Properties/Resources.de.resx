@@ -973,14 +973,8 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Gründungsjahr</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Jeder Importordner ist ein Ort, wo Ihre Anime-Dateien aufbewahrt werden, der verwendet wird, um Ihre Sammlung zu bauen. Sie benötigen mindestens einen Importordner, mit dem Bau Ihrer Sammlung.</value>
-  </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM-Server überwacht diesen Ordner und alle Dateien, die es erkennt zu Ihrer Sammlung hinzufügen. Einsetzbar in Verbindung mit Drop Quelle und/oder Drop-Ziel überprüft. </value>
-  </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Erfahren Sie mehr über Import-Ordner</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Erfahren Sie mehr über</value>
@@ -1006,17 +1000,11 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Konto hinzufügen</value>
   </data>
-  <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Füllen Sie die erforderliche Informationen zum Cloud-Konten</value>
-  </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Entfernen</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Cloud-Konten</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Cloud-Konto hinzufügen</value>
@@ -1026,9 +1014,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
     <value>Sind Sie sicher, dass Sie die folgenden entfernen der Cloud-Konto "{0}" {1}? Mit diesem Konto importieren Ordner gelöscht werden, und jeder Dateilink verbunden mit diesen Import Ordner werden ebenfalls gelöscht.</value>
-  </data>
-  <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Wählen Sie die Service-Provider</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Verbinden</value>

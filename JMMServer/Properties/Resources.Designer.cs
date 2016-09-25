@@ -440,6 +440,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Select the Service Provider and input a name for the Cloud account. Clicking Connect will take you to your selected Service Provider&apos;s login page..
+        /// </summary>
+        public static string CloudAccounts_AddCloudInfo {
+            get {
+                return ResourceManager.GetString("CloudAccounts_AddCloudInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The Selected Cloud Account Name already exists.
         /// </summary>
         public static string CloudAccounts_CloudNameAlreadyExists {
@@ -458,11 +467,20 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Fill the required information about cloud accounts here.
+        ///   Looks up a localized string similar to Select your Cloud Provider and follow the instructions to add your Cloud account for use with JMM Server..
         /// </summary>
         public static string CloudAccounts_Info {
             get {
                 return ResourceManager.GetString("CloudAccounts_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deleting a Cloud Provider will remove all associated Import Folders and Files..
+        /// </summary>
+        public static string CloudAccounts_Info2 {
+            get {
+                return ResourceManager.GetString("CloudAccounts_Info2", resourceCulture);
             }
         }
         
@@ -494,7 +512,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select Service Provider.
+        ///   Looks up a localized string similar to Service Provider.
         /// </summary>
         public static string CloudAccounts_Service {
             get {
@@ -1619,7 +1637,16 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Each import folder is a location where your anime files are kept that&apos;s used to build your collection. You&apos;ll need at least one import folder to start building your collection..
+        ///   Looks up a localized string similar to Import Folders.
+        /// </summary>
+        public static string ImportFolders_ImportFolders {
+            get {
+                return ResourceManager.GetString("ImportFolders_ImportFolders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An Import Folder is the physical location of your anime collection, you&apos;ll need at least one Import Folder to use JMM Server to start building your collection..
         /// </summary>
         public static string ImportFolders_Info {
             get {
@@ -1637,11 +1664,11 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Learn more about import folders.
+        ///   Looks up a localized string similar to Import Folders are linked to a single Provider and cannot be used with Import Folders from another Provider..
         /// </summary>
-        public static string ImportFolders_LearnMore {
+        public static string ImportFolders_Location {
             get {
-                return ResourceManager.GetString("ImportFolders_LearnMore", resourceCulture);
+                return ResourceManager.GetString("ImportFolders_Location", resourceCulture);
             }
         }
         
@@ -1880,6 +1907,87 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Add Integrity Check.
+        /// </summary>
+        public static string Integrity_Add {
+            get {
+                return ResourceManager.GetString("Integrity_Add", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Files:.
+        /// </summary>
+        public static string Integrity_Files {
+            get {
+                return ResourceManager.GetString("Integrity_Files", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Integrity Check allows you to scan your Import Folders for file corruption. Any Import Folders you add will have their files rehahsed with the new value compared to the original value stored in your Database from when the file was first imported. Files with a different hash value will be displayed below..
+        /// </summary>
+        public static string Integrity_Info {
+            get {
+                return ResourceManager.GetString("Integrity_Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Re-Add All.
+        /// </summary>
+        public static string Integrity_Readd {
+            get {
+                return ResourceManager.GetString("Integrity_Readd", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Results.
+        /// </summary>
+        public static string Integrity_Results {
+            get {
+                return ResourceManager.GetString("Integrity_Results", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select Import Folders.
+        /// </summary>
+        public static string Integrity_SelectImport {
+            get {
+                return ResourceManager.GetString("Integrity_SelectImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select Import Folders to have their files added to the Integrity Check scan..
+        /// </summary>
+        public static string Integrity_SelectInfo {
+            get {
+                return ResourceManager.GetString("Integrity_SelectInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status:.
+        /// </summary>
+        public static string Integrity_Status {
+            get {
+                return ResourceManager.GetString("Integrity_Status", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Integrity Check.
+        /// </summary>
+        public static string Integrity_Title {
+            get {
+                return ResourceManager.GetString("Integrity_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to JMM Server.
         /// </summary>
         public static string JMMServer {
@@ -2002,6 +2110,15 @@ namespace JMMServer.Properties {
         public static string Link_ImportFolders {
             get {
                 return ResourceManager.GetString("Link_ImportFolders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to http://localhost.
+        /// </summary>
+        public static string Link_Integrity {
+            get {
+                return ResourceManager.GetString("Link_Integrity", resourceCulture);
             }
         }
         
@@ -2881,6 +2998,15 @@ namespace JMMServer.Properties {
         public static string Tab_ImportFolders {
             get {
                 return ResourceManager.GetString("Tab_ImportFolders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Integrity.
+        /// </summary>
+        public static string Tab_Integrity {
+            get {
+                return ResourceManager.GetString("Tab_Integrity", resourceCulture);
             }
         }
         

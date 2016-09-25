@@ -419,7 +419,7 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
 You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Each import folder is a location where your anime files are kept that's used to build your collection. You'll need at least one import folder to start building your collection.</value>
+    <value>An Import Folder is the physical location of your anime collection, you'll need at least one Import Folder to use JMM Server to start building your collection.</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
@@ -985,8 +985,8 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM Server will monitor this folder and add any files it detects to your collection. Can be used in conjunction with Drop Source and/or Drop Destination checked. </value>
   </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Learn more about import folders</value>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Import Folders</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Learn more about</value>
@@ -1007,16 +1007,13 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Add Account</value>
   </data>
   <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Fill the required information about cloud accounts here</value>
+    <value>Select your Cloud Provider and follow the instructions to add your Cloud account for use with JMM Server.</value>
   </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Remove</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Cloud Accounts</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Add Cloud Account</value>
@@ -1028,7 +1025,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Are you sure you want to remove the following the Cloud Account '{0}' from {1}? Any Import Folder using this account will be deleted, and every file link associated with those import folders will be also deleted.</value>
   </data>
   <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Select Service Provider</value>
+    <value>Service Provider</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Connect</value>
@@ -1071,5 +1068,11 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Updating TVDb info and requesting new images.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>Deleting a Cloud Provider will remove all associated Import Folders and Files.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Select the Service Provider and input a name for the Cloud account. Clicking Connect will take you to your selected Service Provider's login page.</value>
   </data>
 </root>
