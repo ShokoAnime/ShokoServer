@@ -40,7 +40,7 @@
             this.txtMigrateInProgress.Name = "txtMigrateInProgress";
             this.txtMigrateInProgress.Size = new System.Drawing.Size(366, 13);
             this.txtMigrateInProgress.TabIndex = 0;
-            this.txtMigrateInProgress.Text = "Migration is in progress, this window will automatically close once completed.";
+            this.txtMigrateInProgress.Text = Properties.Resources.Migration_InProgress1;
             // 
             // txtMigrateInProgress1
             // 
@@ -49,7 +49,7 @@
             this.txtMigrateInProgress1.Name = "txtMigrateInProgress1";
             this.txtMigrateInProgress1.Size = new System.Drawing.Size(259, 13);
             this.txtMigrateInProgress1.TabIndex = 1;
-            this.txtMigrateInProgress1.Text = "Afterwards JMM Server will restarts itself if successful.";
+            this.txtMigrateInProgress1.Text = Properties.Resources.Migration_InProgress2;
             // 
             // MigrationForm
             // 
