@@ -362,7 +362,7 @@ namespace JMMServer
                 if (Utils.IsAdministrator())
                 {
                     MessageBox.Show("Settings the ports, after that JMMServer will quit, run again in normal mode");
-                    Utils.SetNetworkRequirements(ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort);
+                    Utils.SetNetworkRequirements(ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort, ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort);
                     try
                     {
                         action();
@@ -1499,8 +1499,12 @@ namespace JMMServer
 
                 StopHost();
 
-                if (Utils.SetNetworkRequirements(port.ToString(), oldPort: ServerSettings.JMMServerPort))
+                if (Utils.SetNetworkRequirements(port.ToString(), (port + 1).ToString(), ServerSettings.JMMServerPort,
+                    ServerSettings.JMMServerFilePort))
+                {
                     ServerSettings.JMMServerPort = port.ToString();
+                    ServerSettings.JMMServerFilePort = (port + 1).ToString();
+                }
                 else
                     txtServerPort.Text = ServerSettings.JMMServerPort;
 
@@ -1509,8 +1513,10 @@ namespace JMMServer
                     try
                     {
                         StartNancyHost();
+                        StartImageHost();
                         StartBinaryHost();
-                        StartFileHost();
+                        StartMetroHost();
+                        StartImageHostMetro();
                         StartStreamingHost();
                     }
                     catch (Exception)

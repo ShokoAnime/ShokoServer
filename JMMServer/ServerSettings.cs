@@ -69,6 +69,7 @@ namespace JMMServer
         {
             try
             {
+                //Reconfigure log file to applicationpath
                 var target = (FileTarget)LogManager.Configuration.FindTargetByName("file");
                 target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
                 LogManager.ReconfigExistingLoggers();
@@ -137,6 +138,7 @@ namespace JMMServer
                     Migration m = null;
                     try
                     {
+                        Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
                         m =
                             new Migration(
                                 $"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}");
@@ -171,7 +173,7 @@ namespace JMMServer
                     ServerSettings.BaseImagesPathIsDefault = true;
                 }
                 SaveSettings();
-                //Reconfigure log file to applicationpath
+
 
             }
             catch (Exception e)

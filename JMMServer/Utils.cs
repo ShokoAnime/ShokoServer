@@ -10,6 +10,7 @@ using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using JMMServer.Entities;
@@ -129,7 +130,7 @@ namespace JMMServer
 
         public static List<string> Paths = new List<string>
         {
-            "JMMServerImage", "JMMServerBinary", "JMMServerMetro", "JMMServerPlex",
+            "JMMServerImage", "JMMServerBinary", "JMMServerMetro", "JMMServerMetroImage", "JMMServerPlex",
             "JMMServerKodi", "JMMServerREST", "JMMServerStreaming", ""
         };
 
@@ -141,8 +142,35 @@ namespace JMMServer
                 sw.WriteLine($@"netsh http delete urlacl url=http://+:{port}/{path}");
 
         }
-        public static bool SetNetworkRequirements(string Port = null, string FilePort = null, string oldPort = null,
-        string oldFilePort = null)
+
+        public static string acls = ":\\s+(http://(\\*|\\+):({0}).*?/)\\s?\r\n";
+
+        public static void CleanUpDefaultPortsInNetSh(this StreamWriter sw, int[] ports)
+        {
+            Process proc = new Process();
+            Regex acl=new Regex(string.Format(acls,string.Join("|",ports.Select(a=>a.ToString()))),RegexOptions.Singleline);
+            proc.StartInfo.FileName = "netsh";
+            proc.StartInfo.Arguments = "http show urlacl";
+            proc.StartInfo.Verb = "runas";
+            proc.StartInfo.CreateNoWindow = true;
+            proc.StartInfo.RedirectStandardOutput= true;
+            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            proc.StartInfo.UseShellExecute =false;
+            proc.Start();
+            StreamReader sr = proc.StandardOutput;
+            string str = sr.ReadToEnd();
+            proc.WaitForExit();
+            foreach (Match m in acl.Matches(str))
+            {
+                if (m.Success)
+                {
+                    sw.WriteLine($@"netsh http delete urlacl url={m.Groups[1].Value}");
+                }
+            }
+        }
+
+
+        public static bool SetNetworkRequirements(string Port, string FilePort, string OldPort, string OldFilePort)
         {
             string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "NetworkConfig.bat");
             int exitCode = -1;
@@ -160,55 +188,14 @@ namespace JMMServer
             {
                 StreamWriter BatchFileStream = new StreamWriter(BatchFile);
 
-                #region Cleanup Default Ports
-
-
-                if (ServerSettings.JMMServerPort != 8111.ToString())
-                {
-                    Paths.ForEach(a=>BatchFileStream.NetSh(a,"delete","8111"));
-                    BatchFileStream.WriteLine($@"netsh advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport={8111}");
-                }
-
-                if (ServerSettings.JMMServerFilePort != 8112.ToString())
-                {
-                    BatchFileStream.NetSh("", "delete", "8112");
-                    BatchFileStream.WriteLine($@"netsh advfirewall firewall delete rule name=""JMM Server - File Port"" protocol=TCP localport={8112}");
-                }
-
-                #endregion
-
-                #region Adding Ports
-                if (oldPort!=Port)
-                {
-                    if (!String.IsNullOrEmpty(oldPort))
-                    {
-                        BatchFileStream.WriteLine($@"netsh advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport={oldPort}");
-                        Paths.ForEach(a => BatchFileStream.NetSh(a, "delete", oldPort));
-                    }
-
-                    if (!String.IsNullOrEmpty(Port))
-                    {
-                        BatchFileStream.WriteLine($@"netsh advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport={Port}");
-                        Paths.ForEach(a => BatchFileStream.NetSh(a, "add", Port));
-                    }
-                }
-                if (oldFilePort != FilePort)
-                {
-                    if (!String.IsNullOrEmpty(oldFilePort))
-                    {
-                        BatchFileStream.WriteLine($@"netsh advfirewall firewall delete rule name=""JMM Server - File Port"" protocol=TCP localport={oldFilePort}");
-                        BatchFileStream.NetSh("", "delete", "8112");
-                    }
-                    if (!String.IsNullOrEmpty(FilePort))
-                    {
-                        BatchFileStream.WriteLine($@"netsh advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport={FilePort}");
-                        BatchFileStream.NetSh("", "add", "8112");
-                    }
-
-                }
-
-                #endregion
-
+                //Cleanup previous
+                BatchFileStream.CleanUpDefaultPortsInNetSh(new [] { int.Parse(OldPort), int.Parse(OldFilePort)});
+                BatchFileStream.WriteLine("netsh advfirewall firewall delete rule name=\"JMM Server - Client Port\"");
+                BatchFileStream.WriteLine("netsh advfirewall firewall delete rule name=\"JMM Server - File Port\"");
+                BatchFileStream.WriteLine($@"netsh advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport={Port}");
+                Paths.ForEach(a => BatchFileStream.NetSh(a, "add", Port));
+                BatchFileStream.WriteLine($@"netsh advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport={FilePort}");
+                BatchFileStream.NetSh("", "add", FilePort);
                 BatchFileStream.Close();
 
                 proc.Start();
