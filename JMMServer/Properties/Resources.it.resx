@@ -1114,4 +1114,10 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Tab_Integrity" xml:space="preserve">
     <value>Integrità</value>
   </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>La migrazione è in corso, questa finestra si chiuderà automaticamente una volta completato.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>In seguito JMM Server si riavvii stessa in caso di successo.</value>
+  </data>
 </root>

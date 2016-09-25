@@ -2231,6 +2231,24 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Migration is in progress, this window will automatically close once completed..
+        /// </summary>
+        public static string Migration_InProgress1 {
+            get {
+                return ResourceManager.GetString("Migration_InProgress1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Afterwards JMM Server will restart itself if successful..
+        /// </summary>
+        public static string Migration_InProgress2 {
+            get {
+                return ResourceManager.GetString("Migration_InProgress2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to MySQL.
         /// </summary>
         public static string MySQL {

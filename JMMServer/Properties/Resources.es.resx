@@ -1114,4 +1114,10 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Tab_Integrity" xml:space="preserve">
     <value>Integridad</value>
   </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>La migración está en marcha, esta ventana se cerrará automáticamente una vez terminado.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>Luego servidor JMM va se reinicia sí mismo si tiene éxito.</value>
+  </data>
 </root>

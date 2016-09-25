@@ -1114,4 +1114,10 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Tab_Integrity" xml:space="preserve">
     <value>Integrity</value>
   </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>Migration is in progress, this window will automatically close once completed.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>Afterwards JMM Server will restart itself if successful.</value>
+  </data>
 </root>

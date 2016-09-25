@@ -1119,7 +1119,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Migration is in progress, this window will automatically close once completed.</value>
   </data>
   <data name="Migration_InProgress2" xml:space="preserve">
-    <value>Afterwards JMM Server will restarts itself if successful.</value>
+    <value>Afterwards JMM Server will restart itself if successful.</value>
   </data>
   <data name="Actions_UpdateImages" xml:space="preserve">
     <value>Update Images</value>

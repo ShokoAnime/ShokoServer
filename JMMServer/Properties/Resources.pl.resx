@@ -1114,4 +1114,10 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Tab_Integrity" xml:space="preserve">
     <value>Integralność</value>
   </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>Migracja jest w toku, ten okno zostanie automatycznie zamknięte po wypełnieniu.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>Potem JMM Server będzie restartuje sam jeśli kończy się pomyślnie.</value>
+  </data>
 </root>

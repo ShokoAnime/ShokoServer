@@ -1114,4 +1114,10 @@
   <data name="Tab_Integrity" xml:space="preserve">
     <value>Целостность</value>
   </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>Миграция, это окно будет автоматически закрыто после завершения.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>После этого JMM сервер будет перезапускает себя в случае успеха.</value>
+  </data>
 </root>

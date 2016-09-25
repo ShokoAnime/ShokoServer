@@ -1114,4 +1114,10 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Tab_Integrity" xml:space="preserve">
     <value>Integrität</value>
   </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>Migration ist im Gange, dieses Fenster schließt sich automatisch nach ihrer Fertigstellung.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>Danach wird JMM Server neu gestartet selbst im Erfolgsfall.</value>
+  </data>
 </root>

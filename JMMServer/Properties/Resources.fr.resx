@@ -1114,4 +1114,10 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Tab_Integrity" xml:space="preserve">
     <value>Intégrité</value>
   </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>La migration est en cours, cette fenêtre se ferme automatiquement une fois terminé.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>Par la suite JMM serveur sera redémarre lui-même en cas de succès.</value>
+  </data>
 </root>

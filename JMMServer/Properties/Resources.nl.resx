@@ -1114,4 +1114,10 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Tab_Integrity" xml:space="preserve">
     <value>Integriteit</value>
   </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>Migratie is in volle gang, dit venster zal automatisch sluiten na voltooiing.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>Daarna zal JMM Server opnieuw opstarten zelf als succesvol.</value>
+  </data>
 </root>
