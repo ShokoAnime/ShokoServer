@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Configuration;
 using System.Diagnostics;
 using System.Globalization;
@@ -29,6 +30,10 @@ namespace JMMServer
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private static Dictionary<string, string> appSettings = new Dictionary<string, string>();
+        private static bool migrationError = false;
+        private static bool migrationActive = false;
+        private static MigrationForm migrationForm;
+
 
         private static string Get(string key)
         {
@@ -76,6 +81,7 @@ namespace JMMServer
 
 
                 disabledSave = true;
+
                 string programlocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
                 List<MigrationDirectory> migrationdirs = new List<MigrationDirectory>
                 {
@@ -128,6 +134,7 @@ namespace JMMServer
                 }
                 if (migrate)
                 {
+                    migrationActive = true;
                     if (!Utils.IsAdministrator())
                     {
                         MessageBox.Show(Properties.Resources.Migration_AdminFail, Properties.Resources.Migration_Header,
@@ -135,13 +142,20 @@ namespace JMMServer
                         Application.Current.Shutdown();
                         return;
                     }
+
+
                     Migration m = null;
                     try
                     {
+                        /*
                         m =
                             new Migration(
                                 $"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}");
-                        m.Show();
+                        m.Show();*/
+
+                        // Show migration indicator
+                        MigrationIndicatorForm();
+
                         if (!Directory.Exists(ApplicationPath))
                         {
                             Directory.CreateDirectory(ApplicationPath);
@@ -160,11 +174,24 @@ namespace JMMServer
                     catch (Exception e)
                     {
                         MessageBox.Show("Error Migrating Settings: ", e.ToString());
+                        migrationActive = false;
+                        migrationError = true;
 
                     }
                     Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
 
-                    m?.Close();
+                    //m?.Close();
+
+                    migrationActive = false;
+                    // We make sure to restart app upcong successfull completion
+                    if (!migrationError)
+                    {
+                        WaitForMigrationThenRestart();
+
+                        // Sleep a bit to allow for slow startup
+                        Thread.Sleep(2500);
+                    }
+
                     Application.Current.Shutdown();
                     return;
                 }
@@ -181,12 +208,58 @@ namespace JMMServer
             }
             catch (Exception e)
             {
+                migrationError = true;
+                migrationActive = false;
                 MessageBox.Show("Error Loading Settings: ", e.ToString());
                 Application.Current.Shutdown();
                 return;
-            }
-            
+            }           
+        }
 
+        private static void MigrationIndicatorForm()
+        {
+            // Configure a BackgroundWorker to perform your long running operation.
+            BackgroundWorker bg = new BackgroundWorker();
+            bg.DoWork += new DoWorkEventHandler(bg_migrationStart);
+            bg.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bg_migrationFinished);
+
+            // Start the worker.
+            bg.RunWorkerAsync();
+
+            // Display the migration form.
+            migrationForm = new MigrationForm();
+            migrationForm.Show();
+        }
+
+        private static void bg_migrationStart(object sender, DoWorkEventArgs e)
+        {
+            while (migrationActive && !migrationError) { };
+        }
+        private static void bg_migrationFinished(object sender, RunWorkerCompletedEventArgs e)
+        {
+            // Retrieve the result pass from bg_DoWork() if any.
+            // Note, you may need to cast it to the desired data type.
+            //object result = e.Result;
+
+            // Close the migration indicator form.
+            migrationForm?.Close();
+        }
+        private static void WaitForMigrationThenRestart()
+        {
+            string applicationPath = "JMMServer.exe";
+
+            if (File.Exists(applicationPath))
+            {
+                MessageBox.Show("Application path = " + applicationPath);
+
+                ProcessStartInfo Info = new ProcessStartInfo();
+                Info.Arguments = "/C ping 127.0.0.1 -n 2 && \"" + applicationPath + "\"";
+                Info.WindowStyle = ProcessWindowStyle.Hidden;
+                Info.CreateNoWindow = true;
+                Info.FileName = "cmd.exe";
+                Process.Start(Info);
+                Environment.Exit(1);
+            }
         }
 
         private static bool disabledSave = false;
