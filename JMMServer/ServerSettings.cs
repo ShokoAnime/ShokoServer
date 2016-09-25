@@ -138,7 +138,6 @@ namespace JMMServer
                     Migration m = null;
                     try
                     {
-                        Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
                         m =
                             new Migration(
                                 $"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}");
@@ -163,6 +162,8 @@ namespace JMMServer
                         MessageBox.Show("Error Migrating Settings: ", e.ToString());
 
                     }
+                    Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
+
                     m?.Close();
                     Application.Current.Shutdown();
                     return;
@@ -172,6 +173,8 @@ namespace JMMServer
                 {
                     ServerSettings.BaseImagesPathIsDefault = true;
                 }
+                if (Utils.IsAdministrator())
+                    Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
                 SaveSettings();
 
 
