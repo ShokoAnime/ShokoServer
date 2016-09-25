@@ -1057,4 +1057,61 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Actualización de información TVDB y solicitando nuevas imágenes.</value>
   </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Una carpeta de importación es la ubicación física de su colección de anime, que necesitará al menos una carpeta de importación a utilizar servidor de JMM para empezar a construir su colección.</value>
+  </data>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Carpetas de importación</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Seleccione su proveedor de la nube y siga las instrucciones para agregar su cuenta de nube para uso con el servidor de JMM.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Proveedor de servicios</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Carpetas de importación están vinculados a un único proveedor y no se puede utilizar con carpetas de importación desde otro proveedor.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>Eliminar un proveedor Cloud elimina todos archivos y carpetas de importación asociados.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Un nombre para la cuenta de la nube de entrada y seleccione el proveedor de servicios. Haga clic en conectar, le llevará a la página de inicio de sesión de su proveedor de servicio seleccionado.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Añadir la verificación de la integridad</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Volver a agregar todos</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>Archivos:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Estado de:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Resultados</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Seleccione carpetas de importación</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Seleccione carpetas de importación para tener sus archivos añadidos a la exploración de integridad comprobar.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Verificación de la integridad le permite explorar las carpetas de importación para la corrupción del archivo. Las carpetas de importación que agrega tendrá su rehahsed archivos con el nuevo valor en comparación con el valor original almacenado en su base de datos de cuando el archivo se importó en primer lugar. Archivos con un valor hash diferente se mostrará a continuación.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Verificación de la integridad</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Integridad</value>
+  </data>
 </root>

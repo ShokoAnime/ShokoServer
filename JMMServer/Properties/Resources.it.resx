@@ -1057,4 +1057,61 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Aggiornamento informazioni TVDb e la richiesta di nuove immagini.</value>
   </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Una cartella di importazione è la posizione fisica della vostra collezione di anime, avrai bisogno di almeno una cartella di importazione utilizzare JMM Server per iniziare a costruire la vostra collezione.</value>
+  </data>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Importare le cartelle</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Selezionare il Provider di Cloud e seguire le istruzioni per aggiungere il tuo account Cloud per l'utilizzo con Server di JMM.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Provider di servizi</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Importa cartelle sono collegate ad un unico fornitore e non possono essere utilizzate con le cartelle di importazione da un altro Provider.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>L'eliminazione di un fornitore di servizi Cloud rimuoverà tutti i file e le cartelle di importazione associati.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Selezionare il Provider di servizio e immettere un nome per l'account di Cloud. Facendo clic su Connetti vi porterà alla pagina di accesso del Provider selezionato.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Aggiungere il controllo di integrità</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Aggiungere nuovamente tutti</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>File:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Stato:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Risultati</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Selezionare Importa cartelle</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Selezionare Importa cartelle per avere loro file aggiunti per l'analisi di controllo di integrità.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Controllo di integrità permette di scansionare le cartelle di importazione per la corruzione del file. Tutte le cartelle di importazione che si aggiunge avrà loro rehahsed i file con il nuovo valore rispetto al valore originale archiviato nel Database da quando in primo luogo è stato importato il file. I file con un valore di hash diverso verranno visualizzati di sotto.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Controllo di integrità</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Integrità</value>
+  </data>
 </root>

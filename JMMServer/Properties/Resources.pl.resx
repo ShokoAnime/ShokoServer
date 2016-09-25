@@ -1057,4 +1057,61 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Aktualizacja informacji TVDb i prosząc o nowe zdjęcia.</value>
   </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Folder importu jest fizyczną lokalizację swojej kolekcji anime, musisz mieć co najmniej jeden Folder importu do używania serwera JMM rozpocząć budowę swojej kolekcji.</value>
+  </data>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Import folderów</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Wybierz dostawcę chmury i postępuj zgodnie z instrukcjami, aby dodać konta usługi Cloud za pomocą serwera JMM.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Dostawcy usług</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Importuj foldery są połączone z jednego dostawcy i nie można używać z importu folderów od innego dostawcy.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>Usuwanie dostawcy chmury usunie wszystkie skojarzone Importuj foldery i pliki.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Wybierz dostawcę usług i wprowadź nazwę konta w chmurze. Kliknięcie przycisku Połącz zabierze Cię na stronę logowania wybranego dostawcy usług.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Dodawanie sprawdzania integralności</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Ponownie Dodaj wszystkie</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>Pliki:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Wyniki</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Wybierz Importuj foldery</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Wybierz Importuj foldery do ich pliki dodane do sprawdzania integralności skanowania.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Sprawdzanie integralności pozwala na skanowanie importu folderów uszkodzenia plików. Importuj foldery, które dodasz będzie miał ich rehahsed pliki z nową wartość w porównaniu do oryginalnej wartości przechowywane w bazie danych, od kiedy po raz pierwszy został zaimportowany plik. Pliki z wartością mieszania różnych pojawi się poniżej.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Sprawdzanie integralności</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Integralność</value>
+  </data>
 </root>

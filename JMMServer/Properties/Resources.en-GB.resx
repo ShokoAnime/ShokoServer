@@ -1075,4 +1075,43 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
     <value>Select the Service Provider and input a name for the Cloud account. Clicking Connect will take you to your selected Service Provider's login page.</value>
   </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Import Folders are linked to a single Provider and cannot be used with Import Folders from another Provider.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Add Integrity Check</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Re-Add All</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>Files:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Results</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Select Import Folders</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Select Import Folders to have their files added to the Integrity Check scan.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Integrity Check allows you to scan your Import Folders for file corruption. Any Import Folders you add will have their files rehahsed with the new value compared to the original value stored in your Database from when the file was first imported. Files with a different hash value will be displayed below.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Integrity Check</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Integrity</value>
+  </data>
 </root>

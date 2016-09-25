@@ -1057,4 +1057,61 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Aktualisieren tvdb info und neue Bilder anfordern.</value>
   </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Ein Import-Ordner ist der physische Standort Ihrer Anime Sammlung, benötigen Sie mindestens einen Importordner JMM Server verwenden, um mit dem Bau Ihrer Sammlung.</value>
+  </data>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Import-Ordner</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Wählen Sie Ihr Cloud-Anbieter und folgen Sie die Anweisungen, um Ihr Cloud-Konto für die Verwendung mit JMM Server hinzufügen.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Service-Provider</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Import-Ordner mit einem einzigen Anbieter verknüpft sind und nicht mit Import-Ordner von einem anderen Anbieter verwendet werden.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>Eine Cloud-Anbieter werden alle zugehörigen Import-Ordner und Dateien löschen.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Wählen Sie den Service-Provider, und geben Sie einen Namen für die Cloud-Konto. Connect Klicken gelangen Sie zu Ihrem ausgewählten Dienstleister-Login-Seite.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Fügen-Integritätsprüfung hinzu</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Fügen Sie alle wieder</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>Dateien:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Ergebnisse</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Wählen Sie Import Ordner</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Wählen Sie Import Ordner, ihre Dateien Integritätsprüfung Scan hinzugefügt haben.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Integritäts-Check können Sie Ihre Import-Ordner für die Datei Korruption zu scannen. Alle Import-Ordner, die Sie hinzufügen müssen ihre Dateien Rehahsed mit dem neuen Wert im Vergleich zu den ursprünglichen Wert in der Datenbank von wann die Datei zuerst importiert wurde gespeichert. Dateien mit einem anderen Hashwert werden unten angezeigt.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Integritätsprüfung</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Integrität</value>
+  </data>
 </root>

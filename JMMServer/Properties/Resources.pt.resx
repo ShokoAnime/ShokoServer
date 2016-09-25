@@ -1057,4 +1057,61 @@
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Atualizando informações TVDB e solicitando novas imagens.</value>
   </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Uma pasta de importação é a localização física de sua coleção de anime, você vai precisar de pelo menos uma pasta de importação para usar servidor JMM para começar a construir sua coleção.</value>
+  </data>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Pastas de importação</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Selecione o seu provedor de nuvem e siga as instruções para adicionar sua conta de nuvem para uso com o servidor de JMM.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Provedor de serviço</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Pastas de importação estão ligadas a um único fornecedor e não podem ser usadas com pastas de importação de outro provedor.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>Exclusão de um provedor de nuvem irá remover todos os associados de importação de pastas e arquivos.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Selecione o provedor de serviço e um nome para a conta da nuvem de entrada. Connect levará você para a página de login do provedor de serviços seu selecionado.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Adicionar a verificação de integridade</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Re-inserir todos</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>Arquivos:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Resultados</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Selecione importar pastas</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Selecione importar pastas para ter seus arquivos adicionados para o exame de verificação de integridade.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Verificação de integridade permite digitalizar suas pastas de importação por corrupção de arquivo. As pastas de importação que você adicionar terá rehahsed seus arquivos com o novo valor em comparação com o valor original, armazenado em seu banco de dados de quando o arquivo foi importado primeiro. Arquivos com um valor de hash diferente será exibida abaixo.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Verificação de integridade</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Integridade</value>
+  </data>
 </root>

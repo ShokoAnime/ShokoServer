@@ -1057,4 +1057,61 @@
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Обновление TVDB информации и запроса новых изображений.</value>
   </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Папка импорта является физическое местоположение вашей коллекции аниме, вам понадобится хотя бы одна папка импорта для использования сервера JMM для начала сборки вашей коллекции.</value>
+  </data>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Импорт папки</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Выберите поставщика облака и следуйте инструкциям, чтобы добавить свою учетную запись Cloud для использования с сервером JMM.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Поставщик услуг</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Импорт папки связаны с одним поставщиком и не может использоваться с папками импорта из другого поставщика.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>Удаление поставщика облака будут удалены все связанные импорта папки и файлы.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Выберите поставщик услуг и введите имя учетной записи облака. Нажав кнопку Connect будет считать вас к странице входа выбранного поставщика услуг.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Добавление проверки целостности</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Повторно добавить все</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>Файлы:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Статус:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Результаты</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Выберите Импорт папок</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Выберите Импорт папки, чтобы их файлы, добавленные к проверки целостности сканирования.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Проверка целостности позволяет сканировать ваши папки импорта для повреждения файлов. Любые папки импорта, которые вы добавляете будет иметь свои файлы rehahsed с новым значением, по сравнению с первоначальным значением, хранящиеся в базе данных из когда файл был впервые импортирован. Файлы с другой хэш-значение будет отображаться ниже.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Проверка целостности</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Целостность</value>
+  </data>
 </root>

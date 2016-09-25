@@ -1057,4 +1057,61 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Updaten van TVDb informatie en het aanvragen van nieuwe beelden.</value>
   </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Een map importeren is de fysieke locatie van uw anime-collectie, moet u ten minste één map Import gebruiken JMM Server om te beginnen met het opbouwen van uw collectie.</value>
+  </data>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Mappen importeren</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Selecteer uw Cloud Provider en volg de instructies om uw Cloud-account voor gebruik met JMM Server toevoegen.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Serviceprovider</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Mappen importeren zijn gekoppeld aan één dienstverlener en kunnen niet worden gebruikt met mappen importeren uit een andere Provider.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>Een Cloud Provider zal verwijdert alle bijbehorende importeren mappen en bestanden.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Selecteer de serviceprovider en voer een naam voor de Cloud-account. Op verbinden te klikken brengt u naar uw geselecteerde Service Provider loginpagina.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Toevoegen van Integrity-Check</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Alles opnieuw toevoegen</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>Bestanden:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Resultaten</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Selecteer mappen importeren</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Selecteer importeren mappen hebben hun bestanden toegevoegd aan de scan integriteit controleren.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Volledigheidscontrole kunt u scannen van uw mappen importeren bestand is beschadigd. Geen Import mappen die u toevoegt zal hebben hun bestanden rehahsed met de nieuwe waarde vergeleken met de oorspronkelijke waarde opgeslagen in de Database van toen het bestand werd geïmporteerd. Bestanden met een andere hash-waarde wordt getoond hieronder.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Integrity-Check</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Integriteit</value>
+  </data>
 </root>

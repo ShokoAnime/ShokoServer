@@ -1065,7 +1065,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Cloud Accounts</value>
   </data>
   <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Add Cloud Account</value>
@@ -1161,6 +1161,6 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Integrity</value>
   </data>
   <data name="Link_Integrity" xml:space="preserve">
-    <value>http://localhost</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
   </data>
 </root>

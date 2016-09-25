@@ -2060,7 +2060,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://localhost.
+        ///   Looks up a localized string similar to http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts.
         /// </summary>
         public static string Link_CloudAccounts {
             get {
@@ -2114,7 +2114,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to http://localhost.
+        ///   Looks up a localized string similar to http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check.
         /// </summary>
         public static string Link_Integrity {
             get {

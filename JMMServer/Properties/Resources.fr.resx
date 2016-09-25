@@ -1057,4 +1057,61 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Mise à jour d'informations TVDb et demandant de nouvelles images.</value>
   </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Un dossier d’importation est l’emplacement physique de votre collection d’anime, vous aurez besoin d’au moins un dossier d’importation à utiliser serveur JMM pour commencer à construire votre collection.</value>
+  </data>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Dossiers d'importation</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Sélectionnez votre fournisseur de Cloud et suivez les instructions pour ajouter votre compte nuage pour une utilisation avec Server de JMM.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Fournisseur de services</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Importer les dossiers sont liés à un fournisseur unique et ne peuvent servir à importer les dossiers d’un autre fournisseur.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>Suppression d’un fournisseur de Cloud va supprimer tous les fichiers et importer les dossiers associés.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Sélectionnez le fournisseur de Service et saisir un nom pour le compte de nuage. En cliquant sur Connect vous emmènera vers la page de connexion de votre fournisseur de services sélectionné.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Ajouter le contrôle d’intégrité</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Rajouter tous</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>Fichiers :</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Statut :</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Résultats</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Sélectionnez Importer les éléments</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Sélectionnez Importer les dossiers d’avoir leurs fichiers ajoutés à l’analyse de vérification de l’intégrité.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Contrôle d’intégrité vous permet de scanner vos dossiers d’importation pour les fichiers endommagés. Les dossiers d’importation que vous ajoutez auront leur fichiers rehahsed avec la nouvelle valeur par rapport à la valeur d’origine stockée dans votre base de données lorsque le fichier a été d’abord importé. Les fichiers avec une valeur de hachage différent apparaît ci-dessous.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Vérification de l’intégrité</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Intégrité</value>
+  </data>
 </root>
