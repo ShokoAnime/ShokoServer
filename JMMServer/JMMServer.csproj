@@ -876,6 +876,9 @@
     <Compile Include="UPnPData.cs" />
     <Compile Include="UPnPServerBrowserDialog.cs" />
     <Compile Include="UserCulture.cs" />
+    <Compile Include="Utilities\AdvFileSystemWatcher.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Utilities\GroupFilterHelper.cs" />
     <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
     <Compile Include="Utilities\JsonExtensions.cs" />

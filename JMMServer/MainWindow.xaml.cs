@@ -105,7 +105,7 @@ namespace JMMServer
         internal static System.Timers.Timer LogRotatorTimer = null;
 
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
-        private static List<FileSystemWatcher> watcherVids = null;
+        private static List<AdvFileSystemWatcher> watcherVids = null;
 
         BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
@@ -2260,7 +2260,7 @@ namespace JMMServer
         {
             StopWatchingFiles();
             StopCloudWatchTimer();
-            watcherVids = new List<FileSystemWatcher>();
+            watcherVids = new List<AdvFileSystemWatcher>();
 
             foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll())
             {
@@ -2272,9 +2272,17 @@ namespace JMMServer
                     }
                     if (share.CloudID==null && Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
                     {
-                        FileSystemWatcher fsw = new FileSystemWatcher(share.ImportFolderLocation);
+                        AdvFileSystemWatcher fsw = new AdvFileSystemWatcher(share.ImportFolderLocation);
+
+                        fsw.Path = share.ImportFolderLocation;
+
+                        // Handle all type of events not just created ones
+                        fsw.Created += fsw_Handler;
+                        fsw.Changed += fsw_Handler;
+                        fsw.Renamed += fsw_Handler;
+
+                        fsw.InternalBufferSize = 81920;
                         fsw.IncludeSubdirectories = true;
-                        fsw.Created += new FileSystemEventHandler(fsw_Created);
                         fsw.EnableRaisingEvents = true;
                         watcherVids.Add(fsw);
                     }
@@ -2297,14 +2305,14 @@ namespace JMMServer
         {
             if (watcherVids == null) return;
 
-            foreach (FileSystemWatcher fsw in watcherVids)
+            foreach (AdvFileSystemWatcher fsw in watcherVids)
             {
                 fsw.EnableRaisingEvents = false;
             }
             StopCloudWatchTimer();
         }
 
-        static void fsw_Created(object sender, FileSystemEventArgs e)
+        static void fsw_Handler(object sender, FileSystemEventArgs e)
         {
             try
             {
