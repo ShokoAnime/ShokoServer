@@ -15,6 +15,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using System.IO;
 using JMMServer.Repositories.Direct;
+using JMMServer.Utilities;
 
 namespace JMMServer.API
 {
@@ -1964,20 +1965,18 @@ namespace JMMServer.API
                 result.Add("position", fs.Length);
                 result.Add("lines", new string[] { });
                 return result;
-            } else if (position > 0)
-            {
-                fs.Seek(position, SeekOrigin.Begin);
             }
             
             List<string> logLines = new List<string>();
-            TextReader reader = new StreamReader(fs);
+
+            LogReader reader = new LogReader(fs, position);
             for (int i=0; i<lines; i++)
             {
                 string line = reader.ReadLine();
                 if (line == null) break;
                 logLines.Add(line);
             }
-            result.Add("position", fs.Position);
+            result.Add("position", reader.Position);
             result.Add("lines", logLines.ToArray());
             return result;
         }
