@@ -2272,7 +2272,7 @@ namespace JMMServer
                     }
                     if (share.CloudID==null && Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
                     {
-                        AdvFileSystemWatcher fsw = new AdvFileSystemWatcher(share.ImportFolderLocation);
+                        AdvFileSystemWatcher fsw = new AdvFileSystemWatcher();
 
                         fsw.Path = share.ImportFolderLocation;
 
