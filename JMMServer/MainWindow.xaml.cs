@@ -2447,6 +2447,9 @@ namespace JMMServer
 
                 // MAL association checks
                 Importer.RunImport_ScanMAL();
+
+                // Check for previously ignored files
+                Importer.CheckForPreviouslyIgnored();
             }
             catch (Exception ex)
             {
