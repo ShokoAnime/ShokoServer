@@ -453,9 +453,9 @@ namespace JMMServer
                     // this is a message to stop processing
                     if (evt == null) return;
 
-                    logger.Info("New file created: {0}: {1}", evt.FullPath, evt.ChangeType);
+                    logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
 
-                    if (evt.ChangeType == WatcherChangeTypes.Created)
+                    if (evt.ChangeType == WatcherChangeTypes.All)
                     {
                         if (evt.FullPath.StartsWith("|CLOUD|"))
                         {
