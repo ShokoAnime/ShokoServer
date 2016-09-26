@@ -454,7 +454,7 @@ namespace JMMServer
                     {
                         return;
                     }
-                    if (evt.ChangeType == WatcherChangeTypes.Changed || evt.ChangeType == WatcherChangeTypes.Created)
+                    if (evt.ChangeType == WatcherChangeTypes.Created || evt.ChangeType == WatcherChangeTypes.Renamed)
                     {
                         if (evt.FullPath.StartsWith("|CLOUD|"))
                         {
