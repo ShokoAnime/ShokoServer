@@ -1976,7 +1976,7 @@ namespace JMMServer.API
                 if (line == null) break;
                 logLines.Add(line);
             }
-            result.Add("position", fs.Position);
+            result.Add("position", reader.Position);
             result.Add("lines", logLines.ToArray());
             return result;
         }

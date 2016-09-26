@@ -13,6 +13,7 @@ namespace JMMServer.Utilities
             if (offset > 0)
             {
                 stream.Seek(offset, SeekOrigin.Begin);
+                _position = offset;
             }
             // Forcing ascii here allows not to care about multi-byte encodings 
             // as we read full lines anyways but offset is in bytes
