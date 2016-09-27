@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using JMMContracts;
 using JMMServer.Commands;
@@ -18,6 +19,7 @@ using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
+using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using CrossRef_File_Episode = JMMServer.Entities.CrossRef_File_Episode;
 
 using File = Pri.LongPath.File;
@@ -244,7 +246,15 @@ namespace JMMServer
 
                 logger.Debug("ImportFolder: {0} || {1}", fldr.ImportFolderName, fldr.ImportFolderLocation);
 
-                Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
+                if (IsNetworkShare(fldr.ImportFolderLocation))
+                {
+                    Utils.GetFilesForImportFolder(null, fldr.ImportFolderLocation, true, ref fileList);
+                }
+                else
+                {
+
+                    Utils.GetFilesForImportFolder(fldr.BaseDirectory, "", false, ref fileList);
+                }
 
                 // get a list of all files in the share
                 foreach (string fileName in fileList)
@@ -287,7 +297,14 @@ namespace JMMServer
 
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 
-                Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
+                if (IsNetworkShare(share.ImportFolderLocation))
+                {
+                    Utils.GetFilesForImportFolder(null, share.ImportFolderLocation, true, ref fileList);
+                }
+                else
+                {
+                    Utils.GetFilesForImportFolder(share.BaseDirectory, "", false, ref fileList);
+                }
             }
 
             // get a list of all the shares we are looking at
@@ -345,7 +362,15 @@ namespace JMMServer
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 try
                 {
-                    Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
+
+                    if (IsNetworkShare(share.ImportFolderLocation))
+                    {
+                        Utils.GetFilesForImportFolder(null, share.ImportFolderLocation, true, ref fileList);
+                    }
+                    else
+                    {
+                        Utils.GetFilesForImportFolder(share.BaseDirectory, "", false, ref fileList);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -388,7 +413,16 @@ namespace JMMServer
             int filesFound = 0, videosFound = 0;
             int i = 0;
             List<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(fldr.ImportFolderID);
-            Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
+
+            if (IsNetworkShare(fldr.ImportFolderLocation))
+            {
+                Utils.GetFilesForImportFolder(null, fldr.ImportFolderLocation, true, ref fileList);
+            }
+            else
+            {
+                Utils.GetFilesForImportFolder(fldr.BaseDirectory, "", false, ref fileList);
+            }
+
             HashSet<string> fs = new HashSet<string>(fileList);
             foreach (VideoLocal_Place v in filesAll)
             {
@@ -413,6 +447,36 @@ namespace JMMServer
             }
             logger.Debug("Found {0} files", filesFound);
             logger.Debug("Found {0} videos", videosFound);
+        }
+
+        public static bool IsNetworkShare(string ImportFolderLocation)
+        {
+            try
+            {
+                logger.Info("Checking if drive is on local network");
+
+                if (ImportFolderLocation.StartsWith("\\\\"))
+                {
+                    logger.Info("Folder location is UNC");
+                    return true;
+                }
+
+                var driveInfo = new DriveInfo(ImportFolderLocation);
+                if (driveInfo.DriveType == DriveType.Network)
+                {
+                    logger.Info("Folder is a  network drive");
+                    return true;
+                }
+
+                logger.Info("Folder is local or cloud");
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return false;
+            }
         }
         public static void RunImport_GetImages()
         {

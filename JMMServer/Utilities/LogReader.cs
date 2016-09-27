@@ -7,6 +7,7 @@ namespace JMMServer.Utilities
     {
         private TextReader _baseReader;
         private int _position;
+        private Encoding _encoding;
 
         public LogReader(FileStream stream, int offset)
         {
@@ -15,21 +16,19 @@ namespace JMMServer.Utilities
                 stream.Seek(offset, SeekOrigin.Begin);
                 _position = offset;
             }
-            // Forcing ascii here allows not to care about multi-byte encodings 
-            // as we read full lines anyways but offset is in bytes
-            TextReader baseReader = new StreamReader(stream,Encoding.ASCII);
+            _encoding = Encoding.UTF8;
+            TextReader baseReader = new StreamReader(stream, _encoding);
             _baseReader = baseReader;
         }
 
-        public override int Read()
-        {
-            _position++;
-            return _baseReader.Read();
-        }
-
-        public override int Peek()
-        {
-            return _baseReader.Peek();
+        public override int Read() {
+            int val = _baseReader.Read();
+            try
+            {
+                char c = System.Convert.ToChar(val);
+                _position += _encoding.GetByteCount(new char[] { c });
+            } catch { }
+            return val;
         }
 
         public int Position

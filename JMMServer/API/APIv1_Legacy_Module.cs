@@ -7,6 +7,7 @@ using JMMServer.PlexAndKodi.Kodi;
 using JMMContracts.PlexAndKodi;
 using Nancy.Security;
 using JMMServer.API;
+using JMMServer.API.Model;
 
 namespace JMMServer.API
 {
@@ -48,8 +49,8 @@ namespace JMMServer.API
             Get["/JMMServerREST/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPathRest(parameter.path); };
 
             // JMMServerImage
-            Get["/JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImageRest(parameter.id, parameter.type, parameter.thumb); };
-            Get["/JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPathRest(parameter.path); };
+            Get["/JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
+			Get["/JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
         }
 
 
@@ -367,12 +368,27 @@ namespace JMMServer.API
 	    private object GetImage(string id, string type, bool thumb)
 	    {
 		    int imgtype = int.Parse(type);
-		    byte[] image = _image.GetImage(id, imgtype, thumb);
-		    response = new Nancy.Response();
-		    MemoryStream stream = new MemoryStream(image.Length);
-		    stream.Write(image, 0, image.Length);
-		    response = Response.FromStream(stream, "image");
+			string contentType;
+		    byte[] image = _image.GetImage(id, imgtype, thumb, out contentType);
+			if(image == null || contentType == "")
+			{
+				return new APIMessage(500, "Image of type not found for ID");
+			}
+			response = Response.FromByteArray(image, contentType);
 		    return response;
 	    }
-    }
+
+		/// <summary>
+		/// Return image with given path
+		/// </summary>
+		/// <param name="path"></param>
+		/// <returns></returns>
+		private object GetImageUsingPath(string path)
+		{
+			string contentType = MimeTypes.GetMimeType(path);
+			byte[] image = _image.GetImageUsingPath(path);
+			response = Response.FromByteArray(image, contentType);
+			return response;
+		}
+	}
 }

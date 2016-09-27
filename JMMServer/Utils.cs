@@ -122,6 +122,7 @@ namespace JMMServer
 
         /// <summary>
         /// Setup system with needed network settings for JMMServer operation. Will invoke an escalation prompt to user. If changing port numbers please give new and old port.
+        /// Do NOT add nancy hosted URLs to this. Nancy has an issue with ServiceHost stealing the reservations, and will handle its URLs itself.
         /// </summary>
         /// <param name="oldPort">The port JMMServer was set to run on.</param>
         /// <param name="Port">The port JMMServer will be running on.</param>
@@ -130,14 +131,13 @@ namespace JMMServer
 
         public static List<string> Paths = new List<string>
         {
-            "JMMServerImage", "JMMServerBinary", "JMMServerMetro", "JMMServerMetroImage", "JMMServerPlex",
-            "JMMServerKodi", "JMMServerREST", "JMMServerStreaming", ""
+            "JMMServerImage", "JMMServerBinary", "JMMServerMetro", "JMMServerMetroImage", "JMMServerStreaming", ""
         };
 
         public static void NetSh(this StreamWriter sw, string path, string verb, string port)
         {
             if (verb == "add")
-                sw.WriteLine($@"netsh http add urlacl url=http://+:{port}/{path} sddl=D:(A;;GX;;;S-1-1-0)");
+                sw.WriteLine($@"netsh http add urlacl url=http://+:{port}/{path} sddl=D:(A;;GA;;;S-1-1-0)");
             else
                 sw.WriteLine($@"netsh http delete urlacl url=http://+:{port}/{path}");
 
@@ -1114,33 +1114,60 @@ namespace JMMServer
 				}
 			}
 		}*/
-
-        public static void GetFilesForImportFolder(IDirectory sDir, ref List<string> fileList)
+        public static void GetFilesForImportFolder(IDirectory sDir, string sDirNetwork, bool isNetworkShare, ref List<string> fileList)
         {
             try
             {
-                if (sDir == null)
+                if (isNetworkShare)
                 {
-                    logger.Error("Filesystem not found");
-                    return;
-                }
-                // get root level files
+                    try
+                    {
+                        // get root level files
+                        fileList.AddRange(Directory.GetFiles(sDirNetwork, "*.*", SearchOption.TopDirectoryOnly));
 
-                FileSystemResult r=sDir.Populate();
-                if (r == null || !r.IsOk)
-                {
-                    logger.Error($"Unable to retrieve folder {sDir.FullName}");
-                    return;
-                }
-                fileList.AddRange(sDir.Files.Select(a=>a.FullName));
+                        // search sub folders
+                        foreach (string d in Directory.GetDirectories(sDirNetwork))
+                        {
+                            DirectoryInfo di = new DirectoryInfo(d);
+                            bool isSystem = (di.Attributes & FileAttributes.System) == FileAttributes.System;
+                            if (isSystem)
+                                continue;
 
-                // search sub folders
-                foreach (IDirectory dir in sDir.Directories)
+                            //fileList.AddRange(Directory.GetFiles(d, "*.*", SearchOption.TopDirectoryOnly));
+
+                            GetFilesForImportFolder(sDir, d, isNetworkShare, ref fileList);
+                        }
+                    }
+                    catch (System.Exception excpt)
+                    {
+                        Console.WriteLine(excpt.Message);
+                    }
+                }
+                else
                 {
-                    GetFilesForImportFolder(dir,ref fileList);
+                    if (sDir == null)
+                    {
+                        logger.Error("Filesystem not found");
+                        return;
+                    }
+                    // get root level files
+
+                    FileSystemResult r = sDir.Populate();
+                    if (r == null || !r.IsOk)
+                    {
+                        logger.Error($"Unable to retrieve folder {sDir.FullName}");
+                        return;
+                    }
+                    fileList.AddRange(sDir.Files.Select(a => a.FullName));
+
+                    // search sub folders
+                    foreach (IDirectory dir in sDir.Directories)
+                    {
+                        GetFilesForImportFolder(dir, "", isNetworkShare, ref fileList);
 //                    bool isSystem = (di.Attributes & FileAttributes.System) == FileAttributes.System;
 //                    if (isSystem)
 //                        continue;
+                    }
                 }
             }
             catch (Exception excpt)
