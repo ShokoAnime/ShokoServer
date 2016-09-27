@@ -1274,6 +1274,7 @@
 xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
 xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y	
 xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
+if $(ConfigurationName) == Debug goto :exit
 cd "$(TargetDir)"
 mkdir Merge
 ..\..\..\packages\ILMerge.2.14.1208\tools\ILMerge.exe /t:winexe /wildcards /v4 /out:"Merge\JMMServer.exe" JMMServer.exe "$(SolutionDir)Dependencies\AppGlue.dll" JMMContracts.dll NutzCode.*.dll /closed
@@ -1284,7 +1285,7 @@ del JMMContracts.*
 del NutzCode.*.*
 del AppGlue.*
 rmdir Merge
-</PostBuildEvent>
+:exit</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>

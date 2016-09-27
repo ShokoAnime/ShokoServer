@@ -3186,7 +3186,7 @@ namespace JMMServer
                 ns.IsDropSource = contract.IsDropSource;
                 ns.IsWatched = contract.IsWatched;
                 ns.ImportFolderType = contract.ImportFolderType;
-                ns.CloudID = contract.CloudID;
+                ns.CloudID = contract.CloudID.HasValue && contract.CloudID == 0 ? null : contract.CloudID; ;
                 RepoFactory.ImportFolder.Save(ns);
 
                 response.ImportFolder = ns.ToContract();

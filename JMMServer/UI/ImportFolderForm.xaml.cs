@@ -191,7 +191,7 @@ namespace JMMServer
                     ImportFolderName = ifldr.ImportFolderName,
                     IsDropSource = ifldr.IsDropSource,
                     IsDropDestination = ifldr.IsDropDestination,
-                    CloudID = ifldr.CloudID,
+                    CloudID = ifldr.CloudID.HasValue && ifldr.CloudID == 0 ? null : ifldr.CloudID,
                     IsWatched = ifldr.IsWatched
                 };
                 txtImportFolderLocation.Text = importFldr.ImportFolderLocation;
