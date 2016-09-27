@@ -1114,33 +1114,60 @@ namespace JMMServer
 				}
 			}
 		}*/
-
-        public static void GetFilesForImportFolder(IDirectory sDir, ref List<string> fileList)
+        public static void GetFilesForImportFolder(IDirectory sDir, string sDirNetwork, bool isNetworkShare, ref List<string> fileList)
         {
             try
             {
-                if (sDir == null)
+                if (isNetworkShare)
                 {
-                    logger.Error("Filesystem not found");
-                    return;
-                }
-                // get root level files
+                    try
+                    {
+                        // get root level files
+                        fileList.AddRange(Directory.GetFiles(sDirNetwork, "*.*", SearchOption.TopDirectoryOnly));
 
-                FileSystemResult r=sDir.Populate();
-                if (r == null || !r.IsOk)
-                {
-                    logger.Error($"Unable to retrieve folder {sDir.FullName}");
-                    return;
-                }
-                fileList.AddRange(sDir.Files.Select(a=>a.FullName));
+                        // search sub folders
+                        foreach (string d in Directory.GetDirectories(sDirNetwork))
+                        {
+                            DirectoryInfo di = new DirectoryInfo(d);
+                            bool isSystem = (di.Attributes & FileAttributes.System) == FileAttributes.System;
+                            if (isSystem)
+                                continue;
 
-                // search sub folders
-                foreach (IDirectory dir in sDir.Directories)
+                            //fileList.AddRange(Directory.GetFiles(d, "*.*", SearchOption.TopDirectoryOnly));
+
+                            GetFilesForImportFolder(sDir, d, isNetworkShare, ref fileList);
+                        }
+                    }
+                    catch (System.Exception excpt)
+                    {
+                        Console.WriteLine(excpt.Message);
+                    }
+                }
+                else
                 {
-                    GetFilesForImportFolder(dir,ref fileList);
+                    if (sDir == null)
+                    {
+                        logger.Error("Filesystem not found");
+                        return;
+                    }
+                    // get root level files
+
+                    FileSystemResult r = sDir.Populate();
+                    if (r == null || !r.IsOk)
+                    {
+                        logger.Error($"Unable to retrieve folder {sDir.FullName}");
+                        return;
+                    }
+                    fileList.AddRange(sDir.Files.Select(a => a.FullName));
+
+                    // search sub folders
+                    foreach (IDirectory dir in sDir.Directories)
+                    {
+                        GetFilesForImportFolder(dir, "", isNetworkShare, ref fileList);
 //                    bool isSystem = (di.Attributes & FileAttributes.System) == FileAttributes.System;
 //                    if (isSystem)
 //                        continue;
+                    }
                 }
             }
             catch (Exception excpt)

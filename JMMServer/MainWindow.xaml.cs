@@ -326,8 +326,6 @@ namespace JMMServer
             InitCulture();
             Instance = this;
 
-            NetPermissionWrapper(StartNancyHost);
-
             // run rotator once and set 24h delay
             logrotator.Start();
             StartLogRotatorTimer();
@@ -1143,8 +1141,6 @@ namespace JMMServer
                     }
                 });
 
-
-
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
                 JMMService.CmdProcessorGeneral.Init();
                 JMMService.CmdProcessorHasher.Init();
@@ -1486,12 +1482,14 @@ namespace JMMServer
                 {
                     try
                     {
-                        StartNancyHost();
                         StartImageHost();
                         StartBinaryHost();
                         StartMetroHost();
                         StartImageHostMetro();
                         StartStreamingHost();
+
+                        // Disabled nancy for now as it has startup failures
+                        //StartNancyHost();
                     }
                     catch (Exception)
                     {
@@ -2652,9 +2650,16 @@ namespace JMMServer
         /// </summary>
         private static void StartNancyHost()
         {
-            //nancy will rewrite localhost into http://+:port
-            hostNancy = new Nancy.Hosting.Self.NancyHost(new Uri("http://localhost:"+ ServerSettings.JMMServerPort));
-            hostNancy.Start();
+            try
+            {
+                //nancy will rewrite localhost into http://+:port
+                hostNancy = new Nancy.Hosting.Self.NancyHost(new Uri("http://localhost:" + ServerSettings.JMMServerPort));
+                hostNancy.Start();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.Message);
+            }
         }
 
         private static void StartFileHost()
@@ -2680,7 +2685,14 @@ namespace JMMServer
             {
                 logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
 
-                Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
+                if (Importer.IsNetworkShare(share.ImportFolderLocation))
+                {
+                    Utils.GetFilesForImportFolder(null, share.ImportFolderLocation, true, ref fileList);
+                }
+                else
+                {
+                    Utils.GetFilesForImportFolder(share.BaseDirectory, "", false, ref fileList);
+                }
             }
 
 

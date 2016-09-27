@@ -7,6 +7,7 @@ using System.Windows.Media.Imaging;
 using JMMContracts;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
+using NLog;
 using NutzCode.CloudFileSystem;
 
 
@@ -14,6 +15,8 @@ namespace JMMServer.Entities
 {
     public class ImportFolder : INotifyPropertyChanged
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public int ImportFolderID { get; set; }
         public int ImportFolderType { get; set; }
         public string ImportFolderName { get; set; }
@@ -31,17 +34,15 @@ namespace JMMServer.Entities
             {
                 if (_filesystem == null)
                 {
-                    if (CloudID.HasValue)
+                    if (CloudID != null)
                     {
                         CloudAccount cl = RepoFactory.CloudAccount.GetByID(CloudID.Value);
                         if (cl == null)
-                            throw new Exception("Cloud Account Not Found");
-                        _filesystem = cl.FileSystem;                        
+                             throw new Exception("Cloud Account Not Found");
+                        _filesystem = cl.FileSystem;
                     }
                     else
-                    {
-
-                       
+                    {                    
                         FileSystemResult<IFileSystem> ff= CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == "Local File System")?.Init("", null, null);
                         if (ff==null || !ff.IsOk)
                             throw new Exception(ff?.Error ?? "Error Opening Local Filesystem");
@@ -196,9 +197,8 @@ namespace JMMServer.Entities
             contract.ImportFolderID = this.ImportFolderID;
             contract.ImportFolderType = this.ImportFolderType;
 
-            // Make sure to format folder first
-            contract.ImportFolderLocation = FormateImportFolderLocation(this.ImportFolderLocation);
-
+            // Make sure to format folder with trailing slash first
+            contract.ImportFolderLocation = FormatImportFolderLocation(this.ImportFolderLocation);
             contract.ImportFolderName = this.ImportFolderName;
             contract.IsDropSource = this.IsDropSource;
             contract.IsDropDestination = this.IsDropDestination;
@@ -207,9 +207,18 @@ namespace JMMServer.Entities
             return contract;
         }
 
-        private string FormateImportFolderLocation(string importFolderLocation)
+        private string FormatImportFolderLocation(string importFolderLocation)
         {
-            importFolderLocation = importFolderLocation.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar; 
+            if (importFolderLocation.Length > 0 && importFolderLocation.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                while (importFolderLocation.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                {
+                    importFolderLocation = importFolderLocation.Substring(0, importFolderLocation.Length - 1);
+                }
+            }
+
+            importFolderLocation += Path.DirectorySeparatorChar;
+
             return importFolderLocation;
         }
     }
