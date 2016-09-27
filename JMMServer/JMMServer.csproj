@@ -292,6 +292,9 @@
     <Compile Include="API\Model\Logs.cs" />
     <Compile Include="API\Model\Rating.cs" />
     <Compile Include="API\Model\Search.cs" />
+    <Compile Include="API\NancyExtensions.cs" />
+    <Compile Include="API\Negotiation\BinaryProcessor.cs" />
+    <Compile Include="API\Response\ByteArrayResponse.cs" />
     <Compile Include="Collections\EmptyLookup.cs" />
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Collections\LazyLookup.cs" />
@@ -301,7 +304,7 @@
     <Compile Include="API\APIv2_core_Module.cs" />
     <Compile Include="API\APIv2_database_Module.cs" />
     <Compile Include="API\APIv2_unauth_Module.cs" />
-    <Compile Include="API\Binnary_Module.cs" />
+    <Compile Include="API\APIv1_Binary_Module.cs" />
     <Compile Include="API\Bootstrapper.cs" />
     <Compile Include="API\Model\APIMessage.cs" />
     <Compile Include="API\Model\AuthUser.cs" />

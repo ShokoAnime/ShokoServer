@@ -16,6 +16,11 @@ namespace JMMServer
 {
     public static class Extensions
     {
+		public static bool Contains(this string item, string other, StringComparison comparer)
+		{
+			return item.IndexOf(other, comparer) >= 0;
+		}
+
         public static void ShallowCopyTo(this object s, object d)
         {
             foreach (PropertyInfo pis in s.GetType().GetProperties())

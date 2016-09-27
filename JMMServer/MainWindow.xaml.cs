@@ -34,6 +34,7 @@ using Microsoft.SqlServer.Management.Smo;
 using NHibernate;
 using NLog;
 using Microsoft.Win32.TaskScheduler;
+using Nancy.Hosting.Self;
 using Action = System.Action;
 
 namespace JMMServer
@@ -360,6 +361,7 @@ namespace JMMServer
                     catch (Exception)
                     {
                         MessageBox.Show("Unable to set the ports");
+                        logger.Error(e);
                         Application.Current.Shutdown();
                         return false;
                     }
@@ -368,6 +370,7 @@ namespace JMMServer
                 else
                 {
                     MessageBox.Show("Unable to start hosting, please run JMMServer as administrator once.");
+                    logger.Error(e);
                     Application.Current.Shutdown();
                     return false;
                 }
@@ -1127,12 +1130,13 @@ namespace JMMServer
                 {
                     try
                     {
+                        // Start Nancy first so that ServiceHost doesn't get in its way
+                        StartNancyHost();
                         StartImageHost();
                         StartBinaryHost();
                         StartMetroHost();
                         StartImageHostMetro();
                         StartStreamingHost();
-                        //StartNancyHost();
                     }
                     catch (Exception)
                     {
@@ -2650,15 +2654,27 @@ namespace JMMServer
         /// </summary>
         private static void StartNancyHost()
         {
+            //nancy will rewrite localhost into http://+:port
+            HostConfiguration config = new HostConfiguration();
+            // set Nancy Hosting config here
+            config.UnhandledExceptionCallback = exception =>
+            {
+                logger.Error(exception);
+            };
+            // This requires admin, so throw an error if it fails
+            // Don't let Nancy do this. We do it ourselves.
+            // This needs to throw an error for our url registration to call.
+            config.UrlReservations.CreateAutomatically = false;
+            config.RewriteLocalhost = true;
+            hostNancy = new Nancy.Hosting.Self.NancyHost(config, new Uri("http://localhost:" + ServerSettings.JMMServerPort));
+            // Even with error callbacks, this may still throw an error in some parts, so log it!
             try
             {
-                //nancy will rewrite localhost into http://+:port
-                hostNancy = new Nancy.Hosting.Self.NancyHost(new Uri("http://localhost:" + ServerSettings.JMMServerPort));
                 hostNancy.Start();
             }
             catch (Exception ex)
             {
-                logger.Error(ex, ex.Message);
+                logger.Error(ex);
             }
         }
 

@@ -122,6 +122,7 @@ namespace JMMServer
 
         /// <summary>
         /// Setup system with needed network settings for JMMServer operation. Will invoke an escalation prompt to user. If changing port numbers please give new and old port.
+        /// Do NOT add nancy hosted URLs to this. Nancy has an issue with ServiceHost stealing the reservations, and will handle its URLs itself.
         /// </summary>
         /// <param name="oldPort">The port JMMServer was set to run on.</param>
         /// <param name="Port">The port JMMServer will be running on.</param>
@@ -130,14 +131,13 @@ namespace JMMServer
 
         public static List<string> Paths = new List<string>
         {
-            "JMMServerImage", "JMMServerBinary", "JMMServerMetro", "JMMServerMetroImage", "JMMServerPlex",
-            "JMMServerKodi", "JMMServerREST", "JMMServerStreaming", ""
+            "JMMServerImage", "JMMServerBinary", "JMMServerMetro", "JMMServerMetroImage", "JMMServerStreaming", ""
         };
 
         public static void NetSh(this StreamWriter sw, string path, string verb, string port)
         {
             if (verb == "add")
-                sw.WriteLine($@"netsh http add urlacl url=http://+:{port}/{path} sddl=D:(A;;GX;;;S-1-1-0)");
+                sw.WriteLine($@"netsh http add urlacl url=http://+:{port}/{path} sddl=D:(A;;GA;;;S-1-1-0)");
             else
                 sw.WriteLine($@"netsh http delete urlacl url=http://+:{port}/{path}");
 

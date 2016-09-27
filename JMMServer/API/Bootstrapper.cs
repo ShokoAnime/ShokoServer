@@ -11,14 +11,29 @@
 	using Nancy.ErrorHandling;
 	using Pri.LongPath;
 	using Nancy.Diagnostics;
+	using NLog;
+	using System;
+	using Nancy.Responses.Negotiation;
 
 	public class Bootstrapper : DefaultNancyBootstrapper
     {
-        protected virtual Nancy.Bootstrapper.NancyInternalConfiguration InternalConfiguration
-        {
-            //overwrite bootsrapper to use different json implementation
-            get { return Nancy.Bootstrapper.NancyInternalConfiguration.WithOverrides(c => c.Serializers.Insert(0, typeof(Nancy.Serialization.JsonNet.JsonNetSerializer))); }
-        }
+		private static Logger logger = LogManager.GetCurrentClassLogger();
+
+		protected virtual NancyInternalConfiguration InternalConfiguration
+		{
+			//overwrite bootsrapper to use different json implementation
+			get
+			{
+				return Nancy.Bootstrapper.NancyInternalConfiguration.WithOverrides(c =>
+				  {
+					  // Make sure this runs first to override xml or html requests
+					  c.ResponseProcessors.Remove(typeof(BinaryProcessor));
+					  c.ResponseProcessors.Insert(0, typeof(BinaryProcessor));
+
+					  c.Serializers.Insert(0, typeof(Nancy.Serialization.JsonNet.JsonNetSerializer));
+				  });
+			}
+		}
 
         /// <summary>
         /// This function override the RequestStartup which is used each time a request came to Nancy
@@ -46,7 +61,15 @@
                 });
 			StaticConfiguration.DisableErrorTraces = false;
             StatelessAuthentication.Enable(pipelines, configuration);
-        }
+
+			BinaryProcessor.Mappings.Add(new Tuple<string, MediaRange> ("xml", "application/xop+xml"));
+
+			pipelines.OnError += (ctx, ex) => {
+				logger.Error("Nancy Error => {0}", ex.ToString());
+			    logger.Error(ex);
+				return null;
+			};
+		}
 
         /// <summary>
         /// overwrite the folder of static content
@@ -94,7 +117,7 @@
                         }
                     };
                 }
-                else
+                else if (statusCode == HttpStatusCode.NotFound)
                 {
                     context.Response = @"<html><body>File not Found (404)</body></html>";
                 }
