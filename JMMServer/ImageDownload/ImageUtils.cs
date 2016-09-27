@@ -7,25 +7,12 @@ namespace JMMServer.ImageDownload
     {
         public static string GetBaseImagesPath()
         {
-            bool overrideFolder = false;
-            if (!ServerSettings.BaseImagesPathIsDefault)
-            {
-                if (!string.IsNullOrEmpty(ServerSettings.BaseImagesPath))
-                {
-                    if (Directory.Exists(ServerSettings.BaseImagesPath)) overrideFolder = true;
-                }
-            }
-
-            string filePath = "";
-            if (overrideFolder)
-                filePath = ServerSettings.BaseImagesPath;
-            else
-                filePath = ServerSettings.DefaultImagePath;
-
-            if (!Directory.Exists(filePath))
-                Directory.CreateDirectory(filePath);
-
-            return filePath;
+            if (!string.IsNullOrEmpty(ServerSettings.ImagesPath) && Directory.Exists(ServerSettings.ImagesPath)) 
+                return ServerSettings.ImagesPath;
+            string imagepath = ServerSettings.DefaultImagePath;
+            if (!Directory.Exists(imagepath))
+                Directory.CreateDirectory(imagepath);
+            return imagepath;
         }
 
         public static string GetBaseAniDBImagesPath()

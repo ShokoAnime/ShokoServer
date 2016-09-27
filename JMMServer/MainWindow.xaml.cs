@@ -142,7 +142,7 @@ namespace JMMServer
         }
 
         private Mutex mutex;
-        private readonly string mutexName = "JmmServer3.0Mutex";
+
 
         public MainWindow()
         {
@@ -161,22 +161,19 @@ namespace JMMServer
                 logger.Log(LogLevel.Error,e);
             }
 
-            if (!ServerSettings.AllowMultipleInstances)
+            try
             {
-                try
-                {
-                    mutex = Mutex.OpenExisting(mutexName);
-                    //since it hasn't thrown an exception, then we already have one copy of the app open.
-                    MessageBox.Show(JMMServer.Properties.Resources.Server_Running,
-                        JMMServer.Properties.Resources.JMMServer, MessageBoxButton.OK, MessageBoxImage.Error);
-                    Environment.Exit(0);
-                }
-                catch (Exception Ex)
-                {
-                    //since we didn't find a mutex with that name, create one
-                    Debug.WriteLine("Exception thrown:" + Ex.Message + " Creating a new mutex...");
-                    mutex = new Mutex(true, mutexName);
-                }
+                mutex = Mutex.OpenExisting(ServerSettings.DefaultInstance+"Mutex");
+                //since it hasn't thrown an exception, then we already have one copy of the app open.
+                MessageBox.Show(JMMServer.Properties.Resources.Server_Running,
+                    JMMServer.Properties.Resources.JMMServer, MessageBoxButton.OK, MessageBoxImage.Error);
+                Environment.Exit(0);
+            }
+            catch (Exception Ex)
+            {
+                //since we didn't find a mutex with that name, create one
+                Debug.WriteLine("Exception thrown:" + Ex.Message + " Creating a new mutex...");
+                mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
             }
             ServerSettings.DebugSettingsToLog();
 
@@ -245,8 +242,7 @@ namespace JMMServer
             downloadImagesWorker.WorkerSupportsCancellation = true;
 
             txtServerPort.Text = ServerSettings.JMMServerPort;
-            chkEnableKodi.IsChecked = ServerSettings.EnableKodi;
-            chkEnablePlex.IsChecked = ServerSettings.EnablePlex;
+
 
 
             btnToolbarHelp.Click += new RoutedEventHandler(btnToolbarHelp_Click);
@@ -299,17 +295,9 @@ namespace JMMServer
             cboDatabaseType.SelectionChanged +=
                 new System.Windows.Controls.SelectionChangedEventHandler(cboDatabaseType_SelectionChanged);
 
-            cboImagesPath.Items.Clear();
-            cboImagesPath.Items.Add(JMMServer.Properties.Resources.Images_Default);
-            cboImagesPath.Items.Add(JMMServer.Properties.Resources.Images_Custom);
-            cboImagesPath.SelectionChanged +=
-                new System.Windows.Controls.SelectionChangedEventHandler(cboImagesPath_SelectionChanged);
             btnChooseImagesFolder.Click += new RoutedEventHandler(btnChooseImagesFolder_Click);
+            btnSetDefault.Click += BtnSetDefault_Click;
 
-            if (ServerSettings.BaseImagesPathIsDefault)
-                cboImagesPath.SelectedIndex = 0;
-            else
-                cboImagesPath.SelectedIndex = 1;
 
             btnSaveDatabaseSettings.Click += new RoutedEventHandler(btnSaveDatabaseSettings_Click);
             btnRefreshMSSQLServerList.Click += new RoutedEventHandler(btnRefreshMSSQLServerList_Click);
@@ -323,15 +311,11 @@ namespace JMMServer
             btnUpdateAniDBLogin.Click += new RoutedEventHandler(btnUpdateAniDBLogin_Click);
 
 
-            btnAllowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
-            btnDisallowMultipleInstances.Click += new RoutedEventHandler(toggleAllowMultipleInstances);
 
             btnHasherClear.Click += new RoutedEventHandler(btnHasherClear_Click);
             btnGeneralClear.Click += new RoutedEventHandler(btnGeneralClear_Click);
             btnImagesClear.Click += new RoutedEventHandler(btnImagesClear_Click);
 
-            chkEnableKodi.Click += ChkEnableKodi_Click;
-            chkEnablePlex.Click += ChkEnablePlex_Click;
 
             //automaticUpdater.MenuItem = mnuCheckForUpdates;
 
@@ -350,6 +334,13 @@ namespace JMMServer
             StartLogRotatorTimer();
         }
 
+        private void BtnSetDefault_Click(object sender, RoutedEventArgs e)
+        {
+            string imagePath = ServerSettings.DefaultImagePath;
+            if (!Directory.Exists(imagePath))
+                Directory.CreateDirectory(imagePath);
+            ServerSettings.ImagesPath = imagePath;
+        }
 
         public bool NetPermissionWrapper(Action action)
         {
@@ -418,15 +409,7 @@ namespace JMMServer
             }
         }
 
-        private void ChkEnablePlex_Click(object sender, RoutedEventArgs e)
-        {
-            ServerSettings.EnablePlex = chkEnablePlex.IsChecked.Value;
-        }
 
-        private void ChkEnableKodi_Click(object sender, RoutedEventArgs e)
-        {
-            ServerSettings.EnableKodi = chkEnableKodi.IsChecked.Value;
-        }
 
         private void BtnUpdateTraktInfo_Click(object sender, RoutedEventArgs e)
         {
@@ -596,13 +579,6 @@ namespace JMMServer
             this.Cursor = Cursors.Arrow;
         }
 
-
-        void toggleAllowMultipleInstances(object sender, RoutedEventArgs e)
-        {
-            ServerSettings.AllowMultipleInstances = !ServerSettings.AllowMultipleInstances;
-            ServerState.Instance.AllowMultipleInstances = !ServerState.Instance.AllowMultipleInstances;
-            ServerState.Instance.DisallowMultipleInstances = !ServerState.Instance.DisallowMultipleInstances;
-        }
 
 
         void btnAdminMessages_Click(object sender, RoutedEventArgs e)
@@ -807,23 +783,10 @@ namespace JMMServer
             System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                ServerSettings.BaseImagesPath = dialog.SelectedPath;
+                ServerSettings.ImagesPath = dialog.SelectedPath;
             }
         }
 
-        void cboImagesPath_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-        {
-            if (cboImagesPath.SelectedIndex == 0)
-            {
-                ServerSettings.BaseImagesPathIsDefault = true;
-                btnChooseImagesFolder.Visibility = System.Windows.Visibility.Hidden;
-            }
-            else
-            {
-                ServerSettings.BaseImagesPathIsDefault = false;
-                btnChooseImagesFolder.Visibility = System.Windows.Visibility.Visible;
-            }
-        }
 
         #region Database settings and initial start up
 

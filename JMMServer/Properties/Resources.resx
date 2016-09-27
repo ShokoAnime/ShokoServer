@@ -233,7 +233,7 @@
     <value>Minimize on Startup</value>
   </data>
   <data name="Settings_SelectFolder" xml:space="preserve">
-    <value>Select Folder</value>
+    <value>Select Custom Folder</value>
   </data>
   <data name="Settings_ImagePath" xml:space="preserve">
     <value>Image Path</value>
@@ -1120,5 +1120,8 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Updating TVDb info and requesting new images.</value>
+  </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Set Default</value>
   </data>
 </root>

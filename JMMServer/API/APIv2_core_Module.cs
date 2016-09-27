@@ -391,7 +391,7 @@ namespace JMMServer.API
             ImagePath imagepath = this.Bind();
             if (imagepath.isdefault)
             {
-                ServerSettings.BaseImagesPathIsDefault = imagepath.isdefault;
+                ServerSettings.ImagesPath = ServerSettings.DefaultImagePath;
                 return APIStatus.statusOK();
             }
             else
@@ -400,7 +400,7 @@ namespace JMMServer.API
                 {
                     if (Directory.Exists(imagepath.path))
                     {
-                        ServerSettings.BaseImagesPath = imagepath.path;
+                        ServerSettings.ImagesPath = imagepath.path;
                         return APIStatus.statusOK();
                     }
                     else
@@ -422,9 +422,8 @@ namespace JMMServer.API
         private object GetImagepath()
         {
             ImagePath imagepath = new ImagePath();
-            imagepath.path = ServerSettings.BaseImagesPath;
-            imagepath.isdefault = ServerSettings.BaseImagesPathIsDefault;
-
+            imagepath.path = ServerSettings.ImagesPath;
+            imagepath.isdefault = ServerSettings.ImagesPath == ServerSettings.DefaultImagePath;            
             return imagepath;
         }
 

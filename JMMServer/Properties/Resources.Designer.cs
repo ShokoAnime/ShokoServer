@@ -2714,7 +2714,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select Folder.
+        ///   Looks up a localized string similar to Select Custom Folder.
         /// </summary>
         public static string Settings_SelectFolder {
             get {
@@ -2728,6 +2728,15 @@ namespace JMMServer.Properties {
         public static string Settings_ServerPort {
             get {
                 return ResourceManager.GetString("Settings_ServerPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set Default.
+        /// </summary>
+        public static string Settings_SetDefault {
+            get {
+                return ResourceManager.GetString("Settings_SetDefault", resourceCulture);
             }
         }
         

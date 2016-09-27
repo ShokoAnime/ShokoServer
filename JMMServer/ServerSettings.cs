@@ -48,22 +48,14 @@ namespace JMMServer
         }
 
 
-        //TODO add command line parameter, so we can change the default instance name (JMMServer) to other, 
+       
         //in this way, we could host two JMMServers int the same machine
 
         public static string DefaultInstance { get; set; } = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 
-        public static string ApplicationPath
-        {
-            get
-            {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),DefaultInstance);
-            }
-        }
+        public static string ApplicationPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),DefaultInstance);
 
-
-
-
+        public static string DefaultImagePath => Path.Combine(ApplicationPath, "images");
 
         public static void LoadSettings()
         {
@@ -109,13 +101,17 @@ namespace JMMServer
                     appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
                 }
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-                if (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))
+                if (BaseImagesPathIsDefault || !Directory.Exists(BaseImagesPath))
                 {
                     migrationdirs.Add(new MigrationDirectory
                     {
                         From = Path.Combine(programlocation, "images"),
                         To = DefaultImagePath
                     });
+                }
+                else if (Directory.Exists(BaseImagesPath))
+                {
+                    ImagesPath = BaseImagesPath;
                 }
                 bool migrate = !Directory.Exists(ApplicationPath);
                 foreach (MigrationDirectory m in migrationdirs)
@@ -138,9 +134,7 @@ namespace JMMServer
                     Migration m = null;
                     try
                     {
-                        m =
-                            new Migration(
-                                $"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}");
+                        m = new Migration($"{Properties.Resources.Migration_AdminPass1} {ApplicationPath}, {Properties.Resources.Migration_AdminPass2}");
                         m.Show();
                         if (!Directory.Exists(ApplicationPath))
                         {
@@ -169,12 +163,13 @@ namespace JMMServer
                     return;
                 }
                 disabledSave = false;
-                if (ServerSettings.BaseImagesPathIsDefault || !Directory.Exists(ServerSettings.BaseImagesPath))
-                {
-                    ServerSettings.BaseImagesPathIsDefault = true;
-                }
+
                 if (Utils.IsAdministrator())
                     Utils.SetNetworkRequirements(JMMServerPort, JMMServerFilePort, JMMServerPort, JMMServerFilePort);
+                if (Directory.Exists(BaseImagesPath) && string.IsNullOrEmpty(ImagesPath))
+                {
+                    ImagesPath = BaseImagesPath;
+                }
                 SaveSettings();
 
 
@@ -219,23 +214,8 @@ namespace JMMServer
                 Set("AnimeXmlDirectory", value);
             }
         }
-        public static string DefaultImagePath
-        {
-            get
-            {
-                string dir = Get("DefaultImagePath");
-                if (string.IsNullOrEmpty(dir))
-                {
-                    dir = Path.Combine(ApplicationPath, "images");
-                    Set("DefaultImagePath", dir);
-                }
-                return dir;
-            }
-            set
-            {
-                Set("DefaultImagePath", value);
-            }
-        }
+
+
         public static string MyListDirectory
         {
             get
@@ -1408,22 +1388,25 @@ namespace JMMServer
             set { Set("SeriesNameSource", ((int) value).ToString()); }
         }
 
-        public static string BaseImagesPath
+        public static string ImagesPath
         {
             get
             {
-                
-                return Get("BaseImagesPath");
+
+                return Get("ImagesPath");
             }
             set
             {
-                Set("BaseImagesPath", value);
+                Set("ImagesPath", value);
                 ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
             }
         }
 
 
-        public static bool BaseImagesPathIsDefault
+        private static string BaseImagesPath => Get("BaseImagesPath");
+
+
+        private static bool BaseImagesPathIsDefault
         {
             get
             {
@@ -1437,11 +1420,7 @@ namespace JMMServer
                 }
                 else return true;
             }
-            set
-            {
-                Set("BaseImagesPathIsDefault", value.ToString());
-                ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
-            }
+
         }
 
         public static string VLCLocation
@@ -1468,19 +1447,6 @@ namespace JMMServer
                 return val;
             }
             set { Set("MinimizeOnStartup", value.ToString()); }
-        }
-
-        public static bool AllowMultipleInstances
-        {
-            get
-            {
-                
-                bool val = false;
-                if (!bool.TryParse(Get("AllowMultipleInstances"), out val))
-                    val = false;
-                return val;
-            }
-            set { Set("AllowMultipleInstances", value.ToString()); }
         }
 
         #region Trakt
@@ -1663,41 +1629,6 @@ namespace JMMServer
             }
             set { Set("WebCacheAuthKey", value); }
         }
-
-        public static bool EnablePlex
-        {
-            get
-            {
-                
-                string basePath = Get("EnablePlex");
-                if (!string.IsNullOrEmpty(basePath))
-                {
-                    bool val = true;
-                    bool.TryParse(basePath, out val);
-                    return val;
-                }
-                else return true;
-            }
-            set { Set("EnablePlex", value.ToString()); }
-        }
-
-        public static bool EnableKodi
-        {
-            get
-            {
-                
-                string basePath = Get("EnableKodi");
-                if (!string.IsNullOrEmpty(basePath))
-                {
-                    bool val = true;
-                    bool.TryParse(basePath, out val);
-                    return val;
-                }
-                else return true;
-            }
-            set { Set("EnableKodi", value.ToString()); }
-        }
-
 
         public static Contract_ServerSettings ToContract()
         {
