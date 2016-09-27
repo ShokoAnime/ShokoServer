@@ -199,6 +199,8 @@ namespace JMMServer
                 {
                     ImagesPath = BaseImagesPath;
                 }
+                if (string.IsNullOrEmpty(ImagesPath))
+                    ImagesPath = DefaultImagePath;
                 SaveSettings();
 
 
