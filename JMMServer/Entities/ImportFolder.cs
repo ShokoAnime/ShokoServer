@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
@@ -194,13 +195,22 @@ namespace JMMServer.Entities
             Contract_ImportFolder contract = new Contract_ImportFolder();
             contract.ImportFolderID = this.ImportFolderID;
             contract.ImportFolderType = this.ImportFolderType;
-            contract.ImportFolderLocation = this.ImportFolderLocation;
+
+            // Make sure to format folder first
+            contract.ImportFolderLocation = FormateImportFolderLocation(this.ImportFolderLocation);
+
             contract.ImportFolderName = this.ImportFolderName;
             contract.IsDropSource = this.IsDropSource;
             contract.IsDropDestination = this.IsDropDestination;
             contract.IsWatched = this.IsWatched;
             contract.CloudID = this.CloudID;
             return contract;
+        }
+
+        private string FormateImportFolderLocation(string importFolderLocation)
+        {
+            importFolderLocation = importFolderLocation.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar; 
+            return importFolderLocation;
         }
     }
 }
