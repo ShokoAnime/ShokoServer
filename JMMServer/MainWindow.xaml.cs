@@ -105,7 +105,7 @@ namespace JMMServer
         internal static System.Timers.Timer LogRotatorTimer = null;
 
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
-        private static List<FileSystemWatcher> watcherVids = null;
+        private static List<AdvFileSystemWatcher> watcherVids = null;
 
         BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
@@ -179,9 +179,8 @@ namespace JMMServer
 
             workerFileEvents.WorkerReportsProgress = false;
             workerFileEvents.WorkerSupportsCancellation = false;
-            workerFileEvents.DoWork += new DoWorkEventHandler(workerFileEvents_DoWork);
-            workerFileEvents.RunWorkerCompleted +=
-                new RunWorkerCompletedEventHandler(workerFileEvents_RunWorkerCompleted);
+            workerFileEvents.DoWork += workerFileEvents_DoWork;
+            workerFileEvents.RunWorkerCompleted += workerFileEvents_RunWorkerCompleted;
 
             //logrotator worker setup
             LogRotatorWorker.WorkerReportsProgress = false;
@@ -428,17 +427,17 @@ namespace JMMServer
 
         void workerFileEvents_DoWork(object sender, DoWorkEventArgs e)
         {
-            logger.Info("Started thread for processing file creation events");
+            logger.Info("Started thread for processing file events");
             foreach (FileSystemEventArgs evt in queueFileEvents)
             {
                 try
                 {
                     // this is a message to stop processing
-                    if (evt == null) return;
-
-                    logger.Info("New file created: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                    if (evt.ChangeType == WatcherChangeTypes.Created)
+                    if (evt == null)
+                    {
+                        return;
+                    }
+                    if (evt.ChangeType == WatcherChangeTypes.Created || evt.ChangeType == WatcherChangeTypes.Renamed)
                     {
                         if (evt.FullPath.StartsWith("|CLOUD|"))
                         {
@@ -447,12 +446,16 @@ namespace JMMServer
                         }
                         else
                         {
-                            if (Directory.Exists(evt.FullPath))
+                            // When the path that was created represents a directory we need to manually get the contained files to add.
+                            // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
+                            // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
+                            // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
+
+                            FileAttributes attr = File.GetAttributes(evt.FullPath);
+                            if (attr.HasFlag(FileAttributes.Directory))
                             {
-                                // When the path that was created represents a directory we need to manually get the contained files to add.
-                                // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
-                                // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
-                                // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
+                                logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
+
                                 string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
 
                                 foreach (string file in files)
@@ -466,10 +469,17 @@ namespace JMMServer
                                     }
                                 }
                             }
-                            else if (FileHashHelper.IsVideo(evt.FullPath))
+                            else if (File.Exists(evt.FullPath))
                             {
-                                CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
-                                cmd.Save();
+                                logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
+
+                                if (FileHashHelper.IsVideo(evt.FullPath))
+                                {
+                                    logger.Info("Found file {0}", evt.FullPath);
+
+                                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                                    cmd.Save();
+                                }
                             }
                         }
                     }
@@ -994,7 +1004,7 @@ namespace JMMServer
             if (ServerSettings.DatabaseType.Trim().ToUpper() == "MYSQL") cboDatabaseType.SelectedIndex = 2;
         }
 
-        public void StartFileWorker()
+        public static void StartFileWorker()
         {
             if (!workerFileEvents.IsBusy)
                 workerFileEvents.RunWorkerAsync();
@@ -1037,6 +1047,7 @@ namespace JMMServer
                     //Little hack in there to reuse the file queue
                     FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Created, "|CLOUD|", share.ImportFolderID.ToString());
                     queueFileEvents.Add(args);
+                    StartFileWorker();
                 }
 
             }
@@ -2223,7 +2234,7 @@ namespace JMMServer
         {
             StopWatchingFiles();
             StopCloudWatchTimer();
-            watcherVids = new List<FileSystemWatcher>();
+            watcherVids = new List<AdvFileSystemWatcher>();
 
             foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll())
             {
@@ -2235,9 +2246,16 @@ namespace JMMServer
                     }
                     if (share.CloudID==null && Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
                     {
-                        FileSystemWatcher fsw = new FileSystemWatcher(share.ImportFolderLocation);
+                        AdvFileSystemWatcher fsw = new AdvFileSystemWatcher();
+
+                        fsw.Path = share.ImportFolderLocation;
+
+                        // Handle all type of events not just created ones
+                        fsw.Created += fsw_Handler;
+                        fsw.Renamed += fsw_Handler;
+
+                        fsw.InternalBufferSize = 81920;
                         fsw.IncludeSubdirectories = true;
-                        fsw.Created += new FileSystemEventHandler(fsw_Created);
                         fsw.EnableRaisingEvents = true;
                         watcherVids.Add(fsw);
                     }
@@ -2260,18 +2278,19 @@ namespace JMMServer
         {
             if (watcherVids == null) return;
 
-            foreach (FileSystemWatcher fsw in watcherVids)
+            foreach (AdvFileSystemWatcher fsw in watcherVids)
             {
                 fsw.EnableRaisingEvents = false;
             }
             StopCloudWatchTimer();
         }
 
-        static void fsw_Created(object sender, FileSystemEventArgs e)
+        static void fsw_Handler(object sender, FileSystemEventArgs e)
         {
             try
             {
                 queueFileEvents.Add(e);
+                StartFileWorker();
             }
             catch (Exception ex)
             {
@@ -2391,6 +2410,9 @@ namespace JMMServer
 
                 // MAL association checks
                 Importer.RunImport_ScanMAL();
+
+                // Check for previously ignored files
+                Importer.CheckForPreviouslyIgnored();
             }
             catch (Exception ex)
             {

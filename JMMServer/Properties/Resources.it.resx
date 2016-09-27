@@ -973,14 +973,8 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Anno di creazione</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Ogni cartella di importazione è un percorso dove sono conservati i file di anime che viene utilizzato per costruire la vostra collezione. Avrai bisogno di almeno una cartella di importazione per iniziare a costruire la vostra collezione.</value>
-  </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM Server controllerà questa cartella e aggiungere qualsiasi file che rileva alla tua collezione. Può essere utilizzato in combinazione con Drop fonte e/o destinazione Drop controllato. </value>
-  </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Ulteriori informazioni sulle cartelle di importazione</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Ulteriori informazioni su</value>
@@ -1006,17 +1000,11 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Aggiungere Account</value>
   </data>
-  <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Compilare le informazioni richieste sull'account cloud qui</value>
-  </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Rimuovere</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Account di cloud</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Aggiungere Account Cloud</value>
@@ -1026,9 +1014,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
     <value>Sei sicuro di voler rimuovere il seguente l'Account di Cloud '{0}' da {1}? Qualsiasi cartella importare utilizzando questo account verrà eliminato, e ogni collegamento di file associati a quelli importazione cartelle verranno eliminate anche.</value>
-  </data>
-  <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Selezionare il Provider di servizi</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Collegare</value>
@@ -1071,5 +1056,68 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Aggiornamento informazioni TVDb e la richiesta di nuove immagini.</value>
+  </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Una cartella di importazione è la posizione fisica della vostra collezione di anime, avrai bisogno di almeno una cartella di importazione utilizzare JMM Server per iniziare a costruire la vostra collezione.</value>
+  </data>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Importare le cartelle</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Selezionare il Provider di Cloud e seguire le istruzioni per aggiungere il tuo account Cloud per l'utilizzo con Server di JMM.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Provider di servizi</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Importa cartelle sono collegate ad un unico fornitore e non possono essere utilizzate con le cartelle di importazione da un altro Provider.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>L'eliminazione di un fornitore di servizi Cloud rimuoverà tutti i file e le cartelle di importazione associati.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Selezionare il Provider di servizio e immettere un nome per l'account di Cloud. Facendo clic su Connetti vi porterà alla pagina di accesso del Provider selezionato.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Aggiungere il controllo di integrità</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Aggiungere nuovamente tutti</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>File:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Stato:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Risultati</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Selezionare Importa cartelle</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Selezionare Importa cartelle per avere loro file aggiunti per l'analisi di controllo di integrità.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Controllo di integrità permette di scansionare le cartelle di importazione per la corruzione del file. Tutte le cartelle di importazione che si aggiunge avrà loro rehahsed i file con il nuovo valore rispetto al valore originale archiviato nel Database da quando in primo luogo è stato importato il file. I file con un valore di hash diverso verranno visualizzati di sotto.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Controllo di integrità</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Integrità</value>
+  </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>La migrazione è in corso, questa finestra si chiuderà automaticamente una volta completato.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>In seguito JMM Server si riavvii stessa in caso di successo.</value>
   </data>
 </root>

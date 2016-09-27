@@ -973,14 +973,8 @@
   <data name="Filter_CreatingYear" xml:space="preserve">
     <value>Ano de criação</value>
   </data>
-  <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Cada pasta de importação é um local onde ficam seus arquivos de anime que é usado para criar sua coleção. Você precisará de pelo menos uma pasta de importação para começar a construir sua coleção.</value>
-  </data>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM servidor irá monitorar esta pasta e adicionar quaisquer arquivos que detecta a sua coleção. Pode ser usado em conjunto com a fonte larga e/ou destino Drop verificado. </value>
-  </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Saiba mais sobre pastas de importação</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Saiba mais sobre</value>
@@ -1006,17 +1000,11 @@
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Adicionar conta</value>
   </data>
-  <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Preencha as informações necessárias sobre as contas da nuvem aqui</value>
-  </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Remover</value>
   </data>
   <data name="CloudAccounts_Title" xml:space="preserve">
     <value>Contas de nuvem</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Adicionar conta Cloud</value>
@@ -1026,9 +1014,6 @@
   </data>
   <data name="CloudAccounts_RemoveMessage" xml:space="preserve">
     <value>Tem certeza que deseja remover o seguinte conta a nuvem '{0}' de {1}? Qualquer pasta importar usando essa conta será excluída, e todos os links de arquivo associado com aqueles importar pastas também serão excluídas.</value>
-  </data>
-  <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Selecione o provedor de serviço</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Conectar-se</value>
@@ -1071,5 +1056,68 @@
   </data>
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Atualizando informações TVDB e solicitando novas imagens.</value>
+  </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
+  </data>
+  <data name="ImportFolders_Info" xml:space="preserve">
+    <value>Uma pasta de importação é a localização física de sua coleção de anime, você vai precisar de pelo menos uma pasta de importação para usar servidor JMM para começar a construir sua coleção.</value>
+  </data>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Pastas de importação</value>
+  </data>
+  <data name="CloudAccounts_Info" xml:space="preserve">
+    <value>Selecione o seu provedor de nuvem e siga as instruções para adicionar sua conta de nuvem para uso com o servidor de JMM.</value>
+  </data>
+  <data name="CloudAccounts_Service" xml:space="preserve">
+    <value>Provedor de serviço</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Pastas de importação estão ligadas a um único fornecedor e não podem ser usadas com pastas de importação de outro provedor.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>Exclusão de um provedor de nuvem irá remover todos os associados de importação de pastas e arquivos.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Selecione o provedor de serviço e um nome para a conta da nuvem de entrada. Connect levará você para a página de login do provedor de serviços seu selecionado.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Adicionar a verificação de integridade</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Re-inserir todos</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>Arquivos:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Resultados</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Selecione importar pastas</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Selecione importar pastas para ter seus arquivos adicionados para o exame de verificação de integridade.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Verificação de integridade permite digitalizar suas pastas de importação por corrupção de arquivo. As pastas de importação que você adicionar terá rehahsed seus arquivos com o novo valor em comparação com o valor original, armazenado em seu banco de dados de quando o arquivo foi importado primeiro. Arquivos com um valor de hash diferente será exibida abaixo.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Verificação de integridade</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Integridade</value>
+  </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>Migração está em andamento, esta janela irá fechar automaticamente uma vez concluído.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>Depois JMM servidor vai reinicia em si se for bem sucedida.</value>
   </data>
 </root>

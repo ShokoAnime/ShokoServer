@@ -15,6 +15,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using System.IO;
 using JMMServer.Repositories.Direct;
+using JMMServer.Utilities;
 
 namespace JMMServer.API
 {
@@ -170,8 +171,8 @@ namespace JMMServer.API
             Get["/image/{type}/{id}"] = x => { return GetImage(x.id, x.type, false); };
 
             // 19. Logs
-            Get["/log/get"] = x => { return GetLog(10); };
-            Get["/log/get/{max}"] = x => { return GetLog((int)x.max); };
+            Get["/log/get"] = x => { return GetLog(10,0); };
+            Get["/log/get/{max}/{position}"] = x => { return GetLog((int)x.max,(int)x.position); };
             Post["/log/rotate"] = x => { return SetRotateLogs(); };
             Get["/log/rotate"] = x => { return GetRotateLogs(); };
             Get["/log/rotate/start"] = x => { return StartRotateLogs(); };
@@ -1936,29 +1937,47 @@ namespace JMMServer.API
         }
 
         /// <summary>
-        /// return string[] of lines from current log file
+        /// return int position - current position
+        /// return string[] lines - lines from current log file
         /// </summary>
         /// <param name="lines">max lines to return</param>
+        /// <param name="position">position to seek</param>
         /// <returns></returns>
-        private object GetLog(int lines)
+        private object GetLog(int lines, int position)
         {
             string log_file = LogRotator.GetCurrentLogFile();
-            if (!string.IsNullOrEmpty(log_file))
-            {
-                if (File.Exists(log_file))
-                {
-                    TextReader tr = File.OpenText(@log_file);
-                    return Utils.Tail(tr, lines);
-                }
-                else
-                {
-                    return APIStatus.notFound404();
-                }
-            }
-            else
+            if (string.IsNullOrEmpty(log_file))
             {
                 return APIStatus.notFound404("Could not find current log name. Sorry");
-            }                
+            }
+            
+            if (!File.Exists(log_file))
+            {
+                return APIStatus.notFound404();
+            }
+            
+            Dictionary<string, object> result = new Dictionary<string, object>();
+            FileStream fs = File.OpenRead(@log_file);
+
+            if (position >= fs.Length)
+            {
+                result.Add("position", fs.Length);
+                result.Add("lines", new string[] { });
+                return result;
+            }
+            
+            List<string> logLines = new List<string>();
+
+            LogReader reader = new LogReader(fs, position);
+            for (int i=0; i<lines; i++)
+            {
+                string line = reader.ReadLine();
+                if (line == null) break;
+                logLines.Add(line);
+            }
+            result.Add("position", reader.Position);
+            result.Add("lines", logLines.ToArray());
+            return result;
         }
 
         #endregion

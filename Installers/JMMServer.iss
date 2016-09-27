@@ -79,8 +79,6 @@ Source: "..\JMMServer\bin\Release\NLog.dll"; DestDir: "{app}"; Flags: ignorevers
 Source: "..\JMMServer\bin\Release\NLog.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Pri.LongPath.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\protobuf-net.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\protobuf-net.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\protobuf-net.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\RestSharp.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\RestSharp.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\System.Data.SQLite.dll"; DestDir: "{app}"; Flags: ignoreversion

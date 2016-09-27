@@ -355,6 +355,12 @@
     <Compile Include="Mappings\ScanMap.cs" />
     <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
     <Compile Include="MigrationDirectory.cs" />
+    <Compile Include="MigrationForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MigrationForm.Designer.cs">
+      <DependentUpon>MigrationForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="PlexAndKodi\IProvider.cs" />
     <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
     <Compile Include="PlexAndKodi\Plex\PlexProvider.cs" />
@@ -870,9 +876,13 @@
     <Compile Include="UPnPData.cs" />
     <Compile Include="UPnPServerBrowserDialog.cs" />
     <Compile Include="UserCulture.cs" />
+    <Compile Include="Utilities\AdvFileSystemWatcher.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Utilities\GroupFilterHelper.cs" />
     <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
     <Compile Include="Utilities\JsonExtensions.cs" />
+    <Compile Include="Utilities\LogReader.cs" />
     <Compile Include="Utilities\RenameFileHelper.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WatchedUnwatchedCount.cs" />
@@ -985,6 +995,9 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <EmbeddedResource Include="MigrationForm.resx">
+      <DependentUpon>MigrationForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.de.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.de.Designer.cs</LastGenOutput>
@@ -1021,8 +1034,8 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.ru.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>

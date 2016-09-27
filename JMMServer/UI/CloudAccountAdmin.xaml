@@ -56,10 +56,20 @@
                        VerticalAlignment="Top" />
                 <TextBlock VerticalAlignment="Center"
                            Text="{Resx ResxName=JMMServer.Properties.Resources, Key=CloudAccounts_Info}"
-                           Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1" />
-                <jmmServer:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,5,5,5"
-                                         DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=DetailedExplanation}"
+                           Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1" Grid.Row="0"/>
+                <Image Height="16" Width="16" Source="/Images/16_warning.png" Margin="5,2,4,0" Grid.Column="0" Grid.Row="1"
+                       VerticalAlignment="Top" />
+                <TextBlock VerticalAlignment="Center"
+                           Text="{Resx ResxName=JMMServer.Properties.Resources, Key=CloudAccounts_Info2}"
+                           Margin="0,0,5,0" TextWrapping="Wrap" Grid.Column="1" Grid.Row="1" />
+                <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="2" Margin="0,0,5,0">
+                    <TextBlock VerticalAlignment="Center"
+                            Text="{Resx ResxName=JMMServer.Properties.Resources, Key=LearnMore}"
+                            Margin="0,0,5,0" />
+                    <jmmServer:HyperLinkStandard VerticalAlignment="Center" Margin="0,5,5,5"
+                                         DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=CloudAccounts_Title}"
                                          URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_CloudAccounts}" />
+                </StackPanel>
             </Grid>
         </Border>
 

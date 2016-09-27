@@ -80,7 +80,7 @@ namespace JMMServer
             }
 
             // files which have been hashed, but don't have an associated episode
-            foreach(VideoLocal v in RepoFactory.VideoLocal.GetVideosWithoutEpisode().Where(a => !string.IsNullOrEmpty(a.Hash)))
+            foreach (VideoLocal v in RepoFactory.VideoLocal.GetVideosWithoutEpisode().Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
                 CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(v.VideoLocalID, false);
                 cmd.Save();
@@ -91,14 +91,13 @@ namespace JMMServer
 
 
             // check that all the episode data is populated
-            foreach (VideoLocal vl in RepoFactory.VideoLocal.GetAll().Where(a=>!string.IsNullOrEmpty(a.Hash)))
+            foreach (VideoLocal vl in RepoFactory.VideoLocal.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-
                 // if the file is not manually associated, then check for AniDB_File info
                 AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(vl.Hash);
                 foreach (CrossRef_File_Episode xref in vl.EpisodeCrossRefs)
                 {
-                    if (xref.CrossRefSource != (int) CrossRefSource.AniDB) continue;
+                    if (xref.CrossRefSource != (int)CrossRefSource.AniDB) continue;
                     if (aniFile == null)
                     {
                         CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, false);
@@ -136,7 +135,7 @@ namespace JMMServer
                 List<VideoLocal> missfiles = allfiles.Where(
                             a =>
                                 string.IsNullOrEmpty(a.CRC32) || string.IsNullOrEmpty(a.SHA1) ||
-                                string.IsNullOrEmpty(a.MD5) || a.SHA1== "0000000000000000000000000000000000000000" || a.MD5== "00000000000000000000000000000000")
+                                string.IsNullOrEmpty(a.MD5) || a.SHA1 == "0000000000000000000000000000000000000000" || a.MD5 == "00000000000000000000000000000000")
                         .ToList();
                 List<VideoLocal> withfiles = allfiles.Except(missfiles).ToList();
                 //Check if we can populate md5,sha and crc from AniDB_Files
@@ -151,7 +150,7 @@ namespace JMMServer
                             v.CRC32 = file.CRC;
                             v.MD5 = file.MD5;
                             v.SHA1 = file.SHA1;
-                            RepoFactory.VideoLocal.Save(v,false);
+                            RepoFactory.VideoLocal.Save(v, false);
                             missfiles.Remove(v);
                             withfiles.Add(v);
                         }
@@ -160,10 +159,10 @@ namespace JMMServer
                 //Try obtain missing hashes
                 foreach (VideoLocal v in missfiles.ToList())
                 {
-                    List<FileHash> ls=AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
+                    List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
                     if (ls != null)
                     {
-                        ls=ls.Where(
+                        ls = ls.Where(
                             a =>
                                 !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) &&
                                 !string.IsNullOrEmpty(a.SHA1)).ToList();
@@ -178,13 +177,13 @@ namespace JMMServer
                     }
                 }
                 //We need to recalculate the sha1, md5 and crc32 of the missing ones.
-                List<VideoLocal> tosend=new List<VideoLocal>();
+                List<VideoLocal> tosend = new List<VideoLocal>();
                 foreach (VideoLocal v in missfiles)
                 {
                     try
                     {
                         VideoLocal_Place p = v.GetBestVideoLocalPlace();
-                        if (p!=null && p.ImportFolder.CloudID==0)
+                        if (p != null && p.ImportFolder.CloudID == 0)
                         {
                             Hashes h = FileHashHelper.GetHashInfo(p.FullServerPath, true, MainWindow.OnHashProgress, true,
                                 true,
@@ -198,7 +197,7 @@ namespace JMMServer
                             withfiles.Add(v);
                         }
                     }
-                    catch 
+                    catch
                     {
                         //Ignored
                     }
@@ -227,7 +226,7 @@ namespace JMMServer
 
 
                 List<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(fldr.ImportFolderID);
-                Dictionary<string,VideoLocal_Place> dictFilesExisting = new Dictionary<string, VideoLocal_Place>();
+                Dictionary<string, VideoLocal_Place> dictFilesExisting = new Dictionary<string, VideoLocal_Place>();
                 foreach (VideoLocal_Place vl in filesAll)
                 {
                     try
@@ -273,7 +272,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
@@ -350,7 +349,7 @@ namespace JMMServer
                 }
                 catch (Exception ex)
                 {
-                    logger.Error( ex,ex.ToString());
+                    logger.Error(ex, ex.ToString());
                 }
             }
 
@@ -883,7 +882,7 @@ namespace JMMServer
 
                 // delete the import folder
                 RepoFactory.ImportFolder.Delete(importFolderID);
-                
+
                 //TODO APIv2: Delete this hack after migration to headless
                 //hack until gui id dead
                 try
@@ -909,7 +908,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return ex.Message;
             }
         }
@@ -962,7 +961,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
 
             return vidsToUpdate.Count;
@@ -986,9 +985,9 @@ namespace JMMServer
                 GroupFilterConditionType.EpisodeWatchedDate,
                 GroupFilterConditionType.EpisodeAddedDate
             };
-            List<GroupFilter> evalfilters= RepoFactory.GroupFilter.GetWithConditionsTypes(conditions).Where(
-                a=>a.Conditions.Any(b=>conditions.Contains(b.ConditionTypeEnum) && b.ConditionOperatorEnum==GroupFilterOperator.LastXDays)).ToList();
-            foreach(GroupFilter g in evalfilters)
+            List<GroupFilter> evalfilters = RepoFactory.GroupFilter.GetWithConditionsTypes(conditions).Where(
+                a => a.Conditions.Any(b => conditions.Contains(b.ConditionTypeEnum) && b.ConditionOperatorEnum == GroupFilterOperator.LastXDays)).ToList();
+            foreach (GroupFilter g in evalfilters)
                 g.EvaluateAnimeGroups();
             if (sched == null)
             {
@@ -1008,8 +1007,8 @@ namespace JMMServer
             int freqHours = Utils.GetScheduledHours(ServerSettings.TvDB_UpdateFrequency);
 
             // update tvdb info every 12 hours
-           
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TvDBInfo);
+
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TvDBInfo);
             if (sched != null)
             {
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -1040,7 +1039,7 @@ namespace JMMServer
             if (sched == null)
             {
                 sched = new ScheduledUpdate();
-                sched.UpdateType = (int) ScheduledUpdateType.TvDBInfo;
+                sched.UpdateType = (int)ScheduledUpdateType.TvDBInfo;
             }
 
             sched.LastUpdate = DateTime.Now;
@@ -1060,7 +1059,7 @@ namespace JMMServer
             // we will always assume that an anime was downloaded via http first
 
 
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
             if (sched != null)
             {
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -1080,7 +1079,7 @@ namespace JMMServer
             // update the anonymous user info every 12 hours
             // we will always assume that an anime was downloaded via http first
 
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AzureUserInfo);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AzureUserInfo);
             if (sched != null)
             {
                 // if we have run this in the last 6 hours and are not forcing it, then exit
@@ -1094,7 +1093,7 @@ namespace JMMServer
             if (sched == null)
             {
                 sched = new ScheduledUpdate();
-                sched.UpdateType = (int) ScheduledUpdateType.AzureUserInfo;
+                sched.UpdateType = (int)ScheduledUpdateType.AzureUserInfo;
                 sched.UpdateDetails = "";
             }
             sched.LastUpdate = DateTime.Now;
@@ -1111,7 +1110,7 @@ namespace JMMServer
 
             // check for any updated anime info every 12 hours
 
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
             if (sched != null)
             {
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -1133,7 +1132,7 @@ namespace JMMServer
 
             // check for any updated anime info every 12 hours
 
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.MALUpdate);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.MALUpdate);
             if (sched != null)
             {
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -1149,7 +1148,7 @@ namespace JMMServer
             if (sched == null)
             {
                 sched = new ScheduledUpdate();
-                sched.UpdateType = (int) ScheduledUpdateType.MALUpdate;
+                sched.UpdateType = (int)ScheduledUpdateType.MALUpdate;
                 sched.UpdateDetails = "";
             }
             sched.LastUpdate = DateTime.Now;
@@ -1162,7 +1161,7 @@ namespace JMMServer
                 return;
             int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyListStats_UpdateFrequency);
 
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMylistStats);
             if (sched != null)
             {
                 // if we have run this in the last 24 hours and are not forcing it, then exit
@@ -1185,7 +1184,7 @@ namespace JMMServer
 
             // update the calendar every 24 hours
 
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
             if (sched != null)
             {
                 // if we have run this in the last 24 hours and are not forcing it, then exit
@@ -1208,7 +1207,7 @@ namespace JMMServer
 
             // update the calendar every xxx hours
 
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync);
             if (sched != null)
             {
                 // if we have run this in the last xxx hours and are not forcing it, then exit
@@ -1233,7 +1232,7 @@ namespace JMMServer
             int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
 
             // update the calendar every xxx hours
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate);
             if (sched != null)
             {
                 // if we have run this in the last xxx hours and are not forcing it, then exit
@@ -1256,7 +1255,7 @@ namespace JMMServer
                 // by updating the Trakt token regularly, the user won't need to authorize again
                 int freqHours = 24; // we need to update this daily
 
-               ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktToken);
+                ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktToken);
                 if (sched != null)
                 {
                     // if we have run this in the last xxx hours and are not forcing it, then exit
@@ -1272,7 +1271,7 @@ namespace JMMServer
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate();
-                    sched.UpdateType = (int) ScheduledUpdateType.TraktToken;
+                    sched.UpdateType = (int)ScheduledUpdateType.TraktToken;
                     sched.UpdateDetails = "";
                 }
                 sched.LastUpdate = DateTime.Now;
@@ -1280,7 +1279,7 @@ namespace JMMServer
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in CheckForTraktTokenUpdate: " + ex.ToString());
+                logger.Error(ex, "Error in CheckForTraktTokenUpdate: " + ex.ToString());
             }
         }
 
@@ -1291,7 +1290,7 @@ namespace JMMServer
 
             // check for any updated anime info every 12 hours
 
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBFileUpdates);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
             if (sched != null)
             {
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -1319,11 +1318,39 @@ namespace JMMServer
             if (sched == null)
             {
                 sched = new ScheduledUpdate();
-                sched.UpdateType = (int) ScheduledUpdateType.AniDBFileUpdates;
+                sched.UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates;
                 sched.UpdateDetails = "";
             }
             sched.LastUpdate = DateTime.Now;
             RepoFactory.ScheduledUpdate.Save(sched);
+        }
+
+        public static void CheckForPreviouslyIgnored()
+        {
+            try
+            {
+                List<VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
+                List<VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
+
+                foreach (VideoLocal vl in filesAll)
+                {
+                    if (vl.IsIgnored == 0)
+                    {
+                        // Check if we have this file marked as previously ignored, matches only if it has the same hash
+                        List<VideoLocal> resultVideoLocalsIgnored = filesIgnored.Where(s => s.Hash == vl.Hash).ToList();
+
+                        if (resultVideoLocalsIgnored.Any())
+                        {
+                            vl.IsIgnored = 1;
+                            RepoFactory.VideoLocal.Save(vl, false);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, string.Format("Error in CheckForPreviouslyIgnored: {0}", ex));
+            }
         }
 
         public static void UpdateAniDBTitles()
@@ -1338,7 +1365,7 @@ namespace JMMServer
 
             // check for any updated anime info every 100 hours
 
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBTitles);
+            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBTitles);
             if (sched != null)
             {
                 // if we have run this in the last 100 hours and are not forcing it, then exit
@@ -1349,7 +1376,7 @@ namespace JMMServer
             if (sched == null)
             {
                 sched = new ScheduledUpdate();
-                sched.UpdateType = (int) ScheduledUpdateType.AniDBTitles;
+                sched.UpdateType = (int)ScheduledUpdateType.AniDBTitles;
                 sched.UpdateDetails = "";
             }
             sched.LastUpdate = DateTime.Now;

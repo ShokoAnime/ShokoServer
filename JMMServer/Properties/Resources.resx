@@ -471,7 +471,7 @@ You can have as many Drop Sources as you want, however you must setup a Drop Des
 You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="ImportFolders_Info" xml:space="preserve">
-    <value>Each import folder is a location where your anime files are kept that's used to build your collection. You'll need at least one import folder to start building your collection.</value>
+    <value>An Import Folder is the physical location of your anime collection, you'll need at least one Import Folder to use JMM Server to start building your collection.</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
     <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#import-folders</value>
@@ -1037,8 +1037,8 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Tooltip_Watch" xml:space="preserve">
     <value>JMM Server will monitor this folder and add any files it detects to your collection. Can be used in conjunction with Drop Source and/or Drop Destination checked. </value>
   </data>
-  <data name="ImportFolders_LearnMore" xml:space="preserve">
-    <value>Learn more about import folders</value>
+  <data name="ImportFolders_ImportFolders" xml:space="preserve">
+    <value>Import Folders</value>
   </data>
   <data name="LearnMore" xml:space="preserve">
     <value>Learn more about</value>
@@ -1056,7 +1056,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Add Account</value>
   </data>
   <data name="CloudAccounts_Info" xml:space="preserve">
-    <value>Fill the required information about cloud accounts here</value>
+    <value>Select your Cloud Provider and follow the instructions to add your Cloud account for use with JMM Server.</value>
   </data>
   <data name="CloudAccounts_Remove" xml:space="preserve">
     <value>Remove</value>
@@ -1065,7 +1065,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Cloud Accounts</value>
   </data>
   <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>http://localhost</value>
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#cloud-accounts</value>
   </data>
   <data name="CloudAccounts_AddCloudAccount" xml:space="preserve">
     <value>Add Cloud Account</value>
@@ -1077,7 +1077,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Are you sure you want to remove the following the Cloud Account '{0}' from {1}? Any Import Folder using this account will be deleted, and every file link associated with those import folders will be also deleted.</value>
   </data>
   <data name="CloudAccounts_Service" xml:space="preserve">
-    <value>Select Service Provider</value>
+    <value>Service Provider</value>
   </data>
   <data name="CloudAccounts_Connect" xml:space="preserve">
     <value>Connect</value>
@@ -1115,11 +1115,59 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Migration_AdminPass2" xml:space="preserve">
     <value>once this process is complete JMM Server will restart and no longer need Administrative Privileges to run.</value>
   </data>
+  <data name="Migration_InProgress1" xml:space="preserve">
+    <value>Migration is in progress, this window will automatically close once completed.</value>
+  </data>
+  <data name="Migration_InProgress2" xml:space="preserve">
+    <value>Afterwards JMM Server will restart itself if successful.</value>
+  </data>
   <data name="Actions_UpdateImages" xml:space="preserve">
     <value>Update Images</value>
   </data>
   <data name="Server_UpdateImages" xml:space="preserve">
     <value>Updating TVDb info and requesting new images.</value>
+  </data>
+  <data name="ImportFolders_Location" xml:space="preserve">
+    <value>Import Folders are linked to a single Provider and cannot be used with Import Folders from another Provider.</value>
+  </data>
+  <data name="CloudAccounts_Info2" xml:space="preserve">
+    <value>Deleting a Cloud Provider will remove all associated Import Folders and Files.</value>
+  </data>
+  <data name="CloudAccounts_AddCloudInfo" xml:space="preserve">
+    <value>Select the Service Provider and input a name for the Cloud account. Clicking Connect will take you to your selected Service Provider's login page.</value>
+  </data>
+  <data name="Integrity_Add" xml:space="preserve">
+    <value>Add Integrity Check</value>
+  </data>
+  <data name="Integrity_Readd" xml:space="preserve">
+    <value>Re-Add All</value>
+  </data>
+  <data name="Integrity_Files" xml:space="preserve">
+    <value>Files:</value>
+  </data>
+  <data name="Integrity_Status" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="Integrity_Results" xml:space="preserve">
+    <value>Results</value>
+  </data>
+  <data name="Integrity_SelectImport" xml:space="preserve">
+    <value>Select Import Folders</value>
+  </data>
+  <data name="Integrity_SelectInfo" xml:space="preserve">
+    <value>Select Import Folders to have their files added to the Integrity Check scan.</value>
+  </data>
+  <data name="Integrity_Info" xml:space="preserve">
+    <value>Integrity Check allows you to scan your Import Folders for file corruption. Any Import Folders you add will have their files rehahsed with the new value compared to the original value stored in your Database from when the file was first imported. Files with a different hash value will be displayed below.</value>
+  </data>
+  <data name="Integrity_Title" xml:space="preserve">
+    <value>Integrity Check</value>
+  </data>
+  <data name="Tab_Integrity" xml:space="preserve">
+    <value>Integrity</value>
+  </data>
+  <data name="Link_Integrity" xml:space="preserve">
+    <value>http://jmediamanager.org/jmm-server/configuring-jmm-server/#integrity-check</value>
   </data>
   <data name="Settings_SetDefault" xml:space="preserve">
     <value>Set Default</value>
