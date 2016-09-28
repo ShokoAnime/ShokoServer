@@ -1120,4 +1120,34 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Migration_InProgress2" xml:space="preserve">
     <value>In seguito JMM Server si riavvii stessa in caso di successo.</value>
   </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Imposta predefinito</value>
+  </data>
+  <data name="Settings_ChangeServerPortFail" xml:space="preserve">
+    <value>Per cambiare la porta del Server utilizzato da Server di JMM sono richiesti privilegi amministrativi. Si prega di riavviare JMM Server come amministratore per continuare.</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Errore caricamento impostazioni:</value>
+  </data>
+  <data name="Migration_SettingsError" xml:space="preserve">
+    <value>La migrazione delle impostazioni di errore:</value>
+  </data>
+  <data name="Integrity_DeleteTitle" xml:space="preserve">
+    <value>Eliminare il controllo di integrità</value>
+  </data>
+  <data name="Integrity_DeleteMessage" xml:space="preserve">
+    <value>Sei sicuro di che voler eliminare questo controllo di integrità?</value>
+  </data>
+  <data name="Integerity_ReaddTitle" xml:space="preserve">
+    <value>Aggiungere nuovamente i file</value>
+  </data>
+  <data name="Integerity_ReaddMessage" xml:space="preserve">
+    <value>Quando il controllo di integrità è in esecuzione non è possibile aggiungere nuovamente i file.</value>
+  </data>
+  <data name="Integerity_ReaddSingleTitle" xml:space="preserve">
+    <value>Aggiungere nuovamente il File</value>
+  </data>
+  <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
+    <value>È Impossibile aggiungere nuovamente un file quando il controllo di integrità è in esecuzione.</value>
+  </data>
 </root>

@@ -1106,7 +1106,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Select Import Folders to have their files added to the Integrity Check scan.</value>
   </data>
   <data name="Integrity_Info" xml:space="preserve">
-    <value>Integrity Check allows you to scan your Import Folders for file corruption. Any Import Folders you add will have their files rehahsed with the new value compared to the original value stored in your Database from when the file was first imported. Files with a different hash value will be displayed below.</value>
+    <value>Integrity Check allows you to scan your Import Folders for file corruption. Any Import Folders you add will have their files rehashed with the new value compared to the original value stored in your Database from when the file was first imported. Files with a different hash value will be displayed below.</value>
   </data>
   <data name="Integrity_Title" xml:space="preserve">
     <value>Integrity Check</value>
@@ -1119,5 +1119,35 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Migration_InProgress2" xml:space="preserve">
     <value>Afterwards JMM Server will restart itself if successful.</value>
+  </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Set Default</value>
+  </data>
+  <data name="Settings_ChangeServerPortFail" xml:space="preserve">
+    <value>Administrative Privileges are required to change the Server Port used by JMM Server. Please restart JMM Server as an Administrator to continue.</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Error Loading Settings:</value>
+  </data>
+  <data name="Migration_SettingsError" xml:space="preserve">
+    <value>Error Migrating Settings:</value>
+  </data>
+  <data name="Integrity_DeleteTitle" xml:space="preserve">
+    <value>Delete Integrity Check</value>
+  </data>
+  <data name="Integrity_DeleteMessage" xml:space="preserve">
+    <value>Are you sure you want to delete this Integrity Check?</value>
+  </data>
+  <data name="Integerity_ReaddTitle" xml:space="preserve">
+    <value>Re-Add Files</value>
+  </data>
+  <data name="Integerity_ReaddMessage" xml:space="preserve">
+    <value>You cannot re-add files when the Integrity Check is running.</value>
+  </data>
+  <data name="Integerity_ReaddSingleTitle" xml:space="preserve">
+    <value>Re-Add File</value>
+  </data>
+  <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
+    <value>You cannot re-add a file when the Integrity Check is running.</value>
   </data>
 </root>

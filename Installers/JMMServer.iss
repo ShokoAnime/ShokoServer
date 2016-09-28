@@ -12,8 +12,8 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}
 AppName=JMM Server
-AppVersion=3.6.5.0
-;AppVerName=JMM Server 3.6.5.0
+AppVersion=3.7.0.0
+;AppVerName=JMM Server 3.7.0.0
 AppPublisher=JMM
 AppPublisherURL=https://github.com/japanesemediamanager
 AppSupportURL=https://github.com/japanesemediamanager
@@ -22,7 +22,7 @@ DefaultDirName={pf}\JMM\JMM Server
 DefaultGroupName=JMM Server
 AllowNoIcons=yes
 OutputBaseFilename=JMM_Server_Setup
-Compression=lzma
+Compression=lzma2/ultra64
 SolidCompression=yes
 
 [Languages]
@@ -43,8 +43,12 @@ Source: "..\JMMServer\bin\Release\ICSharpCode.SharpZipLib.dll"; DestDir: "{app}"
 Source: "..\JMMServer\bin\Release\Iesi.Collections.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Iesi.Collections.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Infralution.Localization.Wpf.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\JMMServer.exe.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\JMMServer.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\JMMServer.exe.config"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
 Source: "..\JMMServer\bin\Release\JMMServer.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\JMMServer.vshost.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\JMMServer.vshost.exe.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\JMMServer.vshost.exe.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.ConnectionInfo.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.ConnectionInfoExtended.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.Management.Sdk.Sfc.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -52,6 +56,8 @@ Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.Smo.dll"; DestDir: "{app}"
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.SmoExtended.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.SqlClrProvider.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.SqlEnum.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\Microsoft.VisualStudio.HostingProcess.Utilities.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\Microsoft.VisualStudio.HostingProcess.Utilities.Sync.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.Win32.TaskScheduler.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.Win32.TaskScheduler.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\MimeTypeMap.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -87,7 +93,6 @@ Source: "..\JMMServer\bin\Release\System.Net.Http.Formatting.dll"; DestDir: "{ap
 Source: "..\JMMServer\bin\Release\System.Net.Http.Formatting.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\TMDbLib.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\TMDbLib.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\JMMServer.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\JMMServer\bin\Release\en-gb\*"; DestDir: "{app}\en-gb"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\JMMServer\bin\Release\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs

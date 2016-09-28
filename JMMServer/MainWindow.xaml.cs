@@ -1459,8 +1459,7 @@ namespace JMMServer
             }
             if (!Utils.IsAdministrator())
             {
-                MessageBox.Show(
-                    "You cannot change server port in normal mode, you need administration rights to do that, please start JMMServer as administrator");
+                MessageBox.Show(JMMServer.Properties.Resources.Settings_ChangeServerPortFail, JMMServer.Properties.Resources.Error,MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             try

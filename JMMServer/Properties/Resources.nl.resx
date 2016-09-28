@@ -1120,4 +1120,34 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Migration_InProgress2" xml:space="preserve">
     <value>Daarna zal JMM Server opnieuw opstarten zelf als succesvol.</value>
   </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Standaardwaarden instellen</value>
+  </data>
+  <data name="Settings_ChangeServerPortFail" xml:space="preserve">
+    <value>Beheerdersrechten zijn nodig om de poort van de Server die wordt gebruikt door JMM Server. Start opnieuw JMM Server als beheerder om te blijven.</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Instellingen voor foutpagina laden:</value>
+  </data>
+  <data name="Migration_SettingsError" xml:space="preserve">
+    <value>Instellingen voor het migreren van fout:</value>
+  </data>
+  <data name="Integrity_DeleteTitle" xml:space="preserve">
+    <value>Verwijderen van Integrity-Check</value>
+  </data>
+  <data name="Integrity_DeleteMessage" xml:space="preserve">
+    <value>Weet u zeker dat u wilt verwijderen deze integriteit controleren?</value>
+  </data>
+  <data name="Integerity_ReaddTitle" xml:space="preserve">
+    <value>Opnieuw bestanden toevoegen</value>
+  </data>
+  <data name="Integerity_ReaddMessage" xml:space="preserve">
+    <value>U kunt geen bestanden opnieuw toevoegen wanneer de integriteit controleren wordt uitgevoerd.</value>
+  </data>
+  <data name="Integerity_ReaddSingleTitle" xml:space="preserve">
+    <value>Bestand opnieuw toevoegen</value>
+  </data>
+  <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
+    <value>U kunt geen een bestand opnieuw toevoegen wanneer de integriteit controleren wordt uitgevoerd.</value>
+  </data>
 </root>

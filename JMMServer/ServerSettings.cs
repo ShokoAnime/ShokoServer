@@ -169,7 +169,7 @@ namespace JMMServer
                     }
                     catch (Exception e)
                     {
-                        MessageBox.Show("Error Migrating Settings: ", e.ToString());
+                        MessageBox.Show(Properties.Resources.Migration_SettingsError + " ", e.ToString());
                         migrationActive = false;
                         migrationError = true;
 
@@ -209,7 +209,7 @@ namespace JMMServer
             {
                 migrationError = true;
                 migrationActive = false;
-                MessageBox.Show("Error Loading Settings: ", e.ToString());
+                MessageBox.Show(Properties.Resources.Migration_LoadError + " ", e.ToString());
                 Application.Current.Shutdown();
                 return;
             }           

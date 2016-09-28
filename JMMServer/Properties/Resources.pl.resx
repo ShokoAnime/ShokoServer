@@ -1120,4 +1120,34 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Migration_InProgress2" xml:space="preserve">
     <value>Potem JMM Server będzie restartuje sam jeśli kończy się pomyślnie.</value>
   </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Ustaw domyślne</value>
+  </data>
+  <data name="Settings_ChangeServerPortFail" xml:space="preserve">
+    <value>Aby zmienić Port serwera używany przez serwer JMM wymagane są uprawnienia administracyjne. Uruchom ponownie serwer JMM jako Administrator, aby kontynuować.</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Błąd ładowania ustawień:</value>
+  </data>
+  <data name="Migration_SettingsError" xml:space="preserve">
+    <value>Błąd migracji ustawień:</value>
+  </data>
+  <data name="Integrity_DeleteTitle" xml:space="preserve">
+    <value>Usunąć sprawdzanie integralności</value>
+  </data>
+  <data name="Integrity_DeleteMessage" xml:space="preserve">
+    <value>Czy na pewno chcesz usunąć ten sprawdzania integralności?</value>
+  </data>
+  <data name="Integerity_ReaddTitle" xml:space="preserve">
+    <value>Ponownie Dodaj pliki</value>
+  </data>
+  <data name="Integerity_ReaddMessage" xml:space="preserve">
+    <value>Nie możesz ponownie dodać pliki, uruchamiając sprawdzanie integralności.</value>
+  </data>
+  <data name="Integerity_ReaddSingleTitle" xml:space="preserve">
+    <value>Ponownie Dodaj plik</value>
+  </data>
+  <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
+    <value>Nie można ponownie dodać plik, podczas sprawdzania integralności jest uruchomiony.</value>
+  </data>
 </root>

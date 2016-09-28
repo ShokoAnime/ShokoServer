@@ -1120,4 +1120,34 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Migration_InProgress2" xml:space="preserve">
     <value>Par la suite JMM serveur sera redémarre lui-même en cas de succès.</value>
   </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Configuration par défaut</value>
+  </data>
+  <data name="Settings_ChangeServerPortFail" xml:space="preserve">
+    <value>Des privilèges d’administrateur sont requises pour modifier le Port du serveur utilisé par le serveur de JMM. Redémarrez le serveur JMM en tant qu’administrateur pour continuer.</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Paramètres de chargement d’erreur :</value>
+  </data>
+  <data name="Migration_SettingsError" xml:space="preserve">
+    <value>Migration des paramètres erreur :</value>
+  </data>
+  <data name="Integrity_DeleteTitle" xml:space="preserve">
+    <value>Supprimer le contrôle d’intégrité</value>
+  </data>
+  <data name="Integrity_DeleteMessage" xml:space="preserve">
+    <value>Êtes-vous sûr de que vouloir supprimer cette vérification de l’intégrité ?</value>
+  </data>
+  <data name="Integerity_ReaddTitle" xml:space="preserve">
+    <value>Rajouter les fichiers</value>
+  </data>
+  <data name="Integerity_ReaddMessage" xml:space="preserve">
+    <value>Vous ne pouvez pas rajouter fichiers lorsque la vérification de l’intégrité est en cours d’exécution.</value>
+  </data>
+  <data name="Integerity_ReaddSingleTitle" xml:space="preserve">
+    <value>Ré-ajouter un fichier</value>
+  </data>
+  <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
+    <value>Vous ne peut pas rajouter un fichier lors de la vérification de l’intégrité est en cours d’exécution.</value>
+  </data>
 </root>
