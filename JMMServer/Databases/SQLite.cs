@@ -1773,6 +1773,11 @@ namespace JMMServer.Databases
             SQLiteConnection myConn = new SQLiteConnection(GetConnectionString());
             myConn.Open();
 
+            string pragmaCmd = string.Format("PRAGMA journal_mode = WAL;");
+            SQLiteCommand sqCommandPragma = new SQLiteCommand(pragmaCmd);
+            sqCommandPragma.Connection = myConn;
+            sqCommandPragma.ExecuteNonQuery();
+
             string cmd = string.Format("SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'");
             SQLiteCommand sqCommandCheck = new SQLiteCommand(cmd);
             sqCommandCheck.Connection = myConn;
