@@ -4,8 +4,9 @@
         xmlns:local="clr-namespace:JMMServer"
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
-        Title="{Resx ResxName=JMMServer.Properties.Resources, Key=JMMServer}" MinWidth="500"
-        Name="aboutWindow" Icon="/JMMServer;component/db.ico" Height="190">
+        Width="Auto" Height="Auto"
+        Title="{Resx ResxName=JMMServer.Properties.Resources, Key=JMMServer}"
+        Name="aboutWindow" Icon="/JMMServer;component/db.ico">
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>
@@ -20,6 +21,7 @@
         </Grid.Resources>
 
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
 
@@ -48,7 +50,7 @@
         </Border>
 
         <Border Grid.Row="1" Grid.Column="0" Margin="0" Background="#F1F1F1" BorderBrush="LightGray"
-                BorderThickness="1" Height="116" VerticalAlignment="Top">
+                BorderThickness="1" VerticalAlignment="Top">
 
             <Grid>
                 <Grid.RowDefinitions>
@@ -83,32 +85,24 @@
                                          DisplayText="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_GitHub}"
                                          URL="{Resx ResxName=JMMServer.Properties.Resources, Key=Link_Github}" />
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Margin="5,2,5,46" Text="MediaPortal Forum"
+                <TextBlock Grid.Row="3" Grid.Column="0" Margin="5,2,5,5" Text="MediaPortal Forum"
                            VerticalAlignment="Center" />
-                <local:HyperLinkStandard Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="5,2,5,47"
+                <local:HyperLinkStandard Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="5,2,5,5"
                                          DisplayText="http://forum.team-mediaportal.com/threads/my-anime-3.107475/"
                                          URL="http://forum.team-mediaportal.com/threads/my-anime-3.107475/" />
-
-            <!-- Update button hidden until auto-update is restored -->
-                
-            <!--
-               <Button Grid.Row="3" Grid.Column="0" Name="btnUpdates" Margin="5,30,5,-5"
-                        Style="{DynamicResource RoundButtonStyle}" Grid.RowSpan="2">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-
-                        <TextBlock VerticalAlignment="Center"
-                                   Text="{Resx ResxName=JMMServer.Properties.Resources, Key=About_UpdateCheck}"
-                                   Margin="5,0,5,0" />
-                    </StackPanel>
-                </Button>
-                
-             -->
-                
             </Grid>
-
-
         </Border>
 
+        <!-- Update button -->
+
+        <StackPanel Grid.Row="2" Grid.Column="0"  Orientation="Horizontal" HorizontalAlignment="Center" Margin="5,5,0,10">
+            <Button Name="btnUpdates" Margin="0,0,0,0" Style="{DynamicResource FlatButtonStyle}" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                    <Image Height="16" Width="16" Source="/Images/16_tick.png" Margin="0,0,5,0"/>
+                    <TextBlock VerticalAlignment="Center" Text="{Resx ResxName=JMMServer.Properties.Resources, Key=About_UpdateCheck}" Margin="0,0,5,0"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
 
     </Grid>
 </Window>

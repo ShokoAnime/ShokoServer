@@ -1120,4 +1120,34 @@
   <data name="Migration_InProgress2" xml:space="preserve">
     <value>После этого JMM сервер будет перезапускает себя в случае успеха.</value>
   </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Установить по умолчанию</value>
+  </data>
+  <data name="Settings_ChangeServerPortFail" xml:space="preserve">
+    <value>Чтобы изменить порт сервера, используемого сервером JMM требуются административные привилегии. Пожалуйста, перезапустите JMM сервер в качестве администратора продолжить.</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Ошибка загрузки настройки:</value>
+  </data>
+  <data name="Migration_SettingsError" xml:space="preserve">
+    <value>Ошибка миграции параметров:</value>
+  </data>
+  <data name="Integrity_DeleteTitle" xml:space="preserve">
+    <value>Удаление проверки целостности</value>
+  </data>
+  <data name="Integrity_DeleteMessage" xml:space="preserve">
+    <value>Вы уверены, что хотите удалить этот проверки целостности?</value>
+  </data>
+  <data name="Integerity_ReaddTitle" xml:space="preserve">
+    <value>Повторное добавление файлов</value>
+  </data>
+  <data name="Integerity_ReaddMessage" xml:space="preserve">
+    <value>Нельзя повторно добавить файлы, когда выполняется проверка целостности.</value>
+  </data>
+  <data name="Integerity_ReaddSingleTitle" xml:space="preserve">
+    <value>Повторно добавить файл</value>
+  </data>
+  <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
+    <value>Нельзя повторно добавить файл, когда выполняется проверка целостности.</value>
+  </data>
 </root>

@@ -188,6 +188,13 @@ namespace JMMServer.PlexAndKodi
             return Helper.ConstructThumbLink((int) im.ImageType, im.AnimeID);
         }
 
+        public static string GenPoster(this TvDB_Episode ep)
+        {
+            if ((ep == null) || (ep.TvDB_EpisodeID == 0))
+                return Helper.ConstructSupportImageLink("plex_404.png");
+            return Helper.ConstructThumbLink((int) JMMImageType.TvDB_Episode, ep.TvDB_EpisodeID);
+        }
+
         public static string GenArt(this Contract_AniDB_Anime_DefaultImage im)
         {
             if (im == null)

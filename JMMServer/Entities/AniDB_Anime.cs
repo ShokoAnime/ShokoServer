@@ -1947,11 +1947,6 @@ namespace JMMServer.Entities
             if (animeColl == null)
                 throw new ArgumentNullException(nameof(animeColl));
 
-
-
-
-            
-
             int[] animeIds = animeColl.Select(a => a.AnimeID).ToArray();
 
             var titlesByAnime = RepoFactory.AniDB_Anime_Title.GetByAnimeIDs(session, animeIds);
@@ -2484,7 +2479,8 @@ namespace JMMServer.Entities
                 RepoFactory.AniDB_Anime.Save(an);
             AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(id);
             if (series != null)
-                RepoFactory.AnimeSeries.Save(series, true, true, false);
+                // Update more than just stats in case the xrefs have changed
+                RepoFactory.AnimeSeries.Save(series, true, false, false, true);
         }
     }
 }

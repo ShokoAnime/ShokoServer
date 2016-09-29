@@ -55,7 +55,7 @@ namespace JMMServer.UI
         private void BtnDeleteClick(object sender, RoutedEventArgs e)
         {
             if (
-                MessageBox.Show("Are you sure you want to delete this Integrity Check?", "Delete Integrity Check",
+                MessageBox.Show(Properties.Resources.Integrity_DeleteMessage, Properties.Resources.Integrity_DeleteTitle,
                     MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 Scanner.Instance.ClearScan();
@@ -119,7 +119,7 @@ namespace JMMServer.UI
             {
                 if (scan.ScanStatus == ScanStatus.Running)
                 {
-                    MessageBox.Show("You Cannot Re Add Files when the Integrity Check is running", "Re Add Files", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Properties.Resources.Integerity_ReaddMessage, Properties.Resources.Integerity_ReaddTitle, MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
                 if (scan.ScanStatus == ScanStatus.Finish)
@@ -146,7 +146,7 @@ namespace JMMServer.UI
             {
                 if (scan.ScanStatus == ScanStatus.Running)
                 {
-                    MessageBox.Show("You Cannot Re Add a File when the Integrity Check is running", "Re Add File",MessageBoxButton.OK,MessageBoxImage.Information);
+                    MessageBox.Show(Properties.Resources.Integerity_ReaddSingleMessage, Properties.Resources.Integerity_ReaddSingleTitle, MessageBoxButton.OK,MessageBoxImage.Information);
                     return;
                 }
                 if (scan.ScanStatus == ScanStatus.Finish)

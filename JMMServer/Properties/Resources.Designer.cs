@@ -1907,11 +1907,65 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to You cannot re-add files when the Integrity Check is running..
+        /// </summary>
+        public static string Integerity_ReaddMessage {
+            get {
+                return ResourceManager.GetString("Integerity_ReaddMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You cannot re-add a file when the Integrity Check is running..
+        /// </summary>
+        public static string Integerity_ReaddSingleMessage {
+            get {
+                return ResourceManager.GetString("Integerity_ReaddSingleMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Re-Add File.
+        /// </summary>
+        public static string Integerity_ReaddSingleTitle {
+            get {
+                return ResourceManager.GetString("Integerity_ReaddSingleTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Re-Add Files.
+        /// </summary>
+        public static string Integerity_ReaddTitle {
+            get {
+                return ResourceManager.GetString("Integerity_ReaddTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Add Integrity Check.
         /// </summary>
         public static string Integrity_Add {
             get {
                 return ResourceManager.GetString("Integrity_Add", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to delete this Integrity Check?.
+        /// </summary>
+        public static string Integrity_DeleteMessage {
+            get {
+                return ResourceManager.GetString("Integrity_DeleteMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete Integrity Check.
+        /// </summary>
+        public static string Integrity_DeleteTitle {
+            get {
+                return ResourceManager.GetString("Integrity_DeleteTitle", resourceCulture);
             }
         }
         
@@ -1925,7 +1979,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Integrity Check allows you to scan your Import Folders for file corruption. Any Import Folders you add will have their files rehahsed with the new value compared to the original value stored in your Database from when the file was first imported. Files with a different hash value will be displayed below..
+        ///   Looks up a localized string similar to Integrity Check allows you to scan your Import Folders for file corruption. Any Import Folders you add will have their files rehashed with the new value compared to the original value stored in your Database from when the file was first imported. Files with a different hash value will be displayed below..
         /// </summary>
         public static string Integrity_Info {
             get {
@@ -2245,6 +2299,24 @@ namespace JMMServer.Properties {
         public static string Migration_InProgress2 {
             get {
                 return ResourceManager.GetString("Migration_InProgress2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error Loading Settings:.
+        /// </summary>
+        public static string Migration_LoadError {
+            get {
+                return ResourceManager.GetString("Migration_LoadError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error Migrating Settings:.
+        /// </summary>
+        public static string Migration_SettingsError {
+            get {
+                return ResourceManager.GetString("Migration_SettingsError", resourceCulture);
             }
         }
         
@@ -2818,6 +2890,15 @@ namespace JMMServer.Properties {
         public static string Settings_Apply {
             get {
                 return ResourceManager.GetString("Settings_Apply", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Administrative Privileges are required to change the Server Port used by JMM Server. Please restart JMM Server as an Administrator to continue..
+        /// </summary>
+        public static string Settings_ChangeServerPortFail {
+            get {
+                return ResourceManager.GetString("Settings_ChangeServerPortFail", resourceCulture);
             }
         }
         

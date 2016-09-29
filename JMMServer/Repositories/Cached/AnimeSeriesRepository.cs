@@ -95,7 +95,7 @@ namespace JMMServer.Repositories.Cached
             Save(obj, true, onlyupdatestats);
         }
 
-        public void Save(AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false)
+        public void Save(AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false, bool alsoupdateepisodes=false)
         {
             bool newSeries = false;
             AnimeGroup oldGroup = null;
@@ -153,6 +153,11 @@ namespace JMMServer.Repositories.Cached
                     logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}", oldGroup.AnimeGroupID);
                     RepoFactory.AnimeGroup.Save(oldGroup, true, true);
                 }
+            }
+            if (alsoupdateepisodes)
+            {
+                List<AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(obj.AnimeSeriesID);
+                RepoFactory.AnimeEpisode.Save(eps);
             }
         }
 

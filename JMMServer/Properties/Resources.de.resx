@@ -1120,4 +1120,34 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="Migration_InProgress2" xml:space="preserve">
     <value>Danach wird JMM Server neu gestartet selbst im Erfolgsfall.</value>
   </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Set Default</value>
+  </data>
+  <data name="Settings_ChangeServerPortFail" xml:space="preserve">
+    <value>Administratorrechte sind erforderlich, um von JMM Server verwendeten Server-Port ändern. Bitte starten Sie JMM Server als Administrator weiter.</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Fehler laden Einstellungen:</value>
+  </data>
+  <data name="Migration_SettingsError" xml:space="preserve">
+    <value>Fehler migrieren von Einstellungen:</value>
+  </data>
+  <data name="Integrity_DeleteTitle" xml:space="preserve">
+    <value>Löschen-Integritätsprüfung</value>
+  </data>
+  <data name="Integrity_DeleteMessage" xml:space="preserve">
+    <value>Sind Sie sicher, dass Sie diese Integritätsprüfung löschen möchten?</value>
+  </data>
+  <data name="Integerity_ReaddTitle" xml:space="preserve">
+    <value>Re Dateien hinzufügen</value>
+  </data>
+  <data name="Integerity_ReaddMessage" xml:space="preserve">
+    <value>Sie können Dateien wieder hinzufügen, wenn die Integritätsprüfung ausgeführt wird.</value>
+  </data>
+  <data name="Integerity_ReaddSingleTitle" xml:space="preserve">
+    <value>Datei neu hinzufügen</value>
+  </data>
+  <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
+    <value>Sie können keine Datei erneut hinzufügen, wenn die Integritätsprüfung ausgeführt wird.</value>
+  </data>
 </root>

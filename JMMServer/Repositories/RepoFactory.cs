@@ -124,6 +124,31 @@ namespace JMMServer.Repositories
             AnimeSeries_User.Populate(a=>a.AnimeSeries_UserID);
             AnimeGroup.Populate(a=>a.AnimeGroupID);
             AnimeGroup_User.Populate(a=>a.AnimeGroup_UserID);
+
+            // Update Contracts if necessary
+            JMMUser.RegenerateDb();
+            CloudAccount.RegenerateDb();
+            ImportFolder.RegenerateDb();
+            AniDB_Anime.RegenerateDb();
+            AniDB_Episode.RegenerateDb();
+            AniDB_File.RegenerateDb();
+            AniDB_Anime_Title.RegenerateDb();
+            AniDB_Anime_Tag.RegenerateDb();
+            AniDB_Tag.RegenerateDb();
+            CustomTag.RegenerateDb();
+            CrossRef_CustomTag.RegenerateDb();
+            CrossRef_File_Episode.RegenerateDb();
+            VideoLocalPlace.RegenerateDb();
+            VideoLocal.RegenerateDb();
+            VideoLocalUser.RegenerateDb();
+            GroupFilter.RegenerateDb();
+            AnimeEpisode.RegenerateDb();
+            AnimeEpisode_User.RegenerateDb();
+            AnimeSeries.RegenerateDb();
+            AnimeSeries_User.RegenerateDb();
+            AnimeGroup.RegenerateDb();
+            AnimeGroup_User.RegenerateDb();
+            
             GroupFilter.PostProcess();
             CleanUpMemory();
         }

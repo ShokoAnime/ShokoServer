@@ -1120,4 +1120,34 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="Migration_InProgress2" xml:space="preserve">
     <value>Luego servidor JMM va se reinicia sí mismo si tiene éxito.</value>
   </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Ajuste por defecto</value>
+  </data>
+  <data name="Settings_ChangeServerPortFail" xml:space="preserve">
+    <value>Permisos administrativos son necesarios para cambiar el puerto del servidor utilizado por el servidor de JMM. Por favor, reinicie el servidor de JMM como administrador para continuar.</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Configuración de carga de error:</value>
+  </data>
+  <data name="Migration_SettingsError" xml:space="preserve">
+    <value>Migrar configuración de error:</value>
+  </data>
+  <data name="Integrity_DeleteTitle" xml:space="preserve">
+    <value>Eliminar la verificación de la integridad</value>
+  </data>
+  <data name="Integrity_DeleteMessage" xml:space="preserve">
+    <value>¿Está seguro que desea eliminar esta integridad comprobar?</value>
+  </data>
+  <data name="Integerity_ReaddTitle" xml:space="preserve">
+    <value>Volver a agregar los archivos</value>
+  </data>
+  <data name="Integerity_ReaddMessage" xml:space="preserve">
+    <value>Nuevamente se pueden agregar archivos cuando se ejecuta la comprobación de integridad.</value>
+  </data>
+  <data name="Integerity_ReaddSingleTitle" xml:space="preserve">
+    <value>Volver a agregar archivo</value>
+  </data>
+  <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
+    <value>Nuevamente se puede Agregar un archivo cuando se ejecuta la comprobación de integridad.</value>
+  </data>
 </root>

@@ -1120,4 +1120,34 @@
   <data name="Migration_InProgress2" xml:space="preserve">
     <value>Depois JMM servidor vai reinicia em si se for bem sucedida.</value>
   </data>
+  <data name="Settings_SetDefault" xml:space="preserve">
+    <value>Conjunto padrão</value>
+  </data>
+  <data name="Settings_ChangeServerPortFail" xml:space="preserve">
+    <value>Privilégios administrativos são necessários para alterar a porta do servidor usado pelo servidor de JMM. Por favor reinicie JMM servidor como um administrador para continuar.</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Configurações de carregamento de erro:</value>
+  </data>
+  <data name="Migration_SettingsError" xml:space="preserve">
+    <value>Migrar configurações de erro:</value>
+  </data>
+  <data name="Integrity_DeleteTitle" xml:space="preserve">
+    <value>Excluir a verificação de integridade</value>
+  </data>
+  <data name="Integrity_DeleteMessage" xml:space="preserve">
+    <value>Tem certeza que deseja excluir esta verificação de integridade?</value>
+  </data>
+  <data name="Integerity_ReaddTitle" xml:space="preserve">
+    <value>Re-adicionar arquivos</value>
+  </data>
+  <data name="Integerity_ReaddMessage" xml:space="preserve">
+    <value>Não é possível re-adicionar arquivos quando a verificação de integridade está sendo executado.</value>
+  </data>
+  <data name="Integerity_ReaddSingleTitle" xml:space="preserve">
+    <value>Re-Adicionar arquivo</value>
+  </data>
+  <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
+    <value>Não é possível re-adicionar um arquivo quando a verificação de integridade está sendo executado.</value>
+  </data>
 </root>
