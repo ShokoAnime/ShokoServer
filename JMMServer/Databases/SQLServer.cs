@@ -74,12 +74,8 @@ namespace JMMServer.Databases
                 .BuildSessionFactory();
         }
 
-        bool IDatabase.DatabaseAlreadyExists()
-        {
-            return DatabaseAlreadyExists();
-        }
 
-        public static bool DatabaseAlreadyExists()
+        public bool DatabaseAlreadyExists()
         {
             int count = 0;
             string cmd = string.Format("Select count(*) from sysdatabases where name = '{0}'",
@@ -130,55 +126,19 @@ namespace JMMServer.Databases
             }
         }
 
-        public bool TestLogin()
+
+        public Dictionary<string, Dictionary<string, Versions>> AllVersions { get; }
+
+        private SQLServer()
         {
-            return true;
-        }
-
-        public void CreateDatabaseOld()
-        {
-            if (DatabaseAlreadyExists()) return;
-
-            SQLServerDatabase db = new SQLServerDatabase();
-
-            string dataPath = GetDatabasePath(ServerSettings.DatabaseServer);
-
-            db.DatabaseName = ServerSettings.DatabaseName;
-            db.MdfFileName = ServerSettings.DatabaseName;
-            db.MdfFilePath = Path.Combine(dataPath, ServerSettings.DatabaseName + ".mdf");
-            db.MdfFileSize = "3072KB";
-            db.MdfMaxFileSize = "UNLIMITED";
-            db.MdfFileGrowth = "1024KB";
-            db.LdfFileName = ServerSettings.DatabaseName + "_log";
-            db.LdfFilePath = Path.Combine(dataPath, ServerSettings.DatabaseName + ".ldf");
-            db.LdfFileSize = "3072KB";
-            db.LdfMaxFileSize = "2048GB";
-            db.LdfFileGrowth = "1024KB";
-
-
-            StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("CREATE DATABASE [{0}] ON PRIMARY ", db.DatabaseName);
-            sb.AppendFormat("( NAME = N'{0}', FILENAME = N'{1}' , SIZE = ", db.MdfFileName, db.MdfFilePath);
-            sb.AppendFormat("{0} , MAXSIZE = {1}, FILEGROWTH = {2}", db.MdfFileSize, db.MdfMaxFileSize, db.MdfFileGrowth);
-            sb.Append(" )");
-            sb.Append("    LOG ON ");
-            sb.AppendFormat("( NAME = N'{0}', FILENAME = N'{1}' , SIZE = ", db.LdfFileName, db.LdfFilePath);
-            sb.AppendFormat("{0} , MAXSIZE = {1}, FILEGROWTH = {2}", db.LdfFileSize, db.LdfMaxFileSize, db.LdfFileGrowth);
-            sb.Append(" ) ");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database=master",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword)))
+            try
             {
-                using (SqlCommand command = new SqlCommand(sb.ToString(), tmpConn))
-                {
-                    tmpConn.Open();
-                    command.ExecuteNonQuery();
+                AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
 
-                    Console.WriteLine("Database created successfully!");
-                }
+            }
+            catch (Exception) //First Time
+            {
+                AllVersions = new Dictionary<string, Dictionary<string, Versions>>();
             }
         }
 
@@ -193,1887 +153,288 @@ namespace JMMServer.Databases
             Database db = new Database(srv, ServerSettings.DatabaseName);
             db.Create();
         }
-
-        public int GetDatabaseVersion()
+        private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
         {
-            Versions ver = RepoFactory.Versions.GetByVersionType(Constants.DatabaseTypeKey);
-            if (ver == null) return 0;
+            new DatabaseCommand(0, 1,"CREATE TABLE [Versions]( [VersionsID] [int] IDENTITY(1,1) NOT NULL, [VersionType] [varchar](100) NOT NULL, [VersionValue] [varchar](100) NOT NULL,  CONSTRAINT [PK_Versions] PRIMARY KEY CLUSTERED  ( [VersionsID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(0, 2,"CREATE UNIQUE INDEX UIX_Versions_VersionType ON Versions(VersionType)"),
+        };
 
-            int versionNumber = 0;
-            int.TryParse(ver.VersionValue, out versionNumber);
-            return versionNumber;
-        }
-
-
-        #region Schema Updates
-
-
-        public void UpdateSchema()
+        private List<DatabaseCommand> createTables = new List<DatabaseCommand>
         {
 
+            new DatabaseCommand(1, 1,"CREATE TABLE AniDB_Anime( AniDB_AnimeID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate datetime NULL, EndDate datetime NULL, URL varchar(max) NULL, Picname varchar(max) NULL, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle nvarchar(500) NOT NULL, AllTitles nvarchar(1500) NOT NULL, AllCategories nvarchar(MAX) NOT NULL, AllTags nvarchar(MAX) NOT NULL, Description varchar(max) NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeDescUpdated datetime NOT NULL, ImageEnabled int NOT NULL, AwardList varchar(max) NOT NULL, Restricted int NOT NULL, AnimePlanetID int NULL, ANNID int NULL, AllCinemaID int NULL, AnimeNfo int NULL, [LatestEpisodeNumber] [int] NULL, CONSTRAINT [PK_AniDB_Anime] PRIMARY KEY CLUSTERED  ( [AniDB_AnimeID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 2,"CREATE UNIQUE INDEX UIX_AniDB_Anime_AnimeID ON AniDB_Anime(AnimeID)"),
+            new DatabaseCommand(1, 3,"CREATE TABLE AniDB_Anime_Category ( AniDB_Anime_CategoryID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CategoryID int NOT NULL, Weighting int NOT NULL, CONSTRAINT [PK_AniDB_Anime_Category] PRIMARY KEY CLUSTERED  ( AniDB_Anime_CategoryID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 4,"CREATE INDEX IX_AniDB_Anime_Category_AnimeID on AniDB_Anime_Category(AnimeID)"),
+            new DatabaseCommand(1, 5,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Category_AnimeID_CategoryID ON AniDB_Anime_Category(AnimeID, CategoryID)"),
+            new DatabaseCommand(1, 6,"CREATE TABLE AniDB_Anime_Character ( AniDB_Anime_CharacterID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CharID int NOT NULL, CharType varchar(100) NOT NULL, EpisodeListRaw varchar(max) NULL, CONSTRAINT [PK_AniDB_Anime_Character] PRIMARY KEY CLUSTERED  ( AniDB_Anime_CharacterID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 7,"CREATE INDEX IX_AniDB_Anime_Character_AnimeID on AniDB_Anime_Character(AnimeID)"),
+            new DatabaseCommand(1, 8,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Character_AnimeID_CharID ON AniDB_Anime_Character(AnimeID, CharID)"),
+            new DatabaseCommand(1, 9,"CREATE TABLE AniDB_Anime_Relation ( AniDB_Anime_RelationID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, RelatedAnimeID int NOT NULL, RelationType varchar(100) NOT NULL, CONSTRAINT [PK_AniDB_Anime_Relation] PRIMARY KEY CLUSTERED  ( AniDB_Anime_RelationID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 10,"CREATE INDEX IX_AniDB_Anime_Relation_AnimeID on AniDB_Anime_Relation(AnimeID)"),
+            new DatabaseCommand(1, 11,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Relation_AnimeID_RelatedAnimeID ON AniDB_Anime_Relation(AnimeID, RelatedAnimeID)"),
+            new DatabaseCommand(1, 12,"CREATE TABLE AniDB_Anime_Review ( AniDB_Anime_ReviewID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, ReviewID int NOT NULL, CONSTRAINT [PK_AniDB_Anime_Review] PRIMARY KEY CLUSTERED  ( AniDB_Anime_ReviewID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 13,"CREATE INDEX IX_AniDB_Anime_Review_AnimeID on AniDB_Anime_Review(AnimeID)"),
+            new DatabaseCommand(1, 14,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Review_AnimeID_ReviewID ON AniDB_Anime_Review(AnimeID, ReviewID)"),
+            new DatabaseCommand(1, 15,"CREATE TABLE AniDB_Anime_Similar ( AniDB_Anime_SimilarID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, SimilarAnimeID int NOT NULL, Approval int NOT NULL, Total int NOT NULL, CONSTRAINT [PK_AniDB_Anime_Similar] PRIMARY KEY CLUSTERED  ( AniDB_Anime_SimilarID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 16,"CREATE INDEX IX_AniDB_Anime_Similar_AnimeID on AniDB_Anime_Similar(AnimeID)"),
+            new DatabaseCommand(1, 17,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Similar_AnimeID_SimilarAnimeID ON AniDB_Anime_Similar(AnimeID, SimilarAnimeID)"),
+            new DatabaseCommand(1, 18,"CREATE TABLE AniDB_Anime_Tag ( AniDB_Anime_TagID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, TagID int NOT NULL, Approval int NOT NULL, CONSTRAINT [PK_AniDB_Anime_Tag] PRIMARY KEY CLUSTERED  ( AniDB_Anime_TagID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 19,"CREATE INDEX IX_AniDB_Anime_Tag_AnimeID on AniDB_Anime_Tag(AnimeID)"),
+            new DatabaseCommand(1, 20,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Tag_AnimeID_TagID ON AniDB_Anime_Tag(AnimeID, TagID)"),
+            new DatabaseCommand(1, 21,"CREATE TABLE [AniDB_Anime_Title]( AniDB_Anime_TitleID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, TitleType varchar(50) NOT NULL, Language nvarchar(50) NOT NULL, Title nvarchar(500) NOT NULL, CONSTRAINT [PK_AniDB_Anime_Title] PRIMARY KEY CLUSTERED  ( AniDB_Anime_TitleID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 22,"CREATE INDEX IX_AniDB_Anime_Title_AnimeID on AniDB_Anime_Title(AnimeID)"),
+            new DatabaseCommand(1, 23,"CREATE TABLE AniDB_Category ( AniDB_CategoryID int IDENTITY(1,1) NOT NULL, CategoryID int NOT NULL, ParentID int NOT NULL, IsHentai int NOT NULL, CategoryName varchar(50) NOT NULL, CategoryDescription varchar(max) NOT NULL, CONSTRAINT [PK_AniDB_Category] PRIMARY KEY CLUSTERED  ( AniDB_CategoryID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 24,"CREATE UNIQUE INDEX UIX_AniDB_Category_CategoryID ON AniDB_Category(CategoryID)"),
+            new DatabaseCommand(1, 25,"CREATE TABLE AniDB_Character ( AniDB_CharacterID int IDENTITY(1,1) NOT NULL, CharID int NOT NULL, CharName nvarchar(200) NOT NULL, PicName varchar(100) NOT NULL, CharKanjiName nvarchar(max) NOT NULL, CharDescription nvarchar(max) NOT NULL, CreatorListRaw varchar(max) NOT NULL, CONSTRAINT [PK_AniDB_Character] PRIMARY KEY CLUSTERED  ( AniDB_CharacterID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 26,"CREATE UNIQUE INDEX UIX_AniDB_Character_CharID ON AniDB_Character(CharID)"),
+            new DatabaseCommand(1, 27,"CREATE TABLE AniDB_Character_Seiyuu ( AniDB_Character_SeiyuuID int IDENTITY(1,1) NOT NULL, CharID int NOT NULL, SeiyuuID int NOT NULL CONSTRAINT [PK_AniDB_Character_Seiyuu] PRIMARY KEY CLUSTERED  ( AniDB_Character_SeiyuuID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 28,"CREATE INDEX IX_AniDB_Character_Seiyuu_CharID on AniDB_Character_Seiyuu(CharID)"),
+            new DatabaseCommand(1, 29,"CREATE INDEX IX_AniDB_Character_Seiyuu_SeiyuuID on AniDB_Character_Seiyuu(SeiyuuID)"),
+            new DatabaseCommand(1, 30,"CREATE UNIQUE INDEX UIX_AniDB_Character_Seiyuu_CharID_SeiyuuID ON AniDB_Character_Seiyuu(CharID, SeiyuuID)"),
+            new DatabaseCommand(1, 31,"CREATE TABLE AniDB_Seiyuu ( AniDB_SeiyuuID int IDENTITY(1,1) NOT NULL, SeiyuuID int NOT NULL, SeiyuuName nvarchar(200) NOT NULL, PicName varchar(100) NOT NULL, CONSTRAINT [PK_AniDB_Seiyuu] PRIMARY KEY CLUSTERED  ( AniDB_SeiyuuID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 32,"CREATE UNIQUE INDEX UIX_AniDB_Seiyuu_SeiyuuID ON AniDB_Seiyuu(SeiyuuID)"),
+            new DatabaseCommand(1, 33,"CREATE TABLE AniDB_Episode( AniDB_EpisodeID int IDENTITY(1,1) NOT NULL, EpisodeID int NOT NULL, AnimeID int NOT NULL, LengthSeconds int NOT NULL, Rating varchar(max) NOT NULL, Votes varchar(max) NOT NULL, EpisodeNumber int NOT NULL, EpisodeType int NOT NULL, RomajiName varchar(max) NOT NULL, EnglishName varchar(max) NOT NULL, AirDate int NOT NULL, DateTimeUpdated datetime NOT NULL, CONSTRAINT [PK_AniDB_Episode] PRIMARY KEY CLUSTERED  ( AniDB_EpisodeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 34,"CREATE INDEX IX_AniDB_Episode_AnimeID on AniDB_Episode(AnimeID)"),
+            new DatabaseCommand(1, 35,"CREATE UNIQUE INDEX UIX_AniDB_Episode_EpisodeID ON AniDB_Episode(EpisodeID)"),
+            new DatabaseCommand(1, 36,"CREATE TABLE AniDB_File( AniDB_FileID int IDENTITY(1,1) NOT NULL, FileID int NOT NULL, Hash varchar(50) NOT NULL, AnimeID int NOT NULL, GroupID int NOT NULL, File_Source varchar(max) NOT NULL, File_AudioCodec varchar(max) NOT NULL, File_VideoCodec varchar(max) NOT NULL, File_VideoResolution varchar(max) NOT NULL, File_FileExtension varchar(max) NOT NULL, File_LengthSeconds int NOT NULL, File_Description varchar(max) NOT NULL, File_ReleaseDate int NOT NULL, Anime_GroupName nvarchar(max) NOT NULL, Anime_GroupNameShort nvarchar(max) NOT NULL, Episode_Rating int NOT NULL, Episode_Votes int NOT NULL, DateTimeUpdated datetime NOT NULL, IsWatched int NOT NULL, WatchedDate datetime NULL, CRC varchar(max) NOT NULL, MD5 varchar(max) NOT NULL, SHA1 varchar(max) NOT NULL, FileName nvarchar(max) NOT NULL, FileSize bigint NOT NULL, CONSTRAINT [PK_AniDB_File] PRIMARY KEY CLUSTERED  ( AniDB_FileID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 37,"CREATE UNIQUE INDEX UIX_AniDB_File_Hash on AniDB_File(Hash)"),
+            new DatabaseCommand(1, 38,"CREATE UNIQUE INDEX UIX_AniDB_File_FileID ON AniDB_File(FileID)"),
+            new DatabaseCommand(1, 39,"CREATE TABLE AniDB_GroupStatus ( AniDB_GroupStatusID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, GroupID int NOT NULL, GroupName nvarchar(200) NOT NULL, CompletionState int NOT NULL, LastEpisodeNumber int NOT NULL, Rating int NOT NULL, Votes int NOT NULL, EpisodeRange nvarchar(200) NOT NULL, CONSTRAINT [PK_AniDB_GroupStatus] PRIMARY KEY CLUSTERED  ( AniDB_GroupStatusID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 40,"CREATE INDEX IX_AniDB_GroupStatus_AnimeID on AniDB_GroupStatus(AnimeID)"),
+            new DatabaseCommand(1, 41,"CREATE UNIQUE INDEX UIX_AniDB_GroupStatus_AnimeID_GroupID ON AniDB_GroupStatus(AnimeID, GroupID)"),
+            new DatabaseCommand(1, 42,"CREATE TABLE AniDB_ReleaseGroup ( AniDB_ReleaseGroupID int IDENTITY(1,1) NOT NULL, GroupID int NOT NULL, Rating int NOT NULL, Votes int NOT NULL, AnimeCount int NOT NULL, FileCount int NOT NULL, GroupName nvarchar(MAX) NOT NULL, GroupNameShort nvarchar(200) NOT NULL, IRCChannel nvarchar(200) NOT NULL, IRCServer nvarchar(200) NOT NULL, URL nvarchar(200) NOT NULL, Picname nvarchar(200) NOT NULL, CONSTRAINT [PK_AniDB_ReleaseGroup] PRIMARY KEY CLUSTERED  ( AniDB_ReleaseGroupID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 43,"CREATE UNIQUE INDEX UIX_AniDB_ReleaseGroup_GroupID ON AniDB_ReleaseGroup(GroupID)"),
+            new DatabaseCommand(1, 44,"CREATE TABLE AniDB_Review ( AniDB_ReviewID int IDENTITY(1,1) NOT NULL, ReviewID int NOT NULL, AuthorID int NOT NULL, RatingAnimation int NOT NULL, RatingSound int NOT NULL, RatingStory int NOT NULL, RatingCharacter int NOT NULL, RatingValue int NOT NULL, RatingEnjoyment int NOT NULL, ReviewText nvarchar(MAX) NOT NULL, CONSTRAINT [PK_AniDB_Review] PRIMARY KEY CLUSTERED  ( AniDB_ReviewID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 45,"CREATE UNIQUE INDEX UIX_AniDB_Review_ReviewID ON AniDB_Review(ReviewID)"),
+            new DatabaseCommand(1, 46,"CREATE TABLE AniDB_Tag ( AniDB_TagID int IDENTITY(1,1) NOT NULL, TagID int NOT NULL, Spoiler int NOT NULL, LocalSpoiler int NOT NULL, GlobalSpoiler int NOT NULL, TagName nvarchar(150) NOT NULL, TagCount int NOT NULL, TagDescription nvarchar(max) NOT NULL, CONSTRAINT [PK_AniDB_Tag] PRIMARY KEY CLUSTERED  ( AniDB_TagID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 47,"CREATE UNIQUE INDEX UIX_AniDB_Tag_TagID ON AniDB_Tag(TagID)"),
+            new DatabaseCommand(1, 48,"CREATE TABLE AnimeEpisode( AnimeEpisodeID int IDENTITY(1,1) NOT NULL, AnimeSeriesID int NOT NULL, AniDB_EpisodeID int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeCreated datetime NOT NULL, CONSTRAINT [PK_AnimeEpisode] PRIMARY KEY CLUSTERED  ( AnimeEpisodeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
+            new DatabaseCommand(1, 49,"CREATE UNIQUE INDEX UIX_AnimeEpisode_AniDB_EpisodeID ON AnimeEpisode(AniDB_EpisodeID)"),
+            new DatabaseCommand(1, 50,"CREATE INDEX IX_AnimeEpisode_AnimeSeriesID on AnimeEpisode(AnimeSeriesID)"),
+            new DatabaseCommand(1, 51,"CREATE TABLE AnimeGroup( AnimeGroupID int IDENTITY(1,1) NOT NULL, AnimeGroupParentID int NULL, GroupName nvarchar(max) NOT NULL, Description nvarchar(max) NULL, IsManuallyNamed int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeCreated datetime NOT NULL, SortName varchar(max) NOT NULL, MissingEpisodeCount int NOT NULL, MissingEpisodeCountGroups int NOT NULL, OverrideDescription int NOT NULL, EpisodeAddedDate datetime NULL, CONSTRAINT [PK_AnimeGroup] PRIMARY KEY CLUSTERED  ( [AnimeGroupID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 52,"CREATE TABLE AnimeSeries ( AnimeSeriesID int IDENTITY(1,1) NOT NULL, AnimeGroupID int NOT NULL, AniDB_ID int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeCreated datetime NOT NULL, DefaultAudioLanguage varchar(max) NULL, DefaultSubtitleLanguage varchar(max) NULL, MissingEpisodeCount int NOT NULL, MissingEpisodeCountGroups int NOT NULL, LatestLocalEpisodeNumber int NOT NULL, EpisodeAddedDate datetime NULL, CONSTRAINT [PK_AnimeSeries] PRIMARY KEY CLUSTERED  ( AnimeSeriesID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 53,"CREATE UNIQUE INDEX UIX_AnimeSeries_AniDB_ID ON AnimeSeries(AniDB_ID)"),
+            new DatabaseCommand(1, 54,"CREATE TABLE CommandRequest( CommandRequestID int IDENTITY(1,1) NOT NULL, Priority int NOT NULL, CommandType int NOT NULL, CommandID nvarchar(max) NOT NULL, CommandDetails nvarchar(max) NOT NULL, DateTimeUpdated datetime NOT NULL, CONSTRAINT [PK_CommandRequest] PRIMARY KEY CLUSTERED  ( CommandRequestID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 55,"CREATE TABLE CrossRef_AniDB_Other( CrossRef_AniDB_OtherID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CrossRefID nvarchar(500) NOT NULL, CrossRefSource int NOT NULL, CrossRefType int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_Other] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_OtherID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 56,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Other ON CrossRef_AniDB_Other(AnimeID, CrossRefID, CrossRefSource, CrossRefType)"),
+            new DatabaseCommand(1, 57,"CREATE TABLE CrossRef_AniDB_TvDB( CrossRef_AniDB_TvDBID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, TvDBID int NOT NULL, TvDBSeasonNumber int NOT NULL, CrossRefSource int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_TvDB] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_TvDBID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 58,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB ON CrossRef_AniDB_TvDB(AnimeID, TvDBID, TvDBSeasonNumber, CrossRefSource)"),
+            new DatabaseCommand(1, 59,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_AnimeID ON CrossRef_AniDB_TvDB(AnimeID)"),
+            new DatabaseCommand(1, 60,"CREATE TABLE CrossRef_File_Episode( CrossRef_File_EpisodeID int IDENTITY(1,1) NOT NULL, Hash varchar(50) NULL, FileName nvarchar(500) NOT NULL, FileSize bigint NOT NULL, CrossRefSource int NOT NULL, AnimeID int NOT NULL, EpisodeID int NOT NULL, Percentage int NOT NULL, EpisodeOrder int NOT NULL, CONSTRAINT [PK_CrossRef_File_Episode] PRIMARY KEY CLUSTERED ( CrossRef_File_EpisodeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 61,"CREATE UNIQUE INDEX UIX_CrossRef_File_Episode_Hash_EpisodeID ON CrossRef_File_Episode(Hash, EpisodeID)"),
+            new DatabaseCommand(1, 62,"CREATE TABLE CrossRef_Languages_AniDB_File( CrossRef_Languages_AniDB_FileID int IDENTITY(1,1) NOT NULL, FileID int NOT NULL, LanguageID int NOT NULL, CONSTRAINT [PK_CrossRef_Languages_AniDB_File] PRIMARY KEY CLUSTERED  ( CrossRef_Languages_AniDB_FileID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 63,"CREATE TABLE CrossRef_Subtitles_AniDB_File( CrossRef_Subtitles_AniDB_FileID int IDENTITY(1,1) NOT NULL, FileID int NOT NULL, LanguageID int NOT NULL, CONSTRAINT [PK_CrossRef_Subtitles_AniDB_File] PRIMARY KEY CLUSTERED  ( CrossRef_Subtitles_AniDB_FileID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 64,"CREATE TABLE FileNameHash ( FileNameHashID int IDENTITY(1,1) NOT NULL, FileName nvarchar(500) NOT NULL, FileSize bigint NOT NULL, Hash varchar(50) NOT NULL, DateTimeUpdated datetime NOT NULL, CONSTRAINT [PK_FileNameHash] PRIMARY KEY CLUSTERED  ( FileNameHashID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 65,"CREATE UNIQUE INDEX UIX_FileNameHash ON FileNameHash(FileName, FileSize, Hash)"),
+            new DatabaseCommand(1, 66,"CREATE TABLE Language( LanguageID int IDENTITY(1,1) NOT NULL, LanguageName varchar(100) NOT NULL, CONSTRAINT [PK_Language] PRIMARY KEY CLUSTERED  ( LanguageID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 67,"CREATE UNIQUE INDEX UIX_Language_LanguageName ON Language(LanguageName)"),
+            new DatabaseCommand(1, 68,"CREATE TABLE ImportFolder( ImportFolderID int IDENTITY(1,1) NOT NULL, ImportFolderType int NOT NULL, ImportFolderName nvarchar(max) NOT NULL, ImportFolderLocation nvarchar(max) NOT NULL, IsDropSource int NOT NULL, IsDropDestination int NOT NULL, CONSTRAINT [PK_ImportFolder] PRIMARY KEY CLUSTERED  ( ImportFolderID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 69,"CREATE TABLE ScheduledUpdate( ScheduledUpdateID int IDENTITY(1,1) NOT NULL, UpdateType int NOT NULL, LastUpdate datetime NOT NULL, UpdateDetails nvarchar(max) NOT NULL, CONSTRAINT [PK_ScheduledUpdate] PRIMARY KEY CLUSTERED  ( ScheduledUpdateID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 70,"CREATE UNIQUE INDEX UIX_ScheduledUpdate_UpdateType ON ScheduledUpdate(UpdateType)"),
+            new DatabaseCommand(1, 71,"CREATE TABLE VideoInfo ( VideoInfoID int IDENTITY(1,1) NOT NULL, Hash varchar(50) NOT NULL, FileSize bigint NOT NULL, FileName nvarchar(max) NOT NULL, DateTimeUpdated datetime NOT NULL, VideoCodec varchar(max) NOT NULL, VideoBitrate varchar(max) NOT NULL, VideoFrameRate varchar(max) NOT NULL, VideoResolution varchar(max) NOT NULL, AudioCodec varchar(max) NOT NULL, AudioBitrate varchar(max) NOT NULL, Duration bigint NOT NULL, CONSTRAINT [PK_VideoInfo] PRIMARY KEY CLUSTERED  ( VideoInfoID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 72,"CREATE UNIQUE INDEX UIX_VideoInfo_Hash on VideoInfo(Hash)"),
+            new DatabaseCommand(1, 73,"CREATE TABLE VideoLocal( VideoLocalID int IDENTITY(1,1) NOT NULL, FilePath nvarchar(max) NOT NULL, ImportFolderID int NOT NULL, Hash varchar(50) NOT NULL, CRC32 varchar(50) NULL, MD5 varchar(50) NULL, SHA1 varchar(50) NULL, HashSource int NOT NULL, FileSize bigint NOT NULL, IsIgnored int NOT NULL, DateTimeUpdated datetime NOT NULL, CONSTRAINT [PK_VideoLocal] PRIMARY KEY CLUSTERED  ( VideoLocalID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 74,"CREATE UNIQUE INDEX UIX_VideoLocal_Hash on VideoLocal(Hash)"),
+            new DatabaseCommand(1, 75,"CREATE TABLE DuplicateFile( DuplicateFileID int IDENTITY(1,1) NOT NULL, FilePathFile1 nvarchar(max) NOT NULL, FilePathFile2 nvarchar(max) NOT NULL, ImportFolderIDFile1 int NOT NULL, ImportFolderIDFile2 int NOT NULL, Hash varchar(50) NOT NULL, DateTimeUpdated datetime NOT NULL, CONSTRAINT [PK_DuplicateFile] PRIMARY KEY CLUSTERED  ( DuplicateFileID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 76,"CREATE TABLE GroupFilter( GroupFilterID int IDENTITY(1,1) NOT NULL, GroupFilterName nvarchar(max) NOT NULL, ApplyToSeries int NOT NULL, BaseCondition int NOT NULL, SortingCriteria nvarchar(max), CONSTRAINT [PK_GroupFilter] PRIMARY KEY CLUSTERED  ( GroupFilterID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 77,"CREATE TABLE GroupFilterCondition( GroupFilterConditionID int IDENTITY(1,1) NOT NULL, GroupFilterID int NOT NULL, ConditionType int NOT NULL, ConditionOperator int NOT NULL, ConditionParameter nvarchar(max) NOT NULL, CONSTRAINT [PK_GroupFilterCondition] PRIMARY KEY CLUSTERED  ( GroupFilterConditionID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 78,"CREATE TABLE AniDB_Vote ( AniDB_VoteID int IDENTITY(1,1) NOT NULL, EntityID int NOT NULL, VoteValue int NOT NULL, VoteType int NOT NULL, CONSTRAINT [PK_AniDB_Vote] PRIMARY KEY CLUSTERED  ( AniDB_VoteID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 79,"CREATE TABLE TvDB_ImageFanart( TvDB_ImageFanartID int IDENTITY(1,1) NOT NULL, Id int NOT NULL, SeriesID int NOT NULL, BannerPath nvarchar(MAX),  BannerType nvarchar(MAX),  BannerType2 nvarchar(MAX),  Colors nvarchar(MAX),  Language nvarchar(MAX),  ThumbnailPath nvarchar(MAX),  VignettePath nvarchar(MAX),  Enabled int NOT NULL, Chosen int NOT NULL, CONSTRAINT PK_TvDB_ImageFanart PRIMARY KEY CLUSTERED  ( TvDB_ImageFanartID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 80,"CREATE UNIQUE INDEX UIX_TvDB_ImageFanart_Id ON TvDB_ImageFanart(Id)"),
+            new DatabaseCommand(1, 81,"CREATE TABLE TvDB_ImageWideBanner( TvDB_ImageWideBannerID int IDENTITY(1,1) NOT NULL, Id int NOT NULL, SeriesID int NOT NULL, BannerPath nvarchar(MAX),  BannerType nvarchar(MAX),  BannerType2 nvarchar(MAX),  Language nvarchar(MAX),  Enabled int NOT NULL, SeasonNumber int, CONSTRAINT PK_TvDB_ImageWideBanner PRIMARY KEY CLUSTERED  ( TvDB_ImageWideBannerID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 82,"CREATE UNIQUE INDEX UIX_TvDB_ImageWideBanner_Id ON TvDB_ImageWideBanner(Id)"),
+            new DatabaseCommand(1, 83,"CREATE TABLE TvDB_ImagePoster( TvDB_ImagePosterID int IDENTITY(1,1) NOT NULL, Id int NOT NULL, SeriesID int NOT NULL, BannerPath nvarchar(MAX),  BannerType nvarchar(MAX),  BannerType2 nvarchar(MAX),  Language nvarchar(MAX),  Enabled int NOT NULL, SeasonNumber int, CONSTRAINT PK_TvDB_ImagePoster PRIMARY KEY CLUSTERED  ( TvDB_ImagePosterID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 84,"CREATE UNIQUE INDEX UIX_TvDB_ImagePoster_Id ON TvDB_ImagePoster(Id)"),
+            new DatabaseCommand(1, 85,"CREATE TABLE TvDB_Episode( TvDB_EpisodeID int IDENTITY(1,1) NOT NULL, Id int NOT NULL, SeriesID int NOT NULL, SeasonID int NOT NULL, SeasonNumber int NOT NULL, EpisodeNumber int NOT NULL, EpisodeName nvarchar(MAX), Overview nvarchar(MAX), Filename nvarchar(MAX), EpImgFlag int NOT NULL, FirstAired nvarchar(MAX), AbsoluteNumber int, AirsAfterSeason int, AirsBeforeEpisode int, AirsBeforeSeason int, CONSTRAINT PK_TvDB_Episode PRIMARY KEY CLUSTERED  ( TvDB_EpisodeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 86,"CREATE UNIQUE INDEX UIX_TvDB_Episode_Id ON TvDB_Episode(Id)"),
+            new DatabaseCommand(1, 87,"CREATE TABLE TvDB_Series( TvDB_SeriesID int IDENTITY(1,1) NOT NULL, SeriesID int NOT NULL, Overview nvarchar(MAX), SeriesName nvarchar(MAX), Status varchar(100), Banner varchar(100), Fanart varchar(100), Poster varchar(100), Lastupdated varchar(100), CONSTRAINT PK_TvDB_Series PRIMARY KEY CLUSTERED  ( TvDB_SeriesID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 88,"CREATE UNIQUE INDEX UIX_TvDB_Series_Id ON TvDB_Series(SeriesID)"),
+            new DatabaseCommand(1, 89,"CREATE TABLE AniDB_Anime_DefaultImage ( AniDB_Anime_DefaultImageID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, ImageParentID int NOT NULL, ImageParentType int NOT NULL, ImageType int NOT NULL, CONSTRAINT [PK_AniDB_Anime_DefaultImage] PRIMARY KEY CLUSTERED  ( [AniDB_Anime_DefaultImageID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 90,"CREATE UNIQUE INDEX UIX_AniDB_Anime_DefaultImage_ImageType ON AniDB_Anime_DefaultImage(AnimeID, ImageType)"),
+            new DatabaseCommand(1, 91,"CREATE TABLE MovieDB_Movie( MovieDB_MovieID int IDENTITY(1,1) NOT NULL, MovieId int NOT NULL, MovieName nvarchar(MAX), OriginalName nvarchar(MAX), Overview nvarchar(MAX), CONSTRAINT PK_MovieDB_Movie PRIMARY KEY CLUSTERED  ( MovieDB_MovieID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 92,"CREATE UNIQUE INDEX UIX_MovieDB_Movie_Id ON MovieDB_Movie(MovieId)"),
+            new DatabaseCommand(1, 93,"CREATE TABLE MovieDB_Poster( MovieDB_PosterID int IDENTITY(1,1) NOT NULL, ImageID varchar(100), MovieId int NOT NULL, ImageType varchar(100), ImageSize varchar(100),  URL nvarchar(MAX),  ImageWidth int NOT NULL,  ImageHeight int NOT NULL,  Enabled int NOT NULL, CONSTRAINT PK_MovieDB_Poster PRIMARY KEY CLUSTERED  ( MovieDB_PosterID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 94,"CREATE TABLE MovieDB_Fanart( MovieDB_FanartID int IDENTITY(1,1) NOT NULL, ImageID varchar(100), MovieId int NOT NULL, ImageType varchar(100), ImageSize varchar(100),  URL nvarchar(MAX),  ImageWidth int NOT NULL,  ImageHeight int NOT NULL,  Enabled int NOT NULL, CONSTRAINT PK_MovieDB_Fanart PRIMARY KEY CLUSTERED  ( MovieDB_FanartID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 95,"CREATE TABLE JMMUser( JMMUserID int IDENTITY(1,1) NOT NULL, Username nvarchar(100), Password nvarchar(100), IsAdmin int NOT NULL, IsAniDBUser int NOT NULL, IsTraktUser int NOT NULL, HideCategories nvarchar(MAX), CONSTRAINT PK_JMMUser PRIMARY KEY CLUSTERED  ( JMMUserID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 96,"CREATE TABLE Trakt_Episode( Trakt_EpisodeID int IDENTITY(1,1) NOT NULL, Trakt_ShowID int NOT NULL, Season int NOT NULL, EpisodeNumber int NOT NULL, Title nvarchar(MAX), URL nvarchar(500), Overview nvarchar(MAX), EpisodeImage nvarchar(500), CONSTRAINT PK_Trakt_Episode PRIMARY KEY CLUSTERED  ( Trakt_EpisodeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 97,"CREATE TABLE Trakt_ImagePoster( Trakt_ImagePosterID int IDENTITY(1,1) NOT NULL, Trakt_ShowID int NOT NULL, Season int NOT NULL, ImageURL nvarchar(500), Enabled int NOT NULL, CONSTRAINT PK_Trakt_ImagePoster PRIMARY KEY CLUSTERED  ( Trakt_ImagePosterID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 98,"CREATE TABLE Trakt_ImageFanart( Trakt_ImageFanartID int IDENTITY(1,1) NOT NULL, Trakt_ShowID int NOT NULL, Season int NOT NULL, ImageURL nvarchar(500), Enabled int NOT NULL, CONSTRAINT PK_Trakt_ImageFanart PRIMARY KEY CLUSTERED  ( Trakt_ImageFanartID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 99,"CREATE TABLE Trakt_Show( Trakt_ShowID int IDENTITY(1,1) NOT NULL, TraktID nvarchar(500), Title nvarchar(MAX), Year nvarchar(500), URL nvarchar(500), Overview nvarchar(MAX), TvDB_ID int NULL, CONSTRAINT PK_Trakt_Show PRIMARY KEY CLUSTERED  ( Trakt_ShowID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 100,"CREATE TABLE Trakt_Season( Trakt_SeasonID int IDENTITY(1,1) NOT NULL, Trakt_ShowID int NOT NULL, Season int NOT NULL, URL nvarchar(500), CONSTRAINT PK_Trakt_Season PRIMARY KEY CLUSTERED  ( Trakt_SeasonID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 101,"CREATE TABLE CrossRef_AniDB_Trakt( CrossRef_AniDB_TraktID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, TraktID nvarchar(500), TraktSeasonNumber int NOT NULL, CrossRefSource int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_Trakt] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_TraktID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 102,"CREATE TABLE AnimeEpisode_User( AnimeEpisode_UserID int IDENTITY(1,1) NOT NULL, JMMUserID int NOT NULL, AnimeEpisodeID int NOT NULL, AnimeSeriesID int NOT NULL,  WatchedDate datetime NULL, PlayedCount int NOT NULL, WatchedCount int NOT NULL, StoppedCount int NOT NULL, CONSTRAINT [PK_AnimeEpisode_User] PRIMARY KEY CLUSTERED  ( AnimeEpisode_UserID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
+            new DatabaseCommand(1, 103,"CREATE UNIQUE INDEX UIX_AnimeEpisode_User_User_EpisodeID ON AnimeEpisode_User(JMMUserID, AnimeEpisodeID)"),
+            new DatabaseCommand(1, 104,"CREATE INDEX IX_AnimeEpisode_User_User_AnimeSeriesID on AnimeEpisode_User(JMMUserID, AnimeSeriesID)"),
+            new DatabaseCommand(1, 105,"CREATE TABLE AnimeSeries_User( AnimeSeries_UserID int IDENTITY(1,1) NOT NULL, JMMUserID int NOT NULL, AnimeSeriesID int NOT NULL, UnwatchedEpisodeCount int NOT NULL, WatchedEpisodeCount int NOT NULL, WatchedDate datetime NULL, PlayedCount int NOT NULL, WatchedCount int NOT NULL, StoppedCount int NOT NULL, CONSTRAINT [PK_AnimeSeries_User] PRIMARY KEY CLUSTERED  ( AnimeSeries_UserID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
+            new DatabaseCommand(1, 106,"CREATE UNIQUE INDEX UIX_AnimeSeries_User_User_SeriesID ON AnimeSeries_User(JMMUserID, AnimeSeriesID)"),
+            new DatabaseCommand(1, 107,"CREATE TABLE AnimeGroup_User( AnimeGroup_UserID int IDENTITY(1,1) NOT NULL, JMMUserID int NOT NULL, AnimeGroupID int NOT NULL, IsFave int NOT NULL, UnwatchedEpisodeCount int NOT NULL, WatchedEpisodeCount int NOT NULL, WatchedDate datetime NULL, PlayedCount int NOT NULL, WatchedCount int NOT NULL, StoppedCount int NOT NULL, CONSTRAINT [PK_AnimeGroup_User] PRIMARY KEY CLUSTERED  ( AnimeGroup_UserID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
+            new DatabaseCommand(1, 108,"CREATE UNIQUE INDEX UIX_AnimeGroup_User_User_GroupID ON AnimeGroup_User(JMMUserID, AnimeGroupID)"),
+            new DatabaseCommand(1, 109,"CREATE TABLE VideoLocal_User( VideoLocal_UserID int IDENTITY(1,1) NOT NULL, JMMUserID int NOT NULL, VideoLocalID int NOT NULL, WatchedDate datetime NOT NULL, CONSTRAINT [PK_VideoLocal_User] PRIMARY KEY CLUSTERED  ( VideoLocal_UserID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(1, 110,"CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID)"),
 
-            try
-            {
-                int versionNumber = GetDatabaseVersion();
-                UpdateSchema_002(versionNumber);
-                UpdateSchema_003(versionNumber);
-                UpdateSchema_004(versionNumber);
-                UpdateSchema_005(versionNumber);
-                UpdateSchema_006(versionNumber);
-                UpdateSchema_007(versionNumber);
-                UpdateSchema_008(versionNumber);
-                UpdateSchema_009(versionNumber);
-                UpdateSchema_010(versionNumber);
-                UpdateSchema_011(versionNumber);
-                UpdateSchema_012(versionNumber);
-                UpdateSchema_013(versionNumber);
-                UpdateSchema_014(versionNumber);
-                UpdateSchema_015(versionNumber);
-                UpdateSchema_016(versionNumber);
-                UpdateSchema_017(versionNumber);
-                UpdateSchema_018(versionNumber);
-                UpdateSchema_019(versionNumber);
-                UpdateSchema_020(versionNumber);
-                UpdateSchema_021(versionNumber);
-                UpdateSchema_022(versionNumber);
-                UpdateSchema_023(versionNumber);
-                UpdateSchema_024(versionNumber);
-                UpdateSchema_025(versionNumber);
-                UpdateSchema_026(versionNumber);
-                UpdateSchema_027(versionNumber);
-                UpdateSchema_028(versionNumber);
-                UpdateSchema_029(versionNumber);
-                UpdateSchema_030(versionNumber);
-                UpdateSchema_031(versionNumber);
-                UpdateSchema_032(versionNumber);
-                UpdateSchema_033(versionNumber);
-                UpdateSchema_034(versionNumber);
-                UpdateSchema_035(versionNumber);
-                UpdateSchema_036(versionNumber);
-                UpdateSchema_037(versionNumber);
-                UpdateSchema_038(versionNumber);
-                UpdateSchema_039(versionNumber);
-                UpdateSchema_040(versionNumber);
-                UpdateSchema_041(versionNumber);
-                UpdateSchema_042(versionNumber);
-                UpdateSchema_043(versionNumber);
-                UpdateSchema_044(versionNumber);
-                UpdateSchema_045(versionNumber);
-                UpdateSchema_046(versionNumber);
-                UpdateSchema_047(versionNumber);
-                UpdateSchema_048(versionNumber);
-                UpdateSchema_049(versionNumber);
-                UpdateSchema_050(versionNumber);
-                UpdateSchema_051(versionNumber);
-                UpdateSchema_052(versionNumber);
-                UpdateSchema_053(versionNumber);
-            }
-            catch (Exception ex)
-            {
-                logger.Error( ex,"Error updating schema: " + ex.ToString());
-            }
-        }
 
-
-        private void UpdateSchema_002(int currentVersionNumber)
+        };
+        private List<DatabaseCommand> patchCommands = new List<DatabaseCommand>
         {
-            int thisVersion = 2;
-            if (currentVersionNumber >= thisVersion) return;
+            new DatabaseCommand(2, 1,"CREATE TABLE IgnoreAnime( IgnoreAnimeID int IDENTITY(1,1) NOT NULL, JMMUserID int NOT NULL, AnimeID int NOT NULL, IgnoreType int NOT NULL, CONSTRAINT [PK_IgnoreAnime] PRIMARY KEY CLUSTERED  ( IgnoreAnimeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
+            new DatabaseCommand(2, 2,"CREATE UNIQUE INDEX UIX_IgnoreAnime_User_AnimeID ON IgnoreAnime(JMMUserID, AnimeID, IgnoreType)"),
+            new DatabaseCommand(3, 1,"CREATE TABLE Trakt_Friend( Trakt_FriendID int IDENTITY(1,1) NOT NULL, Username nvarchar(100) NOT NULL, FullName nvarchar(100) NULL, Gender nvarchar(100) NULL, Age nvarchar(100) NULL, Location nvarchar(100) NULL, About nvarchar(MAX) NULL, Joined int NOT NULL, Avatar nvarchar(MAX) NULL, Url nvarchar(MAX) NULL, LastAvatarUpdate datetime NOT NULL, CONSTRAINT [PK_Trakt_Friend] PRIMARY KEY CLUSTERED  ( Trakt_FriendID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
+            new DatabaseCommand(3, 2,"CREATE UNIQUE INDEX UIX_Trakt_Friend_Username ON Trakt_Friend(Username)"),
+            new DatabaseCommand(4, 1,"ALTER TABLE AnimeGroup ADD DefaultAnimeSeriesID int NULL"),
+            new DatabaseCommand(5, 1,"ALTER TABLE JMMUser ADD CanEditServerSettings int NULL"),
+            new DatabaseCommand(6, 1,"ALTER TABLE VideoInfo ADD VideoBitDepth varchar(max) NULL"),
+            new DatabaseCommand(7, 1,(Action)DatabaseFixes.FixDuplicateTvDBLinks),
+            new DatabaseCommand(7, 2,(Action)DatabaseFixes.FixDuplicateTraktLinks),
+            new DatabaseCommand(7, 3,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Season ON CrossRef_AniDB_TvDB(TvDBID, TvDBSeasonNumber)"),
+            new DatabaseCommand(7, 4,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Season ON CrossRef_AniDB_Trakt(TraktID, TraktSeasonNumber)"),
+            new DatabaseCommand(7, 5,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Anime ON CrossRef_AniDB_Trakt(AnimeID)"),
+            new DatabaseCommand(8, 1,"ALTER TABLE jmmuser ALTER COLUMN Password NVARCHAR(150) NULL"),
+            new DatabaseCommand(9, 1,"ALTER TABLE ImportFolder ADD IsWatched int NULL"),
+            new DatabaseCommand(9, 2,"UPDATE ImportFolder SET IsWatched = 1"),
+            new DatabaseCommand(9, 3,"ALTER TABLE ImportFolder ALTER COLUMN IsWatched int NOT NULL"),
+            new DatabaseCommand(10, 1,"CREATE TABLE CrossRef_AniDB_MAL( CrossRef_AniDB_MALID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, MALID int NOT NULL, MALTitle nvarchar(500), CrossRefSource int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_MAL] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_MALID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(10, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_AnimeID ON CrossRef_AniDB_MAL(AnimeID)"),
+            new DatabaseCommand(10, 3,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL(MALID)"),
+            new DatabaseCommand(11, 1,"DROP INDEX [UIX_CrossRef_AniDB_MAL_AnimeID] ON [dbo].[CrossRef_AniDB_MAL] WITH ( ONLINE = OFF )"),
+            new DatabaseCommand(11, 2,"DROP INDEX [UIX_CrossRef_AniDB_MAL_MALID] ON [dbo].[CrossRef_AniDB_MAL] WITH ( ONLINE = OFF )"),
+            new DatabaseCommand(11, 3,"DROP TABLE [dbo].[CrossRef_AniDB_MAL]"),
+            new DatabaseCommand(11, 4,"CREATE TABLE CrossRef_AniDB_MAL( CrossRef_AniDB_MALID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, MALID int NOT NULL, MALTitle nvarchar(500), StartEpisodeType int NOT NULL, StartEpisodeNumber int NOT NULL, CrossRefSource int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_MAL] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_MALID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(11, 5,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL(MALID)"),
+            new DatabaseCommand(11, 6,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_Anime ON CrossRef_AniDB_MAL(AnimeID, StartEpisodeType, StartEpisodeNumber)"),
+            new DatabaseCommand(12, 1,"CREATE TABLE Playlist( PlaylistID int IDENTITY(1,1) NOT NULL, PlaylistName nvarchar(MAX) NULL, PlaylistItems varchar(MAX) NULL, DefaultPlayOrder int NOT NULL, PlayWatched int NOT NULL, PlayUnwatched int NOT NULL, CONSTRAINT [PK_Playlist] PRIMARY KEY CLUSTERED ( PlaylistID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(13, 1,"ALTER TABLE AnimeSeries ADD SeriesNameOverride nvarchar(500) NULL"),
+            new DatabaseCommand(14, 1,"CREATE TABLE BookmarkedAnime( BookmarkedAnimeID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, Priority int NOT NULL, Notes nvarchar(MAX) NULL, Downloading int NOT NULL, CONSTRAINT [PK_BookmarkedAnime] PRIMARY KEY CLUSTERED ( BookmarkedAnimeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(14, 2,"CREATE UNIQUE INDEX UIX_BookmarkedAnime_AnimeID ON BookmarkedAnime(BookmarkedAnimeID)"),
+            new DatabaseCommand(15, 1,"ALTER TABLE VideoLocal ADD DateTimeCreated datetime NULL"),
+            new DatabaseCommand(15, 2,"UPDATE VideoLocal SET DateTimeCreated = DateTimeUpdated"),
+            new DatabaseCommand(15, 3,"ALTER TABLE VideoLocal ALTER COLUMN DateTimeCreated datetime NOT NULL"),
+            new DatabaseCommand(16, 1,"CREATE TABLE CrossRef_AniDB_TvDB_Episode( CrossRef_AniDB_TvDB_EpisodeID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_TvDB_Episode] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_TvDB_EpisodeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(16, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID)"),
+            new DatabaseCommand(17, 1,"CREATE TABLE AniDB_MylistStats( AniDB_MylistStatsID int IDENTITY(1,1) NOT NULL, Animes int NOT NULL, Episodes int NOT NULL, Files int NOT NULL, SizeOfFiles bigint NOT NULL, AddedAnimes int NOT NULL, AddedEpisodes int NOT NULL, AddedFiles int NOT NULL, AddedGroups int NOT NULL, LeechPct int NOT NULL, GloryPct int NOT NULL, ViewedPct int NOT NULL, MylistPct int NOT NULL, ViewedMylistPct int NOT NULL, EpisodesViewed int NOT NULL, Votes int NOT NULL, Reviews int NOT NULL, ViewiedLength int NOT NULL, CONSTRAINT [PK_AniDB_MylistStats] PRIMARY KEY CLUSTERED ( AniDB_MylistStatsID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(18, 1,"CREATE TABLE FileFfdshowPreset( FileFfdshowPresetID int IDENTITY(1,1) NOT NULL, Hash varchar(50) NOT NULL, FileSize bigint NOT NULL, Preset nvarchar(MAX) NULL, CONSTRAINT [PK_FileFfdshowPreset] PRIMARY KEY CLUSTERED ( FileFfdshowPresetID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(18, 2,"CREATE UNIQUE INDEX UIX_FileFfdshowPreset_Hash ON FileFfdshowPreset(Hash, FileSize)"),
+            new DatabaseCommand(19, 1,"ALTER TABLE AniDB_Anime ADD DisableExternalLinksFlag int NULL"),
+            new DatabaseCommand(19, 2,"UPDATE AniDB_Anime SET DisableExternalLinksFlag = 0"),
+            new DatabaseCommand(19, 3,"ALTER TABLE AniDB_Anime ALTER COLUMN DisableExternalLinksFlag int NOT NULL"),
+            new DatabaseCommand(20, 1,"ALTER TABLE AniDB_File ADD FileVersion int NULL"),
+            new DatabaseCommand(20, 2,"UPDATE AniDB_File SET FileVersion = 1"),
+            new DatabaseCommand(20, 3,"ALTER TABLE AniDB_File ALTER COLUMN FileVersion int NOT NULL"),
+            new DatabaseCommand(21, 1,"CREATE TABLE RenameScript( RenameScriptID int IDENTITY(1,1) NOT NULL, ScriptName nvarchar(MAX) NULL, Script nvarchar(MAX) NULL, IsEnabledOnImport int NOT NULL, CONSTRAINT [PK_RenameScript] PRIMARY KEY CLUSTERED ( RenameScriptID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(22, 1,"ALTER TABLE AniDB_File ADD IsCensored int NULL"),
+            new DatabaseCommand(22, 2,"ALTER TABLE AniDB_File ADD IsDeprecated int NULL"),
+            new DatabaseCommand(22, 3,"ALTER TABLE AniDB_File ADD InternalVersion int NULL"),
+            new DatabaseCommand(22, 4,"UPDATE AniDB_File SET IsCensored = 0"),
+            new DatabaseCommand(22, 5,"UPDATE AniDB_File SET IsDeprecated = 0"),
+            new DatabaseCommand(22, 6,"UPDATE AniDB_File SET InternalVersion = 1"),
+            new DatabaseCommand(22, 7,"ALTER TABLE AniDB_File ALTER COLUMN IsCensored int NOT NULL"),
+            new DatabaseCommand(22, 8,"ALTER TABLE AniDB_File ALTER COLUMN IsDeprecated int NOT NULL"),
+            new DatabaseCommand(22, 9,"ALTER TABLE AniDB_File ALTER COLUMN InternalVersion int NOT NULL"),
+            new DatabaseCommand(23, 1,"ALTER TABLE VideoLocal ADD IsVariation int NULL"),
+            new DatabaseCommand(23, 2,"UPDATE VideoLocal SET IsVariation = 0"),
+            new DatabaseCommand(23, 3,"ALTER TABLE VideoLocal ALTER COLUMN IsVariation int NOT NULL"),
+            new DatabaseCommand(24, 1,"CREATE TABLE AniDB_Recommendation ( AniDB_RecommendationID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, UserID int NOT NULL, RecommendationType int NOT NULL, RecommendationText nvarchar(MAX), CONSTRAINT [PK_AniDB_Recommendation] PRIMARY KEY CLUSTERED ( AniDB_RecommendationID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(24, 2,"CREATE UNIQUE INDEX UIX_AniDB_Recommendation ON AniDB_Recommendation(AnimeID, UserID)"),
+            new DatabaseCommand(25, 1,"update CrossRef_File_Episode SET CrossRefSource=1 WHERE Hash IN (Select Hash from ANIDB_File) AND CrossRefSource=2"),
+            new DatabaseCommand(26, 1,"CREATE TABLE LogMessage ( LogMessageID int IDENTITY(1,1) NOT NULL, LogType nvarchar(MAX) NOT NULL, LogContent nvarchar(MAX) NOT NULL, LogDate datetime NOT NULL, CONSTRAINT [PK_LogMessage] PRIMARY KEY CLUSTERED ( LogMessageID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(27, 1,"CREATE TABLE CrossRef_AniDB_TvDBV2( CrossRef_AniDB_TvDBV2ID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TvDBID int NOT NULL, TvDBSeasonNumber int NOT NULL, TvDBStartEpisodeNumber int NOT NULL, TvDBTitle nvarchar(MAX), CrossRefSource int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_TvDBV2] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_TvDBV2ID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(27, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDBV2 ON CrossRef_AniDB_TvDBV2(AnimeID, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber)"),
+            new DatabaseCommand(27, 3,(Action)DatabaseFixes.MigrateTvDBLinks_V1_to_V2),
+            new DatabaseCommand(28, 1,"ALTER TABLE GroupFilter ADD Locked int NULL"),
+            new DatabaseCommand(29, 1,"ALTER TABLE VideoInfo ADD FullInfo varchar(max) NULL"),
+            new DatabaseCommand(30, 1,"CREATE TABLE CrossRef_AniDB_TraktV2( CrossRef_AniDB_TraktV2ID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TraktID nvarchar(500), TraktSeasonNumber int NOT NULL, TraktStartEpisodeNumber int NOT NULL, TraktTitle nvarchar(MAX), CrossRefSource int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_TraktV2] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_TraktV2ID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(30, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TraktV2 ON CrossRef_AniDB_TraktV2(AnimeID, TraktSeasonNumber, TraktStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber)"),
+            new DatabaseCommand(30, 3,(Action)DatabaseFixes.MigrateTraktLinks_V1_to_V2),
+            new DatabaseCommand(31, 1,"CREATE TABLE CrossRef_AniDB_Trakt_Episode( CrossRef_AniDB_Trakt_EpisodeID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, AniDBEpisodeID int NOT NULL, TraktID nvarchar(500), Season int NOT NULL, EpisodeNumber int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_Trakt_Episode] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_Trakt_EpisodeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(31, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID ON CrossRef_AniDB_Trakt_Episode(AniDBEpisodeID)"),
+            new DatabaseCommand(32, 3,(Action)DatabaseFixes.RemoveOldMovieDBImageRecords),
+            new DatabaseCommand(33, 1,"CREATE TABLE CustomTag( CustomTagID int IDENTITY(1,1) NOT NULL, TagName nvarchar(500), TagDescription nvarchar(MAX), CONSTRAINT [PK_CustomTag] PRIMARY KEY CLUSTERED ( CustomTagID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(33, 2,"CREATE TABLE CrossRef_CustomTag( CrossRef_CustomTagID int IDENTITY(1,1) NOT NULL, CustomTagID int NOT NULL, CrossRefID int NOT NULL, CrossRefType int NOT NULL, CONSTRAINT [PK_CrossRef_CustomTag] PRIMARY KEY CLUSTERED ( CrossRef_CustomTagID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+            new DatabaseCommand(34, 1,"ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
+            new DatabaseCommand(35, 1,(Action)DatabaseFixes.PopulateTagWeight),
+            new DatabaseCommand(36, 1,"ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
+            new DatabaseCommand(37, 1,(Action)DatabaseFixes.FixHashes),
+            new DatabaseCommand(38, 1,"DROP TABLE LogMessage"),
+            new DatabaseCommand(39, 1,"ALTER TABLE AnimeSeries ADD DefaultFolder nvarchar(max) NULL"),
+            new DatabaseCommand(40, 1,"ALTER TABLE JMMUser ADD PlexUsers nvarchar(max) NULL"),
+            new DatabaseCommand(41, 1,"ALTER TABLE GroupFilter ADD FilterType int NULL"),
+            new DatabaseCommand(41, 2,"UPDATE GroupFilter SET FilterType = 1"),
+            new DatabaseCommand(41, 3,"ALTER TABLE GroupFilter ALTER COLUMN FilterType int NOT NULL"),
+            new DatabaseCommand(41, 4,(Action)DatabaseFixes.FixContinueWatchingGroupFilter_20160406),
+            new DatabaseCommand(42, 1,"ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL"),
+            new DatabaseCommand(42, 2,"ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL"),
+            new DatabaseCommand(42, 3,"ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT(0), PlexContractString nvarchar(MAX) NULL, KodiContractVersion int NOT NULL DEFAULT(0), KodiContractString nvarchar(MAX) NULL"),
+            new DatabaseCommand(42, 4,"ALTER TABLE AnimeSeries ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL"),
+            new DatabaseCommand(42, 5,"ALTER TABLE AnimeSeries_User ADD PlexContractVersion int NOT NULL DEFAULT(0), PlexContractString nvarchar(MAX) NULL, KodiContractVersion int NOT NULL DEFAULT(0), KodiContractString nvarchar(MAX) NULL"),
+            new DatabaseCommand(42, 6,"ALTER TABLE GroupFilter ADD GroupsIdsVersion int NOT NULL DEFAULT(0), GroupsIdsString nvarchar(MAX) NULL"),
+            new DatabaseCommand(42, 7,"ALTER TABLE AnimeEpisode_User ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL"),
+            new DatabaseCommand(43, 1,"ALTER TABLE AnimeEpisode ADD PlexContractVersion int NOT NULL DEFAULT(0), PlexContractString nvarchar(MAX) NULL"),
+            new DatabaseCommand(43, 2,"ALTER TABLE VideoLocal ADD MediaVersion int NOT NULL DEFAULT(0), MediaString nvarchar(MAX) NULL"),
+            new DatabaseCommand(44, 1,"DECLARE @tableName VARCHAR(MAX) = 'AnimeGroup_User'\r\nDECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\nDECLARE @ConstraintName nvarchar(200)\r\nSELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\nIF @ConstraintName IS NOT NULL\r\nEXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)"),
+            new DatabaseCommand(44, 2,"ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractVersion"),
+            new DatabaseCommand(44, 3,"ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractString"),
+            new DatabaseCommand(44, 4,"DECLARE @tableName VARCHAR(MAX) = 'AnimeSeries_User'\r\nDECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\nDECLARE @ConstraintName nvarchar(200)\r\nSELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\nIF @ConstraintName IS NOT NULL\r\nEXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)"),
+            new DatabaseCommand(44, 5,"ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractVersion"),
+            new DatabaseCommand(44, 6,"ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractString"),
+            new DatabaseCommand(45, 1,"ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate [datetime] NULL"),
+            new DatabaseCommand(45, 2,"ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate [datetime] NULL"),
+            new DatabaseCommand(46, 1,"ALTER TABLE GroupFilter ADD GroupConditionsVersion int NOT NULL DEFAULT(0), GroupConditions nvarchar(MAX) NULL,ParentGroupFilterID int NULL,InvisibleInClients  int NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(46, 2,"ALTER TABLE GroupFilter ADD SeriesIdsVersion int NOT NULL DEFAULT(0), SeriesIdsString nvarchar(MAX) NULL"),
+            new DatabaseCommand(47, 1,"ALTER TABLE AniDB_Anime ADD ContractBlob varbinary(MAX) NULL"),
+            new DatabaseCommand(47, 2,"ALTER TABLE AniDB_Anime ADD ContractSize int NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(47, 3,"ALTER TABLE AniDB_Anime DROP COLUMN ContractString"),
+            new DatabaseCommand(47, 4,"ALTER TABLE VideoLocal ADD MediaBlob varbinary(MAX) NULL"),
+            new DatabaseCommand(47, 5,"ALTER TABLE VideoLocal ADD MediaSize int NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(47, 6,"ALTER TABLE VideoLocal DROP COLUMN MediaString"),
+            new DatabaseCommand(47, 7,"ALTER TABLE AnimeEpisode ADD PlexContractBlob varbinary(MAX) NULL"),
+            new DatabaseCommand(47, 8,"ALTER TABLE AnimeEpisode ADD PlexContractSize int NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(47, 9,"ALTER TABLE AnimeEpisode DROP COLUMN PlexContractString"),
+            new DatabaseCommand(47, 10,"ALTER TABLE AnimeEpisode_User ADD ContractBlob varbinary(MAX) NULL"),
+            new DatabaseCommand(47, 11,"ALTER TABLE AnimeEpisode_User ADD ContractSize int NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(47, 12,"ALTER TABLE AnimeEpisode_User DROP COLUMN ContractString"),
+            new DatabaseCommand(47, 13,"ALTER TABLE AnimeSeries ADD ContractBlob varbinary(MAX) NULL"),
+            new DatabaseCommand(47, 14,"ALTER TABLE AnimeSeries ADD ContractSize int NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(47, 15,"ALTER TABLE AnimeSeries DROP COLUMN ContractString"),
+            new DatabaseCommand(47, 16,"ALTER TABLE AnimeSeries_User ADD PlexContractBlob varbinary(MAX) NULL"),
+            new DatabaseCommand(47, 17,"ALTER TABLE AnimeSeries_User ADD PlexContractSize int NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(47, 18,"ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractString"),
+            new DatabaseCommand(47, 19,"ALTER TABLE AnimeGroup_User ADD PlexContractBlob varbinary(MAX) NULL"),
+            new DatabaseCommand(47, 20,"ALTER TABLE AnimeGroup_User ADD PlexContractSize int NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(47, 21,"ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractString"),
+            new DatabaseCommand(47, 22,"ALTER TABLE AnimeGroup ADD ContractBlob varbinary(MAX) NULL"),
+            new DatabaseCommand(47, 23,"ALTER TABLE AnimeGroup ADD ContractSize int NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(47, 24,"ALTER TABLE AnimeGroup DROP COLUMN ContractString"),
+            new DatabaseCommand(48, 1,"ALTER TABLE AniDB_Anime DROP COLUMN AllCategories"),
+            new DatabaseCommand(49, 1,(Action)DatabaseFixes.DeleteSerieUsersWithoutSeries),
+            new DatabaseCommand(50, 1,"CREATE TABLE VideoLocal_Place ( VideoLocal_Place_ID int IDENTITY(1,1) NOT NULL, VideoLocalID int NOT NULL, FilePath nvarchar(MAX) NOT NULL,  ImportFolderID int NOT NULL, ImportFolderType int NOT NULL, CONSTRAINT [PK_VideoLocal_Place] PRIMARY KEY CLUSTERED (  VideoLocal_Place_ID ASC  ) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
+            new DatabaseCommand(50, 2,"ALTER TABLE VideoLocal ADD FileName nvarchar(max) NOT NULL DEFAULT(''), VideoCodec varchar(max) NOT NULL DEFAULT(''), VideoBitrate varchar(max) NOT NULL DEFAULT(''), VideoBitDepth varchar(max) NOT NULL DEFAULT(''), VideoFrameRate varchar(max) NOT NULL DEFAULT(''), VideoResolution varchar(max) NOT NULL DEFAULT(''), AudioCodec varchar(max) NOT NULL DEFAULT(''), AudioBitrate varchar(max) NOT NULL DEFAULT(''),Duration bigint NOT NULL DEFAULT(0)"),
+            new DatabaseCommand(50, 3,"INSERT INTO VideoLocal_Place (VideoLocalID, FilePath, ImportFolderID, ImportFolderType) SELECT VideoLocalID, FilePath, ImportFolderID, 1 as ImportFolderType FROM VideoLocal"),
+            new DatabaseCommand(50, 4,"ALTER TABLE VideoLocal DROP COLUMN FilePath, ImportFolderID"),
+            new DatabaseCommand(50, 5,"UPDATE VideoLocal SET VideoLocal.FileName=VideoInfo.FileName, VideoLocal.VideoCodec=VideoInfo.VideoCodec, VideoLocal.VideoBitrate=VideoInfo.VideoBitrate, VideoLocal.VideoBitDepth=VideoInfo.VideoBitDepth, VideoLocal.VideoFrameRate=VideoInfo.VideoFrameRate,VideoLocal.VideoResolution=VideoInfo.VideoResolution,VideoLocal.AudioCodec=VideoInfo.AudioCodec,VideoLocal.AudioBitrate=VideoInfo.AudioBitrate, VideoLocal.Duration=VideoInfo.Duration FROM VideoLocal INNER JOIN VideoInfo ON VideoLocal.Hash=VideoInfo.Hash"),
+            new DatabaseCommand(50, 6,"CREATE TABLE CloudAccount (  CloudID int IDENTITY(1,1) NOT NULL, ConnectionString nvarchar(MAX) NOT NULL,  Provider nvarchar(MAX) NOT NULL, Name nvarchar(MAX) NOT NULL,  CONSTRAINT [PK_CloudAccount] PRIMARY KEY CLUSTERED   ( CloudID ASC ) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]) ON [PRIMARY]"),
+            new DatabaseCommand(50, 7,"ALTER TABLE ImportFolder ADD CloudID int NULL"),
+            new DatabaseCommand(50, 8,"ALTER TABLE VideoLocal_User ALTER COLUMN WatchedDate datetime NULL"),
+            new DatabaseCommand(50, 9,"ALTER TABLE VideoLocal_User ADD ResumePosition bigint NOT NULL DEFAULT (0)"),
+            new DatabaseCommand(50, 10,"DROP TABLE VideoInfo"),
+            new DatabaseCommand(51, 1,"DROP INDEX UIX_VideoLocal_Hash ON Videolocal;"),
+            new DatabaseCommand(51, 2,"CREATE INDEX IX_VideoLocal_Hash ON VideoLocal(Hash);"),
+            new DatabaseCommand(52, 1,"CREATE TABLE AuthTokens ( AuthID int IDENTITY(1,1) NOT NULL, UserID int NOT NULL, DeviceName nvarchar(MAX) NOT NULL, Token nvarchar(MAX) NOT NULL )"),
+            new DatabaseCommand(53, 1,"CREATE TABLE Scan ( ScanID int IDENTITY(1,1) NOT NULL, CreationTime datetime NOT NULL, ImportFolders nvarchar(MAX) NOT NULL, Status int NOT NULL )"),
+            new DatabaseCommand(53, 2,"CREATE TABLE ScanFile ( ScanFileID int IDENTITY(1,1) NOT NULL, ScanID int NOT NULL, ImportFolderID int NOT NULL, VideoLocal_Place_ID int NOT NULL, FullName  nvarchar(MAX) NOT NULL, FileSize bigint NOT NULL, Status int NOT NULL, CheckDate datetime NULL, Hash nvarchar(100) NOT NULL, HashResult nvarchar(100) NULL )"),
+            new DatabaseCommand(53, 3,"CREATE INDEX UIX_ScanFileStatus ON ScanFile(ScanID,Status,CheckDate);"),
+        };
 
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE IgnoreAnime( " +
-                     " IgnoreAnimeID int IDENTITY(1,1) NOT NULL, " +
-                     " JMMUserID int NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " IgnoreType int NOT NULL, " +
-                     " CONSTRAINT [PK_IgnoreAnime] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " IgnoreAnimeID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY]");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_IgnoreAnime_User_AnimeID ON IgnoreAnime(JMMUserID, AnimeID, IgnoreType)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_003(int currentVersionNumber)
+        private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
         {
-            int thisVersion = 3;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE Trakt_Friend( " +
-                     " Trakt_FriendID int IDENTITY(1,1) NOT NULL, " +
-                     " Username nvarchar(100) NOT NULL, " +
-                     " FullName nvarchar(100) NULL, " +
-                     " Gender nvarchar(100) NULL, " +
-                     " Age nvarchar(100) NULL, " +
-                     " Location nvarchar(100) NULL, " +
-                     " About nvarchar(MAX) NULL, " +
-                     " Joined int NOT NULL, " +
-                     " Avatar nvarchar(MAX) NULL, " +
-                     " Url nvarchar(MAX) NULL, " +
-                     " LastAvatarUpdate datetime NOT NULL, " +
-                     " CONSTRAINT [PK_Trakt_Friend] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " Trakt_FriendID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY]");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_Trakt_Friend_Username ON Trakt_Friend(Username)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-
-        private void UpdateSchema_004(int currentVersionNumber)
-        {
-            int thisVersion = 4;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE AnimeGroup ADD DefaultAnimeSeriesID int NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_005(int currentVersionNumber)
-        {
-            int thisVersion = 5;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE JMMUser ADD CanEditServerSettings int NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_006(int currentVersionNumber)
-        {
-            int thisVersion = 6;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE VideoInfo ADD VideoBitDepth varchar(max) NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_007(int currentVersionNumber)
-        {
-            int thisVersion = 7;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-
-            DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTvDBLinks);
-            DatabaseFixes.Fixes.Add(DatabaseFixes.FixDuplicateTraktLinks);
-
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Season ON CrossRef_AniDB_TvDB(TvDBID, TvDBSeasonNumber)");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Season ON CrossRef_AniDB_Trakt(TraktID, TraktSeasonNumber)");
-            cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Anime ON CrossRef_AniDB_Trakt(AnimeID)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_008(int currentVersionNumber)
-        {
-            int thisVersion = 8;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE jmmuser ALTER COLUMN Password NVARCHAR(150) NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_009(int currentVersionNumber)
-        {
-            int thisVersion = 9;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE ImportFolder ADD IsWatched int NULL");
-            cmds.Add("UPDATE ImportFolder SET IsWatched = 1");
-            cmds.Add("ALTER TABLE ImportFolder ALTER COLUMN IsWatched int NOT NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_010(int currentVersionNumber)
-        {
-            int thisVersion = 10;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE CrossRef_AniDB_MAL( " +
-                     " CrossRef_AniDB_MALID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " MALID int NOT NULL, " +
-                     " MALTitle nvarchar(500), " +
-                     " CrossRefSource int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_AniDB_MAL] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_AniDB_MALID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_AnimeID ON CrossRef_AniDB_MAL(AnimeID)");
-            cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL(MALID)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_011(int currentVersionNumber)
-        {
-            int thisVersion = 11;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("DROP INDEX [UIX_CrossRef_AniDB_MAL_AnimeID] ON [dbo].[CrossRef_AniDB_MAL] WITH ( ONLINE = OFF )");
-            cmds.Add("DROP INDEX [UIX_CrossRef_AniDB_MAL_MALID] ON [dbo].[CrossRef_AniDB_MAL] WITH ( ONLINE = OFF )");
-            cmds.Add("DROP TABLE [dbo].[CrossRef_AniDB_MAL]");
-
-            cmds.Add("CREATE TABLE CrossRef_AniDB_MAL( " +
-                     " CrossRef_AniDB_MALID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " MALID int NOT NULL, " +
-                     " MALTitle nvarchar(500), " +
-                     " StartEpisodeType int NOT NULL, " +
-                     " StartEpisodeNumber int NOT NULL, " +
-                     " CrossRefSource int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_AniDB_MAL] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_AniDB_MALID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL(MALID)");
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_MAL_Anime ON CrossRef_AniDB_MAL(AnimeID, StartEpisodeType, StartEpisodeNumber)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_012(int currentVersionNumber)
-        {
-            int thisVersion = 12;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-
-            cmds.Add("CREATE TABLE Playlist( " +
-                     " PlaylistID int IDENTITY(1,1) NOT NULL, " +
-                     " PlaylistName nvarchar(MAX) NULL, " +
-                     " PlaylistItems varchar(MAX) NULL, " +
-                     " DefaultPlayOrder int NOT NULL, " +
-                     " PlayWatched int NOT NULL, " +
-                     " PlayUnwatched int NOT NULL, " +
-                     " CONSTRAINT [PK_Playlist] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " PlaylistID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_013(int currentVersionNumber)
-        {
-            int thisVersion = 13;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE AnimeSeries ADD SeriesNameOverride nvarchar(500) NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_014(int currentVersionNumber)
-        {
-            int thisVersion = 14;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-
-            cmds.Add("CREATE TABLE BookmarkedAnime( " +
-                     " BookmarkedAnimeID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " Priority int NOT NULL, " +
-                     " Notes nvarchar(MAX) NULL, " +
-                     " Downloading int NOT NULL, " +
-                     " CONSTRAINT [PK_BookmarkedAnime] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " BookmarkedAnimeID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_BookmarkedAnime_AnimeID ON BookmarkedAnime(BookmarkedAnimeID)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_015(int currentVersionNumber)
-        {
-            int thisVersion = 15;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE VideoLocal ADD DateTimeCreated datetime NULL");
-            cmds.Add("UPDATE VideoLocal SET DateTimeCreated = DateTimeUpdated");
-            cmds.Add("ALTER TABLE VideoLocal ALTER COLUMN DateTimeCreated datetime NOT NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_016(int currentVersionNumber)
-        {
-            int thisVersion = 16;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE CrossRef_AniDB_TvDB_Episode( " +
-                     " CrossRef_AniDB_TvDB_EpisodeID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " AniDBEpisodeID int NOT NULL, " +
-                     " TvDBEpisodeID int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_AniDB_TvDB_Episode] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_AniDB_TvDB_EpisodeID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_017(int currentVersionNumber)
-        {
-            int thisVersion = 17;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE AniDB_MylistStats( " +
-                     " AniDB_MylistStatsID int IDENTITY(1,1) NOT NULL, " +
-                     " Animes int NOT NULL, " +
-                     " Episodes int NOT NULL, " +
-                     " Files int NOT NULL, " +
-                     " SizeOfFiles bigint NOT NULL, " +
-                     " AddedAnimes int NOT NULL, " +
-                     " AddedEpisodes int NOT NULL, " +
-                     " AddedFiles int NOT NULL, " +
-                     " AddedGroups int NOT NULL, " +
-                     " LeechPct int NOT NULL, " +
-                     " GloryPct int NOT NULL, " +
-                     " ViewedPct int NOT NULL, " +
-                     " MylistPct int NOT NULL, " +
-                     " ViewedMylistPct int NOT NULL, " +
-                     " EpisodesViewed int NOT NULL, " +
-                     " Votes int NOT NULL, " +
-                     " Reviews int NOT NULL, " +
-                     " ViewiedLength int NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_MylistStats] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " AniDB_MylistStatsID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_018(int currentVersionNumber)
-        {
-            int thisVersion = 18;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE FileFfdshowPreset( " +
-                     " FileFfdshowPresetID int IDENTITY(1,1) NOT NULL, " +
-                     " Hash varchar(50) NOT NULL, " +
-                     " FileSize bigint NOT NULL, " +
-                     " Preset nvarchar(MAX) NULL, " +
-                     " CONSTRAINT [PK_FileFfdshowPreset] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " FileFfdshowPresetID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_FileFfdshowPreset_Hash ON FileFfdshowPreset(Hash, FileSize)");
-
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_019(int currentVersionNumber)
-        {
-            int thisVersion = 19;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE AniDB_Anime ADD DisableExternalLinksFlag int NULL");
-            cmds.Add("UPDATE AniDB_Anime SET DisableExternalLinksFlag = 0");
-            cmds.Add("ALTER TABLE AniDB_Anime ALTER COLUMN DisableExternalLinksFlag int NOT NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_020(int currentVersionNumber)
-        {
-            int thisVersion = 20;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE AniDB_File ADD FileVersion int NULL");
-            cmds.Add("UPDATE AniDB_File SET FileVersion = 1");
-            cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN FileVersion int NOT NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_021(int currentVersionNumber)
-        {
-            int thisVersion = 21;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE RenameScript( " +
-                     " RenameScriptID int IDENTITY(1,1) NOT NULL, " +
-                     " ScriptName nvarchar(MAX) NULL, " +
-                     " Script nvarchar(MAX) NULL, " +
-                     " IsEnabledOnImport int NOT NULL, " +
-                     " CONSTRAINT [PK_RenameScript] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " RenameScriptID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_022(int currentVersionNumber)
-        {
-            int thisVersion = 22;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE AniDB_File ADD IsCensored int NULL");
-            cmds.Add("ALTER TABLE AniDB_File ADD IsDeprecated int NULL");
-            cmds.Add("ALTER TABLE AniDB_File ADD InternalVersion int NULL");
-
-            cmds.Add("UPDATE AniDB_File SET IsCensored = 0");
-            cmds.Add("UPDATE AniDB_File SET IsDeprecated = 0");
-            cmds.Add("UPDATE AniDB_File SET InternalVersion = 1");
-
-            cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN IsCensored int NOT NULL");
-            cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN IsDeprecated int NOT NULL");
-            cmds.Add("ALTER TABLE AniDB_File ALTER COLUMN InternalVersion int NOT NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_023(int currentVersionNumber)
-        {
-            int thisVersion = 23;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE VideoLocal ADD IsVariation int NULL");
-            cmds.Add("UPDATE VideoLocal SET IsVariation = 0");
-            cmds.Add("ALTER TABLE VideoLocal ALTER COLUMN IsVariation int NOT NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_024(int currentVersionNumber)
-        {
-            int thisVersion = 24;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE AniDB_Recommendation ( " +
-                     " AniDB_RecommendationID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " UserID int NOT NULL, " +
-                     " RecommendationType int NOT NULL, " +
-                     " RecommendationText nvarchar(MAX), " +
-                     " CONSTRAINT [PK_AniDB_Recommendation] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " AniDB_RecommendationID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Recommendation ON AniDB_Recommendation(AnimeID, UserID)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_025(int currentVersionNumber)
-        {
-            int thisVersion = 25;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add(
-                "update CrossRef_File_Episode SET CrossRefSource=1 WHERE Hash IN (Select Hash from ANIDB_File) AND CrossRefSource=2");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_026(int currentVersionNumber)
-        {
-            int thisVersion = 26;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE LogMessage ( " +
-                     " LogMessageID int IDENTITY(1,1) NOT NULL, " +
-                     " LogType nvarchar(MAX) NOT NULL, " +
-                     " LogContent nvarchar(MAX) NOT NULL, " +
-                     " LogDate datetime NOT NULL, " +
-                     " CONSTRAINT [PK_LogMessage] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " LogMessageID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_027(int currentVersionNumber)
-        {
-            int thisVersion = 27;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE CrossRef_AniDB_TvDBV2( " +
-                     " CrossRef_AniDB_TvDBV2ID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " AniDBStartEpisodeType int NOT NULL, " +
-                     " AniDBStartEpisodeNumber int NOT NULL, " +
-                     " TvDBID int NOT NULL, " +
-                     " TvDBSeasonNumber int NOT NULL, " +
-                     " TvDBStartEpisodeNumber int NOT NULL, " +
-                     " TvDBTitle nvarchar(MAX), " +
-                     " CrossRefSource int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_AniDB_TvDBV2] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_AniDB_TvDBV2ID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDBV2 ON CrossRef_AniDB_TvDBV2(AnimeID, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-
-            // Now do the migratiuon
-            DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTvDBLinks_V1_to_V2);
-        }
-
-        private void UpdateSchema_028(int currentVersionNumber)
-        {
-            int thisVersion = 28;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE GroupFilter ADD Locked int NULL");
-
-            ExecuteSQLCommands(cmds);
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_029(int currentVersionNumber)
-        {
-            int thisVersion = 29;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE VideoInfo ADD FullInfo varchar(max) NULL");
-
-            ExecuteSQLCommands(cmds);
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_030(int currentVersionNumber)
-        {
-            int thisVersion = 30;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE CrossRef_AniDB_TraktV2( " +
-                     " CrossRef_AniDB_TraktV2ID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " AniDBStartEpisodeType int NOT NULL, " +
-                     " AniDBStartEpisodeNumber int NOT NULL, " +
-                     " TraktID nvarchar(500), " +
-                     " TraktSeasonNumber int NOT NULL, " +
-                     " TraktStartEpisodeNumber int NOT NULL, " +
-                     " TraktTitle nvarchar(MAX), " +
-                     " CrossRefSource int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_AniDB_TraktV2] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_AniDB_TraktV2ID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TraktV2 ON CrossRef_AniDB_TraktV2(AnimeID, TraktSeasonNumber, TraktStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-
-            // Now do the migratiuon
-            DatabaseFixes.Fixes.Add(DatabaseFixes.MigrateTraktLinks_V1_to_V2);
-        }
-
-        private void UpdateSchema_031(int currentVersionNumber)
-        {
-            int thisVersion = 31;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE CrossRef_AniDB_Trakt_Episode( " +
-                     " CrossRef_AniDB_Trakt_EpisodeID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " AniDBEpisodeID int NOT NULL, " +
-                     " TraktID nvarchar(500), " +
-                     " Season int NOT NULL, " +
-                     " EpisodeNumber int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_AniDB_Trakt_Episode] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_AniDB_Trakt_EpisodeID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID ON CrossRef_AniDB_Trakt_Episode(AniDBEpisodeID)");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_032(int currentVersionNumber)
-        {
-            int thisVersion = 32;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            UpdateDatabaseVersion(thisVersion);
-
-            // Now do the migration
-            DatabaseFixes.Fixes.Add(DatabaseFixes.RemoveOldMovieDBImageRecords);
-        }
-
-        private void UpdateSchema_033(int currentVersionNumber)
-        {
-            int thisVersion = 33;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE CustomTag( " +
-                     " CustomTagID int IDENTITY(1,1) NOT NULL, " +
-                     " TagName nvarchar(500), " +
-                     " TagDescription nvarchar(MAX), " +
-                     " CONSTRAINT [PK_CustomTag] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CustomTagID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE TABLE CrossRef_CustomTag( " +
-                     " CrossRef_CustomTagID int IDENTITY(1,1) NOT NULL, " +
-                     " CustomTagID int NOT NULL, " +
-                     " CrossRefID int NOT NULL, " +
-                     " CrossRefType int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_CustomTag] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_CustomTagID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-
-
-        }
-
-        private void UpdateSchema_034(int currentVersionNumber)
-        {
-            int thisVersion = 34;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL");
-
-            ExecuteSQLCommands(cmds);
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_035(int currentVersionNumber)
-        {
-            int thisVersion = 35;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            UpdateDatabaseVersion(thisVersion);
-
-            // Now do the migration
-            DatabaseFixes.Fixes.Add(DatabaseFixes.PopulateTagWeight);
-        }
-
-        private void UpdateSchema_036(int currentVersionNumber)
-        {
-            int thisVersion = 36;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE Trakt_Episode ADD TraktID int NULL");
-
-            ExecuteSQLCommands(cmds);
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_037(int currentVersionNumber)
-        {
-            int thisVersion = 37;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            // Now do the migration
-            DatabaseFixes.Fixes.Add(DatabaseFixes.FixHashes);
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_038(int currentVersionNumber)
-        {
-            int thisVersion = 38;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("DROP TABLE LogMessage");
-
-            ExecuteSQLCommands(cmds);
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_039(int currentVersionNumber)
-        {
-            int thisVersion = 39;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE AnimeSeries ADD DefaultFolder nvarchar(max) NULL");
-
-            ExecuteSQLCommands(cmds);
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_040(int currentVersionNumber)
-        {
-            int thisVersion = 40;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE JMMUser ADD PlexUsers nvarchar(max) NULL");
-
-            ExecuteSQLCommands(cmds);
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_041(int currentVersionNumber)
-        {
-            int thisVersion = 41;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE GroupFilter ADD FilterType int NULL");
-            cmds.Add("UPDATE GroupFilter SET FilterType = 1");
-            cmds.Add("ALTER TABLE GroupFilter ALTER COLUMN FilterType int NOT NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-
-            // Now do the migration
-            DatabaseFixes.Fixes.Add(DatabaseFixes.FixContinueWatchingGroupFilter_20160406);
-        }
-
-        private void UpdateSchema_042(int currentVersionNumber)
-        {
-            int thisVersion = 42;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add(
-                "ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL");
-            cmds.Add(
-                "ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL");
-            cmds.Add(
-                "ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT(0), PlexContractString nvarchar(MAX) NULL, KodiContractVersion int NOT NULL DEFAULT(0), KodiContractString nvarchar(MAX) NULL");
-            cmds.Add(
-                "ALTER TABLE AnimeSeries ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL");
-            cmds.Add(
-                "ALTER TABLE AnimeSeries_User ADD PlexContractVersion int NOT NULL DEFAULT(0), PlexContractString nvarchar(MAX) NULL, KodiContractVersion int NOT NULL DEFAULT(0), KodiContractString nvarchar(MAX) NULL");
-            cmds.Add(
-                "ALTER TABLE GroupFilter ADD GroupsIdsVersion int NOT NULL DEFAULT(0), GroupsIdsString nvarchar(MAX) NULL");
-            cmds.Add(
-                "ALTER TABLE AnimeEpisode_User ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL");
-
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_043(int currentVersionNumber)
-        {
-            int thisVersion = 43;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add(
-                "ALTER TABLE AnimeEpisode ADD PlexContractVersion int NOT NULL DEFAULT(0), PlexContractString nvarchar(MAX) NULL");
-            cmds.Add("ALTER TABLE VideoLocal ADD MediaVersion int NOT NULL DEFAULT(0), MediaString nvarchar(MAX) NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_044(int currentVersionNumber)
-        {
-            int thisVersion = 44;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("DECLARE @tableName VARCHAR(MAX) = 'AnimeGroup_User'\r\n" +
-                     "DECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\n" +
-                     "DECLARE @ConstraintName nvarchar(200)\r\n" +
-                     "SELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\n" +
-                     "IF @ConstraintName IS NOT NULL\r\n" +
-                     "EXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)");
-            cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractVersion");
-            cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractString");
-            cmds.Add("DECLARE @tableName VARCHAR(MAX) = 'AnimeSeries_User'\r\n" +
-                     "DECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\n" +
-                     "DECLARE @ConstraintName nvarchar(200)\r\n" +
-                     "SELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\n" +
-                     "IF @ConstraintName IS NOT NULL\r\n" +
-                     "EXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)");
-            cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractVersion");
-            cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractString");
-
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_045(int currentVersionNumber)
-        {
-            int thisVersion = 45;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate [datetime] NULL");
-            cmds.Add("ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate [datetime] NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        try
-                        {
-                            command.ExecuteNonQuery();
-                        }
-                        catch (Exception e)
-                        {
-                        }
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_046(int currentVersionNumber)
-        {
-            int thisVersion = 46;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add(
-                "ALTER TABLE GroupFilter ADD GroupConditionsVersion int NOT NULL DEFAULT(0), GroupConditions nvarchar(MAX) NULL,ParentGroupFilterID int NULL,InvisibleInClients  int NOT NULL DEFAULT(0)");
-            cmds.Add(
-                "ALTER TABLE GroupFilter ADD SeriesIdsVersion int NOT NULL DEFAULT(0), SeriesIdsString nvarchar(MAX) NULL");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        try
-                        {
-                            command.ExecuteNonQuery();
-                        }
-                        catch (Exception e)
-                        {
-                        }
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_047(int currentVersionNumber)
-        {
-            int thisVersion = 47;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractBlob varbinary(MAX) NULL");
-            cmds.Add("ALTER TABLE AniDB_Anime ADD ContractSize int NOT NULL DEFAULT(0)");
-            cmds.Add("ALTER TABLE AniDB_Anime DROP COLUMN ContractString");
-            cmds.Add("ALTER TABLE VideoLocal ADD MediaBlob varbinary(MAX) NULL");
-            cmds.Add("ALTER TABLE VideoLocal ADD MediaSize int NOT NULL DEFAULT(0)");
-            cmds.Add("ALTER TABLE VideoLocal DROP COLUMN MediaString");
-            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractBlob varbinary(MAX) NULL");
-            cmds.Add("ALTER TABLE AnimeEpisode ADD PlexContractSize int NOT NULL DEFAULT(0)");
-            cmds.Add("ALTER TABLE AnimeEpisode DROP COLUMN PlexContractString");
-            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractBlob varbinary(MAX) NULL");
-            cmds.Add("ALTER TABLE AnimeEpisode_User ADD ContractSize int NOT NULL DEFAULT(0)");
-            cmds.Add("ALTER TABLE AnimeEpisode_User DROP COLUMN ContractString");
-            cmds.Add("ALTER TABLE AnimeSeries ADD ContractBlob varbinary(MAX) NULL");
-            cmds.Add("ALTER TABLE AnimeSeries ADD ContractSize int NOT NULL DEFAULT(0)");
-            cmds.Add("ALTER TABLE AnimeSeries DROP COLUMN ContractString");
-            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractBlob varbinary(MAX) NULL");
-            cmds.Add("ALTER TABLE AnimeSeries_User ADD PlexContractSize int NOT NULL DEFAULT(0)");
-            cmds.Add("ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractString");
-            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractBlob varbinary(MAX) NULL");
-            cmds.Add("ALTER TABLE AnimeGroup_User ADD PlexContractSize int NOT NULL DEFAULT(0)");
-            cmds.Add("ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractString");
-            cmds.Add("ALTER TABLE AnimeGroup ADD ContractBlob varbinary(MAX) NULL");
-            cmds.Add("ALTER TABLE AnimeGroup ADD ContractSize int NOT NULL DEFAULT(0)");
-            cmds.Add("ALTER TABLE AnimeGroup DROP COLUMN ContractString");
-
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        try
-                        {
-                            command.ExecuteNonQuery();
-                        }
-                        catch (Exception e)
-                        {
-                        }
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_048(int currentVersionNumber)
-        {
-            int thisVersion = 48;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-            cmds.Add("ALTER TABLE AniDB_Anime DROP COLUMN AllCategories");
-
-
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        try
-                        {
-                            command.ExecuteNonQuery();
-                        }
-                        catch (Exception e)
-                        {
-                        }
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_049(int currentVersionNumber)
-        {
-            int thisVersion = 49;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            DatabaseFixes.Fixes.Add(DatabaseFixes.DeleteSerieUsersWithoutSeries);
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_050(int currentVersionNumber)
-        {
-            int thisVersion = 50;
-            if (currentVersionNumber >= thisVersion) return;
-
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE VideoLocal_Place ( VideoLocal_Place_ID int IDENTITY(1,1) NOT NULL, VideoLocalID int NOT NULL, FilePath nvarchar(MAX) NOT NULL,  ImportFolderID int NOT NULL, ImportFolderType int NOT NULL, CONSTRAINT [PK_VideoLocal_Place] PRIMARY KEY CLUSTERED (  VideoLocal_Place_ID ASC  ) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]");
-            cmds.Add("ALTER TABLE VideoLocal ADD FileName nvarchar(max) NOT NULL DEFAULT(''), VideoCodec varchar(max) NOT NULL DEFAULT(''), VideoBitrate varchar(max) NOT NULL DEFAULT(''), VideoBitDepth varchar(max) NOT NULL DEFAULT(''), VideoFrameRate varchar(max) NOT NULL DEFAULT(''), VideoResolution varchar(max) NOT NULL DEFAULT(''), AudioCodec varchar(max) NOT NULL DEFAULT(''), AudioBitrate varchar(max) NOT NULL DEFAULT(''),Duration bigint NOT NULL DEFAULT(0)");
-            cmds.Add("INSERT INTO VideoLocal_Place (VideoLocalID, FilePath, ImportFolderID, ImportFolderType) SELECT VideoLocalID, FilePath, ImportFolderID, 1 as ImportFolderType FROM VideoLocal");
-            cmds.Add("ALTER TABLE VideoLocal DROP COLUMN FilePath, ImportFolderID");
-            cmds.Add("UPDATE VideoLocal SET VideoLocal.FileName=VideoInfo.FileName, VideoLocal.VideoCodec=VideoInfo.VideoCodec, VideoLocal.VideoBitrate=VideoInfo.VideoBitrate, VideoLocal.VideoBitDepth=VideoInfo.VideoBitDepth, VideoLocal.VideoFrameRate=VideoInfo.VideoFrameRate,VideoLocal.VideoResolution=VideoInfo.VideoResolution,VideoLocal.AudioCodec=VideoInfo.AudioCodec,VideoLocal.AudioBitrate=VideoInfo.AudioBitrate, VideoLocal.Duration=VideoInfo.Duration FROM VideoLocal INNER JOIN VideoInfo ON VideoLocal.Hash=VideoInfo.Hash");
-            cmds.Add("CREATE TABLE CloudAccount (  CloudID int IDENTITY(1,1) NOT NULL, ConnectionString nvarchar(MAX) NOT NULL,  Provider nvarchar(MAX) NOT NULL, Name nvarchar(MAX) NOT NULL,  CONSTRAINT [PK_CloudAccount] PRIMARY KEY CLUSTERED   ( CloudID ASC ) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]) ON [PRIMARY]");
-            cmds.Add("ALTER TABLE ImportFolder ADD CloudID int NULL");
-            cmds.Add("ALTER TABLE VideoLocal_User ALTER COLUMN WatchedDate datetime NULL");
-            cmds.Add("ALTER TABLE VideoLocal_User ADD ResumePosition bigint NOT NULL DEFAULT (0)");
-            cmds.Add("DROP TABLE VideoInfo");
-            using (
-             SqlConnection tmpConn =
-                 new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                     ServerSettings.DatabaseServer,
-                     ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        try
-                        {
-                            command.ExecuteNonQuery();
-                        }
-                        catch (Exception e)
-                        {
-                        }
-                    }
-                }
-            }
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_051(int currentVersionNumber)
-        {
-            int thisVersion = 51;
-            if (currentVersionNumber >= thisVersion) return;
-
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-            //Remove Videolocal Hash unique constraint. Since we use videolocal to store the non hashed files in cloud drop folders. Empty Hash.
-
-            cmds.Add("DROP INDEX UIX_VideoLocal_Hash ON Videolocal;");
-            cmds.Add("CREATE INDEX UIX_VideoLocal_Hash ON VideoLocal(Hash);");
-            using (
-             SqlConnection tmpConn =
-                 new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                     ServerSettings.DatabaseServer,
-                     ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        try
-                        {
-                            command.ExecuteNonQuery();
-                        }
-                        catch (Exception e)
-                        {
-                        }
-                    }
-                }
-            }
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void UpdateSchema_052(int currentVersionNumber)
-        {
-            int thisVersion = 52;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE AuthTokens ( " +
-                                   " AuthID int IDENTITY(1,1) NOT NULL, " +
-                                   " UserID int NOT NULL, " +
-                                   " DeviceName nvarchar(MAX) NOT NULL, " +
-                                   " Token nvarchar(MAX) NOT NULL " +
-                                   " )");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                    ServerSettings.DatabaseServer,
-                    ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-        private void UpdateSchema_053(int currentVersionNumber)
-        {
-            int thisVersion = 53;
-            if (currentVersionNumber >= thisVersion) return;
-
-            logger.Info("Updating schema to VERSION: {0}", thisVersion);
-
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE Scan ( " +
-                                   " ScanID int IDENTITY(1,1) NOT NULL, " +
-                                   " CreationTime datetime NOT NULL, " +
-                                   " ImportFolders nvarchar(MAX) NOT NULL, " +
-                                   " Status int NOT NULL " +
-                                   " )");
-            cmds.Add("CREATE TABLE ScanFile ( " +
-                       " ScanFileID int IDENTITY(1,1) NOT NULL, " +
-                       " ScanID int NOT NULL, " +
-                        " ImportFolderID int NOT NULL, " +
-                        " VideoLocal_Place_ID int NOT NULL, " +
-                        " FullName  nvarchar(MAX) NOT NULL, " +
-                        " FileSize bigint NOT NULL, " +
-                        " Status int NOT NULL, " +
-                        " CheckDate datetime NULL, " +
-                        " Hash nvarchar(100) NOT NULL, " +
-                        " HashResult nvarchar(100) NULL " +
-                       " )");
-            cmds.Add("CREATE INDEX UIX_ScanFileStatus ON ScanFile(ScanID,Status,CheckDate);");
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                    ServerSettings.DatabaseServer,
-                    ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in cmds)
-                {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-
-            UpdateDatabaseVersion(thisVersion);
-        }
-
-        private void ExecuteSQLCommands(List<string> cmds)
+            new DatabaseCommand("ALTER TABLE Versions ADD VersionRevision nvarchar(max) NULL;"),
+            new DatabaseCommand("ALTER TABLE Versions ADD VersionCommand nvarchar(max) NULL;"),
+            new DatabaseCommand("ALTER TABLE Versions ADD VersionProgram nvarchar(max) NULL;"),
+            new DatabaseCommand("ALTER TABLE Versions DROP INDEX UIX_Versions_VersionType ;"),
+            new DatabaseCommand("CREATE INDEX IX_Versions_VersionType ON Versions(VersionType,VersionValue,VersionRevision);"),
+        };
+
+
+        private Tuple<bool, string> CommandWrapper(string command)
         {
             using (
                 SqlConnection tmpConn =
@@ -2082,33 +443,35 @@ namespace JMMServer.Databases
                         ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
             {
                 tmpConn.Open();
-                foreach (string cmdTable in cmds)
+                using (SqlCommand cmd = new SqlCommand(command, tmpConn))
                 {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    cmd.CommandTimeout = 0;
+                    try
                     {
-                        command.ExecuteNonQuery();
+                        cmd.ExecuteNonQuery();
+                        return new Tuple<bool, string>(true, null);
                     }
+                    catch (Exception ex)
+                    {
+                        return new Tuple<bool, string>(false, ex.ToString());
+                    }
+
                 }
             }
         }
 
-        private void UpdateDatabaseVersion(int versionNumber)
-        {
-            Versions ver = RepoFactory.Versions.GetByVersionType(Constants.DatabaseTypeKey);
-            if (ver == null) return;
 
-            ver.VersionValue = versionNumber.ToString();
-            RepoFactory.Versions.Save(ver);
+        public Tuple<bool, string> ExecuteCommand(DatabaseCommand cmd)
+        {
+            return this.ExecuteCommand(cmd, CommandWrapper);
         }
 
-        #endregion
 
-        #region Create Initial Schema
 
-        public bool CreateInitialSchema()
+        public void CreateAndUpdateSchema()
         {
             int count = 0;
-            string cmd = string.Format("Select count(*) from sysobjects where name = 'Versions'");
+            string cmd = "Select count(*) from sysobjects where name = 'Versions'";
             using (
                 SqlConnection tmpConn =
                     new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
@@ -2124,1415 +487,29 @@ namespace JMMServer.Databases
             }
 
             // if the Versions already exists, it means we have done this already
-            if (count > 0) return false;
-
-            //Create all the commands to be executed
-            List<string> commands = new List<string>();
-            commands.AddRange(CreateTableString_Versions());
-            commands.AddRange(CreateTableString_AniDB_Anime());
-            commands.AddRange(CreateTableString_AniDB_Anime_Category());
-            commands.AddRange(CreateTableString_AniDB_Anime_Character());
-            commands.AddRange(CreateTableString_AniDB_Anime_Relation());
-            commands.AddRange(CreateTableString_AniDB_Anime_Review());
-            commands.AddRange(CreateTableString_AniDB_Anime_Similar());
-            commands.AddRange(CreateTableString_AniDB_Anime_Tag());
-            commands.AddRange(CreateTableString_AniDB_Anime_Title());
-            commands.AddRange(CreateTableString_AniDB_Category());
-            commands.AddRange(CreateTableString_AniDB_Character());
-            commands.AddRange(CreateTableString_AniDB_Character_Seiyuu());
-            commands.AddRange(CreateTableString_AniDB_Seiyuu());
-            commands.AddRange(CreateTableString_AniDB_Episode());
-            commands.AddRange(CreateTableString_AniDB_File());
-            commands.AddRange(CreateTableString_AniDB_GroupStatus());
-            commands.AddRange(CreateTableString_AniDB_ReleaseGroup());
-            commands.AddRange(CreateTableString_AniDB_Review());
-            commands.AddRange(CreateTableString_AniDB_Tag());
-            commands.AddRange(CreateTableString_AnimeEpisode());
-            commands.AddRange(CreateTableString_AnimeGroup());
-            commands.AddRange(CreateTableString_AnimeSeries());
-            commands.AddRange(CreateTableString_CommandRequest());
-            commands.AddRange(CreateTableString_CrossRef_AniDB_Other());
-            commands.AddRange(CreateTableString_CrossRef_AniDB_TvDB());
-            commands.AddRange(CreateTableString_CrossRef_File_Episode());
-            commands.AddRange(CreateTableString_CrossRef_Languages_AniDB_File());
-            commands.AddRange(CreateTableString_CrossRef_Subtitles_AniDB_File());
-            commands.AddRange(CreateTableString_FileNameHash());
-            commands.AddRange(CreateTableString_Language());
-            commands.AddRange(CreateTableString_ImportFolder());
-            commands.AddRange(CreateTableString_ScheduledUpdate());
-            commands.AddRange(CreateTableString_VideoInfo());
-            commands.AddRange(CreateTableString_VideoLocal());
-            commands.AddRange(CreateTableString_DuplicateFile());
-            commands.AddRange(CreateTableString_GroupFilter());
-            commands.AddRange(CreateTableString_GroupFilterCondition());
-            commands.AddRange(CreateTableString_AniDB_Vote());
-            commands.AddRange(CreateTableString_TvDB_ImageFanart());
-            commands.AddRange(CreateTableString_TvDB_ImageWideBanner());
-            commands.AddRange(CreateTableString_TvDB_ImagePoster());
-            commands.AddRange(CreateTableString_TvDB_Episode());
-            commands.AddRange(CreateTableString_TvDB_Series());
-            commands.AddRange(CreateTableString_AniDB_Anime_DefaultImage());
-            commands.AddRange(CreateTableString_MovieDB_Movie());
-            commands.AddRange(CreateTableString_MovieDB_Poster());
-            commands.AddRange(CreateTableString_MovieDB_Fanart());
-            commands.AddRange(CreateTableString_JMMUser());
-            commands.AddRange(CreateTableString_Trakt_Episode());
-            commands.AddRange(CreateTableString_Trakt_ImagePoster());
-            commands.AddRange(CreateTableString_Trakt_ImageFanart());
-            commands.AddRange(CreateTableString_Trakt_Show());
-            commands.AddRange(CreateTableString_Trakt_Season());
-            commands.AddRange(CreateTableString_CrossRef_AniDB_Trakt());
-
-            commands.AddRange(CreateTableString_AnimeEpisode_User());
-            commands.AddRange(CreateTableString_AnimeSeries_User());
-            commands.AddRange(CreateTableString_AnimeGroup_User());
-            commands.AddRange(CreateTableString_VideoLocal_User());
-
-
-            //commands.AddRange(CreateTableString_CrossRef_AnimeEpisode_Hash());
-
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                tmpConn.Open();
-                foreach (string cmdTable in commands)
+            bool create = (count == 0);
+            if (create)
+                this.ExecuteWithException(createVersionTable);
+            cmd = "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE [TABLE_NAME] = 'Versions' and [COLUMN_NAME]='VersionRevision'";
+            using (SqlConnection tmpConn =
+                        new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
+                            ServerSettings.DatabaseServer,
+                            ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
                 {
-                    using (SqlCommand command = new SqlCommand(cmdTable, tmpConn))
+                    using (SqlCommand command = new SqlCommand(cmd, tmpConn))
                     {
-                        command.ExecuteNonQuery();
+                        tmpConn.Open();
+                        object result = command.ExecuteScalar();
+                        count = int.Parse(result.ToString());
                     }
                 }
-            }
-
-            Console.WriteLine("Creating version...");
-            Versions ver1 = new Versions();
-            ver1.VersionType = Constants.DatabaseTypeKey;
-            ver1.VersionValue = "1";
-
-            RepoFactory.Versions.Save(ver1);
-            return true;
+            if (count == 0)
+                this.ExecuteWithException(updateVersionTable);
+            this.PreFillVersions(createTables.Union(patchCommands));
+            if (create)
+                this.ExecuteWithException(createTables);
+            this.ExecuteWithException(patchCommands);
         }
-
-
-        public List<string> CreateTableString_Versions()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE [Versions]( " +
-                     " [VersionsID] [int] IDENTITY(1,1) NOT NULL, " +
-                     " [VersionType] [varchar](100) NOT NULL, " +
-                     " [VersionValue] [varchar](100) NOT NULL,  " +
-                     " CONSTRAINT [PK_Versions] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " [VersionsID] ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_Versions_VersionType ON Versions(VersionType)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Anime()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Anime( " +
-                     " AniDB_AnimeID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " EpisodeCount int NOT NULL, " +
-                     " AirDate datetime NULL, " +
-                     " EndDate datetime NULL, " +
-                     " URL varchar(max) NULL, " +
-                     " Picname varchar(max) NULL, " +
-                     " BeginYear int NOT NULL, " +
-                     " EndYear int NOT NULL, " +
-                     " AnimeType int NOT NULL, " +
-                     " MainTitle nvarchar(500) NOT NULL, " +
-                     " AllTitles nvarchar(1500) NOT NULL, " +
-                     " AllCategories nvarchar(MAX) NOT NULL, " +
-                     " AllTags nvarchar(MAX) NOT NULL, " +
-                     " Description varchar(max) NOT NULL, " +
-                     " EpisodeCountNormal int NOT NULL, " +
-                     " EpisodeCountSpecial int NOT NULL, " +
-                     " Rating int NOT NULL, " +
-                     " VoteCount int NOT NULL, " +
-                     " TempRating int NOT NULL, " +
-                     " TempVoteCount int NOT NULL, " +
-                     " AvgReviewRating int NOT NULL, " +
-                     " ReviewCount int NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " DateTimeDescUpdated datetime NOT NULL, " +
-                     " ImageEnabled int NOT NULL, " +
-                     " AwardList varchar(max) NOT NULL, " +
-                     " Restricted int NOT NULL, " +
-                     " AnimePlanetID int NULL, " +
-                     " ANNID int NULL, " +
-                     " AllCinemaID int NULL, " +
-                     " AnimeNfo int NULL, " +
-                     " [LatestEpisodeNumber] [int] NULL, " +
-                     " CONSTRAINT [PK_AniDB_Anime] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " [AniDB_AnimeID] ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Anime_AnimeID ON AniDB_Anime(AnimeID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Anime_Category()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Anime_Category ( " +
-                     " AniDB_Anime_CategoryID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " CategoryID int NOT NULL, " +
-                     " Weighting int NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Anime_Category] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_Anime_CategoryID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE INDEX IX_AniDB_Anime_Category_AnimeID on AniDB_Anime_Category(AnimeID)");
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_AniDB_Anime_Category_AnimeID_CategoryID ON AniDB_Anime_Category(AnimeID, CategoryID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Anime_Character()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Anime_Character ( " +
-                     " AniDB_Anime_CharacterID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " CharID int NOT NULL, " +
-                     " CharType varchar(100) NOT NULL, " +
-                     " EpisodeListRaw varchar(max) NULL, " +
-                     " CONSTRAINT [PK_AniDB_Anime_Character] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_Anime_CharacterID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE INDEX IX_AniDB_Anime_Character_AnimeID on AniDB_Anime_Character(AnimeID)");
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_AniDB_Anime_Character_AnimeID_CharID ON AniDB_Anime_Character(AnimeID, CharID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Anime_Relation()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Anime_Relation ( " +
-                     " AniDB_Anime_RelationID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " RelatedAnimeID int NOT NULL, " +
-                     " RelationType varchar(100) NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Anime_Relation] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_Anime_RelationID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE INDEX IX_AniDB_Anime_Relation_AnimeID on AniDB_Anime_Relation(AnimeID)");
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_AniDB_Anime_Relation_AnimeID_RelatedAnimeID ON AniDB_Anime_Relation(AnimeID, RelatedAnimeID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Anime_Review()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Anime_Review ( " +
-                     " AniDB_Anime_ReviewID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " ReviewID int NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Anime_Review] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_Anime_ReviewID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE INDEX IX_AniDB_Anime_Review_AnimeID on AniDB_Anime_Review(AnimeID)");
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_AniDB_Anime_Review_AnimeID_ReviewID ON AniDB_Anime_Review(AnimeID, ReviewID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Anime_Similar()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Anime_Similar ( " +
-                     " AniDB_Anime_SimilarID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " SimilarAnimeID int NOT NULL, " +
-                     " Approval int NOT NULL, " +
-                     " Total int NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Anime_Similar] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_Anime_SimilarID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE INDEX IX_AniDB_Anime_Similar_AnimeID on AniDB_Anime_Similar(AnimeID)");
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_AniDB_Anime_Similar_AnimeID_SimilarAnimeID ON AniDB_Anime_Similar(AnimeID, SimilarAnimeID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Anime_Tag()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Anime_Tag ( " +
-                     " AniDB_Anime_TagID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " TagID int NOT NULL, " +
-                     " Approval int NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Anime_Tag] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_Anime_TagID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE INDEX IX_AniDB_Anime_Tag_AnimeID on AniDB_Anime_Tag(AnimeID)");
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Anime_Tag_AnimeID_TagID ON AniDB_Anime_Tag(AnimeID, TagID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Anime_Title()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE [AniDB_Anime_Title]( " +
-                     " AniDB_Anime_TitleID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " TitleType varchar(50) NOT NULL, " +
-                     " Language nvarchar(50) NOT NULL, " +
-                     " Title nvarchar(500) NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Anime_Title] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_Anime_TitleID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE INDEX IX_AniDB_Anime_Title_AnimeID on AniDB_Anime_Title(AnimeID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Category()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Category ( " +
-                     " AniDB_CategoryID int IDENTITY(1,1) NOT NULL, " +
-                     " CategoryID int NOT NULL, " +
-                     " ParentID int NOT NULL, " +
-                     " IsHentai int NOT NULL, " +
-                     " CategoryName varchar(50) NOT NULL, " +
-                     " CategoryDescription varchar(max) NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Category] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_CategoryID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Category_CategoryID ON AniDB_Category(CategoryID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Character()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Character ( " +
-                     " AniDB_CharacterID int IDENTITY(1,1) NOT NULL, " +
-                     " CharID int NOT NULL, " +
-                     " CharName nvarchar(200) NOT NULL, " +
-                     " PicName varchar(100) NOT NULL, " +
-                     " CharKanjiName nvarchar(max) NOT NULL, " +
-                     " CharDescription nvarchar(max) NOT NULL, " +
-                     " CreatorListRaw varchar(max) NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Character] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_CharacterID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Character_CharID ON AniDB_Character(CharID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Character_Seiyuu()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Character_Seiyuu ( " +
-                     " AniDB_Character_SeiyuuID int IDENTITY(1,1) NOT NULL, " +
-                     " CharID int NOT NULL, " +
-                     " SeiyuuID int NOT NULL " +
-                     " CONSTRAINT [PK_AniDB_Character_Seiyuu] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_Character_SeiyuuID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE INDEX IX_AniDB_Character_Seiyuu_CharID on AniDB_Character_Seiyuu(CharID)");
-            cmds.Add("CREATE INDEX IX_AniDB_Character_Seiyuu_SeiyuuID on AniDB_Character_Seiyuu(SeiyuuID)");
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_AniDB_Character_Seiyuu_CharID_SeiyuuID ON AniDB_Character_Seiyuu(CharID, SeiyuuID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Seiyuu()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Seiyuu ( " +
-                     " AniDB_SeiyuuID int IDENTITY(1,1) NOT NULL, " +
-                     " SeiyuuID int NOT NULL, " +
-                     " SeiyuuName nvarchar(200) NOT NULL, " +
-                     " PicName varchar(100) NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Seiyuu] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_SeiyuuID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Seiyuu_SeiyuuID ON AniDB_Seiyuu(SeiyuuID)");
-
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Episode()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Episode( " +
-                     " AniDB_EpisodeID int IDENTITY(1,1) NOT NULL, " +
-                     " EpisodeID int NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " LengthSeconds int NOT NULL, " +
-                     " Rating varchar(max) NOT NULL, " +
-                     " Votes varchar(max) NOT NULL, " +
-                     " EpisodeNumber int NOT NULL, " +
-                     " EpisodeType int NOT NULL, " +
-                     " RomajiName varchar(max) NOT NULL, " +
-                     " EnglishName varchar(max) NOT NULL, " +
-                     " AirDate int NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Episode] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_EpisodeID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE INDEX IX_AniDB_Episode_AnimeID on AniDB_Episode(AnimeID)");
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Episode_EpisodeID ON AniDB_Episode(EpisodeID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_File()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_File( " +
-                     " AniDB_FileID int IDENTITY(1,1) NOT NULL, " +
-                     " FileID int NOT NULL, " +
-                     " Hash varchar(50) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " GroupID int NOT NULL, " +
-                     " File_Source varchar(max) NOT NULL, " +
-                     " File_AudioCodec varchar(max) NOT NULL, " +
-                     " File_VideoCodec varchar(max) NOT NULL, " +
-                     " File_VideoResolution varchar(max) NOT NULL, " +
-                     " File_FileExtension varchar(max) NOT NULL, " +
-                     " File_LengthSeconds int NOT NULL, " +
-                     " File_Description varchar(max) NOT NULL, " +
-                     " File_ReleaseDate int NOT NULL, " +
-                     " Anime_GroupName nvarchar(max) NOT NULL, " +
-                     " Anime_GroupNameShort nvarchar(max) NOT NULL, " +
-                     " Episode_Rating int NOT NULL, " +
-                     " Episode_Votes int NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " IsWatched int NOT NULL, " +
-                     " WatchedDate datetime NULL, " +
-                     " CRC varchar(max) NOT NULL, " +
-                     " MD5 varchar(max) NOT NULL, " +
-                     " SHA1 varchar(max) NOT NULL, " +
-                     " FileName nvarchar(max) NOT NULL, " +
-                     " FileSize bigint NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_File] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_FileID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_File_Hash on AniDB_File(Hash)");
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_File_FileID ON AniDB_File(FileID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_GroupStatus()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_GroupStatus ( " +
-                     " AniDB_GroupStatusID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " GroupID int NOT NULL, " +
-                     " GroupName nvarchar(200) NOT NULL, " +
-                     " CompletionState int NOT NULL, " +
-                     " LastEpisodeNumber int NOT NULL, " +
-                     " Rating int NOT NULL, " +
-                     " Votes int NOT NULL, " +
-                     " EpisodeRange nvarchar(200) NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_GroupStatus] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_GroupStatusID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE INDEX IX_AniDB_GroupStatus_AnimeID on AniDB_GroupStatus(AnimeID)");
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_GroupStatus_AnimeID_GroupID ON AniDB_GroupStatus(AnimeID, GroupID)");
-
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_ReleaseGroup()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_ReleaseGroup ( " +
-                     " AniDB_ReleaseGroupID int IDENTITY(1,1) NOT NULL, " +
-                     " GroupID int NOT NULL, " +
-                     " Rating int NOT NULL, " +
-                     " Votes int NOT NULL, " +
-                     " AnimeCount int NOT NULL, " +
-                     " FileCount int NOT NULL, " +
-                     " GroupName nvarchar(MAX) NOT NULL, " +
-                     " GroupNameShort nvarchar(200) NOT NULL, " +
-                     " IRCChannel nvarchar(200) NOT NULL, " +
-                     " IRCServer nvarchar(200) NOT NULL, " +
-                     " URL nvarchar(200) NOT NULL, " +
-                     " Picname nvarchar(200) NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_ReleaseGroup] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_ReleaseGroupID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_ReleaseGroup_GroupID ON AniDB_ReleaseGroup(GroupID)");
-
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Review()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Review ( " +
-                     " AniDB_ReviewID int IDENTITY(1,1) NOT NULL, " +
-                     " ReviewID int NOT NULL, " +
-                     " AuthorID int NOT NULL, " +
-                     " RatingAnimation int NOT NULL, " +
-                     " RatingSound int NOT NULL, " +
-                     " RatingStory int NOT NULL, " +
-                     " RatingCharacter int NOT NULL, " +
-                     " RatingValue int NOT NULL, " +
-                     " RatingEnjoyment int NOT NULL, " +
-                     " ReviewText nvarchar(MAX) NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Review] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_ReviewID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Review_ReviewID ON AniDB_Review(ReviewID)");
-
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Tag()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Tag ( " +
-                     " AniDB_TagID int IDENTITY(1,1) NOT NULL, " +
-                     " TagID int NOT NULL, " +
-                     " Spoiler int NOT NULL, " +
-                     " LocalSpoiler int NOT NULL, " +
-                     " GlobalSpoiler int NOT NULL, " +
-                     " TagName nvarchar(150) NOT NULL, " +
-                     " TagCount int NOT NULL, " +
-                     " TagDescription nvarchar(max) NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Tag] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_TagID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AniDB_Tag_TagID ON AniDB_Tag(TagID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AnimeEpisode()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AnimeEpisode( " +
-                     " AnimeEpisodeID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeSeriesID int NOT NULL, " +
-                     " AniDB_EpisodeID int NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " DateTimeCreated datetime NOT NULL, " +
-                     " CONSTRAINT [PK_AnimeEpisode] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AnimeEpisodeID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY]");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AnimeEpisode_AniDB_EpisodeID ON AnimeEpisode(AniDB_EpisodeID)");
-            cmds.Add("CREATE INDEX IX_AnimeEpisode_AnimeSeriesID on AnimeEpisode(AnimeSeriesID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AnimeEpisode_User()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AnimeEpisode_User( " +
-                     " AnimeEpisode_UserID int IDENTITY(1,1) NOT NULL, " +
-                     " JMMUserID int NOT NULL, " +
-                     " AnimeEpisodeID int NOT NULL, " +
-                     " AnimeSeriesID int NOT NULL, " + // we only have this column to improve performance
-                     " WatchedDate datetime NULL, " +
-                     " PlayedCount int NOT NULL, " +
-                     " WatchedCount int NOT NULL, " +
-                     " StoppedCount int NOT NULL, " +
-                     " CONSTRAINT [PK_AnimeEpisode_User] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AnimeEpisode_UserID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY]");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_AnimeEpisode_User_User_EpisodeID ON AnimeEpisode_User(JMMUserID, AnimeEpisodeID)");
-            cmds.Add(
-                "CREATE INDEX IX_AnimeEpisode_User_User_AnimeSeriesID on AnimeEpisode_User(JMMUserID, AnimeSeriesID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_VideoLocal()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE VideoLocal( " +
-                     " VideoLocalID int IDENTITY(1,1) NOT NULL, " +
-                     " FilePath nvarchar(max) NOT NULL, " +
-                     " ImportFolderID int NOT NULL, " +
-                     " Hash varchar(50) NOT NULL, " +
-                     " CRC32 varchar(50) NULL, " +
-                     " MD5 varchar(50) NULL, " +
-                     " SHA1 varchar(50) NULL, " +
-                     " HashSource int NOT NULL, " +
-                     " FileSize bigint NOT NULL, " +
-                     " IsIgnored int NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " CONSTRAINT [PK_VideoLocal] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " VideoLocalID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_VideoLocal_Hash on VideoLocal(Hash)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_VideoLocal_User()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE VideoLocal_User( " +
-                     " VideoLocal_UserID int IDENTITY(1,1) NOT NULL, " +
-                     " JMMUserID int NOT NULL, " +
-                     " VideoLocalID int NOT NULL, " +
-                     " WatchedDate datetime NOT NULL, " +
-                     " CONSTRAINT [PK_VideoLocal_User] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " VideoLocal_UserID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AnimeGroup()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AnimeGroup( " +
-                     " AnimeGroupID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeGroupParentID int NULL, " +
-                     " GroupName nvarchar(max) NOT NULL, " +
-                     " Description nvarchar(max) NULL, " +
-                     " IsManuallyNamed int NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " DateTimeCreated datetime NOT NULL, " +
-                     " SortName varchar(max) NOT NULL, " +
-                     " MissingEpisodeCount int NOT NULL, " +
-                     " MissingEpisodeCountGroups int NOT NULL, " +
-                     " OverrideDescription int NOT NULL, " +
-                     " EpisodeAddedDate datetime NULL, " +
-                     " CONSTRAINT [PK_AnimeGroup] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " [AnimeGroupID] ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AnimeGroup_User()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AnimeGroup_User( " +
-                     " AnimeGroup_UserID int IDENTITY(1,1) NOT NULL, " +
-                     " JMMUserID int NOT NULL, " +
-                     " AnimeGroupID int NOT NULL, " +
-                     " IsFave int NOT NULL, " +
-                     " UnwatchedEpisodeCount int NOT NULL, " +
-                     " WatchedEpisodeCount int NOT NULL, " +
-                     " WatchedDate datetime NULL, " +
-                     " PlayedCount int NOT NULL, " +
-                     " WatchedCount int NOT NULL, " +
-                     " StoppedCount int NOT NULL, " +
-                     " CONSTRAINT [PK_AnimeGroup_User] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AnimeGroup_UserID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY]");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AnimeGroup_User_User_GroupID ON AnimeGroup_User(JMMUserID, AnimeGroupID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AnimeSeries()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AnimeSeries ( " +
-                     " AnimeSeriesID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeGroupID int NOT NULL, " +
-                     " AniDB_ID int NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " DateTimeCreated datetime NOT NULL, " +
-                     " DefaultAudioLanguage varchar(max) NULL, " +
-                     " DefaultSubtitleLanguage varchar(max) NULL, " +
-                     " MissingEpisodeCount int NOT NULL, " +
-                     " MissingEpisodeCountGroups int NOT NULL, " +
-                     " LatestLocalEpisodeNumber int NOT NULL, " +
-                     " EpisodeAddedDate datetime NULL, " +
-                     " CONSTRAINT [PK_AnimeSeries] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AnimeSeriesID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_AnimeSeries_AniDB_ID ON AnimeSeries(AniDB_ID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AnimeSeries_User()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AnimeSeries_User( " +
-                     " AnimeSeries_UserID int IDENTITY(1,1) NOT NULL, " +
-                     " JMMUserID int NOT NULL, " +
-                     " AnimeSeriesID int NOT NULL, " +
-                     " UnwatchedEpisodeCount int NOT NULL, " +
-                     " WatchedEpisodeCount int NOT NULL, " +
-                     " WatchedDate datetime NULL, " +
-                     " PlayedCount int NOT NULL, " +
-                     " WatchedCount int NOT NULL, " +
-                     " StoppedCount int NOT NULL, " +
-                     " CONSTRAINT [PK_AnimeSeries_User] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AnimeSeries_UserID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY]");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_AnimeSeries_User_User_SeriesID ON AnimeSeries_User(JMMUserID, AnimeSeriesID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_CommandRequest()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE CommandRequest( " +
-                     " CommandRequestID int IDENTITY(1,1) NOT NULL, " +
-                     " Priority int NOT NULL, " +
-                     " CommandType int NOT NULL, " +
-                     " CommandID nvarchar(max) NOT NULL, " +
-                     " CommandDetails nvarchar(max) NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " CONSTRAINT [PK_CommandRequest] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " CommandRequestID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-
-        public List<string> CreateTableString_CrossRef_AniDB_TvDB()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE CrossRef_AniDB_TvDB( " +
-                     " CrossRef_AniDB_TvDBID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " TvDBID int NOT NULL, " +
-                     " TvDBSeasonNumber int NOT NULL, " +
-                     " CrossRefSource int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_AniDB_TvDB] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_AniDB_TvDBID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB ON CrossRef_AniDB_TvDB(AnimeID, TvDBID, TvDBSeasonNumber, CrossRefSource)");
-            cmds.Add("CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_AnimeID ON CrossRef_AniDB_TvDB(AnimeID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_CrossRef_AniDB_Other()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE CrossRef_AniDB_Other( " +
-                     " CrossRef_AniDB_OtherID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " CrossRefID nvarchar(500) NOT NULL, " +
-                     " CrossRefSource int NOT NULL, " +
-                     " CrossRefType int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_AniDB_Other] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_AniDB_OtherID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Other ON CrossRef_AniDB_Other(AnimeID, CrossRefID, CrossRefSource, CrossRefType)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_CrossRef_File_Episode()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE CrossRef_File_Episode( " +
-                     " CrossRef_File_EpisodeID int IDENTITY(1,1) NOT NULL, " +
-                     " Hash varchar(50) NULL, " +
-                     " FileName nvarchar(500) NOT NULL, " +
-                     " FileSize bigint NOT NULL, " +
-                     " CrossRefSource int NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " EpisodeID int NOT NULL, " +
-                     " Percentage int NOT NULL, " +
-                     " EpisodeOrder int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_File_Episode] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_File_EpisodeID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_CrossRef_File_Episode_Hash_EpisodeID ON CrossRef_File_Episode(Hash, EpisodeID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_CrossRef_Languages_AniDB_File()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE CrossRef_Languages_AniDB_File( " +
-                     " CrossRef_Languages_AniDB_FileID int IDENTITY(1,1) NOT NULL, " +
-                     " FileID int NOT NULL, " +
-                     " LanguageID int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_Languages_AniDB_File] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " CrossRef_Languages_AniDB_FileID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-            ;
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_CrossRef_Subtitles_AniDB_File()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE CrossRef_Subtitles_AniDB_File( " +
-                     " CrossRef_Subtitles_AniDB_FileID int IDENTITY(1,1) NOT NULL, " +
-                     " FileID int NOT NULL, " +
-                     " LanguageID int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_Subtitles_AniDB_File] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " CrossRef_Subtitles_AniDB_FileID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_FileNameHash()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE FileNameHash ( " +
-                     " FileNameHashID int IDENTITY(1,1) NOT NULL, " +
-                     " FileName nvarchar(500) NOT NULL, " +
-                     " FileSize bigint NOT NULL, " +
-                     " Hash varchar(50) NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " CONSTRAINT [PK_FileNameHash] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " FileNameHashID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_FileNameHash ON FileNameHash(FileName, FileSize, Hash)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_Language()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE Language( " +
-                     " LanguageID int IDENTITY(1,1) NOT NULL, " +
-                     " LanguageName varchar(100) NOT NULL, " +
-                     " CONSTRAINT [PK_Language] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " LanguageID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_Language_LanguageName ON Language(LanguageName)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_ImportFolder()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE ImportFolder( " +
-                     " ImportFolderID int IDENTITY(1,1) NOT NULL, " +
-                     " ImportFolderType int NOT NULL, " +
-                     " ImportFolderName nvarchar(max) NOT NULL, " +
-                     " ImportFolderLocation nvarchar(max) NOT NULL, " +
-                     " IsDropSource int NOT NULL, " +
-                     " IsDropDestination int NOT NULL, " +
-                     " CONSTRAINT [PK_ImportFolder] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " ImportFolderID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_ScheduledUpdate()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE ScheduledUpdate( " +
-                     " ScheduledUpdateID int IDENTITY(1,1) NOT NULL, " +
-                     " UpdateType int NOT NULL, " +
-                     " LastUpdate datetime NOT NULL, " +
-                     " UpdateDetails nvarchar(max) NOT NULL, " +
-                     " CONSTRAINT [PK_ScheduledUpdate] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " ScheduledUpdateID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_ScheduledUpdate_UpdateType ON ScheduledUpdate(UpdateType)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_VideoInfo()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE VideoInfo ( " +
-                     " VideoInfoID int IDENTITY(1,1) NOT NULL, " +
-                     " Hash varchar(50) NOT NULL, " +
-                     " FileSize bigint NOT NULL, " +
-                     " FileName nvarchar(max) NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " VideoCodec varchar(max) NOT NULL, " +
-                     " VideoBitrate varchar(max) NOT NULL, " +
-                     " VideoFrameRate varchar(max) NOT NULL, " +
-                     " VideoResolution varchar(max) NOT NULL, " +
-                     " AudioCodec varchar(max) NOT NULL, " +
-                     " AudioBitrate varchar(max) NOT NULL, " +
-                     " Duration bigint NOT NULL, " +
-                     " CONSTRAINT [PK_VideoInfo] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " VideoInfoID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_VideoInfo_Hash on VideoInfo(Hash)");
-
-            return cmds;
-        }
-
-
-        public List<string> CreateTableString_DuplicateFile()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE DuplicateFile( " +
-                     " DuplicateFileID int IDENTITY(1,1) NOT NULL, " +
-                     " FilePathFile1 nvarchar(max) NOT NULL, " +
-                     " FilePathFile2 nvarchar(max) NOT NULL, " +
-                     " ImportFolderIDFile1 int NOT NULL, " +
-                     " ImportFolderIDFile2 int NOT NULL, " +
-                     " Hash varchar(50) NOT NULL, " +
-                     " DateTimeUpdated datetime NOT NULL, " +
-                     " CONSTRAINT [PK_DuplicateFile] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " DuplicateFileID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_GroupFilter()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE GroupFilter( " +
-                     " GroupFilterID int IDENTITY(1,1) NOT NULL, " +
-                     " GroupFilterName nvarchar(max) NOT NULL, " +
-                     " ApplyToSeries int NOT NULL, " +
-                     " BaseCondition int NOT NULL, " +
-                     " SortingCriteria nvarchar(max), " +
-                     " CONSTRAINT [PK_GroupFilter] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " GroupFilterID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_GroupFilterCondition()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE GroupFilterCondition( " +
-                     " GroupFilterConditionID int IDENTITY(1,1) NOT NULL, " +
-                     " GroupFilterID int NOT NULL, " +
-                     " ConditionType int NOT NULL, " +
-                     " ConditionOperator int NOT NULL, " +
-                     " ConditionParameter nvarchar(max) NOT NULL, " +
-                     " CONSTRAINT [PK_GroupFilterCondition] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " GroupFilterConditionID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Vote()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Vote ( " +
-                     " AniDB_VoteID int IDENTITY(1,1) NOT NULL, " +
-                     " EntityID int NOT NULL, " +
-                     " VoteValue int NOT NULL, " +
-                     " VoteType int NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Vote] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " AniDB_VoteID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_TvDB_ImageFanart()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE TvDB_ImageFanart( " +
-                     " TvDB_ImageFanartID int IDENTITY(1,1) NOT NULL, " +
-                     " Id int NOT NULL, " +
-                     " SeriesID int NOT NULL, " +
-                     " BannerPath nvarchar(MAX),  " +
-                     " BannerType nvarchar(MAX),  " +
-                     " BannerType2 nvarchar(MAX),  " +
-                     " Colors nvarchar(MAX),  " +
-                     " Language nvarchar(MAX),  " +
-                     " ThumbnailPath nvarchar(MAX),  " +
-                     " VignettePath nvarchar(MAX),  " +
-                     " Enabled int NOT NULL, " +
-                     " Chosen int NOT NULL, " +
-                     " CONSTRAINT PK_TvDB_ImageFanart PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " TvDB_ImageFanartID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_TvDB_ImageFanart_Id ON TvDB_ImageFanart(Id)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_TvDB_ImageWideBanner()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE TvDB_ImageWideBanner( " +
-                     " TvDB_ImageWideBannerID int IDENTITY(1,1) NOT NULL, " +
-                     " Id int NOT NULL, " +
-                     " SeriesID int NOT NULL, " +
-                     " BannerPath nvarchar(MAX),  " +
-                     " BannerType nvarchar(MAX),  " +
-                     " BannerType2 nvarchar(MAX),  " +
-                     " Language nvarchar(MAX),  " +
-                     " Enabled int NOT NULL, " +
-                     " SeasonNumber int, " +
-                     " CONSTRAINT PK_TvDB_ImageWideBanner PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " TvDB_ImageWideBannerID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_TvDB_ImageWideBanner_Id ON TvDB_ImageWideBanner(Id)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_TvDB_ImagePoster()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE TvDB_ImagePoster( " +
-                     " TvDB_ImagePosterID int IDENTITY(1,1) NOT NULL, " +
-                     " Id int NOT NULL, " +
-                     " SeriesID int NOT NULL, " +
-                     " BannerPath nvarchar(MAX),  " +
-                     " BannerType nvarchar(MAX),  " +
-                     " BannerType2 nvarchar(MAX),  " +
-                     " Language nvarchar(MAX),  " +
-                     " Enabled int NOT NULL, " +
-                     " SeasonNumber int, " +
-                     " CONSTRAINT PK_TvDB_ImagePoster PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " TvDB_ImagePosterID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_TvDB_ImagePoster_Id ON TvDB_ImagePoster(Id)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_TvDB_Episode()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE TvDB_Episode( " +
-                     " TvDB_EpisodeID int IDENTITY(1,1) NOT NULL, " +
-                     " Id int NOT NULL, " +
-                     " SeriesID int NOT NULL, " +
-                     " SeasonID int NOT NULL, " +
-                     " SeasonNumber int NOT NULL, " +
-                     " EpisodeNumber int NOT NULL, " +
-                     " EpisodeName nvarchar(MAX), " +
-                     " Overview nvarchar(MAX), " +
-                     " Filename nvarchar(MAX), " +
-                     " EpImgFlag int NOT NULL, " +
-                     " FirstAired nvarchar(MAX), " +
-                     " AbsoluteNumber int, " +
-                     " AirsAfterSeason int, " +
-                     " AirsBeforeEpisode int, " +
-                     " AirsBeforeSeason int, " +
-                     " CONSTRAINT PK_TvDB_Episode PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " TvDB_EpisodeID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_TvDB_Episode_Id ON TvDB_Episode(Id)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_TvDB_Series()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE TvDB_Series( " +
-                     " TvDB_SeriesID int IDENTITY(1,1) NOT NULL, " +
-                     " SeriesID int NOT NULL, " +
-                     " Overview nvarchar(MAX), " +
-                     " SeriesName nvarchar(MAX), " +
-                     " Status varchar(100), " +
-                     " Banner varchar(100), " +
-                     " Fanart varchar(100), " +
-                     " Poster varchar(100), " +
-                     " Lastupdated varchar(100), " +
-                     " CONSTRAINT PK_TvDB_Series PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " TvDB_SeriesID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_TvDB_Series_Id ON TvDB_Series(SeriesID)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_AniDB_Anime_DefaultImage()
-        {
-            List<string> cmds = new List<string>();
-            cmds.Add("CREATE TABLE AniDB_Anime_DefaultImage ( " +
-                     " AniDB_Anime_DefaultImageID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " ImageParentID int NOT NULL, " +
-                     " ImageParentType int NOT NULL, " +
-                     " ImageType int NOT NULL, " +
-                     " CONSTRAINT [PK_AniDB_Anime_DefaultImage] PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " [AniDB_Anime_DefaultImageID] ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add(
-                "CREATE UNIQUE INDEX UIX_AniDB_Anime_DefaultImage_ImageType ON AniDB_Anime_DefaultImage(AnimeID, ImageType)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_MovieDB_Movie()
-        {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE MovieDB_Movie( " +
-                     " MovieDB_MovieID int IDENTITY(1,1) NOT NULL, " +
-                     " MovieId int NOT NULL, " +
-                     " MovieName nvarchar(MAX), " +
-                     " OriginalName nvarchar(MAX), " +
-                     " Overview nvarchar(MAX), " +
-                     " CONSTRAINT PK_MovieDB_Movie PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " MovieDB_MovieID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            cmds.Add("CREATE UNIQUE INDEX UIX_MovieDB_Movie_Id ON MovieDB_Movie(MovieId)");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_MovieDB_Poster()
-        {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE MovieDB_Poster( " +
-                     " MovieDB_PosterID int IDENTITY(1,1) NOT NULL, " +
-                     " ImageID varchar(100), " +
-                     " MovieId int NOT NULL, " +
-                     " ImageType varchar(100), " +
-                     " ImageSize varchar(100),  " +
-                     " URL nvarchar(MAX),  " +
-                     " ImageWidth int NOT NULL,  " +
-                     " ImageHeight int NOT NULL,  " +
-                     " Enabled int NOT NULL, " +
-                     " CONSTRAINT PK_MovieDB_Poster PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " MovieDB_PosterID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_MovieDB_Fanart()
-        {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE MovieDB_Fanart( " +
-                     " MovieDB_FanartID int IDENTITY(1,1) NOT NULL, " +
-                     " ImageID varchar(100), " +
-                     " MovieId int NOT NULL, " +
-                     " ImageType varchar(100), " +
-                     " ImageSize varchar(100),  " +
-                     " URL nvarchar(MAX),  " +
-                     " ImageWidth int NOT NULL,  " +
-                     " ImageHeight int NOT NULL,  " +
-                     " Enabled int NOT NULL, " +
-                     " CONSTRAINT PK_MovieDB_Fanart PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " MovieDB_FanartID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_JMMUser()
-        {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE JMMUser( " +
-                     " JMMUserID int IDENTITY(1,1) NOT NULL, " +
-                     " Username nvarchar(100), " +
-                     " Password nvarchar(100), " +
-                     " IsAdmin int NOT NULL, " +
-                     " IsAniDBUser int NOT NULL, " +
-                     " IsTraktUser int NOT NULL, " +
-                     " HideCategories nvarchar(MAX), " +
-                     " CONSTRAINT PK_JMMUser PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " JMMUserID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_Trakt_Episode()
-        {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE Trakt_Episode( " +
-                     " Trakt_EpisodeID int IDENTITY(1,1) NOT NULL, " +
-                     " Trakt_ShowID int NOT NULL, " +
-                     " Season int NOT NULL, " +
-                     " EpisodeNumber int NOT NULL, " +
-                     " Title nvarchar(MAX), " +
-                     " URL nvarchar(500), " +
-                     " Overview nvarchar(MAX), " +
-                     " EpisodeImage nvarchar(500), " +
-                     " CONSTRAINT PK_Trakt_Episode PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " Trakt_EpisodeID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_Trakt_ImagePoster()
-        {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE Trakt_ImagePoster( " +
-                     " Trakt_ImagePosterID int IDENTITY(1,1) NOT NULL, " +
-                     " Trakt_ShowID int NOT NULL, " +
-                     " Season int NOT NULL, " +
-                     " ImageURL nvarchar(500), " +
-                     " Enabled int NOT NULL, " +
-                     " CONSTRAINT PK_Trakt_ImagePoster PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " Trakt_ImagePosterID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_Trakt_ImageFanart()
-        {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE Trakt_ImageFanart( " +
-                     " Trakt_ImageFanartID int IDENTITY(1,1) NOT NULL, " +
-                     " Trakt_ShowID int NOT NULL, " +
-                     " Season int NOT NULL, " +
-                     " ImageURL nvarchar(500), " +
-                     " Enabled int NOT NULL, " +
-                     " CONSTRAINT PK_Trakt_ImageFanart PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " Trakt_ImageFanartID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_Trakt_Show()
-        {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE Trakt_Show( " +
-                     " Trakt_ShowID int IDENTITY(1,1) NOT NULL, " +
-                     " TraktID nvarchar(500), " +
-                     " Title nvarchar(MAX), " +
-                     " Year nvarchar(500), " +
-                     " URL nvarchar(500), " +
-                     " Overview nvarchar(MAX), " +
-                     " TvDB_ID int NULL, " +
-                     " CONSTRAINT PK_Trakt_Show PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " Trakt_ShowID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_Trakt_Season()
-        {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE Trakt_Season( " +
-                     " Trakt_SeasonID int IDENTITY(1,1) NOT NULL, " +
-                     " Trakt_ShowID int NOT NULL, " +
-                     " Season int NOT NULL, " +
-                     " URL nvarchar(500), " +
-                     " CONSTRAINT PK_Trakt_Season PRIMARY KEY CLUSTERED  " +
-                     " ( " +
-                     " Trakt_SeasonID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        public List<string> CreateTableString_CrossRef_AniDB_Trakt()
-        {
-            List<string> cmds = new List<string>();
-
-            cmds.Add("CREATE TABLE CrossRef_AniDB_Trakt( " +
-                     " CrossRef_AniDB_TraktID int IDENTITY(1,1) NOT NULL, " +
-                     " AnimeID int NOT NULL, " +
-                     " TraktID nvarchar(500), " +
-                     " TraktSeasonNumber int NOT NULL, " +
-                     " CrossRefSource int NOT NULL, " +
-                     " CONSTRAINT [PK_CrossRef_AniDB_Trakt] PRIMARY KEY CLUSTERED " +
-                     " ( " +
-                     " CrossRef_AniDB_TraktID ASC " +
-                     " )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] " +
-                     " ) ON [PRIMARY] ");
-
-            return cmds;
-        }
-
-        #endregion
 
         public string GetDatabasePath(string serverName)
         {
@@ -3592,18 +569,4 @@ namespace JMMServer.Databases
         }
     }
 
-    public class SQLServerDatabase
-    {
-        public string MdfFileName { get; set; }
-        public string MdfFilePath { get; set; }
-        public string MdfFileSize { get; set; }
-        public string MdfMaxFileSize { get; set; }
-        public string MdfFileGrowth { get; set; }
-        public string LdfFileName { get; set; }
-        public string LdfFilePath { get; set; }
-        public string LdfFileSize { get; set; }
-        public string LdfMaxFileSize { get; set; }
-        public string LdfFileGrowth { get; set; }
-        public string DatabaseName { get; set; }
-    }
 }

@@ -15,19 +15,32 @@ namespace JMMServer.Databases
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static List<Action> Fixes = new List<Action>();
+        private static List<Tuple<IDatabase,DatabaseCommand>> Fixes = new List<Tuple<IDatabase, DatabaseCommand>>();
 
         public static void ExecuteDatabaseFixes()
         {
-            foreach (Action a in Fixes)
+            foreach (Tuple<IDatabase, DatabaseCommand> t in Fixes)
             {
-                a();
+                try
+                {
+                    t.Item2.DatabaseFix();
+                    t.Item1.AddVersion(t.Item2.Version.ToString(),t.Item2.Revision.ToString(),t.Item2.CommandName);
+                }
+                catch (Exception e)
+                {
+                    throw new DatabaseCommandException(e.ToString(),t.Item2);
+                }
             }
+        }
+
+        public static void AddFix(IDatabase db, DatabaseCommand cmd)
+        {
+            Fixes.Add(new Tuple<IDatabase, DatabaseCommand>(db,cmd));
         }
 
         public static void InitFixes()
         {
-            Fixes = new List<Action>();
+            Fixes = new List<Tuple<IDatabase, DatabaseCommand>>();
         }
 
         public static void DeleteSerieUsersWithoutSeries()

@@ -14,6 +14,7 @@ using System.Threading;
 using System.Windows;
 using AniDBAPI;
 using JMMContracts;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
@@ -1831,9 +1832,7 @@ namespace JMMServer
 
             try
             {
-                Versions ver = RepoFactory.Versions.GetByVersionType(Constants.DatabaseTypeKey);
-                if (ver != null)
-                    logger.Info(string.Format("Database Version: {0}", ver.VersionValue));
+                logger.Info(string.Format("Database Version: {0}", DatabaseExtensions.Instance.GetDatabaseVersion()));
             }
             catch (Exception ex)
             {

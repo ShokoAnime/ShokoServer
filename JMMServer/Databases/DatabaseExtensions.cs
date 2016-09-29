@@ -11,8 +11,10 @@ using NHibernate;
 using NLog;
 using System.Globalization;
 using System.IO;
+using System.Windows;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
+using NHibernate.Util;
 
 namespace JMMServer.Databases
 {
@@ -24,9 +26,11 @@ namespace JMMServer.Databases
         {
             get
             {
-                if (ServerSettings.DatabaseType.Trim().Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
+                if (ServerSettings.DatabaseType.Trim()
+                    .Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
                     return SQLServer.Instance;
-                if (ServerSettings.DatabaseType.Trim().Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
+                if (ServerSettings.DatabaseType.Trim()
+                    .Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
                     return SQLite.Instance;
                 return MySQL.Instance;
             }
@@ -37,7 +41,13 @@ namespace JMMServer.Databases
             //TODO this need to be fixed if we want to remove JMMServer Administration dependency, 
             // all the storage should be outside program files.
             string backupath = ServerSettings.DatabaseBackupDirectory;
-            try { Directory.CreateDirectory(backupath); } catch { }
+            try
+            {
+                Directory.CreateDirectory(backupath);
+            }
+            catch
+            {
+            }
             string fname = ServerSettings.DatabaseName + "_" + version.ToString("D3") + "_" +
                            DateTime.Now.Year.ToString("D4") + DateTime.Now.Month.ToString("D2") +
                            DateTime.Now.Day.ToString("D2") + DateTime.Now.Hour.ToString("D2") +
@@ -45,7 +55,99 @@ namespace JMMServer.Databases
             return Path.Combine(backupath, fname);
         }
 
-        
+        internal static void AddVersion(this IDatabase db, string version, string revision, string command)
+        {
+            Versions v = new Versions();
+            v.VersionType = Constants.DatabaseTypeKey;
+            v.VersionValue = version.ToString();
+            v.VersionRevision = revision.ToString();
+            v.VersionCommand = command;
+            v.VersionProgram = ServerState.Instance.ApplicationVersion;
+            RepoFactory.Versions.Save(v);
+            Dictionary<string, Versions> dv = new Dictionary<string, Versions>();
+            if (db.AllVersions.ContainsKey(v.VersionValue))
+                dv = db.AllVersions[v.VersionValue];
+            else
+                db.AllVersions.Add(v.VersionValue, dv);
+            dv.Add(v.VersionRevision, v);
+            db.AllVersions.Add(v.VersionValue, new Dictionary<string, Versions>());
+        }
+
+        public static void ExecuteWithException(this IDatabase db, DatabaseCommand cmd)
+        {
+            Tuple<bool, string> t = db.ExecuteCommand(cmd);
+            if (!t.Item1)
+                throw new DatabaseCommandException(t.Item2, cmd);
+        }
+
+        public static void ExecuteWithException(this IDatabase db, IEnumerable<DatabaseCommand> cmds)
+        {
+            cmds.ForEach(a => db.ExecuteWithException(a));
+        }
+
+        public static int GetDatabaseVersion(this IDatabase db)
+        {
+            if (db.AllVersions.Count == 0)
+                return 0;
+            return Int32.Parse(db.AllVersions.Keys.ToList().Max());
+        }
+
+        internal static void PreFillVersions(this IDatabase db, IEnumerable<DatabaseCommand> commands)
+        {
+            if (db.AllVersions.Count == 1 && db.AllVersions.Values.ElementAt(0).Count == 1)
+            {
+                Versions v = db.AllVersions.Values.ElementAt(0).Values.ElementAt(0);
+                string value = v.VersionValue;
+                db.AllVersions.Clear();
+                RepoFactory.Versions.Delete(v);
+                foreach (DatabaseCommand dc in commands)
+                {
+                    if (dc.Version <= int.Parse(value))
+                    {
+                        db.AddVersion(dc.Version.ToString(), dc.Revision.ToString(), dc.CommandName);
+                    }
+                }
+            }
+        }
+
+        internal static Tuple<bool, string> ExecuteCommand(this IDatabase db, DatabaseCommand cmd,
+            Func<string, Tuple<bool, string>> commandWrapper)
+        {
+
+            if (cmd.Version != 0 && cmd.Revision != 0)
+            {
+                if (db.AllVersions.ContainsKey(cmd.Version.ToString()) &&
+                    db.AllVersions[cmd.Version.ToString()].ContainsKey(cmd.Revision.ToString()))
+                    return new Tuple<bool, string>(true, null);
+            }
+            Tuple<bool, string> ret;
+
+            switch (cmd.Type)
+            {
+                case DatabaseCommandType.CodedCommand:
+                    ret = cmd.UpdateCommand();
+                    break;
+                case DatabaseCommandType.PostDatabaseFix:
+                    try
+                    {
+                        DatabaseFixes.AddFix(db, cmd);
+                        ret = new Tuple<bool, string>(true, null);
+                    }
+                    catch (Exception e)
+                    {
+                        ret = new Tuple<bool, string>(false, e.ToString());
+                    }
+                    break;
+                default:
+                    ret = commandWrapper(cmd.Command);
+                    break;
+            }
+            if (cmd.Version != 0 && ret.Item1)
+            {
+                db.AddVersion(cmd.Version.ToString(), cmd.Revision.ToString(), cmd.CommandName);
+            }
+            return ret;
+        }
 
         public static bool InitDB(this IDatabase database)
         {
@@ -62,28 +164,36 @@ namespace JMMServer.Databases
                 JMMService.CloseSessionFactory();
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Initializing;
                 ISessionFactory temp = JMMService.SessionFactory;
-                ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateSchema;
-                bool res=database.CreateInitialSchema();
-                if (!res)
+                int version = database.GetDatabaseVersion();
+                if (version > database.RequiredVersion)
                 {
-                    int version = database.GetDatabaseVersion();
-                    if (version > database.RequiredVersion)
-                    {
-                        ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_NotSupportedVersion;
-                        return false;
-                    }
-                    if (version < database.RequiredVersion)
-                    {
-                        ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Backup;
-                        database.BackupDatabase(GetDatabaseBackupName(version));
-                    }
+                    ServerState.Instance.CurrentSetupStatus =
+                        JMMServer.Properties.Resources.Database_NotSupportedVersion;
+                    return false;
+                }
+                if (version < database.RequiredVersion)
+                {
+                    ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_Backup;
+                    database.BackupDatabase(GetDatabaseBackupName(version));
                 }
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_ApplySchema;
-                database.UpdateSchema();
-                RepoFactory.Init();
-                DatabaseFixes.ExecuteDatabaseFixes();
-                database.PopulateInitialData();
-
+                try
+                {
+                    database.CreateAndUpdateSchema();
+                    RepoFactory.Init();
+                    DatabaseFixes.ExecuteDatabaseFixes();
+                    database.PopulateInitialData();
+                }
+                catch (DatabaseCommandException e)
+                {
+                    logger.Error(e,e.ToString());
+                    MessageBox.Show(
+                        "Database Error :\n\r " + e.ToString() +
+                        "\n\rNotify developers about this error, it will be logged in your logs", "Database Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_DatabaseFail;
+                    return false;
+                }
                 return true;
             }
             catch (Exception ex)

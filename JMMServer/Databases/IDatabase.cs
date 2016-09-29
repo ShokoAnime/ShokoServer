@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using JMMServer.Entities;
 using NHibernate;
 
 namespace JMMServer.Databases
@@ -13,12 +14,12 @@ namespace JMMServer.Databases
         ISessionFactory CreateSessionFactory();
         bool DatabaseAlreadyExists();
         void CreateDatabase();
-        bool CreateInitialSchema();
-        void UpdateSchema();
-        int GetDatabaseVersion();
+        void CreateAndUpdateSchema();
         void BackupDatabase(string fullfilename);
         ArrayList GetData(string sql);
         string Name { get; }
         int RequiredVersion { get; }
+        Tuple<bool, string> ExecuteCommand(DatabaseCommand cmd);
+        Dictionary<string, Dictionary<string, Versions>> AllVersions { get; }
     }
 }
