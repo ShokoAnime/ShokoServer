@@ -2480,7 +2480,7 @@ namespace JMMServer.Entities
             AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(id);
             if (series != null)
                 // Update more than just stats in case the xrefs have changed
-                RepoFactory.AnimeSeries.Save(series, true, false, false);
+                RepoFactory.AnimeSeries.Save(series, true, false, false, true);
         }
     }
 }

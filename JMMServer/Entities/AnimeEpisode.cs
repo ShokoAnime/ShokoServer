@@ -25,7 +25,7 @@ namespace JMMServer.Entities
         public byte[] PlexContractBlob { get; set; }
         public int PlexContractSize { get; set; }
 
-        public const int PLEXCONTRACT_VERSION = 4;
+        public const int PLEXCONTRACT_VERSION = 5;
 
 
         private Video _plexcontract = null;

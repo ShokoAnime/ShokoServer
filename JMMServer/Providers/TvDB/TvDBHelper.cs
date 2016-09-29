@@ -929,6 +929,9 @@ namespace JMMServer.Providers.TvDB
 
             AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
+            AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniDBID);
+            RepoFactory.AnimeEpisode.Save(ep);
+
             logger.Trace("Changed tvdb episode association: {0}", aniDBID);
         }
 

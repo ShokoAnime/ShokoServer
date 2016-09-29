@@ -44,7 +44,7 @@ namespace JMMServer.Repositories.Direct
                 .CreateCriteria(typeof(CrossRef_AniDB_TvDBV2))
                 .Add(Restrictions.Eq("AnimeID", id))
                 .Add(Restrictions.Eq("AniDBStartEpisodeType", aniEpType))
-                .Add(Restrictions.Eq("AniDBStartEpisodeNumber", aniEpisodeNumber))
+                .Add(Restrictions.Le("AniDBStartEpisodeNumber", aniEpisodeNumber))
                 .List<CrossRef_AniDB_TvDBV2>();
 
             return new List<CrossRef_AniDB_TvDBV2>(xrefs);
