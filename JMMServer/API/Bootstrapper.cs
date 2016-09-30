@@ -14,6 +14,7 @@
 	using NLog;
 	using System;
 	using Nancy.Responses.Negotiation;
+	using Nancy.Gzip;
 
 	public class Bootstrapper : DefaultNancyBootstrapper
     {
@@ -69,6 +70,12 @@
 			    logger.Error(ex);
 				return null;
 			};
+
+			GzipCompressionSettings gzipsettings = new GzipCompressionSettings();
+			gzipsettings.MinimumBytes = 16384; //16k
+			gzipsettings.MimeTypes.Add("application/xml");
+			gzipsettings.MimeTypes.Add("application/json");
+			pipelines.EnableGzipCompression(gzipsettings);
 		}
 
         /// <summary>
