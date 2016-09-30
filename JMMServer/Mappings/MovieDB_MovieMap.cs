@@ -13,7 +13,7 @@ namespace JMMServer.Mappings
             Map(x => x.MovieId).Not.Nullable();
             Map(x => x.MovieName);
             Map(x => x.OriginalName);
-            Map(x => x.Overview);
+            Map(x => x.Overview).CustomType("StringClob");
         }
     }
 }

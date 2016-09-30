@@ -16,7 +16,7 @@ namespace JMMServer.Mappings
             Map(x => x.EpisodeNumber).Not.Nullable();
             Map(x => x.Filename);
             Map(x => x.Id).Not.Nullable();
-            Map(x => x.Overview);
+            Map(x => x.Overview).CustomType("StringClob");
             Map(x => x.SeasonID).Not.Nullable();
             Map(x => x.SeasonNumber).Not.Nullable();
             Map(x => x.SeriesID).Not.Nullable();
