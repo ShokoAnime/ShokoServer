@@ -13,7 +13,7 @@ namespace JMMServer.Mappings
             Map(x => x.Trakt_ShowID).Not.Nullable();
             Map(x => x.EpisodeImage);
             Map(x => x.EpisodeNumber);
-            Map(x => x.Overview).CustomType("StringClob"); ;
+            Map(x => x.Overview).CustomType("StringClob");
             Map(x => x.Season).Not.Nullable();
             Map(x => x.Title);
             Map(x => x.URL);
