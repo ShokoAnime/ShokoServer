@@ -154,7 +154,7 @@ namespace JMMServer.API
         /// </summary>
         /// <param name="userid">User ID</param>
         /// <param name="episodeid">Episode ID (JMM ID)</param>
-        /// <param name="watchedstatu">Watched status 1:true 0:false</param>
+        /// <param name="watchedstatus">Watched status 1:true 0:false</param>
         /// <returns></returns>
         private object ToggleWatchedStatusOnEpisode_Kodi(string userid, string episodeid, string watchedstatus)
         {
@@ -166,7 +166,7 @@ namespace JMMServer.API
 		/// </summary>
 		/// <param name="userid">User ID</param>
 		/// <param name="seriesid">Series ID (JMM ID)</param>
-		/// <param name="watchedstatu">Watched status 1:true 0:false</param>
+		/// <param name="watchedstatus">Watched status 1:true 0:false</param>
 		/// <returns></returns>
 		private object ToggleWatchedStatusOnSeries_Kodi(string userid, string seriesid, string watchedstatus)
 		{
@@ -178,7 +178,7 @@ namespace JMMServer.API
 		/// </summary>
 		/// <param name="userid">User ID</param>
 		/// <param name="groupid">Group ID (JMM ID)</param>
-		/// <param name="watchedstatu">Watched status 1:true 0:false</param>
+		/// <param name="watchedstatus">Watched status 1:true 0:false</param>
 		/// <returns></returns>
 		private object ToggleWatchedStatusOnGroup_Kodi(string userid, string groupid, string watchedstatus)
 		{

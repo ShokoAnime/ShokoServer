@@ -63,8 +63,6 @@
 			StaticConfiguration.DisableErrorTraces = false;
             StatelessAuthentication.Enable(pipelines, configuration);
 
-			BinaryProcessor.Mappings.Add(new Tuple<string, MediaRange> ("xml", "application/xop+xml"));
-
 			pipelines.OnError += (ctx, ex) => {
 				logger.Error("Nancy Error => {0}", ex.ToString());
 			    logger.Error(ex);
