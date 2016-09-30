@@ -56,8 +56,6 @@ Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.Smo.dll"; DestDir: "{app}"
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.SmoExtended.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.SqlClrProvider.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.SqlEnum.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.VisualStudio.HostingProcess.Utilities.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Microsoft.VisualStudio.HostingProcess.Utilities.Sync.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.Win32.TaskScheduler.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.Win32.TaskScheduler.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\MimeTypeMap.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -177,7 +175,7 @@ begin
   WizardForm.StatusLabel.Caption := 'Installing .NET Framework 4.6.1. This might take a few minutes…';
   WizardForm.ProgressGauge.Style := npbstMarquee;
   try
-    if not Exec(ExpandConstant('{tmp}\NetFrameworkInstaller.exe'), '/passive /norestart', '', SW_SHOW, ewWaitUntilTerminated, ResultCode) then
+    if not Exec(ExpandConstant('{tmp}\NetFrameworkInstaller.exe'), '/showrmui', '', SW_SHOW, ewWaitUntilTerminated, ResultCode) then
     begin
       MsgBox('.NET installation failed with code: ' + IntToStr(ResultCode) + '.', mbError, MB_OK);
     end;

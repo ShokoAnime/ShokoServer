@@ -27,7 +27,7 @@
                                 Command="{DynamicResource ScanFolderCommand}" CommandParameter="{Binding}"
                                 ToolTip="{Resx ResxName=JMMServer.Properties.Resources, Key=Tooltip_ScanFolder}">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Image Width="24" Height="24" Stretch="Fill" Source="{Binding Path=Icon}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,10,0"/>
+                                <Image Width="24" Height="24" Stretch="Fill" Source="{Binding Path=Icon}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,0,0"/>
                             </StackPanel>
                         </Button>
                         <TextBlock Margin="5,0,10,0" Text="{Binding Path=ImportFolderLocation}"
