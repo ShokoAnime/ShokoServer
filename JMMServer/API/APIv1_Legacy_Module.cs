@@ -8,6 +8,7 @@ using JMMContracts.PlexAndKodi;
 using Nancy.Security;
 using JMMServer.API;
 using JMMServer.API.Model;
+using Stream = System.IO.Stream;
 
 namespace JMMServer.API
 {
@@ -293,7 +294,10 @@ namespace JMMServer.API
         private object GetImageRest(string type, string id)
         {
             response = new Nancy.Response();
-            response = Response.AsImage(_rest.GetImagePath(type, id, false));
+            string content;
+            Stream image = _rest.GetImage(type, id, false, out content);
+            response = new Nancy.Response();
+            response = Response.FromStream(image, content);
             return response;
         }
 

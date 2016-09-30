@@ -617,6 +617,7 @@ namespace JMMServer
                     if (float.TryParse(Ratio, NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"),
                         out newratio))
                     {
+                        if (newratio == 0) return m;
                         using (Image im = Image.FromStream(m))
                         {
                             return ResizeToRatio(im, newratio);
