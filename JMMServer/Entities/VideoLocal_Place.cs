@@ -123,7 +123,21 @@ namespace JMMServer.Entities
                         : string.Empty;
                     info.VideoCodec = (!string.IsNullOrEmpty(m.VideoCodec)) ? m.VideoCodec : string.Empty;
                     info.AudioCodec = (!string.IsNullOrEmpty(m.AudioCodec)) ? m.AudioCodec : string.Empty;
-                    info.Duration = (!string.IsNullOrEmpty(m.Duration)) ? (long)double.Parse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture) : 0;
+
+                    
+                    if (!string.IsNullOrEmpty(m.Duration))
+                    {
+                        double duration;
+                        bool isValidDuration = double.TryParse(m.Duration, out duration);
+                        if (isValidDuration)
+                            info.Duration =
+                                (long) double.Parse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture);
+                        else
+                            info.Duration = 0;
+                    }
+                    else
+                        info.Duration = 0;
+
                     info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
                     List<JMMContracts.PlexAndKodi.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
                     if (vparts.Count > 0)
