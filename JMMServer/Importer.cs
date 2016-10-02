@@ -245,16 +245,7 @@ namespace JMMServer
 
 
                 logger.Debug("ImportFolder: {0} || {1}", fldr.ImportFolderName, fldr.ImportFolderLocation);
-
-                if (IsNetworkShare(fldr.ImportFolderLocation))
-                {
-                    Utils.GetFilesForImportFolder(null, fldr.ImportFolderLocation, true, ref fileList);
-                }
-                else
-                {
-
-                    Utils.GetFilesForImportFolder(fldr.BaseDirectory, "", false, ref fileList);
-                }
+                Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
 
                 // get a list of all files in the share
                 foreach (string fileName in fileList)
@@ -296,15 +287,7 @@ namespace JMMServer
                 if (!share.FolderIsDropSource) continue;
 
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
-
-                if (IsNetworkShare(share.ImportFolderLocation))
-                {
-                    Utils.GetFilesForImportFolder(null, share.ImportFolderLocation, true, ref fileList);
-                }
-                else
-                {
-                    Utils.GetFilesForImportFolder(share.BaseDirectory, "", false, ref fileList);
-                }
+                Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
             }
 
             // get a list of all the shares we are looking at
@@ -362,15 +345,7 @@ namespace JMMServer
                 logger.Debug("ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 try
                 {
-
-                    if (IsNetworkShare(share.ImportFolderLocation))
-                    {
-                        Utils.GetFilesForImportFolder(null, share.ImportFolderLocation, true, ref fileList);
-                    }
-                    else
-                    {
-                        Utils.GetFilesForImportFolder(share.BaseDirectory, "", false, ref fileList);
-                    }
+                    Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
                 }
                 catch (Exception ex)
                 {
@@ -413,15 +388,7 @@ namespace JMMServer
             int filesFound = 0, videosFound = 0;
             int i = 0;
             List<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(fldr.ImportFolderID);
-
-            if (IsNetworkShare(fldr.ImportFolderLocation))
-            {
-                Utils.GetFilesForImportFolder(null, fldr.ImportFolderLocation, true, ref fileList);
-            }
-            else
-            {
-                Utils.GetFilesForImportFolder(fldr.BaseDirectory, "", false, ref fileList);
-            }
+            Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
 
             HashSet<string> fs = new HashSet<string>(fileList);
             foreach (VideoLocal_Place v in filesAll)
