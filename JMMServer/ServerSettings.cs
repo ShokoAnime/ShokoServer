@@ -482,11 +482,8 @@ namespace JMMServer
         {
             get
             {
-                string val = "90";
-                if (string.IsNullOrEmpty(Get("RotateLogs_Delete_Days")))
-                { RotateLogs_Delete_Days = val; }
-                return Get("RotateLogs_Delete_Days");
 
+                return Get("RotateLogs_Delete_Days");
             }
             set { Set("RotateLogs_Delete_Days", value); }
         }
@@ -1407,8 +1404,7 @@ namespace JMMServer
         public static string LanguagePreference
         {
             get
-            {
-                
+            {   
                 return Get("LanguagePreference");
             }
             set { Set("LanguagePreference", value); }
@@ -1425,6 +1421,7 @@ namespace JMMServer
             }
             set { Set("LanguageUseSynonyms", value.ToString()); }
         }
+
         public static int CloudWatcherTime
         {
             get
@@ -1438,6 +1435,7 @@ namespace JMMServer
             }
             set { Set("CloudWatcherTime", ((int)value).ToString()); }
         }
+
         public static DataSourceType EpisodeTitleSource
         {
             get
@@ -1472,7 +1470,6 @@ namespace JMMServer
         {
             get
             {
-                
                 int val = 0;
                 int.TryParse(Get("SeriesNameSource"), out val);
                 if (val <= 0)
