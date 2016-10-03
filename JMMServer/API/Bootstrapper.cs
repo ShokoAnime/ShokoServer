@@ -70,6 +70,7 @@
 			};
 
 			pipelines.BeforeRequest += (NancyContext ctx) => BeforeProcessing(ctx);
+			pipelines.AfterRequest += (NancyContext ctx) => AfterProcessing(ctx);
 
 			GzipCompressionSettings gzipsettings = new GzipCompressionSettings();
 			gzipsettings.MinimumBytes = 16384; //16k
@@ -98,6 +99,12 @@
 			// Request will always be populated!
 			APIv1_Legacy_Module.request = ctx.Request;
 			return null;
+		}
+
+		private void AfterProcessing(NancyContext ctx)
+		{
+			// Set to null after request as not to interfere with contract generation
+			APIv1_Legacy_Module.request = null;
 		}
 	}
 
