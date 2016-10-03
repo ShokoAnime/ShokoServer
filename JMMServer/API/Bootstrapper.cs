@@ -63,11 +63,13 @@
 			StaticConfiguration.DisableErrorTraces = false;
             StatelessAuthentication.Enable(pipelines, configuration);
 
-			pipelines.OnError += (ctx, ex) => {
+			pipelines.OnError += (NancyContext ctx, Exception ex) => {
 				logger.Error("Nancy Error => {0}", ex.ToString());
 			    logger.Error(ex);
 				return null;
 			};
+
+			pipelines.BeforeRequest += (NancyContext ctx) => BeforeProcessing(ctx);
 
 			GzipCompressionSettings gzipsettings = new GzipCompressionSettings();
 			gzipsettings.MinimumBytes = 16384; //16k
@@ -89,6 +91,13 @@
 		protected override DiagnosticsConfiguration DiagnosticsConfiguration
 		{
 			get { return new DiagnosticsConfiguration { Password = @"jmmserver" }; }
+		}
+
+		private Response BeforeProcessing(NancyContext ctx)
+		{
+			// Request will always be populated!
+			APIv1_Legacy_Module.request = ctx.Request;
+			return null;
 		}
 	}
 

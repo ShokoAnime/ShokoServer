@@ -21,13 +21,13 @@ namespace JMMServer.API
 
             // KodiImplementation
             Get["/JMMServerKodi/GetSupportImage/{name}"] = parameter => { return GetSupportImageRest(parameter.name); };
-            Get["/JMMServerKodi/GetFilters/{uid}"] = parameter => { request = this.Request; return GetFilters_Kodi(parameter.uid); };
-            Get["/JMMServerKodi/GetMetadata/{uid}/{type}/{id}"] = parameter => { request = this.Request; return GetMetadata_Kodi(parameter.uid, parameter.type, parameter.id); };
-            Get["/JMMServerKodi/GetMetadata/{uid}/{type}/{id}/nocast"] = parameter => { request = this.Request; return GetMetadata_Kodi(parameter.uid, parameter.type, parameter.id, true); };
+            Get["/JMMServerKodi/GetFilters/{uid}"] = parameter => { return GetFilters_Kodi(parameter.uid); };
+            Get["/JMMServerKodi/GetMetadata/{uid}/{type}/{id}"] = parameter => { return GetMetadata_Kodi(parameter.uid, parameter.type, parameter.id); };
+            Get["/JMMServerKodi/GetMetadata/{uid}/{type}/{id}/nocast"] = parameter => { return GetMetadata_Kodi(parameter.uid, parameter.type, parameter.id, true); };
             Get["/JMMServerKodi/GetUsers"] = _ => { return GetUsers_Kodi(); };
             Get["/JMMServerKodi/GetVersion"] = _ => { return GetVersion(); };
-            Get["/JMMServerKodi/Search/{uid}/{limit}/{query}"] = parameter => { request = this.Request; return Search_Kodi(parameter.uid, parameter.limit, parameter.query); };
-            Get["/JMMServerKodi/SearchTag/{uid}/{limit}/{query}"] = parameter => { request = this.Request; return SearchTag(parameter.uid, parameter.limit, parameter.query); };
+            Get["/JMMServerKodi/Search/{uid}/{limit}/{query}"] = parameter => { return Search_Kodi(parameter.uid, parameter.limit, parameter.query); };
+            Get["/JMMServerKodi/SearchTag/{uid}/{limit}/{query}"] = parameter => { return SearchTag(parameter.uid, parameter.limit, parameter.query); };
             Get["/JMMServerKodi/Watch/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnEpisode_Kodi(parameter.uid, parameter.epid, parameter.status); };
 			Get["/JMMServerKodi/WatchSeries/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnSeries_Kodi(parameter.uid, parameter.epid, parameter.status); };
 			Get["/JMMServerKodi/WatchGroup/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnGroup_Kodi(parameter.uid, parameter.epid, parameter.status); };
@@ -36,10 +36,10 @@ namespace JMMServer.API
 
             // PlexImplementation
             Get["/JMMServerPlex/GetSupportImage/{name}"] = parameter => { return GetSupportImageRest(parameter.name); };
-            Get["/JMMServerPlex/GetFilters/{uid}"] = parameter => { request = this.Request; return GetFilters_Plex(parameter.uid); };
-            Get["/JMMServerPlex/GetMetadata/{uid}/{type}/{id}/{historyinfo}"] = parameter => { request = this.Request; return GetMetadata_Plex(parameter.uid, parameter.type, parameter.id, parameter.historyinfo); };
+            Get["/JMMServerPlex/GetFilters/{uid}"] = parameter => { return GetFilters_Plex(parameter.uid); };
+            Get["/JMMServerPlex/GetMetadata/{uid}/{type}/{id}/{historyinfo}"] = parameter => { return GetMetadata_Plex(parameter.uid, parameter.type, parameter.id, parameter.historyinfo); };
             Get["/JMMServerPlex/GetUsers"] = _ => { return GetUsers_Plex(); };
-            Get["/JMMServerPlex/Search/{uid}/{limit}/{query}"] = parameter => { request = this.Request; return Search_Plex(parameter.uid, parameter.limit, parameter.query); };
+            Get["/JMMServerPlex/Search/{uid}/{limit}/{query}"] = parameter => { return Search_Plex(parameter.uid, parameter.limit, parameter.query); };
             Get["/JMMServerPlex/Watch/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnEpisode_Plex(parameter.uid, parameter.epid, parameter.status); };
             Get["/JMMServerPlex/Vote/{uid}/{id}/{votevalue}/{votetype}"] = parameter => { return VoteAnime_Plex(parameter.uid, parameter.id, parameter.votevalue, parameter.votetype); };
 
