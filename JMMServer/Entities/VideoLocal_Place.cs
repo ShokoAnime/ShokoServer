@@ -354,8 +354,6 @@ namespace JMMServer.Entities
                     }
                 }
                 
-                //int newFolderID = 0;
-                //string newPartialPath = "";
                 string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
                 Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullServerPath);
                 if (tup == null)
@@ -363,6 +361,7 @@ namespace JMMServer.Entities
                     logger.Error($"Unable to LOCATE file {newFullServerPath} inside the import folders");
                     return;
                 }
+
                 logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
 
                 FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);

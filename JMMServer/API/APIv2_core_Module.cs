@@ -164,11 +164,11 @@ namespace JMMServer.API
 
             // 18. Images
             //Get["/cover/{id}"] = x => { return GetImage(x.id, "1/5", false); };
-            Get["/banner/{id}"] = x => { return GetImage(x.id, "4", false); };
             //Get["/fanart/{id}"] = x => { return GetImage(x.id, "7/11/8", false); };
             //Get["/poster/{id}"] = x => { return GetImage(x.id, "10/9", false); };
-            Get["/fanart/{id}"] = x => { return GetImage(x.id, "7", false); };
-            Get["/image/{type}/{id}"] = x => { return GetImage(x.id, x.type, false); };
+            Get["/banner/{id}"] = x => { return GetImage((int)x.id, 4, false); };
+            Get["/fanart/{id}"] = x => { return GetImage((int)x.id, 7, false); };
+            Get["/image/{type}/{id}"] = x => { return GetImage((int)x.id, (int)x.type, false); };
 
             // 19. Logs
             Get["/log/get"] = x => { return GetLog(10,0); };
@@ -1868,10 +1868,10 @@ namespace JMMServer.API
         /// <param name="type"></param>
         /// <param name="thumb"></param>
         /// <returns></returns>
-        private object GetImage(string id, string type, bool thumb)
+        private object GetImage(int id, int type, bool thumb)
         {
 	        string contentType;
-            System.IO.Stream image = _rest.GetImage(type, id, thumb, out contentType);
+            System.IO.Stream image = _rest.GetImage(type.ToString(), id.ToString(), thumb, out contentType);
             Nancy.Response response = new Nancy.Response();
             response = Response.FromStream(image, contentType);
             return response;
