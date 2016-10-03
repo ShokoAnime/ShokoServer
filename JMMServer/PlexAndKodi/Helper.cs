@@ -428,7 +428,10 @@ namespace JMMServer.PlexAndKodi
                         }
                         else
                         {
-                            LogManager.GetCurrentClassLogger().Error("Episode " + aep.EnglishName + " with ID " + aep.EpisodeID + " is out of range for its TvDB Link. Please relink it.");
+	                        string anime = "[Blank]";
+	                        AnimeSeries ser = ep.GetAnimeSeries();
+	                        if (ser != null && ser.GetSeriesName() != null) anime = ser.GetSeriesName();
+                            LogManager.GetCurrentClassLogger().Error("Episode " + aep.EnglishName + " with ID " + aep.EpisodeID + " from " + anime + " is out of range for its TvDB Link. Please relink it.");
                         }
 
                     }
