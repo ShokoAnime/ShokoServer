@@ -5,6 +5,7 @@ using System.Threading;
 using System.Xml;
 using AniDBAPI;
 using JMMContracts;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Providers.TraktTV.Contracts;
@@ -55,7 +56,7 @@ namespace JMMServer.Commands
 
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 

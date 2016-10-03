@@ -10,6 +10,7 @@ using AniDBAPI;
 using AniDBAPI.Commands;
 using JMMServer.Commands;
 using JMMServer.Commands.Azure;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
@@ -1078,7 +1079,7 @@ namespace JMMServer
 
         public AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh, bool downloadRelations)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetAnimeInfoHTTP(session, animeID, forceRefresh, downloadRelations);
             }

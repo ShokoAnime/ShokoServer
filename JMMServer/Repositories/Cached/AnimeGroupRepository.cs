@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -80,7 +81,7 @@ namespace JMMServer.Repositories.Cached
         public void Save(AnimeGroup grp, bool updategrpcontractstats, bool recursive, bool verifylockedFilters = true)
         {
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
                 HashSet<GroupFilterConditionType> types;

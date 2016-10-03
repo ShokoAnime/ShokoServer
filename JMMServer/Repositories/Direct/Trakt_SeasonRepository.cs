@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories.Direct
         }
         public List<Trakt_Season> GetByShowID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(Trakt_Season))
@@ -31,7 +32,7 @@ namespace JMMServer.Repositories.Direct
 
         public Trakt_Season GetByShowIDAndSeason(int id, int season)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByShowIDAndSeason(session, id, season);
             }

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
@@ -91,7 +92,7 @@ namespace JMMServer.Commands
                     grpCol.Groups.Count > 0)
                 {
                     // save in bulk to improve performance
-                    using (var session = JMMService.SessionFactory.OpenSession())
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
                         foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
                         {

@@ -3,6 +3,7 @@
 using System.Xml;
 using AniDBAPI;
 using JMMServer.Commands.AniDB;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
@@ -58,74 +59,76 @@ namespace JMMServer.Commands
             {
                 vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
                 if (vlocal == null) return;
-
-                AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
-
-                /*// get anidb file info from web cache
-				if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
-				{
-					AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
-					if (fr != null)
-					{
-						aniFile = new AniDB_File();
-						aniFile.Populate(fr);
-
-						//overwrite with local file name
-						string localFileName = Path.GetFileName(vlocal.FilePath);
-						aniFile.FileName = localFileName;
-
-						repAniFile.Save(aniFile, false);
-						aniFile.CreateLanguages();
-						aniFile.CreateCrossEpisodes(localFileName);
-
-						StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
-					}
-				}*/
-
-                Raw_AniDB_File fileInfo = null;
-                if (aniFile == null || ForceAniDB)
-                    fileInfo = JMMService.AnidbProcessor.GetFileInfo(vlocal);
-
-                if (fileInfo != null)
+                lock (vlocal)
                 {
-                    // save to the database
-                    if (aniFile == null)
-                        aniFile = new AniDB_File();
+                    AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
 
-                    aniFile.Populate(fileInfo);
-
-                    //overwrite with local file name
-                    string localFileName = vlocal.FileName;
-                    aniFile.FileName = localFileName;
-
-                    RepoFactory.AniDB_File.Save(aniFile, false);
-                    aniFile.CreateLanguages();
-                    aniFile.CreateCrossEpisodes(localFileName);
-
-                    if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
+                    /*// get anidb file info from web cache
+                    if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
                     {
-                        string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
-                        foreach (string epid in epIDs)
+                        AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
+                        if (fr != null)
                         {
-                            int id = 0;
-                            if (int.TryParse(epid, out id))
+                            aniFile = new AniDB_File();
+                            aniFile.Populate(fr);
+    
+                            //overwrite with local file name
+                            string localFileName = Path.GetFileName(vlocal.FilePath);
+                            aniFile.FileName = localFileName;
+    
+                            repAniFile.Save(aniFile, false);
+                            aniFile.CreateLanguages();
+                            aniFile.CreateCrossEpisodes(localFileName);
+    
+                            StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
+                        }
+                    }*/
+
+                    Raw_AniDB_File fileInfo = null;
+                    if (aniFile == null || ForceAniDB)
+                        fileInfo = JMMService.AnidbProcessor.GetFileInfo(vlocal);
+
+                    if (fileInfo != null)
+                    {
+                        // save to the database
+                        if (aniFile == null)
+                            aniFile = new AniDB_File();
+
+                        aniFile.Populate(fileInfo);
+
+                        //overwrite with local file name
+                        string localFileName = vlocal.FileName;
+                        aniFile.FileName = localFileName;
+
+                        RepoFactory.AniDB_File.Save(aniFile, false);
+                        aniFile.CreateLanguages();
+                        aniFile.CreateCrossEpisodes(localFileName);
+
+                        if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
+                        {
+                            string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
+                            foreach (string epid in epIDs)
                             {
-                                CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
-                                cmdEp.Save();
+                                int id = 0;
+                                if (int.TryParse(epid, out id))
+                                {
+                                    CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
+                                    cmdEp.Save();
+                                }
                             }
                         }
-                    }
-                    AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
-                    if (anime != null)
-                    {
-                        using (var session = JMMService.SessionFactory.OpenSession())
+                        AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
+                        if (anime != null)
                         {
-                            anime.UpdateContractDetailed(session.Wrap());
+                            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                            {
+                                anime.UpdateContractDetailed(session.Wrap());
+                            }
                         }
-                    }
-                    AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
-                    series.UpdateStats(false, true, true);
+                        AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
+                        series.UpdateStats(false, true, true);
 //					StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
+                    }
                 }
             }
             catch (Exception ex)

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -19,7 +20,7 @@ namespace JMMServer.Repositories.Direct
         }
         public AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByAnimeIDAndRelationID(session, animeid, relatedanimeid);
             }
@@ -37,7 +38,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<AniDB_Anime_Relation> GetByAnimeID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByAnimeID(session.Wrap(), id);
             }

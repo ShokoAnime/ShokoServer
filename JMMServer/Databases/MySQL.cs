@@ -4,37 +4,21 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
-using JMMServer.Entities;
-using JMMServer.Repositories;
 using MySql.Data.MySqlClient;
 using NHibernate;
-using NLog;
+// ReSharper disable InconsistentNaming
+
 
 namespace JMMServer.Databases
 {
-    public class MySQL : IDatabase
+    public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
         public string Name { get; } = "MySQL";
         public int RequiredVersion { get; } = 57;
 
         public static MySQL Instance { get; } = new MySQL();
 
-        public Dictionary<string, Dictionary<string, Versions>> AllVersions { get; }
 
-        private MySQL()
-        {
-            try
-            {
-                AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
-
-            }
-            catch (Exception) //First Time
-            {
-                AllVersions=new Dictionary<string, Dictionary<string, Versions>>();
-            }
-        }
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
         {
             new DatabaseCommand(0, 1,"CREATE TABLE `Versions` ( `VersionsID` INT NOT NULL AUTO_INCREMENT , `VersionType` VARCHAR(100) NOT NULL , `VersionValue` VARCHAR(100) NOT NULL ,  PRIMARY KEY (`VersionsID`) ) ; "),
@@ -163,8 +147,8 @@ namespace JMMServer.Databases
             new DatabaseCommand(4, 1,"ALTER TABLE AnimeGroup ADD DefaultAnimeSeriesID int NULL"),
             new DatabaseCommand(5, 1,"ALTER TABLE JMMUser ADD CanEditServerSettings int NULL"),
             new DatabaseCommand(6, 1,"ALTER TABLE VideoInfo ADD VideoBitDepth varchar(100) NULL"),
-            new DatabaseCommand(7, 1, (Action) DatabaseFixes.FixDuplicateTvDBLinks),
-            new DatabaseCommand(7, 2, (Action) DatabaseFixes.FixDuplicateTraktLinks),
+            new DatabaseCommand(7, 1, DatabaseFixes.FixDuplicateTvDBLinks),
+            new DatabaseCommand(7, 2, DatabaseFixes.FixDuplicateTraktLinks),
             new DatabaseCommand(7, 3,"ALTER TABLE `CrossRef_AniDB_TvDB` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TvDB_Season` (`TvDBID` ASC, `TvDBSeasonNumber` ASC) ;"),
             new DatabaseCommand(7, 4,"ALTER TABLE `CrossRef_AniDB_Trakt` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_Trakt_Season` (`TraktID` ASC, `TraktSeasonNumber` ASC) ;"),
             new DatabaseCommand(7, 5,"ALTER TABLE `CrossRef_AniDB_Trakt` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_Trakt_Anime` (`AnimeID` ASC) ;"),
@@ -247,15 +231,15 @@ namespace JMMServer.Databases
             new DatabaseCommand(28, 1,"CREATE TABLE LogMessage( LogMessageID INT NOT NULL AUTO_INCREMENT, LogType text character set utf8, LogContent text character set utf8, LogDate datetime NOT NULL, PRIMARY KEY (`LogMessageID`) ) ; "),
             new DatabaseCommand(29, 1,"CREATE TABLE CrossRef_AniDB_TvDBV2( CrossRef_AniDB_TvDBV2ID INT NOT NULL AUTO_INCREMENT, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TvDBID int NOT NULL, TvDBSeasonNumber int NOT NULL, TvDBStartEpisodeNumber int NOT NULL, TvDBTitle text character set utf8, CrossRefSource int NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TvDBV2ID`) ) ; "),
             new DatabaseCommand(29, 2,"ALTER TABLE `CrossRef_AniDB_TvDBV2` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TvDBV2` (`AnimeID` ASC, `TvDBID` ASC, `TvDBSeasonNumber` ASC, `TvDBStartEpisodeNumber` ASC, `AniDBStartEpisodeType` ASC, `AniDBStartEpisodeNumber` ASC) ;"),
-            new DatabaseCommand(29, 3, (Action) DatabaseFixes.MigrateTvDBLinks_V1_to_V2),
+            new DatabaseCommand(29, 3, DatabaseFixes.MigrateTvDBLinks_V1_to_V2),
             new DatabaseCommand(30, 1, "ALTER TABLE `GroupFilter` ADD `Locked` int NULL ;"),
             new DatabaseCommand(31, 1, "ALTER TABLE VideoInfo ADD FullInfo varchar(10000) NULL"),
             new DatabaseCommand(32, 1,"CREATE TABLE CrossRef_AniDB_TraktV2( CrossRef_AniDB_TraktV2ID INT NOT NULL AUTO_INCREMENT, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TraktID varchar(100) character set utf8, TraktSeasonNumber int NOT NULL, TraktStartEpisodeNumber int NOT NULL, TraktTitle text character set utf8, CrossRefSource int NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TraktV2ID`) ) ; "),
             new DatabaseCommand(32, 2,"ALTER TABLE `CrossRef_AniDB_TraktV2` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TraktV2` (`AnimeID` ASC, `TraktSeasonNumber` ASC, `TraktStartEpisodeNumber` ASC, `AniDBStartEpisodeType` ASC, `AniDBStartEpisodeNumber` ASC) ;"),
-            new DatabaseCommand(32, 3, (Action) DatabaseFixes.MigrateTraktLinks_V1_to_V2),
+            new DatabaseCommand(32, 3, DatabaseFixes.MigrateTraktLinks_V1_to_V2),
             new DatabaseCommand(33, 1,"CREATE TABLE `CrossRef_AniDB_Trakt_Episode` ( `CrossRef_AniDB_Trakt_EpisodeID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `AniDBEpisodeID` int NOT NULL, `TraktID` varchar(100) character set utf8, `Season` int NOT NULL, `EpisodeNumber` int NOT NULL, PRIMARY KEY (`CrossRef_AniDB_Trakt_EpisodeID`) ) ; "),
             new DatabaseCommand(33, 2,"ALTER TABLE `CrossRef_AniDB_Trakt_Episode` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID` (`AniDBEpisodeID` ASC) ;"),
-            new DatabaseCommand(34, 1, (Action) DatabaseFixes.RemoveOldMovieDBImageRecords),
+            new DatabaseCommand(34, 1, DatabaseFixes.RemoveOldMovieDBImageRecords),
             new DatabaseCommand(35, 1,"CREATE TABLE `CustomTag` ( `CustomTagID` INT NOT NULL AUTO_INCREMENT, `TagName` text character set utf8, `TagDescription` text character set utf8, PRIMARY KEY (`CustomTagID`) ) ; "),
             new DatabaseCommand(35, 2,"CREATE TABLE `CrossRef_CustomTag` ( `CrossRef_CustomTagID` INT NOT NULL AUTO_INCREMENT, `CustomTagID` int NOT NULL, `CrossRefID` int NOT NULL, `CrossRefType` int NOT NULL, PRIMARY KEY (`CrossRef_CustomTagID`) ) ; "),
             new DatabaseCommand(36, 1,$"ALTER DATABASE {ServerSettings.MySQL_SchemaName} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;"),
@@ -264,16 +248,16 @@ namespace JMMServer.Databases
             new DatabaseCommand(37, 3,"ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_MALID` (`MALID` ASC) ;"),
             new DatabaseCommand(37, 4,"ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_Anime` (`AnimeID` ASC, `StartEpisodeType` ASC, `StartEpisodeNumber` ASC) ;"),
             new DatabaseCommand(38, 1, "ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
-            new DatabaseCommand(39, 1, (Action) DatabaseFixes.PopulateTagWeight),
+            new DatabaseCommand(39, 1, DatabaseFixes.PopulateTagWeight),
             new DatabaseCommand(40, 1, "ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-            new DatabaseCommand(41, 1, (Action) DatabaseFixes.FixHashes),
+            new DatabaseCommand(41, 1, DatabaseFixes.FixHashes),
             new DatabaseCommand(42, 1, "drop table `LogMessage`;"),
             new DatabaseCommand(43, 1, "ALTER TABLE AnimeSeries ADD DefaultFolder text character set utf8"),
             new DatabaseCommand(44, 1, "ALTER TABLE JMMUser ADD PlexUsers text character set utf8"),
             new DatabaseCommand(45, 1, "ALTER TABLE `GroupFilter` ADD `FilterType` int NULL ;"),
             new DatabaseCommand(45, 2, "UPDATE GroupFilter SET FilterType = 1 ;"),
             new DatabaseCommand(45, 3,"ALTER TABLE `GroupFilter` CHANGE COLUMN `FilterType` `FilterType` int NOT NULL ;"),
-            new DatabaseCommand(45, 4, (Action) DatabaseFixes.FixContinueWatchingGroupFilter_20160406),
+            new DatabaseCommand(45, 4, DatabaseFixes.FixContinueWatchingGroupFilter_20160406),
             new DatabaseCommand(46, 1, "ALTER TABLE `AniDB_Anime` ADD `ContractVersion` int NOT NULL DEFAULT 0"),
             new DatabaseCommand(46, 2,"ALTER TABLE `AniDB_Anime` ADD `ContractString` mediumtext character set utf8 NULL"),
             new DatabaseCommand(46, 3, "ALTER TABLE `AnimeGroup` ADD `ContractVersion` int NOT NULL DEFAULT 0"),
@@ -333,7 +317,7 @@ namespace JMMServer.Databases
             new DatabaseCommand(51, 23, "ALTER TABLE `AnimeGroup` ADD `ContractSize` int NOT NULL DEFAULT 0"),
             new DatabaseCommand(51, 24, "ALTER TABLE `AnimeGroup` DROP COLUMN `ContractString`"),
             new DatabaseCommand(52, 1, "ALTER TABLE `AniDB_Anime` DROP COLUMN `AllCategories`"),
-            new DatabaseCommand(53, 1, (Action) DatabaseFixes.DeleteSerieUsersWithoutSeries),
+            new DatabaseCommand(53, 1, DatabaseFixes.DeleteSerieUsersWithoutSeries),
             new DatabaseCommand(54, 1,"CREATE TABLE `VideoLocal_Place` ( `VideoLocal_Place_ID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` int NOT NULL, `FilePath` text character set utf8 NOT NULL, `ImportFolderID` int NOT NULL, `ImportFolderType` int NOT NULL, PRIMARY KEY (`VideoLocal_Place_ID`) ) ; "),
             new DatabaseCommand(54, 2, "ALTER TABLE `VideoLocal` ADD `FileName` text character set utf8 NOT NULL"),
             new DatabaseCommand(54, 3, "ALTER TABLE `VideoLocal` ADD `VideoCodec` varchar(100) NOT NULL DEFAULT ''"),
@@ -469,39 +453,71 @@ namespace JMMServer.Databases
                 }
             }
         }
-
-
-        private Tuple<bool, string> CommandWrapper(string command)
+        protected override Tuple<bool, string> ExecuteCommand(MySqlConnection connection, string command)
         {
-            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            try
             {
-                conn.Open();
-                using (MySqlCommand scommand = new MySqlCommand(command, conn))
+                Execute(connection,command);
+                return new Tuple<bool, string>(true, null);
+            }
+            catch (Exception ex)
+            {
+                return new Tuple<bool, string>(false, ex.ToString());
+            }
+        }
+
+        protected override void Execute(MySqlConnection connection, string command)
+        {
+            using (MySqlCommand scommand = new MySqlCommand(command, connection))
+            {
+                scommand.CommandTimeout = 0;
+                scommand.ExecuteNonQuery();
+            }
+        }
+
+        protected override long ExecuteScalar(MySqlConnection connection, string command)
+        {
+            using (MySqlCommand cmd = new MySqlCommand(command, connection))
+            {
+                cmd.CommandTimeout = 0;
+                object result = cmd.ExecuteScalar();
+                return long.Parse(result.ToString());
+            }
+        }
+
+        protected override ArrayList ExecuteReader(MySqlConnection connection, string command)
+        {
+            using (MySqlCommand cmd = new MySqlCommand(command, connection))
+            {
+                cmd.CommandTimeout = 0;
+                using (MySqlDataReader reader = cmd.ExecuteReader())
                 {
-                    scommand.CommandTimeout = 0;
-                    try
+                    ArrayList rows=new ArrayList();
+                    while (reader.Read())
                     {
-                        scommand.ExecuteNonQuery();
-                        return new Tuple<bool, string>(true, null);
+                        object[] values = new object[reader.FieldCount];
+                        reader.GetValues(values);
+                        rows.Add(values);
                     }
-                    catch (Exception ex)
-                    {
-                        return new Tuple<bool, string>(false, ex.ToString());
-                    }
+                    reader.Close();
+                    return rows;
                 }
             }
         }
 
-        public Tuple<bool, string> ExecuteCommand(DatabaseCommand cmd)
+        protected override void ConnectionWrapper(string connectionstring, Action<MySqlConnection> action)
         {
-            return this.ExecuteCommand(cmd, CommandWrapper);
+            using (MySqlConnection conn = new MySqlConnection(connectionstring))
+            {
+                conn.Open();
+                action(conn);
+            }
         }
 
-        public static string GetConnectionString()
+
+        public override string GetConnectionString()
         {
-            return string.Format("Server={0};Database={1};User ID={2};Password={3};Default Command Timeout=3600",
-                ServerSettings.MySQL_Hostname, ServerSettings.MySQL_SchemaName, ServerSettings.MySQL_Username,
-                ServerSettings.MySQL_Password);
+            return $"Server={ServerSettings.MySQL_Hostname};Database={ServerSettings.MySQL_SchemaName};User ID={ServerSettings.MySQL_Username};Password={ServerSettings.MySQL_Password};Default Command Timeout=3600";
         }
 
 
@@ -521,33 +537,30 @@ namespace JMMServer.Databases
         {
             try
             {
-                string connStr = string.Format("Server={0};User ID={1};Password={2}", ServerSettings.MySQL_Hostname,
-                    ServerSettings.MySQL_Username, ServerSettings.MySQL_Password);
+                string connStr =
+                    $"Server={ServerSettings.MySQL_Hostname};User ID={ServerSettings.MySQL_Username};Password={ServerSettings.MySQL_Password}";
 
-                string sql =
-                    string.Format("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{0}'",
-                        ServerSettings.MySQL_SchemaName);
-                logger.Trace(sql);
+                string sql = $"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{ServerSettings.MySQL_SchemaName}'";
+                Logger.Trace(sql);
+
                 using (MySqlConnection conn = new MySqlConnection(connStr))
                 {
-                    // if the Versions already exists, it means we have done this already
-                    MySqlCommand cmd = new MySqlCommand(sql, conn);
                     conn.Open();
-                    MySqlDataReader reader = cmd.ExecuteReader();
-                    while (reader.Read())
+                    ArrayList rows = ExecuteReader(conn, sql);
+                    if (rows.Count>0)
                     {
-                        string db = reader.GetString(0);
-                        logger.Trace("Found db already exists: {0}", db);
+                        string db = (string)rows[0];
+                        Logger.Trace("Found db already exists: {0}", db);
                         return true;
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, ex.ToString());
+                Logger.Error(ex, ex.ToString());
             }
 
-            logger.Trace("db does not exist: {0}", ServerSettings.MySQL_SchemaName);
+            Logger.Trace("db does not exist: {0}", ServerSettings.MySQL_SchemaName);
             return false;
         }
 
@@ -557,112 +570,55 @@ namespace JMMServer.Databases
             {
                 if (DatabaseAlreadyExists()) return;
 
-                string connStr = string.Format("Server={0};User ID={1};Password={2}",
-                    ServerSettings.MySQL_Hostname, ServerSettings.MySQL_Username, ServerSettings.MySQL_Password);
+                string connStr = $"Server={ServerSettings.MySQL_Hostname};User ID={ServerSettings.MySQL_Username};Password={ServerSettings.MySQL_Password}";
+                Logger.Trace(connStr);
+                string sql = $"CREATE DATABASE {ServerSettings.MySQL_SchemaName} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
+                Logger.Trace(sql);
 
-                logger.Trace(connStr);
-                string sql =
-                    string.Format("CREATE DATABASE {0} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;",
-                        ServerSettings.MySQL_SchemaName);
-                logger.Trace(sql);
                 using (MySqlConnection conn = new MySqlConnection(connStr))
                 {
-                    MySqlCommand cmd = new MySqlCommand(sql, conn);
                     conn.Open();
-                    cmd.ExecuteNonQuery();
+                    Execute(conn, sql);
                 }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, ex.ToString());
+                Logger.Error(ex, ex.ToString());
             }
         }
-
-        //TODO Depreacate
-        public ArrayList GetData(string sql)
-        {
-            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
-            {
-                ArrayList rowList = new ArrayList();
-                conn.Open();
-                using (MySqlCommand command = new MySqlCommand(sql, conn))
-                {
-                    try
-                    {
-                        MySqlDataReader reader = command.ExecuteReader();
-                        while (reader.Read())
-                        {
-                            object[] values = new object[reader.FieldCount];
-                            reader.GetValues(values);
-                            rowList.Add(values);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(sql + " - " + ex.Message);
-                    }
-                }
-                return rowList;
-            }
-        }
-
 
 
         public void CreateAndUpdateSchema()
         {
-            int count;
-            string sql =
-                $"select count(*) from information_schema.tables where table_schema='{ServerSettings.MySQL_SchemaName}' and table_name = 'Versions'";
-            bool create = false;
-            bool fixtablesforlinux = false;
-            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+            Fixes=new List<DatabaseCommand>();
+            ConnectionWrapper(GetConnectionString(), (myConn) =>
             {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand(sql, conn);
-                object result = cmd.ExecuteScalar();
-                count = int.Parse(result.ToString());
-            }
-            // if the Versions already exists, it means we have done this already
-            if (count == 0)
-            {
-                sql =
-                    $"select count(*) from information_schema.tables where table_schema='{ServerSettings.MySQL_SchemaName}' and table_name = 'versions'";
-                using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
+                bool create = false;
+                bool fixtablesforlinux = false;
+                long count = ExecuteScalar(myConn, $"select count(*) from information_schema.tables where table_schema='{ServerSettings.MySQL_SchemaName}' and table_name = 'Versions'");
+                if (count==0)
                 {
-                    conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(sql, conn);
-                    object result = cmd.ExecuteScalar();
-                    count = int.Parse(result.ToString());
+                    count = ExecuteScalar(myConn, $"select count(*) from information_schema.tables where table_schema='{ServerSettings.MySQL_SchemaName}' and table_name = 'versions'");
+                    if (count > 0)
+                    {
+                        fixtablesforlinux = true;
+                        ExecuteWithException(myConn, linuxTableVersionsFix);
+                    }
+                    else
+                        create = true;
                 }
-                if (count > 0)
-                {
-                    fixtablesforlinux = true;
-                    this.ExecuteWithException(linuxTableVersionsFix);
-                }
-                else
-                    create = true;
-            }
-            if (create)
-                this.ExecuteWithException(createVersionTable);
-            sql =$"select count(*) from information_schema.tables where table_schema='{ServerSettings.MySQL_SchemaName}' and table_name = 'Versions' and AND COLUMN_NAME = 'VersionRevision'";
-            using (MySqlConnection conn = new MySqlConnection(GetConnectionString()))
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand(sql, conn);
-                object result = cmd.ExecuteScalar();
-                count = int.Parse(result.ToString());
-            }
-            if (count == 0)
-                this.ExecuteWithException(updateVersionTable);
-            this.PreFillVersions(createTables.Union(patchCommands));
-            if (create)
-                this.ExecuteWithException(createTables);
-            if (fixtablesforlinux)
-                this.ExecuteWithException(linuxTableFixes);
-            this.ExecuteWithException(patchCommands);
-
+                if (create)
+                    ExecuteWithException(myConn, createVersionTable);
+                count = ExecuteScalar(myConn, $"select count(*) from information_schema.tables where table_schema='{ServerSettings.MySQL_SchemaName}' and table_name = 'Versions' and AND COLUMN_NAME = 'VersionRevision'");
+                if (count == 0)
+                    ExecuteWithException(myConn, updateVersionTable);
+                PreFillVersions(createTables.Union(patchCommands));
+                if (create)
+                    ExecuteWithException(myConn, createTables);
+                if (fixtablesforlinux)
+                    ExecuteWithException(myConn, linuxTableFixes);
+                ExecuteWithException(myConn, patchCommands);
+            });          
         }
-
-
     }
 }

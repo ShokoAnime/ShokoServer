@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -19,7 +20,7 @@ namespace JMMServer.Repositories.Direct
         }
         public List<Trakt_ImageFanart> GetByShowID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByShowID(session, id);
             }
@@ -37,7 +38,7 @@ namespace JMMServer.Repositories.Direct
 
         public Trakt_ImageFanart GetByShowIDAndSeason(int showID, int seasonNumber)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 Trakt_ImageFanart obj = session
                     .CreateCriteria(typeof(Trakt_ImageFanart))

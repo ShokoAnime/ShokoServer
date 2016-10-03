@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using JMMContracts;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories.NHibernate;
@@ -85,7 +86,7 @@ namespace JMMServer.Repositories.Cached
             {
                 UpdatePlexKodiContracts(obj);
                 AnimeSeries_User old;
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     old = session.Get<AnimeSeries_User>(obj.AnimeSeries_UserID);
                 }
@@ -102,7 +103,7 @@ namespace JMMServer.Repositories.Cached
 
         private void UpdatePlexKodiContracts(AnimeSeries_User ugrp)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ugrp.AnimeSeriesID);
                 Contract_AnimeSeries con = ser?.GetUserContract(ugrp.JMMUserID);

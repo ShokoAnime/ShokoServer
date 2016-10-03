@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Xml;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Providers.MovieDB;
 using JMMServer.Repositories;
@@ -51,7 +52,7 @@ namespace JMMServer.Commands
 
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 

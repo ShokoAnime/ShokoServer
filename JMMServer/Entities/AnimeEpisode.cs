@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AniDBAPI;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
+using JMMServer.Databases;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
@@ -92,7 +93,7 @@ namespace JMMServer.Entities
         /// </summary>
         public AnimeSeries GetAnimeSeries()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetAnimeSeries(session.Wrap());
             }
@@ -105,7 +106,7 @@ namespace JMMServer.Entities
 
         public List<VideoLocal> GetVideoLocals()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetVideoLocals(session);
             }

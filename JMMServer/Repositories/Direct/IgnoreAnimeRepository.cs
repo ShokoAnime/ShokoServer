@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 
@@ -17,7 +18,7 @@ namespace JMMServer.Repositories.Direct
         }
         public IgnoreAnime GetByAnimeUserType(int animeID, int userID, int ignoreType)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 IgnoreAnime obj = session
                     .CreateCriteria(typeof(IgnoreAnime))
@@ -32,7 +33,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<IgnoreAnime> GetByUserAndType(int userID, int ignoreType)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(IgnoreAnime))
@@ -46,7 +47,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<IgnoreAnime> GetByUser(int userID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(IgnoreAnime))

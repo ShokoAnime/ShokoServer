@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 // ReSharper disable InconsistentNaming
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories
 
         public virtual T GetByID(S id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return session.Get<T>(id);
             }
@@ -36,7 +37,7 @@ namespace JMMServer.Repositories
 
         public virtual List<T> GetAll()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return new List<T>(session.CreateCriteria(typeof(T)).List<T>());
             }
@@ -63,7 +64,7 @@ namespace JMMServer.Repositories
             if (cr != null)
             {
                 BeginDeleteCallback?.Invoke(cr);
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     using (var transaction = session.BeginTransaction())
                     {
@@ -82,7 +83,7 @@ namespace JMMServer.Repositories
                 return;
             foreach(T obj in objs)
                 BeginDeleteCallback?.Invoke(obj);
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
                 {
@@ -125,7 +126,7 @@ namespace JMMServer.Repositories
         public virtual void Save(T obj)
         {
             BeginSaveCallback?.Invoke(obj);
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
                 {
@@ -143,7 +144,7 @@ namespace JMMServer.Repositories
                 return;
             foreach(T obj in objs)
                 BeginSaveCallback?.Invoke(obj);
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
                 {

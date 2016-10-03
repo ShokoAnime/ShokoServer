@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate.Criterion;
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories.Direct
         }
         public List<AniDB_Anime_Character> GetByAnimeID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var cats = session
                     .CreateCriteria(typeof(AniDB_Anime_Character))
@@ -41,7 +42,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<AniDB_Anime_Character> GetByCharID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var cats = session
                     .CreateCriteria(typeof(AniDB_Anime_Character))
@@ -54,7 +55,7 @@ namespace JMMServer.Repositories.Direct
 
         public AniDB_Anime_Character GetByAnimeIDAndCharID(int animeid, int charid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 AniDB_Anime_Character cr = session
                     .CreateCriteria(typeof(AniDB_Anime_Character))

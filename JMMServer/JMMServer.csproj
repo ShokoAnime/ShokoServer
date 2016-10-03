@@ -319,8 +319,10 @@
     <Compile Include="API\Model\WebNews.cs" />
     <Compile Include="API\UserDatabase.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
+    <Compile Include="Databases\BaseDatabase.cs" />
     <Compile Include="Databases\DatabaseCommandException.cs" />
     <Compile Include="Databases\DatabaseCommand.cs" />
+    <Compile Include="Databases\DatabaseFactory.cs" />
     <Compile Include="Databases\DatabaseFixes.cs" />
     <Compile Include="Databases\IDatabase.cs" />
     <Compile Include="Entities\AuthTokens.cs" />
@@ -432,7 +434,6 @@
     <Compile Include="Commands\QueueStateEventArgs.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="CustomHttpBinding.cs" />
-    <Compile Include="Databases\DatabaseExtensions.cs" />
     <Compile Include="Databases\MySQL.cs" />
     <Compile Include="Entities\AniDB_MylistStats.cs" />
     <Compile Include="Entities\AniDB_Recommendation.cs" />

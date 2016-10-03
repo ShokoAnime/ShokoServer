@@ -11,7 +11,7 @@ namespace JMMServer.Databases
         public int Version { get; }
         public int Revision { get; }
         public string Command { get; }
-        public Func<Tuple<bool,string>> UpdateCommand { get; }
+        public Func<object, Tuple<bool,string>> UpdateCommand { get; }
         public Action DatabaseFix { get; }
 
         public DatabaseCommandType Type
@@ -38,13 +38,13 @@ namespace JMMServer.Databases
             Revision = revision;
             DatabaseFix = databasefix;
         }
-        public DatabaseCommand(int version, int revision, Func<Tuple<bool,string>> updatecommand)
+        public DatabaseCommand(int version, int revision, Func<object, Tuple<bool,string>> updatecommand)
         {
             Version = version;
             Revision = revision;
             UpdateCommand = updatecommand;
         }
-        public DatabaseCommand( Func<Tuple<bool, string>> updatecommand)
+        public DatabaseCommand( Func<object, Tuple<bool, string>> updatecommand)
         {
             Version = 0;
             Revision = 0;

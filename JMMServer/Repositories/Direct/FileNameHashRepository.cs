@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 
@@ -17,7 +18,7 @@ namespace JMMServer.Repositories.Direct
         }
         public List<FileNameHash> GetByHash(string hash)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var xrefs = session
                     .CreateCriteria(typeof(FileNameHash))
@@ -30,7 +31,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<FileNameHash> GetByFileNameAndSize(string filename, long filesize)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var fnhashes = session
                     .CreateCriteria(typeof(FileNameHash))
@@ -44,7 +45,7 @@ namespace JMMServer.Repositories.Direct
 
         public FileNameHash GetByNameSizeAndHash(string filename, long filesize, string hash)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 FileNameHash fnhash = session
                     .CreateCriteria(typeof(FileNameHash))

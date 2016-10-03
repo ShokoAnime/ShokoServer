@@ -1,4 +1,5 @@
-﻿using JMMServer.Entities;
+﻿using JMMServer.Databases;
+using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
 
@@ -17,7 +18,7 @@ namespace JMMServer.Repositories.Direct
         }
         public AniDB_ReleaseGroup GetByGroupID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 AniDB_ReleaseGroup cr = session
                     .CreateCriteria(typeof(AniDB_ReleaseGroup))

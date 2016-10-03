@@ -1832,7 +1832,7 @@ namespace JMMServer
 
             try
             {
-                logger.Info(string.Format("Database Version: {0}", DatabaseExtensions.Instance.GetDatabaseVersion()));
+                logger.Info(string.Format("Database Version: {0}", DatabaseFactory.Instance.GetDatabaseVersion()));
             }
             catch (Exception ex)
             {

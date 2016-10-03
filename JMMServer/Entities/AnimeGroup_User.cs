@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using JMMContracts.PlexAndKodi;
+using JMMServer.Databases;
 using JMMServer.LZ4;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
@@ -125,7 +126,7 @@ namespace JMMServer.Entities
 
         public void UpdatePlexKodiContracts()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
                 AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);

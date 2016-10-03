@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate.Criterion;
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories.Direct
         }
         public TvDB_Episode GetByTvDBID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 TvDB_Episode cr = session
                     .CreateCriteria(typeof(TvDB_Episode))
@@ -30,7 +31,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<TvDB_Episode> GetBySeriesID(int seriesID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetBySeriesID(session.Wrap(), seriesID);
             }
@@ -49,7 +50,7 @@ namespace JMMServer.Repositories.Direct
         public List<int> GetSeasonNumbersForSeries(int seriesID)
         {
             List<int> seasonNumbers = new List<int>();
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(TvDB_Episode))
@@ -71,7 +72,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<TvDB_Episode> GetBySeriesIDAndSeasonNumber(int seriesID, int seasonNumber)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(TvDB_Episode))
@@ -85,7 +86,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<TvDB_Episode> GetBySeriesIDAndSeasonNumberSorted(int seriesID, int seasonNumber)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(TvDB_Episode))

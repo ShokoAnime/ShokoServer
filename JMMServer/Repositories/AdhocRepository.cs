@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using JMMServer.Databases;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 
@@ -33,7 +34,7 @@ namespace JMMServer.Repositories
         {
             List<string> allVidQuality = new List<string>();
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 System.Data.IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT Distinct(File_Source) FROM AniDB_File";
@@ -59,7 +60,7 @@ namespace JMMServer.Repositories
         {
             Dictionary<int, HashSet<string>> allVidQuality = new Dictionary<int, HashSet<string>>();
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 System.Data.IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT ag.AnimeGroupID, anifile.File_Source ";
@@ -105,7 +106,7 @@ namespace JMMServer.Repositories
         {
             Dictionary<int, HashSet<string>> allVidQuality = new Dictionary<int, HashSet<string>>();
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 System.Data.IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source ";
@@ -147,7 +148,7 @@ namespace JMMServer.Repositories
         {
             HashSet<string> vidQuals = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 System.Data.IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT anifile.File_Source ";
@@ -179,7 +180,7 @@ namespace JMMServer.Repositories
 
         public HashSet<string> GetAllVideoQualityForAnime(int animeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetAllVideoQualityForAnime(session.Wrap(), animeID);
             }
@@ -268,7 +269,7 @@ namespace JMMServer.Repositories
 
         public Dictionary<int, AnimeVideoQualityStat> GetEpisodeVideoQualityStatsByAnime()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetEpisodeVideoQualityStatsByAnime(session.Wrap());
             }
@@ -422,7 +423,7 @@ namespace JMMServer.Repositories
         {
             List<string> allLanguages = new List<string>();
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 System.Data.IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT Distinct(lan.LanguageName) ";
@@ -451,7 +452,7 @@ namespace JMMServer.Repositories
         {
             List<string> allLanguages = new List<string>();
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 System.Data.IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT Distinct(lan.LanguageName) ";
@@ -477,7 +478,7 @@ namespace JMMServer.Repositories
             Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
 
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 System.Data.IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, lan.LanguageName ";
@@ -529,7 +530,7 @@ namespace JMMServer.Repositories
             Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
 
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 System.Data.IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, lan.LanguageName ";
@@ -630,7 +631,7 @@ namespace JMMServer.Repositories
 
         public Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnime(int aID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetAudioLanguageStatsByAnimeResults(session.Wrap(), " = " + aID);
             }
@@ -655,7 +656,7 @@ namespace JMMServer.Repositories
 
         public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnime(int aID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetSubtitleLanguageStatsByAnimeResults(session.Wrap(), " = " + aID);
             }

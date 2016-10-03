@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 
@@ -17,7 +18,7 @@ namespace JMMServer.Repositories.Direct
         }
         public List<CrossRef_Subtitles_AniDB_File> GetByFileID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var files = session
                     .CreateCriteria(typeof(CrossRef_Subtitles_AniDB_File))

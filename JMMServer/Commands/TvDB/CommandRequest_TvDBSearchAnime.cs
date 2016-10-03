@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Xml;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
@@ -49,7 +50,7 @@ namespace JMMServer.Commands
 
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     // first check if the user wants to use the web cache
                     if (ServerSettings.WebCache_TvDB_Get)

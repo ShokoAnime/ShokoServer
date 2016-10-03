@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate.Criterion;
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories.Direct
         }
         public TvDB_ImagePoster GetByTvDBID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 TvDB_ImagePoster cr = session
                     .CreateCriteria(typeof(TvDB_ImagePoster))
@@ -31,7 +32,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<TvDB_ImagePoster> GetBySeriesID(int seriesID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetBySeriesID(session.Wrap(), seriesID);
             }

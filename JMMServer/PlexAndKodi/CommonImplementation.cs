@@ -10,6 +10,7 @@ using FluentNHibernate.Conventions;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.PlexAndKodi.Kodi;
 using JMMServer.Properties;
@@ -63,7 +64,7 @@ namespace JMMServer.PlexAndKodi
             List<Video> dirs = new List<Video>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel().Where(a => a.InvisibleInClients == 0 &&
                     (
@@ -161,7 +162,7 @@ namespace JMMServer.PlexAndKodi
 
             if (PlaylistID == 0)
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     var ret = new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, "Playlists", true, true, info));
                     if (!ret.Init())
@@ -318,7 +319,7 @@ namespace JMMServer.PlexAndKodi
                 return new MediaContainer() { ErrorString = "Invalid Episode Id" };
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Episode, "Episode", true, true, info));
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 List<Video> dirs = new List<Video>();
                 ISessionWrapper sessionWrapper = session.Wrap();
@@ -730,7 +731,7 @@ namespace JMMServer.PlexAndKodi
                     return rsp;
                 if (!double.TryParse(votevalue, NumberStyles.Any, CultureInfo.InvariantCulture, out vvalue))
                     return rsp;
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -973,7 +974,7 @@ namespace JMMServer.PlexAndKodi
             }
 
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 if (serieID == -1)
                     return new MediaContainer() { ErrorString = "Invalid Serie Id" };
@@ -1091,7 +1092,7 @@ namespace JMMServer.PlexAndKodi
             {
                 int groupFilterID;
                 int.TryParse(GroupFilterId, out groupFilterID);
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     List<Video> retGroups = new List<Video>();
                     if (groupFilterID == -1)

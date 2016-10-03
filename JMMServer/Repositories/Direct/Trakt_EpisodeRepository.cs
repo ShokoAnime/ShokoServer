@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<Trakt_Episode> GetByShowID(int showID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(Trakt_Episode))
@@ -31,7 +32,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<Trakt_Episode> GetByShowIDAndSeason(int showID, int seasonNumber)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(Trakt_Episode))
@@ -45,7 +46,7 @@ namespace JMMServer.Repositories.Direct
 
         public Trakt_Episode GetByShowIDSeasonAndEpisode(int showID, int seasonNumber, int epnumber)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 Trakt_Episode obj = session
                     .CreateCriteria(typeof(Trakt_Episode))
@@ -61,7 +62,7 @@ namespace JMMServer.Repositories.Direct
         public List<int> GetSeasonNumbersForSeries(int showID)
         {
             List<int> seasonNumbers = new List<int>();
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(Trakt_Episode))

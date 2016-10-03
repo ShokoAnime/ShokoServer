@@ -1,4 +1,5 @@
-﻿using JMMServer.Entities;
+﻿using JMMServer.Databases;
+using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -17,7 +18,7 @@ namespace JMMServer.Repositories.Direct
         }
         public CrossRef_AniDB_TvDB GetByAnimeID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByAnimeID(session, id);
             }
@@ -34,7 +35,7 @@ namespace JMMServer.Repositories.Direct
 
         public CrossRef_AniDB_TvDB GetByTvDBID(int id, int season)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 CrossRef_AniDB_TvDB cr = session
                     .CreateCriteria(typeof(CrossRef_AniDB_TvDB))

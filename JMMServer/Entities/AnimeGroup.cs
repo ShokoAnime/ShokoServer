@@ -6,6 +6,7 @@ using AniDBAPI;
 
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
+using JMMServer.Databases;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
@@ -74,7 +75,7 @@ namespace JMMServer.Entities
 
         public string GetPosterPathNoBlanks()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetPosterPathNoBlanks(session.Wrap());
             }
@@ -96,7 +97,7 @@ namespace JMMServer.Entities
 
         private List<string> GetPosterFilenames()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetPosterFilenames(session.Wrap());
             }
@@ -198,7 +199,7 @@ namespace JMMServer.Entities
 
         public static List<AnimeGroup> GetRelatedGroupsFromAnimeID(int animeid, bool forceRecursive = false)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetRelatedGroupsFromAnimeID(session.Wrap(), animeid, forceRecursive);
             }
@@ -483,7 +484,7 @@ namespace JMMServer.Entities
 
         public List<AnimeGroup> GetAllChildGroups()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetAllChildGroups(session.Wrap());
             }
@@ -510,7 +511,7 @@ namespace JMMServer.Entities
 
         public List<AnimeSeries> GetSeries()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetSeries(session.Wrap());
             }
@@ -547,7 +548,7 @@ namespace JMMServer.Entities
 
 		public List<AnimeSeries> GetAllSeries(bool skipSorting=false)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetAllSeries(session.Wrap(), skipSorting);
             }
@@ -586,7 +587,7 @@ namespace JMMServer.Entities
                 List<int> animeTagIDs = new List<int>();
                 List<AniDB_Anime_Tag> animeTags = new List<AniDB_Anime_Tag>();
 
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     // get a list of all the unique tags for this all the series in this group
                     foreach (AnimeSeries ser in GetAllSeries())

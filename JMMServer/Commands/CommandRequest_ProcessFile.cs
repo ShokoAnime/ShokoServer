@@ -82,234 +82,236 @@ namespace JMMServer.Commands
             logger.Trace("Checking for AniDB_File record for: {0} --- {1}", vidLocal.Hash, vidLocal.FileName);
             // check if we already have this AniDB_File info in the database
 
-            
-            
-            AniDB_File aniFile = null;
-
-            if (!ForceAniDB)
+            lock (vidLocal)
             {
-                aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
 
-                if (aniFile == null)
-                    logger.Trace("AniDB_File record not found");
-            }
+                AniDB_File aniFile = null;
 
-            int animeID = 0;
-
-            if (aniFile == null)
-            {
-                // get info from AniDB
-                logger.Debug("Getting AniDB_File record from AniDB....");
-                Raw_AniDB_File fileInfo = JMMService.AnidbProcessor.GetFileInfo(vidLocal);
-                if (fileInfo != null)
+                if (!ForceAniDB)
                 {
-                    // check if we already have a record
                     aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
 
                     if (aniFile == null)
-                        aniFile = new AniDB_File();
+                        logger.Trace("AniDB_File record not found");
+                }
 
-                    aniFile.Populate(fileInfo);
+                int animeID = 0;
 
-                    //overwrite with local file name
-                    string localFileName = vidLocal.FileName;
-                    aniFile.FileName = localFileName;
-
-                    RepoFactory.AniDB_File.Save(aniFile, false);
-                    aniFile.CreateLanguages();
-                    aniFile.CreateCrossEpisodes(localFileName);
-
-                    if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
+                if (aniFile == null)
+                {
+                    // get info from AniDB
+                    logger.Debug("Getting AniDB_File record from AniDB....");
+                    Raw_AniDB_File fileInfo = JMMService.AnidbProcessor.GetFileInfo(vidLocal);
+                    if (fileInfo != null)
                     {
-                        string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
-                        foreach (string epid in epIDs)
+                        // check if we already have a record
+                        aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
+
+                        if (aniFile == null)
+                            aniFile = new AniDB_File();
+
+                        aniFile.Populate(fileInfo);
+
+                        //overwrite with local file name
+                        string localFileName = vidLocal.FileName;
+                        aniFile.FileName = localFileName;
+
+                        RepoFactory.AniDB_File.Save(aniFile, false);
+                        aniFile.CreateLanguages();
+                        aniFile.CreateCrossEpisodes(localFileName);
+
+                        if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
                         {
-                            int id = 0;
-                            if (int.TryParse(epid, out id))
+                            string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
+                            foreach (string epid in epIDs)
                             {
-                                CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
-                                cmdEp.Save();
+                                int id = 0;
+                                if (int.TryParse(epid, out id))
+                                {
+                                    CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
+                                    cmdEp.Save();
+                                }
                             }
                         }
+
+                        animeID = aniFile.AnimeID;
                     }
-
-                    animeID = aniFile.AnimeID;
                 }
-            }
 
-            bool missingEpisodes = false;
+                bool missingEpisodes = false;
 
-            // if we still haven't got the AniDB_File Info we try the web cache or local records
-            if (aniFile == null)
-            {
-                // check if we have any records from previous imports
-                List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
-                if (crossRefs == null || crossRefs.Count == 0)
+                // if we still haven't got the AniDB_File Info we try the web cache or local records
+                if (aniFile == null)
                 {
-                    // lets see if we can find the episode/anime info from the web cache
-                    if (ServerSettings.WebCache_XRefFileEpisode_Get)
+                    // check if we have any records from previous imports
+                    List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+                    if (crossRefs == null || crossRefs.Count == 0)
                     {
-                        List<JMMServer.Providers.Azure.CrossRef_File_Episode> xrefs =
-                            JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);
-
-                        crossRefs = new List<CrossRef_File_Episode>();
-                        if (xrefs == null || xrefs.Count == 0)
+                        // lets see if we can find the episode/anime info from the web cache
+                        if (ServerSettings.WebCache_XRefFileEpisode_Get)
                         {
-                            logger.Debug(
-                                "Cannot find AniDB_File record or get cross ref from web cache record so exiting: {0}",
-                                vidLocal.ED2KHash);
-                            return;
+                            List<JMMServer.Providers.Azure.CrossRef_File_Episode> xrefs =
+                                JMMServer.Providers.Azure.AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);
+
+                            crossRefs = new List<CrossRef_File_Episode>();
+                            if (xrefs == null || xrefs.Count == 0)
+                            {
+                                logger.Debug(
+                                    "Cannot find AniDB_File record or get cross ref from web cache record so exiting: {0}",
+                                    vidLocal.ED2KHash);
+                                return;
+                            }
+                            else
+                            {
+                                foreach (JMMServer.Providers.Azure.CrossRef_File_Episode xref in xrefs)
+                                {
+                                    CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode();
+                                    xrefEnt.Hash = vidLocal.ED2KHash;
+                                    xrefEnt.FileName = vidLocal.FileName;
+                                    xrefEnt.FileSize = vidLocal.FileSize;
+                                    xrefEnt.CrossRefSource = (int) JMMServer.CrossRefSource.WebCache;
+                                    xrefEnt.AnimeID = xref.AnimeID;
+                                    xrefEnt.EpisodeID = xref.EpisodeID;
+                                    xrefEnt.Percentage = xref.Percentage;
+                                    xrefEnt.EpisodeOrder = xref.EpisodeOrder;
+
+                                    bool duplicate = false;
+
+                                    foreach (CrossRef_File_Episode xrefcheck in crossRefs)
+                                    {
+                                        if (xrefcheck.AnimeID == xrefEnt.AnimeID &&
+                                            xrefcheck.EpisodeID == xrefEnt.EpisodeID &&
+                                            xrefcheck.Hash == xrefEnt.Hash)
+                                            duplicate = true;
+                                    }
+
+                                    if (!duplicate)
+                                    {
+                                        crossRefs.Add(xrefEnt);
+                                        // in this case we need to save the cross refs manually as AniDB did not provide them
+                                        RepoFactory.CrossRef_File_Episode.Save(xrefEnt);
+                                    }
+                                }
+                            }
                         }
                         else
                         {
-                            foreach (JMMServer.Providers.Azure.CrossRef_File_Episode xref in xrefs)
-                            {
-                                CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode();
-                                xrefEnt.Hash = vidLocal.ED2KHash;
-                                xrefEnt.FileName = vidLocal.FileName;
-                                xrefEnt.FileSize = vidLocal.FileSize;
-                                xrefEnt.CrossRefSource = (int) JMMServer.CrossRefSource.WebCache;
-                                xrefEnt.AnimeID = xref.AnimeID;
-                                xrefEnt.EpisodeID = xref.EpisodeID;
-                                xrefEnt.Percentage = xref.Percentage;
-                                xrefEnt.EpisodeOrder = xref.EpisodeOrder;
-
-                                bool duplicate = false;
-
-                                foreach (CrossRef_File_Episode xrefcheck in crossRefs)
-                                {
-                                    if (xrefcheck.AnimeID == xrefEnt.AnimeID &&
-                                        xrefcheck.EpisodeID == xrefEnt.EpisodeID &&
-                                        xrefcheck.Hash == xrefEnt.Hash)
-                                        duplicate = true;
-                                }
-
-                                if (!duplicate)
-                                {
-                                    crossRefs.Add(xrefEnt);
-                                    // in this case we need to save the cross refs manually as AniDB did not provide them
-                                    RepoFactory.CrossRef_File_Episode.Save(xrefEnt);
-                                }
-                            }
+                            logger.Debug("Cannot get AniDB_File record so exiting: {0}", vidLocal.ED2KHash);
+                            return;
                         }
                     }
-                    else
+
+                    // we assume that all episodes belong to the same anime
+                    foreach (CrossRef_File_Episode xref in crossRefs)
                     {
-                        logger.Debug("Cannot get AniDB_File record so exiting: {0}", vidLocal.ED2KHash);
-                        return;
+                        animeID = xref.AnimeID;
+
+                        AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                        if (ep == null) missingEpisodes = true;
                     }
-                }
-
-                // we assume that all episodes belong to the same anime
-                foreach (CrossRef_File_Episode xref in crossRefs)
-                {
-                    animeID = xref.AnimeID;
-
-                    AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                    if (ep == null) missingEpisodes = true;
-                }
-            }
-            else
-            {
-                // check if we have the episode info
-                // if we don't, we will need to re-download the anime info (which also has episode info)
-
-                if (aniFile.EpisodeCrossRefs.Count == 0)
-                {
-                    animeID = aniFile.AnimeID;
-
-                    // if we have the anidb file, but no cross refs it means something has been broken
-                    logger.Debug("Could not find any cross ref records for: {0}", vidLocal.ED2KHash);
-                    missingEpisodes = true;
                 }
                 else
                 {
-                    foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
-                    {
-                        AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                        if (ep == null)
-                            missingEpisodes = true;
+                    // check if we have the episode info
+                    // if we don't, we will need to re-download the anime info (which also has episode info)
 
-                        animeID = xref.AnimeID;
+                    if (aniFile.EpisodeCrossRefs.Count == 0)
+                    {
+                        animeID = aniFile.AnimeID;
+
+                        // if we have the anidb file, but no cross refs it means something has been broken
+                        logger.Debug("Could not find any cross ref records for: {0}", vidLocal.ED2KHash);
+                        missingEpisodes = true;
+                    }
+                    else
+                    {
+                        foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
+                        {
+                            AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                            if (ep == null)
+                                missingEpisodes = true;
+
+                            animeID = xref.AnimeID;
+                        }
                     }
                 }
-            }
 
-            // get from DB
-            AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-            bool animeRecentlyUpdated = false;
+                // get from DB
+                AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                bool animeRecentlyUpdated = false;
 
-            if (anime != null)
-            {
-                TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
-                if (ts.TotalHours < 4) animeRecentlyUpdated = true;
-            }
-
-            // even if we are missing episode info, don't get data  more than once every 4 hours
-            // this is to prevent banning
-            if (missingEpisodes && !animeRecentlyUpdated)
-            {
-                logger.Debug("Getting Anime record from AniDB....");
-                anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AutoGroupSeries);
-            }
-
-            // create the group/series/episode records if needed
-            AnimeSeries ser = null;
-            if (anime != null)
-            {
-                logger.Debug("Creating groups, series and episodes....");
-                // check if there is an AnimeSeries Record associated with this AnimeID
-                ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                if (ser == null)
+                if (anime != null)
                 {
-                    // create a new AnimeSeries record
-                    ser = anime.CreateAnimeSeriesAndGroup();
+                    TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
+                    if (ts.TotalHours < 4) animeRecentlyUpdated = true;
+                }
+
+                // even if we are missing episode info, don't get data  more than once every 4 hours
+                // this is to prevent banning
+                if (missingEpisodes && !animeRecentlyUpdated)
+                {
+                    logger.Debug("Getting Anime record from AniDB....");
+                    anime = JMMService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.AutoGroupSeries);
+                }
+
+                // create the group/series/episode records if needed
+                AnimeSeries ser = null;
+                if (anime != null)
+                {
+                    logger.Debug("Creating groups, series and episodes....");
+                    // check if there is an AnimeSeries Record associated with this AnimeID
+                    ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                    if (ser == null)
+                    {
+                        // create a new AnimeSeries record
+                        ser = anime.CreateAnimeSeriesAndGroup();
+                    }
+
+
+                    ser.CreateAnimeEpisodes();
+
+                    // check if we have any group status data for this associated anime
+                    // if not we will download it now
+                    if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+                    {
+                        CommandRequest_GetReleaseGroupStatus cmdStatus =
+                            new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
+                        cmdStatus.Save();
+                    }
+
+                    // update stats
+                    ser.EpisodeAddedDate = DateTime.Now;
+                    RepoFactory.AnimeSeries.Save(ser, false, false);
+
+                    foreach (AnimeGroup grp in ser.AllGroupsAbove)
+                    {
+                        grp.EpisodeAddedDate = DateTime.Now;
+                        RepoFactory.AnimeGroup.Save(grp, true, false);
+                    }
+                }
+                vidLocal.Places.ForEach(a =>
+                {
+                    a.RenameIfRequired();
+                    a.MoveFileIfRequired();
+
+                });
+
+
+                // update stats for groups and series
+                if (ser != null)
+                {
+                    // update all the groups above this series in the heirarchy
+                    ser.QueueUpdateStats();
+                    //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
                 }
 
 
-                ser.CreateAnimeEpisodes();
-
-                // check if we have any group status data for this associated anime
-                // if not we will download it now
-                if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+                // Add this file to the users list
+                if (ServerSettings.AniDB_MyList_AddFiles)
                 {
-                    CommandRequest_GetReleaseGroupStatus cmdStatus =
-                        new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
-                    cmdStatus.Save();
+                    CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList(vidLocal.ED2KHash);
+                    cmd.Save();
                 }
-
-                // update stats
-                ser.EpisodeAddedDate = DateTime.Now;
-                RepoFactory.AnimeSeries.Save(ser, false, false);
-
-                foreach (AnimeGroup grp in ser.AllGroupsAbove)
-                {
-                    grp.EpisodeAddedDate = DateTime.Now;
-                    RepoFactory.AnimeGroup.Save(grp, true, false);
-                }
-            }
-            vidLocal.Places.ForEach(a =>
-            {
-                a.RenameIfRequired();
-                a.MoveFileIfRequired();
-
-            });
-
-
-            // update stats for groups and series
-            if (ser != null)
-            {
-                // update all the groups above this series in the heirarchy
-                ser.QueueUpdateStats();
-                //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
-            }
-
-
-            // Add this file to the users list
-            if (ServerSettings.AniDB_MyList_AddFiles)
-            {
-                CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList(vidLocal.ED2KHash);
-                cmd.Save();
             }
         }
 

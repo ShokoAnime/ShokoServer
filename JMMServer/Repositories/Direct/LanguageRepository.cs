@@ -1,4 +1,5 @@
-﻿using JMMServer.Entities;
+﻿using JMMServer.Databases;
+using JMMServer.Entities;
 using NHibernate.Criterion;
 
 namespace JMMServer.Repositories.Direct
@@ -16,7 +17,7 @@ namespace JMMServer.Repositories.Direct
         }
         public Language GetByLanguageName(string lanname)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 Language cr = session
                     .CreateCriteria(typeof(Language))

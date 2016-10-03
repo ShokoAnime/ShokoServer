@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NLog;
@@ -85,7 +86,7 @@ namespace JMMServer.Repositories.Cached
                 obj.UpdatePlexKodiContracts();
                 //Get The previous AnimeGroup_User from db for comparasion;
                 AnimeGroup_User old;
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     old = session.Get<AnimeGroup_User>(obj.AnimeGroup_UserID);
                 }

@@ -15,34 +15,7 @@ namespace JMMServer.Databases
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private static List<Tuple<IDatabase,DatabaseCommand>> Fixes = new List<Tuple<IDatabase, DatabaseCommand>>();
-
-        public static void ExecuteDatabaseFixes()
-        {
-            foreach (Tuple<IDatabase, DatabaseCommand> t in Fixes)
-            {
-                try
-                {
-                    t.Item2.DatabaseFix();
-                    t.Item1.AddVersion(t.Item2.Version.ToString(),t.Item2.Revision.ToString(),t.Item2.CommandName);
-                }
-                catch (Exception e)
-                {
-                    throw new DatabaseCommandException(e.ToString(),t.Item2);
-                }
-            }
-        }
-
-        public static void AddFix(IDatabase db, DatabaseCommand cmd)
-        {
-            Fixes.Add(new Tuple<IDatabase, DatabaseCommand>(db,cmd));
-        }
-
-        public static void InitFixes()
-        {
-            Fixes = new List<Tuple<IDatabase, DatabaseCommand>>();
-        }
-
+    
         public static void DeleteSerieUsersWithoutSeries()
         {
             //DB Fix Series not deleting series_user
@@ -103,7 +76,7 @@ namespace JMMServer.Databases
         {
             // group filters
           
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 // check if it already exists
                 List<GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
@@ -131,7 +104,7 @@ namespace JMMServer.Databases
 
 
 
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     List<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
                     foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
@@ -205,7 +178,7 @@ namespace JMMServer.Databases
             try
             {
                 
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
                     List<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();

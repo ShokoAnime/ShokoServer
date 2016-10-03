@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NLog;
@@ -108,7 +109,7 @@ namespace JMMServer.Repositories.Cached
                 {
                     // get the old version from the DB
                     AnimeSeries oldSeries;
-                    using (var session = JMMService.SessionFactory.OpenSession())
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
                         oldSeries = session.Get<AnimeSeries>(obj.AnimeSeriesID);
                     }

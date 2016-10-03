@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -20,7 +21,7 @@ namespace JMMServer.Repositories.Direct
         }
         public BookmarkedAnime GetByAnimeID(int animeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 BookmarkedAnime cr = session
                     .CreateCriteria(typeof(BookmarkedAnime))

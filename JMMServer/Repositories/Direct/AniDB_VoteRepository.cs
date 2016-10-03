@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -35,7 +36,7 @@ namespace JMMServer.Repositories.Direct
         }
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 AniDB_Vote cr = session
                     .CreateCriteria(typeof(AniDB_Vote))
@@ -49,7 +50,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<AniDB_Vote> GetByEntity(int entID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var votes = session
                     .CreateCriteria(typeof(AniDB_Vote))
@@ -62,7 +63,7 @@ namespace JMMServer.Repositories.Direct
 
         public AniDB_Vote GetByAnimeID(int animeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var votes = session
                     .CreateCriteria(typeof(AniDB_Vote))

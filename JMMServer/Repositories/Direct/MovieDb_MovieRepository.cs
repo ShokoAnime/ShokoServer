@@ -1,4 +1,5 @@
-﻿using JMMServer.Entities;
+﻿using JMMServer.Databases;
+using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate.Criterion;
 
@@ -17,7 +18,7 @@ namespace JMMServer.Repositories.Direct
         }
         public MovieDB_Movie GetByOnlineID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByOnlineID(session.Wrap(), id);
             }

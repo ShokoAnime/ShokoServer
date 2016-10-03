@@ -10,7 +10,7 @@ namespace JMMServer
     public class JMMService
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-        private static readonly object sessionLock = new object();
+
         private static readonly object cmdLockGeneral = new object();
         private static readonly object cmdLockHasher = new object();
         private static readonly object cmdLockImages = new object();
@@ -149,30 +149,6 @@ namespace JMMServer
         public static TvDBHelper TvdbHelper
         {
             get { return JMMService.tvdbHelper; }
-        }
-
-        private static ISessionFactory sessionFactory = null;
-
-        public static ISessionFactory SessionFactory
-        {
-            get
-            {
-                lock (sessionLock)
-                {
-                    if (sessionFactory == null)
-                    {
-                        //logger.Info("Creating new session...");
-                        sessionFactory = DatabaseExtensions.Instance.CreateSessionFactory();
-                    }
-                    return JMMService.sessionFactory;
-                }
-            }
-        }
-
-        public static void CloseSessionFactory()
-        {
-            if (sessionFactory != null) sessionFactory.Dispose();
-            sessionFactory = null;
         }
     }
 }

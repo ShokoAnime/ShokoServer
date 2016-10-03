@@ -19,7 +19,10 @@ namespace JMMServer.Databases
         ArrayList GetData(string sql);
         string Name { get; }
         int RequiredVersion { get; }
-        Tuple<bool, string> ExecuteCommand(DatabaseCommand cmd);
-        Dictionary<string, Dictionary<string, Versions>> AllVersions { get; }
+        string GetDatabaseBackupName(int version);
+        void ExecuteDatabaseFixes();
+        void PopulateInitialData();
+        int GetDatabaseVersion();
+
     }
 }

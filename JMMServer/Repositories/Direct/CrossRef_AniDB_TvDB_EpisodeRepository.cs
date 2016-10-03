@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories.Direct
         }
         public CrossRef_AniDB_TvDB_Episode GetByAniDBEpisodeID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 CrossRef_AniDB_TvDB_Episode cr = session
                     .CreateCriteria(typeof(CrossRef_AniDB_TvDB_Episode))
@@ -30,7 +31,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<CrossRef_AniDB_TvDB_Episode> GetByAnimeID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByAnimeID(session, id);
             }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -19,7 +20,7 @@ namespace JMMServer.Repositories.Direct
 
         public CommandRequest GetByCommandID(string cmdid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByCommandID(session, cmdid);
             }
@@ -40,7 +41,7 @@ namespace JMMServer.Repositories.Direct
             /*SELECT TOP 1 CommandRequestID
 			FROM CommandRequest
 			ORDER BY Priority ASC, DateTimeUpdated ASC*/
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 IList<CommandRequest> crs = session
                     .CreateCriteria(typeof(CommandRequest))
@@ -59,7 +60,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<CommandRequest> GetAllCommandRequestGeneral()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var crs = session
                     .CreateCriteria(typeof(CommandRequest))
@@ -73,7 +74,7 @@ namespace JMMServer.Repositories.Direct
 
         public CommandRequest GetNextDBCommandRequestHasher()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 IList<CommandRequest> crs = session
                     .CreateCriteria(typeof(CommandRequest))
@@ -91,7 +92,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<CommandRequest> GetAllCommandRequestHasher()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var crs = session
                     .CreateCriteria(typeof(CommandRequest))
@@ -104,7 +105,7 @@ namespace JMMServer.Repositories.Direct
 
         public CommandRequest GetNextDBCommandRequestImages()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 IList<CommandRequest> crs = session
                     .CreateCriteria(typeof(CommandRequest))
@@ -122,7 +123,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<CommandRequest> GetAllCommandRequestImages()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var crs = session
                     .CreateCriteria(typeof(CommandRequest))
@@ -135,7 +136,7 @@ namespace JMMServer.Repositories.Direct
 
         public int GetQueuedCommandCountGeneral()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var cnt = session
                     .CreateCriteria(typeof(CommandRequest))
@@ -149,7 +150,7 @@ namespace JMMServer.Repositories.Direct
 
         public int GetQueuedCommandCountHasher()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var cnt = session
                     .CreateCriteria(typeof(CommandRequest))
@@ -162,7 +163,7 @@ namespace JMMServer.Repositories.Direct
 
         public int GetQueuedCommandCountImages()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var cnt = session
                     .CreateCriteria(typeof(CommandRequest))

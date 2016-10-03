@@ -1,4 +1,5 @@
 ﻿using JMMContracts;
+using JMMServer.Databases;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
 using NHibernate;
@@ -15,7 +16,7 @@ namespace JMMServer.Entities
 
         public Trakt_Show GetByTraktShow()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByTraktShow(session);
             }

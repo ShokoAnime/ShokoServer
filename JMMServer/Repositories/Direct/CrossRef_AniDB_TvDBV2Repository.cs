@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -19,7 +20,7 @@ namespace JMMServer.Repositories.Direct
         }
         public List<CrossRef_AniDB_TvDBV2> GetByAnimeID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByAnimeID(session.Wrap(), id);
             }
@@ -68,7 +69,7 @@ namespace JMMServer.Repositories.Direct
         public CrossRef_AniDB_TvDBV2 GetByTvDBID(int id, int season, int episodeNumber, int animeID, int aniEpType,
             int aniEpisodeNumber)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByTvDBID(session, id, season, episodeNumber, animeID, aniEpType, aniEpisodeNumber);
             }

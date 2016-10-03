@@ -13,6 +13,7 @@ using System.Xml.Serialization;
 using AniDBAPI;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.FileHelper;
 using JMMServer.FileHelper.Subtitles;
@@ -407,7 +408,7 @@ namespace JMMServer.PlexAndKodi
                 #endregion
 
                 #region TvDB
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     // This should only ever return 1 but shit happens
                     List<CrossRef_AniDB_TvDBV2> xref_tvdb2 =
@@ -578,7 +579,7 @@ namespace JMMServer.PlexAndKodi
 
 	    public static string GetRandomBannerFromSeries(List<AnimeSeries> series)
 	    {
-		    using (var session = JMMService.SessionFactory.OpenSession())
+		    using (var session = DatabaseFactory.SessionFactory.OpenSession())
 		    {
 			    return GetRandomBannerFromSeries(series, session.Wrap());
 		    }
@@ -615,7 +616,7 @@ namespace JMMServer.PlexAndKodi
 
 		public static string GetRandomFanartFromSeries(List<AnimeSeries> series)
 		{
-			using (var session = JMMService.SessionFactory.OpenSession())
+			using (var session = DatabaseFactory.SessionFactory.OpenSession())
 			{
 				return GetRandomFanartFromSeries(series, session.Wrap());
 			}
@@ -888,7 +889,7 @@ namespace JMMServer.PlexAndKodi
         private static void FillSerie(Video p, AnimeSeries aser, Dictionary<AnimeEpisode, Contract_AnimeEpisode> eps,
             AniDB_Anime anidb, Contract_AnimeSeries ser, int userid)
         {
-            using (ISession session = JMMService.SessionFactory.OpenSession())
+            using (ISession session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
                 Contract_AniDBAnime anime = ser.AniDBAnime.AniDBAnime;

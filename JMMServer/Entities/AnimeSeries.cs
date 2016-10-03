@@ -6,6 +6,7 @@ using Force.DeepCloner;
 using JMMContracts;
 using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
+using JMMServer.Databases;
 using JMMServer.ImageDownload;
 using JMMServer.LZ4;
 using JMMServer.Repositories;
@@ -79,7 +80,7 @@ namespace JMMServer.Entities
 
         public string GetSeriesName()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetSeriesName(session.Wrap());
             }
@@ -261,7 +262,7 @@ namespace JMMServer.Entities
 
         public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetCrossRefTvDBV2(session.Wrap());
             }
@@ -274,7 +275,7 @@ namespace JMMServer.Entities
 
         public List<TvDB_Series> GetTvDBSeries()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetTvDBSeries(session.Wrap());
             }
@@ -299,7 +300,7 @@ namespace JMMServer.Entities
 
         public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetCrossRefTraktV2(session);
             }
@@ -312,7 +313,7 @@ namespace JMMServer.Entities
 
         public List<Trakt_Show> GetTraktShow()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetTraktShow(session);
             }
@@ -435,7 +436,7 @@ namespace JMMServer.Entities
 
         public AniDB_Anime GetAnime()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetAnime(session.Wrap());
             }
@@ -488,7 +489,7 @@ namespace JMMServer.Entities
 
         public void CreateAnimeEpisodes()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 CreateAnimeEpisodes(session);
             }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using JMMContracts;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NLog;
@@ -93,7 +94,7 @@ namespace JMMServer.Repositories.Cached
                 GenerateContract(obj);
                 if (updateGroupFilters)
                 {
-                    using (var session = JMMService.SessionFactory.OpenSession())
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
                         JMMUser old = isNew ? null : session.Get<JMMUser>(obj.JMMUserID);
                         updateGroupFilters = JMMUser.CompareUser(old?.Contract, obj.Contract);

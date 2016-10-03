@@ -1,4 +1,5 @@
-﻿using JMMServer.Entities;
+﻿using JMMServer.Databases;
+using JMMServer.Entities;
 using NHibernate.Criterion;
 
 namespace JMMServer.Repositories.Direct
@@ -16,7 +17,7 @@ namespace JMMServer.Repositories.Direct
         }
         public AuthTokens GetByAuthID(int authID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 AuthTokens cr = session
                     .CreateCriteria(typeof(AuthTokens))

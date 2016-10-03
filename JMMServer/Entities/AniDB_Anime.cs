@@ -10,6 +10,7 @@ using AniDBAPI;
 using JMMContracts;
 using JMMServer.Collections;
 using JMMServer.Commands;
+using JMMServer.Databases;
 using JMMServer.ImageDownload;
 using JMMServer.LZ4;
 using JMMServer.Properties;
@@ -212,7 +213,7 @@ namespace JMMServer.Entities
 
         public List<TvDB_Episode> GetTvDBEpisodes()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetTvDBEpisodes(session.Wrap());
             }
@@ -237,7 +238,7 @@ namespace JMMServer.Entities
 
         public Dictionary<int, TvDB_Episode> GetDictTvDBEpisodes()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetDictTvDBEpisodes(session.Wrap());
             }
@@ -278,7 +279,7 @@ namespace JMMServer.Entities
 
         public Dictionary<int, int> GetDictTvDBSeasons()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetDictTvDBSeasons(session.Wrap());
             }
@@ -321,7 +322,7 @@ namespace JMMServer.Entities
 
         public Dictionary<int, int> GetDictTvDBSeasonsSpecials()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetDictTvDBSeasonsSpecials(session.Wrap());
             }
@@ -368,7 +369,7 @@ namespace JMMServer.Entities
 
         public List<CrossRef_AniDB_TvDB_Episode> GetCrossRefTvDBEpisodes()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetCrossRefTvDBEpisodes(session);
             }
@@ -381,7 +382,7 @@ namespace JMMServer.Entities
 
         public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetCrossRefTvDBV2(session.Wrap());
             }
@@ -394,7 +395,7 @@ namespace JMMServer.Entities
 
         public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetCrossRefTraktV2(session);
             }
@@ -407,7 +408,7 @@ namespace JMMServer.Entities
 
         public List<CrossRef_AniDB_MAL> GetCrossRefMAL()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetCrossRefMAL(session);
             }
@@ -420,7 +421,7 @@ namespace JMMServer.Entities
 
         public List<TvDB_Series> GetTvDBSeries()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetTvDBSeries(session.Wrap());
             }
@@ -443,7 +444,7 @@ namespace JMMServer.Entities
 
         public List<TvDB_ImageFanart> GetTvDBImageFanarts()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetTvDBImageFanarts(session.Wrap());
             }
@@ -467,7 +468,7 @@ namespace JMMServer.Entities
 
         public List<TvDB_ImagePoster> GetTvDBImagePosters()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetTvDBImagePosters(session.Wrap());
             }
@@ -490,7 +491,7 @@ namespace JMMServer.Entities
 
         public List<TvDB_ImageWideBanner> GetTvDBImageWideBanners()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetTvDBImageWideBanners(session.Wrap());
             }
@@ -512,7 +513,7 @@ namespace JMMServer.Entities
 
         public CrossRef_AniDB_Other GetCrossRefMovieDB()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetCrossRefMovieDB(session.Wrap());
             }
@@ -526,7 +527,7 @@ namespace JMMServer.Entities
 
         public MovieDB_Movie GetMovieDBMovie()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetMovieDBMovie(session.Wrap());
             }
@@ -541,7 +542,7 @@ namespace JMMServer.Entities
 
         public List<MovieDB_Fanart> GetMovieDBFanarts()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetMovieDBFanarts(session.Wrap());
             }
@@ -557,7 +558,7 @@ namespace JMMServer.Entities
 
         public List<MovieDB_Poster> GetMovieDBPosters()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetMovieDBPosters(session.Wrap());
             }
@@ -573,7 +574,7 @@ namespace JMMServer.Entities
 
         public AniDB_Anime_DefaultImage GetDefaultPoster()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetDefaultPoster(session.Wrap());
             }
@@ -597,7 +598,7 @@ namespace JMMServer.Entities
 
         public string GetDefaultPosterPathNoBlanks()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetDefaultPosterPathNoBlanks(session.Wrap());
             }
@@ -648,7 +649,7 @@ namespace JMMServer.Entities
 
         public ImageDetails GetDefaultPosterDetailsNoBlanks()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetDefaultPosterDetailsNoBlanks(session.Wrap());
             }
@@ -713,7 +714,7 @@ namespace JMMServer.Entities
 
         public AniDB_Anime_DefaultImage GetDefaultFanart()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetDefaultFanart(session.Wrap());
             }
@@ -726,7 +727,7 @@ namespace JMMServer.Entities
 
         public ImageDetails GetDefaultFanartDetailsNoBlanks()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetDefaultFanartDetailsNoBlanks(session.Wrap());
             }
@@ -800,7 +801,7 @@ namespace JMMServer.Entities
 
         public string GetDefaultFanartOnlineURL()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetDefaultFanartOnlineURL(session.Wrap());
             }
@@ -870,7 +871,7 @@ namespace JMMServer.Entities
 
         public AniDB_Anime_DefaultImage GetDefaultWideBanner()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetDefaultWideBanner(session.Wrap());
             }
@@ -1060,7 +1061,7 @@ namespace JMMServer.Entities
 
         public List<AniDB_Anime_Relation> GetRelatedAnime()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetRelatedAnime(session.Wrap());
             }
@@ -1073,7 +1074,7 @@ namespace JMMServer.Entities
 
         public List<AniDB_Anime_Similar> GetSimilarAnime()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetSimilarAnime(session);
             }
@@ -1095,7 +1096,7 @@ namespace JMMServer.Entities
 
         public List<AniDB_Anime> GetAllRelatedAnime()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetAllRelatedAnime(session.Wrap());
             }
@@ -1113,7 +1114,7 @@ namespace JMMServer.Entities
 
         public List<AniDB_Anime_Character> GetAnimeCharacters()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetAnimeCharacters(session.Wrap());
             }
@@ -1183,7 +1184,7 @@ namespace JMMServer.Entities
 
         public List<AniDB_Anime_Title> GetTitles()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetTitles(session.Wrap());
             }
@@ -1243,7 +1244,7 @@ namespace JMMServer.Entities
 
         public string GetFormattedTitle()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetFormattedTitle(session.Wrap());
             }
@@ -2185,7 +2186,7 @@ namespace JMMServer.Entities
 
         public AnimeFull ToContractAzure()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return ToContractAzure(session.Wrap());
             }
@@ -2282,7 +2283,7 @@ namespace JMMServer.Entities
 
         public AnimeSeries CreateAnimeSeriesAndGroup()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return CreateAnimeSeriesAndGroup(session);
             }

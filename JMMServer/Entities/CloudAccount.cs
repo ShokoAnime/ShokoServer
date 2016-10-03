@@ -80,11 +80,14 @@ namespace JMMServer.Entities
                 Icon = _plugin.Icon
             };
         }
+        private static AuthorizationFactory AuthInstance = new AuthorizationFactory("AppGlue.dll");
+
         public IFileSystem Connect(Window owner)
         {
             if (string.IsNullOrEmpty(Provider))
                 throw new Exception("Empty provider supplied");
-            Dictionary<string, object> auth = AuthorizationFactory.Instance.AuthorizationProvider.Get(Provider);
+
+            Dictionary<string, object> auth = AuthInstance.AuthorizationProvider.Get(Provider);
             if (auth == null)
                 throw new Exception("Application Authorization Not Found");
             _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == Provider);

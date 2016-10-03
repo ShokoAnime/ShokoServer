@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using AniDBAPI;
 using JMMContracts;
+using JMMServer.Databases;
 using JMMServer.ImageDownload;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
@@ -151,7 +152,7 @@ namespace JMMServer.Entities
 
         public AniDB_Seiyuu GetSeiyuu()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetSeiyuu(session);
             }

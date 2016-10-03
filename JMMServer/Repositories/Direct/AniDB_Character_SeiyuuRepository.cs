@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories.Direct
         }
         public AniDB_Character_Seiyuu GetByCharIDAndSeiyuuID(int animeid, int catid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 AniDB_Character_Seiyuu cr = session
                     .CreateCriteria(typeof(AniDB_Character_Seiyuu))
@@ -41,7 +42,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<AniDB_Character_Seiyuu> GetByCharID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByCharID(session, id);
             }
@@ -59,7 +60,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<AniDB_Character_Seiyuu> GetBySeiyuuID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(AniDB_Character_Seiyuu))

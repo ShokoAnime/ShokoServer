@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 
@@ -19,7 +20,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<ScanFile> GetWaiting(int scanid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return session.CreateCriteria(typeof(ScanFile))
                 .Add(Restrictions.Eq("ScanID", scanid))
@@ -29,7 +30,7 @@ namespace JMMServer.Repositories.Direct
         }
         public List<ScanFile> GetByScanID(int scanid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return session.CreateCriteria(typeof(ScanFile))
                 .Add(Restrictions.Eq("ScanID", scanid))
@@ -38,7 +39,7 @@ namespace JMMServer.Repositories.Direct
         }
         public List<ScanFile> GetProcessedOK(int scanid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return session.CreateCriteria(typeof(ScanFile))
                 .Add(Restrictions.Eq("ScanID", scanid))
@@ -48,7 +49,7 @@ namespace JMMServer.Repositories.Direct
         }
         public List<ScanFile> GetWithError(int scanid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return session.CreateCriteria(typeof(ScanFile))
                 .Add(Restrictions.Eq("ScanID", scanid))
@@ -59,7 +60,7 @@ namespace JMMServer.Repositories.Direct
 
         public int GetWaitingCount(int scanid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return (int)session.CreateCriteria(typeof(ScanFile))
                 .Add(Restrictions.Eq("ScanID", scanid))

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate.Criterion;
 using NLog;
@@ -29,7 +30,7 @@ namespace JMMServer.Repositories.Direct
 
         public AniDB_GroupStatus GetByAnimeIDAndGroupID(int animeid, int groupid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 AniDB_GroupStatus cr = session
                     .CreateCriteria(typeof(AniDB_GroupStatus))
@@ -42,7 +43,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<AniDB_GroupStatus> GetByAnimeID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(AniDB_GroupStatus))

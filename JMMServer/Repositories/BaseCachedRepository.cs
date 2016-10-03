@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JMMServer.Databases;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NutzCode.InMemoryIndex;
@@ -27,7 +28,7 @@ namespace JMMServer.Repositories
         {
             if (displayname)
                 ServerState.Instance.CurrentSetupStatus = string.Format(Properties.Resources.Database_Cache, typeof(T).Name, string.Empty);
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).List<T>(),key);
             }
@@ -101,7 +102,7 @@ namespace JMMServer.Repositories
             if (cr != null)
             {
                 BeginDeleteCallback?.Invoke(cr);
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     using (var transaction = session.BeginTransaction())
                     {
@@ -120,7 +121,7 @@ namespace JMMServer.Repositories
                 return;
             foreach (T cr in objs)
                 BeginDeleteCallback?.Invoke(cr);
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
                 {
@@ -169,7 +170,7 @@ namespace JMMServer.Repositories
         public virtual void Save(T obj)
         {
             BeginSaveCallback?.Invoke(obj);
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
                 {
@@ -186,7 +187,7 @@ namespace JMMServer.Repositories
         {
             if (objs.Count==0)
                 return;
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 using (var transaction = session.BeginTransaction())
                 {

@@ -7,6 +7,7 @@ using System.Xml;
 using AniDBAPI;
 using ICSharpCode.SharpZipLib.Zip;
 using JMMServer.Commands;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
@@ -403,7 +404,7 @@ namespace JMMServer.Providers.TvDB
 
 
             
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -830,7 +831,7 @@ namespace JMMServer.Providers.TvDB
         public static string LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
             int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 List<CrossRef_AniDB_TvDBV2> xrefTemps = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, animeID,
                     (int) aniEpType,

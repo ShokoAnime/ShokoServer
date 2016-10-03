@@ -1,4 +1,5 @@
 ﻿using JMMContracts;
+using JMMServer.Databases;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
@@ -16,7 +17,7 @@ namespace JMMServer.Entities
 
         public MovieDB_Movie GetMovieDB_Movie()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetMovieDB_Movie(session.Wrap());
             }

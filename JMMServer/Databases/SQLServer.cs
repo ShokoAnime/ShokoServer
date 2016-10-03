@@ -4,23 +4,18 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
-using System.Text;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
-using JMMServer.Entities;
-using JMMServer.Repositories;
-using JMMServer.Repositories.Direct;
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 using Microsoft.Win32;
 using NHibernate;
-using NLog;
+// ReSharper disable InconsistentNaming
 
 namespace JMMServer.Databases
 {
-    public class SQLServer : IDatabase
+    public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public static SQLServer Instance { get; } = new SQLServer();
 
@@ -53,20 +48,15 @@ namespace JMMServer.Databases
         }
 
 
-        public static string GetConnectionString()
+        public override string GetConnectionString()
         {
-            return string.Format("Server={0};Database={1};UID={2};PWD={3};",
-                       ServerSettings.DatabaseServer, ServerSettings.DatabaseName, ServerSettings.DatabaseUsername,
-                       ServerSettings.DatabasePassword);
+            return $"Server={ServerSettings.DatabaseServer};Database={ServerSettings.DatabaseName};UID={ServerSettings.DatabaseUsername};PWD={ServerSettings.DatabasePassword};";
         }
 
         public ISessionFactory CreateSessionFactory()
         {
-            string connectionstring =
-                    string.Format(
-                        @"data source={0};initial catalog={1};persist security info=True;user id={2};password={3}",
-                        ServerSettings.DatabaseServer, ServerSettings.DatabaseName, ServerSettings.DatabaseUsername,
-                        ServerSettings.DatabasePassword);
+            string connectionstring = $@"data source={ServerSettings.DatabaseServer};initial catalog={ServerSettings.DatabaseName};persist security info=True;user id={ServerSettings
+                    .DatabaseUsername};password={ServerSettings.DatabasePassword}";
             return Fluently.Configure()
                 .Database(MsSqlConfiguration.MsSql2008.ConnectionString(connectionstring))
                 .Mappings(m =>
@@ -77,21 +67,11 @@ namespace JMMServer.Databases
 
         public bool DatabaseAlreadyExists()
         {
-            int count = 0;
-            string cmd = string.Format("Select count(*) from sysdatabases where name = '{0}'",
-                ServerSettings.DatabaseName);
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, "master")))
+            long count;
+            string cmd = $"Select count(*) from sysdatabases where name = '{ServerSettings.DatabaseName}'";
+            using (SqlConnection tmpConn = new SqlConnection($"Server={ServerSettings.DatabaseServer};User ID={ServerSettings.DatabaseUsername};Password={ServerSettings.DatabasePassword};database={"master"}"))
             {
-                using (SqlCommand command = new SqlCommand(cmd, tmpConn))
-                {
-                    tmpConn.Open();
-                    object result = command.ExecuteScalar();
-                    count = int.Parse(result.ToString());
-                }
+                count = ExecuteScalar(tmpConn, cmd);
             }
 
             // if the Versions already exists, it means we have done this already
@@ -100,47 +80,8 @@ namespace JMMServer.Databases
             return false;
         }
 
-        public ArrayList GetData(string sql)
-        {
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-            {
-                ArrayList rowList = new ArrayList();
-                using (SqlCommand command = new SqlCommand(sql, tmpConn))
-                {
-                    tmpConn.Open();
-                    SqlDataReader reader = command.ExecuteReader();
 
 
-                    while (reader.Read())
-                    {
-                        object[] values = new object[reader.FieldCount];
-                        reader.GetValues(values);
-                        rowList.Add(values);
-                    }
-                }
-                return rowList;
-            }
-        }
-
-
-        public Dictionary<string, Dictionary<string, Versions>> AllVersions { get; }
-
-        private SQLServer()
-        {
-            try
-            {
-                AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
-
-            }
-            catch (Exception) //First Time
-            {
-                AllVersions = new Dictionary<string, Dictionary<string, Versions>>();
-            }
-        }
 
         public void CreateDatabase()
         {
@@ -149,7 +90,6 @@ namespace JMMServer.Databases
             ServerConnection conn = new ServerConnection(ServerSettings.DatabaseServer, ServerSettings.DatabaseUsername,
                 ServerSettings.DatabasePassword);
             Server srv = new Server(conn);
-
             Database db = new Database(srv, ServerSettings.DatabaseName);
             db.Create();
         }
@@ -284,8 +224,8 @@ namespace JMMServer.Databases
             new DatabaseCommand(4, 1,"ALTER TABLE AnimeGroup ADD DefaultAnimeSeriesID int NULL"),
             new DatabaseCommand(5, 1,"ALTER TABLE JMMUser ADD CanEditServerSettings int NULL"),
             new DatabaseCommand(6, 1,"ALTER TABLE VideoInfo ADD VideoBitDepth varchar(max) NULL"),
-            new DatabaseCommand(7, 1,(Action)DatabaseFixes.FixDuplicateTvDBLinks),
-            new DatabaseCommand(7, 2,(Action)DatabaseFixes.FixDuplicateTraktLinks),
+            new DatabaseCommand(7, 1,DatabaseFixes.FixDuplicateTvDBLinks),
+            new DatabaseCommand(7, 2,DatabaseFixes.FixDuplicateTraktLinks),
             new DatabaseCommand(7, 3,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Season ON CrossRef_AniDB_TvDB(TvDBID, TvDBSeasonNumber)"),
             new DatabaseCommand(7, 4,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Season ON CrossRef_AniDB_Trakt(TraktID, TraktSeasonNumber)"),
             new DatabaseCommand(7, 5,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Anime ON CrossRef_AniDB_Trakt(AnimeID)"),
@@ -339,28 +279,28 @@ namespace JMMServer.Databases
             new DatabaseCommand(26, 1,"CREATE TABLE LogMessage ( LogMessageID int IDENTITY(1,1) NOT NULL, LogType nvarchar(MAX) NOT NULL, LogContent nvarchar(MAX) NOT NULL, LogDate datetime NOT NULL, CONSTRAINT [PK_LogMessage] PRIMARY KEY CLUSTERED ( LogMessageID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
             new DatabaseCommand(27, 1,"CREATE TABLE CrossRef_AniDB_TvDBV2( CrossRef_AniDB_TvDBV2ID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TvDBID int NOT NULL, TvDBSeasonNumber int NOT NULL, TvDBStartEpisodeNumber int NOT NULL, TvDBTitle nvarchar(MAX), CrossRefSource int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_TvDBV2] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_TvDBV2ID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
             new DatabaseCommand(27, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDBV2 ON CrossRef_AniDB_TvDBV2(AnimeID, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber)"),
-            new DatabaseCommand(27, 3,(Action)DatabaseFixes.MigrateTvDBLinks_V1_to_V2),
+            new DatabaseCommand(27, 3,DatabaseFixes.MigrateTvDBLinks_V1_to_V2),
             new DatabaseCommand(28, 1,"ALTER TABLE GroupFilter ADD Locked int NULL"),
             new DatabaseCommand(29, 1,"ALTER TABLE VideoInfo ADD FullInfo varchar(max) NULL"),
             new DatabaseCommand(30, 1,"CREATE TABLE CrossRef_AniDB_TraktV2( CrossRef_AniDB_TraktV2ID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TraktID nvarchar(500), TraktSeasonNumber int NOT NULL, TraktStartEpisodeNumber int NOT NULL, TraktTitle nvarchar(MAX), CrossRefSource int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_TraktV2] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_TraktV2ID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
             new DatabaseCommand(30, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TraktV2 ON CrossRef_AniDB_TraktV2(AnimeID, TraktSeasonNumber, TraktStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber)"),
-            new DatabaseCommand(30, 3,(Action)DatabaseFixes.MigrateTraktLinks_V1_to_V2),
+            new DatabaseCommand(30, 3,DatabaseFixes.MigrateTraktLinks_V1_to_V2),
             new DatabaseCommand(31, 1,"CREATE TABLE CrossRef_AniDB_Trakt_Episode( CrossRef_AniDB_Trakt_EpisodeID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, AniDBEpisodeID int NOT NULL, TraktID nvarchar(500), Season int NOT NULL, EpisodeNumber int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_Trakt_Episode] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_Trakt_EpisodeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
             new DatabaseCommand(31, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID ON CrossRef_AniDB_Trakt_Episode(AniDBEpisodeID)"),
-            new DatabaseCommand(32, 3,(Action)DatabaseFixes.RemoveOldMovieDBImageRecords),
+            new DatabaseCommand(32, 3,DatabaseFixes.RemoveOldMovieDBImageRecords),
             new DatabaseCommand(33, 1,"CREATE TABLE CustomTag( CustomTagID int IDENTITY(1,1) NOT NULL, TagName nvarchar(500), TagDescription nvarchar(MAX), CONSTRAINT [PK_CustomTag] PRIMARY KEY CLUSTERED ( CustomTagID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
             new DatabaseCommand(33, 2,"CREATE TABLE CrossRef_CustomTag( CrossRef_CustomTagID int IDENTITY(1,1) NOT NULL, CustomTagID int NOT NULL, CrossRefID int NOT NULL, CrossRefType int NOT NULL, CONSTRAINT [PK_CrossRef_CustomTag] PRIMARY KEY CLUSTERED ( CrossRef_CustomTagID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
             new DatabaseCommand(34, 1,"ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
-            new DatabaseCommand(35, 1,(Action)DatabaseFixes.PopulateTagWeight),
+            new DatabaseCommand(35, 1,DatabaseFixes.PopulateTagWeight),
             new DatabaseCommand(36, 1,"ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-            new DatabaseCommand(37, 1,(Action)DatabaseFixes.FixHashes),
+            new DatabaseCommand(37, 1,DatabaseFixes.FixHashes),
             new DatabaseCommand(38, 1,"DROP TABLE LogMessage"),
             new DatabaseCommand(39, 1,"ALTER TABLE AnimeSeries ADD DefaultFolder nvarchar(max) NULL"),
             new DatabaseCommand(40, 1,"ALTER TABLE JMMUser ADD PlexUsers nvarchar(max) NULL"),
             new DatabaseCommand(41, 1,"ALTER TABLE GroupFilter ADD FilterType int NULL"),
             new DatabaseCommand(41, 2,"UPDATE GroupFilter SET FilterType = 1"),
             new DatabaseCommand(41, 3,"ALTER TABLE GroupFilter ALTER COLUMN FilterType int NOT NULL"),
-            new DatabaseCommand(41, 4,(Action)DatabaseFixes.FixContinueWatchingGroupFilter_20160406),
+            new DatabaseCommand(41, 4,DatabaseFixes.FixContinueWatchingGroupFilter_20160406),
             new DatabaseCommand(42, 1,"ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL"),
             new DatabaseCommand(42, 2,"ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL"),
             new DatabaseCommand(42, 3,"ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT(0), PlexContractString nvarchar(MAX) NULL, KodiContractVersion int NOT NULL DEFAULT(0), KodiContractString nvarchar(MAX) NULL"),
@@ -405,7 +345,7 @@ namespace JMMServer.Databases
             new DatabaseCommand(47, 23,"ALTER TABLE AnimeGroup ADD ContractSize int NOT NULL DEFAULT(0)"),
             new DatabaseCommand(47, 24,"ALTER TABLE AnimeGroup DROP COLUMN ContractString"),
             new DatabaseCommand(48, 1,"ALTER TABLE AniDB_Anime DROP COLUMN AllCategories"),
-            new DatabaseCommand(49, 1,(Action)DatabaseFixes.DeleteSerieUsersWithoutSeries),
+            new DatabaseCommand(49, 1,DatabaseFixes.DeleteSerieUsersWithoutSeries),
             new DatabaseCommand(50, 1,"CREATE TABLE VideoLocal_Place ( VideoLocal_Place_ID int IDENTITY(1,1) NOT NULL, VideoLocalID int NOT NULL, FilePath nvarchar(MAX) NOT NULL,  ImportFolderID int NOT NULL, ImportFolderType int NOT NULL, CONSTRAINT [PK_VideoLocal_Place] PRIMARY KEY CLUSTERED (  VideoLocal_Place_ID ASC  ) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
             new DatabaseCommand(50, 2,"ALTER TABLE VideoLocal ADD FileName nvarchar(max) NOT NULL DEFAULT(''), VideoCodec varchar(max) NOT NULL DEFAULT(''), VideoBitrate varchar(max) NOT NULL DEFAULT(''), VideoBitDepth varchar(max) NOT NULL DEFAULT(''), VideoFrameRate varchar(max) NOT NULL DEFAULT(''), VideoResolution varchar(max) NOT NULL DEFAULT(''), AudioCodec varchar(max) NOT NULL DEFAULT(''), AudioBitrate varchar(max) NOT NULL DEFAULT(''),Duration bigint NOT NULL DEFAULT(0)"),
             new DatabaseCommand(50, 3,"INSERT INTO VideoLocal_Place (VideoLocalID, FilePath, ImportFolderID, ImportFolderType) SELECT VideoLocalID, FilePath, ImportFolderID, 1 as ImportFolderType FROM VideoLocal"),
@@ -433,90 +373,91 @@ namespace JMMServer.Databases
             new DatabaseCommand("CREATE INDEX IX_Versions_VersionType ON Versions(VersionType,VersionValue,VersionRevision);"),
         };
 
-
-        private Tuple<bool, string> CommandWrapper(string command)
+        protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)
         {
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            try
             {
-                tmpConn.Open();
-                using (SqlCommand cmd = new SqlCommand(command, tmpConn))
-                {
-                    cmd.CommandTimeout = 0;
-                    try
-                    {
-                        cmd.ExecuteNonQuery();
-                        return new Tuple<bool, string>(true, null);
-                    }
-                    catch (Exception ex)
-                    {
-                        return new Tuple<bool, string>(false, ex.ToString());
-                    }
+                Execute(connection, command);
+                return new Tuple<bool, string>(true, null);
+            }
+            catch (Exception ex)
+            {
+                return new Tuple<bool, string>(false, ex.ToString());
+            }
+        }
 
+        protected override void Execute(SqlConnection connection, string command)
+        {
+            using (SqlCommand cmd = new SqlCommand(command, connection))
+            {
+                cmd.CommandTimeout = 0;
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        protected override long ExecuteScalar(SqlConnection connection, string command)
+        {
+            using (SqlCommand cmd = new SqlCommand(command, connection))
+            {
+                cmd.CommandTimeout = 0;
+                object result = cmd.ExecuteScalar();
+                return long.Parse(result.ToString());
+            }
+        }
+
+        protected override ArrayList ExecuteReader(SqlConnection connection, string command)
+        {
+            using (SqlCommand cmd = new SqlCommand(command, connection))
+            {
+                cmd.CommandTimeout = 0;
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    ArrayList rows = new ArrayList();
+                    while (reader.Read())
+                    {
+                        object[] values = new object[reader.FieldCount];
+                        reader.GetValues(values);
+                        rows.Add(values);
+                    }
+                    reader.Close();
+                    return rows;
                 }
             }
         }
 
-
-        public Tuple<bool, string> ExecuteCommand(DatabaseCommand cmd)
+        protected override void ConnectionWrapper(string connectionstring, Action<SqlConnection> action)
         {
-            return this.ExecuteCommand(cmd, CommandWrapper);
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                action(conn);
+            }
         }
 
 
 
         public void CreateAndUpdateSchema()
         {
-            int count = 0;
-            string cmd = "Select count(*) from sysobjects where name = 'Versions'";
-            using (
-                SqlConnection tmpConn =
-                    new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                        ServerSettings.DatabaseServer,
-                        ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
+            Fixes = new List<DatabaseCommand>();
+            ConnectionWrapper(GetConnectionString(), (myConn) =>
             {
-                using (SqlCommand command = new SqlCommand(cmd, tmpConn))
-                {
-                    tmpConn.Open();
-                    object result = command.ExecuteScalar();
-                    count = int.Parse(result.ToString());
-                }
-            }
-
-            // if the Versions already exists, it means we have done this already
-            bool create = (count == 0);
-            if (create)
-                this.ExecuteWithException(createVersionTable);
-            cmd = "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE [TABLE_NAME] = 'Versions' and [COLUMN_NAME]='VersionRevision'";
-            using (SqlConnection tmpConn =
-                        new SqlConnection(string.Format("Server={0};User ID={1};Password={2};database={3}",
-                            ServerSettings.DatabaseServer,
-                            ServerSettings.DatabaseUsername, ServerSettings.DatabasePassword, ServerSettings.DatabaseName)))
-                {
-                    using (SqlCommand command = new SqlCommand(cmd, tmpConn))
-                    {
-                        tmpConn.Open();
-                        object result = command.ExecuteScalar();
-                        count = int.Parse(result.ToString());
-                    }
-                }
-            if (count == 0)
-                this.ExecuteWithException(updateVersionTable);
-            this.PreFillVersions(createTables.Union(patchCommands));
-            if (create)
-                this.ExecuteWithException(createTables);
-            this.ExecuteWithException(patchCommands);
+                bool create = (ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") == 0);
+                if (create)
+                    ExecuteWithException(myConn, createVersionTable);
+                bool update = (ExecuteScalar(myConn,"SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE [TABLE_NAME] = 'Versions' and [COLUMN_NAME]='VersionRevision'") == 0);
+                if (update)
+                    ExecuteWithException(myConn, updateVersionTable);
+                PreFillVersions(createTables.Union(patchCommands));
+                if (create)
+                    ExecuteWithException(myConn, createTables);
+                ExecuteWithException(myConn, patchCommands);
+            });
         }
 
         public string GetDatabasePath(string serverName)
         {
-            string dbPath = "";
-
             // normally installed versions of sql server
-            dbPath = GetDatabasePath(serverName, @"SOFTWARE\Microsoft\Microsoft SQL Server");
+            var dbPath = GetDatabasePath(serverName, @"SOFTWARE\Microsoft\Microsoft SQL Server");
             if (dbPath.Length > 0) return dbPath;
 
             // sql server 32bit version installed on 64bit OS
@@ -532,12 +473,16 @@ namespace JMMServer.Databases
             //
             using (RegistryKey sqlServerKey = Registry.LocalMachine.OpenSubKey(registryPoint))
             {
+                if (sqlServerKey == null)
+                    return string.Empty;
                 foreach (string subKeyName in sqlServerKey.GetSubKeyNames())
                 {
                     if (subKeyName.StartsWith("MSSQL"))
                     {
                         using (RegistryKey instanceKey = sqlServerKey.OpenSubKey(subKeyName))
                         {
+                            if (instanceKey == null)
+                                return string.Empty;
                             object val = instanceKey.GetValue("");
                             if (val != null)
                             {
@@ -545,7 +490,10 @@ namespace JMMServer.Databases
 
                                 if (instanceName == instName) //say
                                 {
-                                    string path = instanceKey.OpenSubKey(@"Setup").GetValue("SQLDataRoot").ToString();
+                                    RegistryKey pkey = instanceKey.OpenSubKey(@"Setup");
+                                    if (pkey == null)
+                                        return string.Empty;
+                                    string path = pkey.GetValue("SQLDataRoot").ToString();
                                     path = Path.Combine(path, "Data");
                                     return path;
                                 }
@@ -554,8 +502,7 @@ namespace JMMServer.Databases
                     }
                 }
             }
-
-            return "";
+            return string.Empty;
         }
 
         public string GetInstanceNameFromServerName(string servername)
@@ -567,6 +514,8 @@ namespace JMMServer.Databases
 
             return instancename;
         }
+
+
     }
 
 }

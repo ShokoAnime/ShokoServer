@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using JMMServer.Commands;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
@@ -35,7 +36,7 @@ namespace JMMServer.Providers.MovieDB
 
         public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 SaveMovieToDatabase(session, searchResult, saveImages);
             }
@@ -173,7 +174,7 @@ namespace JMMServer.Providers.MovieDB
 
         public static void UpdateMovieInfo(int movieID, bool saveImages)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 UpdateMovieInfo(session, movieID, saveImages);
             }

@@ -6,6 +6,7 @@ using JMMContracts;
 using JMMServer.Commands;
 using JMMServer.Commands.AniDB;
 using JMMServer.Commands.Azure;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.FileHelper;
 using JMMServer.Providers.Azure;
@@ -131,7 +132,7 @@ namespace JMMServer
 
         public static void SyncHashes()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 List<VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
                 List<VideoLocal> missfiles = allfiles.Where(

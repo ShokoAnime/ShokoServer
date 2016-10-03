@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -19,7 +20,7 @@ namespace JMMServer.Repositories.Direct
         }
         public AniDB_Anime_Similar GetByAnimeIDAndSimilarID(int animeid, int similaranimeid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 AniDB_Anime_Similar cr = session
                     .CreateCriteria(typeof(AniDB_Anime_Similar))
@@ -42,7 +43,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<AniDB_Anime_Similar> GetByAnimeID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByAnimeID(session, id);
             }

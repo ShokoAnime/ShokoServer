@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -18,7 +19,7 @@ namespace JMMServer.Repositories.Direct
         }
         public List<GroupFilterCondition> GetByGroupFilterID(int gfid)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByGroupFilterID(session, gfid);
             }
@@ -36,7 +37,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<GroupFilterCondition> GetByConditionType(GroupFilterConditionType ctype)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var gfcs = session
                     .CreateCriteria(typeof(GroupFilterCondition))

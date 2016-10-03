@@ -2,6 +2,7 @@
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Direct;
@@ -64,7 +65,7 @@ namespace JMMServer.Commands
 
         public void Save()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 Save(session);
             }

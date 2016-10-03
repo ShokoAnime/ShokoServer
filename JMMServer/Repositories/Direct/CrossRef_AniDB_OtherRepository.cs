@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate.Criterion;
@@ -19,7 +20,7 @@ namespace JMMServer.Repositories.Direct
 
         public CrossRef_AniDB_Other GetByAnimeIDAndType(int animeID, CrossRefType xrefType)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByAnimeIDAndType(session.Wrap(), animeID, xrefType);
             }
@@ -37,7 +38,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<CrossRef_AniDB_Other> GetByType(CrossRefType xrefType)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var xrefs = session
                     .CreateCriteria(typeof(CrossRef_AniDB_Other))
@@ -50,7 +51,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<CrossRef_AniDB_Other> GetByAnimeID(int animeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var xrefs = session
                     .CreateCriteria(typeof(CrossRef_AniDB_Other))

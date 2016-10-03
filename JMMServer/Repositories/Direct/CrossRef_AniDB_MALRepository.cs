@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NHibernate.Criterion;
@@ -19,7 +20,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<CrossRef_AniDB_MAL> GetByAnimeID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByAnimeID(session, id);
             }
@@ -39,7 +40,7 @@ namespace JMMServer.Repositories.Direct
 
         public CrossRef_AniDB_MAL GetByMALID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 CrossRef_AniDB_MAL cr = session
                     .CreateCriteria(typeof(CrossRef_AniDB_MAL))
@@ -51,7 +52,7 @@ namespace JMMServer.Repositories.Direct
 
         public CrossRef_AniDB_MAL GetByAnimeConstraint(int animeID, int epType, int epNumber)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 CrossRef_AniDB_MAL cr = session
                     .CreateCriteria(typeof(CrossRef_AniDB_MAL))

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using JMMContracts;
+using JMMServer.Databases;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using NHibernate;
@@ -159,7 +160,7 @@ namespace JMMServer.Entities
 
         public Contract_GroupFilter ToContract()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return ToContract(session);
             }
@@ -215,7 +216,7 @@ namespace JMMServer.Entities
 
         public Contract_GroupFilterExtended ToContractExtended(JMMUser user)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return ToContractExtended(session, user);
             }

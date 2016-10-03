@@ -6,17 +6,13 @@ using System.IO;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
-using JMMServer.Entities;
-using JMMServer.Repositories;
-using JMMServer.Repositories.Direct;
 using NHibernate;
-using NLog;
+// ReSharper disable InconsistentNaming
 
 namespace JMMServer.Databases
 {
-    public class SQLite : IDatabase
+    public class SQLite : BaseDatabase<SQLiteConnection>, IDatabase
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
         public const string DefaultDBName = @"JMMServer.db3";
 
         public static SQLite Instance { get; } = new SQLite();
@@ -27,20 +23,6 @@ namespace JMMServer.Databases
         public int RequiredVersion { get; } = 49;
 
 
-        public Dictionary<string, Dictionary<string, Versions>> AllVersions { get; }
-
-        private SQLite()
-        {
-            try
-            {
-                AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
-
-            }
-            catch (Exception) //First Time
-            {
-                AllVersions = new Dictionary<string, Dictionary<string, Versions>>();
-            }
-        }
 
         public void BackupDatabase(string fullfilename)
         {
@@ -59,9 +41,9 @@ namespace JMMServer.Databases
             return dbName;
         }
 
-        public static string GetConnectionString()
+        public override string GetConnectionString()
         {
-            return string.Format(@"data source={0};useutf16encoding=True", GetDatabaseFilePath());
+            return $@"data source={GetDatabaseFilePath()};useutf16encoding=True";
         }
 
         public ISessionFactory CreateSessionFactory()
@@ -97,40 +79,8 @@ namespace JMMServer.Databases
             ServerSettings.DatabaseFile = GetDatabaseFilePath();
         }
 
-        public ArrayList GetData(string sql)
-        {
-            return GetDataStatic(sql);
-        }
-        public static ArrayList GetDataStatic(string sql)
-        {
-            ArrayList rowList = new ArrayList();
-            try
-            {
-                using (SQLiteConnection myConn = new SQLiteConnection(GetConnectionString()))
-                {
-                    myConn.Open();
-                    using (SQLiteCommand sqCommand = new SQLiteCommand(sql, myConn))
-                    {
-                        sqCommand.CommandTimeout = 0;
-                        SQLiteDataReader reader = sqCommand.ExecuteReader();
-                        while (reader.Read())
-                        {
-                            object[] values = new object[reader.FieldCount];
-                            reader.GetValues(values);
-                            rowList.Add(values);
-                        }
-                        reader.Close();
-                    }
 
-                }
 
-            }
-            catch (Exception ex)
-            {
-                logger.Error(sql + " - " + ex.Message);
-            }
-            return rowList;
-        }
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
         {
             new DatabaseCommand(0, 1,"CREATE TABLE Versions ( VersionsID INTEGER PRIMARY KEY AUTOINCREMENT, VersionType Text NOT NULL, VersionValue Text NOT NULL)"),
@@ -139,59 +89,59 @@ namespace JMMServer.Databases
         private List<DatabaseCommand> createTables = new List<DatabaseCommand>
         {
             new DatabaseCommand(1, 1,"CREATE TABLE AniDB_Anime ( AniDB_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate timestamp NULL, EndDate timestamp NULL, URL text NULL, Picname text NULL, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle text NOT NULL, AllTitles text NOT NULL, AllCategories text NOT NULL, AllTags text NOT NULL, Description text NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeDescUpdated timestamp NOT NULL, ImageEnabled int NOT NULL, AwardList text NOT NULL, Restricted int NOT NULL, AnimePlanetID int NULL, ANNID int NULL, AllCinemaID int NULL, AnimeNfo int NULL, LatestEpisodeNumber int NULL );"),
-            new DatabaseCommand(1, 2,"CREATE UNIQUE INDEX [UIX_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);"),
+            new DatabaseCommand(1, 2, "CREATE UNIQUE INDEX [UIX_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);"),
             new DatabaseCommand(1, 3,"CREATE TABLE AniDB_Anime_Category ( AniDB_Anime_CategoryID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, CategoryID int NOT NULL, Weighting int NOT NULL ); "),
-            new DatabaseCommand(1, 4,"CREATE INDEX IX_AniDB_Anime_Category_AnimeID on AniDB_Anime_Category(AnimeID);"),
+            new DatabaseCommand(1, 4, "CREATE INDEX IX_AniDB_Anime_Category_AnimeID on AniDB_Anime_Category(AnimeID);"),
             new DatabaseCommand(1, 5,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Category_AnimeID_CategoryID ON AniDB_Anime_Category (AnimeID, CategoryID);"),
             new DatabaseCommand(1, 6,"CREATE TABLE AniDB_Anime_Character ( AniDB_Anime_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, CharID int NOT NULL, CharType text NOT NULL, EpisodeListRaw text NOT NULL ); "),
-            new DatabaseCommand(1, 7,"CREATE INDEX IX_AniDB_Anime_Character_AnimeID on AniDB_Anime_Character(AnimeID);"),
+            new DatabaseCommand(1, 7, "CREATE INDEX IX_AniDB_Anime_Character_AnimeID on AniDB_Anime_Character(AnimeID);"),
             new DatabaseCommand(1, 8,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Character_AnimeID_CharID ON AniDB_Anime_Character(AnimeID, CharID);"),
             new DatabaseCommand(1, 9,"CREATE TABLE AniDB_Anime_Relation ( AniDB_Anime_RelationID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, RelatedAnimeID int NOT NULL, RelationType text NOT NULL ); "),
-            new DatabaseCommand(1, 10,"CREATE INDEX IX_AniDB_Anime_Relation_AnimeID on AniDB_Anime_Relation(AnimeID);"),
+            new DatabaseCommand(1, 10, "CREATE INDEX IX_AniDB_Anime_Relation_AnimeID on AniDB_Anime_Relation(AnimeID);"),
             new DatabaseCommand(1, 11,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Relation_AnimeID_RelatedAnimeID ON AniDB_Anime_Relation(AnimeID, RelatedAnimeID);"),
             new DatabaseCommand(1, 12,"CREATE TABLE AniDB_Anime_Review ( AniDB_Anime_ReviewID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, ReviewID int NOT NULL ); "),
-            new DatabaseCommand(1, 13,"CREATE INDEX IX_AniDB_Anime_Review_AnimeID on AniDB_Anime_Review(AnimeID);"),
+            new DatabaseCommand(1, 13, "CREATE INDEX IX_AniDB_Anime_Review_AnimeID on AniDB_Anime_Review(AnimeID);"),
             new DatabaseCommand(1, 14,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Review_AnimeID_ReviewID ON AniDB_Anime_Review(AnimeID, ReviewID);"),
             new DatabaseCommand(1, 15,"CREATE TABLE AniDB_Anime_Similar ( AniDB_Anime_SimilarID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, SimilarAnimeID int NOT NULL, Approval int NOT NULL, Total int NOT NULL ); "),
-            new DatabaseCommand(1, 16,"CREATE INDEX IX_AniDB_Anime_Similar_AnimeID on AniDB_Anime_Similar(AnimeID);"),
+            new DatabaseCommand(1, 16, "CREATE INDEX IX_AniDB_Anime_Similar_AnimeID on AniDB_Anime_Similar(AnimeID);"),
             new DatabaseCommand(1, 17,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Similar_AnimeID_SimilarAnimeID ON AniDB_Anime_Similar(AnimeID, SimilarAnimeID);"),
             new DatabaseCommand(1, 18,"CREATE TABLE AniDB_Anime_Tag ( AniDB_Anime_TagID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, TagID int NOT NULL, Approval int NOT NULL ); "),
-            new DatabaseCommand(1, 19,"CREATE INDEX IX_AniDB_Anime_Tag_AnimeID on AniDB_Anime_Tag(AnimeID);"),
+            new DatabaseCommand(1, 19, "CREATE INDEX IX_AniDB_Anime_Tag_AnimeID on AniDB_Anime_Tag(AnimeID);"),
             new DatabaseCommand(1, 20,"CREATE UNIQUE INDEX UIX_AniDB_Anime_Tag_AnimeID_TagID ON AniDB_Anime_Tag(AnimeID, TagID);"),
             new DatabaseCommand(1, 21,"CREATE TABLE AniDB_Anime_Title ( AniDB_Anime_TitleID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, TitleType text NOT NULL, Language text NOT NULL, Title text NULL ); "),
-            new DatabaseCommand(1, 22,"CREATE INDEX IX_AniDB_Anime_Title_AnimeID on AniDB_Anime_Title(AnimeID);"),
+            new DatabaseCommand(1, 22, "CREATE INDEX IX_AniDB_Anime_Title_AnimeID on AniDB_Anime_Title(AnimeID);"),
             new DatabaseCommand(1, 23,"CREATE TABLE AniDB_Category ( AniDB_CategoryID INTEGER PRIMARY KEY AUTOINCREMENT, CategoryID int NOT NULL, ParentID int NOT NULL, IsHentai int NOT NULL, CategoryName text NOT NULL, CategoryDescription text NOT NULL  ); "),
             new DatabaseCommand(1, 24,"CREATE UNIQUE INDEX UIX_AniDB_Category_CategoryID ON AniDB_Category(CategoryID);"),
             new DatabaseCommand(1, 25,"CREATE TABLE AniDB_Character ( AniDB_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, CharID int NOT NULL, CharName text NOT NULL, PicName text NOT NULL, CharKanjiName text NOT NULL, CharDescription text NOT NULL, CreatorListRaw text NOT NULL ); "),
-            new DatabaseCommand(1, 26,"CREATE UNIQUE INDEX UIX_AniDB_Character_CharID ON AniDB_Character(CharID);"),
+            new DatabaseCommand(1, 26, "CREATE UNIQUE INDEX UIX_AniDB_Character_CharID ON AniDB_Character(CharID);"),
             new DatabaseCommand(1, 27,"CREATE TABLE AniDB_Character_Seiyuu ( AniDB_Character_SeiyuuID INTEGER PRIMARY KEY AUTOINCREMENT, CharID int NOT NULL, SeiyuuID int NOT NULL ); "),
             new DatabaseCommand(1, 28,"CREATE INDEX IX_AniDB_Character_Seiyuu_CharID on AniDB_Character_Seiyuu(CharID);"),
             new DatabaseCommand(1, 29,"CREATE INDEX IX_AniDB_Character_Seiyuu_SeiyuuID on AniDB_Character_Seiyuu(SeiyuuID);"),
             new DatabaseCommand(1, 30,"CREATE UNIQUE INDEX UIX_AniDB_Character_Seiyuu_CharID_SeiyuuID ON AniDB_Character_Seiyuu(CharID, SeiyuuID);"),
             new DatabaseCommand(1, 31,"CREATE TABLE AniDB_Seiyuu ( AniDB_SeiyuuID INTEGER PRIMARY KEY AUTOINCREMENT, SeiyuuID int NOT NULL, SeiyuuName text NOT NULL, PicName text NOT NULL ); "),
-            new DatabaseCommand(1, 32,"CREATE UNIQUE INDEX UIX_AniDB_Seiyuu_SeiyuuID ON AniDB_Seiyuu(SeiyuuID);"),
+            new DatabaseCommand(1, 32, "CREATE UNIQUE INDEX UIX_AniDB_Seiyuu_SeiyuuID ON AniDB_Seiyuu(SeiyuuID);"),
             new DatabaseCommand(1, 33,"CREATE TABLE AniDB_Episode ( AniDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, EpisodeID int NOT NULL, AnimeID int NOT NULL, LengthSeconds int NOT NULL, Rating text NOT NULL, Votes text NOT NULL, EpisodeNumber int NOT NULL, EpisodeType int NOT NULL, RomajiName text NOT NULL, EnglishName text NOT NULL, AirDate int NOT NULL, DateTimeUpdated timestamp NOT NULL ); "),
-            new DatabaseCommand(1, 34,"CREATE INDEX IX_AniDB_Episode_AnimeID on AniDB_Episode(AnimeID);"),
-            new DatabaseCommand(1, 35,"CREATE UNIQUE INDEX UIX_AniDB_Episode_EpisodeID ON AniDB_Episode(EpisodeID);"),
+            new DatabaseCommand(1, 34, "CREATE INDEX IX_AniDB_Episode_AnimeID on AniDB_Episode(AnimeID);"),
+            new DatabaseCommand(1, 35, "CREATE UNIQUE INDEX UIX_AniDB_Episode_EpisodeID ON AniDB_Episode(EpisodeID);"),
             new DatabaseCommand(1, 36,"CREATE TABLE AniDB_File ( AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, Hash text NOT NULL, AnimeID int NOT NULL, GroupID int NOT NULL, File_Source text NOT NULL, File_AudioCodec text NOT NULL, File_VideoCodec text NOT NULL, File_VideoResolution text NOT NULL, File_FileExtension text NOT NULL, File_LengthSeconds int NOT NULL, File_Description text NOT NULL, File_ReleaseDate int NOT NULL, Anime_GroupName text NOT NULL, Anime_GroupNameShort text NOT NULL, Episode_Rating int NOT NULL, Episode_Votes int NOT NULL, DateTimeUpdated timestamp NOT NULL, IsWatched int NOT NULL, WatchedDate timestamp NULL, CRC text NOT NULL, MD5 text NOT NULL, SHA1 text NOT NULL, FileName text NOT NULL, FileSize INTEGER NOT NULL ); "),
-            new DatabaseCommand(1, 37,"CREATE UNIQUE INDEX UIX_AniDB_File_Hash on AniDB_File(Hash);"),
-            new DatabaseCommand(1, 38,"CREATE UNIQUE INDEX UIX_AniDB_File_FileID ON AniDB_File(FileID);"),
-            new DatabaseCommand(1, 39,"CREATE INDEX IX_AniDB_File_File_Source on AniDB_File(File_Source);"),
+            new DatabaseCommand(1, 37, "CREATE UNIQUE INDEX UIX_AniDB_File_Hash on AniDB_File(Hash);"),
+            new DatabaseCommand(1, 38, "CREATE UNIQUE INDEX UIX_AniDB_File_FileID ON AniDB_File(FileID);"),
+            new DatabaseCommand(1, 39, "CREATE INDEX IX_AniDB_File_File_Source on AniDB_File(File_Source);"),
             new DatabaseCommand(1, 40,"CREATE TABLE AniDB_GroupStatus ( AniDB_GroupStatusID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, GroupID int NOT NULL, GroupName text NOT NULL, CompletionState int NOT NULL, LastEpisodeNumber int NOT NULL, Rating int NOT NULL, Votes int NOT NULL, EpisodeRange text NOT NULL ); "),
-            new DatabaseCommand(1, 41,"CREATE INDEX IX_AniDB_GroupStatus_AnimeID on AniDB_GroupStatus(AnimeID);"),
+            new DatabaseCommand(1, 41, "CREATE INDEX IX_AniDB_GroupStatus_AnimeID on AniDB_GroupStatus(AnimeID);"),
             new DatabaseCommand(1, 42,"CREATE UNIQUE INDEX UIX_AniDB_GroupStatus_AnimeID_GroupID ON AniDB_GroupStatus(AnimeID, GroupID);"),
             new DatabaseCommand(1, 43,"CREATE TABLE AniDB_ReleaseGroup ( AniDB_ReleaseGroupID INTEGER PRIMARY KEY AUTOINCREMENT, GroupID int NOT NULL, Rating int NOT NULL, Votes int NOT NULL, AnimeCount int NOT NULL, FileCount int NOT NULL, GroupName text NOT NULL, GroupNameShort text NOT NULL, IRCChannel text NOT NULL, IRCServer text NOT NULL, URL text NOT NULL, Picname text NOT NULL ); "),
             new DatabaseCommand(1, 44,"CREATE UNIQUE INDEX UIX_AniDB_ReleaseGroup_GroupID ON AniDB_ReleaseGroup(GroupID);"),
             new DatabaseCommand(1, 45,"CREATE TABLE AniDB_Review ( AniDB_ReviewID INTEGER PRIMARY KEY AUTOINCREMENT, ReviewID int NOT NULL, AuthorID int NOT NULL, RatingAnimation int NOT NULL, RatingSound int NOT NULL, RatingStory int NOT NULL, RatingCharacter int NOT NULL, RatingValue int NOT NULL, RatingEnjoyment int NOT NULL, ReviewText text NOT NULL ); "),
-            new DatabaseCommand(1, 46,"CREATE UNIQUE INDEX UIX_AniDB_Review_ReviewID ON AniDB_Review(ReviewID);"),
+            new DatabaseCommand(1, 46, "CREATE UNIQUE INDEX UIX_AniDB_Review_ReviewID ON AniDB_Review(ReviewID);"),
             new DatabaseCommand(1, 47,"CREATE TABLE AniDB_Tag ( AniDB_TagID INTEGER PRIMARY KEY AUTOINCREMENT, TagID int NOT NULL, Spoiler int NOT NULL, LocalSpoiler int NOT NULL, GlobalSpoiler int NOT NULL, TagName text NOT NULL, TagCount int NOT NULL, TagDescription text NOT NULL ); "),
-            new DatabaseCommand(1, 48,"CREATE UNIQUE INDEX UIX_AniDB_Tag_TagID ON AniDB_Tag(TagID);"),
+            new DatabaseCommand(1, 48, "CREATE UNIQUE INDEX UIX_AniDB_Tag_TagID ON AniDB_Tag(TagID);"),
             new DatabaseCommand(1, 49,"CREATE TABLE [AnimeEpisode]( AnimeEpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeSeriesID int NOT NULL, AniDB_EpisodeID int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeCreated timestamp NOT NULL );"),
             new DatabaseCommand(1, 50,"CREATE UNIQUE INDEX UIX_AnimeEpisode_AniDB_EpisodeID ON AnimeEpisode(AniDB_EpisodeID);"),
-            new DatabaseCommand(1, 51,"CREATE INDEX IX_AnimeEpisode_AnimeSeriesID on AnimeEpisode(AnimeSeriesID);"),
+            new DatabaseCommand(1, 51, "CREATE INDEX IX_AnimeEpisode_AnimeSeriesID on AnimeEpisode(AnimeSeriesID);"),
             new DatabaseCommand(1, 52,"CREATE TABLE AnimeGroup ( AnimeGroupID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeGroupParentID int NULL, GroupName text NOT NULL, Description text NULL, IsManuallyNamed int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeCreated timestamp NOT NULL, SortName text NOT NULL, MissingEpisodeCount int NOT NULL, MissingEpisodeCountGroups int NOT NULL, OverrideDescription int NOT NULL, EpisodeAddedDate timestamp NULL ); "),
             new DatabaseCommand(1, 53,"CREATE TABLE AnimeSeries ( AnimeSeriesID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeGroupID int NOT NULL, AniDB_ID int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeCreated timestamp NOT NULL, DefaultAudioLanguage text NULL, DefaultSubtitleLanguage text NULL, MissingEpisodeCount int NOT NULL, MissingEpisodeCountGroups int NOT NULL, LatestLocalEpisodeNumber int NOT NULL, EpisodeAddedDate timestamp NULL ); "),
-            new DatabaseCommand(1, 54,"CREATE UNIQUE INDEX UIX_AnimeSeries_AniDB_ID ON AnimeSeries(AniDB_ID);"),
+            new DatabaseCommand(1, 54, "CREATE UNIQUE INDEX UIX_AnimeSeries_AniDB_ID ON AnimeSeries(AniDB_ID);"),
             new DatabaseCommand(1, 55,"CREATE TABLE CommandRequest ( CommandRequestID INTEGER PRIMARY KEY AUTOINCREMENT, Priority int NOT NULL, CommandType int NOT NULL, CommandID text NOT NULL, CommandDetails text NOT NULL, DateTimeUpdated timestamp NOT NULL ); "),
             new DatabaseCommand(1, 56,"CREATE TABLE CrossRef_AniDB_Other( CrossRef_AniDB_OtherID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, CrossRefID text NOT NULL, CrossRefSource int NOT NULL, CrossRefType int NOT NULL ); "),
             new DatabaseCommand(1, 57,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Other ON CrossRef_AniDB_Other(AnimeID, CrossRefID, CrossRefSource, CrossRefType);"),
@@ -202,34 +152,34 @@ namespace JMMServer.Databases
             new DatabaseCommand(1, 62,"CREATE TABLE CrossRef_Languages_AniDB_File ( CrossRef_Languages_AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, LanguageID int NOT NULL ); "),
             new DatabaseCommand(1, 63,"CREATE TABLE CrossRef_Subtitles_AniDB_File ( CrossRef_Subtitles_AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, LanguageID int NOT NULL ); "),
             new DatabaseCommand(1, 64,"CREATE TABLE FileNameHash ( FileNameHashID INTEGER PRIMARY KEY AUTOINCREMENT, FileName text NOT NULL, FileSize INTEGER NOT NULL, Hash text NOT NULL, DateTimeUpdated timestamp NOT NULL ); "),
-            new DatabaseCommand(1, 65,"CREATE UNIQUE INDEX UIX_FileNameHash ON FileNameHash(FileName, FileSize, Hash);"),
+            new DatabaseCommand(1, 65, "CREATE UNIQUE INDEX UIX_FileNameHash ON FileNameHash(FileName, FileSize, Hash);"),
             new DatabaseCommand(1, 66,"CREATE TABLE Language ( LanguageID INTEGER PRIMARY KEY AUTOINCREMENT, LanguageName text NOT NULL ); "),
-            new DatabaseCommand(1, 67,"CREATE UNIQUE INDEX UIX_Language_LanguageName ON Language(LanguageName);"),
+            new DatabaseCommand(1, 67, "CREATE UNIQUE INDEX UIX_Language_LanguageName ON Language(LanguageName);"),
             new DatabaseCommand(1, 68,"CREATE TABLE ImportFolder ( ImportFolderID INTEGER PRIMARY KEY AUTOINCREMENT, ImportFolderType int NOT NULL, ImportFolderName text NOT NULL, ImportFolderLocation text NOT NULL, IsDropSource int NOT NULL, IsDropDestination int NOT NULL ); "),
             new DatabaseCommand(1, 69,"CREATE TABLE ScheduledUpdate( ScheduledUpdateID INTEGER PRIMARY KEY AUTOINCREMENT,  UpdateType int NOT NULL, LastUpdate timestamp NOT NULL, UpdateDetails text NOT NULL ); "),
             new DatabaseCommand(1, 70,"CREATE UNIQUE INDEX UIX_ScheduledUpdate_UpdateType ON ScheduledUpdate(UpdateType);"),
             new DatabaseCommand(1, 71,"CREATE TABLE VideoInfo ( VideoInfoID INTEGER PRIMARY KEY AUTOINCREMENT, Hash text NOT NULL, FileSize INTEGER NOT NULL, FileName text NOT NULL, DateTimeUpdated timestamp NOT NULL, VideoCodec text NOT NULL, VideoBitrate text NOT NULL, VideoFrameRate text NOT NULL, VideoResolution text NOT NULL, AudioCodec text NOT NULL, AudioBitrate text NOT NULL, Duration INTEGER NOT NULL ); "),
-            new DatabaseCommand(1, 72,"CREATE UNIQUE INDEX UIX_VideoInfo_Hash on VideoInfo(Hash);"),
+            new DatabaseCommand(1, 72, "CREATE UNIQUE INDEX UIX_VideoInfo_Hash on VideoInfo(Hash);"),
             new DatabaseCommand(1, 73,"CREATE TABLE VideoLocal ( VideoLocalID INTEGER PRIMARY KEY AUTOINCREMENT, FilePath text NOT NULL, ImportFolderID int NOT NULL, Hash text NOT NULL, CRC32 text NULL, MD5 text NULL, SHA1 text NULL, HashSource int NOT NULL, FileSize INTEGER NOT NULL, IsIgnored int NOT NULL, DateTimeUpdated timestamp NOT NULL ); "),
-            new DatabaseCommand(1, 74,"CREATE UNIQUE INDEX UIX_VideoLocal_Hash on VideoLocal(Hash)"),
+            new DatabaseCommand(1, 74, "CREATE UNIQUE INDEX UIX_VideoLocal_Hash on VideoLocal(Hash)"),
             new DatabaseCommand(1, 75,"CREATE TABLE DuplicateFile ( DuplicateFileID INTEGER PRIMARY KEY AUTOINCREMENT, FilePathFile1 text NOT NULL, FilePathFile2 text NOT NULL, ImportFolderIDFile1 int NOT NULL, ImportFolderIDFile2 int NOT NULL, Hash text NOT NULL, DateTimeUpdated timestamp NOT NULL ); "),
             new DatabaseCommand(1, 76,"CREATE TABLE GroupFilter( GroupFilterID INTEGER PRIMARY KEY AUTOINCREMENT, GroupFilterName text NOT NULL, ApplyToSeries int NOT NULL, BaseCondition int NOT NULL, SortingCriteria text ); "),
             new DatabaseCommand(1, 77,"CREATE TABLE GroupFilterCondition( GroupFilterConditionID INTEGER PRIMARY KEY AUTOINCREMENT, GroupFilterID int NOT NULL, ConditionType int NOT NULL, ConditionOperator int NOT NULL, ConditionParameter text NOT NULL ); "),
             new DatabaseCommand(1, 78,"CREATE TABLE AniDB_Vote ( AniDB_VoteID INTEGER PRIMARY KEY AUTOINCREMENT, EntityID int NOT NULL, VoteValue int NOT NULL, VoteType int NOT NULL ); "),
             new DatabaseCommand(1, 79,"CREATE TABLE TvDB_ImageFanart ( TvDB_ImageFanartID INTEGER PRIMARY KEY AUTOINCREMENT, Id integer NOT NULL, SeriesID integer NOT NULL, BannerPath text, BannerType text, BannerType2 text, Colors text, Language text, ThumbnailPath text, VignettePath text, Enabled integer NOT NULL, Chosen INTEGER NULL)"),
-            new DatabaseCommand(1, 80,"CREATE UNIQUE INDEX UIX_TvDB_ImageFanart_Id ON TvDB_ImageFanart(Id)"),
+            new DatabaseCommand(1, 80, "CREATE UNIQUE INDEX UIX_TvDB_ImageFanart_Id ON TvDB_ImageFanart(Id)"),
             new DatabaseCommand(1, 81,"CREATE TABLE TvDB_ImageWideBanner ( TvDB_ImageWideBannerID INTEGER PRIMARY KEY AUTOINCREMENT, Id integer NOT NULL, SeriesID integer NOT NULL, BannerPath text, BannerType text, BannerType2 text, Language text, Enabled integer NOT NULL, SeasonNumber integer)"),
-            new DatabaseCommand(1, 82,"CREATE UNIQUE INDEX UIX_TvDB_ImageWideBanner_Id ON TvDB_ImageWideBanner(Id);"),
+            new DatabaseCommand(1, 82, "CREATE UNIQUE INDEX UIX_TvDB_ImageWideBanner_Id ON TvDB_ImageWideBanner(Id);"),
             new DatabaseCommand(1, 83,"CREATE TABLE TvDB_ImagePoster ( TvDB_ImagePosterID INTEGER PRIMARY KEY AUTOINCREMENT, Id integer NOT NULL, SeriesID integer NOT NULL, BannerPath text, BannerType text, BannerType2 text, Language text, Enabled integer NOT NULL, SeasonNumber integer)"),
-            new DatabaseCommand(1, 84,"CREATE UNIQUE INDEX UIX_TvDB_ImagePoster_Id ON TvDB_ImagePoster(Id)"),
+            new DatabaseCommand(1, 84, "CREATE UNIQUE INDEX UIX_TvDB_ImagePoster_Id ON TvDB_ImagePoster(Id)"),
             new DatabaseCommand(1, 85,"CREATE TABLE TvDB_Episode ( TvDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, Id integer NOT NULL, SeriesID integer NOT NULL, SeasonID integer NOT NULL, SeasonNumber integer NOT NULL, EpisodeNumber integer NOT NULL, EpisodeName text, Overview text, Filename text, EpImgFlag integer NOT NULL, FirstAired text, AbsoluteNumber integer, AirsAfterSeason integer, AirsBeforeEpisode integer, AirsBeforeSeason integer)"),
-            new DatabaseCommand(1, 86,"CREATE UNIQUE INDEX UIX_TvDB_Episode_Id ON TvDB_Episode(Id);"),
+            new DatabaseCommand(1, 86, "CREATE UNIQUE INDEX UIX_TvDB_Episode_Id ON TvDB_Episode(Id);"),
             new DatabaseCommand(1, 87,"CREATE TABLE TvDB_Series( TvDB_SeriesID INTEGER PRIMARY KEY AUTOINCREMENT, SeriesID integer NOT NULL, Overview text, SeriesName text, Status text, Banner text, Fanart text, Poster text, Lastupdated text)"),
-            new DatabaseCommand(1, 88,"CREATE UNIQUE INDEX UIX_TvDB_Series_Id ON TvDB_Series(SeriesID);"),
+            new DatabaseCommand(1, 88, "CREATE UNIQUE INDEX UIX_TvDB_Series_Id ON TvDB_Series(SeriesID);"),
             new DatabaseCommand(1, 89,"CREATE TABLE AniDB_Anime_DefaultImage ( AniDB_Anime_DefaultImageID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, ImageParentID int NOT NULL, ImageParentType int NOT NULL, ImageType int NOT NULL );"),
             new DatabaseCommand(1, 90,"CREATE UNIQUE INDEX UIX_AniDB_Anime_DefaultImage_ImageType ON AniDB_Anime_DefaultImage(AnimeID, ImageType)"),
             new DatabaseCommand(1, 91,"CREATE TABLE MovieDB_Movie( MovieDB_MovieID INTEGER PRIMARY KEY AUTOINCREMENT, MovieId int NOT NULL, MovieName text, OriginalName text, Overview text );"),
-            new DatabaseCommand(1, 92,"CREATE UNIQUE INDEX UIX_MovieDB_Movie_Id ON MovieDB_Movie(MovieId)"),
+            new DatabaseCommand(1, 92, "CREATE UNIQUE INDEX UIX_MovieDB_Movie_Id ON MovieDB_Movie(MovieId)"),
             new DatabaseCommand(1, 93,"CREATE TABLE MovieDB_Poster( MovieDB_PosterID INTEGER PRIMARY KEY AUTOINCREMENT, ImageID text, MovieId int NOT NULL, ImageType text, ImageSize text,  URL text,  ImageWidth int NOT NULL,  ImageHeight int NOT NULL,  Enabled int NOT NULL );"),
             new DatabaseCommand(1, 94,"CREATE TABLE MovieDB_Fanart( MovieDB_FanartID INTEGER PRIMARY KEY AUTOINCREMENT, ImageID text, MovieId int NOT NULL, ImageType text, ImageSize text,  URL text,  ImageWidth int NOT NULL,  ImageHeight int NOT NULL,  Enabled int NOT NULL );"),
             new DatabaseCommand(1, 95,"CREATE TABLE JMMUser( JMMUserID INTEGER PRIMARY KEY AUTOINCREMENT, Username text, Password text, IsAdmin int NOT NULL, IsAniDBUser int NOT NULL, IsTraktUser int NOT NULL, HideCategories text );"),
@@ -249,12 +199,14 @@ namespace JMMServer.Databases
             new DatabaseCommand(1, 109,"CREATE TABLE VideoLocal_User( VideoLocal_UserID INTEGER PRIMARY KEY AUTOINCREMENT, JMMUserID int NOT NULL, VideoLocalID int NOT NULL, WatchedDate timestamp NOT NULL ); "),
             new DatabaseCommand(1, 110,"CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);"),
         };
+
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
         {
             new DatabaseCommand("ALTER TABLE Versions ADD VersionRevision text NULL;"),
             new DatabaseCommand("ALTER TABLE Versions ADD VersionCommand text NULL;"),
             new DatabaseCommand("ALTER TABLE Versions ADD VersionProgram text NULL;"),
-            new DatabaseCommand("CREATE INDEX IX_Versions_VersionType ON Versions(VersionType,VersionValue,VersionRevision);"),
+            new DatabaseCommand(
+                "CREATE INDEX IX_Versions_VersionType ON Versions(VersionType,VersionValue,VersionRevision);"),
         };
 
 
@@ -266,8 +218,8 @@ namespace JMMServer.Databases
             new DatabaseCommand(3, 2, "CREATE UNIQUE INDEX UIX_Trakt_Friend_Username ON Trakt_Friend(Username);"),
             new DatabaseCommand(4, 1, "ALTER TABLE AnimeGroup ADD DefaultAnimeSeriesID int NULL"),
             new DatabaseCommand(5, 1, "ALTER TABLE JMMUser ADD CanEditServerSettings int NULL"),
-            new DatabaseCommand(6, 1, (Action) DatabaseFixes.FixDuplicateTvDBLinks),
-            new DatabaseCommand(6, 2, (Action) DatabaseFixes.FixDuplicateTraktLinks),
+            new DatabaseCommand(6, 1, DatabaseFixes.FixDuplicateTvDBLinks),
+            new DatabaseCommand(6, 2, DatabaseFixes.FixDuplicateTraktLinks),
             new DatabaseCommand(6, 3,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Season ON CrossRef_AniDB_TvDB(TvDBID, TvDBSeasonNumber);"),
             new DatabaseCommand(6, 4,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_AnimeID ON CrossRef_AniDB_TvDB(AnimeID);"),
             new DatabaseCommand(6, 5,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Season ON CrossRef_AniDB_Trakt(TraktID, TraktSeasonNumber);"),
@@ -314,151 +266,141 @@ namespace JMMServer.Databases
             new DatabaseCommand(28, 1,"CREATE TABLE LogMessage( LogMessageID INTEGER PRIMARY KEY AUTOINCREMENT, LogType text, LogContent text, LogDate timestamp NOT NULL ); "),
             new DatabaseCommand(29, 1,"CREATE TABLE CrossRef_AniDB_TvDBV2( CrossRef_AniDB_TvDBV2ID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TvDBID int NOT NULL, TvDBSeasonNumber int NOT NULL, TvDBStartEpisodeNumber int NOT NULL, TvDBTitle text, CrossRefSource int NOT NULL ); "),
             new DatabaseCommand(29, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDBV2 ON CrossRef_AniDB_TvDBV2(AnimeID, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber);"),
-            new DatabaseCommand(29, 3, (Action) DatabaseFixes.MigrateTvDBLinks_V1_to_V2),
+            new DatabaseCommand(29, 3, DatabaseFixes.MigrateTvDBLinks_V1_to_V2),
             new DatabaseCommand(30, 1, "ALTER TABLE GroupFilter ADD Locked int NULL"),
             new DatabaseCommand(31, 1, "ALTER TABLE VideoInfo ADD FullInfo text NULL"),
             new DatabaseCommand(32, 1,"CREATE TABLE CrossRef_AniDB_TraktV2( CrossRef_AniDB_TraktV2ID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TraktID text, TraktSeasonNumber int NOT NULL, TraktStartEpisodeNumber int NOT NULL, TraktTitle text, CrossRefSource int NOT NULL ); "),
             new DatabaseCommand(32, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TraktV2 ON CrossRef_AniDB_TraktV2(AnimeID, TraktSeasonNumber, TraktStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber);"),
-            new DatabaseCommand(32, 3, (Action) DatabaseFixes.MigrateTraktLinks_V1_to_V2),
+            new DatabaseCommand(32, 3, DatabaseFixes.MigrateTraktLinks_V1_to_V2),
             new DatabaseCommand(33, 1,"CREATE TABLE CrossRef_AniDB_Trakt_Episode( CrossRef_AniDB_Trakt_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, AniDBEpisodeID int NOT NULL, TraktID text, Season int NOT NULL, EpisodeNumber int NOT NULL ); "),
             new DatabaseCommand(33, 2,"CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID ON CrossRef_AniDB_Trakt_Episode(AniDBEpisodeID);"),
-            new DatabaseCommand(34, 1, (Action) DatabaseFixes.RemoveOldMovieDBImageRecords),
+            new DatabaseCommand(34, 1, DatabaseFixes.RemoveOldMovieDBImageRecords),
             new DatabaseCommand(35, 1,"CREATE TABLE CustomTag( CustomTagID INTEGER PRIMARY KEY AUTOINCREMENT, TagName text, TagDescription text ); "),
             new DatabaseCommand(35, 2,"CREATE TABLE CrossRef_CustomTag( CrossRef_CustomTagID INTEGER PRIMARY KEY AUTOINCREMENT, CustomTagID int NOT NULL, CrossRefID int NOT NULL, CrossRefType int NOT NULL ); "),
             new DatabaseCommand(36, 1, "ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
-            new DatabaseCommand(37, 1, (Action) DatabaseFixes.PopulateTagWeight),
+            new DatabaseCommand(37, 1, DatabaseFixes.PopulateTagWeight),
             new DatabaseCommand(38, 1, "ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-            new DatabaseCommand(39, 1, (Action) DatabaseFixes.FixHashes),
+            new DatabaseCommand(39, 1, DatabaseFixes.FixHashes),
             new DatabaseCommand(40, 1, "DROP TABLE LogMessage;"),
             new DatabaseCommand(41, 1, "ALTER TABLE AnimeSeries ADD DefaultFolder text NULL"),
             new DatabaseCommand(42, 1, "ALTER TABLE JMMUser ADD PlexUsers text NULL"),
             new DatabaseCommand(43, 1, "ALTER TABLE GroupFilter ADD FilterType int NOT NULL DEFAULT 1"),
             new DatabaseCommand(43, 2, $"UPDATE GroupFilter SET FilterType = 2 WHERE GroupFilterName='{Constants.GroupFilterName.ContinueWatching}'"),
-            new DatabaseCommand(43, 3, (Action) DatabaseFixes.FixContinueWatchingGroupFilter_20160406),
+            new DatabaseCommand(43, 3, DatabaseFixes.FixContinueWatchingGroupFilter_20160406),
             new DatabaseCommand(44, 1, DropAniDB_AnimeAllCategories),
-            new DatabaseCommand(44, 2,"ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 3,"ALTER TABLE AniDB_Anime ADD ContractBlob BLOB NULL"),
-            new DatabaseCommand(44, 4,"ALTER TABLE AniDB_Anime ADD ContractSize int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 5,"ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 6,"ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate timestamp NULL"),
-            new DatabaseCommand(44, 7,"ALTER TABLE AnimeGroup ADD ContractBlob BLOB NULL"),
-            new DatabaseCommand(44, 8,"ALTER TABLE AnimeGroup ADD ContractSize int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 9,"ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 10,"ALTER TABLE AnimeGroup_User ADD PlexContractBlob BLOB NULL"),
-            new DatabaseCommand(44, 11,"ALTER TABLE AnimeGroup_User ADD PlexContractSize int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 12,"ALTER TABLE AnimeSeries ADD ContractVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 13,"ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate timestamp NULL"),
-            new DatabaseCommand(44, 14,"ALTER TABLE AnimeSeries ADD ContractBlob BLOB NULL"),
-            new DatabaseCommand(44, 15,"ALTER TABLE AnimeSeries ADD ContractSize int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 16,"ALTER TABLE AnimeSeries_User ADD PlexContractVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 17,"ALTER TABLE AnimeSeries_User ADD PlexContractBlob BLOB NULL"),
-            new DatabaseCommand(44, 18,"ALTER TABLE AnimeSeries_User ADD PlexContractSize int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 19,"ALTER TABLE GroupFilter ADD GroupsIdsVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 20,"ALTER TABLE GroupFilter ADD GroupsIdsString text NULL"),
-            new DatabaseCommand(44, 21,"ALTER TABLE GroupFilter ADD GroupConditionsVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 22,"ALTER TABLE GroupFilter ADD GroupConditions text NULL"),
-            new DatabaseCommand(44, 23,"ALTER TABLE GroupFilter ADD ParentGroupFilterID int NULL"),
-            new DatabaseCommand(44, 24,"ALTER TABLE GroupFilter ADD InvisibleInClients int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 25,"ALTER TABLE GroupFilter ADD SeriesIdsVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 26,"ALTER TABLE GroupFilter ADD SeriesIdsString text NULL"),
-            new DatabaseCommand(44, 27,"ALTER TABLE AnimeEpisode ADD PlexContractVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 28,"ALTER TABLE AnimeEpisode ADD PlexContractBlob BLOB NULL"),
-            new DatabaseCommand(44, 29,"ALTER TABLE AnimeEpisode ADD PlexContractSize int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 30,"ALTER TABLE AnimeEpisode_User ADD ContractVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 31,"ALTER TABLE AnimeEpisode_User ADD ContractBlob BLOB NULL"),
-            new DatabaseCommand(44, 32,"ALTER TABLE AnimeEpisode_User ADD ContractSize int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 33,"ALTER TABLE VideoLocal ADD MediaVersion int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(44, 34,"ALTER TABLE VideoLocal ADD MediaBlob BLOB NULL"),
-            new DatabaseCommand(44, 35,"ALTER TABLE VideoLocal ADD MediaSize int NOT NULL DEFAULT 0"),
-            new DatabaseCommand(45, 1, (Action) DatabaseFixes.DeleteSerieUsersWithoutSeries),
+            new DatabaseCommand(44, 2, "ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 3, "ALTER TABLE AniDB_Anime ADD ContractBlob BLOB NULL"),
+            new DatabaseCommand(44, 4, "ALTER TABLE AniDB_Anime ADD ContractSize int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 5, "ALTER TABLE AnimeGroup ADD ContractVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 6, "ALTER TABLE AnimeGroup ADD LatestEpisodeAirDate timestamp NULL"),
+            new DatabaseCommand(44, 7, "ALTER TABLE AnimeGroup ADD ContractBlob BLOB NULL"),
+            new DatabaseCommand(44, 8, "ALTER TABLE AnimeGroup ADD ContractSize int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 9, "ALTER TABLE AnimeGroup_User ADD PlexContractVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 10, "ALTER TABLE AnimeGroup_User ADD PlexContractBlob BLOB NULL"),
+            new DatabaseCommand(44, 11, "ALTER TABLE AnimeGroup_User ADD PlexContractSize int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 12, "ALTER TABLE AnimeSeries ADD ContractVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 13, "ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate timestamp NULL"),
+            new DatabaseCommand(44, 14, "ALTER TABLE AnimeSeries ADD ContractBlob BLOB NULL"),
+            new DatabaseCommand(44, 15, "ALTER TABLE AnimeSeries ADD ContractSize int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 16, "ALTER TABLE AnimeSeries_User ADD PlexContractVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 17, "ALTER TABLE AnimeSeries_User ADD PlexContractBlob BLOB NULL"),
+            new DatabaseCommand(44, 18, "ALTER TABLE AnimeSeries_User ADD PlexContractSize int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 19, "ALTER TABLE GroupFilter ADD GroupsIdsVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 20, "ALTER TABLE GroupFilter ADD GroupsIdsString text NULL"),
+            new DatabaseCommand(44, 21, "ALTER TABLE GroupFilter ADD GroupConditionsVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 22, "ALTER TABLE GroupFilter ADD GroupConditions text NULL"),
+            new DatabaseCommand(44, 23, "ALTER TABLE GroupFilter ADD ParentGroupFilterID int NULL"),
+            new DatabaseCommand(44, 24, "ALTER TABLE GroupFilter ADD InvisibleInClients int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 25, "ALTER TABLE GroupFilter ADD SeriesIdsVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 26, "ALTER TABLE GroupFilter ADD SeriesIdsString text NULL"),
+            new DatabaseCommand(44, 27, "ALTER TABLE AnimeEpisode ADD PlexContractVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 28, "ALTER TABLE AnimeEpisode ADD PlexContractBlob BLOB NULL"),
+            new DatabaseCommand(44, 29, "ALTER TABLE AnimeEpisode ADD PlexContractSize int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 30, "ALTER TABLE AnimeEpisode_User ADD ContractVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 31, "ALTER TABLE AnimeEpisode_User ADD ContractBlob BLOB NULL"),
+            new DatabaseCommand(44, 32, "ALTER TABLE AnimeEpisode_User ADD ContractSize int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 33, "ALTER TABLE VideoLocal ADD MediaVersion int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(44, 34, "ALTER TABLE VideoLocal ADD MediaBlob BLOB NULL"),
+            new DatabaseCommand(44, 35, "ALTER TABLE VideoLocal ADD MediaSize int NOT NULL DEFAULT 0"),
+            new DatabaseCommand(45, 1, DatabaseFixes.DeleteSerieUsersWithoutSeries),
             new DatabaseCommand(46, 1,"CREATE TABLE VideoLocal_Place ( VideoLocal_Place_ID INTEGER PRIMARY KEY AUTOINCREMENT,VideoLocalID int NOT NULL, FilePath text NOT NULL,  ImportFolderID int NOT NULL, ImportFolderType int NOT NULL )"),
             new DatabaseCommand(46, 2,"CREATE UNIQUE INDEX [UIX_VideoLocal_ VideoLocal_Place_ID] ON [VideoLocal_Place] ([VideoLocal_Place_ID]);"),
             new DatabaseCommand(46, 3,"INSERT INTO VideoLocal_Place (VideoLocalID, FilePath, ImportFolderID, ImportFolderType) SELECT VideoLocalID, FilePath, ImportFolderID, 1 as ImportFolderType FROM VideoLocal"),
             new DatabaseCommand(46, 4, DropVideolocalColumns),
             new DatabaseCommand(46, 5,"UPDATE VideoLocal SET FileName=(SELECT FileName FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), VideoCodec=(SELECT VideoCodec FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), VideoBitrate=(SELECT VideoBitrate FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), VideoBitDepth=(SELECT VideoBitDepth FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), VideoFrameRate=(SELECT VideoFrameRate FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), VideoResolution=(SELECT VideoResolution FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), AudioCodec=(SELECT AudioCodec FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), AudioBitrate=(SELECT AudioBitrate FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash), Duration=(SELECT Duration FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash) WHERE RowId IN (SELECT RowId FROM VideoInfo WHERE VideoInfo.Hash=VideoLocal.Hash)"),
             new DatabaseCommand(46, 6,"CREATE TABLE CloudAccount (CloudID INTEGER PRIMARY KEY AUTOINCREMENT, ConnectionString text NOT NULL, Provider text NOT NULL, Name text NOT NULL);"),
-            new DatabaseCommand(46, 7,"CREATE UNIQUE INDEX [UIX_CloudAccount_CloudID] ON [CloudAccount] ([CloudID]);"),
-            new DatabaseCommand(46, 8,"ALTER TABLE ImportFolder ADD CloudID int NULL"),
-            new DatabaseCommand(46, 9,"DROP TABLE VideoInfo"),
+            new DatabaseCommand(46, 7, "CREATE UNIQUE INDEX [UIX_CloudAccount_CloudID] ON [CloudAccount] ([CloudID]);"),
+            new DatabaseCommand(46, 8, "ALTER TABLE ImportFolder ADD CloudID int NULL"),
+            new DatabaseCommand(46, 9, "DROP TABLE VideoInfo"),
             new DatabaseCommand(46, 10, AlterVideoLocalUser),
-            new DatabaseCommand(47, 1,"DROP INDEX UIX2_VideoLocal_Hash;"),
-            new DatabaseCommand(47, 2,"CREATE INDEX IX_VideoLocal_Hash ON VideoLocal(Hash);"),
+            new DatabaseCommand(47, 1, "DROP INDEX UIX2_VideoLocal_Hash;"),
+            new DatabaseCommand(47, 2, "CREATE INDEX IX_VideoLocal_Hash ON VideoLocal(Hash);"),
             new DatabaseCommand(48, 1,"CREATE TABLE AuthTokens ( AuthID INTEGER PRIMARY KEY AUTOINCREMENT, UserID int NOT NULL, DeviceName text NOT NULL, Token text NOT NULL )"),
             new DatabaseCommand(49, 1,"CREATE TABLE Scan ( ScanID INTEGER PRIMARY KEY AUTOINCREMENT, CreationTime timestamp NOT NULL, ImportFolders text NOT NULL, Status int NOT NULL )"),
             new DatabaseCommand(49, 2,"CREATE TABLE ScanFile ( ScanFileID INTEGER PRIMARY KEY AUTOINCREMENT, ScanID int NOT NULL, ImportFolderID int NOT NULL, VideoLocal_Place_ID int NOT NULL, FullName text NOT NULL, FileSize bigint NOT NULL, Status int NOT NULL, CheckDate timestamp NULL, Hash text NOT NULL, HashResult text NULL )"),
-            new DatabaseCommand(49, 3,"CREATE INDEX UIX_ScanFileStatus ON ScanFile(ScanID,Status,CheckDate);"),
+            new DatabaseCommand(49, 3, "CREATE INDEX UIX_ScanFileStatus ON ScanFile(ScanID,Status,CheckDate);"),
 
         };
-       
 
-        private static Tuple<bool, string> DropAniDB_AnimeAllCategories()
+
+        private static Tuple<bool, string> DropAniDB_AnimeAllCategories(object connection)
         {
-            using (SQLiteConnection myConn = new SQLiteConnection(GetConnectionString()))
+            try
             {
-                myConn.Open();
-                try
-                {
-                    string createcommand = "CREATE TABLE AniDB_Anime ( AniDB_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate timestamp NULL, EndDate timestamp NULL, URL text NULL, Picname text NULL, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle text NOT NULL, AllTitles text NOT NULL, AllTags text NOT NULL, Description text NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeDescUpdated timestamp NOT NULL, ImageEnabled int NOT NULL, AwardList text NOT NULL, Restricted int NOT NULL, AnimePlanetID int NULL, ANNID int NULL, AllCinemaID int NULL, AnimeNfo int NULL, LatestEpisodeNumber int NULL, DisableExternalLinksFlag int NULL )";
-                    List<string> indexcommands = new List<string>() { "CREATE UNIQUE INDEX [UIX2_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);" };
-                    DropColumns(myConn, "AniDB_Anime", new List<string>() { "AllCategories" }, createcommand, indexcommands);
-                }
-                catch (Exception e)
-                {
-                    return new Tuple<bool, string>(false,e.ToString());
-                }
-                return new Tuple<bool, string>(true,null);
-
-            }
-        }
-
-        private static Tuple<bool, string> DropVideolocalColumns()
-        {
-            using (SQLiteConnection myConn = new SQLiteConnection(GetConnectionString()))
-            {
-                myConn.Open();
-                try
-                {
-                    string createvlcommand = "CREATE TABLE VideoLocal ( VideoLocalID INTEGER PRIMARY KEY AUTOINCREMENT, Hash text NOT NULL, CRC32 text NULL, MD5 text NULL, SHA1 text NULL, HashSource int NOT NULL, FileSize INTEGER NOT NULL, IsIgnored int NOT NULL, DateTimeUpdated timestamp NOT NULL, FileName text NOT NULL DEFAULT '', VideoCodec text NOT NULL DEFAULT '', VideoBitrate text NOT NULL DEFAULT '',VideoBitDepth text NOT NULL DEFAULT '',VideoFrameRate text NOT NULL DEFAULT '',VideoResolution text NOT NULL DEFAULT '',AudioCodec text NOT NULL DEFAULT '',AudioBitrate text NOT NULL DEFAULT '',Duration INTEGER NOT NULL DEFAULT 0,DateTimeCreated timestamp NULL, IsVariation int NULL,MediaVersion int NOT NULL DEFAULT 0,MediaBlob BLOB NULL,MediaSize int NOT NULL DEFAULT 0 );";
-                    List<string> indexvlcommands = new List<string>() { "CREATE UNIQUE INDEX UIX2_VideoLocal_Hash on VideoLocal(Hash)" };
-                    DropColumns(myConn, "VideoLocal", new List<string>() { "FilePath", "ImportFolderID" }, createvlcommand, indexvlcommands);
-                }
-                catch (Exception e)
-                {
-                    return new Tuple<bool, string>(false, e.ToString());
-                }
+                SQLiteConnection myConn = (SQLiteConnection) connection;
+                string createcommand = "CREATE TABLE AniDB_Anime ( AniDB_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate timestamp NULL, EndDate timestamp NULL, URL text NULL, Picname text NULL, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle text NOT NULL, AllTitles text NOT NULL, AllTags text NOT NULL, Description text NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeDescUpdated timestamp NOT NULL, ImageEnabled int NOT NULL, AwardList text NOT NULL, Restricted int NOT NULL, AnimePlanetID int NULL, ANNID int NULL, AllCinemaID int NULL, AnimeNfo int NULL, LatestEpisodeNumber int NULL, DisableExternalLinksFlag int NULL );";
+                List<string> indexcommands = new List<string>() { "CREATE UNIQUE INDEX [UIX2_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);" };
+                Instance.DropColumns(myConn, "AniDB_Anime", new List<string>() { "AllCategories" }, createcommand, indexcommands);
                 return new Tuple<bool, string>(true, null);
-
             }
-        }
-
-        private static Tuple<bool, string> AlterVideoLocalUser()
-        {
-            using (SQLiteConnection myConn = new SQLiteConnection(GetConnectionString()))
+            catch (Exception e)
             {
-                myConn.Open();
-                try
-                {
-                    string createvluser = "CREATE TABLE VideoLocal_User ( VideoLocal_UserID INTEGER PRIMARY KEY AUTOINCREMENT, JMMUserID int NOT NULL, VideoLocalID int NOT NULL, WatchedDate timestamp NULL, ResumePosition bigint NOT NULL DEFAULT 0); ";
-                    List<string> indexvluser = new List<string>() { "CREATE UNIQUE INDEX UIX2_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);" };
-                    Alter(myConn, "VideoLocal_User", createvluser, indexvluser);
-                    myConn.Close();
-                }
-                catch (Exception e)
-                {
-                    return new Tuple<bool, string>(false, e.ToString());
-                }
-                return new Tuple<bool, string>(true, null);
-
+                return new Tuple<bool, string>(false,e.ToString());
             }
         }
 
- 
-      
+
+        private static Tuple<bool, string> DropVideolocalColumns(object connection)
+        {
+            try
+            {
+                SQLiteConnection myConn = (SQLiteConnection)connection;
+                string createvlcommand = "CREATE TABLE VideoLocal ( VideoLocalID INTEGER PRIMARY KEY AUTOINCREMENT, Hash text NOT NULL, CRC32 text NULL, MD5 text NULL, SHA1 text NULL, HashSource int NOT NULL, FileSize INTEGER NOT NULL, IsIgnored int NOT NULL, DateTimeUpdated timestamp NOT NULL, FileName text NOT NULL DEFAULT '', VideoCodec text NOT NULL DEFAULT '', VideoBitrate text NOT NULL DEFAULT '',VideoBitDepth text NOT NULL DEFAULT '',VideoFrameRate text NOT NULL DEFAULT '',VideoResolution text NOT NULL DEFAULT '',AudioCodec text NOT NULL DEFAULT '',AudioBitrate text NOT NULL DEFAULT '',Duration INTEGER NOT NULL DEFAULT 0,DateTimeCreated timestamp NULL, IsVariation int NULL,MediaVersion int NOT NULL DEFAULT 0,MediaBlob BLOB NULL,MediaSize int NOT NULL DEFAULT 0 );";
+                List<string> indexvlcommands = new List<string>() { "CREATE UNIQUE INDEX UIX2_VideoLocal_Hash on VideoLocal(Hash)" };
+                Instance.DropColumns(myConn, "VideoLocal", new List<string>() { "FilePath", "ImportFolderID" }, createvlcommand, indexvlcommands);
+                return new Tuple<bool, string>(true, null);
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+        }
+
+        private static Tuple<bool, string> AlterVideoLocalUser(object connection)
+        {
+            try
+            {
+                SQLiteConnection myConn = (SQLiteConnection)connection;
+                string createvluser = "CREATE TABLE VideoLocal_User ( VideoLocal_UserID INTEGER PRIMARY KEY AUTOINCREMENT, JMMUserID int NOT NULL, VideoLocalID int NOT NULL, WatchedDate timestamp NULL, ResumePosition bigint NOT NULL DEFAULT 0); ";
+                List<string> indexvluser = new List<string>() { "CREATE UNIQUE INDEX UIX2_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);" };
+                Instance.Alter(myConn, "VideoLocal_User", createvluser, indexvluser);
+                myConn.Close();
+                return new Tuple<bool, string>(true, null);
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+
+        }
+
+
+
         //WE NEED TO DROP SOME SQL LITE COLUMNS...
 
-        private static void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove, string createcommand, List<string> indexcommands)
+        private void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove, string createcommand, List<string> indexcommands)
         {
-            List<string> updatedTableColumns = GetTableColumns(tableName);
+            List<string> updatedTableColumns = GetTableColumns(db, tableName);
             colsToRemove.ForEach(a => updatedTableColumns.Remove(a));
             String columnsSeperated = string.Join(",", updatedTableColumns);
             List<string> cmds = new List<string>();
@@ -468,17 +410,13 @@ namespace JMMServer.Databases
             cmds.Add("INSERT INTO " +tableName + " ("+ columnsSeperated+") SELECT " + columnsSeperated + " FROM " + tableName + "_old; ");
             cmds.Add("DROP TABLE " + tableName + "_old;");
             foreach (string cmdTable in cmds)
-            {
-                using (SQLiteCommand sqCommand = new SQLiteCommand(cmdTable, db))
-                {
-                    sqCommand.CommandTimeout = 0;
-                    sqCommand.ExecuteNonQuery();
-                }
+            {                
+                Execute(db,cmdTable);
             }
         }
-        private static void Alter(SQLiteConnection db, string tableName, string createcommand, List<string> indexcommands)
+        private void Alter(SQLiteConnection db, string tableName, string createcommand, List<string> indexcommands)
         {
-            List<string> updatedTableColumns = GetTableColumns(tableName);
+            List<string> updatedTableColumns = GetTableColumns(db, tableName);
             String columnsSeperated = string.Join(",", updatedTableColumns);
             List<string> cmds = new List<string>();
 
@@ -489,18 +427,14 @@ namespace JMMServer.Databases
             cmds.Add("DROP TABLE " + tableName + "_old;");
             foreach (string cmdTable in cmds)
             {
-                using (SQLiteCommand sqCommand = new SQLiteCommand(cmdTable, db))
-                {
-                    sqCommand.CommandTimeout = 0;
-                    sqCommand.ExecuteNonQuery();
-                }
+                Execute(db, cmdTable);
             }
         }
-        private static List<string> GetTableColumns(string tableName)
+        private List<string> GetTableColumns(SQLiteConnection conn, string tableName)
         {
             string cmd = "pragma table_info(" + tableName + "),";
             List<string> columns = new List<string>();
-            foreach (object o in GetDataStatic(cmd))
+            foreach (object o in ExecuteReader(conn, cmd))
             {
                 object[] oo = (object[]) o;
                 columns.Add((string) oo[1]);
@@ -508,60 +442,83 @@ namespace JMMServer.Databases
             return columns;
         }
 
-        private Tuple<bool, string> CommandWrapper(string command)
+        protected override Tuple<bool, string> ExecuteCommand(SQLiteConnection connection, string command)
         {
-            using (SQLiteConnection myConn = new SQLiteConnection(GetConnectionString()))
+            try
             {
-                myConn.Open();
-                using (SQLiteCommand sqCommand = new SQLiteCommand(command, myConn))
+                Execute(connection,command);
+                return new Tuple<bool, string>(true, null);
+            }
+            catch (Exception ex)
+            {
+                return new Tuple<bool, string>(false, ex.ToString());
+            }
+        }
+
+        protected override void Execute(SQLiteConnection connection, string command)
+        {
+            using (SQLiteCommand sqCommand = new SQLiteCommand(command, connection))
+            {
+                sqCommand.CommandTimeout = 0;
+                sqCommand.ExecuteNonQuery();
+            }
+        }
+
+        protected override long ExecuteScalar(SQLiteConnection connection, string command)
+        {
+            using (SQLiteCommand sqCommand = new SQLiteCommand(command, connection))
+            {
+                sqCommand.CommandTimeout = 0;
+                return long.Parse(sqCommand.ExecuteScalar().ToString());
+            }
+        }
+        protected override ArrayList ExecuteReader(SQLiteConnection connection, string command)
+        {
+            using (SQLiteCommand sqCommand = new SQLiteCommand(command, connection))
+            {
+                ArrayList rows=new ArrayList();
+                sqCommand.CommandTimeout = 0;
+                using (SQLiteDataReader reader = sqCommand.ExecuteReader())
                 {
-                    sqCommand.CommandTimeout = 0;
-                    try
+                    while (reader.Read())
                     {
-                        sqCommand.ExecuteNonQuery();
-                        return new Tuple<bool, string>(true, null);
+                        object[] values = new object[reader.FieldCount];
+                        reader.GetValues(values);
+                        rows.Add(values);
                     }
-                    catch (Exception ex)
-                    {
-                        return new Tuple<bool, string>(false, ex.ToString());
-                    }
+                    reader.Close();
+                    return rows;
                 }
             }
         }
-        public Tuple<bool, string> ExecuteCommand(DatabaseCommand cmd)
+        protected override void ConnectionWrapper(string connectionstring, Action<SQLiteConnection> action)
         {
-            return this.ExecuteCommand(cmd, CommandWrapper);
+            using (SQLiteConnection con = new SQLiteConnection(connectionstring))
+            {
+                con.Open();
+                action(con);
+            }
         }
-
-
-
-
+      
         public void CreateAndUpdateSchema()
         {
-
-            string cmd = "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'";
-            long count = 0;
-
-            using (SQLiteConnection myConn = new SQLiteConnection(GetConnectionString()))
+            Fixes = new List<DatabaseCommand>();
+            ConnectionWrapper(GetConnectionString(), (myConn) =>
             {
-                myConn.Open();
-                using (SQLiteCommand sqCommand = new SQLiteCommand(cmd, myConn))
-                {
-                    sqCommand.CommandTimeout = 0;
-                    count = long.Parse(sqCommand.ExecuteScalar().ToString());
-                }
-            }
-            bool create = (count == 0);
-            if (create)
-                this.ExecuteWithException(createVersionTable);
+                bool create = (ExecuteScalar(myConn, "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'") ==0);
+                if (create)
+                    ExecuteWithException(myConn, createVersionTable);
 
-            if (!GetTableColumns("Versions").Contains("VersionRevision"))
-                this.ExecuteWithException(updateVersionTable);
+                if (!GetTableColumns(myConn, "Versions").Contains("VersionRevision"))
+                    ExecuteWithException(myConn, updateVersionTable);
 
-            this.PreFillVersions(createTables.Union(patchCommands));
-            if (create)
-                this.ExecuteWithException(createTables);
-            this.ExecuteWithException(patchCommands);
+                PreFillVersions(createTables.Union(patchCommands));
+                if (create)
+                    ExecuteWithException(myConn, createTables);
+                ExecuteWithException(myConn, patchCommands);
+            });        
         }
+
+
     }
 }

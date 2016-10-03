@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Collections;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -23,7 +24,7 @@ namespace JMMServer.Repositories.Direct
 
         public TvDB_ImageWideBanner GetByTvDBID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 TvDB_ImageWideBanner cr = session
                     .CreateCriteria(typeof(TvDB_ImageWideBanner))
@@ -35,7 +36,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<TvDB_ImageWideBanner> GetBySeriesID(int seriesID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetBySeriesID(session, seriesID);
             }

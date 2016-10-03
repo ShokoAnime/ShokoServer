@@ -1089,7 +1089,7 @@ namespace JMMServer
                 if (autoUpdateTimer != null) autoUpdateTimer.Enabled = false;
                 if (autoUpdateTimerShort != null) autoUpdateTimerShort.Enabled = false;
 
-                JMMService.CloseSessionFactory();
+                DatabaseFactory.CloseSessionFactory();
 
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_Initializing;
                 Thread.Sleep(1000);
@@ -1102,7 +1102,7 @@ namespace JMMServer
 
 
                 logger.Info("Setting up database...");
-                if (!DatabaseExtensions.Instance.InitDB())
+                if (!DatabaseFactory.InitDB())
                 {
                     ServerState.Instance.DatabaseAvailable = false;
 
@@ -1120,7 +1120,7 @@ namespace JMMServer
 
                 //init session factory
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingSession;
-                ISessionFactory temp = JMMService.SessionFactory;
+                ISessionFactory temp = DatabaseFactory.SessionFactory;
 
 
                 logger.Info("Initializing Hosts...");

@@ -83,7 +83,7 @@ namespace JMMServer
             List<Contract_AnimeGroup> grps = new List<Contract_AnimeGroup>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {           
                     AnimeSeries series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                     if (series == null)
@@ -200,7 +200,7 @@ namespace JMMServer
             List<Contract_AnimeGroup> retGroups = new List<Contract_AnimeGroup>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                     if (user == null) return retGroups;
@@ -274,7 +274,7 @@ namespace JMMServer
         {
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     GroupFilter gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
                     if (gf == null) return null;
@@ -353,7 +353,7 @@ namespace JMMServer
             List<Contract_GroupFilter> gfs = new List<Contract_GroupFilter>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     DateTime start = DateTime.Now;
 
@@ -380,7 +380,7 @@ namespace JMMServer
             List<Contract_GroupFilter> gfs = new List<Contract_GroupFilter>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     DateTime start = DateTime.Now;
 
@@ -1422,7 +1422,7 @@ namespace JMMServer
             response.ErrorMessage = "";
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
                     if (animeGroupID.HasValue)
@@ -1507,7 +1507,7 @@ namespace JMMServer
         {
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     JMMService.AnidbProcessor.GetAnimeInfoHTTP(session, animeID, true, false);
 
@@ -1670,7 +1670,7 @@ namespace JMMServer
         {
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(session.Wrap(), animeID);
                     return anime?.Contract.AniDBAnime;
@@ -4491,7 +4491,7 @@ namespace JMMServer
 
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
                     AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
@@ -6000,7 +6000,7 @@ namespace JMMServer
 
         public Contract_AnimeEpisode GetNextUnwatchedEpisode(int animeSeriesID, int userID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetNextUnwatchedEpisode(session.Wrap(), animeSeriesID, userID);
             }
@@ -6206,7 +6206,7 @@ namespace JMMServer
             List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
                     JMMUser user = RepoFactory.JMMUser.GetByID(userID);
@@ -6302,7 +6302,7 @@ namespace JMMServer
             List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -6441,7 +6441,7 @@ namespace JMMServer
             List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -6487,7 +6487,7 @@ namespace JMMServer
             try
             {
 
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retEps;
@@ -6500,7 +6500,7 @@ namespace JMMServer
                                  "INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
                                  "GROUP BY ae.AnimeSeriesID " +
                                  "ORDER BY MaxDate desc ";
-                    ArrayList results = DatabaseExtensions.Instance.GetData(sql);
+                    ArrayList results = DatabaseFactory.Instance.GetData(sql);
 
                     TimeSpan ts2 = DateTime.Now - start;
                     logger.Info("GetEpisodesRecentlyAddedSummary:RawData in {0} ms", ts2.TotalMilliseconds);
@@ -6556,7 +6556,7 @@ namespace JMMServer
             List<Contract_AnimeSeries> retSeries = new List<Contract_AnimeSeries>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
 
 
@@ -8699,7 +8699,7 @@ namespace JMMServer
                     // title search so look at the web cache
                     List<Providers.Azure.AnimeIDTitle> titles = Providers.Azure.AzureWebAPI.Get_AnimeTitle(titleQuery);
 
-                    using (var session = JMMService.SessionFactory.OpenSession())
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
                         ISessionWrapper sessionWrapper = session.Wrap();
 

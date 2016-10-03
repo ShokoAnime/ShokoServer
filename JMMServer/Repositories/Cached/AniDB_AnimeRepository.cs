@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using JMMContracts;
 using JMMServer.Collections;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -33,7 +34,7 @@ namespace JMMServer.Repositories
 
         public override void RegenerateDb()
         {
-            using (var session = JMMService.SessionFactory.OpenStatelessSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
             {
                 const int batchSize = 50;
                 ISessionWrapper sessionWrapper = session.Wrap();
@@ -82,7 +83,7 @@ namespace JMMServer.Repositories
                     obj.Contract = null;
                     base.Save(obj);
                 }
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     obj.UpdateContractDetailed(session.Wrap());
                 }

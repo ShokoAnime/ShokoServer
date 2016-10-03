@@ -7,6 +7,7 @@ using System.Text;
 using AniDBAPI;
 
 using JMMServer.Commands;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Providers.TraktTV.Contracts;
 using JMMServer.Repositories;
@@ -339,7 +340,7 @@ namespace JMMServer.Providers.TraktTV
         public static string LinkAniDBTrakt(int animeID, enEpisodeType aniEpType, int aniEpNumber, string traktID,
             int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return LinkAniDBTrakt(session, animeID, aniEpType, aniEpNumber, traktID, seasonNumber, traktEpNumber,
                     excludeFromWebCache);
@@ -1341,7 +1342,7 @@ namespace JMMServer.Providers.TraktTV
 
         public static List<TraktV2Comment> GetShowCommentsV2(int animeID)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetShowCommentsV2(session, animeID);
             }

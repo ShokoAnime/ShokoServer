@@ -80,7 +80,7 @@ namespace JMMServer
             MetroContract_CommunityLinks contract = new MetroContract_CommunityLinks();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -178,7 +178,7 @@ namespace JMMServer
             List<Contract_AnimeEpisode> retEps = new List<Contract_AnimeEpisode>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                    
                     JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
@@ -190,7 +190,7 @@ namespace JMMServer
                                  "INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
                                  "GROUP BY ae.AnimeSeriesID " +
                                  "ORDER BY MaxDate desc ";
-                    ArrayList results = DatabaseExtensions.Instance.GetData(sql);
+                    ArrayList results = DatabaseFactory.Instance.GetData(sql);
 
                     int numEps = 0;
                     foreach (object[] res in results)
@@ -234,7 +234,7 @@ namespace JMMServer
             List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -247,7 +247,7 @@ namespace JMMServer
                                  "INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
                                  "GROUP BY ae.AnimeSeriesID " +
                                  "ORDER BY MaxDate desc ";
-                    ArrayList results = DatabaseExtensions.Instance.GetData(sql);
+                    ArrayList results = DatabaseFactory.Instance.GetData(sql);
 
                     int numEps = 0;
                     foreach (object[] res in results)
@@ -310,7 +310,7 @@ namespace JMMServer
             List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -394,7 +394,7 @@ namespace JMMServer
             List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
                     JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
@@ -483,7 +483,7 @@ namespace JMMServer
             List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -541,7 +541,7 @@ namespace JMMServer
             List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
  
@@ -597,7 +597,7 @@ namespace JMMServer
         {
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
       
@@ -781,7 +781,7 @@ namespace JMMServer
         {
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -1029,7 +1029,7 @@ namespace JMMServer
 
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
                     
@@ -1091,7 +1091,7 @@ namespace JMMServer
 
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     
                     List<TraktV2Comment> commentsTemp = TraktTVHelper.GetShowCommentsV2(session, animeID);
@@ -1143,7 +1143,7 @@ namespace JMMServer
             List<MetroContract_Comment> contracts = new List<MetroContract_Comment>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -1200,7 +1200,7 @@ namespace JMMServer
             List<MetroContract_Anime_Summary> retAnime = new List<MetroContract_Anime_Summary>();
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
                     AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
@@ -1363,7 +1363,7 @@ namespace JMMServer
         {
             try
             {
-                using (var session = JMMService.SessionFactory.OpenSession())
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     JMMService.AnidbProcessor.GetAnimeInfoHTTP(session, animeID, true, false);
                 }

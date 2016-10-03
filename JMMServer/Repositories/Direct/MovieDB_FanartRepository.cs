@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Collections;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
@@ -22,7 +23,7 @@ namespace JMMServer.Repositories.Direct
         }
         public MovieDB_Fanart GetByOnlineID(string url)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByOnlineID(session, url);
             }
@@ -39,7 +40,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<MovieDB_Fanart> GetByMovieID(int id)
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByMovieID(session.Wrap(), id);
             }
@@ -85,7 +86,7 @@ namespace JMMServer.Repositories.Direct
 
         public List<MovieDB_Fanart> GetAllOriginal()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var objs = session
                     .CreateCriteria(typeof(MovieDB_Fanart))

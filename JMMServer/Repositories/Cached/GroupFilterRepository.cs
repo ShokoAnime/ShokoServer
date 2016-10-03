@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using JMMContracts;
+using JMMServer.Databases;
 using JMMServer.Entities;
 using NHibernate;
 using NLog;
@@ -109,7 +110,7 @@ namespace JMMServer.Repositories.Cached
 
         public void CreateOrVerifyLockedFilters()
         {
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 string t = "GroupFilter";
 
@@ -214,7 +215,7 @@ namespace JMMServer.Repositories.Cached
         public void CreateOrVerifyTagsAndYearsFilters(bool frominit = false, HashSet<string> tags = null, DateTime? airdate = null)
         {
 
-            using (var session = JMMService.SessionFactory.OpenSession())
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 string t = "GroupFilter";
 
