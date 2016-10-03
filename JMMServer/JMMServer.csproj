@@ -296,6 +296,7 @@
     <Compile Include="API\Model\Logs.cs" />
     <Compile Include="API\Model\Rating.cs" />
     <Compile Include="API\Model\Search.cs" />
+    <Compile Include="API\Model\WebUI-Settings.cs" />
     <Compile Include="API\NancyExtensions.cs" />
     <Compile Include="API\Negotiation\BinaryProcessor.cs" />
     <Compile Include="API\Response\ByteArrayResponse.cs" />

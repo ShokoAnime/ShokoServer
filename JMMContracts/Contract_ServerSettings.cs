@@ -98,5 +98,14 @@
         public string MAL_Password { get; set; }
         public int MAL_UpdateFrequency { get; set; }
         public bool MAL_NeverDecreaseWatchedNums { get; set; }
+
+        // LogRotato
+        public bool RotateLogs { get; set; }
+        public bool RotateLogs_Zip { get; set; }
+        public bool RotateLogs_Delete { get; set; }
+        public string RotateLogs_Delete_Days { get; set; }
+        
+        // WebUI
+        public string WebUI_Settings { get; set; }
     }
 }

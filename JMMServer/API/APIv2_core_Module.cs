@@ -151,6 +151,8 @@ namespace JMMServer.API
             Get["/webui/latest/stable"] = _ => { return WebUILatestStableVersion(); };
             Get["/webui/update/unstable"] = _ => { return WebUIUnstableUpdate(); };
             Get["/webui/latest/unstable"] = _ => { return WebUILatestUnstableVersion(); };
+            Get["/webui/config"] = _ => { return GetWebUIConfig(); };
+            Post["/webui/config"] = _ => { return SetWebUIConfig(); };
 
             // 16. OS-based operations
             Get["/os/folder/base"] = _ => { return GetOSBaseFolder(); };
@@ -1747,6 +1749,56 @@ namespace JMMServer.API
                 }
             }
             return "";
+        }
+
+        /// <summary>
+        /// Read json file that is converted into string from .config file of jmmserver
+        /// </summary>
+        /// <returns></returns>
+        private object GetWebUIConfig()
+        {
+            if (!String.IsNullOrEmpty(ServerSettings.WebUI_Settings))
+            {
+                try
+                {
+                    WebUI_Settings settings = JsonConvert.DeserializeObject<WebUI_Settings>(ServerSettings.WebUI_Settings);
+                    return settings;
+                }
+                catch
+                {
+                    return APIStatus.internalError("error while reading webui settings");
+                }
+                
+            }
+            else
+            {
+                return APIStatus.notFound404();
+            }
+        }
+
+        /// <summary>
+        /// Save webui settings as json converted into string inside .config file of jmmserver
+        /// </summary>
+        /// <returns></returns>
+        private object SetWebUIConfig()
+        {
+            WebUI_Settings settings = this.Bind();
+            if (settings.Valid())
+            {
+                try
+                {
+                    ServerSettings.WebUI_Settings = JsonConvert.SerializeObject(settings);
+                    return APIStatus.statusOK();
+                }
+                catch
+                {
+                    return APIStatus.internalError("error at saving webui settings");
+                }
+            }
+            else
+            {
+                return new APIMessage(400, "Config is not a Valid.");
+            }
         }
 
         #endregion

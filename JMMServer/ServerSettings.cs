@@ -431,23 +431,7 @@ namespace JMMServer
             set { Set("Culture", value); }
         }
 
-        /// <summary>
-        /// FirstRun idicates if DB was configured or not, as it needed as backend for user authentication
-        /// </summary>
-        public static bool FirstRun
-        {
-            get
-            {
-                
-                bool val = true;
-                if ( !string.IsNullOrEmpty(Get("FirstRun")))
-                { bool.TryParse(Get("FirstRun"), out val); }
-                else
-                { FirstRun = val; }
-                return val;
-            }
-            set { Set("FirstRun", value.ToString()); }
-        }
+
 
         #region LogRotator
 
@@ -505,6 +489,40 @@ namespace JMMServer
 
             }
             set { Set("RotateLogs_Delete_Days", value); }
+        }
+
+        #endregion
+
+        #region WebUI
+        /// <summary>
+        /// Store json settings inside string
+        /// </summary>
+        public static string WebUI_Settings
+        {
+            get
+            {
+
+                return Get("WebUI_Settings");
+            }
+            set { Set("WebUI_Settings", value); }
+        }
+
+        /// <summary>
+        /// FirstRun idicates if DB was configured or not, as it needed as backend for user authentication
+        /// </summary>
+        public static bool FirstRun
+        {
+            get
+            {
+
+                bool val = true;
+                if (!string.IsNullOrEmpty(Get("FirstRun")))
+                { bool.TryParse(Get("FirstRun"), out val); }
+                else
+                { FirstRun = val; }
+                return val;
+            }
+            set { Set("FirstRun", value.ToString()); }
         }
 
         #endregion
@@ -1805,6 +1823,14 @@ namespace JMMServer
             contract.MAL_UpdateFrequency = (int) ServerSettings.MAL_UpdateFrequency;
             contract.MAL_NeverDecreaseWatchedNums = ServerSettings.MAL_NeverDecreaseWatchedNums;
 
+            // LogRotator
+            contract.RotateLogs = ServerSettings.RotateLogs;
+            contract.RotateLogs_Delete = ServerSettings.RotateLogs_Delete;
+            contract.RotateLogs_Delete_Days = ServerSettings.RotateLogs_Delete_Days;
+            contract.RotateLogs_Zip = ServerSettings.RotateLogs_Zip;
+
+            //WebUI
+            contract.WebUI_Settings = ServerSettings.WebUI_Settings;
 
             return contract;
         }
