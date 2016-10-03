@@ -29,6 +29,8 @@ namespace JMMServer.API
         //private funtions are the ones for api calls directly and internal ones are support function for private ones
         public APIv2_core_Module() : base("/api")
         {
+            // As this module requireAuthentication all request need to have apikey in header.
+
             this.RequiresAuthentication();
 
             // 1. import folders
