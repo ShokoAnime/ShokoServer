@@ -1098,8 +1098,10 @@ namespace JMMServer
 
 
                 //Moving FileHost up, Mediainfo fill could be trigged from Cache Init
-                StartFileHost();
-
+                NetPermissionWrapper(() =>
+                {
+                    StartFileHost();
+                });
 
                 logger.Info("Setting up database...");
                 if (!DatabaseFactory.InitDB())
@@ -1485,6 +1487,7 @@ namespace JMMServer
                 {
                     try
                     {
+                        StartFileHost();
                         StartImageHost();
                         StartBinaryHost();
                         StartMetroHost();
@@ -2660,6 +2663,8 @@ namespace JMMServer
         /// </summary>
         private static void StartNancyHost()
         {
+            if (hostNancy != null)
+                return;
             //nancy will rewrite localhost into http://+:port
             HostConfiguration config = new HostConfiguration();
             // set Nancy Hosting config here
@@ -2670,6 +2675,8 @@ namespace JMMServer
             // This requires admin, so throw an error if it fails
             // Don't let Nancy do this. We do it ourselves.
             // This needs to throw an error for our url registration to call.
+
+
             config.UrlReservations.CreateAutomatically = false;
             config.RewriteLocalhost = true;
             hostNancy = new Nancy.Hosting.Self.NancyHost(config, new Uri("http://localhost:" + ServerSettings.JMMServerPort));
@@ -2738,23 +2745,22 @@ namespace JMMServer
             // Close the ServiceHost.
             //host.Close();
 
-            if (hostBinary != null)
-                hostBinary.Close();
+            hostBinary?.Close();
+            hostMetro?.Close();
+            hostMetroImage?.Close();
+            hostStreaming?.Close();
+            hostImage?.Close();
+            hostFile?.Stop();
+            hostBinary = null;
+            hostMetro = null;
+            hostMetroImage = null;
+            hostStreaming = null;
+            hostImage = null;
+            hostFile = null;
 
-            if (hostMetro != null)
-                hostMetro.Close();
-
-            if (hostMetroImage != null)
-                hostMetroImage.Close();
-
-            if (hostStreaming != null)
-                hostStreaming.Close();
-
-            if (hostFile != null)
-                hostFile.Stop();
-
-            //if (hostNancy != null)
-            //    hostNancy.Stop();
+            /*if (hostNancy != null)
+                hostNancy.Stop();
+            */
         }
             
         private static void SetupAniDBProcessor()
