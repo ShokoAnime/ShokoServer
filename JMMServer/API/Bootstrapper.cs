@@ -63,12 +63,7 @@
 			StaticConfiguration.DisableErrorTraces = false;
             StatelessAuthentication.Enable(pipelines, configuration);
 
-			pipelines.OnError += (NancyContext ctx, Exception ex) => {
-				logger.Error("Nancy Error => {0}", ex.ToString());
-				logger.Error("Nancy Error: Request URL => {0}", ctx.Request.Url);
-			    logger.Error(ex);
-				return null;
-			};
+			pipelines.OnError += (NancyContext ctx, Exception ex) => onError(ctx, ex);
 
 			pipelines.BeforeRequest += (NancyContext ctx) => BeforeProcessing(ctx);
 			pipelines.AfterRequest += (NancyContext ctx) => AfterProcessing(ctx);
@@ -93,6 +88,14 @@
 		protected override DiagnosticsConfiguration DiagnosticsConfiguration
 		{
 			get { return new DiagnosticsConfiguration { Password = @"jmmserver" }; }
+		}
+
+		private Response onError(NancyContext ctx, Exception ex)
+		{
+			logger.Error("Nancy Error => {0}", ex.ToString());
+			logger.Error("Nancy Error => Request URL: {0}", ctx.Request.Url);
+			logger.Error(ex);
+			return null;
 		}
 
 		private Response BeforeProcessing(NancyContext ctx)
