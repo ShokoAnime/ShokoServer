@@ -535,9 +535,17 @@ namespace JMMServer.PlexAndKodi
                     {
                         v.Type = "show";
                         v.GenerateKey(prov, userid);
-
-                        v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
-                        v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+						List<AnimeSeries> seriesList2 = grpChild.GetSeries();
+						if (seriesList2.Count > 0)
+						{
+							Video c = seriesList2[0].GetPlexContract(userid);
+							v.Art = Helper.GetRandomFanartFromVideo(c) ?? c.Art;
+							v.Banner = Helper.GetRandomBannerFromVideo(c) ?? c.Banner;
+						} else
+						{
+							v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
+							v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+						}
 
                         if (nocast) v.Roles = null;
 						retGroups.Add(prov, v, info);
