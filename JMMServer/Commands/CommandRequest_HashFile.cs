@@ -237,44 +237,18 @@ namespace JMMServer.Commands
                     DateTime start = DateTime.Now;
                     logger.Trace("Calculating ED2K hashes for: {0}", FileName);
                     // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                    hashes = FileHashHelper.GetHashInfo(FileName.Replace("/","\\"), true, MainWindow.OnHashProgress, false, false, false);
+                    hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, MainWindow.OnHashProgress,
+                        false, false, false);
                     TimeSpan ts = DateTime.Now - start;
-                    logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName, Utils.FormatByteSize(vlocal.FileSize));
+                    logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName,
+                        Utils.FormatByteSize(vlocal.FileSize));
                     vlocal.Hash = hashes.ed2k?.ToUpperInvariant();
                     vlocal.CRC32 = hashes.crc32?.ToUpperInvariant();
                     vlocal.MD5 = hashes.md5?.ToUpperInvariant();
                     vlocal.SHA1 = hashes.sha1?.ToUpperInvariant();
                     vlocal.HashSource = (int) HashSource.DirectHash;
-                    FillVideoHashes(vlocal);
-                    bool needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
-                    bool needmd5 = string.IsNullOrEmpty(vlocal.MD5);
-                    bool needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
-                    if (needcrc32 || needmd5 || needsha1)
-                    {
-                        List<string> tp = new List<string>();
-                        if (needsha1)
-                            tp.Add("SHA1");
-                        if (needmd5)
-                            tp.Add("MD5");
-                        if (needcrc32)
-                            tp.Add("CRC32");
-                        logger.Trace("Calculating missing {1} hashes for: {0}", FileName, string.Join(",", tp));
-                        // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                        hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, MainWindow.OnHashProgress,
-                            needcrc32, needmd5, needsha1);
-                        ts = DateTime.Now - start;
-                        logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"),
-                            FileName, Utils.FormatByteSize(vlocal.FileSize));
-                        if (needsha1)
-                            vlocal.SHA1 = hashes.sha1?.ToUpperInvariant();
-                        if (needmd5)
-                            vlocal.MD5 = hashes.md5?.ToUpperInvariant();
-                        if (needcrc32)
-                            vlocal.CRC32 = hashes.crc32?.ToUpperInvariant();
-                        AzureWebAPI.Send_FileHash(new List<VideoLocal> {vlocal});
-                    }
                 }
-
+                FillMissingHashes(vlocal);
                 // We should have a hash by now
                 // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
 
@@ -353,6 +327,10 @@ namespace JMMServer.Commands
                 RepoFactory.FileNameHash.Save(fnhash);
 
             }
+            else
+            {
+                FillMissingHashes(vlocal);
+            }
 
 
             if ((vlocal.Media == null) || vlocal.MediaVersion < VideoLocal.MEDIA_VERSION || vlocal.Duration==0)
@@ -367,6 +345,42 @@ namespace JMMServer.Commands
             return vlocalplace;
         }
 
+        private void FillMissingHashes(VideoLocal vlocal)
+        {
+            bool needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
+            bool needmd5 = string.IsNullOrEmpty(vlocal.MD5);
+            bool needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
+            if (needcrc32 || needmd5 || needsha1)
+                FillVideoHashes(vlocal);
+            needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
+            needmd5 = string.IsNullOrEmpty(vlocal.MD5);
+            needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
+            if (needcrc32 || needmd5 || needsha1)
+            {
+                DateTime start = DateTime.Now;
+                List<string> tp = new List<string>();
+                if (needsha1)
+                    tp.Add("SHA1");
+                if (needmd5)
+                    tp.Add("MD5");
+                if (needcrc32)
+                    tp.Add("CRC32");
+                logger.Trace("Calculating missing {1} hashes for: {0}", FileName, string.Join(",", tp));
+                // update the VideoLocal record with the Hash, since cloud support we calculate everything
+                Hashes hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, MainWindow.OnHashProgress,
+                    needcrc32, needmd5, needsha1);
+                TimeSpan ts = DateTime.Now - start;
+                logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"),
+                    FileName, Utils.FormatByteSize(vlocal.FileSize));
+                if (needsha1)
+                    vlocal.SHA1 = hashes.sha1?.ToUpperInvariant();
+                if (needmd5)
+                    vlocal.MD5 = hashes.md5?.ToUpperInvariant();
+                if (needcrc32)
+                    vlocal.CRC32 = hashes.crc32?.ToUpperInvariant();
+                AzureWebAPI.Send_FileHash(new List<VideoLocal> { vlocal });
+            }
+        }
         private void FillVideoHashes(VideoLocal v)
         {
             if (!string.IsNullOrEmpty(v.ED2KHash))
