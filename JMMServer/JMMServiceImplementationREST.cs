@@ -498,6 +498,14 @@ namespace JMMServer
             float calcwidth = im.Width;
             float calcheight = im.Height;
 
+			if (newratio == 0)
+            {
+				MemoryStream stream = new MemoryStream();
+				im.Save(stream, ImageFormat.Jpeg);
+				stream.Seek(0, SeekOrigin.Begin);
+				return stream;
+			}
+
             float nheight = 0;
             do
             {
@@ -520,12 +528,6 @@ namespace JMMServer
                 x = (im.Width - newwidth)/2;
             if (newheight < im.Height)
                 y = (im.Height - newheight)/2;
-
-            if (newratio == 0)
-            {
-                newheight = im.Height;
-                newwidth = im.Width;
-            }
 
             Image im2 = ReSize(im, newwidth, newheight);
             Graphics g = Graphics.FromImage(im2);
@@ -552,7 +554,7 @@ namespace JMMServer
                 //Little hack
                 MemoryStream ms = new MemoryStream(dta);
                 ms.Seek(0, SeekOrigin.Begin);
-                if (!name.Contains("404") && newratio == 1.0F)
+                if (!name.Contains("404") && newratio == 1.0F || newratio == 0)
                 {
                     return ms;
                 }
