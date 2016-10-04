@@ -65,7 +65,7 @@
 
 			pipelines.OnError += (NancyContext ctx, Exception ex) => {
 				logger.Error("Nancy Error => {0}", ex.ToString());
-				logger.Error("Nancy Error: Request URL => {0}", ctx.Request.URL);
+				logger.Error("Nancy Error: Request URL => {0}", ctx.Request.Url);
 			    logger.Error(ex);
 				return null;
 			};
