@@ -218,9 +218,9 @@ namespace JMMServer.API
         /// </summary>
         /// <param name="uid">User ID</param>
         /// <returns></returns>
-        private object GetFilters_Plex(int uid)
+        private object GetFilters_Plex(string uid)
         {
-            return _impl.GetFilters(_prov_plex, uid.ToString());
+            return _impl.GetFilters(_prov_plex, uid);
         }
 
         /// <summary>
