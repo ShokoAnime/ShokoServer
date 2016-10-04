@@ -2,10 +2,10 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using JMMServer;
 using NLog;
+using JMMServer.AniDB_API;
 
 namespace AniDBAPI.Commands
 {
@@ -40,6 +40,8 @@ namespace AniDBAPI.Commands
             mcommandText = commandText;
             errorOccurred = false;
 
+            AniDBRateLimiter.GetInstance().ensureRate();
+
             if (commandType != enAniDBCommandType.Ping)
             {
                 if (commandType != enAniDBCommandType.Login)
@@ -72,7 +74,7 @@ namespace AniDBAPI.Commands
                 if (part > 0)
                 {
                     mcommandText = mcommandText.Replace("part=" + (part - 1).ToString(), "part=" + part.ToString());
-                    Thread.Sleep(2300);
+                    AniDBRateLimiter.GetInstance().ensureRate();
                 }
                 if (commandType != enAniDBCommandType.Login)
                 {
@@ -329,7 +331,7 @@ namespace AniDBAPI.Commands
                 {
                     logger.Info("Forcing reconnection to AniDB");
                     JMMService.AnidbProcessor.Dispose();
-                    Thread.Sleep(1000);
+                    AniDBRateLimiter.GetInstance().ensureRate();
 
                     JMMService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
                         ServerSettings.AniDB_ServerAddress,

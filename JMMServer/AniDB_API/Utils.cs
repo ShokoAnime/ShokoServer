@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using NLog;
+using JMMServer.AniDB_API;
 
 namespace AniDBAPI
 {
@@ -16,6 +17,8 @@ namespace AniDBAPI
         {
             try
             {
+                AniDBRateLimiter.GetInstance().ensureRate();
+
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
                 webReq.Timeout = 20000; // 20 seconds
                 webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
@@ -49,6 +52,8 @@ namespace AniDBAPI
         {
             try
             {
+                AniDBRateLimiter.GetInstance().ensureRate();
+
                 HttpWebResponse response = null;
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
                 // Note: some network proxies require the useragent string to be set or they will deny the http request
