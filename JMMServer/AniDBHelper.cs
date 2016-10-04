@@ -200,10 +200,12 @@ namespace JMMServer
         public void CloseConnections()
         {
             if (logoutTimer != null) logoutTimer.Stop();
+            logoutTimer = null;
             if (soUdp == null) return;
-
             soUdp.Shutdown(SocketShutdown.Both);
             soUdp.Close();
+            soUdp = null;
+
         }
 
         void logoutTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)

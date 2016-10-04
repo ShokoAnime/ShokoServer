@@ -62,7 +62,7 @@ namespace JMMServer.Databases
                 if (UpdateCommand != null)
                     return "[" + UpdateCommand.Method.Name + "]";
                 if (DatabaseFix != null)
-                    return "[" + DatabaseFix + "]";
+                    return "[" + DatabaseFix.Method.Name + "]";
                 return Command;
             }
         }

@@ -26,8 +26,6 @@ namespace JMMServer.Repositories.Cached
 
         private GroupFilterRepository()
         {
-            PostProcessFilters = new List<GroupFilter>();
-
             EndSaveCallback = (obj) =>
                             {
                                 Types[obj.GroupFilterID] = obj.Types;
@@ -50,6 +48,7 @@ namespace JMMServer.Repositories.Cached
             Changes.AddOrUpdateRange(Cache.Keys);
             Parents = Cache.CreateIndex(a => a.ParentGroupFilterID ?? 0);
             Types = new BiDictionaryManyToMany<int, GroupFilterConditionType>(Cache.Values.ToDictionary(a => a.GroupFilterID, a => a.Types));
+            PostProcessFilters = new List<GroupFilter>();
         }
 
         public override void RegenerateDb()

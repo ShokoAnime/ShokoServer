@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
+using JMMServer.Repositories;
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 using Microsoft.Win32;
@@ -16,9 +17,6 @@ namespace JMMServer.Databases
 {
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
-
-        public static SQLServer Instance { get; } = new SQLServer();
-
         public string Name { get; } = "SQLServer";
         public int RequiredVersion { get; } = 53;
 
@@ -71,6 +69,7 @@ namespace JMMServer.Databases
             string cmd = $"Select count(*) from sysdatabases where name = '{ServerSettings.DatabaseName}'";
             using (SqlConnection tmpConn = new SqlConnection($"Server={ServerSettings.DatabaseServer};User ID={ServerSettings.DatabaseUsername};Password={ServerSettings.DatabasePassword};database={"master"}"))
             {
+                tmpConn.Open();
                 count = ExecuteScalar(tmpConn, cmd);
             }
 
@@ -366,10 +365,10 @@ namespace JMMServer.Databases
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
         {
-            new DatabaseCommand("ALTER TABLE Versions ADD VersionRevision nvarchar(max) NULL;"),
+            new DatabaseCommand("ALTER TABLE Versions ADD VersionRevision varchar(100) NULL;"),
             new DatabaseCommand("ALTER TABLE Versions ADD VersionCommand nvarchar(max) NULL;"),
-            new DatabaseCommand("ALTER TABLE Versions ADD VersionProgram nvarchar(max) NULL;"),
-            new DatabaseCommand("ALTER TABLE Versions DROP INDEX UIX_Versions_VersionType ;"),
+            new DatabaseCommand("ALTER TABLE Versions ADD VersionProgram varchar(100) NULL;"),
+            new DatabaseCommand("DROP INDEX UIX_Versions_VersionType ON Versions;"),
             new DatabaseCommand("CREATE INDEX IX_Versions_VersionType ON Versions(VersionType,VersionValue,VersionRevision);"),
         };
 
@@ -438,18 +437,25 @@ namespace JMMServer.Databases
 
         public void CreateAndUpdateSchema()
         {
-            Fixes = new List<DatabaseCommand>();
             ConnectionWrapper(GetConnectionString(), (myConn) =>
             {
                 bool create = (ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") == 0);
                 if (create)
+                {
+                    ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
+                }
                 bool update = (ExecuteScalar(myConn,"SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE [TABLE_NAME] = 'Versions' and [COLUMN_NAME]='VersionRevision'") == 0);
                 if (update)
+                {
                     ExecuteWithException(myConn, updateVersionTable);
+                    AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
+                }
                 PreFillVersions(createTables.Union(patchCommands));
                 if (create)
                     ExecuteWithException(myConn, createTables);
+                ServerState.Instance.CurrentSetupStatus = Properties.Resources.Database_ApplySchema;
+
                 ExecuteWithException(myConn, patchCommands);
             });
         }

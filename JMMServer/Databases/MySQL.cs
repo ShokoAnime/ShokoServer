@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
+using JMMServer.Repositories;
 using MySql.Data.MySqlClient;
 using NHibernate;
 // ReSharper disable InconsistentNaming
@@ -15,8 +16,6 @@ namespace JMMServer.Databases
     {
         public string Name { get; } = "MySQL";
         public int RequiredVersion { get; } = 57;
-
-        public static MySQL Instance { get; } = new MySQL();
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -110,7 +109,7 @@ namespace JMMServer.Databases
             new DatabaseCommand(1, 83, "ALTER TABLE `VideoInfo` ADD UNIQUE INDEX `UIX_VideoInfo_Hash` (`Hash` ASC) ;"),
             new DatabaseCommand(1, 84,"CREATE TABLE `DuplicateFile` ( `DuplicateFileID` INT NOT NULL AUTO_INCREMENT, `FilePathFile1` varchar(500) character set utf8 NOT NULL, `FilePathFile2` varchar(500) character set utf8 NOT NULL, `ImportFolderIDFile1` int NOT NULL, `ImportFolderIDFile2` int NOT NULL, `Hash` varchar(50) NOT NULL, `DateTimeUpdated` datetime NOT NULL, PRIMARY KEY (`DuplicateFileID`) ) ; "),
             new DatabaseCommand(1, 85,"CREATE TABLE `GroupFilter` ( `GroupFilterID` INT NOT NULL AUTO_INCREMENT, `GroupFilterName` varchar(500) character set utf8 NOT NULL, `ApplyToSeries` int NOT NULL, `BaseCondition` int NOT NULL, `SortingCriteria` text character set utf8, PRIMARY KEY (`GroupFilterID`) ) ; "),
-            new DatabaseCommand(1, 68,"CREATE TABLE `GroupFilterCondition` ( `GroupFilterConditionID` INT NOT NULL AUTO_INCREMENT, `GroupFilterID` int NOT NULL, `ConditionType` int NOT NULL, `ConditionOperator` int NOT NULL, `ConditionParameter` text character set utf8 NOT NULL, PRIMARY KEY (`GroupFilterConditionID`) ) ; "),
+            new DatabaseCommand(1, 86,"CREATE TABLE `GroupFilterCondition` ( `GroupFilterConditionID` INT NOT NULL AUTO_INCREMENT, `GroupFilterID` int NOT NULL, `ConditionType` int NOT NULL, `ConditionOperator` int NOT NULL, `ConditionParameter` text character set utf8 NOT NULL, PRIMARY KEY (`GroupFilterConditionID`) ) ; "),
             new DatabaseCommand(1, 87,"CREATE TABLE `AniDB_Vote` ( `AniDB_VoteID` INT NOT NULL AUTO_INCREMENT, `EntityID` int NOT NULL, `VoteValue` int NOT NULL, `VoteType` int NOT NULL, PRIMARY KEY (`AniDB_VoteID`) ) ; "),
             new DatabaseCommand(1, 88,"CREATE TABLE `TvDB_ImageFanart` ( `TvDB_ImageFanartID` INT NOT NULL AUTO_INCREMENT, `Id` int NOT NULL, `SeriesID` int NOT NULL, `BannerPath` varchar(200) character set utf8,  `BannerType` varchar(200) character set utf8,  `BannerType2` varchar(200) character set utf8,  `Colors` varchar(200) character set utf8,  `Language` varchar(200) character set utf8,  `ThumbnailPath` varchar(200) character set utf8,  `VignettePath` varchar(200) character set utf8,  `Enabled` int NOT NULL, `Chosen` int NOT NULL, PRIMARY KEY (`TvDB_ImageFanartID`) ) ; "),
             new DatabaseCommand(1, 89,"ALTER TABLE `TvDB_ImageFanart` ADD UNIQUE INDEX `UIX_TvDB_ImageFanart_Id` (`Id` ASC) ;"),
@@ -335,7 +334,7 @@ namespace JMMServer.Databases
             new DatabaseCommand(54, 15, "ALTER TABLE `ImportFolder` ADD `CloudID` int NULL"),
             new DatabaseCommand(54, 16, "ALTER TABLE `VideoLocal_User` MODIFY COLUMN `WatchedDate` datetime NULL"),
             new DatabaseCommand(54, 17, "ALTER TABLE `VideoLocal_User` ADD `ResumePosition` bigint NOT NULL DEFAULT 0"),
-            new DatabaseCommand(54, 17, "DROP TABLE `VideoInfo`"),
+            new DatabaseCommand(54, 18, "DROP TABLE `VideoInfo`"),
             new DatabaseCommand(55, 1, "ALTER TABLE `Videolocal` DROP INDEX `UIX_VideoLocal_Hash` ;"),
             new DatabaseCommand(55, 2, "ALTER TABLE `VideoLocal` ADD INDEX `IX_VideoLocal_Hash` (`Hash` ASC) ;"),
             new DatabaseCommand(56, 1,"CREATE TABLE `AuthTokens` ( `AuthID` INT NOT NULL AUTO_INCREMENT, `UserID` int NOT NULL, `DeviceName` text character set utf8, `Token` text character set utf8, PRIMARY KEY (`AuthID`) ) ; "),
@@ -428,9 +427,9 @@ namespace JMMServer.Databases
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
         {
-            new DatabaseCommand("ALTER TABLE `Versions` ADD `VersionRevision` text NULL;"),
+            new DatabaseCommand("ALTER TABLE `Versions` ADD `VersionRevision` varchar(100) NULL;"),
             new DatabaseCommand("ALTER TABLE `Versions` ADD `VersionCommand` text NULL;"),
-            new DatabaseCommand("ALTER TABLE `Versions` ADD `VersionProgram` text NULL;"),
+            new DatabaseCommand("ALTER TABLE `Versions` ADD `VersionProgram` varchar(100) NULL;"),
             new DatabaseCommand("ALTER TABLE `Versions` DROP INDEX `UIX_Versions_VersionType` ;"),
             new DatabaseCommand("ALTER TABLE `Versions` ADD INDEX `IX_Versions_VersionType` (`VersionType`,`VersionValue`,`VersionRevision`);"),
         };
@@ -549,7 +548,7 @@ namespace JMMServer.Databases
                     ArrayList rows = ExecuteReader(conn, sql);
                     if (rows.Count>0)
                     {
-                        string db = (string)rows[0];
+                        string db = (string)((object[])rows[0])[0];
                         Logger.Trace("Found db already exists: {0}", db);
                         return true;
                     }
@@ -590,7 +589,6 @@ namespace JMMServer.Databases
 
         public void CreateAndUpdateSchema()
         {
-            Fixes=new List<DatabaseCommand>();
             ConnectionWrapper(GetConnectionString(), (myConn) =>
             {
                 bool create = false;
@@ -608,15 +606,23 @@ namespace JMMServer.Databases
                         create = true;
                 }
                 if (create)
+                {
+                    ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
-                count = ExecuteScalar(myConn, $"select count(*) from information_schema.tables where table_schema='{ServerSettings.MySQL_SchemaName}' and table_name = 'Versions' and AND COLUMN_NAME = 'VersionRevision'");
+                }
+                count = ExecuteScalar(myConn, $"select count(*) from information_schema.columns where table_schema='{ServerSettings.MySQL_SchemaName}' and table_name = 'Versions' and column_name = 'VersionRevision'");
                 if (count == 0)
+                {
                     ExecuteWithException(myConn, updateVersionTable);
+                    AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
+                }
                 PreFillVersions(createTables.Union(patchCommands));
                 if (create)
                     ExecuteWithException(myConn, createTables);
                 if (fixtablesforlinux)
                     ExecuteWithException(myConn, linuxTableFixes);
+                ServerState.Instance.CurrentSetupStatus = Properties.Resources.Database_ApplySchema;
+
                 ExecuteWithException(myConn, patchCommands);
             });          
         }

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
+using JMMServer.Repositories;
 using NHibernate;
 // ReSharper disable InconsistentNaming
 
@@ -14,9 +15,6 @@ namespace JMMServer.Databases
     public class SQLite : BaseDatabase<SQLiteConnection>, IDatabase
     {
         public const string DefaultDBName = @"JMMServer.db3";
-
-        public static SQLite Instance { get; } = new SQLite();
-
 
         public string Name { get; } = "SQLite";
 
@@ -350,7 +348,7 @@ namespace JMMServer.Databases
                 SQLiteConnection myConn = (SQLiteConnection) connection;
                 string createcommand = "CREATE TABLE AniDB_Anime ( AniDB_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate timestamp NULL, EndDate timestamp NULL, URL text NULL, Picname text NULL, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle text NOT NULL, AllTitles text NOT NULL, AllTags text NOT NULL, Description text NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeDescUpdated timestamp NOT NULL, ImageEnabled int NOT NULL, AwardList text NOT NULL, Restricted int NOT NULL, AnimePlanetID int NULL, ANNID int NULL, AllCinemaID int NULL, AnimeNfo int NULL, LatestEpisodeNumber int NULL, DisableExternalLinksFlag int NULL );";
                 List<string> indexcommands = new List<string>() { "CREATE UNIQUE INDEX [UIX2_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);" };
-                Instance.DropColumns(myConn, "AniDB_Anime", new List<string>() { "AllCategories" }, createcommand, indexcommands);
+                ((SQLite)DatabaseFactory.Instance).DropColumns(myConn, "AniDB_Anime", new List<string>() { "AllCategories" }, createcommand, indexcommands);
                 return new Tuple<bool, string>(true, null);
             }
             catch (Exception e)
@@ -367,7 +365,7 @@ namespace JMMServer.Databases
                 SQLiteConnection myConn = (SQLiteConnection)connection;
                 string createvlcommand = "CREATE TABLE VideoLocal ( VideoLocalID INTEGER PRIMARY KEY AUTOINCREMENT, Hash text NOT NULL, CRC32 text NULL, MD5 text NULL, SHA1 text NULL, HashSource int NOT NULL, FileSize INTEGER NOT NULL, IsIgnored int NOT NULL, DateTimeUpdated timestamp NOT NULL, FileName text NOT NULL DEFAULT '', VideoCodec text NOT NULL DEFAULT '', VideoBitrate text NOT NULL DEFAULT '',VideoBitDepth text NOT NULL DEFAULT '',VideoFrameRate text NOT NULL DEFAULT '',VideoResolution text NOT NULL DEFAULT '',AudioCodec text NOT NULL DEFAULT '',AudioBitrate text NOT NULL DEFAULT '',Duration INTEGER NOT NULL DEFAULT 0,DateTimeCreated timestamp NULL, IsVariation int NULL,MediaVersion int NOT NULL DEFAULT 0,MediaBlob BLOB NULL,MediaSize int NOT NULL DEFAULT 0 );";
                 List<string> indexvlcommands = new List<string>() { "CREATE UNIQUE INDEX UIX2_VideoLocal_Hash on VideoLocal(Hash)" };
-                Instance.DropColumns(myConn, "VideoLocal", new List<string>() { "FilePath", "ImportFolderID" }, createvlcommand, indexvlcommands);
+                ((SQLite)DatabaseFactory.Instance).DropColumns(myConn, "VideoLocal", new List<string>() { "FilePath", "ImportFolderID" }, createvlcommand, indexvlcommands);
                 return new Tuple<bool, string>(true, null);
             }
             catch (Exception e)
@@ -383,8 +381,7 @@ namespace JMMServer.Databases
                 SQLiteConnection myConn = (SQLiteConnection)connection;
                 string createvluser = "CREATE TABLE VideoLocal_User ( VideoLocal_UserID INTEGER PRIMARY KEY AUTOINCREMENT, JMMUserID int NOT NULL, VideoLocalID int NOT NULL, WatchedDate timestamp NULL, ResumePosition bigint NOT NULL DEFAULT 0); ";
                 List<string> indexvluser = new List<string>() { "CREATE UNIQUE INDEX UIX2_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);" };
-                Instance.Alter(myConn, "VideoLocal_User", createvluser, indexvluser);
-                myConn.Close();
+                ((SQLite)DatabaseFactory.Instance).Alter(myConn, "VideoLocal_User", createvluser, indexvluser);
                 return new Tuple<bool, string>(true, null);
             }
             catch (Exception e)
@@ -432,7 +429,7 @@ namespace JMMServer.Databases
         }
         private List<string> GetTableColumns(SQLiteConnection conn, string tableName)
         {
-            string cmd = "pragma table_info(" + tableName + "),";
+            string cmd = "pragma table_info(" + tableName + ")";
             List<string> columns = new List<string>();
             foreach (object o in ExecuteReader(conn, cmd))
             {
@@ -502,19 +499,24 @@ namespace JMMServer.Databases
       
         public void CreateAndUpdateSchema()
         {
-            Fixes = new List<DatabaseCommand>();
             ConnectionWrapper(GetConnectionString(), (myConn) =>
             {
                 bool create = (ExecuteScalar(myConn, "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'") ==0);
                 if (create)
+                {
+                    ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
+                }
 
                 if (!GetTableColumns(myConn, "Versions").Contains("VersionRevision"))
+                {
                     ExecuteWithException(myConn, updateVersionTable);
-
+                    AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
+                }
                 PreFillVersions(createTables.Union(patchCommands));
                 if (create)
                     ExecuteWithException(myConn, createTables);
+                ServerState.Instance.CurrentSetupStatus = Properties.Resources.Database_ApplySchema;
                 ExecuteWithException(myConn, patchCommands);
             });        
         }

@@ -2081,7 +2081,14 @@ namespace JMMServer
         void shutdownServer()
         {
             isAppExiting = true;
-            this.Close();
+            try
+            {
+                this.Close();
+            }
+            catch (Exception e)
+            {
+                
+            }
             TippuTrayNotify.Visible = false;
             TippuTrayNotify.Dispose();
         }

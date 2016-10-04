@@ -23,6 +23,7 @@ namespace JMMServer.Databases
         void ExecuteDatabaseFixes();
         void PopulateInitialData();
         int GetDatabaseVersion();
+        void Init();
 
     }
 }
