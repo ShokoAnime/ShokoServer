@@ -262,21 +262,6 @@ namespace JMMServer
             }
         }
 
-        private void Pause(AniDBPause pauseType)
-        {
-            int pauseDuration = AniDBDelay;
-
-            if (ExtendPauseSecs.HasValue) pauseDuration = ExtendPauseSecs.Value*1000;
-
-            // do not send more than one message every 2 (2.4 to make sure) seconds
-            while (DateTime.Now < JMMService.LastAniDBMessage.AddMilliseconds(pauseDuration))
-            {
-                // pretend to do something....
-                Thread.Sleep(200);
-            }
-            ResetExtendPause();
-        }
-
         private void SetWaitingOnResponse(bool isWaiting)
         {
             WaitingOnResponse = isWaiting;
@@ -287,18 +272,12 @@ namespace JMMServer
             if (isWaiting)
                 ServerInfo.Instance.WaitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.AniDB_ResponseWait;
             else
-
                 ServerInfo.Instance.WaitingOnResponseAniDBUDPString = JMMServer.Properties.Resources.Command_Idle;
 
             if (isWaiting)
                 WaitingOnResponseTime = DateTime.Now;
             else
                 WaitingOnResponseTime = null;
-        }
-
-        private void Pause()
-        {
-            Pause(AniDBPause.Long);
         }
 
         public bool Login()
@@ -369,8 +348,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 getInfoCmd = new AniDBCommand_GetEpisodeInfo();
                 getInfoCmd.Init(episodeID, true);
                 SetWaitingOnResponse(true);
@@ -404,8 +381,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 getInfoCmd = new AniDBCommand_GetFileInfo();
                 getInfoCmd.Init(vidLocal, true);
                 SetWaitingOnResponse(true);
@@ -447,8 +422,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 AniDBCommand_GetMyListFileInfo cmdGetFileStatus = new AniDBCommand_GetMyListFileInfo();
                 cmdGetFileStatus.Init(aniDBFileID);
                 SetWaitingOnResponse(true);
@@ -464,8 +437,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 AniDBCommand_GetMyListStats cmdGetMylistStats = new AniDBCommand_GetMyListStats();
                 cmdGetMylistStats.Init();
                 SetWaitingOnResponse(true);
@@ -496,8 +467,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 AniDBCommand_GetUpdated cmdUpdated = new AniDBCommand_GetUpdated();
                 cmdUpdated.Init(startTime.ToString());
                 SetWaitingOnResponse(true);
@@ -525,8 +494,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
                 cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, true, null);
                 SetWaitingOnResponse(true);
@@ -560,8 +527,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
                 cmdUpdateFile.Init(animeID, episodeNumber, watched, true);
                 SetWaitingOnResponse(true);
@@ -591,8 +556,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 cmdAddFile = new AniDBCommand_AddFile();
                 cmdAddFile.Init(fileDataLocal, ServerSettings.AniDB_MyList_StorageState);
                 SetWaitingOnResponse(true);
@@ -621,8 +584,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 cmdAddFile = new AniDBCommand_AddFile();
                 cmdAddFile.Init(animeID, episodeNumber, ServerSettings.AniDB_MyList_StorageState);
                 SetWaitingOnResponse(true);
@@ -649,8 +610,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 cmdMarkFileExternal = new AniDBCommand_MarkFileAsExternal();
                 cmdMarkFileExternal.Init(Hash, FileSize);
                 SetWaitingOnResponse(true);
@@ -671,8 +630,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 cmdMarkFileUnknown = new AniDBCommand_MarkFileAsUnknown();
                 cmdMarkFileUnknown.Init(Hash, FileSize);
                 SetWaitingOnResponse(true);
@@ -693,8 +650,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 cmdDelFile = new AniDBCommand_MarkFileAsDeleted();
                 cmdDelFile.Init(hash, fileSize);
                 SetWaitingOnResponse(true);
@@ -716,8 +671,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 cmdDelFile = new AniDBCommand_DeleteFile();
                 cmdDelFile.Init(hash, fileSize);
                 SetWaitingOnResponse(true);
@@ -739,8 +692,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 cmdDelFile = new AniDBCommand_DeleteFile();
                 cmdDelFile.Init(fileID);
                 SetWaitingOnResponse(true);
@@ -779,8 +730,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 getAnimeCmd = new AniDBCommand_GetAnimeInfo();
                 getAnimeCmd.Init(animeID, forceRefresh);
                 SetWaitingOnResponse(true);
@@ -808,8 +757,6 @@ namespace JMMServer
             AniDBCommand_GetCharacterInfo getCharCmd = null;
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 getCharCmd = new AniDBCommand_GetCharacterInfo();
                 getCharCmd.Init(charID, true);
                 SetWaitingOnResponse(true);
@@ -868,8 +815,6 @@ namespace JMMServer
             AniDBCommand_GetGroup getCmd = null;
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 getCmd = new AniDBCommand_GetGroup();
                 getCmd.Init(groupID);
                 SetWaitingOnResponse(true);
@@ -898,8 +843,6 @@ namespace JMMServer
             AniDBCommand_GetGroupStatus getCmd = null;
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 getCmd = new AniDBCommand_GetGroupStatus();
                 getCmd.Init(animeID);
                 SetWaitingOnResponse(true);
@@ -970,8 +913,6 @@ namespace JMMServer
             AniDBCommand_GetCalendar cmd = null;
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 cmd = new AniDBCommand_GetCalendar();
                 cmd.Init();
                 SetWaitingOnResponse(true);
@@ -994,8 +935,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 cmd = new AniDBCommand_GetReview();
                 cmd.Init(reviewID);
                 SetWaitingOnResponse(true);
@@ -1026,8 +965,6 @@ namespace JMMServer
 
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 cmdVote = new AniDBCommand_Vote();
                 cmdVote.Init(animeID, voteValue, voteType);
                 SetWaitingOnResponse(true);
@@ -1114,8 +1051,6 @@ namespace JMMServer
             AniDBHTTPCommand_GetFullAnime getAnimeCmd = null;
             lock (lockAniDBConnections)
             {
-                Pause();
-
                 getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
                 getAnimeCmd.Init(animeID, false, forceRefresh, false);
                 getAnimeCmd.Process();
