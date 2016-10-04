@@ -521,6 +521,12 @@ namespace JMMServer
             if (newheight < im.Height)
                 y = (im.Height - newheight)/2;
 
+            if (newratio == 0)
+            {
+                newheight = im.Height;
+                newwidth = im.Width;
+            }
+
             Image im2 = ReSize(im, newwidth, newheight);
             Graphics g = Graphics.FromImage(im2);
             g.DrawImage(im, new Rectangle(0, 0, im2.Width, im2.Height),

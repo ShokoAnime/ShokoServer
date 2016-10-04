@@ -64,18 +64,18 @@ namespace JMMServer.Entities
 
                 if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    logger.Info($"Renaming file SKIPPED, no change From ({fullFileName}) to ({newFullName})");
+                    logger.Info($"Renaming file SKIPPED! no change From ({fullFileName}) to ({newFullName})");
                 }
                 else
                 {
                     FileSystemResult r = file.Rename(renamed);
                     if (r.IsOk)
                     {
-                        logger.Info($"Renaming file SUCCESS From ({fullFileName}) to ({newFullName})");
+                        logger.Info($"Renaming file SUCCESS! From ({fullFileName}) to ({newFullName})");
                         Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
                         if (tup == null)
                         {
-                            logger.Error($"Unable to locate file {newFullName} inside the import folders");
+                            logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
                             return;
                         }
                         this.FilePath = tup.Item2;
@@ -83,13 +83,13 @@ namespace JMMServer.Entities
                     }
                     else
                     {
-                        logger.Info($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {r.Error}");
+                        logger.Info($"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {r.Error}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.Info($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
+                logger.Info($"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {ex.Message}");
                 logger.Error( ex,ex.ToString());
             }
         }
@@ -123,7 +123,21 @@ namespace JMMServer.Entities
                         : string.Empty;
                     info.VideoCodec = (!string.IsNullOrEmpty(m.VideoCodec)) ? m.VideoCodec : string.Empty;
                     info.AudioCodec = (!string.IsNullOrEmpty(m.AudioCodec)) ? m.AudioCodec : string.Empty;
-                    info.Duration = (!string.IsNullOrEmpty(m.Duration)) ? (long)double.Parse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture) : 0;
+
+                    
+                    if (!string.IsNullOrEmpty(m.Duration))
+                    {
+                        double duration;
+                        bool isValidDuration = double.TryParse(m.Duration, out duration);
+                        if (isValidDuration)
+                            info.Duration =
+                                (long) double.Parse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture);
+                        else
+                            info.Duration = 0;
+                    }
+                    else
+                        info.Duration = 0;
+
                     info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
                     List<JMMContracts.PlexAndKodi.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
                     if (vparts.Count > 0)
@@ -176,7 +190,7 @@ namespace JMMServer.Entities
                     info.Media = m;
                     return true;
                 }
-                logger.Error($"File {FullServerPath} do not exists, we're unable to read the media information from it");
+                logger.Error($"File {FullServerPath} does not exist, unable to read media information from it");
             }
             catch (Exception e)
             {
@@ -205,7 +219,7 @@ namespace JMMServer.Entities
         {
             try
             {
-                logger.Trace("Attempting to move file: {0}", this.FullServerPath);
+                logger.Trace("Attempting to MOVE file: {0}", this.FullServerPath);
 
                 // check if this file is in the drop folder
                 // otherwise we don't need to move it
@@ -217,7 +231,7 @@ namespace JMMServer.Entities
                 IFileSystem f = this.ImportFolder.FileSystem;
                 if (f == null)
                 {
-                    logger.Trace("Unable to move, filesystem not working: {0}", this.FullServerPath);
+                    logger.Trace("Unable to MOVE, filesystem not working: {0}", this.FullServerPath);
                     return;
 
                 }
@@ -340,15 +354,14 @@ namespace JMMServer.Entities
                     }
                 }
                 
-                //int newFolderID = 0;
-                //string newPartialPath = "";
                 string newFullServerPath = Path.Combine(newFullPath, Path.GetFileName(this.FullServerPath));
                 Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullServerPath);
                 if (tup == null)
                 {
-                    logger.Error($"Unable to locate file {newFullServerPath} inside the import folders");
+                    logger.Error($"Unable to LOCATE file {newFullServerPath} inside the import folders");
                     return;
                 }
+
                 logger.Info("Moving file from {0} to {1}", this.FullServerPath, newFullServerPath);
 
                 FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
@@ -362,7 +375,7 @@ namespace JMMServer.Entities
                     FileSystemResult fr = source_file.Delete(true);
                     if (!fr.IsOk)
                     {
-                        logger.Warn("Unable to delete file: {0} error {1}", this.FullServerPath, fr?.Error ?? String.Empty);
+                        logger.Warn("Unable to DELETE file: {0} error {1}", this.FullServerPath, fr?.Error ?? String.Empty);
                     }
                     this.ImportFolderID = tup.Item1.ImportFolderID;
                     this.FilePath = tup.Item2;
@@ -373,7 +386,7 @@ namespace JMMServer.Entities
                     FileSystemResult fr = source_file.Move(destination);
                     if (!fr.IsOk)
                     {
-                        logger.Error("Unable to move file: {0} to {1} error {2)", this.FullServerPath, newFullServerPath, fr?.Error ?? String.Empty);
+                        logger.Error("Unable to MOVE file: {0} to {1} error {2)", this.FullServerPath, newFullServerPath, fr?.Error ?? String.Empty);
                         return;
                     }
                     string originalFileName = this.FullServerPath;
@@ -398,7 +411,7 @@ namespace JMMServer.Entities
                                     FileSystemResult fr2 = src.Result.Delete(true);
                                     if (!fr2.IsOk)
                                     {
-                                        logger.Warn("Unable to delete file: {0} error {1}", subtitleFile,
+                                        logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile,
                                             fr2?.Error ?? String.Empty);
                                     }
                                 }
@@ -407,7 +420,7 @@ namespace JMMServer.Entities
                                     FileSystemResult fr2 = ((IFile)src.Result).Move(destination);
                                     if (!fr2.IsOk)
                                     {
-                                        logger.Error("Unable to move file: {0} to {1} error {2)", subtitleFile,
+                                        logger.Error("Unable to MOVE file: {0} to {1} error {2)", subtitleFile,
                                             newSubPath, fr2?.Error ?? String.Empty);
                                     }
                                 }
@@ -431,7 +444,7 @@ namespace JMMServer.Entities
             }
             catch (Exception ex)
             {
-                string msg = $"Could not move file: {this.FullServerPath} -- {ex.ToString()}";
+                string msg = $"Could not MOVE file: {this.FullServerPath} -- {ex.ToString()}";
                 logger.Error( ex,msg);
             }
         }
@@ -469,7 +482,7 @@ namespace JMMServer.Entities
                     fr = dir.Delete(true);
                     if (!fr.IsOk)
                     {
-                        logger.Warn("Unable to delete directory: {0} error {1}", dir.FullName, fr?.Error ?? String.Empty);
+                        logger.Warn("Unable to DELETE directory: {0} error {1}", dir.FullName, fr?.Error ?? String.Empty);
                     }
                 }
             }

@@ -2706,15 +2706,7 @@ namespace JMMServer
             foreach (ImportFolder share in RepoFactory.ImportFolder.GetAll())
             {
                 logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
-
-                if (Importer.IsNetworkShare(share.ImportFolderLocation))
-                {
-                    Utils.GetFilesForImportFolder(null, share.ImportFolderLocation, true, ref fileList);
-                }
-                else
-                {
-                    Utils.GetFilesForImportFolder(share.BaseDirectory, "", false, ref fileList);
-                }
+                Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
             }
 
 

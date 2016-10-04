@@ -104,7 +104,7 @@ namespace JMMServer.Commands
             IFileSystem f = tup.Item1.FileSystem;
             if (f == null)
             {
-                logger.Error("Unable to open filesystem for : {0}", FileName);
+                logger.Error("Unable to open filesystem for: {0}", FileName);
                 return null;
             }
             long filesize = 0;

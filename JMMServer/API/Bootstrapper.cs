@@ -14,6 +14,7 @@
 	using NLog;
 	using System;
 	using Nancy.Responses.Negotiation;
+	using Nancy.Gzip;
 
 	public class Bootstrapper : DefaultNancyBootstrapper
     {
@@ -62,13 +63,20 @@
 			StaticConfiguration.DisableErrorTraces = false;
             StatelessAuthentication.Enable(pipelines, configuration);
 
-			BinaryProcessor.Mappings.Add(new Tuple<string, MediaRange> ("xml", "application/xop+xml"));
-
-			pipelines.OnError += (ctx, ex) => {
+			pipelines.OnError += (NancyContext ctx, Exception ex) => {
 				logger.Error("Nancy Error => {0}", ex.ToString());
 			    logger.Error(ex);
 				return null;
 			};
+
+			pipelines.BeforeRequest += (NancyContext ctx) => BeforeProcessing(ctx);
+			pipelines.AfterRequest += (NancyContext ctx) => AfterProcessing(ctx);
+
+			GzipCompressionSettings gzipsettings = new GzipCompressionSettings();
+			gzipsettings.MinimumBytes = 16384; //16k
+			gzipsettings.MimeTypes.Add("application/xml");
+			gzipsettings.MimeTypes.Add("application/json");
+			pipelines.EnableGzipCompression(gzipsettings);
 		}
 
         /// <summary>
@@ -84,6 +92,19 @@
 		protected override DiagnosticsConfiguration DiagnosticsConfiguration
 		{
 			get { return new DiagnosticsConfiguration { Password = @"jmmserver" }; }
+		}
+
+		private Response BeforeProcessing(NancyContext ctx)
+		{
+			// Request will always be populated!
+			APIv1_Legacy_Module.request = ctx.Request;
+			return null;
+		}
+
+		private void AfterProcessing(NancyContext ctx)
+		{
+			// Set to null after request as not to interfere with contract generation
+			APIv1_Legacy_Module.request = null;
 		}
 	}
 

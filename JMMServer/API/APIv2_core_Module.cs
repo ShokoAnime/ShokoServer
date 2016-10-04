@@ -29,6 +29,8 @@ namespace JMMServer.API
         //private funtions are the ones for api calls directly and internal ones are support function for private ones
         public APIv2_core_Module() : base("/api")
         {
+            // As this module requireAuthentication all request need to have apikey in header.
+
             this.RequiresAuthentication();
 
             // 1. import folders
@@ -149,6 +151,8 @@ namespace JMMServer.API
             Get["/webui/latest/stable"] = _ => { return WebUILatestStableVersion(); };
             Get["/webui/update/unstable"] = _ => { return WebUIUnstableUpdate(); };
             Get["/webui/latest/unstable"] = _ => { return WebUILatestUnstableVersion(); };
+            Get["/webui/config"] = _ => { return GetWebUIConfig(); };
+            Post["/webui/config"] = _ => { return SetWebUIConfig(); };
 
             // 16. OS-based operations
             Get["/os/folder/base"] = _ => { return GetOSBaseFolder(); };
@@ -163,16 +167,17 @@ namespace JMMServer.API
             Get["/cloud/import"] = _ => { return RunCloudImport(); };
 
             // 18. Images
-            //Get["/cover/{id}"] = x => { return GetImage(x.id, "1/5", false); };
-            Get["/banner/{id}"] = x => { return GetImage(x.id, "4", false); };
-            //Get["/fanart/{id}"] = x => { return GetImage(x.id, "7/11/8", false); };
-            //Get["/poster/{id}"] = x => { return GetImage(x.id, "10/9", false); };
-            Get["/fanart/{id}"] = x => { return GetImage(x.id, "7", false); };
-            Get["/image/{type}/{id}"] = x => { return GetImage(x.id, x.type, false); };
+            Get["/cover/{id}"] = x => { return GetCover(x.id); };
+            Get["/fanart/{id}"] = x => { return GetFanart(x.id); };
+            Get["/poster/{id}"] = x => { return GetPoster(x.id); };
+
+            Get["/banner/{id}"] = x => { return GetImage((int)x.id, 4, false); };
+            Get["/fanart/{id}"] = x => { return GetImage((int)x.id, 7, false); };
+            Get["/image/{type}/{id}"] = x => { return GetImage((int)x.id, (int)x.type, false); };
 
             // 19. Logs
-            Get["/log/get"] = x => { return GetLog(10,0); };
-            Get["/log/get/{max}/{position}"] = x => { return GetLog((int)x.max,(int)x.position); };
+            Get["/log/get"] = x => { return GetLog(10, 0); };
+            Get["/log/get/{max}/{position}"] = x => { return GetLog((int)x.max, (int)x.position); };
             Post["/log/rotate"] = x => { return SetRotateLogs(); };
             Get["/log/rotate"] = x => { return GetRotateLogs(); };
             Get["/log/rotate/start"] = x => { return StartRotateLogs(); };
@@ -223,12 +228,12 @@ namespace JMMServer.API
                     {
                         Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder);
 
-						// This shouldn't be needed now, but idk
+                        // This shouldn't be needed now, but idk
                         if (!string.IsNullOrEmpty(response.ErrorMessage))
                         {
                             return new APIMessage(500, response.ErrorMessage);
                         }
-                        
+
                         return APIStatus.statusOK();
                     }
                 }
@@ -424,7 +429,7 @@ namespace JMMServer.API
         {
             ImagePath imagepath = new ImagePath();
             imagepath.path = ServerSettings.ImagesPath;
-            imagepath.isdefault = ServerSettings.ImagesPath == ServerSettings.DefaultImagePath;            
+            imagepath.isdefault = ServerSettings.ImagesPath == ServerSettings.DefaultImagePath;
             return imagepath;
         }
 
@@ -1431,7 +1436,7 @@ namespace JMMServer.API
             {
                 return APIStatus.internalError();
             }
-            
+
         }
 
         /// <summary>
@@ -1662,7 +1667,7 @@ namespace JMMServer.API
         /// <param name="stable">do version have to be stable</param>
         /// <returns></returns>
         internal ComponentVersion WebUIGetLatestVersion(bool stable)
-        { 
+        {
             var client = new System.Net.WebClient();
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "jmmserver");
@@ -1696,7 +1701,7 @@ namespace JMMServer.API
                     version.version = result.tag_name;
                 }
             }
-           
+
             return version;
         }
 
@@ -1744,6 +1749,56 @@ namespace JMMServer.API
                 }
             }
             return "";
+        }
+
+        /// <summary>
+        /// Read json file that is converted into string from .config file of jmmserver
+        /// </summary>
+        /// <returns></returns>
+        private object GetWebUIConfig()
+        {
+            if (!String.IsNullOrEmpty(ServerSettings.WebUI_Settings))
+            {
+                try
+                {
+                    WebUI_Settings settings = JsonConvert.DeserializeObject<WebUI_Settings>(ServerSettings.WebUI_Settings);
+                    return settings;
+                }
+                catch
+                {
+                    return APIStatus.internalError("error while reading webui settings");
+                }
+                
+            }
+            else
+            {
+                return APIStatus.notFound404();
+            }
+        }
+
+        /// <summary>
+        /// Save webui settings as json converted into string inside .config file of jmmserver
+        /// </summary>
+        /// <returns></returns>
+        private object SetWebUIConfig()
+        {
+            WebUI_Settings settings = this.Bind();
+            if (settings.Valid())
+            {
+                try
+                {
+                    ServerSettings.WebUI_Settings = JsonConvert.SerializeObject(settings);
+                    return APIStatus.statusOK();
+                }
+                catch
+                {
+                    return APIStatus.internalError("error at saving webui settings");
+                }
+            }
+            else
+            {
+                return new APIMessage(400, "Config is not a Valid.");
+            }
         }
 
         #endregion
@@ -1868,14 +1923,78 @@ namespace JMMServer.API
         /// <param name="type"></param>
         /// <param name="thumb"></param>
         /// <returns></returns>
-        private object GetImage(string id, string type, bool thumb)
+        private object GetImage(int id, int type, bool thumb)
         {
-	        string contentType;
-            System.IO.Stream image = _rest.GetImage(type, id, thumb, out contentType);
+            string contentType;
+            System.IO.Stream image = _rest.GetImage(type.ToString(), id.ToString(), thumb, out contentType);
             Nancy.Response response = new Nancy.Response();
             response = Response.FromStream(image, contentType);
             return response;
         }
+
+        private object GetFanart(int serie_id)
+        {
+            //Request request = this.Request;
+            //Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+            //JMMServiceImplementation _impl = new JMMServiceImplementation();
+            //Contract_AnimeSeries ser = _impl.GetSeries(serie_id, user.JMMUserID);
+
+            //Currently hack this, as the end result should find image for series id not image id.
+            //TODO APIv2 This should return default image for series_id not image_id
+
+            string contentType;
+            System.IO.Stream image = _rest.GetImage("7".ToString(), serie_id.ToString(), false, out contentType);
+            if (image == null)
+            {
+                image = _rest.GetImage("11".ToString(), serie_id.ToString(), false, out contentType);
+            }
+            if (image == null)
+            {
+                image = _rest.GetImage("8".ToString(), serie_id.ToString(), false, out contentType);
+            }
+            else
+            {
+                image = _rest.BlankImage();
+            }
+            Nancy.Response response = new Nancy.Response();
+            response = Response.FromStream(image, contentType);
+            return response;
+        }
+        private object GetCover(int serie_id)
+        {
+            //TODO APIv2 This should return default image for series_id not image_id
+            string contentType;
+            System.IO.Stream image = _rest.GetImage("1".ToString(), serie_id.ToString(), false, out contentType);
+            if (image == null)
+            {
+                image = _rest.GetImage("5".ToString(), serie_id.ToString(), false, out contentType);
+            }
+            else
+            {
+                image = _rest.BlankImage();
+            }
+            Nancy.Response response = new Nancy.Response();
+            response = Response.FromStream(image, contentType);
+            return response;
+        }
+        private object GetPoster(int serie_id)
+        {
+            //TODO APIv2 This should return default image for series_id not image_id
+            string contentType;
+            System.IO.Stream image = _rest.GetImage("10".ToString(), serie_id.ToString(), false, out contentType);
+            if (image == null)
+            {
+                image = _rest.GetImage("9".ToString(), serie_id.ToString(), false, out contentType);
+            }
+            else
+            {
+                image = _rest.BlankImage();
+            }
+            Nancy.Response response = new Nancy.Response();
+            response = Response.FromStream(image, contentType);
+            return response;
+        }
+
 
         #endregion
 
