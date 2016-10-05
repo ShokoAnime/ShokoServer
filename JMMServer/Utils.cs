@@ -1131,6 +1131,7 @@ namespace JMMServer
                     logger.Error($"Unable to retrieve folder {sDir.FullName}");
                     return;
                 }
+
                 fileList.AddRange(sDir.Files.Select(a => a.FullName));
 
                 // search sub folders
@@ -1140,6 +1141,20 @@ namespace JMMServer
                     //                    bool isSystem = (di.Attributes & FileAttributes.System) == FileAttributes.System;
                     //                    if (isSystem)
                     //                        continue;
+                }
+                
+                // if directory don't have files and subdirectories delete it
+                if (sDir.Files.Count == 0 && sDir.Directories.Count == 0 )
+                {
+                    // safe remove dictionary if its empty
+                    try
+                    {
+                        sDir.Delete(false);
+                    }
+                    catch
+                    {
+                        logger.Error($"Unable to delete empty folder {sDir.FullName}");
+                    }
                 }
             }
             catch (Exception excpt)
