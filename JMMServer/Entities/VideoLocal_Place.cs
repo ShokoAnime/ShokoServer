@@ -372,14 +372,33 @@ namespace JMMServer.Entities
 
                     // if the file already exists, we can just delete the source file instead
                     // this is safer than deleting and moving
-                    FileSystemResult fr = source_file.Delete(true);
-                    if (!fr.IsOk)
+                    FileSystemResult fr = new FileSystemResult();
+                    try
                     {
-                        logger.Warn("Unable to DELETE file: {0} error {1}", this.FullServerPath, fr?.Error ?? String.Empty);
+                        fr = source_file.Delete(false);
+                        if (!fr.IsOk)
+                        {
+                            logger.Warn("Unable to DELETE file: {0} error {1}", this.FullServerPath, fr?.Error ?? String.Empty);
+                        }
+                        this.ImportFolderID = tup.Item1.ImportFolderID;
+                        this.FilePath = tup.Item2;
+                        RepoFactory.VideoLocalPlace.Save(this);
+
+                        // check for any empty folders in drop folder
+                        // only for the drop folder
+                        if (dropFolder.IsDropSource == 1)
+                        {
+                            FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
+                            if (dd != null && dd.IsOk && dd.Result is IDirectory)
+                            {
+                                RecursiveDeleteEmptyDirectories((IDirectory)dd.Result, true);
+                            }
+                        }
                     }
-                    this.ImportFolderID = tup.Item1.ImportFolderID;
-                    this.FilePath = tup.Item2;
-                    RepoFactory.VideoLocalPlace.Save(this);
+                    catch
+                    {
+                        logger.Error("Unable to DELETE file: {0} error {1}", this.FullServerPath, fr?.Error ?? String.Empty);
+                    }
                 }
                 else
                 {
