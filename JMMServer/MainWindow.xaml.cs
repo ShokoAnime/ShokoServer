@@ -2255,11 +2255,11 @@ namespace JMMServer
                     {
                         logger.Info("Watching ImportFolder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                     }
-                    if (share.CloudID==null && Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
+                    if (share.CloudID==null && Directory.Exists(share.ParsedImportFolderLocation) && share.FolderIsWatched)
                     {
                         AdvFileSystemWatcher fsw = new AdvFileSystemWatcher();
 
-                        fsw.Path = share.ImportFolderLocation;
+                        fsw.Path = share.ParsedImportFolderLocation;
 
                         // Handle all type of events not just created ones
                         fsw.Created += fsw_Handler;

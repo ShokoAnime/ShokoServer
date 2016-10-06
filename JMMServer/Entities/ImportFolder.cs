@@ -25,6 +25,15 @@ namespace JMMServer.Entities
 
         private int isWatched = 0;
 
+        public string ParsedImportFolderLocation
+        {
+            get
+            {
+                if (ImportFolderLocation.EndsWith(":"))
+                    return ImportFolderLocation + "\\";
+                return ImportFolderLocation;
+            }
+        }
 
         private IFileSystem _filesystem;
 

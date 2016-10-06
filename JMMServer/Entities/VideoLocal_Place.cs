@@ -27,7 +27,9 @@ namespace JMMServer.Entities
         public int ImportFolderType { get; set; }
 
         public ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
-        public string FullServerPath => Path.Combine(ImportFolder.ImportFolderLocation, FilePath);
+
+        public string FullServerPath => Path.Combine(ImportFolder.ParsedImportFolderLocation, FilePath);
+
         public VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -331,7 +333,8 @@ namespace JMMServer.Entities
                 {
                     // we need to create a new folder
                     string newFolderName = Utils.RemoveInvalidFolderNameCharacters(series.GetAnime().PreferredTitle);
-                    newFullPath = Path.Combine(destFolder.ImportFolderLocation, newFolderName);
+
+                    newFullPath =Path.Combine(destFolder.ParsedImportFolderLocation, newFolderName);
                     FileSystemResult<IObject> dirn = f.Resolve(newFullPath);
                     if (!dirn.IsOk)
                     {

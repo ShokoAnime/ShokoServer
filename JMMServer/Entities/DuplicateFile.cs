@@ -24,11 +24,11 @@ namespace JMMServer.Entities
 
         public ImportFolder ImportFolder1 => RepoFactory.ImportFolder.GetByID(ImportFolderIDFile1);
 
-        public string FullServerPath1 => Path.Combine(ImportFolder1.ImportFolderLocation, FilePathFile1);
+        public string FullServerPath1 => Path.Combine(ImportFolder1.ParsedImportFolderLocation, FilePathFile1);
 
         public ImportFolder ImportFolder2 => RepoFactory.ImportFolder.GetByID(ImportFolderIDFile2);
 
-        public string FullServerPath2 => Path.Combine(ImportFolder2.ImportFolderLocation, FilePathFile2);
+        public string FullServerPath2 => Path.Combine(ImportFolder2.ParsedImportFolderLocation, FilePathFile2);
 
         public AniDB_File AniDBFile => RepoFactory.AniDB_File.GetByHash(Hash);
 

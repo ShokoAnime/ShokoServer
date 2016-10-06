@@ -51,7 +51,7 @@ namespace JMMServer.Repositories.Cached
             // TODO make sure import folders do not contain a trailing "\"
             foreach (ImportFolder ifolder in shares)
             {
-                string importLocation = ifolder.ImportFolderLocation;
+                string importLocation = ifolder.ParsedImportFolderLocation;
                 string importLocationFull = importLocation.TrimEnd('\\');
 
                 // add back the trailing back slashes

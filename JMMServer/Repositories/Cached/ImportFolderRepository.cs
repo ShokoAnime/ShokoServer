@@ -25,7 +25,7 @@ namespace JMMServer.Repositories.Cached
         }
         public ImportFolder GetByImportLocation(string importloc)
         {
-            return Cache.Values.FirstOrDefault(a => a.ImportFolderLocation == importloc);
+            return Cache.Values.FirstOrDefault(a => a.ImportFolderLocation == importloc || a.ParsedImportFolderLocation==importloc);
         }
 
         public List<ImportFolder> GetByCloudId(int cloudid)
