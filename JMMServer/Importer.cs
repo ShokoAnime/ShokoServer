@@ -417,35 +417,6 @@ namespace JMMServer
             logger.Debug("Found {0} videos", videosFound);
         }
 
-        public static bool IsNetworkShare(string ImportFolderLocation)
-        {
-            try
-            {
-                logger.Info("Checking if drive is on local network");
-
-                if (ImportFolderLocation.StartsWith("\\\\"))
-                {
-                    logger.Info("Folder location is UNC");
-                    return true;
-                }
-
-                var driveInfo = new DriveInfo(ImportFolderLocation);
-                if (driveInfo.DriveType == DriveType.Network)
-                {
-                    logger.Info("Folder is a  network drive");
-                    return true;
-                }
-
-                logger.Info("Folder is local or cloud");
-
-                return false;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return false;
-            }
-        }
         public static void RunImport_GetImages()
         {
             // AniDB posters
