@@ -49,9 +49,10 @@ namespace JMMServer.API
             Get["/JMMServerREST/GetSupportImage/{name}/{ratio}"] = parameter => { return GetSupportImageRest(parameter.name, parameter.ratio); };
             Get["/JMMServerREST/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPathRest(parameter.path); };
 
-            // JMMServerImage
-            Get["/JMMServerImage/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
-			Get["/JMMServerImage/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
+            // JMMServerImage2 - old JMMServerImage is still blob service
+            Get["/JMMServerImage2/GetImage/{id}/{type}/{thumb}"] = parameter => { return GetImage(parameter.id, parameter.type, parameter.thumb); };
+            Get["/JMMServerImage2/GetImage/{id}/{type}"] = parameter => { return GetImageRest(parameter.type, parameter.id); };
+            Get["/JMMServerImage2/GetImageUsingPath/{path}"] = parameter => { return GetImageUsingPath(parameter.path); };
         }
 
 
@@ -80,7 +81,7 @@ namespace JMMServer.API
             }
         }
 
-        //KODI
+        #region KodiImplementation
 
         /// <summary>
         /// KODI: List all Group/Filters for given user ID
@@ -211,7 +212,9 @@ namespace JMMServer.API
             return _impl.TraktScrobble(_prov_kodi, animeid, type, progress, status);
         }
 
-        //PLEX
+        #endregion
+
+        #region PlexImplementation
 
         /// <summary>
         /// Plex: List all Group/Filters for given user ID
@@ -282,8 +285,9 @@ namespace JMMServer.API
         {
             return _impl.VoteAnime(_prov_plex, uid, id, votevalue, votetype);
         }
+        #endregion
 
-        //REST
+        #region JMMServerRest
 
         /// <summary>
         /// Return image
@@ -369,16 +373,21 @@ namespace JMMServer.API
 	    /// <param name="type"></param>
 	    /// <param name="thumb"></param>
 	    /// <returns></returns>
-	    private object GetImage(string id, string type, bool thumb)
+	    private object GetImage(string id, string type, string thumb)
 	    {
 		    int imgtype = int.Parse(type);
 			string contentType;
-		    byte[] image = _image.GetImage(id, imgtype, thumb, out contentType);
+            bool isthumb = false;
+            bool.TryParse(thumb, out isthumb);
+		    byte[] image = _image.GetImage(id, imgtype, isthumb, out contentType);
 			if(image == null || contentType == "")
 			{
 				return new APIMessage(500, "Image of type not found for ID");
 			}
-			response = Response.FromByteArray(image, contentType);
+
+            //Stream ms = new MemoryStream(image);
+            //response = Response.FromStream(ms, contentType);
+            response = Response.FromByteArray(image, contentType);
 		    return response;
 	    }
 
@@ -394,5 +403,7 @@ namespace JMMServer.API
 			response = Response.FromByteArray(image, contentType);
 			return response;
 		}
-	}
+
+        #endregion
+    }
 }
