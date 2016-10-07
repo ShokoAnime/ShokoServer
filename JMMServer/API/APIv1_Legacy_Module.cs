@@ -73,12 +73,10 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetSupportImageRest(string name)
         {
-            using (System.IO.Stream image = _impl.GetSupportImage(name))
-            {
-                response = new Nancy.Response();
-                response = Response.FromStream(image, "image/png");
-                return response;
-            }
+            System.IO.Stream image = _impl.GetSupportImage(name);
+            response = new Nancy.Response();
+            response = Response.FromStream(image, "image/png");
+            return response;
         }
 
         #region KodiImplementation
