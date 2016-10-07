@@ -381,33 +381,20 @@ namespace JMMServer.Commands
                 AzureWebAPI.Send_FileHash(new List<VideoLocal> { vlocal });
             }
         }
-        private void FillVideoHashes(VideoLocal v)
+
+        private void FillHashesAgainstVideoLocalRepo(VideoLocal v)
         {
             if (!string.IsNullOrEmpty(v.ED2KHash))
             {
                 VideoLocal n = RepoFactory.VideoLocal.GetByHash(v.ED2KHash);
                 if (n != null)
                 {
-                    v.CRC32 = n.CRC32.ToUpperInvariant();
-                    v.MD5 = n.MD5.ToUpperInvariant();
-                    v.SHA1 = n.SHA1.ToUpperInvariant();
-                    return;
-                }
-                AniDB_File f = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
-                if (f != null)
-                {
-                    v.CRC32 = f.CRC.ToUpperInvariant();
-                    v.SHA1 = f.SHA1.ToUpperInvariant();
-                    v.MD5 = f.MD5.ToUpperInvariant();
-                    return;
-                }
-                List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash) ?? new List<FileHash>();
-                ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.SHA1)).ToList();
-                if (ls.Count > 0)
-                {
-                    v.SHA1 = ls[0].SHA1.ToUpperInvariant();
-                    v.CRC32 = ls[0].CRC32.ToUpperInvariant();
-                    v.MD5 = ls[0].MD5.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(n.CRC32))
+                        v.CRC32 = n.CRC32.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(n.MD5))
+                        v.MD5 = n.MD5.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(n.SHA1))
+                        v.SHA1 = n.SHA1.ToUpperInvariant();
                     return;
                 }
             }
@@ -416,26 +403,12 @@ namespace JMMServer.Commands
                 VideoLocal n = RepoFactory.VideoLocal.GetBySHA1(v.SHA1);
                 if (n != null)
                 {
-                    v.CRC32 = n.CRC32.ToUpperInvariant();
-                    v.MD5 = n.MD5.ToUpperInvariant();
-                    v.ED2KHash = n.ED2KHash.ToUpperInvariant();
-                    return;
-                }
-                AniDB_File f = RepoFactory.AniDB_File.GetBySHA1(v.SHA1);
-                if (f != null)
-                {
-                    v.CRC32 = f.CRC.ToUpperInvariant();
-                    v.ED2KHash = f.Hash.ToUpperInvariant();
-                    v.MD5 = f.MD5.ToUpperInvariant();
-                    return;
-                }
-                List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.SHA1, v.SHA1) ?? new List<FileHash>();
-                ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.ED2K)).ToList();
-                if (ls.Count > 0)
-                {
-                    v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
-                    v.CRC32 = ls[0].CRC32.ToUpperInvariant();
-                    v.MD5 = ls[0].MD5.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(n.CRC32))
+                        v.CRC32 = n.CRC32.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(n.MD5))
+                        v.MD5 = n.MD5.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(v.ED2KHash))
+                        v.ED2KHash = n.ED2KHash.ToUpperInvariant();
                     return;
                 }
             }
@@ -444,28 +417,111 @@ namespace JMMServer.Commands
                 VideoLocal n = RepoFactory.VideoLocal.GetByMD5(v.MD5);
                 if (n != null)
                 {
-                    v.CRC32 = n.CRC32.ToUpperInvariant();
-                    v.SHA1 = n.SHA1.ToUpperInvariant();
-                    v.ED2KHash = n.ED2KHash.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(n.CRC32))
+                        v.CRC32 = n.CRC32.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(n.SHA1))
+                        v.SHA1 = n.SHA1.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(v.ED2KHash))
+                        v.ED2KHash = n.ED2KHash.ToUpperInvariant();
+                }
+            }
+        }
+        private void FillHashesAgainstAniDBRepo(VideoLocal v)
+        {
+            if (!string.IsNullOrEmpty(v.ED2KHash))
+            {
+                AniDB_File f = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
+                if (f != null)
+                {
+                    if (!string.IsNullOrEmpty(f.CRC))
+                        v.CRC32 = f.CRC.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(f.SHA1))
+                        v.SHA1 = f.SHA1.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(f.MD5))
+                        v.MD5 = f.MD5.ToUpperInvariant();
                     return;
                 }
+            }
+            if (!string.IsNullOrEmpty(v.SHA1))
+            {
+                AniDB_File f = RepoFactory.AniDB_File.GetBySHA1(v.SHA1);
+                if (f != null)
+                {
+                    if (!string.IsNullOrEmpty(f.CRC))
+                        v.CRC32 = f.CRC.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(f.Hash))
+                        v.ED2KHash = f.Hash.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(f.MD5))
+                        v.MD5 = f.MD5.ToUpperInvariant();
+                    return;
+                }
+            }
+            if (!string.IsNullOrEmpty(v.MD5))
+            {
                 AniDB_File f = RepoFactory.AniDB_File.GetByMD5(v.MD5);
                 if (f != null)
                 {
-                    v.CRC32 = f.CRC.ToUpperInvariant();
-                    v.ED2KHash = f.Hash.ToUpperInvariant();
-                    v.SHA1 = f.SHA1.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(f.CRC))
+                        v.CRC32 = f.CRC.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(f.Hash))
+                        v.ED2KHash = f.Hash.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(f.SHA1))
+                       v.SHA1 = f.SHA1.ToUpperInvariant();
+                }
+            }
+        }
+        private void FillHashesAgainstWebCache(VideoLocal v)
+        {
+            if (!string.IsNullOrEmpty(v.ED2KHash))
+            {
+                List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash) ?? new List<FileHash>();
+                ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.SHA1)).ToList();
+                if (ls.Count > 0)
+                {
+                    if (!string.IsNullOrEmpty(ls[0].SHA1))
+                        v.SHA1 = ls[0].SHA1.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(ls[0].CRC32))
+                        v.CRC32 = ls[0].CRC32.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(ls[0].MD5))
+                        v.MD5 = ls[0].MD5.ToUpperInvariant();
                     return;
                 }
+            }
+            if (!string.IsNullOrEmpty(v.SHA1))
+            {
+                List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.SHA1, v.SHA1) ?? new List<FileHash>();
+                ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.ED2K)).ToList();
+                if (ls.Count > 0)
+                {
+                    if (!string.IsNullOrEmpty(ls[0].ED2K))
+                        v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(ls[0].CRC32))
+                        v.CRC32 = ls[0].CRC32.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(ls[0].MD5))
+                        v.MD5 = ls[0].MD5.ToUpperInvariant();
+                    return;
+                }
+            }
+            if (!string.IsNullOrEmpty(v.MD5))
+            {
                 List<FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.MD5, v.MD5) ?? new List<FileHash>();
                 ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.SHA1) && !string.IsNullOrEmpty(a.ED2K)).ToList();
                 if (ls.Count > 0)
                 {
-                    v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
-                    v.CRC32 = ls[0].CRC32.ToUpperInvariant();
-                    v.SHA1 = ls[0].SHA1.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(ls[0].ED2K))
+                        v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(ls[0].CRC32))
+                        v.CRC32 = ls[0].CRC32.ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(ls[0].SHA1))
+                        v.SHA1 = ls[0].SHA1.ToUpperInvariant();
                 }
             }
+        }
+        private void FillVideoHashes(VideoLocal v)
+        {
+            FillHashesAgainstVideoLocalRepo(v);
+            FillHashesAgainstAniDBRepo(v);
+            FillHashesAgainstWebCache(v);
         }
 
 
