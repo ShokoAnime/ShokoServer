@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace JMMServer.API
 {
-	public static class NancyExtensions
-	{
-		public static Response FromByteArray(this IResponseFormatter formatter, byte[] body, string contentType = null)
-		{
-			return new ByteArrayResponse(body, contentType);
-		}
-	}
+    public static class NancyExtensions
+    {
+        public static Response FromByteArray(this IResponseFormatter formatter, byte[] body, string contentType = null)
+        {
+            return new ByteArrayResponse(body, contentType);
+        }
+    }
 }

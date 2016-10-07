@@ -385,9 +385,9 @@ namespace JMMServer.API
 				return new APIMessage(500, "Image of type not found for ID");
 			}
 
-            //Stream ms = new MemoryStream(image);
-            //response = Response.FromStream(ms, contentType);
-            response = Response.FromByteArray(image, contentType);
+            Stream ms = new MemoryStream(image);
+            response = Response.FromStream(ms, contentType);
+            //response = Response.FromByteArray(image, contentType);
 		    return response;
 	    }
 
@@ -400,8 +400,10 @@ namespace JMMServer.API
 		{
 			string contentType = MimeTypes.GetMimeType(path);
 			byte[] image = _image.GetImageUsingPath(path);
-			response = Response.FromByteArray(image, contentType);
-			return response;
+            Stream ms = new MemoryStream(image);
+            response = Response.FromStream(ms, contentType);
+            //response = Response.FromByteArray(image, contentType);
+            return response;
 		}
 
         #endregion
