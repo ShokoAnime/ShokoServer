@@ -6899,7 +6899,11 @@ namespace JMMServer
                 }
                 else
                 {
-                    jmmUser.Password = user.Password;
+                    // Additional check for hashed password, if not hashed we hash it
+                    if (user.Password.Length < 64)
+                        jmmUser.Password = Digest.Hash(user.Password);
+                    else
+                        jmmUser.Password = user.Password;
                 }
 
                 // make sure that at least one user is an admin
