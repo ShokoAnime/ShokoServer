@@ -481,9 +481,6 @@
   <data name="InitialSetup_LoginPass2" xml:space="preserve">
     <value>Logou com sucesso! Deslogou.</value>
   </data>
-  <data name="InitialSetup_LoginFail" xml:space="preserve">
-    <value>FALHA no login!</value>
-  </data>
   <data name="InitialSetup_EnterUsername" xml:space="preserve">
     <value>Por favor insira um nome de usuário válido.</value>
   </data>
@@ -1149,5 +1146,8 @@
   </data>
   <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
     <value>Não é possível re-adicionar um arquivo quando a verificação de integridade está sendo executado.</value>
+  </data>
+  <data name="InitialSetup_LoginFail" xml:space="preserve">
+    <value>AniDB início de sessão falhou !!</value>
   </data>
 </root>

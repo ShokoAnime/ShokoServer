@@ -478,9 +478,6 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="InitialSetup_LoginPass2" xml:space="preserve">
     <value>Login Success! Disconnesso.</value>
   </data>
-  <data name="InitialSetup_LoginFail" xml:space="preserve">
-    <value>Accesso non riuscito!</value>
-  </data>
   <data name="InitialSetup_EnterUsername" xml:space="preserve">
     <value>Inserisci un nome utente valido.</value>
   </data>
@@ -1149,5 +1146,8 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
     <value>È Impossibile aggiungere nuovamente un file quando il controllo di integrità è in esecuzione.</value>
+  </data>
+  <data name="InitialSetup_LoginFail" xml:space="preserve">
+    <value>AniDB Accesso non riuscito !!</value>
   </data>
 </root>

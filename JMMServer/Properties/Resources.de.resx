@@ -478,9 +478,6 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="InitialSetup_LoginPass2" xml:space="preserve">
     <value>Anmeldung-Erfolg! Ausgeloggt.</value>
   </data>
-  <data name="InitialSetup_LoginFail" xml:space="preserve">
-    <value>Login fehlgeschlagen!</value>
-  </data>
   <data name="InitialSetup_EnterUsername" xml:space="preserve">
     <value>Bitte geben Sie einen gültigen Benutzernamen.</value>
   </data>
@@ -1149,5 +1146,8 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   </data>
   <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
     <value>Sie können keine Datei erneut hinzufügen, wenn die Integritätsprüfung ausgeführt wird.</value>
+  </data>
+  <data name="InitialSetup_LoginFail" xml:space="preserve">
+    <value>AniDB Anmeldung fehlgeschlagen !!</value>
   </data>
 </root>

@@ -478,9 +478,6 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   <data name="InitialSetup_LoginPass2" xml:space="preserve">
     <value>Éxito de inicio de sesión! Registrado hacia fuera.</value>
   </data>
-  <data name="InitialSetup_LoginFail" xml:space="preserve">
-    <value>ERROR de inicio de sesión.</value>
-  </data>
   <data name="InitialSetup_EnterUsername" xml:space="preserve">
     <value>Por favor, introduzca un nombre de usuario válido.</value>
   </data>
@@ -1149,5 +1146,8 @@ Sólo puede tener una carpeta que aparece como un destino de la gota.</value>
   </data>
   <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
     <value>Nuevamente se puede Agregar un archivo cuando se ejecuta la comprobación de integridad.</value>
+  </data>
+  <data name="InitialSetup_LoginFail" xml:space="preserve">
+    <value>AniDB de conexión fallidos !!</value>
   </data>
 </root>

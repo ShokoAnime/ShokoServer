@@ -478,9 +478,6 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="InitialSetup_LoginPass2" xml:space="preserve">
     <value>Inloggen succes! Uitgelogd.</value>
   </data>
-  <data name="InitialSetup_LoginFail" xml:space="preserve">
-    <value>De aanmelding is mislukt!</value>
-  </data>
   <data name="InitialSetup_EnterUsername" xml:space="preserve">
     <value>Voer een geldige gebruikersnaam in.</value>
   </data>
@@ -1149,5 +1146,8 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
     <value>U kunt geen een bestand opnieuw toevoegen wanneer de integriteit controleren wordt uitgevoerd.</value>
+  </data>
+  <data name="InitialSetup_LoginFail" xml:space="preserve">
+    <value>AniDB Aanmelden mislukt !!</value>
   </data>
 </root>

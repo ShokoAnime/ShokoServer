@@ -18,6 +18,8 @@ using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
+using JMMServer.UI;
+using System.Windows;
 
 namespace JMMServer
 {
@@ -307,6 +309,14 @@ namespace JMMServer
 
             if (ev != enHelperActivityType.LoggedIn)
             {
+                Application.Current.Dispatcher.Invoke(() => {
+                    MessageBox.Show(Properties.Resources.InitialSetup_LoginFail, Properties.Resources.Error,
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+
+                    InitialSetupForm frm = new InitialSetupForm();
+                    frm.ShowDialog();
+                });
+                
                 //BaseConfig.MyAnimeLog.Write("ProcessCommands: Login Failed!");
                 //OnAniDBStatusEvent(new AniDBStatusEventArgs(enHelperActivityType.LoginFailed, ""));
                 //aniDBCommands.Clear();
