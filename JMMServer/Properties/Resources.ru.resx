@@ -481,9 +481,6 @@
   <data name="InitialSetup_LoginPass2" xml:space="preserve">
     <value>Успешный вход! Вышли из системы.</value>
   </data>
-  <data name="InitialSetup_LoginFail" xml:space="preserve">
-    <value>Ошибка входа в систему!</value>
-  </data>
   <data name="InitialSetup_EnterUsername" xml:space="preserve">
     <value>Пожалуйста, введите действительное имя пользователя.</value>
   </data>
@@ -1149,5 +1146,8 @@
   </data>
   <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
     <value>Нельзя повторно добавить файл, когда выполняется проверка целостности.</value>
+  </data>
+  <data name="InitialSetup_LoginFail" xml:space="preserve">
+    <value>Не удалось подключиться к AniDB !!</value>
   </data>
 </root>

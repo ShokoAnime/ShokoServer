@@ -1871,7 +1871,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Login FAILED!.
+        ///   Looks up a localized string similar to AniDB login FAILED!.
         /// </summary>
         public static string InitialSetup_LoginFail {
             get {

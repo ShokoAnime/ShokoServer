@@ -573,7 +573,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Login Success! Logged out.</value>
   </data>
   <data name="InitialSetup_LoginFail" xml:space="preserve">
-    <value>Login FAILED!</value>
+    <value>AniDB login FAILED!</value>
   </data>
   <data name="InitialSetup_EnterUsername" xml:space="preserve">
     <value>Please enter a valid username.</value>

@@ -520,9 +520,6 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="InitialSetup_LoginPass2" xml:space="preserve">
     <value>Login Success! Logged out.</value>
   </data>
-  <data name="InitialSetup_LoginFail" xml:space="preserve">
-    <value>Login FAILED!</value>
-  </data>
   <data name="InitialSetup_EnterUsername" xml:space="preserve">
     <value>Please enter a valid username.</value>
   </data>
@@ -1149,5 +1146,8 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
     <value>You cannot re-add a file when the Integrity Check is running.</value>
+  </data>
+  <data name="InitialSetup_LoginFail" xml:space="preserve">
+    <value>AniDB login FAILED!!</value>
   </data>
 </root>
