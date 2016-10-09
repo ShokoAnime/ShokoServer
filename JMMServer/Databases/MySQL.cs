@@ -335,7 +335,7 @@ namespace JMMServer.Databases
             new DatabaseCommand(54, 16, "ALTER TABLE `VideoLocal_User` MODIFY COLUMN `WatchedDate` datetime NULL"),
             new DatabaseCommand(54, 17, "ALTER TABLE `VideoLocal_User` ADD `ResumePosition` bigint NOT NULL DEFAULT 0"),
             new DatabaseCommand(54, 18, "DROP TABLE `VideoInfo`"),
-            new DatabaseCommand(55, 1, "ALTER TABLE `Videolocal` DROP INDEX `UIX_VideoLocal_Hash` ;"),
+            new DatabaseCommand(55, 1, "ALTER TABLE `VideoLocal` DROP INDEX `UIX_VideoLocal_Hash` ;"),
             new DatabaseCommand(55, 2, "ALTER TABLE `VideoLocal` ADD INDEX `IX_VideoLocal_Hash` (`Hash` ASC) ;"),
             new DatabaseCommand(56, 1,"CREATE TABLE `AuthTokens` ( `AuthID` INT NOT NULL AUTO_INCREMENT, `UserID` int NOT NULL, `DeviceName` text character set utf8, `Token` text character set utf8, PRIMARY KEY (`AuthID`) ) ; "),
             new DatabaseCommand(57, 1,"CREATE TABLE `Scan` ( `ScanID` INT NOT NULL AUTO_INCREMENT, `CreationTime` datetime NOT NULL, `ImportFolders` text character set utf8, `Status` int NOT NULL, PRIMARY KEY (`ScanID`) ) ; "),

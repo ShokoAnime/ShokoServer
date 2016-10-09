@@ -355,7 +355,7 @@ namespace JMMServer.Databases
             new DatabaseCommand(50, 8,"ALTER TABLE VideoLocal_User ALTER COLUMN WatchedDate datetime NULL"),
             new DatabaseCommand(50, 9,"ALTER TABLE VideoLocal_User ADD ResumePosition bigint NOT NULL DEFAULT (0)"),
             new DatabaseCommand(50, 10,"DROP TABLE VideoInfo"),
-            new DatabaseCommand(51, 1,"DROP INDEX UIX_VideoLocal_Hash ON Videolocal;"),
+            new DatabaseCommand(51, 1,"DROP INDEX UIX_VideoLocal_Hash ON VideoLocal;"),
             new DatabaseCommand(51, 2,"CREATE INDEX IX_VideoLocal_Hash ON VideoLocal(Hash);"),
             new DatabaseCommand(52, 1,"CREATE TABLE AuthTokens ( AuthID int IDENTITY(1,1) NOT NULL, UserID int NOT NULL, DeviceName nvarchar(MAX) NOT NULL, Token nvarchar(MAX) NOT NULL )"),
             new DatabaseCommand(53, 1,"CREATE TABLE Scan ( ScanID int IDENTITY(1,1) NOT NULL, CreationTime datetime NOT NULL, ImportFolders nvarchar(MAX) NOT NULL, Status int NOT NULL )"),
