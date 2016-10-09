@@ -318,7 +318,8 @@ ml.exe crc32x86.asm /c /Cx /coff</Command>
       <OutputFile>.\Release_x64/hasher.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>xcopy "$(TargetDir)*.dll" "$(SolutionDir)\JMMFileHelper\bin\Release\x64\" /S /R /I /Y</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <PreLinkEvent>
       <Command>ml64.exe crc32x64.asm /c /nologo  /W3 /Zi</Command>
