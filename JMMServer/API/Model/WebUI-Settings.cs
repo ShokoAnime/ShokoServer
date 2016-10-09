@@ -1,20 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JMMServer.API.Model
 {
     public class WebUI_Settings
     {
-        public string theme { get; set; }
-        public int log_days { get; set; }
+        public string uiTheme { get; set; }
+        public bool uiNotifications { get; set; }
+        public string otherUpdateChannel { get; set; }
+        public int logDelta { get; set; }
+
+        private List<string> channels = new List<string> { "stable", "unstable" };
 
         public bool Valid()
         {
-            if (String.IsNullOrEmpty(theme)) return false;
-            if (log_days < 0) return false;
+            if (String.IsNullOrEmpty(uiTheme)) return false;
+            bool validChannel = channels.Any(s => otherUpdateChannel.Contains(s));
+            if (validChannel == false) return false;
+            if (logDelta < 0) { return false; }
 
             return true;
         }
