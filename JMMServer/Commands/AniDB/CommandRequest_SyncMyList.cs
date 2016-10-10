@@ -89,7 +89,7 @@ namespace JMMServer.Commands
                         onlineFiles[myitem.FileID] = myitem;
 
                     Dictionary<string, AniDB_File> dictAniFiles = new Dictionary<string, AniDB_File>();
-                    List<AniDB_File> allAniFiles = RepoFactory.AniDB_File.GetAll();
+                    IReadOnlyList<AniDB_File> allAniFiles = RepoFactory.AniDB_File.GetAll();
                     foreach (AniDB_File anifile in allAniFiles)
                         dictAniFiles[anifile.Hash] = anifile;
 

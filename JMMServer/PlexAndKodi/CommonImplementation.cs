@@ -181,7 +181,7 @@ namespace JMMServer.PlexAndKodi
                         var episodeID = -1;
                         if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                         {
-                            var anime = RepoFactory.AnimeEpisode.GetByID(episodeID).GetAnimeSeries(sessionWrapper).GetAnime(sessionWrapper);
+                            var anime = RepoFactory.AnimeEpisode.GetByID(episodeID).GetAnimeSeries(sessionWrapper).GetAnime();
                             dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks(sessionWrapper)?.GenPoster();
                             dir.Art = anime?.GetDefaultFanartDetailsNoBlanks(sessionWrapper)?.GenArt();
                             dir.Banner = anime?.GetDefaultWideBannerDetailsNoBlanks(sessionWrapper)?.GenArt();
@@ -338,7 +338,7 @@ namespace JMMServer.PlexAndKodi
                 AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
                 if (ser == null)
                     return new MediaContainer() { ErrorString = "Invalid Serie" };
-                AniDB_Anime anime = ser.GetAnime(sessionWrapper);
+                AniDB_Anime anime = ser.GetAnime();
                 Contract_AnimeSeries con = ser.GetUserContract(userid);
                 if (con == null)
                     return new MediaContainer() { ErrorString = "Invalid Serie, Contract not found" };

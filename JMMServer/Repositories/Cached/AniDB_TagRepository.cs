@@ -31,6 +31,12 @@ namespace JMMServer.Repositories
         {
             return new AniDB_TagRepository();
         }
+
+        protected override int SelectKey(AniDB_Tag entity)
+        {
+            return entity.AniDB_TagID;
+        }
+
         public override void RegenerateDb()
         {
         }

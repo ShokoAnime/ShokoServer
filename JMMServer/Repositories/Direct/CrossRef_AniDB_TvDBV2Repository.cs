@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
@@ -36,6 +39,29 @@ namespace JMMServer.Repositories.Direct
                 .List<CrossRef_AniDB_TvDBV2>();
 
             return new List<CrossRef_AniDB_TvDBV2>(xrefs);
+        }
+
+        public ILookup<int, CrossRef_AniDB_TvDBV2> GetByAnimeIDs(ISessionWrapper session, IReadOnlyCollection<int> animeIds)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (animeIds == null)
+                throw new ArgumentNullException(nameof(animeIds));
+
+            if (animeIds.Count == 0)
+            {
+                return EmptyLookup<int, CrossRef_AniDB_TvDBV2>.Instance;
+            }
+
+            var xrefs = session
+                .CreateCriteria(typeof(CrossRef_AniDB_TvDBV2))
+                .Add(Restrictions.InG("AnimeID", animeIds))
+                .AddOrder(Order.Asc("AniDBStartEpisodeType"))
+                .AddOrder(Order.Asc("AniDBStartEpisodeNumber"))
+                .List<CrossRef_AniDB_TvDBV2>()
+                .ToLookup(cr => cr.AnimeID);
+
+            return xrefs;
         }
 
         public List<CrossRef_AniDB_TvDBV2> GetByAnimeIDEpTypeEpNumber(ISession session, int id, int aniEpType,

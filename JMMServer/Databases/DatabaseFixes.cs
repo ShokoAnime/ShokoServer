@@ -106,7 +106,7 @@ namespace JMMServer.Databases
 
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    List<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
+                    IReadOnlyList<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
                     foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
                     {
                         CrossRef_AniDB_TraktV2 xrefNew = new CrossRef_AniDB_TraktV2();
@@ -181,7 +181,7 @@ namespace JMMServer.Databases
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
-                    List<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
+                    IReadOnlyList<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
                     foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
                     {
                         CrossRef_AniDB_TvDBV2 xrefNew = new CrossRef_AniDB_TvDBV2();
@@ -256,7 +256,7 @@ namespace JMMServer.Databases
             List<CrossRef_AniDB_Trakt> xrefsTraktProcessed = new List<CrossRef_AniDB_Trakt>();
             List<CrossRef_AniDB_Trakt> xrefsTraktToBeDeleted = new List<CrossRef_AniDB_Trakt>();
 
-            List<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
+            IReadOnlyList<CrossRef_AniDB_Trakt> xrefsTrakt = RepoFactory.CrossRef_AniDB_Trakt.GetAll();
             foreach (CrossRef_AniDB_Trakt xrefTrakt in xrefsTrakt)
             {
                 bool deleteXref = false;
@@ -295,7 +295,7 @@ namespace JMMServer.Databases
             List<CrossRef_AniDB_TvDB> xrefsTvDBProcessed = new List<CrossRef_AniDB_TvDB>();
             List<CrossRef_AniDB_TvDB> xrefsTvDBToBeDeleted = new List<CrossRef_AniDB_TvDB>();
 
-            List<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TvDB> xrefsTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
             foreach (CrossRef_AniDB_TvDB xrefTvDB in xrefsTvDB)
             {
                 bool deleteXref = false;

@@ -21,6 +21,12 @@ namespace JMMServer.Repositories.Cached
         {
             return new VideoLocal_PlaceRepository();
         }
+
+        protected override int SelectKey(VideoLocal_Place entity)
+        {
+            return entity.VideoLocal_Place_ID;
+        }
+
         public override void PopulateIndexes()
         {
             VideoLocals = new PocoIndex<int, VideoLocal_Place, int>(Cache, a => a.VideoLocalID);
@@ -45,7 +51,7 @@ namespace JMMServer.Repositories.Cached
 
         public static Tuple<ImportFolder, string> GetFromFullPath(string fullPath)
         {
-            List<ImportFolder> shares = RepoFactory.ImportFolder.GetAll();
+            IReadOnlyList<ImportFolder> shares = RepoFactory.ImportFolder.GetAll();
 
             // TODO make sure that import folders are not sub folders of each other
             // TODO make sure import folders do not contain a trailing "\"

@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
+using Newtonsoft.Json;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 
@@ -332,38 +334,34 @@ namespace JMMServer.Entities
             return change;
         }
 
-        public bool CalculateGroupFilterGroups(Contract_AnimeGroup grp, Contract_JMMUser user, int id)
+        public bool CalculateGroupFilterGroups(Contract_AnimeGroup grp, Contract_JMMUser user, int jmmUserId)
         {
             bool change = false;
+            HashSet<int> groupIds;
+
+            GroupsIds.TryGetValue(jmmUserId, out groupIds);
+
             if (EvaluateGroupFilter(grp, user))
             {
-                if (!GroupsIds.ContainsKey(id))
+                if (groupIds == null)
                 {
-                    GroupsIds[id] = new HashSet<int>();
+                    groupIds = new HashSet<int>();
+                    GroupsIds[jmmUserId] = groupIds;
                 }
-                if (!GroupsIds[id].Contains(grp.AnimeGroupID))
-                {
-                    GroupsIds[id].Add(grp.AnimeGroupID);
-                    change = true;
-                }
+
+                change = groupIds.Add(grp.AnimeGroupID);
             }
-            else
+            else if (groupIds != null)
             {
-                if (GroupsIds.ContainsKey(id))
-                {
-                    if (GroupsIds[id].Contains(grp.AnimeGroupID))
-                    {
-                        GroupsIds[id].Remove(grp.AnimeGroupID);
-                        change = true;
-                    }
-                }
+                change = groupIds.Remove(grp.AnimeGroupID);
             }
+
             return change;
         }
 
         public void EvaluateAnimeGroups()
         {
-            List<JMMUser> users = RepoFactory.JMMUser.GetAll();
+            IReadOnlyList<JMMUser> users = RepoFactory.JMMUser.GetAll();
             foreach (AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
             {
                 foreach (JMMUser user in users)
@@ -375,7 +373,7 @@ namespace JMMServer.Entities
 
         public void EvaluateAnimeSeries()
         {
-            List<JMMUser> users = RepoFactory.JMMUser.GetAll();
+            IReadOnlyList<JMMUser> users = RepoFactory.JMMUser.GetAll();
             foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
             {
                 CalculateGroupFilterSeries(ser.Contract, null, 0); //Default no filter for JMM Client
@@ -1163,6 +1161,26 @@ namespace JMMServer.Entities
             catch (Exception ex)
             {
                 return DateTime.Today;
+            }
+        }
+
+        /// <summary>
+        /// Updates the <see cref="GroupIdsString"/> and/or <see cref="SeriesIdsString"/> properties
+        /// based on the current contents of <see cref="GroupIds"/> and <see cref="SeriesIds"/>.
+        /// </summary>
+        /// <param name="updateGroups"><c>true</c> to update <see cref="GroupIdsString"/>; otherwise, <c>false</c>.</param>
+        /// <param name="updateSeries"><c>true</c> to update <see cref="SeriesIds"/>; otherwise, <c>false</c>.</param>
+        public void UpdateEntityReferenceStrings(bool updateGroups = true, bool updateSeries = true)
+        {
+            if (updateGroups)
+            {
+                GroupsIdsString = JsonConvert.SerializeObject(GroupsIds);
+                GroupsIdsVersion = GROUPFILTER_VERSION;
+            }
+            if (updateSeries)
+            {
+                SeriesIdsString = JsonConvert.SerializeObject(SeriesIds);
+                SeriesIdsVersion = SERIEFILTER_VERSION;
             }
         }
     }

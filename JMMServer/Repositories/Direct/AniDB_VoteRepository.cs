@@ -65,21 +65,7 @@ namespace JMMServer.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                var votes = session
-                    .CreateCriteria(typeof(AniDB_Vote))
-                    .Add(Restrictions.Eq("EntityID", animeID))
-                    .List<AniDB_Vote>();
-
-                List<AniDB_Vote> tempList = new List<AniDB_Vote>(votes);
-                List<AniDB_Vote> retList = new List<AniDB_Vote>();
-
-                foreach (AniDB_Vote vt in tempList)
-                {
-                    if (vt.VoteType == (int) AniDBVoteType.Anime || vt.VoteType == (int) AniDBVoteType.AnimeTemp)
-                        return vt;
-                }
-
-                return null;
+                return GetByAnimeID(session, animeID);
             }
         }
 
@@ -90,10 +76,7 @@ namespace JMMServer.Repositories.Direct
                 .Add(Restrictions.Eq("EntityID", animeID))
                 .List<AniDB_Vote>();
 
-            List<AniDB_Vote> tempList = new List<AniDB_Vote>(votes);
-            List<AniDB_Vote> retList = new List<AniDB_Vote>();
-
-            foreach (AniDB_Vote vt in tempList)
+            foreach (AniDB_Vote vt in votes)
             {
                 if (vt.VoteType == (int) AniDBVoteType.Anime || vt.VoteType == (int) AniDBVoteType.AnimeTemp)
                     return vt;
@@ -102,7 +85,7 @@ namespace JMMServer.Repositories.Direct
             return null;
         }
 
-        public Dictionary<int, AniDB_Vote> GetByAnimeIDs(ISessionWrapper session, ICollection<int> animeIDs)
+        public Dictionary<int, AniDB_Vote> GetByAnimeIDs(ISessionWrapper session, IReadOnlyCollection<int> animeIDs)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));

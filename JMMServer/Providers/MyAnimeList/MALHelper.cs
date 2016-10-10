@@ -312,7 +312,7 @@ namespace JMMServer.Providers.MyAnimeList
                 return;
             }
 
-            List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
             foreach (AnimeSeries ser in allSeries)
             {

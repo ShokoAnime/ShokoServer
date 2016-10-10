@@ -22,17 +22,28 @@ namespace JMMServer.Repositories
         public Action<ISession, T> SaveWithOpenTransactionCallback { get; set; }
         public Action<T> EndSaveCallback { get; set; }
 
-
-
-        public virtual void Populate(Func<T, S> key, bool displayname = true)
+        public virtual void Populate(ISessionWrapper session, bool displayname = true)
         {
             if (displayname)
                 ServerState.Instance.CurrentSetupStatus = string.Format(Properties.Resources.Database_Cache, typeof(T).Name, string.Empty);
+
+            Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).List<T>(), SelectKey);
+            PopulateIndexes();
+        }
+
+        public void Populate(bool displayname = true)
+        {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).List<T>(),key);
+                Populate(session.Wrap());
             }
-            PopulateIndexes();
+        }
+
+        protected abstract S SelectKey(T entity);
+
+        public virtual void ClearCache()
+        {
+            Cache.Clear();
         }
 
         internal virtual void RegenerateDb(List<T> collection, Action<T> genaction, bool displayme = true)
@@ -78,17 +89,17 @@ namespace JMMServer.Repositories
             return Cache.Get(id);
         }
 
-        public virtual List<T> GetAll()
+        public virtual IReadOnlyList<T> GetAll()
         {
             return Cache.Values.ToList();
         }
 
-        public List<T> GetAll(ISession session)
+        public IReadOnlyList<T> GetAll(ISession session)
         {
             return Cache.Values.ToList();
         }
 
-        public List<T> GetAll(ISessionWrapper session)
+        public IReadOnlyList<T> GetAll(ISessionWrapper session)
         {
             return Cache.Values.ToList();
         }
@@ -115,7 +126,7 @@ namespace JMMServer.Repositories
                 EndDeleteCallback?.Invoke(cr);
             }
         }
-        public virtual void Delete(List<T> objs)
+        public virtual void Delete(IReadOnlyCollection<T> objs)
         {
             if (objs.Count == 0)
                 return;
@@ -183,7 +194,7 @@ namespace JMMServer.Repositories
             EndSaveCallback?.Invoke(obj);
         }
 
-        public virtual void Save(List<T> objs)
+        public virtual void Save(IReadOnlyCollection<T> objs)
         {
             if (objs.Count==0)
                 return;

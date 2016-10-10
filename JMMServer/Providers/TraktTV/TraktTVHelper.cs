@@ -486,9 +486,9 @@ namespace JMMServer.Providers.TraktTV
 
         public static void ScanForMatches()
         {
-            List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
-            List<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
             List<int> alreadyLinked = new List<int>();
             foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
@@ -1552,7 +1552,7 @@ namespace JMMServer.Providers.TraktTV
 
         public static void UpdateAllInfo()
         {
-            List<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
             foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
                 CommandRequest_TraktUpdateInfoAndImages cmd = new CommandRequest_TraktUpdateInfoAndImages(xref.TraktID);
@@ -1605,7 +1605,7 @@ namespace JMMServer.Providers.TraktTV
                 List<JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return;
 
-                List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+                IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
                 // now get the full users collection from Trakt
                 List<TraktV2ShowCollectedResult> collected = new List<TraktV2ShowCollectedResult>();

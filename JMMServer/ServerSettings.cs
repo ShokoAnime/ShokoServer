@@ -7,18 +7,12 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Security.AccessControl;
-using System.Security.Principal;
-using System.Security.RightsManagement;
 using System.Threading;
 using System.Windows;
 using AniDBAPI;
 using JMMContracts;
 using JMMServer.Databases;
-using JMMServer.Entities;
 using JMMServer.ImageDownload;
-using JMMServer.Repositories;
-using JMMServer.Repositories.Direct;
 using JMMServer.UI;
 using NLog;
 using Newtonsoft.Json;
@@ -1389,7 +1383,7 @@ namespace JMMServer
             get
             {
                 
-                string val = "same setting|alternative setting|character|other";
+                string val = null;
                 try
                 {
                     val = Get("AutoGroupSeriesRelationExclusions");
@@ -1397,7 +1391,7 @@ namespace JMMServer
                 catch (Exception e)
                 {
                 }
-                return val;
+                return val ?? "same setting|character";
             }
             set { Set("AutoGroupSeriesRelationExclusions", value); }
         }

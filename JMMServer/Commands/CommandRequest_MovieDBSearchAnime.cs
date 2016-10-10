@@ -103,7 +103,7 @@ namespace JMMServer.Commands
 
                     if (results.Count == 0)
                     {
-                        foreach (AniDB_Anime_Title title in anime.GetTitles(sessionWrapper))
+                        foreach (AniDB_Anime_Title title in anime.GetTitles())
                         {
                             if (title.TitleType.ToUpper() != Constants.AnimeTitleType.Official.ToUpper()) continue;
 

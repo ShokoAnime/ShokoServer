@@ -44,6 +44,12 @@ namespace JMMServer.Repositories.Cached
         {
             return new AnimeGroupRepository();
         }
+
+        protected override int SelectKey(AnimeGroup entity)
+        {
+            return entity.AnimeGroupID;
+        }
+
         public override void PopulateIndexes()
         {
             Changes.AddOrUpdateRange(Cache.Keys);
@@ -76,7 +82,7 @@ namespace JMMServer.Repositories.Cached
         public override void Save(AnimeGroup obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(List<AnimeGroup> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<AnimeGroup> objs) { throw new NotSupportedException(); }
 
         public void Save(AnimeGroup grp, bool updategrpcontractstats, bool recursive, bool verifylockedFilters = true)
         {
@@ -123,7 +129,33 @@ namespace JMMServer.Repositories.Cached
             }
         }
 
+        public void InsertBatch(ISessionWrapper session, IEnumerable<AnimeGroup> groups)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (groups == null)
+                throw new ArgumentNullException(nameof(groups));
 
+            foreach (AnimeGroup group in groups)
+            {
+                session.Insert(group);
+                Changes.AddOrUpdate(group.AnimeGroupID);
+            }
+        }
+
+        public void UpdateBatch(ISessionWrapper session, IEnumerable<AnimeGroup> groups)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (groups == null)
+                throw new ArgumentNullException(nameof(groups));
+
+            foreach (AnimeGroup group in groups)
+            {
+                session.Update(group);
+                Changes.AddOrUpdate(group.AnimeGroupID);
+            }
+        }
 
 
         public List<AnimeGroup> GetByParentID(int parentid)

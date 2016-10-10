@@ -35,7 +35,7 @@ namespace JMMServer.Repositories
             return session.Get<T>(id);
         }
 
-        public virtual List<T> GetAll()
+        public virtual IReadOnlyList<T> GetAll()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -43,12 +43,12 @@ namespace JMMServer.Repositories
             }
         }
 
-        public virtual List<T> GetAll(ISession session)
+        public virtual IReadOnlyList<T> GetAll(ISession session)
         {
             return new List<T>(session.CreateCriteria(typeof(T)).List<T>());
         }
 
-        public virtual List<T> GetAll(ISessionWrapper session)
+        public virtual IReadOnlyList<T> GetAll(ISessionWrapper session)
         {
             return new List<T>(session.CreateCriteria(typeof(T)).List<T>());
         }
@@ -77,7 +77,7 @@ namespace JMMServer.Repositories
             }
         }
 
-        public virtual void Delete(List<T> objs)
+        public virtual void Delete(IReadOnlyCollection<T> objs)
         {
             if (objs.Count == 0)
                 return;
@@ -138,7 +138,7 @@ namespace JMMServer.Repositories
             EndSaveCallback?.Invoke(obj);
         }
 
-        public virtual void Save(List<T> objs)
+        public virtual void Save(IReadOnlyCollection<T> objs)
         {
             if (objs.Count == 0)
                 return;

@@ -456,7 +456,7 @@ namespace JMMServer
                 if (ev == enHelperActivityType.GotMyListStats && cmdGetMylistStats.MyListStats != null)
                 {
                     AniDB_MylistStats stat = null;
-                    List<AniDB_MylistStats> allStats = RepoFactory.AniDB_MylistStats.GetAll();
+                    IReadOnlyList<AniDB_MylistStats> allStats = RepoFactory.AniDB_MylistStats.GetAll();
                     if (allStats.Count == 0)
                         stat = new AniDB_MylistStats();
                     else

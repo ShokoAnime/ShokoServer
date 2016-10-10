@@ -24,6 +24,12 @@ namespace JMMServer.Repositories
         {
             return new CustomTagRepository();
         }
+
+        protected override int SelectKey(CustomTag entity)
+        {
+            return entity.CustomTagID;
+        }
+
         public override void PopulateIndexes()
         {
         }

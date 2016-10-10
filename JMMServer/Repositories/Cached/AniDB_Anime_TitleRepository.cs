@@ -26,6 +26,12 @@ namespace JMMServer.Repositories
         {
             return new AniDB_Anime_TitleRepository();
         }
+
+        protected override int SelectKey(AniDB_Anime_Title entity)
+        {
+            return entity.AniDB_Anime_TitleID;
+        }
+
         public override void RegenerateDb() { }
 
 
@@ -33,28 +39,6 @@ namespace JMMServer.Repositories
         public List<AniDB_Anime_Title> GetByAnimeID(int id)
         {
             return Animes.GetMultiple(id);
-            /*
-            using (var session = JMMService.SessionFactory.OpenSession())
-            {
-                var titles = session
-                    .CreateCriteria(typeof(AniDB_Anime_Title))
-                    .Add(Restrictions.Eq("AnimeID", id))
-                    .List<AniDB_Anime_Title>();
-
-                return new List<AniDB_Anime_Title>(titles);
-            }*/
-        }
-
-        public List<AniDB_Anime_Title> GetByAnimeID(ISessionWrapper session, int id)
-        {
-            return Animes.GetMultiple(id);
-            /*
-            var titles = session
-                .CreateCriteria(typeof(AniDB_Anime_Title))
-                .Add(Restrictions.Eq("AnimeID", id))
-                .List<AniDB_Anime_Title>();
-
-            return new List<AniDB_Anime_Title>(titles);*/
         }
 
         public ILookup<int, AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
