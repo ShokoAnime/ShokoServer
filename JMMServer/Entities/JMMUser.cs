@@ -80,9 +80,9 @@ namespace JMMServer.Entities
 
         public void UpdateGroupFilters()
         {
-            List<GroupFilter> gfs = RepoFactory.GroupFilter.GetAll();
+            IReadOnlyList<GroupFilter> gfs = RepoFactory.GroupFilter.GetAll();
             List<AnimeGroup> allGrps = RepoFactory.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
-            List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
             foreach (GroupFilter gf in gfs)
             {
                 bool change = false;

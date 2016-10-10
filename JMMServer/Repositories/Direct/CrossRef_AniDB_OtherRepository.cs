@@ -1,7 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
+using NHibernate;
 using NHibernate.Criterion;
 
 namespace JMMServer.Repositories.Direct
@@ -24,6 +28,40 @@ namespace JMMServer.Repositories.Direct
             {
                 return GetByAnimeIDAndType(session.Wrap(), animeID, xrefType);
             }
+        }
+
+        /// <summary>
+        /// Gets other cross references by anime ID.
+        /// </summary>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="animeIds">An optional list of anime IDs whose cross references are to be retrieved.
+        /// Can be <c>null</c> to get cross references for ALL anime.</param>
+        /// <param name="xrefTypes">The types of cross references to find.</param>
+        /// <returns>A <see cref="ILookup{TKey,TElement}"/> that maps anime ID to their associated other cross references.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
+        public ILookup<int, CrossRef_AniDB_Other> GetByAnimeIDsAndType(ISessionWrapper session, IReadOnlyCollection<int> animeIds,
+            params CrossRefType[] xrefTypes)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+
+            if (xrefTypes == null || xrefTypes.Length == 0 || animeIds?.Count == 0)
+            {
+                return EmptyLookup<int, CrossRef_AniDB_Other>.Instance;
+            }
+
+            ICriteria criteria = session.CreateCriteria<CrossRef_AniDB_Other>()
+                .Add(Restrictions.In(nameof(CrossRef_AniDB_Other.CrossRefType), xrefTypes));
+
+            if (animeIds != null)
+            {
+                criteria = criteria.Add(Restrictions.InG(nameof(CrossRef_AniDB_Other.AnimeID), animeIds));
+            }
+
+            var crossRefs = criteria.List<CrossRef_AniDB_Other>()
+                .ToLookup(cr => cr.AnimeID);
+
+            return crossRefs;
         }
 
         public CrossRef_AniDB_Other GetByAnimeIDAndType(ISessionWrapper session, int animeID, CrossRefType xrefType)

@@ -41,11 +41,29 @@ namespace JMMServer.Repositories.NHibernate
             return _session.Get<TObj>(id);
         }
 
+        public ITransaction BeginTransaction()
+        {
+            return _session.BeginTransaction();
+        }
+
+        public void Insert(object entity)
+        {
+            _session.Save(entity);
+        }
+
+        public void Update(object entity)
+        {
+            _session.Update(entity);
+        }
+
+        public void Delete(object entity)
+        {
+            _session.Delete(entity);
+        }
+
         public IDbConnection Connection
         {
             get { return _session.Connection; }
         }
-
-
     }
 }

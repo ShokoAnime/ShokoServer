@@ -10,7 +10,6 @@ using AniDBAPI;
 using AniDBAPI.Commands;
 
 using JMMContracts;
-using JMMContracts.PlexAndKodi;
 using JMMServer.Commands;
 using JMMServer.Commands.AniDB;
 using JMMServer.Commands.MAL;
@@ -23,14 +22,14 @@ using JMMServer.Providers.TraktTV.Contracts;
 using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
 using JMMServer.WebCache;
-using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Directory = System.IO.Directory;
 using JMMServer.Commands.TvDB;
 using JMMServer.Repositories.Cached;
-using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
+using JMMServer.Collections;
+using JMMServer.Tasks;
 
 namespace JMMServer
 {
@@ -301,7 +300,7 @@ namespace JMMServer
             {
                 JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return gfs;
-                List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetAll();
+                IReadOnlyList<GroupFilter> allGfs = RepoFactory.GroupFilter.GetAll();
                 foreach (GroupFilter gf in allGfs)
                 {
                     Contract_GroupFilter gfContract = gf.ToContract();
@@ -357,7 +356,7 @@ namespace JMMServer
                 {
                     DateTime start = DateTime.Now;
 
-                    List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetAll();
+                    IReadOnlyList<GroupFilter> allGfs = RepoFactory.GroupFilter.GetAll();
                     TimeSpan ts = DateTime.Now - start;
                     logger.Info("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
 
@@ -433,7 +432,7 @@ namespace JMMServer
             List<Contract_Playlist> pls = new List<Contract_Playlist>();
             try
             {
-                List<Playlist> allPls = RepoFactory.Playlist.GetAll();
+                IReadOnlyList<Playlist> allPls = RepoFactory.Playlist.GetAll();
                 foreach (Playlist pl in allPls)
                     pls.Add(pl.ToContract());
             }
@@ -1093,7 +1092,7 @@ namespace JMMServer
             }
         }
 
-        public List<AnimeEpisode> GetAllEpisodes()
+        public IReadOnlyList<AnimeEpisode> GetAllEpisodes()
         {
             try
             {
@@ -1703,7 +1702,7 @@ namespace JMMServer
 
             try
             {
-                List<AnimeSeries> series = RepoFactory.AnimeSeries.GetAll();
+                IReadOnlyList<AnimeSeries> series = RepoFactory.AnimeSeries.GetAll();
                 Dictionary<int, AnimeSeries> dictSeries = new Dictionary<int, AnimeSeries>();
                 foreach (AnimeSeries ser in series)
                     dictSeries[ser.AniDB_ID] = ser;
@@ -1780,10 +1779,10 @@ namespace JMMServer
 				Dictionary<int, AnimeVideoQualityStat> dictAnimeEpisodeVideoQualStats = rep.GetEpisodeVideoQualityStatsByAnime();
 				 * */
 
-                List<AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
+                IReadOnlyList<AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
 
                 // user votes
-                List<AniDB_Vote> allVotes = RepoFactory.AniDB_Vote.GetAll();
+                IReadOnlyList<AniDB_Vote> allVotes = RepoFactory.AniDB_Vote.GetAll();
 
                 JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return contracts;
@@ -3166,7 +3165,7 @@ namespace JMMServer
                 }
 
                 // check to make sure we don't have multiple drop folders
-                List<ImportFolder> allFolders = RepoFactory.ImportFolder.GetAll();
+                IReadOnlyList<ImportFolder> allFolders = RepoFactory.ImportFolder.GetAll();
 
                 if (contract.IsDropDestination == 1)
                 {
@@ -3776,11 +3775,11 @@ namespace JMMServer
 
                 if (onlyFinishedSeries)
                 {
-                    List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+                    IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
                     foreach (AnimeSeries ser in allSeries)
                         dictSeriesAnime[ser.AnimeSeriesID] = ser.AniDB_ID;
 
-                    List<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
+                    IReadOnlyList<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
                     foreach (AniDB_Anime anime in allAnime)
                         dictAnimeFinishedAiring[anime.AnimeID] = anime.FinishedAiring;
 
@@ -5290,7 +5289,7 @@ namespace JMMServer
             List<Contract_TvDB_ImagePoster> allImages = new List<Contract_TvDB_ImagePoster>();
             try
             {
-                List<TvDB_ImagePoster> allPosters;
+                IReadOnlyList<TvDB_ImagePoster> allPosters;
                 if (tvDBID.HasValue)
                     allPosters = RepoFactory.TvDB_ImagePoster.GetBySeriesID(tvDBID.Value);
                 else
@@ -5313,7 +5312,7 @@ namespace JMMServer
             List<Contract_TvDB_ImageWideBanner> allImages = new List<Contract_TvDB_ImageWideBanner>();
             try
             {
-                List<TvDB_ImageWideBanner> allBanners;
+                IReadOnlyList<TvDB_ImageWideBanner> allBanners;
                 if (tvDBID.HasValue)
                     allBanners = RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(tvDBID.Value);
                 else
@@ -5336,7 +5335,7 @@ namespace JMMServer
             List<Contract_TvDB_ImageFanart> allImages = new List<Contract_TvDB_ImageFanart>();
             try
             {
-                List<TvDB_ImageFanart> allFanart;
+                IReadOnlyList<TvDB_ImageFanart> allFanart;
                 if (tvDBID.HasValue)
                     allFanart = RepoFactory.TvDB_ImageFanart.GetBySeriesID(tvDBID.Value);
                 else
@@ -5359,7 +5358,7 @@ namespace JMMServer
             List<Contract_TvDB_Episode> allImages = new List<Contract_TvDB_Episode>();
             try
             {
-                List<TvDB_Episode> allEpisodes;
+                IReadOnlyList<TvDB_Episode> allEpisodes;
                 if (tvDBID.HasValue)
                     allEpisodes = RepoFactory.TvDB_Episode.GetBySeriesID(tvDBID.Value);
                 else
@@ -5386,7 +5385,7 @@ namespace JMMServer
             List<Contract_Trakt_ImageFanart> allImages = new List<Contract_Trakt_ImageFanart>();
             try
             {
-                List<Trakt_ImageFanart> allFanart;
+                IReadOnlyList<Trakt_ImageFanart> allFanart;
                 if (traktShowID.HasValue)
                     allFanart = RepoFactory.Trakt_ImageFanart.GetByShowID(traktShowID.Value);
                 else
@@ -5409,7 +5408,7 @@ namespace JMMServer
             List<Contract_Trakt_ImagePoster> allImages = new List<Contract_Trakt_ImagePoster>();
             try
             {
-                List<Trakt_ImagePoster> allPosters;
+                IReadOnlyList<Trakt_ImagePoster> allPosters;
                 if (traktShowID.HasValue)
                     allPosters = RepoFactory.Trakt_ImagePoster.GetByShowID(traktShowID.Value);
                 else
@@ -5432,7 +5431,7 @@ namespace JMMServer
             List<Contract_Trakt_Episode> allEps = new List<Contract_Trakt_Episode>();
             try
             {
-                List<Trakt_Episode> allEpisodes;
+                IReadOnlyList<Trakt_Episode> allEpisodes;
                 if (traktShowID.HasValue)
                     allEpisodes = RepoFactory.Trakt_Episode.GetByShowID(traktShowID.Value);
                 else
@@ -6397,7 +6396,7 @@ namespace JMMServer
             return retEps;
         }
 
-        public List<VideoLocal> GetAllFiles()
+        public IReadOnlyList<VideoLocal> GetAllFiles()
         {
             try
             {
@@ -6910,7 +6909,7 @@ namespace JMMServer
                 if (jmmUser.IsAdmin == 0)
                 {
                     bool adminExists = false;
-                    List<JMMUser> users = RepoFactory.JMMUser.GetAll();
+                    IReadOnlyList<JMMUser> users = RepoFactory.JMMUser.GetAll();
                     foreach (JMMUser userOld in users)
                     {
                         if (userOld.IsAdmin == 1)
@@ -6961,7 +6960,7 @@ namespace JMMServer
                 if (jmmUser.IsAdmin == 1)
                 {
                     bool adminExists = false;
-                    List<JMMUser> users = RepoFactory.JMMUser.GetAll();
+                    IReadOnlyList<JMMUser> users = RepoFactory.JMMUser.GetAll();
                     foreach (JMMUser userOld in users)
                     {
                         if (userOld.IsAdmin == 1)
@@ -7541,7 +7540,7 @@ namespace JMMServer
             try
             {
                 int i = 0;
-                List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+                IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
                 foreach (AnimeSeries ser in allSeries)
                 {
                     i++;
@@ -7738,7 +7737,7 @@ namespace JMMServer
             List<Contract_CrossRef_AniDB_TraktV2> contracts = new List<Contract_CrossRef_AniDB_TraktV2>();
             try
             {
-                List<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+                IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
 
                 foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
                 {
@@ -7990,212 +7989,9 @@ namespace JMMServer
 
         public void RecreateAllGroups(bool resume=false)
         {
-			try
-			{
-				// pause queues
-				JMMService.CmdProcessorGeneral.Paused = true;
-				JMMService.CmdProcessorHasher.Paused = true;
-				JMMService.CmdProcessorImages.Paused = true;
-
-				
-
-				// get all the old groups
-				List<AnimeGroup> oldGroups = RepoFactory.AnimeGroup.GetAll();
-				List<AnimeGroup_User> oldGroupUsers = RepoFactory.AnimeGroup_User.GetAll();
-
-				AnimeGroup tempGroup = null;
-				foreach(AnimeGroup temp4 in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
-				{
-					if(temp4.GroupName.Equals("AAA Migrating Groups AAA"))
-					{
-						tempGroup = temp4;
-						break;
-					}
-				}
-				// We can't resume if there is nothing to resume
-				if (resume && tempGroup == null) resume = false;
-
-				if (tempGroup == null)
-				{
-					// create a new group, where we will place all the series temporarily
-					tempGroup = new AnimeGroup();
-					tempGroup.GroupName = "AAA Migrating Groups AAA";
-					tempGroup.Description = "AAA Migrating Groups AAA";
-					tempGroup.SortName = "AAA Migrating Groups AAA";
-					tempGroup.DateTimeUpdated = DateTime.Now;
-					tempGroup.DateTimeCreated = DateTime.Now;
-					RepoFactory.AnimeGroup.Save(tempGroup, true, false);
-				}
-
-				if (!resume) {  
-					// move all series to the new group
-					foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
-					{
-						ser.AnimeGroupID = tempGroup.AnimeGroupID;
-                        RepoFactory.AnimeSeries.Save(ser, true);
-					}
-
-					// delete all the old groups
-					foreach (AnimeGroup grp in oldGroups)
-						RepoFactory.AnimeGroup.Delete(grp.AnimeGroupID);
-
-					// delete all the old group user records
-					RepoFactory.AnimeGroup_User.Delete(oldGroupUsers);
-				}
-
-
-                // recreate groups
-                foreach (AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
-                {
-                    bool createNewGroup = true;
-
-                    if (ServerSettings.AutoGroupSeries)
-                    {
-                        if (ser.AnimeGroupID != tempGroup.AnimeGroupID) continue;
-
-                        List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(ser.AniDB_ID, true);
-
-                        if (grps != null && grps.Count > 0)
-                        {
-                            int groupID = -1;
-                            AnimeSeries name = null;
-                            string customGroupName = null;
-                            foreach (AnimeGroup grp in grps.ToList())
-                            {
-                                if (grp.AnimeGroupID == tempGroup.AnimeGroupID) continue;
-                                if (groupID == -1) groupID = grp.AnimeGroupID;
-                                ser.AnimeGroupID = groupID;
-                                bool groupHasCustomName = true;
-
-                                createNewGroup = false;
-
-                                if (groupID != grp.AnimeGroupID)
-                                {
-                                    if (grp.DefaultAnimeSeriesID.HasValue)
-                                    {
-                                        name = RepoFactory.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value);
-										if (name == null)
-										{
-											grp.DefaultAnimeSeriesID = null;
-											//TODO this do nothing, only in memory is not saved
-											// Actually it is used in if (!grp.DefaultAnimeSeriesID.HasValue) down below
-										}
-										else
-										{
-											groupHasCustomName = false;
-										}
-									}
-                                    foreach (AnimeSeries series in grp.GetAllSeries())
-                                    {
-                                        if (series.AnimeGroupID == groupID) continue;
-                                        series.AnimeGroupID = groupID;
-
-                                        #region Naming
-
-                                        if (!grp.DefaultAnimeSeriesID.HasValue)
-                                        {
-                                            if (name == null)
-                                            {
-                                                name = series;
-                                            }
-
-                                            // Check all titles for custom naming, in case user changed language preferences
-                                            if (series.SeriesNameOverride.Equals(grp.GroupName))
-                                            {
-                                                groupHasCustomName = false;
-                                            }
-                                            else
-                                            {
-												// massive speedup
-                                                foreach (Contract_AnimeTitle title in series.Contract.AniDBAnime.AnimeTitles)
-                                                {
-                                                    if (title.Title.Equals(grp.GroupName))
-                                                    {
-                                                        groupHasCustomName = false;
-                                                        break;
-                                                    }
-                                                }
-
-												#region tvdb names
-												List<TvDB_Series> tvdbs = series.GetTvDBSeries();
-												if (tvdbs != null && tvdbs.Count != 0)
-												{
-													foreach (TvDB_Series tvdbser in tvdbs)
-													{
-														if (tvdbser.SeriesName.Equals(grp.GroupName))
-														{
-															groupHasCustomName = false;
-															break;
-														}
-													}
-												}
-												#endregion
-											}
-										}
-
-                                        RepoFactory.AnimeSeries.Save(series, false, true, true);
-										// I didn't see this called anywhere, it should also fix the new issue with recreated
-										// groups missing all episodes
-										series.UpdateStats(true, true, false);
-                                    }
-                                }
-
-                                if (groupHasCustomName) customGroupName = grp.GroupName;
-                            }
-
-                            //after moving everything, rename and repopulate
-                            if (name != null)
-                            {
-                                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(groupID);
-								string newTitle = name.GetSeriesName();
-								if (grp.DefaultAnimeSeriesID.HasValue &&
-									grp.DefaultAnimeSeriesID.Value != name.AnimeSeriesID)
-									newTitle = RepoFactory.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value).GetSeriesName();
-								if (customGroupName != null) newTitle = customGroupName;
-                                // reset tags, description, etc to new series
-                                grp.Populate(name);
-                                grp.GroupName = newTitle;
-                                grp.SortName = newTitle;
-                                RepoFactory.AnimeGroup.Save(grp, false, false);
-                            }
-
-                            #endregion
-
-                            foreach (AnimeGroup grp in grps)
-                            {
-                                if (grp.GetAllSeries().Count == 0)
-                                {
-                                    RepoFactory.AnimeGroup.Delete(grp.AnimeGroupID);
-                                }
-                            }
-                        }
-                    }
-
-                    if (createNewGroup)
-                    {
-                        AnimeGroup anGroup = new AnimeGroup();
-                        anGroup.Populate(ser);
-                        RepoFactory.AnimeGroup.Save(anGroup, true, true);
-
-                        ser.AnimeGroupID = anGroup.AnimeGroupID;
-                    }
-
-                    RepoFactory.AnimeSeries.Save(ser, false);
-                }
-
-                // delete the temp group
-                if (tempGroup.GetAllSeries().Count == 0)
-                    RepoFactory.AnimeGroup.Delete(tempGroup.AnimeGroupID);
-
-                // create group user records and update group stats
-                foreach (AnimeGroup grp in RepoFactory.AnimeGroup.GetAll())
-                    grp.UpdateStatsFromTopLevel(true, true, true);
-
-
-                // un-pause queues
-                JMMService.CmdProcessorGeneral.Paused = false;
-                JMMService.CmdProcessorHasher.Paused = false;
-                JMMService.CmdProcessorImages.Paused = false;
+            try
+            {
+                new RecreateAllGroupsTask().Execute(ServerSettings.AutoGroupSeries);
             }
             catch (Exception ex)
             {
@@ -8546,7 +8342,7 @@ namespace JMMServer
             List<Contract_RenameScript> ret = new List<Contract_RenameScript>();
             try
             {
-                List<RenameScript> allScripts = RepoFactory.RenameScript.GetAll();
+                IReadOnlyList<RenameScript> allScripts = RepoFactory.RenameScript.GetAll();
                 foreach (RenameScript scr in allScripts)
                     ret.Add(scr.ToContract());
             }
@@ -8590,7 +8386,7 @@ namespace JMMServer
                 }
 
                 // check to make sure we multiple scripts enable on import (only one can be selected)
-                List<RenameScript> allScripts = RepoFactory.RenameScript.GetAll();
+                IReadOnlyList<RenameScript> allScripts = RepoFactory.RenameScript.GetAll();
 
                 if (contract.IsEnabledOnImport == 1)
                 {
@@ -8722,7 +8518,7 @@ namespace JMMServer
                             {
                                 res.SeriesExists = true;
                                 res.AnimeSeriesID = ser.AnimeSeriesID;
-                                res.AnimeSeriesName = ser.GetAnime(sessionWrapper).GetFormattedTitle(sessionWrapper);
+                                res.AnimeSeriesName = ser.GetAnime().GetFormattedTitle();
                             }
                             else
                             {

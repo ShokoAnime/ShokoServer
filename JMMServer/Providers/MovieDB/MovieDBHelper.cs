@@ -254,7 +254,7 @@ namespace JMMServer.Providers.MovieDB
 
         public static void ScanForMatches()
         {
-            List<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
             foreach (AnimeSeries ser in allSeries)
             {

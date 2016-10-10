@@ -126,15 +126,11 @@ namespace JMMServer.Entities
 
         public void UpdatePlexKodiContracts()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                ISessionWrapper sessionWrapper = session.Wrap();
-                AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
-                if (grp == null)
-                    return;
-                List<AnimeSeries> series = grp.GetAllSeries(sessionWrapper);
-                PlexContract = Helper.GenerateFromAnimeGroup(sessionWrapper, grp, JMMUserID, series);
-            }
+            AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+            if (grp == null)
+                return;
+            List<AnimeSeries> series = grp.GetAllSeries();
+            PlexContract = Helper.GenerateFromAnimeGroup(grp, JMMUserID, series);
         }
 
         public bool HasUnwatchedFiles => UnwatchedEpisodeCount > 0;

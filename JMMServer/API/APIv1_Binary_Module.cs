@@ -1,7 +1,7 @@
 ﻿using Nancy;
 using System;
-using System.Reflection;
 using System.Collections.Generic;
+using JMMServer.Tasks;
 
 namespace JMMServer.API
 {
@@ -1072,7 +1072,7 @@ namespace JMMServer.API
 
         private object RecreateAllGroups()
         {
-           _impl.RecreateAllGroups();
+            new RecreateAllGroupsTask().Execute(ServerSettings.AutoGroupSeries);
             return "ok";
         }
 

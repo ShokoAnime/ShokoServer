@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
@@ -51,6 +52,11 @@ namespace JMMServer.Repositories
         public static CrossRef_File_EpisodeRepository Create()
         {
             return new CrossRef_File_EpisodeRepository();
+        }
+
+        protected override int SelectKey(CrossRef_File_Episode entity)
+        {
+            return entity.CrossRef_File_EpisodeID;
         }
 
         public List<CrossRef_File_Episode> GetByHash(string hash)

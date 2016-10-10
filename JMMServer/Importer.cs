@@ -316,7 +316,7 @@ namespace JMMServer
         public static void RunImport_NewFiles()
         {
             // first build a list of files that we already know about, as we don't want to process them again
-            List<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetAll();
+            IReadOnlyList<VideoLocal_Place> filesAll = RepoFactory.VideoLocalPlace.GetAll();
             Dictionary<string, VideoLocal_Place> dictFilesExisting = new Dictionary<string, VideoLocal_Place>();
             foreach (VideoLocal_Place vl in filesAll)
             {
@@ -443,7 +443,7 @@ namespace JMMServer
                 Dictionary<int, int> postersCount = new Dictionary<int, int>();
 
                 // build a dictionary of series and how many images exist
-                List<TvDB_ImagePoster> allPosters = RepoFactory.TvDB_ImagePoster.GetAll();
+                IReadOnlyList<TvDB_ImagePoster> allPosters = RepoFactory.TvDB_ImagePoster.GetAll();
                 foreach (TvDB_ImagePoster tvPoster in allPosters)
                 {
                     if (string.IsNullOrEmpty(tvPoster.FullImagePath)) continue;
@@ -485,7 +485,7 @@ namespace JMMServer
             if (ServerSettings.TvDB_AutoFanart)
             {
                 Dictionary<int, int> fanartCount = new Dictionary<int, int>();
-                List<TvDB_ImageFanart> allFanart = RepoFactory.TvDB_ImageFanart.GetAll();
+                IReadOnlyList<TvDB_ImageFanart> allFanart = RepoFactory.TvDB_ImageFanart.GetAll();
                 foreach (TvDB_ImageFanart tvFanart in allFanart)
                 {
                     // build a dictionary of series and how many images exist
@@ -530,7 +530,7 @@ namespace JMMServer
                 Dictionary<int, int> fanartCount = new Dictionary<int, int>();
 
                 // build a dictionary of series and how many images exist
-                List<TvDB_ImageWideBanner> allBanners = RepoFactory.TvDB_ImageWideBanner.GetAll();
+                IReadOnlyList<TvDB_ImageWideBanner> allBanners = RepoFactory.TvDB_ImageWideBanner.GetAll();
                 foreach (TvDB_ImageWideBanner tvBanner in allBanners)
                 {
                     if (string.IsNullOrEmpty(tvBanner.FullImagePath)) continue;
@@ -589,7 +589,7 @@ namespace JMMServer
                 Dictionary<int, int> postersCount = new Dictionary<int, int>();
 
                 // build a dictionary of series and how many images exist
-                List<MovieDB_Poster> allPosters = RepoFactory.MovieDB_Poster.GetAll();
+                IReadOnlyList<MovieDB_Poster> allPosters = RepoFactory.MovieDB_Poster.GetAll();
                 foreach (MovieDB_Poster moviePoster in allPosters)
                 {
                     if (string.IsNullOrEmpty(moviePoster.FullImagePath)) continue;
@@ -634,7 +634,7 @@ namespace JMMServer
                 Dictionary<int, int> fanartCount = new Dictionary<int, int>();
 
                 // build a dictionary of series and how many images exist
-                List<MovieDB_Fanart> allFanarts = RepoFactory.MovieDB_Fanart.GetAll();
+                IReadOnlyList<MovieDB_Fanart> allFanarts = RepoFactory.MovieDB_Fanart.GetAll();
                 foreach (MovieDB_Fanart movieFanart in allFanarts)
                 {
                     if (string.IsNullOrEmpty(movieFanart.FullImagePath)) continue;
@@ -1332,8 +1332,8 @@ namespace JMMServer
         {
             try
             {
-                List<VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
-                List<VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
+                IReadOnlyList<VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
+                IReadOnlyList<VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
 
                 foreach (VideoLocal vl in filesAll)
                 {

@@ -32,13 +32,11 @@ namespace NutzCode.InMemoryIndex
 {
     //NOTE PocoCache is not thread SAFE
 
-
     public class PocoCache<T, S> where S : class
     {
         private Dictionary<T, S> _dict;
         private Func<S, T> _func;
-        private List<Action<T, S>> _updates = new List<Action<T, S>>();
-        private List<Action<T>> _deletes = new List<Action<T>>();
+        private List<IPocoCacheObserver<T, S>> _observers = new List<IPocoCacheObserver<T, S>>();
 
         public Dictionary<T, S>.KeyCollection Keys => _dict.Keys;
         public Dictionary<T, S>.ValueCollection Values => _dict.Values;
@@ -65,10 +63,9 @@ namespace NutzCode.InMemoryIndex
             _dict = objectlist.ToDictionary(keyfunc, a => a);
         }
 
-        internal void AddChain(Action<T, S> updatefunc, Action<T> deletefunc)
+        internal void AddChain(IPocoCacheObserver<T, S> observer)
         {
-            _updates.Add(updatefunc);
-            _deletes.Add(deletefunc);
+            _observers.Add(observer);
         }
 
         public S Get(T key)
@@ -81,23 +78,42 @@ namespace NutzCode.InMemoryIndex
         public void Update(S obj)
         {
             T key = _func(obj);
-            foreach (Action<T, S> upd in _updates)
-                upd(key, obj);
+            foreach (IPocoCacheObserver<T, S> observer in _observers)
+                observer.Update(key, obj);
             _dict[key] = obj;
         }
 
         public void Remove(S obj)
         {
             T key = _func(obj);
-            foreach (Action<T> del in _deletes)
-                del(key);
+            foreach (IPocoCacheObserver<T, S> observer in _observers)
+                observer.Remove(key);
             if (_dict.ContainsKey(key))
                 _dict.Remove(key);
         }
+
+        public void Clear()
+        {
+            _dict.Clear();
+
+            foreach (IPocoCacheObserver<T, S> observer in _observers)
+            {
+                observer.Clear();
+            }
+        }
     }
 
+    public interface IPocoCacheObserver<TKey, TEntity> where TEntity : class
+    {
+        void Update(TKey key, TEntity entity);
 
-    public class PocoIndex<T, S, U> where S : class
+        void Remove(TKey key);
+
+        void Clear();
+    }
+
+    public class PocoIndex<T, S, U> : IPocoCacheObserver<T, S>
+        where S : class
     {
         internal PocoCache<T, S> _cache;
         internal BiDictionaryOneToMany<T, U> _dict;
@@ -108,7 +124,7 @@ namespace NutzCode.InMemoryIndex
             _cache = cache;
             _dict = new BiDictionaryOneToMany<T, U>(_cache.Keys.ToDictionary(a => a, a => paramfunc1(_cache.Get(a))));
             _func = paramfunc1;
-            cache.AddChain(Update, Remove);
+            cache.AddChain(this);
         }
 
         public S GetOne(U key)
@@ -128,14 +144,19 @@ namespace NutzCode.InMemoryIndex
             return _dict.FindInverse(key).Select(a => _cache.Get(a)).ToList();
         }
 
-        internal void Update(T key, S obj)
+        void IPocoCacheObserver<T, S>.Update(T key, S obj)
         {
             _dict[key] = _func(obj);
         }
 
-        internal void Remove(T key)
+        void IPocoCacheObserver<T, S>.Remove(T key)
         {
             _dict.Remove(key);
+        }
+
+        void IPocoCacheObserver<T, S>.Clear()
+        {
+            _dict.Clear();
         }
     }
 
@@ -244,6 +265,12 @@ namespace NutzCode.InMemoryIndex
                 direct.Remove(value);
             }
         }
+
+        public void Clear()
+        {
+            direct.Clear();
+            inverse.Clear();
+        }
     }
 
     public class BiDictionaryOneToMany<T, S>
@@ -314,6 +341,12 @@ namespace NutzCode.InMemoryIndex
                 }
                 direct.Remove(key);
             }
+        }
+
+        public void Clear()
+        {
+            direct.Clear();
+            inverse.Clear();
         }
     }
 
@@ -406,6 +439,12 @@ namespace NutzCode.InMemoryIndex
                 }
                 direct.Remove(key);
             }
+        }
+
+        public void Clear()
+        {
+            direct.Clear();
+            inverse.Clear();
         }
     }
 

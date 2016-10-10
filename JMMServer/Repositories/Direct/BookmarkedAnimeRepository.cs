@@ -31,18 +31,17 @@ namespace JMMServer.Repositories.Direct
             }
         }
 
-        public override List<BookmarkedAnime> GetAll()
+        public override IReadOnlyList<BookmarkedAnime> GetAll()
         {
             return base.GetAll().OrderBy(a => a.Priority).ToList();
         }
-        public override List<BookmarkedAnime> GetAll(ISession session)
+        public override IReadOnlyList<BookmarkedAnime> GetAll(ISession session)
         {
-            return base.GetAll(session).OrderBy(a => a.Priority).ToList();
+            return GetAll();
         }
-        public override List<BookmarkedAnime> GetAll(ISessionWrapper session)
+        public override IReadOnlyList<BookmarkedAnime> GetAll(ISessionWrapper session)
         {
-            return base.GetAll(session).OrderBy(a => a.Priority).ToList();
+            return GetAll();
         }
-
     }
 }

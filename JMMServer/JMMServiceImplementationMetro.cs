@@ -270,7 +270,7 @@ namespace JMMServer
                         Contract_AnimeEpisode epContract = eps[0].GetUserContract(jmmuserID);
                         if (epContract != null)
                         {
-                            AniDB_Anime anidb_anime = ser.GetAnime(sessionWrapper);
+                            AniDB_Anime anidb_anime = ser.GetAnime();
 
                             MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                             summ.AnimeID = ser.AniDB_ID;
@@ -347,7 +347,7 @@ namespace JMMServer
                             jmmuserID);
                         if (ep != null)
                         {
-                            AniDB_Anime anidb_anime = series.GetAnime(sessionWrapper);
+                            AniDB_Anime anidb_anime = series.GetAnime();
 
                             MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                             summ.AnimeID = series.AniDB_ID;
@@ -437,7 +437,7 @@ namespace JMMServer
                             Contract_AnimeEpisode ep = imp.GetNextUnwatchedEpisode(sessionWrapper, ser.AnimeSeriesID, jmmuserID);
                             if (ep != null)
                             {
-                                AniDB_Anime anidb_anime = ser.GetAnime(sessionWrapper);
+                                AniDB_Anime anidb_anime = ser.GetAnime();
 
                                 MetroContract_Anime_Summary summ = new MetroContract_Anime_Summary();
                                 summ.AnimeID = ser.AniDB_ID;

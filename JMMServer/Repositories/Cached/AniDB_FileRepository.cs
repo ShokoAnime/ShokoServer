@@ -36,6 +36,12 @@ namespace JMMServer.Repositories
         {
             return new AniDB_FileRepository();
         }
+
+        protected override int SelectKey(AniDB_File entity)
+        {
+            return entity.AniDB_FileID;
+        }
+
         public override void PopulateIndexes()
         {
             Hashes = new PocoIndex<int, AniDB_File, string>(Cache, a => a.Hash);
@@ -57,7 +63,7 @@ namespace JMMServer.Repositories
         public override void Save(AniDB_File obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(List<AniDB_File> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<AniDB_File> objs) { throw new NotSupportedException(); }
 
         public void Save(AniDB_File obj, bool updateStats)
         {

@@ -1,4 +1,5 @@
-﻿using JMMServer.Entities;
+﻿using System;
+using JMMServer.Entities;
 
 namespace JMMServer.Repositories.Cached
 {
@@ -16,6 +17,12 @@ namespace JMMServer.Repositories.Cached
         {
             return new CloudAccountRepository();
         }
+
+        protected override int SelectKey(CloudAccount entity)
+        {
+            return entity.CloudID;
+        }
+
         public override void PopulateIndexes()
         {
             

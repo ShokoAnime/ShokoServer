@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using AniDBAPI;
 using JMMServer.Entities;
@@ -34,6 +35,12 @@ namespace JMMServer.Repositories
         {
             return new AniDB_EpisodeRepository();
         }
+
+        protected override int SelectKey(AniDB_Episode entity)
+        {
+            return entity.AniDB_EpisodeID;
+        }
+
         public override void RegenerateDb()
         {
 

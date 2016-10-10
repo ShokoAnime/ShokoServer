@@ -1,6 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NHibernate.Criterion;
 
@@ -36,6 +40,28 @@ namespace JMMServer.Repositories.Direct
                 .List<CrossRef_AniDB_MAL>();
 
             return new List<CrossRef_AniDB_MAL>(xrefs);
+        }
+
+        public ILookup<int, CrossRef_AniDB_MAL> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (animeIds == null)
+                throw new ArgumentNullException(nameof(animeIds));
+
+            if (animeIds.Length == 0)
+            {
+                return EmptyLookup<int, CrossRef_AniDB_MAL>.Instance;
+            }
+
+            var xrefByAnime = session.CreateCriteria<CrossRef_AniDB_MAL>()
+                .Add(Restrictions.In(nameof(CrossRef_AniDB_MAL.AnimeID), animeIds))
+                .AddOrder(Order.Asc(nameof(CrossRef_AniDB_MAL.StartEpisodeType)))
+                .AddOrder(Order.Asc(nameof(CrossRef_AniDB_MAL.StartEpisodeNumber)))
+                .List<CrossRef_AniDB_MAL>()
+                .ToLookup(cr => cr.AnimeID);
+
+            return xrefByAnime;
         }
 
         public CrossRef_AniDB_MAL GetByMALID(int id)

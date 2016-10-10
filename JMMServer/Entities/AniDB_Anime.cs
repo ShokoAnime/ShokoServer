@@ -1184,15 +1184,7 @@ namespace JMMServer.Entities
 
         public List<AniDB_Anime_Title> GetTitles()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetTitles(session.Wrap());
-            }
-        }
-
-        public List<AniDB_Anime_Title> GetTitles(ISessionWrapper session)
-        {
-            return RepoFactory.AniDB_Anime_Title.GetByAnimeID(session, AnimeID);
+            return RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
         }
 
         public string GetFormattedTitle(List<AniDB_Anime_Title> titles)
@@ -1244,15 +1236,7 @@ namespace JMMServer.Entities
 
         public string GetFormattedTitle()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetFormattedTitle(session.Wrap());
-            }
-        }
-
-        public string GetFormattedTitle(ISessionWrapper session)
-        {
-            List<AniDB_Anime_Title> thisTitles = this.GetTitles(session);
+            List<AniDB_Anime_Title> thisTitles = this.GetTitles();
             return GetFormattedTitle(thisTitles);
         }
 
@@ -2068,7 +2052,7 @@ namespace JMMServer.Entities
 
         public void UpdateContractDetailed(ISessionWrapper session)
         {
-            List<AniDB_Anime_Title> animeTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(session, AnimeID);
+            List<AniDB_Anime_Title> animeTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
             Contract_AniDB_AnimeDetailed contract = new Contract_AniDB_AnimeDetailed();
             contract.AniDBAnime = GenerateContract(session, animeTitles);
 
@@ -2403,7 +2387,7 @@ namespace JMMServer.Entities
 							newTitle = RepoFactory.AnimeSeries.GetByID(newGroup.DefaultAnimeSeriesID.Value).GetSeriesName();
 						if (customGroupName != null) newTitle = customGroupName;
 						// reset tags, description, etc to new series
-						newGroup.Populate(name);
+						newGroup.Populate(name, DateTime.Now);
                         newGroup.GroupName = newTitle;
                         newGroup.SortName = newTitle;
                         RepoFactory.AnimeGroup.Save(newGroup, true, true);
@@ -2422,7 +2406,7 @@ namespace JMMServer.Entities
             if (createNewGroup)
             {
                 AnimeGroup anGroup = new AnimeGroup();
-                anGroup.Populate(ser);
+                anGroup.Populate(ser, DateTime.Now);
                 RepoFactory.AnimeGroup.Save(anGroup, true, true);
 
                 ser.AnimeGroupID = anGroup.AnimeGroupID;

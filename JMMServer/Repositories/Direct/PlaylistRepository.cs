@@ -17,15 +17,15 @@ namespace JMMServer.Repositories.Direct
         {
             return new PlaylistRepository();
         }
-        public override List<Playlist> GetAll()
+        public override IReadOnlyList<Playlist> GetAll()
         {
             return base.GetAll().OrderBy(a => a.PlaylistName).ToList();
         }
-        public override List<Playlist> GetAll(ISession session)
+        public override IReadOnlyList<Playlist> GetAll(ISession session)
         {
             return base.GetAll(session).OrderBy(a => a.PlaylistName).ToList();
         }
-        public override List<Playlist> GetAll(ISessionWrapper session)
+        public override IReadOnlyList<Playlist> GetAll(ISessionWrapper session)
         {
             return base.GetAll(session).OrderBy(a => a.PlaylistName).ToList();
         }
