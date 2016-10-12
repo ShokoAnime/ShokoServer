@@ -20,6 +20,8 @@ namespace JMMServer.Tasks
         private readonly ILookup<int, AnimeRelation> _relationMap;
         private readonly Dictionary<int, int> _animeGroupMap = new Dictionary<int, int>();
         private readonly AutoGroupExclude _exclusions;
+        private readonly AnimeRelationType _relationsToFuzzyTitleTest;
+        private readonly Func<Dictionary<int, RelationNode>, HashSet<RelationEdge>, int> _mainAnimeSelector;
 
         /// <summary>
         /// Initializes a new <see cref="AutoAnimeGroupCalculator"/> instance.
@@ -28,13 +30,26 @@ namespace JMMServer.Tasks
         /// <param name="exclusions">The relation/anime types to ignore when building relation graphs.</param>
         /// <exception cref="ArgumentNullException"><paramref name="relationMap"/> is <c>null</c>.</exception>
         public AutoAnimeGroupCalculator(ILookup<int, AnimeRelation> relationMap,
-            AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character)
+            AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character,
+            AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations,
+            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
         {
             if (relationMap == null)
                 throw new ArgumentNullException(nameof(relationMap));
 
             _relationMap = relationMap;
             _exclusions = exclusions;
+            _relationsToFuzzyTitleTest = relationsToFuzzyTitleTest;
+
+            switch (mainAnimeSelectionStrategy)
+            {
+                case MainAnimeSelectionStrategy.MinAirDate:
+                    _mainAnimeSelector = FindSuitableAnimeByMinAirDate;
+                    break;
+                case MainAnimeSelectionStrategy.Weighted:
+                    _mainAnimeSelector = FindSuitableAnimeByWeighting;
+                    break;
+            }
         }
 
         /// <summary>
@@ -85,6 +100,8 @@ namespace JMMServer.Tasks
                         , toAnime.AnimeType AS toAnimeType
                         , fromAnime.MainTitle AS fromMainTitle
                         , toAnime.MainTitle AS toMainTitle
+                        , fromAnime.AirDate AS fromAirDate
+                        , toAnime.AirDate AS toAirDate
                         , rel.RelationType AS relationType
                     FROM AniDB_Anime_Relation rel
                         INNER JOIN AniDB_Anime fromAnime
@@ -97,6 +114,8 @@ namespace JMMServer.Tasks
                 .AddScalar("toAnimeType", NHibernateUtil.Int32)
                 .AddScalar("fromMainTitle", NHibernateUtil.String)
                 .AddScalar("toMainTitle", NHibernateUtil.String)
+                .AddScalar("fromAirDate", NHibernateUtil.DateTime)
+                .AddScalar("toAirDate", NHibernateUtil.DateTime)
                 .AddScalar("relationType", NHibernateUtil.String)
                 .List<object[]>()
                 .Select(r =>
@@ -109,9 +128,11 @@ namespace JMMServer.Tasks
                                 ToType = (AnimeTypes)r[3],
                                 FromMainTitle = (string)r[4],
                                 ToMainTitle = (string)r[5],
+                                FromAirDate = (DateTime?)r[6],
+                                ToAirDate = (DateTime?)r[7]
                             };
 
-                        switch (((string)r[6]).ToLowerInvariant())
+                        switch (((string)r[8]).ToLowerInvariant())
                         {
                             case "full story":
                                 relation.RelationType = AnimeRelationType.FullStory;
@@ -176,7 +197,7 @@ namespace JMMServer.Tasks
 
             if (BuildGroupGraph(animeId, out nodes, out edges))
             {
-                mainAnimeId = FindSuitableAnimeForGroup(nodes, edges);
+                mainAnimeId = _mainAnimeSelector(nodes, edges);
 
                 // Remember main anime ID for all anime in the relation graph
                 foreach (int id in nodes.Keys)
@@ -192,7 +213,33 @@ namespace JMMServer.Tasks
             return mainAnimeId;
         }
 
-        private static int FindSuitableAnimeForGroup(Dictionary<int, RelationNode> nodes, HashSet<RelationEdge> edges)
+        /// <summary>
+        /// Gets the IDs of all anime that is in the same group as the specified anime.
+        /// </summary>
+        /// <param name="animeId">The ID of the anime to get fellow group member anime IDs from.</param>
+        /// <returns>A list containing anime IDs.</returns>
+        public IReadOnlyList<int> GetIdsOfAnimeInSameGroup(int animeId)
+        {
+            int mainAnimeId = GetGroupAnimeId(animeId);
+            int[] animeIdsInSameGroup = _animeGroupMap
+                .Where(kvp => kvp.Value == mainAnimeId)
+                .Select(kvp => kvp.Key)
+                .ToArray();
+
+            return animeIdsInSameGroup;
+        }
+
+        private static int FindSuitableAnimeByMinAirDate(Dictionary<int, RelationNode> nodes, HashSet<RelationEdge> edges)
+        {
+            int animeId = nodes.Values
+                .OrderBy(n => n.AirDate ?? DateTime.MaxValue)
+                .Select(n => n.AnimeId)
+                .FirstOrDefault();
+
+            return animeId;
+        }
+
+        private static int FindSuitableAnimeByWeighting(Dictionary<int, RelationNode> nodes, HashSet<RelationEdge> edges)
         {
             var animeRelStats = new List<AnimeRelationStats>(nodes.Count);
 
@@ -291,7 +338,7 @@ namespace JMMServer.Tasks
                     // the anime it is from (i.e. the "anchor" anime we're using as our starting point for graph traversal)
                     if (first)
                     {
-                        var startNode = new RelationNode(relation.FromId, relation.FromType);
+                        var startNode = new RelationNode(relation.FromId, relation.FromType, relation.FromAirDate);
 
                         edges = new HashSet<RelationEdge>();
                         nodes = new Dictionary<int, RelationNode>
@@ -310,7 +357,7 @@ namespace JMMServer.Tasks
                         continue; // We've already visited this anime
                     }
 
-                    var node = new RelationNode(relation.ToId, relation.ToType);
+                    var node = new RelationNode(relation.ToId, relation.ToType, relation.ToAirDate);
                     nodes.Add(node.AnimeId, node);
                     toVisit.Enqueue(node.AnimeId);
                 }
@@ -324,7 +371,8 @@ namespace JMMServer.Tasks
         /// </summary>
         /// <remarks>
         /// Relationships such as Prequel/Sequel, Full Story/Summary, Parent Story/Side Story, are automatically
-        /// considered (unless in exclusion list). However, the other relationship types are only considered if their main titles "fuzzily" match.
+        /// considered (unless in exclusion list). However, if fuzzy title testing is enabled then the other relationship types
+        /// are only considered if their main titles "fuzzily" match.
         /// </remarks>
         /// <param name="rel">The <see cref="AnimeRelation"/> to test.</param>
         /// <returns><c>true</c> if the specified <see cref="AnimeRelation"/> should be considered when building
@@ -340,8 +388,8 @@ namespace JMMServer.Tasks
             {
                 return false;
             }
-            if (rel.RelationType != AnimeRelationType.AlternativeSetting && rel.RelationType != AnimeRelationType.Other
-                && rel.RelationType != AnimeRelationType.SameSetting)
+            // Are we configured to do a fuzzy title test for this particular relation type? If not, then the relation is immediately allowed
+            if ((rel.RelationType & _relationsToFuzzyTitleTest) == 0)
             {
                 return true;
             }
@@ -437,15 +485,18 @@ namespace JMMServer.Tasks
         [DebuggerDisplay("{AnimeId} ({Type})")]
         private sealed class RelationNode
         {
-            public RelationNode(int animeId, AnimeTypes type)
+            public RelationNode(int animeId, AnimeTypes type, DateTime? airDate)
             {
                 AnimeId = animeId;
                 Type = type;
+                AirDate = airDate;
             }
 
             public int AnimeId { get; }
 
             public AnimeTypes Type { get; }
+
+            public DateTime? AirDate { get; }
         }
 
         [DebuggerDisplay("{AnimeId1} ({RelationType1}) -> {AnimeId2} ({RelationType2})")]
@@ -548,15 +599,18 @@ namespace JMMServer.Tasks
             public int FromId;
             public AnimeTypes FromType;
             public string FromMainTitle;
+            public DateTime? FromAirDate;
             public int ToId;
             public AnimeTypes ToType;
             public string ToMainTitle;
+            public DateTime? ToAirDate;
             public AnimeRelationType RelationType;
         }
 
+        [Flags]
         public enum AnimeRelationType
         {
-            Unknown = 0,
+            None = 0,
             Other = 1,
             FullStory = 2,
             ParentStory = 4,
@@ -567,8 +621,16 @@ namespace JMMServer.Tasks
             AlternativeSetting = 128,
             AlternativeVersion = 256, // Haven't seen this relation in my database. Included for completeness sake
             SameSetting = 512,
-            Character = 1024
+            Character = 1024,
+
+            SecondaryRelations = AlternativeSetting | AlternativeVersion | SameSetting | Character | Other
         }
+    }
+
+    public enum MainAnimeSelectionStrategy
+    {
+        MinAirDate,
+        Weighted
     }
 
     [Flags]

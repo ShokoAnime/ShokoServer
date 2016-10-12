@@ -349,7 +349,7 @@
     <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
     <Compile Include="FileHelper\Subtitles\VobSubSubtitles.cs" />
     <Compile Include="Tasks\AutoAnimeGroupCalculator.cs" />
-    <Compile Include="Tasks\RecreateAllGroupsTask.cs" />
+    <Compile Include="Tasks\AnimeGroupCreator.cs" />
     <Compile Include="JMMServiceImplementationImage.cs" />
     <Compile Include="LogRotator.cs" />
     <Compile Include="LZ4\CompressionHelper.cs" />

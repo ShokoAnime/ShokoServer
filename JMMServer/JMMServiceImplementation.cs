@@ -1462,7 +1462,7 @@ namespace JMMServer
                     }
                     else
                     {
-                        ser = anime.CreateAnimeSeriesAndGroup(session);
+                        ser = anime.CreateAnimeSeriesAndGroup(sessionWrapper);
                     }
 
                     ser.CreateAnimeEpisodes(session);
@@ -7991,7 +7991,7 @@ namespace JMMServer
         {
             try
             {
-                new RecreateAllGroupsTask().Execute(ServerSettings.AutoGroupSeries);
+                new AnimeGroupCreator().RecreateAllGroups();
             }
             catch (Exception ex)
             {
