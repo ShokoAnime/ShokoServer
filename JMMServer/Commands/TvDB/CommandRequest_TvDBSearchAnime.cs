@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Xml;
+using AniDBAPI;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Providers.TvDB;
@@ -142,6 +144,19 @@ namespace JMMServer.Commands
                     results[0].SeriesID);
                 TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
                 TvDBHelper.LinkAniDBTvDB(AnimeID, AniDBAPI.enEpisodeType.Episode, 1, results[0].SeriesID, 1, 1, true);
+
+	            // add links for multiple seasons (for long shows)
+	            List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
+	            foreach (int season in seasons)
+	            {
+		            if (season < 2) continue; // we just linked season 1, so start after (and skip specials)
+		            TvDB_Episode ep = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(results[0].SeriesID, season).Find(a => a.EpisodeNumber == 1);
+		            if (ep?.AbsoluteNumber != null)
+		            {
+		                AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,
+		                    season, tvser?.SeriesName ?? "");
+		            }
+	            }
                 return true;
             }
             else if (results.Count > 1)
@@ -159,13 +174,49 @@ namespace JMMServer.Commands
                             sres.SeriesID);
                         TvDB_Series tvser = TvDBHelper.GetSeriesInfoOnline(results[0].SeriesID);
                         TvDBHelper.LinkAniDBTvDB(AnimeID, AniDBAPI.enEpisodeType.Episode, 1, sres.SeriesID, 1, 1, true);
-                        return true;
+
+	                    // add links for multiple seasons (for long shows)
+	                    List<int> seasons = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(results[0].SeriesID);
+	                    foreach (int season in seasons)
+	                    {
+		                    if (season < 2) continue; // we just linked season 1, so start after (and skip specials)
+		                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(results[0].SeriesID, season).Find(a => a.EpisodeNumber == 1);
+		                    if (ep?.AbsoluteNumber != null)
+		                    {
+		                        AddCrossRef_AniDB_TvDBV2(AnimeID, ep.AbsoluteNumber.Value, results[0].SeriesID,
+		                            season, tvser?.SeriesName ?? "");
+		                    }
+	                    }
+	                    return true;
                     }
                 }
                 logger.Trace("No english results found, so SKIPPING: {0}", searchCriteria);
             }
 
             return false;
+        }
+
+        private static void AddCrossRef_AniDB_TvDBV2(int animeID, int anistart, int tvdbID, int tvdbSeason, string title)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason,
+                    1,
+                    animeID, (int) enEpisodeType.Episode, anistart);
+                if (xref != null) return;
+                xref = new CrossRef_AniDB_TvDBV2();
+
+                xref.AnimeID = animeID;
+                xref.AniDBStartEpisodeType = (int) enEpisodeType.Episode;
+                xref.AniDBStartEpisodeNumber = anistart;
+
+                xref.TvDBID = tvdbID;
+                xref.TvDBSeasonNumber = tvdbSeason;
+                xref.TvDBStartEpisodeNumber = 1;
+                xref.TvDBTitle = title;
+
+                RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
+            }
         }
 
         public override void GenerateCommandID()
