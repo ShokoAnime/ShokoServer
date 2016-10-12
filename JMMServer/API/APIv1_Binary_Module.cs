@@ -1072,7 +1072,7 @@ namespace JMMServer.API
 
         private object RecreateAllGroups()
         {
-            new AnimeGroupCreator(ServerSettings.AutoGroupSeries).RecreateAllGroups();
+            new AnimeGroupCreator().RecreateAllGroups();
             return "ok";
         }
 
