@@ -499,7 +499,7 @@ namespace JMMServer.PlexAndKodi
                     }
 					if (nocast) v.Roles = null;
 					v.GenerateKey(prov, user.JMMUserID);
-					ls.Add(prov, v, info);
+                    ls.Add(prov, v, info);
                 }
                 cnt++;
                 if (cnt == lim)
