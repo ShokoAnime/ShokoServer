@@ -1396,7 +1396,19 @@ namespace JMMServer
             set { Set("AutoGroupSeriesRelationExclusions", value); }
         }
 
-        public static string LanguagePreference
+	    public static bool AutoGroupSeriesUseScoreMainGroupAlgorithm
+	    {
+		    get
+		    {
+
+			    bool val = false;
+			    bool.TryParse(Get("AutoGroupSeriesUseScoreMainGroupAlgorithm"), out val);
+			    return val;
+		    }
+		    set { Set("AutoGroupSeriesUseScoreMainGroupAlgorithm", value.ToString()); }
+	    }
+
+	    public static string LanguagePreference
         {
             get
             {   
