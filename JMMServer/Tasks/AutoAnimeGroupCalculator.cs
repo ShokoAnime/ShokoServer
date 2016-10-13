@@ -41,6 +41,12 @@ namespace JMMServer.Tasks
             _exclusions = exclusions;
             _relationsToFuzzyTitleTest = relationsToFuzzyTitleTest;
 
+			if(!ServerSettings.AutoGroupSeriesRelationExclusions.Split('|').Any(a => 
+					a.Equals("AllowDissimilarTitleExclusion", StringComparison.OrdinalIgnoreCase)))
+			{
+				_relationsToFuzzyTitleTest = AnimeRelationType.None;
+			}
+
             switch (mainAnimeSelectionStrategy)
             {
                 case MainAnimeSelectionStrategy.MinAirDate:
@@ -383,6 +389,7 @@ namespace JMMServer.Tasks
             {
                 return false; // The relation is in the exclusion list, so ignore it
             }
+			// Check if we are excluding Movies or OVAs
             if ((_exclusions & AutoGroupExclude.Movie) == AutoGroupExclude.Movie && (rel.FromType == AnimeTypes.Movie || rel.ToType == AnimeTypes.Movie)
                 || (_exclusions & AutoGroupExclude.Ova) == AutoGroupExclude.Ova && (rel.FromType == AnimeTypes.OVA || rel.ToType == AnimeTypes.OVA))
             {
