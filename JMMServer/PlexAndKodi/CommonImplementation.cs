@@ -498,8 +498,8 @@ namespace JMMServer.PlexAndKodi
                             break;
                     }
 					if (nocast) v.Roles = null;
-
-                    ls.Add(prov, v, info);
+					v.GenerateKey(prov, user.JMMUserID);
+					ls.Add(prov, v, info);
                 }
                 cnt++;
                 if (cnt == lim)
