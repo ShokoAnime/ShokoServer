@@ -1795,7 +1795,8 @@ namespace JMMServer
             // Import settings
             contract.VideoExtensions = ServerSettings.VideoExtensions;
             contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
-            contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
+			contract.AutoGroupSeriesUseScoreAlgorithm = ServerSettings.AutoGroupSeriesUseScoreAlgorithm;
+			contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
             contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
             contract.RunImportOnStart = ServerSettings.RunImportOnStart;
             contract.ScanDropFoldersOnStart = ServerSettings.ScanDropFoldersOnStart;
