@@ -18,10 +18,12 @@ using JMMServer.Entities;
 using JMMServer.FileHelper;
 using JMMServer.FileHelper.Subtitles;
 using JMMServer.ImageDownload;
+using JMMServer.Providers.TvDB;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
+using NHibernate.Dialect;
 using NLog;
 using Directory = JMMContracts.PlexAndKodi.Directory;
 using Stream = JMMContracts.PlexAndKodi.Stream;
@@ -362,101 +364,155 @@ namespace JMMServer.PlexAndKodi
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
             l.Id = ep.AnimeEpisodeID.ToString();
             l.AnimeType = JMMContracts.PlexAndKodi.AnimeTypes.AnimeEpisode.ToString();
-            if (vids.Count > 0)
-            {
-                //List<string> hashes = vids.Select(a => a.Hash).Distinct().ToList();
-                l.Title = Path.GetFileNameWithoutExtension(vids[0].FileName);
-                l.AddedAt = vids[0].DateTimeCreated.ToUnixTime();
-                l.UpdatedAt = vids[0].DateTimeUpdated.ToUnixTime();
-                l.OriginallyAvailableAt = vids[0].DateTimeCreated.ToPlexDate();
-                l.Year = vids[0].DateTimeCreated.Year.ToString();
-                l.Medias = new List<Media>();
-                foreach (VideoLocal v in vids)
-                {
-                    if (string.IsNullOrEmpty(v.Media?.Duration))
-                    {
-                        VideoLocal_Place pl = v.GetBestVideoLocalPlace();
-                        if (pl != null)
-                        {
-                            if (pl.RefreshMediaInfo())
-                                RepoFactory.VideoLocal.Save(v,true);
-                        }
-                    }
-                    if (v.Media != null)
-                        l.Medias.Add(v.Media);
+	        if (vids.Count > 0)
+	        {
+		        //List<string> hashes = vids.Select(a => a.Hash).Distinct().ToList();
+		        l.Title = Path.GetFileNameWithoutExtension(vids[0].FileName);
+		        l.AddedAt = vids[0].DateTimeCreated.ToUnixTime();
+		        l.UpdatedAt = vids[0].DateTimeUpdated.ToUnixTime();
+		        l.OriginallyAvailableAt = vids[0].DateTimeCreated.ToPlexDate();
+		        l.Year = vids[0].DateTimeCreated.Year.ToString();
+		        l.Medias = new List<Media>();
+		        foreach (VideoLocal v in vids)
+		        {
+			        if (string.IsNullOrEmpty(v.Media?.Duration))
+			        {
+				        VideoLocal_Place pl = v.GetBestVideoLocalPlace();
+				        if (pl != null)
+				        {
+					        if (pl.RefreshMediaInfo())
+						        RepoFactory.VideoLocal.Save(v, true);
+				        }
+			        }
+			        if (v.Media != null)
+				        l.Medias.Add(v.Media);
 
-                }
+		        }
 
-				// Only run if we have the episode
-				AniDB_Episode aep = ep?.AniDB_Episode;
-				if (aep != null)
-				{
-					l.EpisodeNumber = aep.EpisodeNumber.ToString();
-					l.Index = aep.EpisodeNumber.ToString();
-					l.Title = aep.EnglishName;
-					l.OriginalTitle = aep.RomajiName;
-					l.EpisodeType = aep.EpisodeType.ToString();
-					l.Rating = float.Parse(aep.Rating, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
-					if (aep.AirDateAsDate.HasValue)
-					{
-						l.Year = aep.AirDateAsDate.Value.Year.ToString();
-						l.OriginallyAvailableAt = aep.AirDateAsDate.Value.ToPlexDate();
-					}
+		        AniDB_Episode aep = ep?.AniDB_Episode;
+		        if (aep != null)
+		        {
+			        l.EpisodeNumber = aep.EpisodeNumber.ToString();
+			        l.Index = aep.EpisodeNumber.ToString();
+			        l.Title = aep.EnglishName;
+			        l.OriginalTitle = aep.RomajiName;
+			        l.EpisodeType = aep.EpisodeType.ToString();
+			        l.Rating = float.Parse(aep.Rating, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+			        if (aep.AirDateAsDate.HasValue)
+			        {
+				        l.Year = aep.AirDateAsDate.Value.Year.ToString();
+				        l.OriginallyAvailableAt = aep.AirDateAsDate.Value.ToPlexDate();
+			        }
 
-					#region TvDB
-					using (var session = DatabaseFactory.SessionFactory.OpenSession())
-					{
-						CrossRef_AniDB_TvDBV2 xref_tvdb2 =
-							RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, aep.AnimeID,
-								aep.EpisodeType, aep.EpisodeNumber).OrderBy(a => a.AniDBStartEpisodeNumber).ToList().Find(a => aep.EpisodeNumber >= a.AniDBStartEpisodeNumber);
-						if (xref_tvdb2 != null)
-						{
-							int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
-										   (xref_tvdb2.AniDBStartEpisodeNumber - 1);
+			        #region TvDB Overrides
 
-							TvDB_Episode tvdb_ep = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(
-										xref_tvdb2.TvDBID, xref_tvdb2.TvDBSeasonNumber).Find(a => a.EpisodeNumber == epnumber);
-							if (tvdb_ep != null)
-							{
-								l.Thumb = tvdb_ep.GenPoster();
-								l.Summary = tvdb_ep.Overview;
-							}
-							else
-							{
-								string anime = "[Blank]";
-								AnimeSeries ser = ep.GetAnimeSeries();
-								if (ser != null && ser.GetSeriesName() != null) anime = ser.GetSeriesName();
+			        CrossRef_AniDB_TvDB_Episode xref_tvdb =
+				        RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aep.AniDB_EpisodeID);
+			        if (xref_tvdb != null)
+			        {
+				        TvDB_Episode tvdb_ep = RepoFactory.TvDB_Episode.GetByTvDBID(xref_tvdb.TvDBEpisodeID);
+				        if (tvdb_ep != null)
+				        {
+					        l.Thumb = tvdb_ep.GenPoster();
+					        l.Summary = tvdb_ep.Overview;
+				        }
+			        }
+
+			        #endregion
+
+			        #region TvDB
+
+			        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+			        {
+				        List<CrossRef_AniDB_TvDBV2> xref_tvdb2 =
+					        RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, aep.AnimeID,
+						        aep.EpisodeType, aep.EpisodeNumber);
+				        if (xref_tvdb2 != null && xref_tvdb2.Count > 0)
+				        {
+					        TvDB_Episode tvep = GetTvDBEpisodeFromAniDB(session, aep, xref_tvdb2[0]);
+
+					        if (tvep != null)
+					        {
+						        l.Thumb = tvep.GenPoster();
+						        l.Summary = tvep.Overview;
+					        }
+					        else
+					        {
+						        string anime = "[Blank]";
+						        AnimeSeries ser = ep.GetAnimeSeries();
+						        if (ser != null && ser.GetSeriesName() != null) anime = ser.GetSeriesName();
 								LogManager.GetCurrentClassLogger().Error("Episode " + aep.EpisodeNumber + ": " + aep.EnglishName + " from " + anime + " is out of range for its TvDB Link. Please relink it.");
 							}
 
-						}
-					}
-					#endregion
+				        }
+			        }
 
-					#region TvDB Overrides
-					CrossRef_AniDB_TvDB_Episode xref_tvdb =
-						RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aep.AniDB_EpisodeID);
-					if (xref_tvdb != null)
-					{
-						TvDB_Episode tvdb_ep = RepoFactory.TvDB_Episode.GetByTvDBID(xref_tvdb.TvDBEpisodeID);
-						if (tvdb_ep != null)
-						{
-							l.Thumb = tvdb_ep.GenPoster();
-							l.Summary = tvdb_ep.Overview;
-						}
-					}
-					#endregion
+			        #endregion
 
-					if (l.Thumb == null || l.Summary == null)
-					{
-						l.Thumb = ConstructSupportImageLink("plex_404.png");
-						l.Summary = "Episode Overview not Available";
-					}
-				}
-            
-            }
-            l.Id = ep.AnimeEpisodeID.ToString();
+			        if (l.Thumb == null || l.Summary == null)
+			        {
+				        l.Thumb = ConstructSupportImageLink("plex_404.png");
+				        l.Summary = "Episode Overview not Available";
+			        }
+		        }
+	        }
+	        l.Id = ep.AnimeEpisodeID.ToString();
             return l;
+        }
+
+	    private static TvDB_Episode GetTvDBEpisodeFromAniDB(ISession session, AniDB_Episode aep, CrossRef_AniDB_TvDBV2 xref_tvdb2)
+	    {
+	        int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
+		                   (xref_tvdb2.AniDBStartEpisodeNumber - 1);
+	        TvDB_Episode tvep = null;
+	        int season = xref_tvdb2.TvDBSeasonNumber;
+	        List<TvDB_Episode> tvdb_eps = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(xref_tvdb2.TvDBID, season);
+	        tvep = tvdb_eps.Find(a => a.EpisodeNumber == epnumber);
+	        if (tvep != null) return tvep;
+
+	        int lastSeason = RepoFactory.TvDB_Episode.getLastSeasonForSeries(xref_tvdb2.TvDBID);
+	        int previousSeasonsCount = 0;
+	        // we checked once, so increment the season
+	        season++;
+	        previousSeasonsCount += tvdb_eps.Count;
+	        do
+	        {
+	            if (season == 0) break; // Specials will often be wrong
+	            if (season > lastSeason) break;
+	            if (epnumber - previousSeasonsCount <= 0) break;
+	            // This should be 1 or 0, hopefully 1
+	            tvdb_eps = RepoFactory.TvDB_Episode.GetBySeriesIDAndSeasonNumber(xref_tvdb2.TvDBID, season);
+	            tvep = tvdb_eps.Find(a => a.EpisodeNumber == epnumber - previousSeasonsCount);
+
+                AddCrossRef_AniDB_TvDBV2(session, aep.AnimeID, previousSeasonsCount + 1, xref_tvdb2.TvDBID, season, xref_tvdb2.GetTvDBSeries()?.SeriesName ?? "");
+
+	            if (tvep != null)
+	            {
+	                break;
+	            }
+	            previousSeasonsCount += tvdb_eps.Count;
+	            season++;
+	        } while (true);
+	        return tvep;
+	    }
+
+        private static void AddCrossRef_AniDB_TvDBV2(ISession session, int animeID, int anistart, int tvdbID, int tvdbSeason, string title)
+        {
+            CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(session, tvdbID, tvdbSeason, 1,
+                animeID, (int) enEpisodeType.Episode, anistart);
+            if (xref != null) return;
+            xref = new CrossRef_AniDB_TvDBV2();
+
+            xref.AnimeID = animeID;
+            xref.AniDBStartEpisodeType = (int)enEpisodeType.Episode;
+            xref.AniDBStartEpisodeNumber = anistart;
+
+            xref.TvDBID = tvdbID;
+            xref.TvDBSeasonNumber = tvdbSeason;
+            xref.TvDBStartEpisodeNumber = 1;
+            xref.TvDBTitle = title;
+
+            RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
         }
 
         private static void GetValidVideoRecursive(GroupFilter f, int userid, Directory pp)

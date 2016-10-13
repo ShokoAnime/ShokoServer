@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories.NHibernate;
@@ -68,6 +69,21 @@ namespace JMMServer.Repositories.Direct
             }
 
             return seasonNumbers;
+        }
+
+        /// <summary>
+        /// Returns the last TvDB Season Number, or -1 if unable
+        /// </summary>
+        /// <param name="seriesID">The TvDB series ID</param>
+        /// <returns>The last TvDB Season Number, or -1 if unable</returns>
+        public int getLastSeasonForSeries(int seriesID)
+        {
+            List<int> list = GetSeasonNumbersForSeries(seriesID);
+            if ((list?.Count ?? 0) > 0)
+            {
+                return list.OrderByDescending(a => a).ToList()[0];
+            }
+            return -1;
         }
 
         public List<TvDB_Episode> GetBySeriesIDAndSeasonNumber(int seriesID, int seasonNumber)
