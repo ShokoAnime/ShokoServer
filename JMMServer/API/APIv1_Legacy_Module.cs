@@ -27,8 +27,10 @@ namespace JMMServer.API
             Get["/JMMServerKodi/GetUsers"] = _ => { return GetUsers_Kodi(); };
             Get["/JMMServerKodi/GetVersion"] = _ => { return GetVersion(); };
             Get["/JMMServerKodi/Search/{uid}/{limit}/{query}"] = parameter => { return Search_Kodi(parameter.uid, parameter.limit, parameter.query); };
-            Get["/JMMServerKodi/SearchTag/{uid}/{limit}/{query}"] = parameter => { return SearchTag(parameter.uid, parameter.limit, parameter.query); };
-            Get["/JMMServerKodi/Watch/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnEpisode_Kodi(parameter.uid, parameter.epid, parameter.status); };
+			Get["/JMMServerKodi/Search/{uid}/{limit}/{query}/nocast"] = parameter => { return Search_Kodi(parameter.uid, parameter.limit, parameter.query, true); };
+			Get["/JMMServerKodi/SearchTag/{uid}/{limit}/{query}"] = parameter => { return SearchTag(parameter.uid, parameter.limit, parameter.query); };
+			Get["/JMMServerKodi/SearchTag/{uid}/{limit}/{query}/nocast"] = parameter => { return SearchTag(parameter.uid, parameter.limit, parameter.query, true); };
+			Get["/JMMServerKodi/Watch/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnEpisode_Kodi(parameter.uid, parameter.epid, parameter.status); };
 			Get["/JMMServerKodi/WatchSeries/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnSeries_Kodi(parameter.uid, parameter.epid, parameter.status); };
 			Get["/JMMServerKodi/WatchGroup/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnGroup_Kodi(parameter.uid, parameter.epid, parameter.status); };
 			Get["/JMMServerKodi/Vote/{uid}/{id}/{votevalue}/{votetype}"] = parameter => { return VoteAnime_Kodi(parameter.uid, parameter.id, parameter.votevalue, parameter.votetype); };
@@ -130,9 +132,9 @@ namespace JMMServer.API
         /// <param name="query">Query</param>
         /// <param name="searchTag">Searching for Tag?</param>
         /// <returns></returns>
-        private object Search_Kodi(string uid, string limit, string query)
+        private object Search_Kodi(string uid, string limit, string query, bool nocast = false)
         {
-            return _impl.Search(_prov_kodi, uid, limit, query, false);
+            return _impl.Search(_prov_kodi, uid, limit, query, false, nocast);
         }
 
         /// <summary>
@@ -143,9 +145,9 @@ namespace JMMServer.API
         /// <param name="query">Query</param>
         /// <param name="searchTag">Searching for Tag?</param>
         /// <returns></returns>
-        private object SearchTag(string uid, string limit, string query)
+        private object SearchTag(string uid, string limit, string query, bool nocast = false)
         {
-            return _impl.Search(_prov_kodi, uid, limit, query, true);
+            return _impl.Search(_prov_kodi, uid, limit, query, true, nocast);
         }
 
         /// <summary>
