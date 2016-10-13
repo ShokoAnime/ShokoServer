@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Data;
+using System.Diagnostics;
 using NHibernate;
 
 namespace JMMServer.Repositories.NHibernate
 {
+    [DebuggerStepThrough]
     internal class StatelessSessionWrapper : ISessionWrapper
     {
         private readonly IStatelessSession _session;

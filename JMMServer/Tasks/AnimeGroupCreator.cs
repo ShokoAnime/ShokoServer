@@ -15,16 +15,41 @@ using NLog;
 
 namespace JMMServer.Tasks
 {
-    internal class RecreateAllGroupsTask
+    internal class AnimeGroupCreator
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
         private const int DefaultBatchSize = 50;
+        public const string TempGroupName = "AAA Migrating Groups AAA";
+        private static readonly Regex _truncateYearRegex = new Regex(@"\s*\(\d{4}\)$");
         private readonly AniDB_AnimeRepository _aniDbAnimeRepo = RepoFactory.AniDB_Anime;
         private readonly AnimeSeriesRepository _animeSeriesRepo = RepoFactory.AnimeSeries;
         private readonly AnimeGroupRepository _animeGroupRepo = RepoFactory.AnimeGroup;
         private readonly AnimeGroup_UserRepository _animeGroupUserRepo = RepoFactory.AnimeGroup_User;
         private readonly GroupFilterRepository _groupFilterRepo = RepoFactory.GroupFilter;
         private readonly JMMUserRepository _userRepo = RepoFactory.JMMUser;
+        private readonly bool _autoGroupSeries;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AnimeGroupCreator"/> class.
+        /// </summary>
+        /// <param name="autoGroupSeries"><c>true</c> to automatically assign to groups based on aniDB relations;
+        /// otherwise, <c>false</c> to assign each series to its own group.</param>
+        public AnimeGroupCreator(bool autoGroupSeries)
+        {
+            _autoGroupSeries = autoGroupSeries;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AnimeGroupCreator"/> class.
+        /// </summary>
+        /// <remarks>
+        /// Uses the current server configuration to determine if auto grouping series is enabled.
+        /// </remarks>
+        public AnimeGroupCreator()
+            : this(ServerSettings.AutoGroupSeries)
+        {
+
+        }
 
         /// <summary>
         /// Creates a new group that series will be put in during group re-calculation.
@@ -37,9 +62,9 @@ namespace JMMServer.Tasks
 
             var tempGroup = new AnimeGroup
                 {
-                    GroupName = "AAA Migrating Groups AAA",
-                    Description = "AAA Migrating Groups AAA",
-                    SortName = "AAA Migrating Groups AAA",
+                    GroupName = TempGroupName,
+                    Description = TempGroupName,
+                    SortName = TempGroupName,
                     DateTimeUpdated = now,
                     DateTimeCreated = now
                 };
@@ -233,7 +258,6 @@ namespace JMMServer.Tasks
             _log.Info("Auto-generating AnimeGroups for {0} AnimeSeries based on aniDB relationships", seriesList.Count);
 
             DateTime now = DateTime.Now;
-            Regex truncateYearRegex = new Regex(@"\s*\(\d{4}\)$");
             var grpCalculator = AutoAnimeGroupCalculator.Create(session);
 
             _log.Info("The following exclusions will be applied when generating the groups: " + grpCalculator.Exclusions);
@@ -246,25 +270,7 @@ namespace JMMServer.Tasks
             {
                 int mainAnimeId = groupAndSeries.Key;
                 AnimeSeries mainSeries = groupAndSeries.FirstOrDefault(series => series.AniDB_ID == mainAnimeId);
-                AnimeGroup animeGroup = new AnimeGroup();
-                string groupName = null;
-
-                if (mainSeries != null)
-                {
-                    animeGroup.Populate(mainSeries, now);
-                    groupName = mainSeries.GetSeriesName(session);
-                }
-                else // The anime chosen as the group's main anime doesn't actually have a series
-                {
-                    AniDB_Anime mainAnime = _aniDbAnimeRepo.GetByAnimeID(mainAnimeId);
-
-                    animeGroup.Populate(mainAnime, now);
-                    groupName = mainAnime.GetFormattedTitle();
-                }
-
-                groupName = truncateYearRegex.Replace(groupName, String.Empty); // If the title appears to end with a year suffix, then remove it
-                animeGroup.GroupName = groupName;
-                animeGroup.SortName = groupName;
+                AnimeGroup animeGroup = CreateAutoGroup(session, mainSeries, mainAnimeId, now);
 
                 newGroupsToSeries.Add(new Tuple<AnimeGroup, IReadOnlyCollection<AnimeSeries>>(animeGroup, groupAndSeries.AsReadOnlyCollection()));
             }
@@ -290,7 +296,84 @@ namespace JMMServer.Tasks
             return newGroupsToSeries.Select(gts => gts.Item1);
         }
 
-        public void Execute(ISessionWrapper session, bool autoGroupSeries = false)
+        private AnimeGroup CreateAutoGroup(ISessionWrapper session, AnimeSeries mainSeries, int mainAnimeId, DateTime now)
+        {
+            AnimeGroup animeGroup = new AnimeGroup();
+            string groupName = null;
+
+            if (mainSeries != null)
+            {
+                animeGroup.Populate(mainSeries, now);
+                groupName = mainSeries.GetSeriesName(session);
+            }
+            else // The anime chosen as the group's main anime doesn't actually have a series
+            {
+                AniDB_Anime mainAnime = _aniDbAnimeRepo.GetByAnimeID(mainAnimeId);
+
+                animeGroup.Populate(mainAnime, now);
+                groupName = mainAnime.GetFormattedTitle();
+            }
+
+            groupName = _truncateYearRegex.Replace(groupName, String.Empty); // If the title appears to end with a year suffix, then remove it
+            animeGroup.GroupName = groupName;
+            animeGroup.SortName = groupName;
+
+            return animeGroup;
+        }
+
+        /// <summary>
+        /// Gets or creates an <see cref="AnimeGroup"/> for the specified series.
+        /// </summary>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="series">The series for which the group is to be created/retrieved (Must be initialised first).</param>
+        /// <returns>The <see cref="AnimeGroup"/> to use for the specified series.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="series"/> is <c>null</c>.</exception>
+        public AnimeGroup GetOrCreateSingleGroupForSeries(ISessionWrapper session, AnimeSeries series)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (series == null)
+                throw new ArgumentNullException(nameof(series));
+
+            AnimeGroup animeGroup = null;
+
+            if (_autoGroupSeries)
+            {
+                var grpCalculator = AutoAnimeGroupCalculator.Create(session);
+                IReadOnlyList<int> grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(series.AniDB_ID);
+                // Try to find an existing AnimeGroup to add the series to
+                // We basically pick the first group that any of the related series belongs to already
+                animeGroup = grpAnimeIds.Select(id => RepoFactory.AnimeSeries.GetByAnimeID(id))
+                    .Where(s => s != null)
+                    .Select(s => RepoFactory.AnimeGroup.GetByID(s.AnimeGroupID))
+                    .FirstOrDefault();
+
+                if (animeGroup == null)
+                {
+                    // No existing group was found, so create a new one
+                    int mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
+                    AnimeSeries mainSeries = _animeSeriesRepo.GetByAnimeID(mainAnimeId);
+
+                    animeGroup = CreateAutoGroup(session, mainSeries, mainAnimeId, DateTime.Now);
+                    RepoFactory.AnimeGroup.Save(animeGroup, true, true);
+                }
+            }
+            else // We're not auto grouping (e.g. we're doing group per series)
+            {
+                animeGroup = new AnimeGroup();
+                animeGroup.Populate(series, DateTime.Now);
+                RepoFactory.AnimeGroup.Save(animeGroup, true, true);
+            }
+
+            return animeGroup;
+        }
+
+        /// <summary>
+        /// Re-creates all AnimeGroups based on the existing AnimeSeries.
+        /// </summary>
+        /// <param name="session">The NHibernate session.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
+        public void RecreateAllGroups(ISessionWrapper session)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -301,6 +384,8 @@ namespace JMMServer.Tasks
                 JMMService.CmdProcessorGeneral.Paused = true;
                 JMMService.CmdProcessorHasher.Paused = true;
                 JMMService.CmdProcessorImages.Paused = true;
+
+                _log.Info("Beginning re-creation of all groups");
 
                 IReadOnlyList<AnimeSeries> animeSeries = RepoFactory.AnimeSeries.GetAll();
                 IReadOnlyCollection<AnimeGroup> createdGroups = null;
@@ -313,7 +398,7 @@ namespace JMMServer.Tasks
                     trans.Commit();
                 }
 
-                if (autoGroupSeries)
+                if (_autoGroupSeries)
                 {
                     createdGroups = AutoCreateGroupsWithRelatedSeries(session, animeSeries)
                         .AsReadOnlyCollection();
@@ -352,6 +437,13 @@ namespace JMMServer.Tasks
                     UpdateGroupFilters(session);
                     trans.Commit();
                 }
+
+                _log.Info("Successfuly completed re-creating all groups");
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "An error occurred while re-creating all groups");
+                throw;
             }
             finally
             {
@@ -362,11 +454,11 @@ namespace JMMServer.Tasks
             }
         }
 
-        public void Execute(bool autoGroupSeries = false)
+        public void RecreateAllGroups()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
+            using (IStatelessSession session = DatabaseFactory.SessionFactory.OpenStatelessSession())
             {
-                Execute(session.Wrap(), autoGroupSeries);
+                RecreateAllGroups(session.Wrap());
             }
         }
     }
