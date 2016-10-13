@@ -47,7 +47,7 @@ namespace JMMServer.Tasks
 				_relationsToFuzzyTitleTest = AnimeRelationType.None;
 			}
 
-            switch (ServerSettings.AutoGroupSeriesUseScoreMainGroupAlgorithm)
+            switch (ServerSettings.AutoGroupSeriesUseScoreAlgorithm)
             {
                 case false:
                     _mainAnimeSelector = FindSuitableAnimeByMinAirDate;
