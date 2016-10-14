@@ -124,6 +124,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Sync Media Infos.
+        /// </summary>
+        public static string Actions_SyncMedias {
+            get {
+                return ResourceManager.GetString("Actions_SyncMedias", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Sync AniDB MyList.
         /// </summary>
         public static string Actions_SyncMyList {
@@ -2827,6 +2836,15 @@ namespace JMMServer.Properties {
         public static string Server_SyncHashesRunning {
             get {
                 return ResourceManager.GetString("Server_SyncHashesRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Synchronizing Media Infos with the WebCache Running.
+        /// </summary>
+        public static string Server_SyncMediasRunning {
+            get {
+                return ResourceManager.GetString("Server_SyncMediasRunning", resourceCulture);
             }
         }
         

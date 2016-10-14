@@ -95,6 +95,7 @@ namespace JMMServer
         private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
         private static BackgroundWorker workerSyncHashes= new BackgroundWorker();
+        private static BackgroundWorker workerSyncMedias = new BackgroundWorker();
 
         internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
         internal static BackgroundWorker LogRotatorWorker = new BackgroundWorker();
@@ -226,6 +227,7 @@ namespace JMMServer
             btnRemoveMissingFiles.Click += new RoutedEventHandler(btnRemoveMissingFiles_Click);
             btnRunImport.Click += new RoutedEventHandler(btnRunImport_Click);
             btnSyncHashes.Click += BtnSyncHashes_Click;
+            btnSyncMedias.Click += BtnSyncMedias_Click;
             btnSyncMyList.Click += new RoutedEventHandler(btnSyncMyList_Click);
             btnSyncVotes.Click += new RoutedEventHandler(btnSyncVotes_Click);
             btnUpdateTvDBInfo.Click += new RoutedEventHandler(btnUpdateTvDBInfo_Click);
@@ -274,6 +276,9 @@ namespace JMMServer
             workerSyncHashes.WorkerSupportsCancellation = true;
             workerSyncHashes.DoWork += WorkerSyncHashes_DoWork;
 
+            workerSyncMedias.WorkerReportsProgress = true;
+            workerSyncMedias.WorkerSupportsCancellation = true;
+            workerSyncMedias.DoWork += WorkerSyncMedias_DoWork;
 
             workerRemoveMissing.WorkerReportsProgress = true;
             workerRemoveMissing.WorkerSupportsCancellation = true;
@@ -396,7 +401,12 @@ namespace JMMServer
             MessageBox.Show(JMMServer.Properties.Resources.Server_SyncHashesRunning, JMMServer.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
-
+        private void BtnSyncMedias_Click(object sender, RoutedEventArgs e)
+        {
+            SyncMedias();
+            MessageBox.Show(JMMServer.Properties.Resources.Server_SyncMediasRunning, JMMServer.Properties.Resources.Success,
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
         private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
         {
             try
@@ -408,7 +418,17 @@ namespace JMMServer
                 logger.Error( ex,ex.Message);
             }
         }
-
+        private void WorkerSyncMedias_DoWork(object sender, DoWorkEventArgs e)
+        {
+            try
+            {
+                Importer.SyncMedia();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.Message);
+            }
+        }
 
 
         private void BtnUpdateTraktInfo_Click(object sender, RoutedEventArgs e)
@@ -2318,6 +2338,11 @@ namespace JMMServer
         {
             if (!workerSyncHashes.IsBusy)
                 workerSyncHashes.RunWorkerAsync();
+        }
+        public static void SyncMedias()
+        {
+            if (!workerSyncMedias.IsBusy)
+                workerSyncMedias.RunWorkerAsync();
         }
         public static void ScanFolder(int importFolderID)
         {

@@ -229,6 +229,7 @@ namespace JMMServer.Commands
                     RepoFactory.VideoLocalPlace.Save(vlocalplace);
                     if (vlocalplace.RefreshMediaInfo())
                         RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
+
                     return vlocalplace;
                 }
                 // hash the file
