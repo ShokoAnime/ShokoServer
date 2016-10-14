@@ -164,7 +164,7 @@ namespace JMMServer.Commands
             }
             else
             {                
-                logger.Trace("VideoLocal, creating new record");
+                logger.Trace("VideoLocal, creating temporary record");
                 vlocal = new VideoLocal();
                 vlocal.DateTimeUpdated = DateTime.Now;
                 vlocal.DateTimeCreated = vlocal.DateTimeUpdated;
@@ -223,13 +223,12 @@ namespace JMMServer.Commands
                 if (string.IsNullOrEmpty(vlocal.Hash) && folder.CloudID.HasValue)
                 {
                     //Cloud and no hash, Nothing to do, except maybe Get the mediainfo....
-
+                    logger.Trace("No Hash found for cloud "+vlocal.FileName+" putting in videolocal table with empty ED2K");
                     RepoFactory.VideoLocal.Save(vlocal,false);
                     vlocalplace.VideoLocalID = vlocal.VideoLocalID;
                     RepoFactory.VideoLocalPlace.Save(vlocalplace);
                     if (vlocalplace.RefreshMediaInfo())
                         RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
-
                     return vlocalplace;
                 }
                 // hash the file
@@ -256,7 +255,7 @@ namespace JMMServer.Commands
                 VideoLocal tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
 
                 bool intercloudfolder = false;
-                VideoLocal_Place prep= tlocal?.Places.FirstOrDefault(a => a.ImportFolder.CloudID == folder.CloudID && vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
+                VideoLocal_Place prep= tlocal?.Places.FirstOrDefault(a => a.ImportFolder.CloudID == folder.CloudID && a.ImportFolderID == folder.ImportFolderID && vlocalplace.VideoLocal_Place_ID != a.VideoLocal_Place_ID);
                 if (prep!=null)
                 {
                     // delete the VideoLocal record
@@ -290,6 +289,7 @@ namespace JMMServer.Commands
                 {
                     vlocal = tlocal;
                     intercloudfolder = true;
+
                 }
 
 
@@ -300,7 +300,11 @@ namespace JMMServer.Commands
                 RepoFactory.VideoLocalPlace.Save(vlocalplace);
 
                 if (intercloudfolder)
+                {
+                    CommandRequest_ProcessFile cr_procfile3 = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);
+                    cr_procfile3.Save();
                     return vlocalplace;
+                }
 
                 // also save the filename to hash record
                 // replace the existing records just in case it was corrupt
