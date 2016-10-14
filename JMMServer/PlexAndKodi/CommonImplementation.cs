@@ -431,7 +431,7 @@ namespace JMMServer.PlexAndKodi
             return rsp;
         }
 
-        public MediaContainer Search(IProvider prov, string UserId, string limit, string query, bool searchTag)
+        public MediaContainer Search(IProvider prov, string UserId, string limit, string query, bool searchTag, bool nocast = false)
         {
             BreadCrumbs info = prov.UseBreadCrumbs
                 ? new BreadCrumbs
@@ -497,7 +497,8 @@ namespace JMMServer.PlexAndKodi
                             v.SourceTitle = "Anime Web Clips";
                             break;
                     }
-
+					if (nocast) v.Roles = null;
+					v.GenerateKey(prov, user.JMMUserID);
                     ls.Add(prov, v, info);
                 }
                 cnt++;
