@@ -574,25 +574,29 @@ namespace JMMContracts.PlexAndKodi
         public string Key { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 7)]
+        [XmlAttribute("local_key")]
+        public string LocalKey { get; set; }
+
+        [DataMember(EmitDefaultValue = false, Order = 8)]
         [XmlAttribute("container")]
         public string Container { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 8)]
+        [DataMember(EmitDefaultValue = false, Order = 9)]
         [XmlAttribute("id")]
         public string Id { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 9)]
+        [DataMember(EmitDefaultValue = false, Order = 10)]
         [XmlAttribute("file")]
         public string File { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 10)]
+        [DataMember(EmitDefaultValue = false, Order = 11)]
         [XmlAttribute("optimizedForStreaming")]
         public string OptimizedForStreaming { get; set; }
 
         [XmlIgnore]
         public string Extension { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 11)]
+        [DataMember(EmitDefaultValue = false, Order = 12)]
         [XmlAttribute("has64bitOffsets")]
         public string Has64bitOffsets { get; set; }
     }
