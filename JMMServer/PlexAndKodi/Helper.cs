@@ -384,6 +384,10 @@ namespace JMMServer.PlexAndKodi
 						        RepoFactory.VideoLocal.Save(v, true);
 				        }
 			        }
+		            v.Media?.Parts?.Where(a => a != null)?.ToList()?.ForEach(a =>
+		            {
+		                if (String.IsNullOrEmpty(a.LocalKey)) a.LocalKey = v?.GetBestVideoLocalPlace()?.FullServerPath ?? null;
+		            });
 			        if (v.Media != null)
 				        l.Medias.Add(v.Media);
 

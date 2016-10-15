@@ -403,6 +403,7 @@ namespace JMMServer.PlexAndKodi
             o.Size=s.Size;
             o.Duration=s.Duration;
             o.Key=s.Key;
+            o.LocalKey=s.LocalKey;
             o.Container=s.Container;
             o.Id=s.Id;
             o.File=s.File;
