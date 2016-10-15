@@ -138,6 +138,39 @@ namespace JMMServer.Repositories.Cached
             }
         }
 
+        /// <summary>
+        /// Inserts a batch of <see cref="AnimeGroup_User"/> into the database.
+        /// </summary>
+        /// <remarks>
+        /// <para>It is up to the caller of this method to manage transactions, etc.</para>
+        /// <para>Group Filters, etc. will not be updated by this method.</para>
+        /// </remarks>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="groupUsers">The batch of <see cref="AnimeGroup_User"/> to insert into the database.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
+        public void UpdateBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (groupUsers == null)
+                throw new ArgumentNullException(nameof(groupUsers));
+
+            foreach (AnimeGroup_User groupUser in groupUsers)
+            {
+                session.Update(groupUser);
+
+                ChangeTracker<int> changeTracker;
+
+                if (!Changes.TryGetValue(groupUser.JMMUserID, out changeTracker))
+                {
+                    changeTracker = new ChangeTracker<int>();
+                    Changes[groupUser.JMMUserID] = changeTracker;
+                }
+
+                changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
+            }
+        }
+
         public AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
         {
             return UsersGroups.GetOne(userid, groupid);

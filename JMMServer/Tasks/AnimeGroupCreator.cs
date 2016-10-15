@@ -149,13 +149,19 @@ namespace JMMServer.Tasks
 
             _log.Info("Creating AnimeGroup_Users and updating plex/kodi contracts");
 
-            // The reason we're doing this in parallel is because updating contacts does a reasonable amount of work (including LZ4 compression)
-            Parallel.ForEach(allCreatedGroupUsers.SelectMany(groupUsers => groupUsers), groupUser =>
-                {
-                    groupUser.UpdatePlexKodiContracts();
-                });
+            List<AnimeGroup_User> animeGroupUsers = allCreatedGroupUsers.SelectMany(groupUsers => groupUsers).ToList();
 
-            _animeGroupUserRepo.InsertBatch(session, allCreatedGroupUsers.SelectMany(groupUsers => groupUsers));
+            // Insert the AnimeGroup_Users so that they get assigned a primary key before we update plex/kodi contracts
+            _animeGroupUserRepo.InsertBatch(session, animeGroupUsers);
+            // We need to repopulate caches for AnimeGroup_User and AnimeGroup because we've updated/inserted them
+            // and they need to be up to date for the plex/kodi contract updating to work correctly
+            _animeGroupUserRepo.Populate(session, displayname: false);
+            _animeGroupRepo.Populate(session, displayname: false);
+
+            // The reason we're doing this in parallel is because updating contacts does a reasonable amount of work (including LZ4 compression)
+            Parallel.ForEach(animeGroupUsers, groupUser => groupUser.UpdatePlexKodiContracts());
+
+            _animeGroupUserRepo.UpdateBatch(session, animeGroupUsers);
             _log.Info("AnimeGroup_Users have been created");
         }
 
@@ -258,7 +264,7 @@ namespace JMMServer.Tasks
             _log.Info("Auto-generating AnimeGroups for {0} AnimeSeries based on aniDB relationships", seriesList.Count);
 
             DateTime now = DateTime.Now;
-            var grpCalculator = AutoAnimeGroupCalculator.Create(session);
+            var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings(session);
 
             _log.Info("The following exclusions will be applied when generating the groups: " + grpCalculator.Exclusions);
 
@@ -339,7 +345,7 @@ namespace JMMServer.Tasks
 
             if (_autoGroupSeries)
             {
-                var grpCalculator = AutoAnimeGroupCalculator.Create(session);
+                var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings(session);
                 IReadOnlyList<int> grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(series.AniDB_ID);
                 // Try to find an existing AnimeGroup to add the series to
                 // We basically pick the first group that any of the related series belongs to already
@@ -417,8 +423,8 @@ namespace JMMServer.Tasks
                 }
 
                 // We need groups and series cached for updating of AnimeGroup contracts to work
-                _animeGroupRepo.Populate(session);
-                _animeSeriesRepo.Populate(session);
+                _animeGroupRepo.Populate(session, displayname: false);
+                _animeSeriesRepo.Populate(session, displayname: false);
 
                 using (ITransaction trans = session.BeginTransaction())
                 {
@@ -428,9 +434,9 @@ namespace JMMServer.Tasks
 
                 // We need to update the AnimeGroups cache again now that the contracts have been saved
                 // (Otherwise updating Group Filters won't get the correct results)
-                _animeGroupRepo.Populate(session);
-                _animeGroupUserRepo.Populate(session);
-                _groupFilterRepo.Populate(session);
+                _animeGroupRepo.Populate(session, displayname: false);
+                _animeGroupUserRepo.Populate(session, displayname: false);
+                _groupFilterRepo.Populate(session, displayname: false);
 
                 using (ITransaction trans = session.BeginTransaction())
                 {

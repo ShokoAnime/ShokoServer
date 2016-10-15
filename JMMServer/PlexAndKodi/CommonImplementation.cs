@@ -1130,7 +1130,8 @@ namespace JMMServer.PlexAndKodi
                     Dictionary<Contract_AnimeGroup, Video> order = new Dictionary<Contract_AnimeGroup, Video>();
                     if (gf.GroupsIds.ContainsKey(userid))
                     {
-                        foreach (AnimeGroup grp in gf.GroupsIds[userid].Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
+                        // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
+                        foreach (AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
                         {
                             Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
                             if (v != null)

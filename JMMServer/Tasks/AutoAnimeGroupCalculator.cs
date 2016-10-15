@@ -28,11 +28,13 @@ namespace JMMServer.Tasks
         /// </summary>
         /// <param name="relationMap">A <see cref="ILookup{TKey,TElement}"/> that maps anime IDs to their relations.</param>
         /// <param name="exclusions">The relation/anime types to ignore when building relation graphs.</param>
+        /// <param name="relationsToFuzzyTitleTest">The relationships for which we'll perform title similarity checks for
+        /// (If the titles aren't similar enough then the anime will end up in different groups).</param>
+        /// <param name="mainAnimeSelectionStrategy">The strategy to use for selecting the "main" anime that will be used
+        /// for representing the group.</param>
         /// <exception cref="ArgumentNullException"><paramref name="relationMap"/> is <c>null</c>.</exception>
-        public AutoAnimeGroupCalculator(ILookup<int, AnimeRelation> relationMap,
-            AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character,
-            AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations,
-            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
+        public AutoAnimeGroupCalculator(ILookup<int, AnimeRelation> relationMap, AutoGroupExclude exclusions,
+            AnimeRelationType relationsToFuzzyTitleTest, MainAnimeSelectionStrategy mainAnimeSelectionStrategy)
         {
             if (relationMap == null)
                 throw new ArgumentNullException(nameof(relationMap));
@@ -41,18 +43,12 @@ namespace JMMServer.Tasks
             _exclusions = exclusions;
             _relationsToFuzzyTitleTest = relationsToFuzzyTitleTest;
 
-			if(!ServerSettings.AutoGroupSeriesRelationExclusions.Split('|').Any(a => 
-					a.Equals("AllowDissimilarTitleExclusion", StringComparison.OrdinalIgnoreCase)))
-			{
-				_relationsToFuzzyTitleTest = AnimeRelationType.None;
-			}
-
-            switch (ServerSettings.AutoGroupSeriesUseScoreAlgorithm)
+            switch (mainAnimeSelectionStrategy)
             {
-                case false:
+                case MainAnimeSelectionStrategy.MinAirDate:
                     _mainAnimeSelector = FindSuitableAnimeByMinAirDate;
                     break;
-                case true:
+                case MainAnimeSelectionStrategy.Weighted:
                     _mainAnimeSelector = FindSuitableAnimeByWeighting;
                     break;
             }
@@ -64,14 +60,23 @@ namespace JMMServer.Tasks
         /// <param name="session">The NHibernate session.</param>
         /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-        public static AutoAnimeGroupCalculator Create(ISessionWrapper session)
+        public static AutoAnimeGroupCalculator CreateFromServerSettings(ISessionWrapper session)
         {
-            AutoGroupExclude exclusions = AutoGroupExclude.None;
             string exclusionsSetting = ServerSettings.AutoGroupSeriesRelationExclusions;
+            AutoGroupExclude exclusions = AutoGroupExclude.None;
+            AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.None;
+            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = ServerSettings.AutoGroupSeriesUseScoreAlgorithm ?
+                MainAnimeSelectionStrategy.Weighted : MainAnimeSelectionStrategy.MinAirDate;
 
             if (!String.IsNullOrEmpty(exclusionsSetting))
             {
-                exclusions = exclusionsSetting.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
+                var exclusionTokens = exclusionsSetting
+                    .Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Where(s => s.Length > 0)
+                    .ToList();
+
+                exclusions = exclusionTokens
                     .Select(s =>
                         {
                             AutoGroupExclude exclude;
@@ -82,9 +87,14 @@ namespace JMMServer.Tasks
                             return exclude;
                         })
                     .Aggregate(AutoGroupExclude.None, (exclude, allExcludes) => allExcludes | exclude);
+
+                if (exclusionTokens.Contains("AllowDissimilarTitleExclusion", StringComparer.OrdinalIgnoreCase))
+                {
+                    relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations;
+                }
             }
 
-            return Create(session, exclusions);
+            return Create(session, exclusions, relationsToFuzzyTitleTest, mainAnimeSelectionStrategy);
         }
 
         /// <summary>
@@ -92,9 +102,16 @@ namespace JMMServer.Tasks
         /// </summary>
         /// <param name="session">The NHibernate session.</param>
         /// <param name="exclusions">The relation/anime types to ignore when building relation graphs.</param>
+        /// <param name="relationsToFuzzyTitleTest">The relationships for which we'll perform title similarity checks for
+        /// (If the titles aren't similar enough then the anime will end up in different groups).</param>
+        /// <param name="mainAnimeSelectionStrategy">The strategy to use for selecting the "main" anime that will be used
+        /// for representing the group.</param>
         /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-        public static AutoAnimeGroupCalculator Create(ISessionWrapper session, AutoGroupExclude exclusions)
+        public static AutoAnimeGroupCalculator Create(ISessionWrapper session,
+            AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character,
+            AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations,
+            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -179,7 +196,7 @@ namespace JMMServer.Tasks
                     })
                 .ToLookup(k => k.FromId);
 
-            return new AutoAnimeGroupCalculator(relationshipMap, exclusions);
+            return new AutoAnimeGroupCalculator(relationshipMap, exclusions, relationsToFuzzyTitleTest, mainAnimeSelectionStrategy);
         }
 
         /// <summary>
