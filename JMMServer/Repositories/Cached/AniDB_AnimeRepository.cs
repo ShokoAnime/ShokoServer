@@ -44,6 +44,8 @@ namespace JMMServer.Repositories
                 int max = animeToUpdate.Count;
                 int count = 0;
 
+                ServerState.Instance.CurrentSetupStatus = string.Format(Properties.Resources.Database_Cache, typeof(AniDB_Anime).Name, " DbRegen");
+	            if (max <= 0) return;
                 foreach (AniDB_Anime[] animeBatch in animeToUpdate.Batch(batchSize))
                 {
                     AniDB_Anime.UpdateContractDetailedBatch(sessionWrapper, animeBatch);

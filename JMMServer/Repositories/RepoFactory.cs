@@ -141,15 +141,15 @@ namespace JMMServer.Repositories
             VideoLocalPlace.RegenerateDb();
             VideoLocal.RegenerateDb();
             VideoLocalUser.RegenerateDb();
-            GroupFilter.RegenerateDb();
             AnimeEpisode.RegenerateDb();
             AnimeEpisode_User.RegenerateDb();
             AnimeSeries.RegenerateDb();
             AnimeSeries_User.RegenerateDb();
             AnimeGroup.RegenerateDb();
             AnimeGroup_User.RegenerateDb();
-            
-            GroupFilter.PostProcess();
+
+	        GroupFilter.RegenerateDb();
+	        GroupFilter.PostProcess();
             CleanUpMemory();
         }
 
