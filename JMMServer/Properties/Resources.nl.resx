@@ -1150,4 +1150,13 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="InitialSetup_LoginFail" xml:space="preserve">
     <value>AniDB Aanmelden mislukt !!</value>
   </data>
+  <data name="Actions_SyncMedias" xml:space="preserve">
+    <value>Sync Media info!</value>
+  </data>
+  <data name="Server_SyncMediasRunning" xml:space="preserve">
+    <value>Media info synchroniseren met de WebCache uitgevoerd!</value>
+  </data>
+  <data name="Command_CheckingFile" xml:space="preserve">
+    <value>Controleren van bestand hashes: {0}!</value>
+  </data>
 </root>

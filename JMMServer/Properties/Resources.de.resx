@@ -1150,4 +1150,13 @@ Du kannst nur einen Ordner aufgeführt als Drop-Ziel haben.</value>
   <data name="InitialSetup_LoginFail" xml:space="preserve">
     <value>AniDB Anmeldung fehlgeschlagen !!</value>
   </data>
+  <data name="Actions_SyncMedias" xml:space="preserve">
+    <value>Sync-Medien-Infos!</value>
+  </data>
+  <data name="Server_SyncMediasRunning" xml:space="preserve">
+    <value>Synchronisieren von Medien-Infos mit den WebCache laufen!</value>
+  </data>
+  <data name="Command_CheckingFile" xml:space="preserve">
+    <value>Hashes Datei gesucht: {0}!</value>
+  </data>
 </root>

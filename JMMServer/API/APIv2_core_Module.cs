@@ -214,37 +214,37 @@ namespace JMMServer.API
         /// <returns></returns>
         private object AddFolder()
         {
-            Contract_ImportFolder folder = this.Bind();
-            folder.ImportFolderID = 0;
-            if (folder.ImportFolderLocation != "")
+            try
             {
-                try
+                Contract_ImportFolder folder = this.Bind();
+                if (folder.ImportFolderLocation != "")
                 {
-                    if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
-                    {
-                        return new APIMessage(400, "Bad Request: The Folder Can't be both Destination and Source Simultaneously");
-                    }
-                    else
+                    try
                     {
                         Contract_ImportFolder_SaveResponse response = new JMMServiceImplementation().SaveImportFolder(folder);
 
-                        // This shouldn't be needed now, but idk
-                        if (!string.IsNullOrEmpty(response.ErrorMessage))
+                        if (string.IsNullOrEmpty(response.ErrorMessage))
+                        {
+                            return APIStatus.statusOK();
+                        }
+                        else
                         {
                             return new APIMessage(500, response.ErrorMessage);
                         }
-
-                        return APIStatus.statusOK();
+                    }
+                    catch
+                    {
+                        return APIStatus.internalError();
                     }
                 }
-                catch
+                else
                 {
-                    return APIStatus.internalError();
+                    return new APIMessage(400, "Bad Request: The Folder path must not be Empty");
                 }
             }
-            else
+            catch (ModelBindingException)
             {
-                return new APIMessage(400, "Bad Request: The Folder path must not be Empty");
+                return new APIMessage(400, "Bad binding");
             }
         }
 

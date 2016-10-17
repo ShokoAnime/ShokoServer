@@ -1150,4 +1150,13 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="InitialSetup_LoginFail" xml:space="preserve">
     <value>AniDB Accesso non riuscito !!</value>
   </data>
+  <data name="Actions_SyncMedias" xml:space="preserve">
+    <value>Sincronizzazione Media Infos!</value>
+  </data>
+  <data name="Server_SyncMediasRunning" xml:space="preserve">
+    <value>Sincronizzazione di Media Infos con la WebCache in esecuzione!</value>
+  </data>
+  <data name="Command_CheckingFile" xml:space="preserve">
+    <value>Controllo File per hash: {0}!</value>
+  </data>
 </root>

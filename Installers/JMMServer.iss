@@ -47,8 +47,6 @@ Source: "..\JMMServer\bin\Release\JMMServer.exe"; DestDir: "{app}"; Flags: ignor
 Source: "..\JMMServer\bin\Release\JMMServer.exe.config"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
 Source: "..\JMMServer\bin\Release\JMMServer.pdb"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\JMMServer.vshost.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\JMMServer.vshost.exe.config"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\JMMServer.vshost.exe.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.ConnectionInfo.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.ConnectionInfoExtended.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.Management.Sdk.Sfc.dll"; DestDir: "{app}"; Flags: ignoreversion

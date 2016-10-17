@@ -50,6 +50,8 @@ namespace JMMServer.Repositories
         {
             int cnt = 0;
             int max = collection.Count;
+	        ServerState.Instance.CurrentSetupStatus = string.Format(Properties.Resources.Database_Cache, typeof(T).Name, " DbRegen");
+	        if (max <= 0) return;
             foreach (T g in collection)
             {
                 try

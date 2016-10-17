@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Web;
 using JMMServer.Entities;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
+using Newtonsoft.Json;
 using NLog;
 
 namespace JMMServer.Providers.Azure
@@ -960,10 +962,78 @@ namespace JMMServer.Providers.Azure
             msg = string.Format("Got File Hash From Cache: {0} - {1}", hashDetails, ts.TotalMilliseconds);
             JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
-            List<FileHash> hashes = JSONHelper.Deserialize<List<FileHash>>(json) ?? new List<FileHash>();
+            List<FileHash> hashes = JsonConvert.DeserializeObject<List<FileHash>>(json) ?? new List<FileHash>();
             return hashes;
         }
 
         #endregion
+
+        #region Media
+
+        public static void Send_Media(List<VideoLocal> locals)
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            string uri = string.Format(@"http://{0}/api/Media", azureHostBaseAddress);
+
+            List<MediaInput> inputs = new List<MediaInput>();
+            // send a max of 25 at a time
+            // send a max of 25 at a time
+            foreach (VideoLocal v in locals.Where(a=>a.MediaBlob!=null && a.MediaBlob.Length>0 && a.MediaVersion==VideoLocal.MEDIA_VERSION && !string.IsNullOrEmpty(a.ED2KHash)))
+            {
+                MediaInput input = new MediaInput(v);
+                if (inputs.Count < 25)
+                    inputs.Add(input);
+                else
+                {
+                    string json = JsonConvert.SerializeObject(inputs);
+                    //json = Newtonsoft.Json.JsonConvert.SerializeObject(inputs);
+                    SendData(uri, json, "POST");
+                    inputs.Clear();
+                }
+            }
+
+            if (inputs.Count > 0)
+            {
+                string json = JsonConvert.SerializeObject(inputs);
+                SendData(uri, json, "POST");
+            }
+
+        }
+        public static void Send_Media(string ed2k, JMMContracts.PlexAndKodi.Media media)
+        {
+            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+
+            string uri = string.Format(@"http://{0}/api/Media", azureHostBaseAddress);
+
+            List<MediaInput> inputs = new List<MediaInput>();
+            MediaInput input = new MediaInput(ed2k, media);
+            inputs.Add(input);
+            string json = JsonConvert.SerializeObject(inputs);
+            SendData(uri, json, "POST");
+
+        }
+        public static List<Media> Get_Media(string ed2k)
+        {
+
+            string uri = string.Format(@"http://{0}/api/Media/{1}/{2}", azureHostBaseAddress, ed2k,VideoLocal.MEDIA_VERSION);
+            string msg = string.Format("Getting Media Info From Cache for ED2K: {0} Version : {1}", ed2k,VideoLocal.MEDIA_VERSION);
+
+            DateTime start = DateTime.Now;
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+
+            string json = GetDataJson(uri);
+
+            TimeSpan ts = DateTime.Now - start;
+            msg = string.Format("Getting Media Info From Cache for ED2K: {0} - {1}", ed2k, ts.TotalMilliseconds);
+            JMMService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+
+            List<Media> medias = JsonConvert.DeserializeObject<List<Media>>(json) ?? new List<Media>();
+            
+            return medias;
+        }
+        #endregion
     }
+
+
 }

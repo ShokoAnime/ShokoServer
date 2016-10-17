@@ -130,6 +130,12 @@ namespace JMMServer
             }
         }
 
+        public static void SyncMedia()
+        {
+            List<VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
+            AzureWebAPI.Send_Media(allfiles);
+        }
+
         public static void SyncHashes()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

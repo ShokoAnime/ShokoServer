@@ -14,7 +14,7 @@ namespace JMMServer.Commands
         SyncTraktEpisodes, SyncTraktSeries, SyncVotes, TraktAddHistory, UpdateMALWatched, UpdateMyListInfo, UpdateMyListStats, UpdateTrakt, UpdateTraktData, UploadMALWatched,
         VoteAnime, WebCacheDeleteXRefAniDBMAL, WebCacheDeleteXRefAniDBOther, WebCacheDeleteXRefAniDBTrakt, WebCacheDeleteXRefAniDBTvDB, WebCacheDeleteXRefFileEpisode, WebCacheSendXRefAniDBMAL,
         WebCacheSendXRefAniDBOther, WebCacheSendXRefAniDBTrakt, WebCacheSendXRefAniDBTvDB, WebCacheSendXRefFileEpisode, AniDB_MyListAdd, AniDB_MyListDelete, AniDB_GetTitles, Actions_SyncVotes,
-        LinkAniDBTvDB
+        LinkAniDBTvDB, CheckingFile
     };
 
     public struct QueueStateStruct
@@ -59,7 +59,9 @@ namespace JMMServer.Commands
                     return JMMServer.Properties.Resources.Command_GetUpdatedAnime;
                 case QueueStateEnum.HashingFile:
                     return JMMServer.Properties.Resources.Command_HashingFile;
-                case QueueStateEnum.Idle:
+	            case QueueStateEnum.CheckingFile:
+		            return JMMServer.Properties.Resources.Command_CheckingFile;
+	            case QueueStateEnum.Idle:
                     return JMMServer.Properties.Resources.Command_Idle;
                 case QueueStateEnum.Paused:
                     return JMMServer.Properties.Resources.Command_Paused;

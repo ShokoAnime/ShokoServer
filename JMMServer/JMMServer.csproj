@@ -555,6 +555,8 @@
     <Compile Include="Providers\Azure\Azure_UserInfo.cs" />
     <Compile Include="Providers\Azure\FileHash.cs" />
     <Compile Include="Providers\Azure\FileHashInput.cs" />
+    <Compile Include="Providers\Azure\Media.cs" />
+    <Compile Include="Providers\Azure\MediaInput.cs" />
     <Compile Include="Providers\JMMAutoUpdates\JMMAutoUpdatesHelper.cs" />
     <Compile Include="Providers\JMMAutoUpdates\JMMVersions.cs" />
     <Compile Include="Providers\JMMAutoUpdates\Update.cs" />

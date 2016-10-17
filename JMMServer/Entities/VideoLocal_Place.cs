@@ -10,10 +10,12 @@ using JMMContracts.PlexAndKodi;
 using JMMServer.FileHelper;
 using JMMServer.FileHelper.MediaInfo;
 using JMMServer.FileHelper.Subtitles;
+using JMMServer.Providers.Azure;
 using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using NLog;
 using NutzCode.CloudFileSystem;
+using Media = JMMContracts.PlexAndKodi.Media;
 using Stream = System.IO.Stream;
 
 namespace JMMServer.Entities
@@ -110,12 +112,26 @@ namespace JMMServer.Entities
             try
             {
                 logger.Trace($"Getting media info for: {FullServerPath}");
+                Media m=null;
+                List<Providers.Azure.Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
+                if (webmedias != null && webmedias.Count > 0)
+                {
+                    m = webmedias[0].GetMedia();
+                }
+                if (m == null)
+                {
 
-                string name = (ImportFolder.CloudID == null) ? FullServerPath.Replace("/", "\\") : PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(0, VideoLocalID.ToString(), "file", false));
+                    string name = (ImportFolder.CloudID == null)
+                        ? FullServerPath.Replace("/", "\\")
+                        : PlexAndKodi.Helper.ReplaceSchemeHost(PlexAndKodi.Helper.ConstructVideoLocalStream(0,
+                            VideoLocalID.ToString(), "file", false));
+                    m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http
+                    if (string.IsNullOrEmpty(m.Duration))
+                        m = null;
+                    if (m != null)
+                        AzureWebAPI.Send_Media(VideoLocal.ED2KHash, m);
+                }
 
-                Media m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http
-                if (string.IsNullOrEmpty(m.Duration))
-                    m = null;
 
                 if (m != null)
                 {

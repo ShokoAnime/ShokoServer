@@ -66,7 +66,9 @@ namespace JMMServer.Repositories.Cached
                     a => a.ContractVersion < AnimeSeries.CONTRACT_VERSION || a.Contract?.AniDBAnime?.AniDBAnime == null)
                     .ToList();
             int max = sers.Count;
-            foreach (AnimeSeries s in sers)
+	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeSeries).Name, " DbRegen");
+	        if (max <= 0) return;
+	        foreach (AnimeSeries s in sers)
             {
                 Save(s, false, false, true);
                 cnt++;

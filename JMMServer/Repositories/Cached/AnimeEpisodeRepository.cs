@@ -44,18 +44,18 @@ namespace JMMServer.Repositories.Cached
             List<AnimeEpisode> grps =
                 Cache.Values.Where(a => a.PlexContractVersion < AnimeEpisode.PLEXCONTRACT_VERSION).ToList();
             int max = grps.Count;
-            foreach (AnimeEpisode g in grps)
+	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name, " DbRegen");
+	        if (max <= 0) return;
+	        foreach (AnimeEpisode g in grps)
             {
                 Save(g);
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name,
-                        " DbRegen - " + cnt + "/" + max);
+                    ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name, " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name,
-                " DbRegen - " + max + "/" + max);
+            ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeEpisode).Name, " DbRegen - " + max + "/" + max);
         }
 
 

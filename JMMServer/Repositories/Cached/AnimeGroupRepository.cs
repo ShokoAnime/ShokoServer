@@ -61,7 +61,9 @@ namespace JMMServer.Repositories.Cached
             List<AnimeGroup> grps = Cache.Values.Where(a => a.ContractVersion < AnimeGroup.CONTRACT_VERSION).ToList();
             int max = grps.Count;
             int cnt = 0;
-            foreach (AnimeGroup g in grps)
+	        ServerState.Instance.CurrentSetupStatus = string.Format(JMMServer.Properties.Resources.Database_Cache, typeof(AnimeGroup).Name, " DbRegen");
+	        if (max <= 0) return;
+	        foreach (AnimeGroup g in grps)
             {
                 Save(g, true, false, false);
                 cnt++;
