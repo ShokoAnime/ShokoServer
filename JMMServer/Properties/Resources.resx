@@ -1205,4 +1205,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Integerity_ReaddSingleMessage" xml:space="preserve">
     <value>You cannot re-add a file when the Integrity Check is running.</value>
   </data>
+  <data name="Command_CheckingFile" xml:space="preserve">
+    <value>Checking File for Hashes: {0}</value>
+  </data>
 </root>

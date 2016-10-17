@@ -1150,4 +1150,13 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="InitialSetup_LoginFail" xml:space="preserve">
     <value>AniDB Logowanie nie powiodło się !!</value>
   </data>
+  <data name="Actions_SyncMedias" xml:space="preserve">
+    <value>Sync Media Infos!</value>
+  </data>
+  <data name="Server_SyncMediasRunning" xml:space="preserve">
+    <value>Synchronizowanie Media Infos z WebCache uruchomiona!</value>
+  </data>
+  <data name="Command_CheckingFile" xml:space="preserve">
+    <value>Sprawdzanie pliku skrótów: {0}!</value>
+  </data>
 </root>

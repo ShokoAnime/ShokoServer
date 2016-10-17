@@ -34,11 +34,21 @@ namespace JMMServer.Commands
         {
             get
             {
-                return new QueueStateStruct() { queueState = QueueStateEnum.HashingFile, extraParams = new string[] { FileName }  };
+	            // return Checking File by default and change it later if we actually hash
+                return new QueueStateStruct() { queueState = QueueStateEnum.CheckingFile, extraParams = new string[] { FileName }  };
             }
         }
 
-        public CommandRequest_HashFile()
+	    public QueueStateStruct PrettyDescriptionHashing
+	    {
+		    get
+		    {
+			    // return Checking File by default and change it later if we actually hash
+			    return new QueueStateStruct() { queueState = QueueStateEnum.HashingFile, extraParams = new string[] { FileName }  };
+		    }
+	    }
+
+	    public CommandRequest_HashFile()
         {
         }
 
@@ -232,23 +242,7 @@ namespace JMMServer.Commands
                     return vlocalplace;
                 }
                 // hash the file
-                if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
-                {
-                    DateTime start = DateTime.Now;
-                    logger.Trace("Calculating ED2K hashes for: {0}", FileName);
-                    // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                    hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, MainWindow.OnHashProgress,
-                        false, false, false);
-                    TimeSpan ts = DateTime.Now - start;
-                    logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"), FileName,
-                        Utils.FormatByteSize(vlocal.FileSize));
-                    vlocal.Hash = hashes.ed2k?.ToUpperInvariant();
-                    vlocal.CRC32 = hashes.crc32?.ToUpperInvariant();
-                    vlocal.MD5 = hashes.md5?.ToUpperInvariant();
-                    vlocal.SHA1 = hashes.sha1?.ToUpperInvariant();
-                    vlocal.HashSource = (int) HashSource.DirectHash;
-                }
-                FillMissingHashes(vlocal);
+                FillMissingHashes(vlocal, ForceHash);
                 // We should have a hash by now
                 // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
 
@@ -350,18 +344,21 @@ namespace JMMServer.Commands
             return vlocalplace;
         }
 
-        private void FillMissingHashes(VideoLocal vlocal)
+        private void FillMissingHashes(VideoLocal vlocal, bool forceAll = false)
         {
             bool needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
             bool needmd5 = string.IsNullOrEmpty(vlocal.MD5);
             bool needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
-            if (needcrc32 || needmd5 || needsha1)
+	        // If we are forcing a regen, we don't need to fill them from the db
+            if (!forceAll && (needcrc32 || needmd5 || needsha1))
                 FillVideoHashes(vlocal);
             needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
             needmd5 = string.IsNullOrEmpty(vlocal.MD5);
             needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
+	        if (forceAll) needcrc32 = needmd5 = needsha1 = true;
             if (needcrc32 || needmd5 || needsha1)
             {
+	            JMMService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
                 DateTime start = DateTime.Now;
                 List<string> tp = new List<string>();
                 if (needsha1)
@@ -370,7 +367,7 @@ namespace JMMServer.Commands
                     tp.Add("MD5");
                 if (needcrc32)
                     tp.Add("CRC32");
-                logger.Trace("Calculating missing {1} hashes for: {0}", FileName, string.Join(",", tp));
+                logger.Trace("Calculating {1} hashes for: {0}", FileName, string.Join(",", tp));
                 // update the VideoLocal record with the Hash, since cloud support we calculate everything
                 Hashes hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", "\\"), true, MainWindow.OnHashProgress,
                     needcrc32, needmd5, needsha1);
@@ -383,7 +380,8 @@ namespace JMMServer.Commands
                     vlocal.MD5 = hashes.md5?.ToUpperInvariant();
                 if (needcrc32)
                     vlocal.CRC32 = hashes.crc32?.ToUpperInvariant();
-                AzureWebAPI.Send_FileHash(new List<VideoLocal> { vlocal });
+	            if (forceAll) vlocal.HashSource = (int) HashSource.DirectHash;
+	            AzureWebAPI.Send_FileHash(new List<VideoLocal> { vlocal });
             }
         }
 

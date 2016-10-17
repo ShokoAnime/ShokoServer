@@ -1150,4 +1150,13 @@
   <data name="InitialSetup_LoginFail" xml:space="preserve">
     <value>AniDB início de sessão falhou !!</value>
   </data>
+  <data name="Actions_SyncMedias" xml:space="preserve">
+    <value>Sincronização mídia Infos!</value>
+  </data>
+  <data name="Server_SyncMediasRunning" xml:space="preserve">
+    <value>Infos de mídia sincronizando com do WebCache correndo!</value>
+  </data>
+  <data name="Command_CheckingFile" xml:space="preserve">
+    <value>Verificando o arquivo para Hashes: {0}!</value>
+  </data>
 </root>

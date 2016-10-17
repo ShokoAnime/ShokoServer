@@ -548,6 +548,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Checking File for Hashes: {0}.
+        /// </summary>
+        public static string Command_CheckingFile {
+            get {
+                return ResourceManager.GetString("Command_CheckingFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error deleting image: ({0}) - {1}.
         /// </summary>
         public static string Command_DeleteError {

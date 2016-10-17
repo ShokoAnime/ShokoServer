@@ -1150,4 +1150,13 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="InitialSetup_LoginFail" xml:space="preserve">
     <value>AniDB login failed !!</value>
   </data>
+  <data name="Actions_SyncMedias" xml:space="preserve">
+    <value>Infos de Media Sync !</value>
+  </data>
+  <data name="Server_SyncMediasRunning" xml:space="preserve">
+    <value>Synchronisation de médias d’Infos avec la WebCache en cours d’exécution !</value>
+  </data>
+  <data name="Command_CheckingFile" xml:space="preserve">
+    <value>Recherchant les hachages de fichier : {0} !</value>
+  </data>
 </root>
