@@ -981,7 +981,7 @@ namespace JMMServer.PlexAndKodi
                 p.LeafCount = anime.EpisodeCount.ToString();
                 //p.ChildCount = p.LeafCount;
                 p.ViewedLeafCount = ser.WatchedEpisodeCount.ToString();
-                p.Rating = (anime.Rating/100F).ToString(CultureInfo.InvariantCulture);
+                p.Rating = "" + Math.Round((double) (anime.Rating / 100), 1);
                 List<Contract_CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
                 if (ls != null && ls.Count > 0)
                 {
