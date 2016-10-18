@@ -1,12 +1,9 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using Nancy;
 using JMMServer.PlexAndKodi;
 using JMMServer.PlexAndKodi.Plex;
 using JMMServer.PlexAndKodi.Kodi;
 using JMMContracts.PlexAndKodi;
-using Nancy.Security;
-using JMMServer.API;
 using JMMServer.API.Model;
 using Stream = System.IO.Stream;
 
@@ -16,9 +13,7 @@ namespace JMMServer.API
     public class APIv1_Legacy_Module : Nancy.NancyModule
     {
         public APIv1_Legacy_Module() : base("/")
-        {
-            //this.RequiresAuthentication();
-
+        { 
             // KodiImplementation
             Get["/JMMServerKodi/GetSupportImage/{name}"] = parameter => { return GetSupportImageRest(parameter.name); };
             Get["/JMMServerKodi/GetFilters/{uid}"] = parameter => { return GetFilters_Kodi(parameter.uid); };
@@ -243,9 +238,9 @@ namespace JMMServer.API
         /// Plex: Return Users with ErrorString and List os users inside System
         /// </summary>
         /// <returns></returns>
-        private PlexContract_Users GetUsers_Plex()
+        private object GetUsers_Plex()
         {
-            return _impl.GetUsers(_prov_plex);
+            return Response.AsXml<PlexContract_Users>(_impl.GetUsers(_prov_plex));
         }
 
         /// <summary>
