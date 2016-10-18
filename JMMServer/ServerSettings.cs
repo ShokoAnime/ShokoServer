@@ -63,7 +63,12 @@ namespace JMMServer
 
         public static string DefaultImagePath => Path.Combine(ApplicationPath, "images");
 
-        public static void LoadSettings()
+        /// <summary>
+        /// Load setting from custom file - ex. read setting from backup
+        /// </summary>
+        /// <param name="tmp_setting_file">path to json setting file</param>
+        /// <param name="delete_tmp_file">do you want delete file after being successful readed</param>
+        public static void LoadSettingsFromFile(string tmp_setting_file, bool delete_tmp_file)
         {
             try
             {
@@ -99,14 +104,26 @@ namespace JMMServer
                         From = Path.Combine(programlocation, "logs"), To = Path.Combine(ApplicationPath,"logs")
                     },
                 };
+
                 string path = Path.Combine(ApplicationPath, "settings.json");
+                if (tmp_setting_file != "")
+                {
+                    path = tmp_setting_file;
+                }
                 if (File.Exists(path))
+                {
                     appSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
+                    if (delete_tmp_file)
+                    {
+                        File.Delete(tmp_setting_file);
+                    }
+                }
                 else
                 {
                     NameValueCollection col = ConfigurationManager.AppSettings;
                     appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
                 }
+
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
                 if (BaseImagesPathIsDefault || !Directory.Exists(BaseImagesPath))
                 {
@@ -214,6 +231,16 @@ namespace JMMServer
                 Application.Current.Shutdown();
                 return;
             }           
+        }
+
+        public static void LoadSettingsFromFile(string setting_file)
+        {
+            LoadSettingsFromFile(setting_file, false);
+        }
+
+        public static void LoadSettings()
+        {
+            LoadSettingsFromFile("", false);
         }
 
         private static void MigrationIndicatorForm()

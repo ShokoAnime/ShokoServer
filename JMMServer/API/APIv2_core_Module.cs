@@ -47,10 +47,12 @@ namespace JMMServer.API
             Post["/upnp/delete"] = x => { return DeleteUPNP(); };
 
             // 3. Settings
-            Post["/port/set"] = _ => { return SetPort(); };
-            Get["/port/get"] = _ => { return GetPort(); };
-            Post["/imagepath/set"] = _ => { return SetImagepath(); };
-            Get["/imagepath/get"] = _ => { return GetImagepath(); };
+            Post["/config/port/set"] = _ => { return SetPort(); };
+            Get["/config/port/get"] = _ => { return GetPort(); };
+            Post["/config/imagepath/set"] = _ => { return SetImagepath(); };
+            Get["/config/imagepath/get"] = _ => { return GetImagepath(); };
+            Get["/config/export"] = _ => { return ExportConfig(); };
+            Post["/config/import"] = _ => { return ImportConfig(); };
 
             // 4. AniDB
             Post["/anidb/set"] = _ => { return SetAniDB(); };
@@ -431,6 +433,40 @@ namespace JMMServer.API
             imagepath.path = ServerSettings.ImagesPath;
             imagepath.isdefault = ServerSettings.ImagesPath == ServerSettings.DefaultImagePath;
             return imagepath;
+        }
+
+        /// <summary>
+        /// Return body of current working settings.json - this could act as backup
+        /// </summary>
+        /// <returns></returns>
+        private object ExportConfig()
+        {
+            try
+            {
+                Contract_ServerSettings settings = ServerSettings.ToContract();
+                return settings;
+            }
+            catch
+            {
+                return APIStatus.internalError("Error while parsing file");
+            }
+        }
+
+        private object ImportConfig()
+        {
+            Contract_ServerSettings settings = this.Bind();
+            string raw_settings = settings.ToJSON();
+            string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
+            File.WriteAllText(path, raw_settings, System.Text.Encoding.UTF8);
+            try
+            {
+                ServerSettings.LoadSettingsFromFile(path, true);
+                return APIStatus.statusOK();
+            }
+            catch
+            {
+                return APIStatus.internalError("Error while importing settings");
+            }
         }
 
         #endregion
