@@ -842,6 +842,7 @@
     <Compile Include="ServerSettings.cs" />
     <Compile Include="ServerState.cs" />
     <Compile Include="SubStream.cs" />
+    <Compile Include="Tasks\ContractExtractor.cs" />
     <Compile Include="TimeUpdater.cs" />
     <Compile Include="UI\AboutForm.xaml.cs">
       <DependentUpon>AboutForm.xaml</DependentUpon>

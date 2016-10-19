@@ -131,7 +131,7 @@ namespace JMMServer.Repositories.Cached
             }
         }
 
-        public void InsertBatch(ISessionWrapper session, IEnumerable<AnimeGroup> groups)
+        public void InsertBatch(ISessionWrapper session, IReadOnlyCollection<AnimeGroup> groups)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -141,11 +141,12 @@ namespace JMMServer.Repositories.Cached
             foreach (AnimeGroup group in groups)
             {
                 session.Insert(group);
-                Changes.AddOrUpdate(group.AnimeGroupID);
             }
+
+            Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
-        public void UpdateBatch(ISessionWrapper session, IEnumerable<AnimeGroup> groups)
+        public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<AnimeGroup> groups)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -155,20 +156,64 @@ namespace JMMServer.Repositories.Cached
             foreach (AnimeGroup group in groups)
             {
                 session.Update(group);
-                Changes.AddOrUpdate(group.AnimeGroupID);
             }
+
+            Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
+        /// <summary>
+        /// Deletes all AnimeGroup records.
+        /// </summary>
+        /// <remarks>
+        /// This method also makes sure that the cache is cleared.
+        /// </remarks>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="excludeGroupId">The ID of the AnimeGroup to exclude from deletion.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
+        public void DeleteAll(ISessionWrapper session, int? excludeGroupId = null)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+
+            // First, get all of the current groups so that we can inform the change tracker that they have been removed later
+            var allGrps = GetAll();
+
+            // Then, actually delete the AnimeGroups
+            if (excludeGroupId != null)
+            {
+                session.CreateQuery("delete AnimeGroup ag where ag.id <> :excludeId")
+                    .SetInt32("excludeId", excludeGroupId.Value)
+                    .ExecuteUpdate();
+
+                Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID).Where(id => id != excludeGroupId.Value));
+            }
+            else
+            {
+                session.CreateQuery("delete AnimeGroup ag")
+                    .ExecuteUpdate();
+
+                Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID));
+            }
+
+            // Finally, we need to clear the cache so that it is in sync with the database
+            ClearCache();
+
+            // If we're exlcuding a group from deletion, and it was in the cache originally, then re-add it back in
+            if (excludeGroupId != null)
+            {
+                AnimeGroup excludedGroup = allGrps.FirstOrDefault(g => g.AnimeGroupID == excludeGroupId.Value);
+
+                if (excludedGroup != null)
+                {
+                    Cache.Update(excludedGroup);
+                }
+            }
+        }
 
         public List<AnimeGroup> GetByParentID(int parentid)
         {
             return Parents.GetMultiple(parentid);
         }
-
-
-
-
-
 
         public List<AnimeGroup> GetAllTopLevelGroups()
         {

@@ -272,7 +272,7 @@ namespace JMMServer.Repositories
             {
                 return null;
             }
-            else if (fanarts.Count == 1)
+            if (fanarts.Count == 1)
             {
                 return fanarts[0];
             }

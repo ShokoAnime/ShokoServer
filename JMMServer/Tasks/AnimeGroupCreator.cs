@@ -84,18 +84,15 @@ namespace JMMServer.Tasks
         {
             _log.Info("Removing existing AnimeGroups and resetting GroupFilters");
 
+            _animeGroupUserRepo.DeleteAll(session);
+            _animeGroupRepo.DeleteAll(session, tempGroupId);
             session.CreateSQLQuery(@"
-                DELETE FROM AnimeGroup_User;
-                DELETE FROM AnimeGroup WHERE AnimeGroupID <> :tempGroupId;
-
                 UPDATE AnimeSeries SET AnimeGroupID = :tempGroupId;
                 UPDATE GroupFilter SET GroupsIdsString = '{}';")
                 .SetInt32("tempGroupId", tempGroupId)
                 .ExecuteUpdate();
 
-            // We've deleted/modified all AnimeGroup_User/AnimeGroup/AnimeSeries/GroupFilter records, so update caches to reflect that
-            _animeGroupUserRepo.ClearCache();
-            _animeGroupRepo.ClearCache();
+            // We've deleted/modified all AnimeSeries/GroupFilter records, so update caches to reflect that
             _animeSeriesRepo.ClearCache();
             _groupFilterRepo.ClearCache();
             _log.Info("AnimeGroups have been removed and GroupFilters have been reset");
@@ -234,7 +231,7 @@ namespace JMMServer.Tasks
 
             using (ITransaction trans = session.BeginTransaction())
             {
-                _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1));
+                _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
                 trans.Commit();
             }
 
@@ -276,14 +273,14 @@ namespace JMMServer.Tasks
             {
                 int mainAnimeId = groupAndSeries.Key;
                 AnimeSeries mainSeries = groupAndSeries.FirstOrDefault(series => series.AniDB_ID == mainAnimeId);
-                AnimeGroup animeGroup = CreateAutoGroup(session, mainSeries, mainAnimeId, now);
+                AnimeGroup animeGroup = CreateAnimeGroup(session, mainSeries, mainAnimeId, now);
 
                 newGroupsToSeries.Add(new Tuple<AnimeGroup, IReadOnlyCollection<AnimeSeries>>(animeGroup, groupAndSeries.AsReadOnlyCollection()));
             }
 
             using (ITransaction trans = session.BeginTransaction())
             {
-                _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1));
+                _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
                 trans.Commit();
             }
 
@@ -302,7 +299,18 @@ namespace JMMServer.Tasks
             return newGroupsToSeries.Select(gts => gts.Item1);
         }
 
-        private AnimeGroup CreateAutoGroup(ISessionWrapper session, AnimeSeries mainSeries, int mainAnimeId, DateTime now)
+        /// <summary>
+        /// Creates an <see cref="AnimeGroup"/> instance.
+        /// </summary>
+        /// <remarks>
+        /// This method only creates an <see cref="AnimeGroup"/> instance. It does NOT save it to the database.
+        /// </remarks>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="mainSeries">The <see cref="AnimeSeries"/> whose name will represent the group (Optional. Pass <c>null</c> if not available).</param>
+        /// <param name="mainAnimeId">The ID of the anime whose name will represent the group if <paramref name="mainSeries"/> is <c>null</c>.</param>
+        /// <param name="now">The current date/time.</param>
+        /// <returns>The created <see cref="AnimeGroup"/>.</returns>
+        private AnimeGroup CreateAnimeGroup(ISessionWrapper session, AnimeSeries mainSeries, int mainAnimeId, DateTime now)
         {
             AnimeGroup animeGroup = new AnimeGroup();
             string groupName = null;
@@ -360,7 +368,7 @@ namespace JMMServer.Tasks
                     int mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
                     AnimeSeries mainSeries = _animeSeriesRepo.GetByAnimeID(mainAnimeId);
 
-                    animeGroup = CreateAutoGroup(session, mainSeries, mainAnimeId, DateTime.Now);
+                    animeGroup = CreateAnimeGroup(session, mainSeries, mainAnimeId, DateTime.Now);
                     RepoFactory.AnimeGroup.Save(animeGroup, true, true);
                 }
             }

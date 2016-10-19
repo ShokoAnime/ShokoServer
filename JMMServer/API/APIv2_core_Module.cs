@@ -16,6 +16,8 @@ using Newtonsoft.Json;
 using System.IO;
 using JMMServer.Repositories.Direct;
 using JMMServer.Utilities;
+using JMMServer.Tasks;
+using Nancy.Responses;
 
 namespace JMMServer.API
 {
@@ -181,6 +183,11 @@ namespace JMMServer.API
             Post["/log/rotate"] = x => { return SetRotateLogs(); };
             Get["/log/rotate"] = x => { return GetRotateLogs(); };
             Get["/log/rotate/start"] = x => { return StartRotateLogs(); };
+
+            // 20. Dev
+#if DEBUG
+            Get["/dev/contracts/{entity?}"] = x => { return ExtractContracts((string)x.entity); };
+#endif
         }
 
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
@@ -2097,6 +2104,21 @@ namespace JMMServer.API
             result.Add("position", reader.Position);
             result.Add("lines", logLines.ToArray());
             return result;
+        }
+
+        #endregion
+
+        #region 20. Dev
+
+        /// <summary>
+        /// Dumps the contracts as JSON files embedded in a zip file.
+        /// </summary>
+        /// <param name="entityType">The type of the entity to dump (can be <see cref="string.Empty"/> or <c>null</c> to dump all).</param>
+        private object ExtractContracts(string entityType)
+        {
+            var zipStream = new ContractExtractor().GetContractsAsZipStream(entityType);
+
+            return new StreamResponse(() => zipStream, "application/zip").AsAttachment("contracts.zip");
         }
 
         #endregion
