@@ -30,7 +30,7 @@ namespace JMMServer
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private static Dictionary<string, string> appSettings = new Dictionary<string, string>();
+        internal static Dictionary<string, string> appSettings = new Dictionary<string, string>();
         private static bool migrationError = false;
         private static bool migrationActive = false;
         private static MigrationForm migrationForm;

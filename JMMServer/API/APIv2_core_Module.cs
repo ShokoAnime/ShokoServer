@@ -443,12 +443,11 @@ namespace JMMServer.API
         {
             try
             {
-                Contract_ServerSettings settings = ServerSettings.ToContract();
-                return settings;
+                return ServerSettings.appSettings;
             }
             catch
             {
-                return APIStatus.internalError("Error while parsing file");
+                return APIStatus.internalError("Error while reading settings.");
             }
         }
 
