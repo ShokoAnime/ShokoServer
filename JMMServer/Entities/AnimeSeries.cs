@@ -674,18 +674,14 @@ namespace JMMServer.Entities
                         Contract_AniDBAnime aniDbAnime = contract.AniDBAnime.AniDBAnime;
                         DefaultAnimeImages defImages;
 
-                        if (defImagesByAnime.Value.TryGetValue(animeRec.AnimeID, out defImages))
+                        if (!defImagesByAnime.Value.TryGetValue(animeRec.AnimeID, out defImages))
                         {
-                            aniDbAnime.DefaultImagePoster = defImages.GetPosterContractNoBlanks();
-                            aniDbAnime.DefaultImageFanart = defImages.GetFanartContractNoBlanks(aniDbAnime);
-                            aniDbAnime.DefaultImageWideBanner = defImages.WideBanner?.ToContract();
+                            defImages = new DefaultAnimeImages { AnimeID = animeRec.AnimeID };
                         }
-                        else // No default images found for anime
-                        {
-                            aniDbAnime.DefaultImagePoster = null;
-                            aniDbAnime.DefaultImageFanart = null;
-                            aniDbAnime.DefaultImageWideBanner = null;
-                        }
+
+                        aniDbAnime.DefaultImagePoster = defImages.GetPosterContractNoBlanks();
+                        aniDbAnime.DefaultImageFanart = defImages.GetFanartContractNoBlanks(aniDbAnime);
+                        aniDbAnime.DefaultImageWideBanner = defImages.WideBanner?.ToContract();
                     }
 
                     // TvDB contracts

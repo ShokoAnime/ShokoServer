@@ -14,6 +14,8 @@ namespace JMMServer.Repositories.NHibernate
 
         ISQLQuery CreateSQLQuery(string query);
 
+        IQueryOver<T, T> QueryOver<T>() where T : class;
+
         TObj Get<TObj>(object id);
 
         ITransaction BeginTransaction();

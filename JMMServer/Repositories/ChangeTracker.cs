@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using TMDbLib.Objects.Movies;
 
 namespace JMMServer.Repositories
 {
@@ -29,8 +26,7 @@ namespace JMMServer.Repositories
             try
             {
                 Lock();
-                if (_removals.ContainsKey(item))
-                    _removals.Remove(item);
+                _removals.Remove(item);
                 _changes[item] = DateTime.Now;
             }
             finally
@@ -47,8 +43,7 @@ namespace JMMServer.Repositories
                 DateTime dt = DateTime.Now;
                 foreach (T item in range)
                 {
-                    if (_removals.ContainsKey(item))
-                        _removals.Remove(item);
+                    _removals.Remove(item);
                     _changes[item] = dt;
                 }
             }
@@ -64,10 +59,30 @@ namespace JMMServer.Repositories
             try
             {
                 Lock();
-                if (_changes.ContainsKey(item))
+                if (_changes.Remove(item))
                 {
-                    _changes.Remove(item);
                     _removals[item] = DateTime.Now;
+                }
+            }
+            finally
+            {
+                Unlock();
+            }
+        }
+
+        public void RemoveRange(IEnumerable<T> range)
+        {
+            try
+            {
+                Lock();
+                DateTime dt = DateTime.Now;
+
+                foreach (T item in range)
+                {
+                    if (_changes.Remove(item))
+                    {
+                        _removals[item] = dt;
+                    }
                 }
             }
             finally

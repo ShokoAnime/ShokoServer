@@ -38,6 +38,11 @@ namespace JMMServer.Repositories.NHibernate
             return _session.CreateSQLQuery(query);
         }
 
+        public IQueryOver<T, T> QueryOver<T>() where T : class
+        {
+            return _session.QueryOver<T>();
+        }
+
         public TObj Get<TObj>(object id)
         {
             return _session.Get<TObj>(id);
