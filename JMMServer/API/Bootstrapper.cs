@@ -67,8 +67,18 @@
 
 			pipelines.BeforeRequest += (NancyContext ctx) => BeforeProcessing(ctx);
 			pipelines.AfterRequest += (NancyContext ctx) => AfterProcessing(ctx);
+            
+            //CORS Enable
+            pipelines.AfterRequest.AddItemToEndOfPipeline((ctx) =>
+            {
+                ctx.Response.WithHeader("Access-Control-Allow-Origin", "*")
+                                .WithHeader("Access-Control-Allow-Methods", "POST,GET")
+                                .WithHeader("Access-Control-Allow-Headers", "Accept, Origin, Content-type");
 
-			GzipCompressionSettings gzipsettings = new GzipCompressionSettings();
+            });
+
+
+            GzipCompressionSettings gzipsettings = new GzipCompressionSettings();
 			gzipsettings.MinimumBytes = 16384; //16k
 			gzipsettings.MimeTypes.Add("application/xml");
 			gzipsettings.MimeTypes.Add("application/json");
