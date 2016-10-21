@@ -1,12 +1,9 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using Nancy;
 using JMMServer.PlexAndKodi;
 using JMMServer.PlexAndKodi.Plex;
 using JMMServer.PlexAndKodi.Kodi;
 using JMMContracts.PlexAndKodi;
-using Nancy.Security;
-using JMMServer.API;
 using JMMServer.API.Model;
 using Stream = System.IO.Stream;
 
@@ -16,9 +13,7 @@ namespace JMMServer.API
     public class APIv1_Legacy_Module : Nancy.NancyModule
     {
         public APIv1_Legacy_Module() : base("/")
-        {
-            //this.RequiresAuthentication();
-
+        { 
             // KodiImplementation
             Get["/JMMServerKodi/GetSupportImage/{name}"] = parameter => { return GetSupportImageRest(parameter.name); };
             Get["/JMMServerKodi/GetFilters/{uid}"] = parameter => { return GetFilters_Kodi(parameter.uid); };
@@ -223,7 +218,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetFilters_Plex(string uid)
         {
-            return _impl.GetFilters(_prov_plex, uid);
+            return Response.AsXml<MediaContainer>(_impl.GetFilters(_prov_plex, uid));
         }
 
         /// <summary>
@@ -236,16 +231,16 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetMetadata_Plex(string uid, string typeid, string id, string historyinfo)
         {
-            return _impl.GetMetadata(_prov_plex, uid, typeid, id, historyinfo);
+            return Response.AsXml<MediaContainer>(_impl.GetMetadata(_prov_plex, uid, typeid, id, historyinfo));
         }
 
         /// <summary>
         /// Plex: Return Users with ErrorString and List os users inside System
         /// </summary>
         /// <returns></returns>
-        private PlexContract_Users GetUsers_Plex()
+        private object GetUsers_Plex()
         {
-            return _impl.GetUsers(_prov_plex);
+            return Response.AsXml<PlexContract_Users>(_impl.GetUsers(_prov_plex));
         }
 
         /// <summary>
@@ -258,7 +253,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object Search_Plex(string uid, string limit, string query)
         {
-            return _impl.Search(_prov_plex, uid, limit, query, false);
+            return Response.AsXml<MediaContainer>(_impl.Search(_prov_plex, uid, limit, query, false));
         }
 
         /// <summary>
@@ -270,7 +265,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object ToggleWatchedStatusOnEpisode_Plex(string userid, string episodeid, string watchedstatus)
         {
-            return _impl.ToggleWatchedStatusOnEpisode(_prov_plex, userid, episodeid, watchedstatus);
+            return Response.AsXml<JMMContracts.PlexAndKodi.Response>(_impl.ToggleWatchedStatusOnEpisode(_prov_plex, userid, episodeid, watchedstatus));
         }
 
         /// <summary>
@@ -283,7 +278,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object VoteAnime_Plex(string uid, string id, string votevalue, string votetype)
         {
-            return _impl.VoteAnime(_prov_plex, uid, id, votevalue, votetype);
+            return Response.AsXml<JMMContracts.PlexAndKodi.Response>(_impl.VoteAnime(_prov_plex, uid, id, votevalue, votetype));
         }
 
         #endregion

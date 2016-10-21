@@ -785,6 +785,7 @@ namespace JMMContracts.PlexAndKodi
         [XmlAttribute("name")]
         public string name { get; set; }
     }
+
     [DataContract]
     [Serializable]
     [XmlType("Users")]
