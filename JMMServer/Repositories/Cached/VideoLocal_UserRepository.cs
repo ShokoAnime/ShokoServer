@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using JMMServer.Entities;
 using NutzCode.InMemoryIndex;
 
@@ -19,6 +20,12 @@ namespace JMMServer.Repositories.Cached
         {
             return new VideoLocal_UserRepository();
         }
+
+        protected override int SelectKey(VideoLocal_User entity)
+        {
+            return entity.VideoLocal_UserID;
+        }
+
         public override void PopulateIndexes()
         {
             VideoLocalIDs = new PocoIndex<int, VideoLocal_User, int>(Cache, a => a.VideoLocalID);

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Entities;
 
@@ -6,6 +7,15 @@ namespace JMMServer.Repositories.Cached
 {
     public class ImportFolderRepository : BaseCachedRepository<ImportFolder,int>
     {
+        private ImportFolderRepository()
+        {
+        }
+
+        protected override int SelectKey(ImportFolder entity)
+        {
+            return entity.ImportFolderID;
+        }
+
         public override void PopulateIndexes()
         {
         }
@@ -14,10 +24,6 @@ namespace JMMServer.Repositories.Cached
         {
         }
 
-        private ImportFolderRepository()
-        {
-            
-        }
 
         public static ImportFolderRepository Create()
         {

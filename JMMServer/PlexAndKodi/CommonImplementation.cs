@@ -181,7 +181,7 @@ namespace JMMServer.PlexAndKodi
                         var episodeID = -1;
                         if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                         {
-                            var anime = RepoFactory.AnimeEpisode.GetByID(episodeID).GetAnimeSeries(sessionWrapper).GetAnime(sessionWrapper);
+                            var anime = RepoFactory.AnimeEpisode.GetByID(episodeID).GetAnimeSeries(sessionWrapper).GetAnime();
                             dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks(sessionWrapper)?.GenPoster();
                             dir.Art = anime?.GetDefaultFanartDetailsNoBlanks(sessionWrapper)?.GenArt();
                             dir.Banner = anime?.GetDefaultWideBannerDetailsNoBlanks(sessionWrapper)?.GenArt();
@@ -338,7 +338,7 @@ namespace JMMServer.PlexAndKodi
                 AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
                 if (ser == null)
                     return new MediaContainer() { ErrorString = "Invalid Serie" };
-                AniDB_Anime anime = ser.GetAnime(sessionWrapper);
+                AniDB_Anime anime = ser.GetAnime();
                 Contract_AnimeSeries con = ser.GetUserContract(userid);
                 if (con == null)
                     return new MediaContainer() { ErrorString = "Invalid Serie, Contract not found" };
@@ -1130,7 +1130,8 @@ namespace JMMServer.PlexAndKodi
                     Dictionary<Contract_AnimeGroup, Video> order = new Dictionary<Contract_AnimeGroup, Video>();
                     if (gf.GroupsIds.ContainsKey(userid))
                     {
-                        foreach (AnimeGroup grp in gf.GroupsIds[userid].Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
+                        // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
+                        foreach (AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
                         {
                             Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
                             if (v != null)

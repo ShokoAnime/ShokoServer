@@ -517,7 +517,7 @@ namespace JMMServer
 
         void btnUploadAzureCache_Click(object sender, RoutedEventArgs e)
         {
-            List<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
+            IReadOnlyList<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
             int cnt = 0;
             foreach (AniDB_Anime anime in allAnime)
             {
@@ -981,7 +981,7 @@ namespace JMMServer
                     frm.ShowDialog();
                 }
 
-                List<ImportFolder> folders = RepoFactory.ImportFolder.GetAll();
+                IReadOnlyList<ImportFolder> folders = RepoFactory.ImportFolder.GetAll();
                 if (folders.Count == 0)
                 {
                     tabControl1.SelectedIndex = 1;
@@ -1195,7 +1195,7 @@ namespace JMMServer
 
                 DownloadAllImages();
 
-                List<ImportFolder> folders = RepoFactory.ImportFolder.GetAll();
+                IReadOnlyList<ImportFolder> folders = RepoFactory.ImportFolder.GetAll();
 
                 if (ServerSettings.ScanDropFoldersOnStart) ScanDropFolders();
                 if (ServerSettings.RunImportOnStart && folders.Count > 0) RunImport();
@@ -1227,7 +1227,7 @@ namespace JMMServer
         {
 
             // first build a list of files that we already know about, as we don't want to process them again
-            List<VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
+            IReadOnlyList<VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
             foreach (VideoLocal vl in filesAll)
             {
                 CommandRequest_ReadMediaInfo cr = new CommandRequest_ReadMediaInfo(vl.VideoLocalID);
@@ -1743,7 +1743,7 @@ namespace JMMServer
         private void GenerateAzureList()
         {
             // get a lst of anime's that we already have
-            List<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
+            IReadOnlyList<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
             Dictionary<int, int> localAnimeIDs = new Dictionary<int, int>();
             foreach (AniDB_Anime anime in allAnime)
             {
@@ -1796,7 +1796,7 @@ namespace JMMServer
         private void SendToAzureXML()
         {
             DateTime dt = DateTime.Now.AddYears(-2);
-            List<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
+            IReadOnlyList<AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
 
             int sentAnime = 0;
             foreach (AniDB_Anime anime in allAnime)

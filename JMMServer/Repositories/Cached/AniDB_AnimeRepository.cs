@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using JMMContracts;
 using JMMServer.Collections;
@@ -27,6 +26,12 @@ namespace JMMServer.Repositories
         {
             return new AniDB_AnimeRepository();
         }
+
+        protected override int SelectKey(AniDB_Anime entity)
+        {
+            return entity.AniDB_AnimeID;
+        }
+
         public override void PopulateIndexes()
         {
             Animes = new PocoIndex<int, AniDB_Anime, int>(Cache, a => a.AnimeID);
@@ -70,7 +75,7 @@ namespace JMMServer.Repositories
 
 
 
-        public override void Save(List<AniDB_Anime> objs)
+        public override void Save(IReadOnlyCollection<AniDB_Anime> objs)
         {
             foreach(AniDB_Anime o in objs)
                 Save(o);
@@ -237,6 +242,46 @@ namespace JMMServer.Repositories
 
     public class DefaultAnimeImages
     {
+        public Contract_AniDB_Anime_DefaultImage GetPosterContractNoBlanks()
+        {
+            if (Poster != null)
+            {
+                return Poster.ToContract();
+            }
+
+            return new Contract_AniDB_Anime_DefaultImage
+                {
+                    AnimeID = AnimeID,
+                    ImageType = (int)JMMImageType.AniDB_Cover
+                };
+        }
+
+        public Contract_AniDB_Anime_DefaultImage GetFanartContractNoBlanks(Contract_AniDBAnime anime)
+        {
+            if (anime == null)
+                throw new ArgumentNullException(nameof(anime));
+
+            if (Fanart != null)
+            {
+                return Fanart.ToContract();
+            }
+
+            List<Contract_AniDB_Anime_DefaultImage> fanarts = anime.Fanarts;
+
+            if (fanarts == null || fanarts.Count == 0)
+            {
+                return null;
+            }
+            if (fanarts.Count == 1)
+            {
+                return fanarts[0];
+            }
+
+            Random random = new Random();
+
+            return fanarts[random.Next(0, fanarts.Count - 1)];
+        }
+
         public int AnimeID { get; set; }
 
         public DefaultAnimeImage Poster { get; set; }

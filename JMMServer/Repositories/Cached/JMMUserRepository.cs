@@ -23,6 +23,12 @@ namespace JMMServer.Repositories.Cached
         {
             return new JMMUserRepository();
         }
+
+        protected override int SelectKey(JMMUser entity)
+        {
+            return entity.JMMUserID;
+        }
+
         public override void PopulateIndexes()
         {
 
@@ -78,7 +84,7 @@ namespace JMMServer.Repositories.Cached
         public override void Save(JMMUser obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(List<JMMUser> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<JMMUser> objs) { throw new NotSupportedException(); }
 
         public void Save(JMMUser obj, bool updateGroupFilters)
         {

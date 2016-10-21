@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Entities;
 using NHibernate;
@@ -11,6 +12,14 @@ namespace JMMServer.Repositories
     {
         private PocoIndex<int, CrossRef_CustomTag, int> Tags;
         private PocoIndex<int, CrossRef_CustomTag, int, int> Refs;
+        private CrossRef_CustomTagRepository()
+        {
+        }
+
+        protected override int SelectKey(CrossRef_CustomTag entity)
+        {
+            return entity.CrossRef_CustomTagID;
+        }
 
         public override void PopulateIndexes()
         {
@@ -20,10 +29,6 @@ namespace JMMServer.Repositories
 
         public override void RegenerateDb() { }
 
-        private CrossRef_CustomTagRepository()
-        {
-            
-        }
 
         public static CrossRef_CustomTagRepository Create()
         {

@@ -22,6 +22,12 @@ namespace JMMServer.Repositories
         {
             return new AniDB_Anime_TagRepository();
         }
+
+        protected override int SelectKey(AniDB_Anime_Tag entity)
+        {
+            return entity.AniDB_Anime_TagID;
+        }
+
         public override void PopulateIndexes()
         {
             Animes = new PocoIndex<int, AniDB_Anime_Tag, int>(Cache, a => a.AnimeID);

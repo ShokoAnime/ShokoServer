@@ -26,6 +26,12 @@ namespace JMMServer.Repositories.Cached
         {
             return new AnimeEpisodeRepository();
         }
+
+        protected override int SelectKey(AnimeEpisode entity)
+        {
+            return entity.AnimeEpisodeID;
+        }
+
         public override void PopulateIndexes()
         {
             Series = Cache.CreateIndex(a => a.AnimeSeriesID);
@@ -62,7 +68,7 @@ namespace JMMServer.Repositories.Cached
         }
 
 
-        public override void Save(List<AnimeEpisode> objs)
+        public override void Save(IReadOnlyCollection<AnimeEpisode> objs)
         {
             foreach(AnimeEpisode ep in objs)
                 Save(ep);

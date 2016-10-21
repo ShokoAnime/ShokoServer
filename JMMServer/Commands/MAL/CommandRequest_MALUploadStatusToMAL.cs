@@ -44,7 +44,7 @@ namespace JMMServer.Commands.MAL
                     return;
 
                 // find the latest eps to update
-                List<AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
+                IReadOnlyList<AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
 
                 foreach (AniDB_Anime anime in animes)
                 {

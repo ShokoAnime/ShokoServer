@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.Linq;
+using JMMServer.Collections;
 using JMMServer.Databases;
 using JMMServer.Repositories.NHibernate;
+using JMMServer.Utilities;
 using NHibernate;
 
 namespace JMMServer.Repositories
@@ -176,6 +179,54 @@ namespace JMMServer.Repositories
                 }
                 return vidQuals;
             }
+        }
+
+        /// <summary>
+        /// Gets All video quality by group.
+        /// </summary>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="animeGroupIds">The optional list of group IDs to limit the results to.
+        /// If <c>null</c> is specified, then results for ALL groups will be returned.</param>
+        /// <returns>A <see cref="ILookup{TKey,TElement}"/> containing all video quality grouped by anime group ID.</returns>
+        public ILookup<int, string> GetAllVideoQualityByGroup(ISessionWrapper session, IReadOnlyCollection<int> animeGroupIds = null)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+
+            if (animeGroupIds != null && animeGroupIds.Count == 0)
+            {
+                return EmptyLookup<int, string>.Instance;
+            }
+
+            string query = @"
+                SELECT DISTINCT ag.AnimeGroupID, anifile.File_Source
+                    FROM AnimeGroup ag
+                        INNER JOIN AnimeSeries ser
+                            ON ser.AnimeGroupID = ag.AnimeGroupID
+                        INNER JOIN AnimeEpisode ep
+                            ON ep.AnimeSeriesID = ser.AnimeSeriesID
+                        INNER JOIN AniDB_Episode aniep
+                            ON ep.AniDB_EpisodeID = aniep.EpisodeID
+                        INNER JOIN CrossRef_File_Episode xref
+                            ON aniep.EpisodeID = xref.EpisodeID
+                        INNER JOIN AniDB_File anifile
+                            ON anifile.Hash = xref.Hash
+                        INNER JOIN CrossRef_Subtitles_AniDB_File subt
+                            ON subt.FileID = anifile.FileID";
+
+            if (animeGroupIds != null)
+            {
+                query += @"
+                    WHERE ag.AnimeGroupID IN (" + String.Join(",", animeGroupIds) + ")";
+            }
+
+            var results = session.CreateSQLQuery(query)
+                .AddScalar("AnimeGroupID", NHibernateUtil.Int32)
+                .AddScalar("File_Source", NHibernateUtil.String)
+                .List<object[]>()
+                .ToLookup(r => (int)r[0], r => (string)r[1]);
+
+            return results;
         }
 
         public HashSet<string> GetAllVideoQualityForAnime(int animeID)
@@ -525,52 +576,44 @@ namespace JMMServer.Repositories
             return dictStats;
         }
 
-        public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsForAnime()
+        public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsForAnime(ISessionWrapper session)
         {
             Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
+            const string query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, lan.LanguageName "
+                + "FROM AnimeSeries ser  "
+                + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
+                + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
+                + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
+                + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
+                + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
+                + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "
+                + "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID";
 
+            var rows = session.CreateSQLQuery(query)
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .AddScalar("MainTitle", NHibernateUtil.String)
+                .AddScalar("LanguageName", NHibernateUtil.String)
+                .List<object[]>();
 
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            foreach (object[] cols in rows)
             {
-                System.Data.IDbCommand command = session.Connection.CreateCommand();
-                command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, lan.LanguageName ";
-                command.CommandText += "FROM AnimeSeries ser  ";
-                command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
-                command.CommandText += "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID ";
-                command.CommandText += "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID ";
-                command.CommandText += "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID ";
-                command.CommandText += "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash ";
-                command.CommandText += "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
-                command.CommandText += "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID ";
-                command.CommandText += "GROUP BY anime.AnimeID, anime.MainTitle, lan.LanguageName ";
+                int animeID = Convert.ToInt32(cols[0]);
+                string mainTitle = cols[1].ToString().Trim();
+                string lanName = cols[2].ToString().Trim();
+                LanguageStat stat = null;
 
-                using (IDataReader rdr = command.ExecuteReader())
+                if (!dictStats.TryGetValue(animeID, out stat))
                 {
-                    while (rdr.Read())
+                    stat = new LanguageStat
                     {
-                        int animeID = int.Parse(rdr[0].ToString());
-                        string mainTitle = rdr[1].ToString().Trim();
-                        string lanName = rdr[2].ToString().Trim();
-
-
-                        if (animeID == 7656)
-                        {
-                            Debug.Print("");
-                        }
-
-                        if (!dictStats.ContainsKey(animeID))
-                        {
-                            LanguageStat stat = new LanguageStat();
-                            stat.AnimeID = animeID;
-                            stat.MainTitle = mainTitle;
-                            stat.LanguageNames = new List<string>();
-                            stat.LanguageNames.Add(lanName);
-                            dictStats[animeID] = stat;
-                        }
-                        else
-                            dictStats[animeID].LanguageNames.Add(lanName);
-                    }
+                        AnimeID = animeID,
+                        MainTitle = mainTitle,
+                        LanguageNames = new List<string>()
+                    };
+                    dictStats.Add(animeID, stat);
                 }
+
+                stat.LanguageNames.Add(lanName);
             }
 
             return dictStats;
@@ -578,7 +621,7 @@ namespace JMMServer.Repositories
 
         private string GetAudioLanguageStatsByAnimeSQL(string animeIdPredicate)
         {
-            string sql = "SELECT anime.AnimeID, anime.MainTitle, lan.LanguageName "
+            string sql = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, lan.LanguageName "
                + "FROM AnimeSeries ser  "
                + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
                + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
@@ -587,42 +630,40 @@ namespace JMMServer.Repositories
                + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
                + "INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID "
                + "INNER JOIN Language lan on audio.LanguageID = lan.LanguageID "
-               + "WHERE anime.AnimeID " + animeIdPredicate
-               + " GROUP BY anime.AnimeID, anime.MainTitle, lan.LanguageName ";
+               + "WHERE anime.AnimeID " + animeIdPredicate;
             return sql;
         }
 
         private Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnimeResults(ISessionWrapper session, string animeIdPredicate)
         {
             Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
+            string query = GetAudioLanguageStatsByAnimeSQL(animeIdPredicate);
 
-            using (IDbCommand command = session.Connection.CreateCommand())
+            var rows = session.CreateSQLQuery(query)
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .AddScalar("MainTitle", NHibernateUtil.String)
+                .AddScalar("LanguageName", NHibernateUtil.String)
+                .List<object[]>();
+
+            foreach (object[] cols in rows)
             {
-                command.CommandText = GetAudioLanguageStatsByAnimeSQL(animeIdPredicate);
+                int animeID = Convert.ToInt32(cols[0]);
+                string mainTitle = cols[1].ToString().Trim();
+                string lanName = cols[2].ToString().Trim();
+                LanguageStat stat = null;
 
-                using (IDataReader rdr = command.ExecuteReader())
+                if (!dictStats.TryGetValue(animeID, out stat))
                 {
-                    while (rdr.Read())
+                    stat = new LanguageStat
                     {
-                        int animeID = Convert.ToInt32(rdr[0]);
-                        string mainTitle = rdr[1].ToString().Trim();
-                        string lanName = rdr[2].ToString().Trim();
-                        LanguageStat stat = null;
-
-                        if (!dictStats.TryGetValue(animeID, out stat))
-                        {
-                            stat = new LanguageStat
-                                {
-                                    AnimeID = animeID,
-                                    MainTitle = mainTitle,
-                                    LanguageNames = new List<string>()
-                                };
-                            dictStats.Add(animeID, stat);
-                        }
-
-                        stat.LanguageNames.Add(lanName);
-                    }
+                        AnimeID = animeID,
+                        MainTitle = mainTitle,
+                        LanguageNames = new List<string>()
+                    };
+                    dictStats.Add(animeID, stat);
                 }
+
+                stat.LanguageNames.Add(lanName);
             }
 
             return dictStats;
@@ -682,46 +723,42 @@ namespace JMMServer.Repositories
         private Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnimeResults(ISessionWrapper session, string animeIdPredicate)
         {
             Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
+            string query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, lan.LanguageName "
+                + "FROM AnimeSeries ser  "
+                + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
+                + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
+                + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
+                + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
+                + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
+                + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "
+                + "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID "
+                + "WHERE anime.AnimeID " + animeIdPredicate;
 
-            using (IDbCommand command = session.Connection.CreateCommand())
+            var rows = session.CreateSQLQuery(query)
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .AddScalar("MainTitle", NHibernateUtil.String)
+                .AddScalar("LanguageName", NHibernateUtil.String)
+                .List<object[]>();
+
+            foreach (object[] cols in rows)
             {
-                string query = "SELECT anime.AnimeID, anime.MainTitle, lan.LanguageName "
-                   + "FROM AnimeSeries ser  "
-                   + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
-                   + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
-                   + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
-                   + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
-                   + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-                   + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "
-                   + "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID "
-                   + "WHERE anime.AnimeID " + animeIdPredicate
-                   + " GROUP BY anime.AnimeID, anime.MainTitle, lan.LanguageName ";
+                int animeID = Convert.ToInt32(cols[0]);
+                string mainTitle = cols[1].ToString().Trim();
+                string lanName = cols[2].ToString().Trim();
+                LanguageStat stat = null;
 
-                command.CommandText = query;
-
-                using (IDataReader rdr = command.ExecuteReader())
+                if (!dictStats.TryGetValue(animeID, out stat))
                 {
-                    while (rdr.Read())
+                    stat = new LanguageStat
                     {
-                        int animeID = Convert.ToInt32(rdr[0]);
-                        string mainTitle = rdr[1].ToString().Trim();
-                        string lanName = rdr[2].ToString().Trim();
-                        LanguageStat stat = null;
-
-                        if (!dictStats.TryGetValue(animeID, out stat))
-                        {
-                            stat = new LanguageStat
-                                {
-                                    AnimeID = animeID,
-                                    MainTitle = mainTitle,
-                                    LanguageNames = new List<string>()
-                                };
-                            dictStats.Add(animeID, stat);
-                        }
-
-                        stat.LanguageNames.Add(lanName);
-                    }
+                        AnimeID = animeID,
+                        MainTitle = mainTitle,
+                        LanguageNames = new List<string>()
+                    };
+                    dictStats.Add(animeID, stat);
                 }
+
+                stat.LanguageNames.Add(lanName);
             }
 
             return dictStats;

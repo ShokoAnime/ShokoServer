@@ -1,4 +1,5 @@
 ﻿using System;
+using JMMServer.Collections;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
 // ReSharper disable InconsistentNaming
@@ -102,28 +103,28 @@ namespace JMMServer.Repositories
 
         public static void Init()
         {
-            JMMUser.Populate(a => a.JMMUserID);
-            CloudAccount.Populate(a=>a.CloudID);
-            ImportFolder.Populate(a=>a.ImportFolderID);            
-            AniDB_Anime.Populate(a=>a.AniDB_AnimeID);
-            AniDB_Episode.Populate(a=>a.AniDB_EpisodeID);
-            AniDB_File.Populate(a=>a.AniDB_FileID);
-            AniDB_Anime_Title.Populate(a=>a.AniDB_Anime_TitleID);
-            AniDB_Anime_Tag.Populate(a=>a.AniDB_Anime_TagID);
-            AniDB_Tag.Populate(a=>a.AniDB_TagID);
-            CustomTag.Populate(a=>a.CustomTagID);
-            CrossRef_CustomTag.Populate(a=>a.CrossRef_CustomTagID);
-            CrossRef_File_Episode.Populate(a=>a.CrossRef_File_EpisodeID);
-            VideoLocalPlace.Populate(a=>a.VideoLocal_Place_ID);
-            VideoLocal.Populate(a=>a.VideoLocalID);
-            VideoLocalUser.Populate(a => a.VideoLocal_UserID);
-            GroupFilter.Populate(a => a.GroupFilterID);
-            AnimeEpisode.Populate(a=>a.AnimeEpisodeID);
-            AnimeEpisode_User.Populate(a=>a.AnimeEpisode_UserID);
-            AnimeSeries.Populate(a=>a.AnimeSeriesID);
-            AnimeSeries_User.Populate(a=>a.AnimeSeries_UserID);
-            AnimeGroup.Populate(a=>a.AnimeGroupID);
-            AnimeGroup_User.Populate(a=>a.AnimeGroup_UserID);
+            JMMUser.Populate();
+            CloudAccount.Populate();
+            ImportFolder.Populate();
+            AniDB_Anime.Populate();
+            AniDB_Episode.Populate();
+            AniDB_File.Populate();
+            AniDB_Anime_Title.Populate();
+            AniDB_Anime_Tag.Populate();
+            AniDB_Tag.Populate();
+            CustomTag.Populate();
+            CrossRef_CustomTag.Populate();
+            CrossRef_File_Episode.Populate();
+            VideoLocalPlace.Populate();
+            VideoLocal.Populate();
+            VideoLocalUser.Populate();
+            GroupFilter.Populate();
+            AnimeEpisode.Populate();
+            AnimeEpisode_User.Populate();
+            AnimeSeries.Populate();
+            AnimeSeries_User.Populate();
+            AnimeGroup.Populate();
+            AnimeGroup_User.Populate();
 
             // Update Contracts if necessary
             JMMUser.RegenerateDb();

@@ -39,6 +39,11 @@ namespace JMMServer.Repositories.Cached
             return new AnimeSeries_UserRepository();
         }
 
+        protected override int SelectKey(AnimeSeries_User entity)
+        {
+            return entity.AnimeSeries_UserID;
+        }
+
         public override void PopulateIndexes()
         {
             Users = Cache.CreateIndex(a => a.JMMUserID);
@@ -75,7 +80,7 @@ namespace JMMServer.Repositories.Cached
 
 
 
-        public override void Save(List<AnimeSeries_User> objs)
+        public override void Save(IReadOnlyCollection<AnimeSeries_User> objs)
         {
             foreach(AnimeSeries_User s in objs)
                 Save(s);
@@ -111,7 +116,7 @@ namespace JMMServer.Repositories.Cached
                 Contract_AnimeSeries con = ser?.GetUserContract(ugrp.JMMUserID);
                 if (con == null)
                     return;
-                ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(session.Wrap()), ugrp.JMMUserID);
+                ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(), ugrp.JMMUserID);
             }
         }
 

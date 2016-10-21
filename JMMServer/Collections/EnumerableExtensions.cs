@@ -18,8 +18,22 @@ namespace JMMServer.Collections
             return LazyLookup<TKey, TElement>.Create(source, keySelector, elementSelector, comparer);
         }
 
+        /// <summary>
+        /// Splits up the sequence into batches of the specified <paramref name="size"/>.
+        /// </summary>
+        /// <typeparam name="TSource">The type of items in <paramref name="source"/>.</typeparam>
+        /// <param name="source">The sequence to whose items are to be split up into batches.</param>
+        /// <param name="size">The maximum size for each batch.</param>
+        /// <returns>A sequence of batched items.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="size"/> is less than 1.</exception>
         public static IEnumerable<TSource[]> Batch<TSource>(this IEnumerable<TSource> source, int size)
         {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            if (size < 1)
+                throw new ArgumentOutOfRangeException(nameof(size), size, "The batch size must be >= 1");
+
             TSource[] bucket = null;
             var count = 0;
 
@@ -50,6 +64,62 @@ namespace JMMServer.Collections
 
                 yield return bucket;
             }
+        }
+
+        /// <summary>
+        /// Calls <paramref name="action"/> for each item in <paramref name="source"/>.
+        /// </summary>
+        /// <typeparam name="TSource">The type of items in <paramref name="source"/>.</typeparam>
+        /// <param name="source">The sequence of items to iterate.</param>
+        /// <param name="action">The <see cref="Action{T}"/> to call for each item.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="action"/> is <c>null</c>.</exception>
+        public static void ForEach<TSource>(this IEnumerable<TSource> source, Action<TSource> action)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+            foreach (TSource item in source)
+            {
+                action(item);
+            }
+        }
+
+        /// <summary>
+        /// Converts the specified sequence into a <see cref="HashSet{T}"/>
+        /// </summary>
+        /// <typeparam name="TSource">The type of items in <paramref name="source"/>.</typeparam>
+        /// <param name="source">The sequence to convert to a <see cref="HashSet{T}"/></param>
+        /// <param name="comparer">The optional <see cref="IEqualityComparer{T}"/> to use for comparing values.</param>
+        /// <returns>The created <see cref="HashSet{T}"/> containing the distinct values from <paramref name="source"/>.</returns>
+        public static HashSet<TSource> ToHashSet<TSource>(this IEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            return new HashSet<TSource>(source, comparer);
+        }
+
+        /// <summary>
+        /// Casts/converts the specified <see cref="IEnumerable{T}"/> to a <see cref="IReadOnlyCollection{T}"/>.
+        /// </summary>
+        /// <typeparam name="TSource">The type of items in <paramref name="source"/>.</typeparam>
+        /// <param name="source">The sequence to cast/convert to a read only collection.</param>
+        /// <returns>A <see cref="IReadOnlyCollection{T}"/> version of the specified sequence.</returns>
+        public static IReadOnlyCollection<TSource> AsReadOnlyCollection<TSource>(this IEnumerable<TSource> source)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            var readonlyColl = source as IReadOnlyCollection<TSource>;
+
+            if (readonlyColl != null)
+            {
+                return readonlyColl;
+            }
+
+            return source.ToList();
         }
     }
 }

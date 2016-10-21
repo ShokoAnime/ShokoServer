@@ -79,36 +79,45 @@ namespace JMMServer.PlexAndKodi
             return ServerUrl(int.Parse(ServerSettings.JMMServerPort), MainWindow.PathAddressREST + "/GetImage/3/" + id);
         }
 
-        public static Dictionary<string, double> _relations = new Dictionary<string, double>();
+        public static Lazy<Dictionary<string, double>> _relations = new Lazy<Dictionary<string, double>>(CreateRelationsMap, isThreadSafe: true);
 
         private static double GetRelation()
         {
-            if (_relations.Count == 0)
-            {
-                string[] aspects = ServerSettings.PlexThumbnailAspects.Split(',');
-                for (int x = 0; x < aspects.Length; x += 2)
-                {
-                    string key = aspects[x].Trim().ToUpper();
-                    double val = 0.66667D;
-                    double.TryParse(aspects[x + 1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out val);
-                    _relations.Add(key, val);
-                }
-                if (!_relations.ContainsKey("DEFAULT"))
-                {
-                    _relations.Add("DEFAULT", 0.666667D);
-                }
-            }
+            var relations = _relations.Value;
+
             if (WebOperationContext.Current != null &&
                 WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains("X-Plex-Product"))
             {
                 string kh = WebOperationContext.Current.IncomingRequest.Headers.Get("X-Plex-Product").ToUpper();
-                foreach (string n in _relations.Keys.Where(a => a != "DEFAULT"))
+                foreach (string n in relations.Keys.Where(a => a != "DEFAULT"))
                 {
                     if (n != null && kh.Contains(n))
-                        return _relations[n];
+                        return relations[n];
                 }
             }
-            return _relations["DEFAULT"];
+            return relations["DEFAULT"];
+        }
+
+        private static Dictionary<string, double> CreateRelationsMap()
+        {
+            var relations = new Dictionary<string, double>();
+            string[] aspects = ServerSettings.PlexThumbnailAspects.Split(',');
+
+            for (int x = 0; x < aspects.Length; x += 2)
+            {
+                string key = aspects[x].Trim().ToUpper();
+                double val = 0.66667D;
+
+                double.TryParse(aspects[x + 1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out val);
+                relations.Add(key, val);
+            }
+
+            if (!relations.ContainsKey("DEFAULT"))
+            {
+                relations.Add("DEFAULT", 0.666667D);
+            }
+
+            return relations;
         }
 
         public static string Base64EncodeUrl(string plainText)
@@ -145,7 +154,7 @@ namespace JMMServer.PlexAndKodi
 
         public static JMMUser GetUser(string userid)
         {
-            List<JMMUser> allusers = RepoFactory.JMMUser.GetAll();
+            IReadOnlyList<JMMUser> allusers = RepoFactory.JMMUser.GetAll();
             foreach (JMMUser n in allusers)
             {
                 if (userid.FindIn(n?.Contract?.PlexUsers))
@@ -159,7 +168,7 @@ namespace JMMServer.PlexAndKodi
 
         public static JMMUser GetJMMUser(string userid)
         {
-            List<JMMUser> allusers = RepoFactory.JMMUser.GetAll();
+            IReadOnlyList<JMMUser> allusers = RepoFactory.JMMUser.GetAll();
             int id = 0;
             int.TryParse(userid, out id);
             return allusers.FirstOrDefault(a => a.JMMUserID == id) ??
@@ -653,7 +662,7 @@ namespace JMMServer.PlexAndKodi
 	    {
 		    foreach (AnimeSeries ser in series.Randomize())
 		    {
-			    AniDB_Anime anim = ser.GetAnime(session);
+			    AniDB_Anime anim = ser.GetAnime();
 			    if (anim != null)
 			    {
 				    ImageDetails banner = anim.GetDefaultWideBannerDetailsNoBlanks(session);
@@ -690,7 +699,7 @@ namespace JMMServer.PlexAndKodi
         {
             foreach (AnimeSeries ser in series.Randomize())
             {
-                AniDB_Anime anim = ser.GetAnime(session);
+                AniDB_Anime anim = ser.GetAnime();
                 if (anim != null)
                 {
                     ImageDetails fanart = anim.GetDefaultFanartDetailsNoBlanks(session);
@@ -742,8 +751,7 @@ namespace JMMServer.PlexAndKodi
 		    return details.GenArt();
 	    }
 
-        public static Video GenerateFromAnimeGroup(ISessionWrapper session, AnimeGroup grp, int userid,
-            List<AnimeSeries> allSeries)
+        public static Video GenerateFromAnimeGroup(AnimeGroup grp, int userid, List<AnimeSeries> allSeries)
         {
             Contract_AnimeGroup cgrp = grp.GetUserContract(userid);
             int subgrpcnt = grp.GetAllChildGroups().Count;
@@ -756,7 +764,7 @@ namespace JMMServer.PlexAndKodi
                     Contract_AnimeSeries cserie = ser.GetUserContract(userid);
                     if (cserie != null)
                     {
-                        Video v = GenerateFromSeries(cserie, ser, ser.GetAnime(session), userid);
+                        Video v = GenerateFromSeries(cserie, ser, ser.GetAnime(), userid);
 						v.AirDate = ser.AirDate;
                         v.UpdatedAt = ser.LatestEpisodeAirDate.HasValue
                             ? ser.LatestEpisodeAirDate.Value.ToUnixTime()
@@ -791,7 +799,7 @@ namespace JMMServer.PlexAndKodi
                 if (ser != null)
                 {
                     List<AnimeTitle> newTitles = new List<AnimeTitle>();
-                    foreach (AniDB_Anime_Title title in ser.GetAnime(session).GetTitles())
+                    foreach (AniDB_Anime_Title title in ser.GetAnime().GetTitles())
                     {
                         AnimeTitle newTitle = new AnimeTitle();
                         newTitle.Title = title.Title;
@@ -804,9 +812,9 @@ namespace JMMServer.PlexAndKodi
                     v.Roles = new List<RoleTag>();
 
                     //TODO Character implementation is limited in JMM, One Character, could have more than one Seiyuu
-                    if (ser.GetAnime(session)?.Contract?.AniDBAnime?.Characters != null)
+                    if (ser.GetAnime()?.Contract?.AniDBAnime?.Characters != null)
                     {
-                        foreach (Contract_AniDB_Character c in ser.GetAnime(session).Contract.AniDBAnime.Characters)
+                        foreach (Contract_AniDB_Character c in ser.GetAnime().Contract.AniDBAnime.Characters)
                         {
                             string ch = c?.CharName;
                             Contract_AniDB_Seiyuu seiyuu = c?.Seiyuu;

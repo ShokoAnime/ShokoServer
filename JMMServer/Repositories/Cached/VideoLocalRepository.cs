@@ -30,6 +30,12 @@ namespace JMMServer.Repositories.Cached
         {
             return new VideoLocalRepository();
         }
+
+        protected override int SelectKey(VideoLocal entity)
+        {
+            return entity.VideoLocalID;
+        }
+
         public override void PopulateIndexes()
         {
             //Fix null hashes
@@ -80,7 +86,7 @@ namespace JMMServer.Repositories.Cached
         public override void Save(VideoLocal obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(List<VideoLocal> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<VideoLocal> objs) { throw new NotSupportedException(); }
 
 
         public void Save(VideoLocal obj, bool updateEpisodes)

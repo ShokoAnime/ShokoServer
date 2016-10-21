@@ -19,6 +19,7 @@ using JMMServer.Repositories;
 using JMMServer.Repositories.Cached;
 using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
+using JMMServer.Tasks;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
@@ -1184,15 +1185,7 @@ namespace JMMServer.Entities
 
         public List<AniDB_Anime_Title> GetTitles()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetTitles(session.Wrap());
-            }
-        }
-
-        public List<AniDB_Anime_Title> GetTitles(ISessionWrapper session)
-        {
-            return RepoFactory.AniDB_Anime_Title.GetByAnimeID(session, AnimeID);
+            return RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
         }
 
         public string GetFormattedTitle(List<AniDB_Anime_Title> titles)
@@ -1244,15 +1237,7 @@ namespace JMMServer.Entities
 
         public string GetFormattedTitle()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetFormattedTitle(session.Wrap());
-            }
-        }
-
-        public string GetFormattedTitle(ISessionWrapper session)
-        {
-            List<AniDB_Anime_Title> thisTitles = this.GetTitles(session);
+            List<AniDB_Anime_Title> thisTitles = this.GetTitles();
             return GetFormattedTitle(thisTitles);
         }
 
@@ -2068,7 +2053,7 @@ namespace JMMServer.Entities
 
         public void UpdateContractDetailed(ISessionWrapper session)
         {
-            List<AniDB_Anime_Title> animeTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(session, AnimeID);
+            List<AniDB_Anime_Title> animeTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
             Contract_AniDB_AnimeDetailed contract = new Contract_AniDB_AnimeDetailed();
             contract.AniDBAnime = GenerateContract(session, animeTitles);
 
@@ -2285,163 +2270,34 @@ namespace JMMServer.Entities
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                return CreateAnimeSeriesAndGroup(session);
+                return CreateAnimeSeriesAndGroup(session.Wrap());
             }
         }
 
-        public AnimeSeries CreateAnimeSeriesAndGroup(ISession session)
+        public AnimeSeries CreateAnimeSeriesAndGroup(ISessionWrapper session)
         {
-            // create a new AnimeSeries record
-           
-            AnimeSeries ser = new AnimeSeries();
-            ser.Populate(this);
+            // Create a new AnimeSeries record
+            AnimeSeries series = new AnimeSeries();
 
-            ISessionWrapper sessionWrapper = session.Wrap();
+            series.Populate(this);
 
+            AnimeGroup grp = new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(session, series);
 
-            // create the AnimeGroup record
-            // check if there are any existing groups we could add this series to
-            bool createNewGroup = true;
-
-            if (ServerSettings.AutoGroupSeries)
-            {
-                List<AnimeGroup> grps = AnimeGroup.GetRelatedGroupsFromAnimeID(sessionWrapper, ser.AniDB_ID, true);
-
-                // only use if there is just one result
-
-                // we are moving all to a single group, and then naming it, so keep outside loop
-                AnimeSeries name = null;
-                string customGroupName = null;
-                if (grps != null && grps.Count > 0)
-                {
-                    int groupID = -1;
-                    foreach (AnimeGroup grp in grps.ToList())
-                        //FIX repSeries.Save(series, true) Groups might change the enumeration
-                    {
-                        bool groupHasCustomName = true;
-                        if (grp.GroupName.Equals("AAA Migrating Groups AAA")) continue;
-                        if (groupID == -1) groupID = grp.AnimeGroupID;
-                        ser.AnimeGroupID = groupID;
-                        if (name == null) name = ser;
-
-                        #region Naming
-
-                        if (grp.DefaultAnimeSeriesID.HasValue)
-                        {
-                            name = RepoFactory.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value);
-                            if (name == null)
-                            {
-                                grp.DefaultAnimeSeriesID = null;
-                                //TODO what this means, its not saved back to AnimeGroup
-                            }
-                            else
-                            {
-                                groupHasCustomName = false;
-                            }
-                        }
-                        foreach (AnimeSeries series in grp.GetAllSeries())
-                        {
-                            series.AnimeGroupID = groupID;
-                            RepoFactory.AnimeSeries.Save(series, true);
-
-                            if (!grp.DefaultAnimeSeriesID.HasValue)
-                            {
-                                if (name == null)
-                                {
-                                    name = series;
-                                }
-                                else
-                                {
-                                    if (series.AirDate < name.AirDate)
-                                    {
-                                        name = series;
-                                    }
-                                }
-                                // Check all titles for custom naming, in case user changed language preferences
-                                if (series.SeriesNameOverride.Equals(grp.GroupName))
-                                {
-                                    groupHasCustomName = false;
-                                }
-                                else
-                                {
-                                    foreach (AniDB_Anime_Title title in series.GetAnime().GetTitles())
-                                    {
-                                        if (title.Title.Equals(grp.GroupName))
-                                        {
-                                            groupHasCustomName = false;
-                                            break;
-                                        }
-                                    }
-
-									#region tvdb names
-									List<TvDB_Series> tvdbs = series.GetTvDBSeries();
-									if (tvdbs != null && tvdbs.Count != 0)
-									{
-										foreach (TvDB_Series tvdbser in tvdbs)
-										{
-											if (tvdbser.SeriesName.Equals(grp.GroupName))
-											{
-												groupHasCustomName = false;
-												break;
-											}
-										}
-									}
-									#endregion
-								}
-							}
-                        }
-
-                        if (groupHasCustomName)
-                            customGroupName = grp.GroupName;
-                    }
-                    if (name != null)
-                    {
-                        AnimeGroup newGroup = RepoFactory.AnimeGroup.GetByID(groupID);
-						string newTitle = name.GetSeriesName();
-						if (newGroup.DefaultAnimeSeriesID.HasValue &&
-							newGroup.DefaultAnimeSeriesID.Value != name.AnimeSeriesID)
-							newTitle = RepoFactory.AnimeSeries.GetByID(newGroup.DefaultAnimeSeriesID.Value).GetSeriesName();
-						if (customGroupName != null) newTitle = customGroupName;
-						// reset tags, description, etc to new series
-						newGroup.Populate(name);
-                        newGroup.GroupName = newTitle;
-                        newGroup.SortName = newTitle;
-                        RepoFactory.AnimeGroup.Save(newGroup, true, true);
-                    }
-
-                    #endregion
-
-                    createNewGroup = false;
-                    foreach (AnimeGroup group in grps)
-                    {
-                        if (group.GetAllSeries().Count == 0) RepoFactory.AnimeGroup.Delete(group.AnimeGroupID);
-                    }
-                }
-            }
-
-            if (createNewGroup)
-            {
-                AnimeGroup anGroup = new AnimeGroup();
-                anGroup.Populate(ser);
-                RepoFactory.AnimeGroup.Save(anGroup, true, true);
-
-                ser.AnimeGroupID = anGroup.AnimeGroupID;
-            }
-
-            RepoFactory.AnimeSeries.Save(ser, false, false);
+            series.AnimeGroupID = grp.AnimeGroupID;
+            RepoFactory.AnimeSeries.Save(series, false, false);
 
             // check for TvDB associations
-            CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(this.AnimeID, false);
+            CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(AnimeID, forced: false);
             cmd.Save();
 
             // check for Trakt associations
             if (ServerSettings.Trakt_IsEnabled && !String.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
             {
-                CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(this.AnimeID, false);
+                CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(AnimeID, forced: false);
                 cmd2.Save();
             }
 
-            return ser;
+            return series;
         }
 
         public static void GetRelatedAnimeRecursive(ISessionWrapper session, int animeID, ref List<AniDB_Anime> relList,

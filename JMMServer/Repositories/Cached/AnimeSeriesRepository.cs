@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -44,6 +45,12 @@ namespace JMMServer.Repositories.Cached
         {
             return new AnimeSeriesRepository();
         }
+
+        protected override int SelectKey(AnimeSeries entity)
+        {
+            return entity.AnimeSeriesID;
+        }
+
         public override void PopulateIndexes()
         {
             Changes.AddOrUpdateRange(Cache.Keys);
@@ -90,7 +97,7 @@ namespace JMMServer.Repositories.Cached
         public override void Save(AnimeSeries obj) { throw new NotSupportedException(); }
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(List<AnimeSeries> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<AnimeSeries> objs) { throw new NotSupportedException(); }
 
 
         public void Save(AnimeSeries obj, bool onlyupdatestats)
@@ -164,8 +171,24 @@ namespace JMMServer.Repositories.Cached
             }
         }
 
+        public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<AnimeSeries> seriesBatch)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (seriesBatch == null)
+                throw new ArgumentNullException(nameof(seriesBatch));
 
+            if (seriesBatch.Count == 0)
+            {
+                return;
+            }
 
+            foreach (AnimeSeries series in seriesBatch)
+            {
+                session.Update(series);
+                Changes.AddOrUpdate(series.AnimeSeriesID);
+            }
+        }
 
         public AnimeSeries GetByAnimeID(int id)
         {

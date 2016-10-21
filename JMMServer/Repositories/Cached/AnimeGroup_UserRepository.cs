@@ -4,7 +4,9 @@ using System.ComponentModel;
 using System.Linq;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
+using NHibernate.Criterion;
 using NLog;
 using NutzCode.InMemoryIndex;
 
@@ -22,7 +24,6 @@ namespace JMMServer.Repositories.Cached
 
         private AnimeGroup_UserRepository()
         {
-
             EndDeleteCallback = (cr) =>
             {
                 if (!Changes.ContainsKey(cr.JMMUserID))
@@ -38,6 +39,10 @@ namespace JMMServer.Repositories.Cached
             return new AnimeGroup_UserRepository();
         }
 
+        protected override int SelectKey(AnimeGroup_User entity)
+        {
+            return entity.AnimeGroup_UserID;
+        }
 
         public override void PopulateIndexes()
         {
@@ -74,7 +79,7 @@ namespace JMMServer.Repositories.Cached
                 " DbRegen - " + max + "/" + max);
         }
 
-        public override void Save(List<AnimeGroup_User> objs)
+        public override void Save(IReadOnlyCollection<AnimeGroup_User> objs)
         {
             foreach(AnimeGroup_User grp in objs)
                 Save(grp);
@@ -101,9 +106,112 @@ namespace JMMServer.Repositories.Cached
             }
         }
 
+        /// <summary>
+        /// Inserts a batch of <see cref="AnimeGroup_User"/> into the database.
+        /// </summary>
+        /// <remarks>
+        /// <para>This method should NOT be used for updating existing entities.</para>
+        /// <para>It is up to the caller of this method to manage transactions, etc.</para>
+        /// <para>Group Filters, etc. will not be updated by this method.</para>
+        /// </remarks>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="groupUsers">The batch of <see cref="AnimeGroup_User"/> to insert into the database.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
+        public void InsertBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (groupUsers == null)
+                throw new ArgumentNullException(nameof(groupUsers));
 
+            foreach (AnimeGroup_User groupUser in groupUsers)
+            {
+                session.Insert(groupUser);
 
-       
+                ChangeTracker<int> changeTracker;
+
+                if (!Changes.TryGetValue(groupUser.JMMUserID, out changeTracker))
+                {
+                    changeTracker = new ChangeTracker<int>();
+                    Changes[groupUser.JMMUserID] = changeTracker;
+                }
+
+                changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
+            }
+        }
+
+        /// <summary>
+        /// Inserts a batch of <see cref="AnimeGroup_User"/> into the database.
+        /// </summary>
+        /// <remarks>
+        /// <para>It is up to the caller of this method to manage transactions, etc.</para>
+        /// <para>Group Filters, etc. will not be updated by this method.</para>
+        /// </remarks>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="groupUsers">The batch of <see cref="AnimeGroup_User"/> to insert into the database.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
+        public void UpdateBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (groupUsers == null)
+                throw new ArgumentNullException(nameof(groupUsers));
+
+            foreach (AnimeGroup_User groupUser in groupUsers)
+            {
+                session.Update(groupUser);
+
+                ChangeTracker<int> changeTracker;
+
+                if (!Changes.TryGetValue(groupUser.JMMUserID, out changeTracker))
+                {
+                    changeTracker = new ChangeTracker<int>();
+                    Changes[groupUser.JMMUserID] = changeTracker;
+                }
+
+                changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
+            }
+        }
+
+        /// <summary>
+        /// Deletes all AnimeGroup_User records.
+        /// </summary>
+        /// <remarks>
+        /// This method also makes sure that the cache is cleared.
+        /// </remarks>
+        /// <param name="session">The NHibernate session.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
+        public void DeleteAll(ISessionWrapper session)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+
+            // First, get all of the current user/groups so that we can inform the change tracker that they have been removed later
+            var usrGrpMap = GetAll()
+                .GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
+
+            // Then, actually delete the AnimeGroup_Users
+            session.CreateQuery("delete AnimeGroup_User agu")
+                .ExecuteUpdate();
+
+            // Now, update the change trackers with all removed records
+            foreach (var grp in usrGrpMap)
+            {
+                int jmmUserId = grp.Key;
+                ChangeTracker<int> changeTracker;
+
+                if (!Changes.TryGetValue(jmmUserId, out changeTracker))
+                {
+                    changeTracker = new ChangeTracker<int>();
+                    Changes[jmmUserId] = changeTracker;
+                }
+
+                changeTracker.RemoveRange(grp);
+            }
+
+            // Finally, we need to clear the cache so that it is in sync with the database
+            ClearCache();
+        }
 
         public AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
         {
@@ -115,14 +223,10 @@ namespace JMMServer.Repositories.Cached
             return Users.GetMultiple(userid);
         }
 
-
-
         public List<AnimeGroup_User> GetByGroupID(int groupid)
         {
             return Groups.GetMultiple(groupid);
         }
-
-
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {

@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using JMMContracts;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -41,6 +43,11 @@ namespace JMMServer.Repositories.Cached
         public static GroupFilterRepository Create()
         {
             return new GroupFilterRepository();
+        }
+
+        protected override int SelectKey(GroupFilter entity)
+        {
+            return entity.GroupFilterID;
         }
 
         public override void PopulateIndexes()
@@ -333,7 +340,7 @@ namespace JMMServer.Repositories.Cached
         //Disable base saves.
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("...", false)]
-        public override void Save(List<GroupFilter> objs) { throw new NotSupportedException(); }
+        public override void Save(IReadOnlyCollection<GroupFilter> objs) { throw new NotSupportedException(); }
 
         public override void Save(GroupFilter obj)
         {
@@ -346,14 +353,7 @@ namespace JMMServer.Repositories.Cached
             {
                 if (!onlyconditions)
                 {
-                    obj.GroupsIdsString =
-                        Newtonsoft.Json.JsonConvert.SerializeObject(obj.GroupsIds.ToDictionary(a => a.Key,
-                            a => a.Value.ToList()));
-                    obj.GroupsIdsVersion = GroupFilter.GROUPFILTER_VERSION;
-                    obj.SeriesIdsString =
-                        Newtonsoft.Json.JsonConvert.SerializeObject(obj.SeriesIds.ToDictionary(a => a.Key,
-                            a => a.Value.ToList()));
-                    obj.SeriesIdsVersion = GroupFilter.SERIEFILTER_VERSION;
+                    obj.UpdateEntityReferenceStrings();
                 }
                 obj.GroupConditions = Newtonsoft.Json.JsonConvert.SerializeObject(obj._conditions);
                 obj.GroupConditionsVersion = GroupFilter.GROUPCONDITIONS_VERSION;
@@ -361,6 +361,27 @@ namespace JMMServer.Repositories.Cached
             }
         }
 
+        /// <summary>
+        /// Updates a batch of <see cref="GroupFilter"/>s.
+        /// </summary>
+        /// <remarks>
+        /// This method ONLY updates existing <see cref="GroupFilter"/>s. It will not insert any that don't already exist.
+        /// </remarks>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="groupFilters">The batch of <see cref="GroupFilter"/>s to update.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupFilters"/> is <c>null</c>.</exception>
+        public void BatchUpdate(ISessionWrapper session, IEnumerable<GroupFilter> groupFilters)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (groupFilters == null)
+                throw new ArgumentNullException(nameof(groupFilters));
+
+            foreach (GroupFilter groupFilter in groupFilters)
+            {
+                session.Update(groupFilter);
+            }
+        }
 
         public List<GroupFilter> GetByParentID(int parentid)
         {
@@ -372,7 +393,38 @@ namespace JMMServer.Repositories.Cached
             return Parents.GetMultiple(0);
         }
 
+        /// <summary>
+        /// Calculates what groups should belong to tag related group filters.
+        /// </summary>
+        /// <param name="session">The NHibernate session.</param>
+        /// <returns>A <see cref="ILookup{TKey,TElement}"/> that maps group filter ID to anime group IDs.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
+        public ILookup<int, int> CalculateAnimeGroupsPerTagGroupFilter(ISessionWrapper session)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
 
+            var groupsByFilter = session.CreateSQLQuery(@"
+                SELECT DISTINCT grpFilter.GroupFilterID, grp.AnimeGroupID
+                    FROM AnimeGroup grp
+                        INNER JOIN AnimeSeries series
+                            ON series.AnimeGroupID = grp.AnimeGroupID
+                        INNER JOIN AniDB_Anime_Tag anidbTag
+                            ON anidbTag.AnimeID = series.AniDB_ID
+                        INNER JOIN AniDB_Tag tag
+                            ON tag.TagID = anidbTag.TagID
+                        INNER JOIN GroupFilter grpFilter
+                            ON grpFilter.GroupFilterName = tag.TagName
+                                AND grpFilter.FilterType = :tagType
+                    ORDER BY grpFilter.GroupFilterID, grp.AnimeGroupID")
+                .AddScalar("GroupFilterID", NHibernateUtil.Int32)
+                .AddScalar("AnimeGroupID", NHibernateUtil.Int32)
+                .SetInt32("tagType", (int)GroupFilterType.Tag)
+                .List<object[]>()
+                .ToLookup(r => (int)r[0], r => (int)r[1]);
+
+            return groupsByFilter;
+        }
 
         public List<GroupFilter> GetLockedGroupFilters()
         {

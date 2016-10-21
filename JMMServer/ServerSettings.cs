@@ -7,18 +7,12 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Security.AccessControl;
-using System.Security.Principal;
-using System.Security.RightsManagement;
 using System.Threading;
 using System.Windows;
 using AniDBAPI;
 using JMMContracts;
 using JMMServer.Databases;
-using JMMServer.Entities;
 using JMMServer.ImageDownload;
-using JMMServer.Repositories;
-using JMMServer.Repositories.Direct;
 using JMMServer.UI;
 using NLog;
 using Newtonsoft.Json;
@@ -1416,7 +1410,7 @@ namespace JMMServer
             get
             {
                 
-                string val = "same setting|alternative setting|character|other";
+                string val = null;
                 try
                 {
                     val = Get("AutoGroupSeriesRelationExclusions");
@@ -1424,12 +1418,24 @@ namespace JMMServer
                 catch (Exception e)
                 {
                 }
-                return val;
+                return val ?? "same setting|character";
             }
             set { Set("AutoGroupSeriesRelationExclusions", value); }
         }
 
-        public static string LanguagePreference
+	    public static bool AutoGroupSeriesUseScoreAlgorithm
+	    {
+		    get
+		    {
+
+			    bool val = false;
+			    bool.TryParse(Get("AutoGroupSeriesUseScoreAlgorithm"), out val);
+			    return val;
+		    }
+		    set { Set("AutoGroupSeriesUseScoreAlgorithm", value.ToString()); }
+	    }
+
+	    public static string LanguagePreference
         {
             get
             {   
@@ -1816,7 +1822,8 @@ namespace JMMServer
             // Import settings
             contract.VideoExtensions = ServerSettings.VideoExtensions;
             contract.AutoGroupSeries = ServerSettings.AutoGroupSeries;
-            contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
+			contract.AutoGroupSeriesUseScoreAlgorithm = ServerSettings.AutoGroupSeriesUseScoreAlgorithm;
+			contract.AutoGroupSeriesRelationExclusions = ServerSettings.AutoGroupSeriesRelationExclusions;
             contract.Import_UseExistingFileWatchedStatus = ServerSettings.Import_UseExistingFileWatchedStatus;
             contract.RunImportOnStart = ServerSettings.RunImportOnStart;
             contract.ScanDropFoldersOnStart = ServerSettings.ScanDropFoldersOnStart;
