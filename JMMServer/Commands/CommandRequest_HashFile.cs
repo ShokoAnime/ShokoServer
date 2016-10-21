@@ -389,7 +389,7 @@ namespace JMMServer.Commands
                 TimeSpan ts = DateTime.Now - start;
                 logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"),
                     FileName, Utils.FormatByteSize(vlocal.FileSize));
-	            if (String.IsNullOrEmpty(vlocal.Hash) || forceAll)
+	            if (String.IsNullOrEmpty(vlocal.Hash))
 		            vlocal.Hash = hashes.ed2k?.ToUpperInvariant();
                 if (needsha1)
                     vlocal.SHA1 = hashes.sha1?.ToUpperInvariant();
