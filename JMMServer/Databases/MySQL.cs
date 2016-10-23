@@ -15,7 +15,7 @@ namespace JMMServer.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 57;
+        public int RequiredVersion { get; } = 58;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -334,13 +334,16 @@ namespace JMMServer.Databases
             new DatabaseCommand(54, 15, "ALTER TABLE `ImportFolder` ADD `CloudID` int NULL"),
             new DatabaseCommand(54, 16, "ALTER TABLE `VideoLocal_User` MODIFY COLUMN `WatchedDate` datetime NULL"),
             new DatabaseCommand(54, 17, "ALTER TABLE `VideoLocal_User` ADD `ResumePosition` bigint NOT NULL DEFAULT 0"),
-            new DatabaseCommand(54, 18, "DROP TABLE `VideoInfo`"),
+            new DatabaseCommand(54, 17, "ALTER TABLE `VideoLocal_User` ADD `ResumePosition` bigint NOT NULL DEFAULT 0"),
+            new DatabaseCommand(54, 18, "UPDATE `VideoLocal` INNER JOIN `VideoInfo` ON `VideoLocal`.`Hash`=`VideoInfo`.`Hash` SET `VideoLocal`.`FileName`=`VideoInfo`.`FileName`,`VideoLocal`.`VideoCodec`=`VideoInfo`.`VideoCodec`,`VideoLocal`.`VideoBitrate`=`VideoInfo`.`VideoBitrate`,`VideoLocal`.`VideoBitDepth`=`VideoInfo`.`VideoBitDepth`,`VideoLocal`.`VideoFrameRate`=`VideoInfo`.`VideoFrameRate`,`VideoLocal`.`VideoResolution`=`VideoInfo`.`VideoResolution`,`VideoLocal`.`AudioCodec`=`VideoInfo`.`AudioCodec`,`VideoLocal`.`AudioBitrate`=`VideoInfo`.`AudioBitrate`,`VideoLocal`.`Duration`=`VideoInfo`.`Duration`"),            
+            new DatabaseCommand(54, 19, "DROP TABLE `VideoInfo`"),
             new DatabaseCommand(55, 1, "ALTER TABLE `VideoLocal` DROP INDEX `UIX_VideoLocal_Hash` ;"),
             new DatabaseCommand(55, 2, "ALTER TABLE `VideoLocal` ADD INDEX `IX_VideoLocal_Hash` (`Hash` ASC) ;"),
-            new DatabaseCommand(56, 1,"CREATE TABLE `AuthTokens` ( `AuthID` INT NOT NULL AUTO_INCREMENT, `UserID` int NOT NULL, `DeviceName` text character set utf8, `Token` text character set utf8, PRIMARY KEY (`AuthID`) ) ; "),
-            new DatabaseCommand(57, 1,"CREATE TABLE `Scan` ( `ScanID` INT NOT NULL AUTO_INCREMENT, `CreationTime` datetime NOT NULL, `ImportFolders` text character set utf8, `Status` int NOT NULL, PRIMARY KEY (`ScanID`) ) ; "),
-            new DatabaseCommand(57, 2,"CREATE TABLE `ScanFile` ( `ScanFileID` INT NOT NULL AUTO_INCREMENT, `ScanID` int NOT NULL, `ImportFolderID` int NOT NULL, `VideoLocal_Place_ID` int NOT NULL, `FullName` text character set utf8, `FileSize` bigint NOT NULL, `Status` int NOT NULL, `CheckDate` datetime NULL, `Hash` text character set utf8, `HashResult` text character set utf8 NULL, PRIMARY KEY (`ScanFileID`) ) ; "),
-            new DatabaseCommand(57, 3,"ALTER TABLE `ScanFile` ADD  INDEX `UIX_ScanFileStatus` (`ScanID` ASC, `Status` ASC, `CheckDate` ASC) ;"),
+            new DatabaseCommand(56, 1, "CREATE TABLE `AuthTokens` ( `AuthID` INT NOT NULL AUTO_INCREMENT, `UserID` int NOT NULL, `DeviceName` text character set utf8, `Token` text character set utf8, PRIMARY KEY (`AuthID`) ) ; "),
+            new DatabaseCommand(57, 1, "CREATE TABLE `Scan` ( `ScanID` INT NOT NULL AUTO_INCREMENT, `CreationTime` datetime NOT NULL, `ImportFolders` text character set utf8, `Status` int NOT NULL, PRIMARY KEY (`ScanID`) ) ; "),
+            new DatabaseCommand(57, 2, "CREATE TABLE `ScanFile` ( `ScanFileID` INT NOT NULL AUTO_INCREMENT, `ScanID` int NOT NULL, `ImportFolderID` int NOT NULL, `VideoLocal_Place_ID` int NOT NULL, `FullName` text character set utf8, `FileSize` bigint NOT NULL, `Status` int NOT NULL, `CheckDate` datetime NULL, `Hash` text character set utf8, `HashResult` text character set utf8 NULL, PRIMARY KEY (`ScanFileID`) ) ; "),
+            new DatabaseCommand(57, 3, "ALTER TABLE `ScanFile` ADD  INDEX `UIX_ScanFileStatus` (`ScanID` ASC, `Status` ASC, `CheckDate` ASC) ;"),
+            new DatabaseCommand(58, 1, DatabaseFixes.FixEmptyVideoInfos)
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

@@ -107,6 +107,47 @@ namespace JMMServer.Entities
                 return null;
             return fobj.Result as IFile;
         }
+
+        public static void FillVideoInfoFromMedia(VideoLocal info, Media m)
+        {
+            info.VideoResolution = (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
+                      ? m.Width + "x" + m.Height
+                      : string.Empty;
+            info.VideoCodec = (!string.IsNullOrEmpty(m.VideoCodec)) ? m.VideoCodec : string.Empty;
+            info.AudioCodec = (!string.IsNullOrEmpty(m.AudioCodec)) ? m.AudioCodec : string.Empty;
+
+
+            if (!string.IsNullOrEmpty(m.Duration))
+            {
+                double duration;
+                bool isValidDuration = double.TryParse(m.Duration, out duration);
+                if (isValidDuration)
+                    info.Duration =
+                        (long)double.Parse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture);
+                else
+                    info.Duration = 0;
+            }
+            else
+                info.Duration = 0;
+
+            info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
+            List<JMMContracts.PlexAndKodi.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
+            if (vparts.Count > 0)
+            {
+                if (!string.IsNullOrEmpty(vparts[0].Bitrate))
+                    info.VideoBitrate = vparts[0].Bitrate;
+                if (!string.IsNullOrEmpty(vparts[0].BitDepth))
+                    info.VideoBitDepth = vparts[0].BitDepth;
+                if (!string.IsNullOrEmpty(vparts[0].FrameRate))
+                    info.VideoFrameRate = vparts[0].FrameRate;
+            }
+            List<JMMContracts.PlexAndKodi.Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
+            if (aparts.Count > 0)
+            {
+                if (!string.IsNullOrEmpty(aparts[0].Bitrate))
+                    info.AudioBitrate = aparts[0].Bitrate;
+            }
+        }
         public bool RefreshMediaInfo()
         {
             try
@@ -136,43 +177,8 @@ namespace JMMServer.Entities
                 if (m != null)
                 {
                     VideoLocal info = VideoLocal;
-                    info.VideoResolution = (!string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height))
-                        ? m.Width + "x" + m.Height
-                        : string.Empty;
-                    info.VideoCodec = (!string.IsNullOrEmpty(m.VideoCodec)) ? m.VideoCodec : string.Empty;
-                    info.AudioCodec = (!string.IsNullOrEmpty(m.AudioCodec)) ? m.AudioCodec : string.Empty;
+                    FillVideoInfoFromMedia(info, m);
 
-                    
-                    if (!string.IsNullOrEmpty(m.Duration))
-                    {
-                        double duration;
-                        bool isValidDuration = double.TryParse(m.Duration, out duration);
-                        if (isValidDuration)
-                            info.Duration =
-                                (long) double.Parse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture);
-                        else
-                            info.Duration = 0;
-                    }
-                    else
-                        info.Duration = 0;
-
-                    info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
-                    List<JMMContracts.PlexAndKodi.Stream> vparts = m.Parts[0].Streams.Where(a => a.StreamType == "1").ToList();
-                    if (vparts.Count > 0)
-                    {
-                        if (!string.IsNullOrEmpty(vparts[0].Bitrate))
-                            info.VideoBitrate = vparts[0].Bitrate;
-                        if (!string.IsNullOrEmpty(vparts[0].BitDepth))
-                            info.VideoBitDepth = vparts[0].BitDepth;
-                        if (!string.IsNullOrEmpty(vparts[0].FrameRate))
-                            info.VideoFrameRate = vparts[0].FrameRate;
-                    }
-                    List<JMMContracts.PlexAndKodi.Stream> aparts = m.Parts[0].Streams.Where(a => a.StreamType == "2").ToList();
-                    if (aparts.Count > 0)
-                    {
-                        if (!string.IsNullOrEmpty(aparts[0].Bitrate))
-                            info.AudioBitrate = aparts[0].Bitrate;
-                    }
                     m.Id = VideoLocalID.ToString();
                     List<JMMContracts.PlexAndKodi.Stream> subs = SubtitleHelper.GetSubtitleStreams(this);
                     if (subs.Count > 0)
