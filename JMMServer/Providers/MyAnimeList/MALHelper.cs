@@ -482,8 +482,6 @@ namespace JMMServer.Providers.MyAnimeList
                                 lastWatchedEpNumber = epNum;
                             }
 
-
-                            /* Commented this out for now; errors from this making it unable to upload.
                             List<Contract_VideoDetailed> contracts = ep.GetVideoDetailedContracts(user.JMMUserID);
 
                             // find the latest episode number in the collection
@@ -495,7 +493,7 @@ namespace JMMServer.Providers.MyAnimeList
                                 if (!string.IsNullOrEmpty(contract.AniDB_Anime_GroupNameShort) &&
                                     !fanSubGroups.Contains(contract.AniDB_Anime_GroupNameShort))
                                     fanSubGroups.Add(contract.AniDB_Anime_GroupNameShort);
-                            }*/
+                            }
                         }
                     }
 
