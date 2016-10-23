@@ -45,6 +45,10 @@ namespace JMMServer.Commands.MAL
         {
             logger.Info("Processing CommandRequest_MALUpdatedWatchedStatus: {0}", AnimeID);
 
+            //avoid MAL rate limiting. remember to find out what MAL rate limit is.
+            Thread.Sleep(1000);
+            logger.Info("Slept for 1 second first.\n");
+
             try
             {
                 // find the latest eps to update

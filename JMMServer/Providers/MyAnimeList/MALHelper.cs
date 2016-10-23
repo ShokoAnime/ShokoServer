@@ -482,6 +482,8 @@ namespace JMMServer.Providers.MyAnimeList
                                 lastWatchedEpNumber = epNum;
                             }
 
+
+                            /* Commented this out for now; errors from this making it unable to upload.
                             List<Contract_VideoDetailed> contracts = ep.GetVideoDetailedContracts(user.JMMUserID);
 
                             // find the latest episode number in the collection
@@ -493,7 +495,7 @@ namespace JMMServer.Providers.MyAnimeList
                                 if (!string.IsNullOrEmpty(contract.AniDB_Anime_GroupNameShort) &&
                                     !fanSubGroups.Contains(contract.AniDB_Anime_GroupNameShort))
                                     fanSubGroups.Add(contract.AniDB_Anime_GroupNameShort);
-                            }
+                            }*/
                         }
                     }
 
@@ -530,15 +532,21 @@ namespace JMMServer.Providers.MyAnimeList
                             ser.GetAnime().AnimeID);
                         continue;
                     }
+
+                    string confirmationMessage = "";
+                    if (animeListHashtable.ContainsKey(malID))
+                    {
+                        ModifyAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
+                        confirmationMessage = string.Format("MAL successfully updated (MAL MODIFY), mal id: {0}, ep: {1}, score: {2}", malID,
+                            lastWatchedEpNumber, score);
+                    }
                     else
                     {
-                        bool res = UpdateAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
-
-                        string confirmationMessage =
-                            string.Format("MAL successfully updated, mal id: {0}, ep: {1}, score: {2}", malID,
-                                lastWatchedEpNumber, score);
-                        if (res) logger.Trace(confirmationMessage);
+                        AddAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
+                        confirmationMessage = string.Format("MAL successfully updated (MAL ADD), mal id: {0}, ep: {1}, score: {2}", malID,
+                            lastWatchedEpNumber, score);
                     }
+                    logger.Trace(confirmationMessage);
                 }
             }
             catch (Exception ex)
