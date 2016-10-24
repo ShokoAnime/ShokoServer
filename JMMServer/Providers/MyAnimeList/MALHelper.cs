@@ -400,10 +400,10 @@ namespace JMMServer.Providers.MyAnimeList
 
                 // Populate MAL animelist hashtable if isNeverDecreaseWatched set
                 Hashtable animeListHashtable = new Hashtable();
+                myanimelist malAnimeList = GetMALAnimeList();
                 if (ServerSettings.MAL_NeverDecreaseWatchedNums)
                     //if set, check watched number before update: take some time, as user anime list must be loaded
                 {
-                    myanimelist malAnimeList = GetMALAnimeList();
                     if (malAnimeList != null && malAnimeList.anime != null)
                     {
                         for (int i = 0; i < malAnimeList.anime.Length; i++)
