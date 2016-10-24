@@ -400,10 +400,10 @@ namespace JMMServer.Providers.MyAnimeList
 
                 // Populate MAL animelist hashtable if isNeverDecreaseWatched set
                 Hashtable animeListHashtable = new Hashtable();
+                myanimelist malAnimeList = GetMALAnimeList();
                 if (ServerSettings.MAL_NeverDecreaseWatchedNums)
                     //if set, check watched number before update: take some time, as user anime list must be loaded
                 {
-                    myanimelist malAnimeList = GetMALAnimeList();
                     if (malAnimeList != null && malAnimeList.anime != null)
                     {
                         for (int i = 0; i < malAnimeList.anime.Length; i++)
@@ -530,15 +530,21 @@ namespace JMMServer.Providers.MyAnimeList
                             ser.GetAnime().AnimeID);
                         continue;
                     }
+
+                    string confirmationMessage = "";
+                    if (animeListHashtable.ContainsKey(malID))
+                    {
+                        ModifyAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
+                        confirmationMessage = string.Format("MAL successfully updated (MAL MODIFY), mal id: {0}, ep: {1}, score: {2}", malID,
+                            lastWatchedEpNumber, score);
+                    }
                     else
                     {
-                        bool res = UpdateAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
-
-                        string confirmationMessage =
-                            string.Format("MAL successfully updated, mal id: {0}, ep: {1}, score: {2}", malID,
-                                lastWatchedEpNumber, score);
-                        if (res) logger.Trace(confirmationMessage);
+                        AddAnime(malID, lastWatchedEpNumber, status, score, downloadedEps, fanSubs);
+                        confirmationMessage = string.Format("MAL successfully updated (MAL ADD), mal id: {0}, ep: {1}, score: {2}", malID,
+                            lastWatchedEpNumber, score);
                     }
+                    logger.Trace(confirmationMessage);
                 }
             }
             catch (Exception ex)
