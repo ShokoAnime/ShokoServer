@@ -18,6 +18,7 @@ using JMMServer.Repositories.Direct;
 using JMMServer.Utilities;
 using JMMServer.Tasks;
 using Nancy.Responses;
+using JMMServer.API.Model.v2;
 
 namespace JMMServer.API
 {
@@ -1282,6 +1283,9 @@ namespace JMMServer.API
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
 
+            //AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(ep_id);
+            
+
             JMMServiceImplementation _impl = new JMMServiceImplementation();
             return _impl.GetEpisode(ep_id, user.JMMUserID);
         }
@@ -1364,9 +1368,10 @@ namespace JMMServer.API
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            JMMServiceImplementation _impl = new JMMServiceImplementation();
+            //JMMServiceImplementation _impl = new JMMServiceImplementation();
             Counter count = new Counter();
-            count.count = _impl.GetAllSeries(user.JMMUserID).Count;
+            //count.count = _impl.GetAllSeries(user.JMMUserID).Count;
+            count.count = RepoFactory.AnimeSeries.GetAll().Count;
             return count;
         }
 
@@ -1378,8 +1383,14 @@ namespace JMMServer.API
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            JMMServiceImplementation _impl = new JMMServiceImplementation();
-            return _impl.GetAllSeries(user.JMMUserID);
+            //JMMServiceImplementation _impl = new JMMServiceImplementation();
+            //return _impl.GetAllSeries(user.JMMUserID);
+            List<Serie> allseries = new List<Serie>();
+            foreach (AnimeSeries asi in RepoFactory.AnimeSeries.GetAll())
+            {
+                allseries.Add(new Serie(asi, user.JMMUserID));
+            }
+            return allseries;
         }
 
         /// <summary>
@@ -1391,8 +1402,13 @@ namespace JMMServer.API
         {
             Request request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
-            JMMServiceImplementation _impl = new JMMServiceImplementation();
-            return _impl.GetSeries(series_id, user.JMMUserID);
+            //JMMServiceImplementation _impl = new JMMServiceImplementation();
+            //return _impl.GetSeries(series_id, user.JMMUserID);
+            Model.v2.Serie ser = new Model.v2.Serie(RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID);
+
+            //RepoFactory.AnimeEpisode.GetBySeriesID
+
+            return ser;
         }
 
         /// <summary>

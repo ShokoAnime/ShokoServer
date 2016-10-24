@@ -293,10 +293,14 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
-    <Compile Include="API\Model\Art.cs" />
+    <Compile Include="API\Model\v2\Art.cs" />
     <Compile Include="API\Model\Logs.cs" />
     <Compile Include="API\Model\Rating.cs" />
     <Compile Include="API\Model\Search.cs" />
+    <Compile Include="API\Model\v2\Episode.cs" />
+    <Compile Include="API\Model\v2\Role.cs" />
+    <Compile Include="API\Model\v2\Serie.cs" />
+    <Compile Include="API\Model\v2\Tag.cs" />
     <Compile Include="API\Model\WebUI-Settings.cs" />
     <Compile Include="API\NancyExtensions.cs" />
     <Compile Include="API\Negotiation\BinaryProcessor.cs" />
