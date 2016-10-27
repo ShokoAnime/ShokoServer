@@ -392,6 +392,10 @@ namespace JMMServer.Tasks
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
 
+            bool cmdProcGeneralPaused = JMMService.CmdProcessorGeneral.Paused;
+            bool cmdProcHasherPaused = JMMService.CmdProcessorHasher.Paused;
+            bool cmdProcImagesPaused = JMMService.CmdProcessorImages.Paused;
+
             try
             {
                 // Pause queues
@@ -457,14 +461,28 @@ namespace JMMServer.Tasks
             catch (Exception e)
             {
                 _log.Error(e, "An error occurred while re-creating all groups");
+
+                try
+                {
+                    // If an error occurs then chances are the caches are in an inconsistent state. So re-populate them
+                    _animeSeriesRepo.Populate();
+                    _animeGroupRepo.Populate();
+                    _groupFilterRepo.Populate();
+                    _animeGroupUserRepo.Populate();
+                }
+                catch (Exception ie)
+                {
+                    _log.Warn(ie, "Failed to re-populate caches");
+                }
+
                 throw;
             }
             finally
             {
-                // Un-pause queues
-                JMMService.CmdProcessorGeneral.Paused = false;
-                JMMService.CmdProcessorHasher.Paused = false;
-                JMMService.CmdProcessorImages.Paused = false;
+                // Un-pause queues (if they were previously running)
+                JMMService.CmdProcessorGeneral.Paused = cmdProcGeneralPaused;
+                JMMService.CmdProcessorHasher.Paused = cmdProcHasherPaused;
+                JMMService.CmdProcessorImages.Paused = cmdProcImagesPaused;
             }
         }
 

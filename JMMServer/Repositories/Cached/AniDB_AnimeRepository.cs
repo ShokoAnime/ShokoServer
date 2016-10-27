@@ -154,24 +154,24 @@ namespace JMMServer.Repositories
             }
 
             // TODO: Determine if joining on the correct columns
-            var results = session.CreateSQLQuery($@"
-                SELECT {{defImg.*}}, {{tvWide.*}}, {{tvPoster.*}}, {{tvFanart.*}}, {{movPoster.*}}, {{movFanart.*}}, {{traktFanart.*}}, {{traktPoster.*}}
+            var results = session.CreateSQLQuery(@"
+                SELECT {defImg.*}, {tvWide.*}, {tvPoster.*}, {tvFanart.*}, {movPoster.*}, {movFanart.*}, {traktFanart.*}, {traktPoster.*}
                     FROM AniDB_Anime_DefaultImage defImg
                         LEFT OUTER JOIN TvDB_ImageWideBanner AS tvWide
-                            ON tvWide.TvDB_ImageWideBannerID = defImg.ImageParentID AND defImg.ImageParentType = {JMMImageType.TvDB_Banner:D}
+                            ON tvWide.TvDB_ImageWideBannerID = defImg.ImageParentID AND defImg.ImageParentType = :tvdbBannerType
                         LEFT OUTER JOIN TvDB_ImagePoster AS tvPoster
-                            ON tvPoster.TvDB_ImagePosterID = defImg.ImageParentID AND defImg.ImageParentType = {JMMImageType.TvDB_Cover:D}
+                            ON tvPoster.TvDB_ImagePosterID = defImg.ImageParentID AND defImg.ImageParentType = :tvdbCoverType
                         LEFT OUTER JOIN TvDB_ImageFanart AS tvFanart
-                            ON tvFanart.TvDB_ImageFanartID = defImg.ImageParentID AND defImg.ImageParentType = {JMMImageType.TvDB_FanArt:D}
+                            ON tvFanart.TvDB_ImageFanartID = defImg.ImageParentID AND defImg.ImageParentType = :tvdbFanartType
                         LEFT OUTER JOIN MovieDB_Poster AS movPoster
-                            ON movPoster.MovieDB_PosterID = defImg.ImageParentID AND defImg.ImageParentType = {JMMImageType.MovieDB_Poster:D}
+                            ON movPoster.MovieDB_PosterID = defImg.ImageParentID AND defImg.ImageParentType = :movdbPosterType
                         LEFT OUTER JOIN MovieDB_Fanart AS movFanart
-                            ON movFanart.MovieDB_FanartID = defImg.ImageParentID AND defImg.ImageParentType = {JMMImageType.MovieDB_FanArt:D}
+                            ON movFanart.MovieDB_FanartID = defImg.ImageParentID AND defImg.ImageParentType = :movdbFanartType
                         LEFT OUTER JOIN Trakt_ImageFanart AS traktFanart
-                            ON traktFanart.Trakt_ImageFanartID = defImg.ImageParentID AND defImg.ImageParentType = {JMMImageType.Trakt_Fanart:D}
+                            ON traktFanart.Trakt_ImageFanartID = defImg.ImageParentID AND defImg.ImageParentType = :traktFanartType
                         LEFT OUTER JOIN Trakt_ImagePoster AS traktPoster
-                            ON traktPoster.Trakt_ImagePosterID = defImg.ImageParentID AND defImg.ImageParentType = {JMMImageType.Trakt_Poster:D}
-                    WHERE defImg.AnimeID IN (:animeIds)")
+                            ON traktPoster.Trakt_ImagePosterID = defImg.ImageParentID AND defImg.ImageParentType = :traktPosterType
+                    WHERE defImg.AnimeID IN (:animeIds) AND defImg.ImageParentType IN (:tvdbBannerType, :tvdbCoverType, :tvdbFanartType, :movdbPosterType, :movdbFanartType, :traktFanartType, :traktPosterType)")
                 .AddEntity("defImg", typeof(AniDB_Anime_DefaultImage))
                 .AddEntity("tvWide", typeof(TvDB_ImageWideBanner))
                 .AddEntity("tvPoster", typeof(TvDB_ImagePoster))
@@ -181,6 +181,13 @@ namespace JMMServer.Repositories
                 .AddEntity("traktFanart", typeof(Trakt_ImageFanart))
                 .AddEntity("traktPoster", typeof(Trakt_ImagePoster))
                 .SetParameterList("animeIds", animeIds)
+                .SetInt32("tvdbBannerType", (int)JMMImageType.TvDB_Banner)
+                .SetInt32("tvdbCoverType", (int)JMMImageType.TvDB_Cover)
+                .SetInt32("tvdbFanartType", (int)JMMImageType.TvDB_FanArt)
+                .SetInt32("movdbPosterType", (int)JMMImageType.MovieDB_Poster)
+                .SetInt32("movdbFanartType", (int)JMMImageType.MovieDB_FanArt)
+                .SetInt32("traktFanartType", (int)JMMImageType.Trakt_Fanart)
+                .SetInt32("traktPosterType", (int)JMMImageType.Trakt_Poster)
                 .List<object[]>();
 
             foreach (object[] result in results)
@@ -211,6 +218,11 @@ namespace JMMServer.Repositories
                     case JMMImageType.Trakt_Poster:
                         parentImage = (IImageEntity)result[7];
                         break;
+                }
+
+                if (parentImage == null)
+                {
+                    continue;
                 }
 
                 DefaultAnimeImages defImages;
