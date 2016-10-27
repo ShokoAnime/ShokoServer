@@ -833,19 +833,8 @@ namespace JMMServer.Providers.TvDB
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                List<CrossRef_AniDB_TvDBV2> xrefTemps = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(session, animeID,
-                    (int) aniEpType,
-                    aniEpNumber);
-                if (xrefTemps != null && xrefTemps.Count > 0)
-                {
-                    foreach (CrossRef_AniDB_TvDBV2 xrefTemp in xrefTemps)
-                    {
-                        // delete the existing one if we are updating
-                        TvDBHelper.RemoveLinkAniDBTvDB(xrefTemp.AnimeID, (enEpisodeType) xrefTemp.AniDBStartEpisodeType,
-                            xrefTemp.AniDBStartEpisodeNumber,
-                            xrefTemp.TvDBID, xrefTemp.TvDBSeasonNumber, xrefTemp.TvDBStartEpisodeNumber);
-                    }
-                }
+	            // remove all current links
+                RemoveAllAniDBTvDBLinks(session.Wrap(), animeID);
 
                 // check if we have this information locally
                 // if not download it now
@@ -955,7 +944,41 @@ namespace JMMServer.Providers.TvDB
             req.Save();
         }
 
-        /*
+	    public static void RemoveAllAniDBTvDBLinks(ISessionWrapper session, int animeID, int aniEpType=-1)
+	    {
+		    List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(session, animeID);
+		    if (xrefs == null || xrefs.Count == 0) return;
+
+		    foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+		    {
+			    if (aniEpType != -1 && aniEpType == xref.AniDBStartEpisodeType) continue;
+
+			    RepoFactory.CrossRef_AniDB_TvDBV2.Delete(xref.CrossRef_AniDB_TvDBV2ID);
+
+			    if (aniEpType == -1)
+			    {
+				    foreach (enEpisodeType eptype in Enum.GetValues(typeof(enEpisodeType)))
+				    {
+					    CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(animeID,
+						    (int)eptype, xref.AniDBStartEpisodeNumber,
+						    xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
+					    req.Save();
+				    }
+			    }
+			    else
+			    {
+				    CommandRequest_WebCacheDeleteXRefAniDBTvDB req = new CommandRequest_WebCacheDeleteXRefAniDBTvDB(animeID,
+					    aniEpType, xref.AniDBStartEpisodeNumber,
+					    xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
+				    req.Save();
+			    }
+
+		    }
+
+		    AniDB_Anime.UpdateStatsByAnimeID(animeID);
+	    }
+
+	    /*
 		public static void DownloadAllEpisodes()
 		{
 			CrossRef_AniDB_TvDBV2Repository repCrossRef = new CrossRef_AniDB_TvDBV2Repository();
@@ -969,8 +992,8 @@ namespace JMMServer.Providers.TvDB
 
 			DownloadAllEpisodes(tvDBIDs);
 		}
-       
-        public static void DownloadAllEpisodes(List<int> tvDBIDs)
+
+	    public static void DownloadAllEpisodes(List<int> tvDBIDs)
 		{
 			foreach (int tvid in tvDBIDs)
 			{
@@ -978,7 +1001,7 @@ namespace JMMServer.Providers.TvDB
 				cmd.Save();
 			}
 		}
-        */
+	    */
 
         public static void ScanForMatches()
         {
