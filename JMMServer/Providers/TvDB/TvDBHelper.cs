@@ -829,12 +829,13 @@ namespace JMMServer.Providers.TvDB
 
 
         public static string LinkAniDBTvDB(int animeID, enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
-            int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache)
+            int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink=false)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-	            // remove all current links
-                RemoveAllAniDBTvDBLinks(session.Wrap(), animeID);
+	            if(!additiveLink)
+					// remove all current links
+					RemoveAllAniDBTvDBLinks(session.Wrap(), animeID);
 
                 // check if we have this information locally
                 // if not download it now

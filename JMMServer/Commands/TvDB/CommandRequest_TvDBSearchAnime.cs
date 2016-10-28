@@ -78,7 +78,7 @@ namespace JMMServer.Commands
                                             (AniDBAPI.enEpisodeType)xref.AniDBStartEpisodeType,
                                             xref.AniDBStartEpisodeNumber,
                                             xref.TvDBID, xref.TvDBSeasonNumber,
-                                            xref.TvDBStartEpisodeNumber, true);
+                                            xref.TvDBStartEpisodeNumber, true, true);
                                     }
                                     else
                                     {
