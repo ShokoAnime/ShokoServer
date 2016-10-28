@@ -16,6 +16,7 @@ namespace JMMServer.Commands.TvDB
         public int tvSeasonNumber;
         public int tvEpNumber;
         public bool excludeFromWebCache;
+	    public bool additiveLink;
 
         public CommandRequestPriority DefaultPriority
         {
@@ -35,7 +36,7 @@ namespace JMMServer.Commands.TvDB
         }
 
         public CommandRequest_LinkAniDBTvDB(int animeID, AniDBAPI.enEpisodeType aniEpType, int aniEpNumber, int tvDBID,
-            int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache)
+            int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink=false)
         {
             this.animeID = animeID;
             this.aniEpType = aniEpType;
@@ -44,6 +45,7 @@ namespace JMMServer.Commands.TvDB
             this.tvSeasonNumber = tvSeasonNumber;
             this.tvEpNumber = tvEpNumber;
             this.excludeFromWebCache = excludeFromWebCache;
+	        this.additiveLink = additiveLink;
 
             this.CommandType = (int)CommandRequestType.LinkAniDBTvDB;
             this.Priority = (int)DefaultPriority;
@@ -57,7 +59,7 @@ namespace JMMServer.Commands.TvDB
 
             try
             {
-                TvDBHelper.LinkAniDBTvDB(animeID, aniEpType, aniEpNumber, tvDBID, tvSeasonNumber, tvEpNumber, excludeFromWebCache);
+                TvDBHelper.LinkAniDBTvDB(animeID, aniEpType, aniEpNumber, tvDBID, tvSeasonNumber, tvEpNumber, excludeFromWebCache, additiveLink);
             }
             catch (Exception ex)
             {
@@ -95,6 +97,7 @@ namespace JMMServer.Commands.TvDB
                 this.tvSeasonNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvSeasonNumber"));
                 this.tvEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvEpNumber"));
                 this.excludeFromWebCache = bool.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "excludeFromWebCache"));
+	            this.additiveLink = bool.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "additiveLink"));
             }
 
             return true;

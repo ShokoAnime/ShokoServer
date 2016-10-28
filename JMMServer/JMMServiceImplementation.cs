@@ -5129,16 +5129,6 @@ namespace JMMServer
         {
             try
             {
-            
-                if (crossRef_AniDB_TvDBV2ID.HasValue)
-                {
-                    CrossRef_AniDB_TvDBV2 xrefTemp = RepoFactory.CrossRef_AniDB_TvDBV2.GetByID(crossRef_AniDB_TvDBV2ID.Value);
-                    // delete the existing one if we are updating
-                    TvDBHelper.RemoveLinkAniDBTvDB(xrefTemp.AnimeID, (enEpisodeType) xrefTemp.AniDBStartEpisodeType,
-                        xrefTemp.AniDBStartEpisodeNumber,
-                        xrefTemp.TvDBID, xrefTemp.TvDBSeasonNumber, xrefTemp.TvDBStartEpisodeNumber);
-                }
-
                 CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID, aniEpType,
                     aniEpNumber);
                 if (xref != null)
@@ -5155,8 +5145,10 @@ namespace JMMServer
                     return msg;
                 }
 
-                CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(animeID, (enEpisodeType)aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
-                    tvEpNumber,false);
+	            // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
+
+	            CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(animeID, (enEpisodeType)aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
+                    tvEpNumber,false, !crossRef_AniDB_TvDBV2ID.HasValue);
                 cmdRequest.Save();
 
                 return "";
