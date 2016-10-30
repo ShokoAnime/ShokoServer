@@ -30,9 +30,11 @@ namespace JMMServer.API
 			Get["/JMMServerKodi/WatchGroup/{uid}/{epid}/{status}"] = parameter => { return ToggleWatchedStatusOnGroup_Kodi(parameter.uid, parameter.epid, parameter.status); };
 			Get["/JMMServerKodi/Vote/{uid}/{id}/{votevalue}/{votetype}"] = parameter => { return VoteAnime_Kodi(parameter.uid, parameter.id, parameter.votevalue, parameter.votetype); };
             Get["/JMMServerKodi/TraktScrobble/{animeid}/{type}/{progress}/{status}"] = parameter => { return TraktScrobble(parameter.animeid, parameter.type, parameter.progress, parameter.status); };
+			Get["/JMMServerKodi/Rescan/{vlid}"] = parameter => { return RescanVideoLocal(parameter.vlid); };
+			Get["/JMMServerKodi/Rehash/{vlid}"] = parameter => { return RehashVideoLocal(parameter.vlid); };
 
-            // PlexImplementation
-            Get["/JMMServerPlex/GetSupportImage/{name}"] = parameter => { return GetSupportImageRest(parameter.name); };
+			// PlexImplementation
+			Get["/JMMServerPlex/GetSupportImage/{name}"] = parameter => { return GetSupportImageRest(parameter.name); };
             Get["/JMMServerPlex/GetFilters/{uid}"] = parameter => { return GetFilters_Plex(parameter.uid); };
             Get["/JMMServerPlex/GetMetadata/{uid}/{type}/{id}/{historyinfo}"] = parameter => { return GetMetadata_Plex(parameter.uid, parameter.type, parameter.id, parameter.historyinfo); };
             Get["/JMMServerPlex/GetUsers"] = _ => { return GetUsers_Plex(); };
@@ -54,6 +56,7 @@ namespace JMMServer.API
 
 
         CommonImplementation _impl = new CommonImplementation();
+		JMMServiceImplementation _binary = new JMMServiceImplementation();
         IProvider _prov_kodi = new KodiProvider();
         IProvider _prov_plex = new PlexProvider();
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
@@ -76,14 +79,55 @@ namespace JMMServer.API
             return response;
         }
 
-        #region KodiImplementation
+		private object RescanVideoLocal(string vlid)
+		{
+			int videoLocalID = -1;
+			int.TryParse(vlid, out videoLocalID);
+			response = new Nancy.Response();
+			if (videoLocalID == -1)
+			{
+				response.StatusCode = HttpStatusCode.BadRequest;
+				return response;
+			}
 
-        /// <summary>
-        /// KODI: List all Group/Filters for given user ID
-        /// </summary>
-        /// <param name="uid">User ID</param>
-        /// <returns></returns>
-        private object GetFilters_Kodi(int uid)
+			string output = _binary.RescanFile(videoLocalID);
+
+			if (!string.IsNullOrEmpty(output))
+			{
+				response.StatusCode = HttpStatusCode.BadRequest;
+				response.ReasonPhrase = output;
+				return response;
+			}
+
+			response.StatusCode = HttpStatusCode.OK;
+			return response;
+		}
+
+		private object RehashVideoLocal(string vlid)
+		{
+			int videoLocalID = -1;
+			int.TryParse(vlid, out videoLocalID);
+			response = new Nancy.Response();
+			if (videoLocalID == -1)
+			{
+				response.StatusCode = HttpStatusCode.BadRequest;
+				return response;
+			}
+
+			_binary.RehashFile(videoLocalID);
+
+			response.StatusCode = HttpStatusCode.OK;
+			return response;
+		}
+
+		#region KodiImplementation
+
+		/// <summary>
+		/// KODI: List all Group/Filters for given user ID
+		/// </summary>
+		/// <param name="uid">User ID</param>
+		/// <returns></returns>
+		private object GetFilters_Kodi(int uid)
         {
             return _impl.GetFilters(_prov_kodi, uid.ToString());
         }
