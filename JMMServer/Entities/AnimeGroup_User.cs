@@ -124,13 +124,13 @@ namespace JMMServer.Entities
             }
         }
 
-        public void UpdatePlexKodiContracts()
+        public void UpdatePlexKodiContracts(ISessionWrapper session = null)
         {
             AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
             if (grp == null)
                 return;
             List<AnimeSeries> series = grp.GetAllSeries();
-            PlexContract = Helper.GenerateFromAnimeGroup(grp, JMMUserID, series);
+            PlexContract = Helper.GenerateFromAnimeGroup(grp, JMMUserID, series, session);
         }
 
         public bool HasUnwatchedFiles => UnwatchedEpisodeCount > 0;

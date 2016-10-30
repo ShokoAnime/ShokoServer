@@ -155,8 +155,12 @@ namespace JMMServer.Tasks
             _animeGroupUserRepo.Populate(session, displayname: false);
             _animeGroupRepo.Populate(session, displayname: false);
 
-            // The reason we're doing this in parallel is because updating contacts does a reasonable amount of work (including LZ4 compression)
-            Parallel.ForEach(animeGroupUsers, groupUser => groupUser.UpdatePlexKodiContracts());
+            // NOTE: There are situations in which UpdatePlexKodiContracts will cause database database writes to occur, so we can't
+            // use Parallel.ForEach for the time being (If it was guaranteed to only read then we'd be ok)
+            foreach (AnimeGroup_User groupUser in animeGroupUsers)
+            {
+                groupUser.UpdatePlexKodiContracts(session);
+            }
 
             _animeGroupUserRepo.UpdateBatch(session, animeGroupUsers);
             _log.Info("AnimeGroup_Users have been created");

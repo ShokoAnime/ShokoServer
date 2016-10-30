@@ -191,7 +191,7 @@ namespace JMMServer.Entities
 
         private static object _lock = new object();
 
-        public Contract_AnimeEpisode GetUserContract(int userid)
+        public Contract_AnimeEpisode GetUserContract(int userid, ISessionWrapper session = null)
         {
             lock(_lock) //Make it atomic on creation
             { 
@@ -206,7 +206,16 @@ namespace JMMServer.Entities
                 rr.AnimeSeriesID = this.AnimeSeriesID;
                 rr.JMMUserID = userid;
                 rr.WatchedDate = null;
-                RepoFactory.AnimeEpisode_User.Save(rr);
+
+                if (session != null)
+                {
+                    RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, rr);
+                }
+                else
+                {
+                    RepoFactory.AnimeEpisode_User.Save(rr);
+                }
+
                 return rr.Contract;
             }
         }

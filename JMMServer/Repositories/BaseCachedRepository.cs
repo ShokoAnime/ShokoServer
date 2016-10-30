@@ -19,7 +19,7 @@ namespace JMMServer.Repositories
         public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
         public Action<T> EndDeleteCallback { get; set; }
         public Action<T> BeginSaveCallback { get; set; }
-        public Action<ISession, T> SaveWithOpenTransactionCallback { get; set; }
+        public Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
         public Action<T> EndSaveCallback { get; set; }
 
         public virtual void Populate(ISessionWrapper session, bool displayname = true)
@@ -187,7 +187,7 @@ namespace JMMServer.Repositories
             {
                 using (var transaction = session.BeginTransaction())
                 {
-                    SaveWithOpenTransactionCallback?.Invoke(session, obj);
+                    SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
                     session.SaveOrUpdate(obj);
                     transaction.Commit();
                 }
@@ -207,7 +207,7 @@ namespace JMMServer.Repositories
                     foreach (T obj in objs)
                     {
                         session.SaveOrUpdate(obj);
-                        SaveWithOpenTransactionCallback?.Invoke(session, obj);
+                        SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
                     }
                     transaction.Commit();
 
@@ -221,10 +221,26 @@ namespace JMMServer.Repositories
         }
 
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+        public virtual void SaveWithOpenTransaction(ISessionWrapper session, T obj)
+        {
+            if (Equals(SelectKey(obj), default(S)))
+            {
+                session.Insert(obj);
+            }
+            else
+            {
+                session.Update(obj);
+            }
+
+            SaveWithOpenTransactionCallback?.Invoke(session, obj);
+            Cache.Update(obj);
+        }
+
+        //This function do not run the BeginDeleteCallback and the EndDeleteCallback
         public virtual void SaveWithOpenTransaction(ISession session, T obj)
         {
             session.SaveOrUpdate(obj);
-            SaveWithOpenTransactionCallback?.Invoke(session, obj);
+            SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
             Cache.Update(obj);
         }
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -235,7 +251,7 @@ namespace JMMServer.Repositories
             foreach (T obj in objs)
             {
                 session.SaveOrUpdate(obj);
-                SaveWithOpenTransactionCallback?.Invoke(session, obj);
+                SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
                 Cache.Update(obj);
             }
         }

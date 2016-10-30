@@ -24,7 +24,7 @@ namespace JMMServer.Repositories
         Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
         Action<T> EndDeleteCallback { get; set; }
         Action<T> BeginSaveCallback { get; set; }
-        Action<ISession, T> SaveWithOpenTransactionCallback { get; set; }
+        Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
         Action<T> EndSaveCallback { get; set; }
     }
 }
