@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using JMMContracts;
 using JMMServer.Entities;
+using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 
@@ -85,6 +86,19 @@ namespace JMMServer.Repositories.Cached
             }
         }
 
+        public override void SaveWithOpenTransaction(ISessionWrapper session, AnimeEpisode_User obj)
+        {
+            lock (obj)
+            {
+                if (obj.AnimeEpisode_UserID == 0)
+                {
+                    base.SaveWithOpenTransaction(session, obj);
+
+                }
+                UpdateContract(obj);
+                base.SaveWithOpenTransaction(session, obj);
+            }
+        }
 
         public List<AnimeEpisode_User> GetBySeriesID(int seriesid)
         {

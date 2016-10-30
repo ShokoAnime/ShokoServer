@@ -751,7 +751,7 @@ namespace JMMServer.PlexAndKodi
 		    return details.GenArt();
 	    }
 
-        public static Video GenerateFromAnimeGroup(AnimeGroup grp, int userid, List<AnimeSeries> allSeries)
+        public static Video GenerateFromAnimeGroup(AnimeGroup grp, int userid, List<AnimeSeries> allSeries, ISessionWrapper session = null)
         {
             Contract_AnimeGroup cgrp = grp.GetUserContract(userid);
             int subgrpcnt = grp.GetAllChildGroups().Count;
@@ -764,7 +764,7 @@ namespace JMMServer.PlexAndKodi
                     Contract_AnimeSeries cserie = ser.GetUserContract(userid);
                     if (cserie != null)
                     {
-                        Video v = GenerateFromSeries(cserie, ser, ser.GetAnime(), userid);
+                        Video v = GenerateFromSeries(cserie, ser, ser.GetAnime(), userid, session);
 						v.AirDate = ser.AirDate;
                         v.UpdatedAt = ser.LatestEpisodeAirDate.HasValue
                             ? ser.LatestEpisodeAirDate.Value.ToUnixTime()
@@ -929,11 +929,11 @@ namespace JMMServer.PlexAndKodi
         }
 
         public static Video GenerateFromSeries(Contract_AnimeSeries cserie, AnimeSeries ser, AniDB_Anime anidb,
-            int userid)
+            int userid, ISessionWrapper session = null)
         {
             Video v = new Directory();
             Dictionary<AnimeEpisode, Contract_AnimeEpisode> episodes = ser.GetAnimeEpisodes()
-                .ToDictionary(a => a, a => a.GetUserContract(userid));
+                .ToDictionary(a => a, a => a.GetUserContract(userid, session));
             episodes = episodes.Where(a => a.Value == null || a.Value.LocalFileCount > 0)
                 .ToDictionary(a => a.Key, a => a.Value);
             FillSerie(v, ser, episodes, anidb, cserie, userid);

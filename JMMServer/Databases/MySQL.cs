@@ -15,7 +15,7 @@ namespace JMMServer.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 58;
+        public int RequiredVersion { get; } = 59;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -343,7 +343,8 @@ namespace JMMServer.Databases
             new DatabaseCommand(57, 1, "CREATE TABLE `Scan` ( `ScanID` INT NOT NULL AUTO_INCREMENT, `CreationTime` datetime NOT NULL, `ImportFolders` text character set utf8, `Status` int NOT NULL, PRIMARY KEY (`ScanID`) ) ; "),
             new DatabaseCommand(57, 2, "CREATE TABLE `ScanFile` ( `ScanFileID` INT NOT NULL AUTO_INCREMENT, `ScanID` int NOT NULL, `ImportFolderID` int NOT NULL, `VideoLocal_Place_ID` int NOT NULL, `FullName` text character set utf8, `FileSize` bigint NOT NULL, `Status` int NOT NULL, `CheckDate` datetime NULL, `Hash` text character set utf8, `HashResult` text character set utf8 NULL, PRIMARY KEY (`ScanFileID`) ) ; "),
             new DatabaseCommand(57, 3, "ALTER TABLE `ScanFile` ADD  INDEX `UIX_ScanFileStatus` (`ScanID` ASC, `Status` ASC, `CheckDate` ASC) ;"),
-            new DatabaseCommand(58, 1, DatabaseFixes.FixEmptyVideoInfos)
+            new DatabaseCommand(58, 1, DatabaseFixes.FixEmptyVideoInfos),
+            new DatabaseCommand(59, 1, "ALTER TABLE `GroupFilter` ADD INDEX `IX_groupfilter_GroupFilterName` (`GroupFilterName`(250));")
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
