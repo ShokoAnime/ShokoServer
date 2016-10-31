@@ -5131,7 +5131,7 @@ namespace JMMServer
             {
                 CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID, aniEpType,
                     aniEpNumber);
-                if (xref != null)
+                if (xref != null && !crossRef_AniDB_TvDBV2ID.HasValue)
                 {
                     string msg = string.Format("You have already linked Anime ID {0} to this TvDB show/season/ep",
                         xref.AnimeID);
@@ -5148,7 +5148,7 @@ namespace JMMServer
 	            // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
 
 	            CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(animeID, (enEpisodeType)aniEpType, aniEpNumber, tvDBID, tvSeasonNumber,
-                    tvEpNumber,false, !crossRef_AniDB_TvDBV2ID.HasValue);
+                    tvEpNumber, false, !crossRef_AniDB_TvDBV2ID.HasValue);
                 cmdRequest.Save();
 
                 return "";
