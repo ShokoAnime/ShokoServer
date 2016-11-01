@@ -10,6 +10,14 @@ using Stream = System.IO.Stream;
 namespace JMMServer.API
 {
     //Legacy module, unitil all client are moved to APIv2 this need to stay
+    //
+    // PLEASE DO NOT ADD NEW FEATURES HERE
+    //
+    // THIS IS ONLY FOR LEGACY CLIENT TO WORK
+    //
+    // ANY NEW FEATURE SHOULD BE ADD TO APIv2 MODULE
+    //
+
     public class APIv1_Legacy_Module : Nancy.NancyModule
     {
         public APIv1_Legacy_Module() : base("/")

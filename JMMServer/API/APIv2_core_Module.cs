@@ -86,6 +86,8 @@ namespace JMMServer.API
             Get["/stats_update"] = _ => { return UpdateStats(); };
             Get["/mediainfo_update"] = _ => { return UpdateMediaInfo(); };
             Get["/hash/sync"] = _ => { return HashSync(); };
+            Get["/rescan/{vlid}"] = x => { return RescanVideoLocal(x.vlid); };
+            Get["/rehash/{vlid}"] = x => { return RehashVideoLocal(x.vlid); };
 
             // 9. Misc
             Get["/myid/get"] = _ => { return MyID(); };
@@ -194,6 +196,7 @@ namespace JMMServer.API
         }
 
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
+        JMMServiceImplementation _binary = new JMMServiceImplementation();
 
         #region 1.Import Folders
 
@@ -761,6 +764,44 @@ namespace JMMServer.API
         private object HashSync()
         {
             MainWindow.SyncHashes();
+            return APIStatus.statusOK();
+        }
+
+        /// <summary>
+        /// Rescan given location ID (folder id) to recognize new episodes
+        /// </summary>
+        /// <param name="vlid"></param>
+        /// <returns></returns>
+        private object RescanVideoLocal(string vlid)
+        {
+            int videoLocalID = -1;
+            int.TryParse(vlid, out videoLocalID);
+            if (videoLocalID == -1)
+            {
+                return APIStatus.badRequest("videolocalid is negative");
+            }
+
+            string output = _binary.RescanFile(videoLocalID);
+
+            if (!string.IsNullOrEmpty(output))
+            {
+                return APIStatus.badRequest(output);
+            }
+
+            return APIStatus.statusOK();
+        }
+
+        private object RehashVideoLocal(string vlid)
+        {
+            int videoLocalID = -1;
+            int.TryParse(vlid, out videoLocalID);
+            if (videoLocalID == -1)
+            {
+                return APIStatus.badRequest("videolocalid is negative");
+            }
+
+            _binary.RehashFile(videoLocalID);
+
             return APIStatus.statusOK();
         }
 
