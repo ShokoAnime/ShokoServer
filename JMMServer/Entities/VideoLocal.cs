@@ -169,7 +169,7 @@ namespace JMMServer.Entities
                 return RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
             }
         }
-        
+
         private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
         {
             VideoLocal_User vidUserRecord = GetUserRecord(userID);
@@ -198,16 +198,29 @@ namespace JMMServer.Entities
                 }
             }
         }
+
         public static IFile ResolveFile(string fullname)
         {
             Tuple<ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
             IFileSystem fs = tup?.Item1.FileSystem;
             if (fs == null)
                 return null;
-            FileSystemResult<IObject> fobj = fs?.Resolve(fullname);
-            if (!fobj.IsOk || fobj.Result is IDirectory)
-                return null;
-            return fobj.Result as IFile;
+            try
+            {
+                FileSystemResult<IObject> fobj = fs?.Resolve(fullname);
+                if (!fobj.IsOk || fobj.Result is IDirectory)
+                {
+                    logger.Warn("File not found: " + fullname);
+                    return null;
+
+                }
+                return fobj.Result as IFile;
+            }
+            catch (Exception)
+            {
+                logger.Warn("File with Exception: " + fullname);
+                throw;
+            }
         }
         public IFile GetBestFileLink()
         {
