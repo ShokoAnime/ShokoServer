@@ -6,14 +6,10 @@ using JMMServer.Entities;
 using JMMContracts;
 using System.Collections.Generic;
 using System.Threading;
-using System.Globalization;
-using JMMServer.Commands;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
 using System.Linq;
 using Newtonsoft.Json;
-using System.IO;
-using JMMServer.Utilities;
 using JMMServer.API.Model.core;
 using JMMServer.API.Module.apiv1;
 using JMMServer.API.Model.common;
@@ -146,10 +142,12 @@ namespace JMMServer.API.Module.apiv2
             #endregion
 
             #region 12. Metadata
-            Get["/metadata/{type}/{id}"] = x => { return GetMetadata(x.type, x.id); };
-            Get["/metadata/{type}/{id}/nocast"] = x => { return GetMetadata(x.type, x.id, true); };
-            Get["/metadata/{type}/{id}/{filter}"] = x => { return GetMetadata(x.type, x.id, false, x.filter); };
-            Get["/metadata/{type}/{id}/{filter}/nocast"] = x => { return GetMetadata(x.type, x.id, true, x.filter); };
+            Get["/metadata/{type}/{id}"] = x => { return GetMetadata_old((int)x.type, (int)x.id); };
+            Get["/metadata/{type}/{id}/nocast"] = x => { return GetMetadata_old((int)x.type, (int)x.id, true); };
+            Get["/metadata/{type}/{id}/{filter}"] = x => { return GetMetadata_old((int)x.type, (int)x.id, false, x.filter); };
+            Get["/metadata/{type}/{id}/{filter}/nocast"] = x => { return GetMetadata_old((int)x.type, (int)x.id, true, x.filter); };
+
+            Get["/metadata2/{type}/{id}"] = x => { return GetMetadata((int)x.type, (int)x.id); };
             #endregion
 
         }
@@ -1357,20 +1355,153 @@ namespace JMMServer.API.Module.apiv2
         /// <param name="nocast">disable roles output</param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        private object GetMetadata(string typeid, string id, bool nocast = false, string filter = "")
+        private object GetMetadata_old(int typeid, int id, bool nocast = false, string filter = "")
         {
             Legacy.request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
             if (user != null)
             {
                 int? filterid = filter.ParseNullableInt();
-                return _impl.GetMetadata(_prov_kodi, user.JMMUserID.ToString(), typeid, id, null, nocast, filterid);
+                return _impl.GetMetadata(_prov_kodi, user.JMMUserID.ToString(), typeid.ToString(), id.ToString(), null, nocast, filterid);
             }
             else
             {
                 return new APIMessage(500, "Unable to get User");
             }
         }
+
+        private object GetMetadata(int type_id, int id, bool nocast = false, string filter = "")
+        {
+            Core.request = this.Request;
+            JMMUser user = (JMMUser)this.Context.CurrentUser;
+            //if (user != null)
+            //{
+            //    switch ((JMMType)type_id)
+            //    {
+            //        case JMMType.Group:
+            //            return GetItemsFromGroup(prov, user.JMMUserID, Id, his, nocast, filter);
+            //        case JMMType.GroupFilter:
+            //            return GetGroupsOrSubFiltersFromFilter(id, user.JMMUserID, nocast);
+            //        case JMMType.GroupUnsort:
+            //            return GetUnsort(user.JMMUserID, his);
+            //        case JMMType.Serie:
+            //            return GetItemsFromSerie(prov, user.JMMUserID, Id, his, nocast);
+            //        case JMMType.Episode:
+            //            return GetFromEpisode(prov, user.JMMUserID, Id, his);
+            //        case JMMType.File:
+            //            return GetFromFile(prov, user.JMMUserID, Id, his);
+            //        case JMMType.Playlist:
+            //            return GetItemsFromPlaylist(prov, user.JMMUserID, Id, his);
+            //        case JMMType.FakeIosThumb:
+            //            return FakeParentForIOSThumbnail(prov, Id);
+            //        default:
+            //            return APIStatus.badRequest("bad type");
+            //    }
+            //}
+
+            return null;
+        }
+
+        private object GetUnsort()
+        {
+            //List<Video> dirs = new List<Video>();
+            //List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            //foreach (VideoLocal v in vids.OrderByDescending(a => a.DateTimeCreated))
+            //{
+            //    try
+            //    {
+            //        Video m = Helper.VideoFromVideoLocal(prov, v, userid);
+            //        dirs.Add(prov, m, info);
+            //        m.Thumb = Helper.ConstructSupportImageLink("plex_404.png");
+            //        m.ParentThumb = Helper.ConstructSupportImageLink("plex_unsort.png");
+            //        m.ParentKey = null;
+            //        if (prov.ConstructFakeIosParent)
+            //            m.GrandparentKey =
+            //                prov.Proxyfy(prov.ConstructFakeIosThumb(userid, m.ParentThumb,
+            //                    m.Art ?? m.ParentArt ?? m.GrandparentArt));
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
+            //    }
+            //}
+            //ret.Childrens = dirs;
+            //return ret.GetStream(prov);
+
+            return null;
+        }
+
+        private object GetGroupsOrSubFiltersFromFilter(int groupFilterID, int uid, bool nocast)
+        {
+            //try
+            //{
+            //    List<Video> retGroups = new List<Video>();
+            //    DateTime start = DateTime.Now;
+
+            //    GroupFilter gf;
+            //    gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
+            //    if (gf == null)
+            //    {
+            //        return APIStatus.badRequest("bad groupfilterid");
+            //    }
+
+            //    List<GroupFilter> allGfs =
+            //    RepoFactory.GroupFilter.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
+            //    (
+            //        (a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0)
+            //        || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
+            //    ).ToList();
+
+            //    List<JMMContracts.PlexAndKodi.Directory> dirs = new List<JMMContracts.PlexAndKodi.Directory>();
+            //    foreach (GroupFilter gg in allGfs)
+            //    {
+            //        JMMContracts.PlexAndKodi.Directory pp = Helper.DirectoryFromFilter(prov, gg, userid);
+            //        if (pp != null)
+            //            dirs.Add(prov, pp, info);
+            //    }
+            //    if (dirs.Count > 0)
+            //    {
+            //        ret.Childrens = dirs.OrderBy(a => a.Title).Cast<Video>().ToList();
+            //        return ret.GetStream(prov);
+            //    }
+
+            //    Dictionary<Contract_AnimeGroup, Video> order = new Dictionary<Contract_AnimeGroup, Video>();
+            //    if (gf.GroupsIds.ContainsKey(userid))
+            //    {
+            //        // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
+            //        foreach (AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
+            //        {
+            //            Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
+            //            if (v != null)
+            //            {
+            //                if (v.Group == null)
+            //                    v.Group = grp.GetUserContract(userid);
+            //                v.GenerateKey(prov, userid);
+            //                v.Type = "show";
+            //                v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
+            //                v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+            //                if (nocast) v.Roles = null;
+            //                order.Add(v.Group, v);
+            //                retGroups.Add(prov, v, info);
+            //                v.ParentThumb = v.GrandparentThumb = null;
+            //            }
+            //        }
+            //    }
+            //    ret.MediaContainer.RandomizeArt(retGroups);
+            //    IEnumerable<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group);
+            //    grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
+            //    ret.Childrens = grps.Select(a => order[a]).ToList();
+            //    //FilterExtras(prov,ret.Childrens);
+            //    return ret.GetStream(prov);
+            //}
+            //catch (Exception ex)
+            //{
+            //    return APIStatus.internalError(ex.Message.ToString())
+            //}
+
+            return null;
+        }
+
         #endregion
 
     }

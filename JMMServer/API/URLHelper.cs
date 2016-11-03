@@ -7,28 +7,28 @@ namespace JMMServer.API
 
         public static string ConstructUnsortUrl(bool short_url = false)
         {
-            return URLHelper.ProperURL("api/getmetadata/" + (int)JMMType.GroupUnsort + "/0",  short_url);
+            return URLHelper.ProperURL("api/metadata/" + (int)JMMType.GroupUnsort + "/0",  short_url);
         }
 
         public static string ConstructGroupIdUrl(string gid, bool short_url = false)
         {
-            return URLHelper.ProperURL("/api/getmetadata/" + (int)JMMType.Group + "/" + gid, short_url);      
+            return URLHelper.ProperURL("/api/metadata/" + (int)JMMType.Group + "/" + gid, short_url);      
         }
 
         public static string ConstructSerieIdUrl(string sid, bool short_url = false)
         {
 
-            return URLHelper.ProperURL("/api/getmetadata/" + (int)JMMType.Serie + "/" + sid,  short_url);
+            return URLHelper.ProperURL("/api/metadata/" + (int)JMMType.Serie + "/" + sid,  short_url);
         }
 
         public static string ConstructVideoUrl(string vid, JMMType type, bool short_url = false)
         {
-            return URLHelper.ProperURL("/api/getmetadata/" + (int)type + "/" + vid, short_url);
+            return URLHelper.ProperURL("/api/metadata/" + (int)type + "/" + vid, short_url);
         }
 
         public static string ConstructFilterIdUrl(int groupfilter_id, bool short_url = false)
         {
-            return URLHelper.ProperURL("api/getmetadata/" + (int)JMMType.GroupFilter + "/" + groupfilter_id,  short_url);    
+            return URLHelper.ProperURL("api/metadata/" + (int)JMMType.GroupFilter + "/" + groupfilter_id,  short_url);    
         }
 
         public static string ConstructFiltersUrl(bool short_url = false)
@@ -50,12 +50,12 @@ namespace JMMServer.API
 
         public static string ConstructPlaylistUrl(bool short_url = false)
         {
-            return URLHelper.ProperURL("/api/GetMetaData/" + (int)JMMType.Playlist + "/0", short_url);
+            return URLHelper.ProperURL("/api/metadata/" + (int)JMMType.Playlist + "/0", short_url);
         }
 
         public static string ConstructPlaylistIdUrl(int pid, bool short_url = false)
         {
-            return URLHelper.ProperURL("/api/GetMetaData/" + (int)JMMType.Playlist + "/" + pid, short_url);
+            return URLHelper.ProperURL("/api/metadata/" + (int)JMMType.Playlist + "/" + pid, short_url);
         }
 
         public static string ConstructSupportImageLink(string name, bool short_url = false)

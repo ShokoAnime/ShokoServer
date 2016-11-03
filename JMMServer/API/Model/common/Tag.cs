@@ -1,4 +1,4 @@
-﻿namespace JMMServer.API.Model.core
+﻿namespace JMMServer.API.Model.common
 {
     public class Tag
     {

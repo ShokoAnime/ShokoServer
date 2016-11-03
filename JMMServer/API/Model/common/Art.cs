@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace JMMServer.API.Model.core
+namespace JMMServer.API.Model.common
 {
     public class ArtCollection
     {

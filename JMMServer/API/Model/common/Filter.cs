@@ -1,6 +1,4 @@
-﻿using JMMServer.API.Model.core;
-
-namespace JMMServer.API.Model.common
+﻿namespace JMMServer.API.Model.common
 {
     public class Filter
     {
