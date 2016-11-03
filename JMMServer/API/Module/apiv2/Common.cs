@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using JMMServer.API.Model.core;
 using JMMServer.API.Module.apiv1;
 using JMMServer.API.Model.common;
+using JMMContracts.PlexAndKodi;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -1284,6 +1285,7 @@ namespace JMMServer.API.Module.apiv2
                 filter.name = gf.GroupFilterName;
                 filter.id = gf.GroupFilterID;
                 filter.size = 0;
+                filter.type = gf.FilterType.ToString();
 
                 if (gf.GroupsIds.ContainsKey(user.JMMUserID))
                 {
@@ -1299,15 +1301,15 @@ namespace JMMServer.API.Module.apiv2
                             {
                                 if (ag.GetPlexContract(user.JMMUserID).Banner != null)
                                 {
-                                    filter.art.banner.Add(new Art() { url = URLHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Banner), index = filter.art.banner.Count });
+                                    filter.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Banner), index = filter.art.banner.Count });
                                 }
                                 if (ag.GetPlexContract(user.JMMUserID).Art != null & ag.GetPlexContract(user.JMMUserID).Thumb != null)
                                 {
-                                    filter.art.fanart.Add(new Art() { url = URLHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Art), index = filter.art.fanart.Count });
+                                    filter.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Art), index = filter.art.fanart.Count });
                                 }
                                 if (ag.GetPlexContract(user.JMMUserID).Thumb != null & ag.GetPlexContract(user.JMMUserID).Art != null)
                                 {
-                                    filter.art.thumb.Add(new Art() { url = URLHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Thumb), index = filter.art.thumb.Count });
+                                    filter.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Thumb), index = filter.art.thumb.Count });
                                 }
 
                                 if (filter.art.fanart.Count > 0 && filter.art.thumb.Count > 0)
@@ -1320,7 +1322,7 @@ namespace JMMServer.API.Module.apiv2
                 }
 
                 filter.viewed = 0;
-                filter.url = URLHelper.ConstructFilterIdUrl(filter.id);
+                filter.url = APIHelper.ConstructFilterIdUrl(filter.id);
 
                 filters.Add(filter);
             }
@@ -1330,10 +1332,10 @@ namespace JMMServer.API.Module.apiv2
             {
                 Filter filter = new Filter();
 
-                filter.url = URLHelper.ConstructUnsortUrl();
+                filter.url = APIHelper.ConstructUnsortUrl();
                 filter.name = "Unsort";
-                filter.art.fanart.Add(new Art() { url = URLHelper.ConstructSupportImageLink("plex_unsort.png"), index = 0 });
-                filter.art.thumb.Add(new Art() { url = URLHelper.ConstructSupportImageLink("plex_unsort.png"), index = 0 });
+                filter.art.fanart.Add(new Art() { url = APIHelper.ConstructSupportImageLink("plex_unsort.png"), index = 0 });
+                filter.art.thumb.Add(new Art() { url = APIHelper.ConstructSupportImageLink("plex_unsort.png"), index = 0 });
                 filter.size = vids.Count;
                 filter.viewed = 0;
 
@@ -1374,16 +1376,16 @@ namespace JMMServer.API.Module.apiv2
         {
             Core.request = this.Request;
             JMMUser user = (JMMUser)this.Context.CurrentUser;
-            //if (user != null)
-            //{
-            //    switch ((JMMType)type_id)
-            //    {
+            if (user != null)
+            {
+                switch ((JMMType)type_id)
+                {
             //        case JMMType.Group:
             //            return GetItemsFromGroup(prov, user.JMMUserID, Id, his, nocast, filter);
-            //        case JMMType.GroupFilter:
-            //            return GetGroupsOrSubFiltersFromFilter(id, user.JMMUserID, nocast);
-            //        case JMMType.GroupUnsort:
-            //            return GetUnsort(user.JMMUserID, his);
+                    case JMMType.GroupFilter:
+                        return GetGroupsOrSubFiltersFromFilter(id, user.JMMUserID);
+                    case JMMType.GroupUnsort:
+                        return GetUnsort(user.JMMUserID);
             //        case JMMType.Serie:
             //            return GetItemsFromSerie(prov, user.JMMUserID, Id, his, nocast);
             //        case JMMType.Episode:
@@ -1394,110 +1396,106 @@ namespace JMMServer.API.Module.apiv2
             //            return GetItemsFromPlaylist(prov, user.JMMUserID, Id, his);
             //        case JMMType.FakeIosThumb:
             //            return FakeParentForIOSThumbnail(prov, Id);
-            //        default:
-            //            return APIStatus.badRequest("bad type");
-            //    }
-            //}
-
-            return null;
+                    default:
+                        return APIStatus.badRequest("bad type");
+                }
+            }
+            else
+            {
+                return APIStatus.accessDenied();
+            }
         }
 
         private object GetUnsort(int uid)
         {
-            List<JMMContracts.PlexAndKodi.Video> dirs = new List<JMMContracts.PlexAndKodi.Video>();
+            ObjectList dir = new ObjectList();
+            dir.name = "Unsort";
+            dir.type = "raw";
+
             List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode(uid);
-            foreach (VideoLocal v in vids)
+            dir.size = vids.Count;
+            
+            foreach (VideoLocal vl in vids)
             {    
                 try
                 {
-            //        Video m = Helper.VideoFromVideoLocal(prov, v, userid);
-            //        dirs.Add(prov, m, info);
-            //        m.Thumb = Helper.ConstructSupportImageLink("plex_404.png");
-            //        m.ParentThumb = Helper.ConstructSupportImageLink("plex_unsort.png");
-            //        m.ParentKey = null;
-            //        if (prov.ConstructFakeIosParent)
-            //            m.GrandparentKey =
-            //                prov.Proxyfy(prov.ConstructFakeIosThumb(userid, m.ParentThumb,
-            //                    m.Art ?? m.ParentArt ?? m.GrandparentArt));
+                    RawFile v = APIHelper.RawFileFromVideoLocal(vl);
+                    dir.list.Add(v);
                 }
-                catch (Exception e)
-                {
-                    //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
-                }
+                catch { }
             }
-            //ret.Childrens = dirs;
-            //return ret.GetStream(prov);
 
-            return null;
+            return dir;
         }
 
-        private object GetGroupsOrSubFiltersFromFilter(int groupFilterID, int uid, bool nocast)
+        private object GetGroupsOrSubFiltersFromFilter(int groupFilterID, int uid)
         {
-            //try
-            //{
-            //    List<Video> retGroups = new List<Video>();
+            try
+            {
+                List<Video> retGroups = new List<Video>();
             //    DateTime start = DateTime.Now;
 
-            //    GroupFilter gf;
-            //    gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
-            //    if (gf == null)
-            //    {
-            //        return APIStatus.badRequest("bad groupfilterid");
-            //    }
+                GroupFilter gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
+                if (gf == null)
+                {
+                    return APIStatus.badRequest("bad groupfilterid");
+                }
 
-            //    List<GroupFilter> allGfs =
-            //    RepoFactory.GroupFilter.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
-            //    (
-            //        (a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0)
-            //        || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
-            //    ).ToList();
+                List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
+                (
+                    (a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0)
+                    || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
+                ).ToList();
 
-            //    List<JMMContracts.PlexAndKodi.Directory> dirs = new List<JMMContracts.PlexAndKodi.Directory>();
-            //    foreach (GroupFilter gg in allGfs)
-            //    {
-            //        JMMContracts.PlexAndKodi.Directory pp = Helper.DirectoryFromFilter(prov, gg, userid);
-            //        if (pp != null)
-            //            dirs.Add(prov, pp, info);
-            //    }
-            //    if (dirs.Count > 0)
-            //    {
-            //        ret.Childrens = dirs.OrderBy(a => a.Title).Cast<Video>().ToList();
-            //        return ret.GetStream(prov);
-            //    }
+                ObjectList dir = new ObjectList();
+                dir.name = "GetGroupsOrSubFiltersFromFilter";
+                dir.type = "show";
 
-            //    Dictionary<Contract_AnimeGroup, Video> order = new Dictionary<Contract_AnimeGroup, Video>();
-            //    if (gf.GroupsIds.ContainsKey(userid))
-            //    {
-            //        // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
-            //        foreach (AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
-            //        {
-            //            Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
-            //            if (v != null)
-            //            {
-            //                if (v.Group == null)
-            //                    v.Group = grp.GetUserContract(userid);
-            //                v.GenerateKey(prov, userid);
-            //                v.Type = "show";
-            //                v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
-            //                v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
-            //                if (nocast) v.Roles = null;
-            //                order.Add(v.Group, v);
-            //                retGroups.Add(prov, v, info);
-            //                v.ParentThumb = v.GrandparentThumb = null;
-            //            }
-            //        }
-            //    }
-            //    ret.MediaContainer.RandomizeArt(retGroups);
-            //    IEnumerable<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group);
-            //    grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
-            //    ret.Childrens = grps.Select(a => order[a]).ToList();
-            //    //FilterExtras(prov,ret.Childrens);
-            //    return ret.GetStream(prov);
-            //}
-            //catch (Exception ex)
-            //{
-            //    return APIStatus.internalError(ex.Message.ToString())
-            //}
+                List<Filter> dirs = new List<Filter>();
+                foreach (GroupFilter gg in allGfs)
+                {
+                    Filter pp = APIHelper.FilterFromGroupFilter(gg, uid);
+                    dirs.Add(pp);
+                }
+
+                if (dirs.Count > 0)
+                {                     
+                    dir.list = dirs.OrderBy(a => a.name).Cast<object>().ToList();
+                    return dir;
+                }
+
+                //    Dictionary<Contract_AnimeGroup, Video> order = new Dictionary<Contract_AnimeGroup, Video>();
+                //    if (gf.GroupsIds.ContainsKey(userid))
+                //    {
+                //        // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
+                //        foreach (AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
+                //        {
+                //            Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
+                //            if (v != null)
+                //            {
+                //                if (v.Group == null)
+                //                    v.Group = grp.GetUserContract(userid);
+                //                v.GenerateKey(prov, userid);
+                //                v.Type = "show";
+                //                v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
+                //                v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+                //                if (nocast) v.Roles = null;
+                //                order.Add(v.Group, v);
+                //                retGroups.Add(prov, v, info);
+                //                v.ParentThumb = v.GrandparentThumb = null;
+                //            }
+                //        }
+                //    }
+                //    ret.MediaContainer.RandomizeArt(retGroups);
+                //    IEnumerable<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group);
+                //    grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
+                //    ret.Childrens = grps.Select(a => order[a]).ToList();
+                //    return ret.GetStream(prov);
+            }
+            catch (Exception ex)
+            {
+                return APIStatus.internalError(ex.Message.ToString());
+            }
 
             return null;
         }

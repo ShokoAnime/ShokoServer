@@ -294,7 +294,8 @@
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="API\Model\common\Art.cs" />
-    <Compile Include="API\Model\common\File.cs" />
+    <Compile Include="API\Model\common\ObjectList.cs" />
+    <Compile Include="API\Model\common\RawFile.cs" />
     <Compile Include="API\Model\common\Filter.cs" />
     <Compile Include="API\Model\common\Series.cs" />
     <Compile Include="API\Model\core\Logs.cs" />
