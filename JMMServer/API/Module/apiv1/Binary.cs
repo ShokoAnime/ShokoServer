@@ -5,9 +5,9 @@ using JMMServer.Tasks;
 
 namespace JMMServer.API.Module.apiv1
 {
-    public class Binnary_Module : NancyModule
+    public class Binnary : NancyModule
     {
-        public Binnary_Module() : base("/bin")
+        public Binnary() : base("/bin")
         {
             Get["/Admin_GetRandomLinkForApproval/{type}"] = x => { return Admin_GetRandomLinkForApproval((int)x.type); };
             Get["/ApproveTraktCrossRefWebCache/{id}"] = x => { return ApproveTraktCrossRefWebCache((int)x.id); };

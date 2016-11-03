@@ -10,10 +10,13 @@ Module:
 				- Legacy.cs <- Legacy readonly module for support not rewriten clients, until most of them ain't rewriten this module need to stay
 		- apiv2:
 				- Auth.cs <- /api/auth - apikey handler (create, delete)
-				- Core.cs 
+				- Common.cs <- every api call that dont belong to anyother module - essentialy all common used calls for end user
+				- Core.cs <- server configuration related calls
 				- Database.cs <- /api/db - database setup handler (get, set, check, start) essential for setup database before runnin any Auth request (FirstRun)
+				- Dev.cs <- /api/dev only when running in DEBUG mode
 				- Unauth.cs <- any command that use can invoke without apikey should be placed here (ex. /api/version)
-				- Webui.cs <- Redirect / request to webui/inded.html
+				- Webui.cs <- /api/webui - everything related with webui except /api/dashboard (common) as it a agregate function
+				- Webui_redirect.cs <- Redirect / request to webui/index.html
 
 Negotiation: <- custom negotiation types
 
