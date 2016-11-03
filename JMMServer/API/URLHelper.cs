@@ -3,97 +3,107 @@ namespace JMMServer.API
 {
     public static class URLHelper
     {
-        public static string ConstructUnsortUrl(bool without_host = false)
+        #region Contructors
+
+        public static string ConstructUnsortUrl(bool short_url = false)
         {
-            return URLHelper.ProperURL("api/getmetadata/" + (int)JMMType.GroupUnsort + "/0", ServerSettings.JMMServerPort);
+            return URLHelper.ProperURL("api/getmetadata/" + (int)JMMType.GroupUnsort + "/0",  short_url);
         }
 
-        public static string ConstructGroupIdUrl(string gid)
+        public static string ConstructGroupIdUrl(string gid, bool short_url = false)
         {
-            return URLHelper.ProperURL("/api/getmetadata/" + (int)JMMType.Group + "/" + gid, ServerSettings.JMMServerPort);      
+            return URLHelper.ProperURL("/api/getmetadata/" + (int)JMMType.Group + "/" + gid, short_url);      
         }
 
-        public static string ConstructSerieIdUrl(string sid)
+        public static string ConstructSerieIdUrl(string sid, bool short_url = false)
         {
 
-            return URLHelper.ProperURL("/api/getmetadata/" + (int)JMMType.Serie + "/" + sid, ServerSettings.JMMServerPort);
+            return URLHelper.ProperURL("/api/getmetadata/" + (int)JMMType.Serie + "/" + sid,  short_url);
         }
 
-        public static string ContructVideoUrl(string vid, JMMType type)
+        public static string ConstructVideoUrl(string vid, JMMType type, bool short_url = false)
         {
-            return URLHelper.ProperURL("/api/getmetadata/" + (int)type + "/" + vid, ServerSettings.JMMServerPort);
+            return URLHelper.ProperURL("/api/getmetadata/" + (int)type + "/" + vid, short_url);
         }
 
-        public static string ConstructFilterIdUrl(int groupfilter_id)
+        public static string ConstructFilterIdUrl(int groupfilter_id, bool short_url = false)
         {
-            return URLHelper.ProperURL("api/getmetadata/" + (int)JMMType.GroupFilter + "/" + groupfilter_id, ServerSettings.JMMServerPort);    
+            return URLHelper.ProperURL("api/getmetadata/" + (int)JMMType.GroupFilter + "/" + groupfilter_id,  short_url);    
         }
 
-        public static string ConstructFiltersUrl()
+        public static string ConstructFiltersUrl(bool short_url = false)
         {
-            return URLHelper.ProperURL("/api/filters/get", ServerSettings.JMMServerPort);
+            return URLHelper.ProperURL("/api/filters/get", short_url);
         }
 
-        public static string ConstructSearchUrl(string limit, string query, bool searchTag)
+        public static string ConstructSearchUrl(string limit, string query, bool searchTag, bool short_url = false)
         {
             if (searchTag)
             {
-                return URLHelper.ProperURL("/api/searchTag/" + limit + "/" + System.Net.WebUtility.UrlEncode(query), ServerSettings.JMMServerPort);
+                return URLHelper.ProperURL("/api/searchTag/" + limit + "/" + System.Net.WebUtility.UrlEncode(query), short_url);
             }
             else
             {
-                return URLHelper.ProperURL("/api/search/" + limit + "/" + System.Net.WebUtility.UrlEncode(query), ServerSettings.JMMServerPort);
+                return URLHelper.ProperURL("/api/search/" + limit + "/" + System.Net.WebUtility.UrlEncode(query), short_url);
             }
         }
 
-        public static string ConstructPlaylistUrl()
+        public static string ConstructPlaylistUrl(bool short_url = false)
         {
-            return URLHelper.ProperURL("/api/GetMetaData/" + (int)JMMType.Playlist + "/0", ServerSettings.JMMServerPort);
+            return URLHelper.ProperURL("/api/GetMetaData/" + (int)JMMType.Playlist + "/0", short_url);
         }
 
-        public static string ConstructPlaylistIdUrl(int pid)
+        public static string ConstructPlaylistIdUrl(int pid, bool short_url = false)
         {
-            return URLHelper.ProperURL("/api/GetMetaData/" + (int)JMMType.Playlist + "/" + pid, ServerSettings.JMMServerPort);
+            return URLHelper.ProperURL("/api/GetMetaData/" + (int)JMMType.Playlist + "/" + pid, short_url);
         }
 
-        public static string ConstructSupportImageLink(string name)
+        public static string ConstructSupportImageLink(string name, bool short_url = false)
         {
-            return URLHelper.ProperURL("api/image/support/"+ name, ServerSettings.JMMServerPort);
+            return URLHelper.ProperURL("api/image/support/"+ name, short_url);
         }
 
-        public static string ConvertRestImageToNewUrl(string url)
+        public static string ConstructImageLinkFromRest(string path, bool short_url = false)
         {
-            string link = url;
-            if (link.Contains("{SCHEME}://{HOST}:"))
+            return ProperURL(ConvertRestImageToNonRestUrl(path),short_url);
+        }
+
+        #endregion
+
+        #region Converters
+
+        private static string ConvertRestImageToNonRestUrl(string url)
+        {
+            string link = url.ToLower();
+            if (link.Contains("{scheme}://{host}:"))
             {
-                link = link.Replace("{SCHEME}://{HOST}:", "");
-                link = link.Substring(link.IndexOf("/"));
-                link = link.ToLower().Replace("jmmserverrest/", "");
+                link = link.Replace("{scheme}://{host}:", "");
+                link = link.Substring(link.IndexOf("/") + 1);
+                link = link.Replace("jmmserverrest/", "");
+
+                if (link.Contains("getimage"))
+                {
+                    link = link.Replace("getimage", "api/image");
+                }
+                else if (link.Contains("getthumb"))
+                {
+                    link = link.Replace("getthumb", "api/thumb");
+                    if (link.Contains(","))
+                    {
+                        link = link.Replace(',', '.');
+                    }
+                }
             }
             return link;
         }
 
+        #endregion
 
-        private static string ProperURL(string path, string port, bool without_host = false, bool external_ip = false)
-        {
-            string host = "";
-            
-            if (!without_host)
+        private static string ProperURL(string path, bool short_url = false)
+        {           
+            if (!short_url)
             {
-                if (external_ip)
-                {
-                    System.Net.IPAddress ip = FileServer.FileServer.GetExternalAddress();
-                    if (ip != null)
-                    {
-                        host = ip.ToString();
-                    }
-                }
-                else
-                {
-                    host = API.Module.apiv2.Core.request.Url.HostName;
-                }
-
-                return Module.apiv2.Core.request.Url.Scheme + "://" + host + ":" + port + "/" + path;
+                return Module.apiv2.Core.request.Url.Scheme + "://" + Module.apiv2.Core.request.Url.HostName + ":" + Module.apiv2.Core.request.Url.Port + "/" + path;
             }
             else
             {

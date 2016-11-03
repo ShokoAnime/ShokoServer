@@ -128,10 +128,11 @@ namespace JMMServer.API.Module.apiv2
             #endregion
 
             #region 10. Images
-            Get["/cover/{id}"] = x => { return GetCover(x.id); };
-            Get["/fanart/{id}"] = x => { return GetFanart(x.id); };
-            Get["/poster/{id}"] = x => { return GetPoster(x.id); };
-
+            Get["/cover/{id}"] = x => { return GetCover((int)x.id); };
+            Get["/fanart/{id}"] = x => { return GetFanart((int)x.id); };
+            Get["/poster/{id}"] = x => { return GetPoster((int)x.id); };
+            Get["/thumb/{type}/{id}"] = x => { return GetThumb((int)x.type, (int)x.id); };
+            Get["/thumb/{type}/{id}/{ratio}"] = x => { return GetThumb((int)x.type, (int)x.id, x.ratio); };
             Get["/banner/{id}"] = x => { return GetImage((int)x.id, 4, false); };
             Get["/fanart/{id}"] = x => { return GetImage((int)x.id, 7, false); };
 
@@ -1223,6 +1224,14 @@ namespace JMMServer.API.Module.apiv2
             response = Response.FromStream(image, contentType);
             return response;
         }
+        private object GetThumb(int thumb_type, int thumb_id, string ratio = "1.0")
+        {
+            string contentType;
+            System.IO.Stream image = _rest.GetThumb(thumb_type.ToString(), thumb_id.ToString(), ratio, out contentType);
+            Nancy.Response response = new Nancy.Response();
+            response = Response.FromStream(image, contentType);
+            return response;
+        }
 
         /// <summary>
         /// Return SupportImage (build-in server)
@@ -1292,15 +1301,15 @@ namespace JMMServer.API.Module.apiv2
                             {
                                 if (ag.GetPlexContract(user.JMMUserID).Banner != null)
                                 {
-                                    filter.art.banner.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Banner, index = filter.art.banner.Count });
+                                    filter.art.banner.Add(new Art() { url = URLHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Banner), index = filter.art.banner.Count });
                                 }
                                 if (ag.GetPlexContract(user.JMMUserID).Art != null & ag.GetPlexContract(user.JMMUserID).Thumb != null)
                                 {
-                                    filter.art.fanart.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Art, index = filter.art.fanart.Count });
+                                    filter.art.fanart.Add(new Art() { url = URLHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Art), index = filter.art.fanart.Count });
                                 }
                                 if (ag.GetPlexContract(user.JMMUserID).Thumb != null & ag.GetPlexContract(user.JMMUserID).Art != null)
                                 {
-                                    filter.art.thumb.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Thumb, index = filter.art.thumb.Count });
+                                    filter.art.thumb.Add(new Art() { url = URLHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Thumb), index = filter.art.thumb.Count });
                                 }
 
                                 if (filter.art.fanart.Count > 0 && filter.art.thumb.Count > 0)
