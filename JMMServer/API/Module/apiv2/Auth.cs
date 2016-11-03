@@ -1,17 +1,16 @@
-﻿using JMMServer.API.Model;
-using JMMServer.Repositories;
-using JMMServer.Repositories.Direct;
+﻿using JMMServer.API.core;
+using JMMServer.API.Model.core;
 using Nancy;
 using Nancy.ModelBinding;
 
-namespace JMMServer.API
+namespace JMMServer.API.Module.apiv2
 {
-    public class APIv2_auth_Module : NancyModule
+    public class Auth : NancyModule
     {
         /// <summary>
         /// Authentication module
         /// </summary>
-        public APIv2_auth_Module() : base("/api/auth")
+        public Auth() : base("/api/auth")
         {
             // Request Body (safer) { "user":"usrname", "pass":"password", "device":"device name" }
             // return apikey=yzx

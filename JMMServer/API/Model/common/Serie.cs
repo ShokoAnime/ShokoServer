@@ -2,10 +2,8 @@
 using JMMServer.Entities;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
-namespace JMMServer.API.Model.v2
+namespace JMMServer.API.Model.core
 {
     public class Serie
     {

@@ -1,22 +1,20 @@
 ﻿namespace JMMServer.API
 {
-	using Nancy;
-	using Nancy.Authentication.Stateless;
-	using Nancy.Bootstrapper;
-	using Nancy.Conventions;
-	using Nancy.TinyIoc;
-	using System.Linq;
-	using Nancy.Extensions;
-	using Nancy.ViewEngines;
-	using Nancy.ErrorHandling;
-	using Pri.LongPath;
-	using Nancy.Diagnostics;
-	using NLog;
-	using System;
-	using Nancy.Responses.Negotiation;
-	using Nancy.Gzip;
+    using Nancy;
+    using Nancy.Authentication.Stateless;
+    using Nancy.Bootstrapper;
+    using Nancy.Conventions;
+    using Nancy.TinyIoc;
+    using System.Linq;
+    using Nancy.ErrorHandling;
+    using Pri.LongPath;
+    using Nancy.Diagnostics;
+    using NLog;
+    using System;
+    using Nancy.Gzip;
+    using core;
 
-	public class Bootstrapper : DefaultNancyBootstrapper
+    public class Bootstrapper : DefaultNancyBootstrapper
     {
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -110,15 +108,15 @@
 
 		private Response BeforeProcessing(NancyContext ctx)
 		{
-			// Request will always be populated!
-			APIv1_Legacy_Module.request = ctx.Request;
+            // Request will always be populated!
+            Module.apiv1.Legacy.request = ctx.Request;
 			return null;
 		}
 
 		private void AfterProcessing(NancyContext ctx)
 		{
-			// Set to null after request as not to interfere with contract generation
-			APIv1_Legacy_Module.request = null;
+            // Set to null after request as not to interfere with contract generation
+            Module.apiv1.Legacy.request = null;
 		}
 	}
 

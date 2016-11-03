@@ -1,24 +1,24 @@
-﻿using JMMServer.API.Model;
+﻿using JMMServer.API.Model.core;
 using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
 using System;
 
-namespace JMMServer.API
+namespace JMMServer.API.Module.apiv2
 {
-    public class APIv2_database_Module : Nancy.NancyModule
+    public class Database : Nancy.NancyModule
     {
-        public APIv2_database_Module() : base("/api")
+        public Database() : base("/api/db")
         {
             if (!ServerSettings.FirstRun)
             {
                 this.RequiresAuthentication();
             }
 
-            Post["/db/set"] = _ => { return SetupDB(); };
-            Get["/db/get"] = _ => { return GetDB(); };
-            Get["/db/start"] = _ => { return RunDB(); };
-            Get["/db/check"] = _ => { return CheckDB(); };
+            Post["/set"] = _ => { return SetupDB(); };
+            Get["/get"] = _ => { return GetDB(); };
+            Get["/start"] = _ => { return RunDB(); };
+            Get["/check"] = _ => { return CheckDB(); };
         }
 
         #region Setup
@@ -29,7 +29,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object SetupDB()
         {
-            Database db = this.Bind();
+            Model.core.Database db = this.Bind();
             if (!String.IsNullOrEmpty(db.type) && db.type != "")
             {
                 switch (db.type.ToLower())
@@ -71,7 +71,7 @@ namespace JMMServer.API
         /// <returns></returns>
         private object GetDB()
         {
-            Database db = new Database();
+            Model.core.Database db = new Model.core.Database();
             db.type = ServerSettings.DatabaseType;
             if (!String.IsNullOrEmpty(db.type) && db.type != "")
             {

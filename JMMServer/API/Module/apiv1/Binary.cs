@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using JMMServer.Tasks;
 
-namespace JMMServer.API
+namespace JMMServer.API.Module.apiv1
 {
     public class Binnary_Module : NancyModule
     {

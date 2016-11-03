@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace JMMServer.API.Model
+namespace JMMServer.API.Model.core
 {
     public class WebUI_Settings
     {

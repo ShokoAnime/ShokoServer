@@ -17,7 +17,7 @@ namespace JMMServer.PlexAndKodi
     {
         public static string ConstructUnsortUrl(this IProvider prov, int userid)
         {
-            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
             {
                 return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.GroupUnsort + "/0/");
             }
@@ -29,7 +29,7 @@ namespace JMMServer.PlexAndKodi
 
         public static string ConstructGroupIdUrl(this IProvider prov, int userid, string gid)
         {
-            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
             {
                 return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.Group + "/" + gid);
             }
@@ -41,7 +41,7 @@ namespace JMMServer.PlexAndKodi
 
         public static string ConstructSerieIdUrl(this IProvider prov, int userid, string sid)
         {
-            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
             {
                 return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.Serie + "/" + sid);
             }
@@ -53,7 +53,7 @@ namespace JMMServer.PlexAndKodi
 
         public static string ContructVideoUrl(this IProvider prov, int userid, string vid, JMMType type)
         {
-            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
             {
                 return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)type + "/" + vid);
             }
@@ -68,7 +68,7 @@ namespace JMMServer.PlexAndKodi
             //in case legacy_module request is null
             try
             {
-                if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+                if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
                 {
                     //TODO apiv2: this is wrong but until path will be decided i leave this here
                     return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.GroupFilter + "/" + gfid);
@@ -87,7 +87,7 @@ namespace JMMServer.PlexAndKodi
         public static string ConstructFakeIosThumb(this IProvider prov, int userid, string thumburl, string arturl)
         {
             string r = Helper.Base64EncodeUrl(thumburl + "|" + arturl);
-            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
             {
                 return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetadata/" + (int)JMMType.FakeIosThumb + "/" + r + "/0");
             }
@@ -100,7 +100,7 @@ namespace JMMServer.PlexAndKodi
 
         public static string ConstructFiltersUrl(this IProvider prov, int userid)
         {
-            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
             {
                 return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetFilters");
             }
@@ -114,7 +114,7 @@ namespace JMMServer.PlexAndKodi
         {
             if (searchTag)
             {
-                if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+                if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
                 {
                     return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/SearchTag/" + limit + "/" + WebUtility.UrlEncode(query));
                 }
@@ -125,7 +125,7 @@ namespace JMMServer.PlexAndKodi
             }
             else
             {
-                if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+                if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
                 {
                     return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/Search/" + limit + "/" + WebUtility.UrlEncode(query));
                 }
@@ -138,7 +138,7 @@ namespace JMMServer.PlexAndKodi
 
         public static string ConstructPlaylistUrl(this IProvider prov, int userid)
         {
-            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
             {
                 return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetaData/" + (int)JMMType.Playlist + "/0");
             }
@@ -150,7 +150,7 @@ namespace JMMServer.PlexAndKodi
 
         public static string ConstructPlaylistIdUrl(this IProvider prov, int userid, int pid)
         {
-            if (API.APIv1_Legacy_Module.request.Url.ToString().Contains("/api/"))
+            if (API.Module.apiv1.Legacy.request.Url.ToString().Contains("/api/"))
             {
                 return Helper.ServerUrl(prov.ServicePort, prov.ServiceAddress + "/api/GetMetaData/" + (int)JMMType.Playlist + "/" + pid);
             }

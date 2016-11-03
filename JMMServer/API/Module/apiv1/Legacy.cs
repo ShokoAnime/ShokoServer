@@ -4,10 +4,10 @@ using JMMServer.PlexAndKodi;
 using JMMServer.PlexAndKodi.Plex;
 using JMMServer.PlexAndKodi.Kodi;
 using JMMContracts.PlexAndKodi;
-using JMMServer.API.Model;
 using Stream = System.IO.Stream;
+using JMMServer.API.Model.core;
 
-namespace JMMServer.API
+namespace JMMServer.API.Module.apiv1
 {
     //Legacy module, unitil all client are moved to APIv2 this need to stay
     //
@@ -18,9 +18,9 @@ namespace JMMServer.API
     // ANY NEW FEATURE SHOULD BE ADD TO APIv2 MODULE
     //
 
-    public class APIv1_Legacy_Module : Nancy.NancyModule
+    public class Legacy : Nancy.NancyModule
     {
-        public APIv1_Legacy_Module() : base("/")
+        public Legacy() : base("/")
         { 
             // KodiImplementation
             Get["/JMMServerKodi/GetSupportImage/{name}"] = parameter => { return GetSupportImageRest(parameter.name); };

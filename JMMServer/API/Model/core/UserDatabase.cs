@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using JMMServer.Repositories;
-using JMMServer.Repositories.Direct;
 
-namespace JMMServer.API
+namespace JMMServer.API.core
 {
     /// <summary>
     /// UserDatabase is class that help with auth user

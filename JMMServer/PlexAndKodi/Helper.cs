@@ -179,22 +179,22 @@ namespace JMMServer.PlexAndKodi
         public static string ServerUrl(int port, string path, bool externalip = false)
         {
             //TODO APIv2: 1: this should be deprecated because clients knows best what ip address:port they asked this is unnecessary and would clean up code
-            if (API.APIv1_Legacy_Module.request == null)
+            if (API.Module.apiv1.Legacy.request == null)
             {
                 return "{SCHEME}://{HOST}:" + port + "/" + path;
             }
-            if (API.APIv1_Legacy_Module.request.Url == null)
+            if (API.Module.apiv1.Legacy.request.Url == null)
             {
                 return "{SCHEME}://{HOST}:" + port + "/" + path;
             }
-            string host = API.APIv1_Legacy_Module.request.Url.HostName;
+            string host = API.Module.apiv1.Legacy.request.Url.HostName;
             if (externalip)
             {
                 IPAddress ip = FileServer.FileServer.GetExternalAddress();
                 if (ip != null)
                     host = ip.ToString();
             }
-            return API.APIv1_Legacy_Module.request.Url.Scheme + "://" +
+            return API.Module.apiv1.Legacy.request.Url.Scheme + "://" +
                    host + ":" + port + "/" +
                    path;
         }
@@ -206,10 +206,10 @@ namespace JMMServer.PlexAndKodi
                 return null;
             string host="127.0.0.1";
             string scheme = "http";
-            if (API.APIv1_Legacy_Module.request?.Url?.HostName != null)
+            if (API.Module.apiv1.Legacy.request?.Url?.HostName != null)
             {
-                host = API.APIv1_Legacy_Module.request.Url.HostName;
-                scheme = API.APIv1_Legacy_Module.request.Url.Scheme;
+                host = API.Module.apiv1.Legacy.request.Url.HostName;
+                scheme = API.Module.apiv1.Legacy.request.Url.Scheme;
             }
             else if (OperationContext.Current?.RequestContext?.RequestMessage?.Headers?.To?.Host != null)
                 host = OperationContext.Current.RequestContext.RequestMessage.Headers.To.Host;

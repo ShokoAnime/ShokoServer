@@ -1,14 +1,13 @@
-﻿using JMMServer.API.Model;
+﻿using JMMServer.API.Model.core;
 using Nancy;
 using System.Collections.Generic;
 
-namespace JMMServer.API
+namespace JMMServer.API.Module.apiv2
 {
-    public class APIv2_unauth_Module: Nancy.NancyModule
+    public class Unauth: Nancy.NancyModule
     {
-        public APIv2_unauth_Module()
+        public Unauth()
         {
-            Get["/"] = _ => { return Response.AsRedirect("/webui/index.html"); };
             Get["/api/version"] = x => { return GetVersion(); };
         }
 
@@ -24,7 +23,7 @@ namespace JMMServer.API
             version.name = "jmmserver";
             list.Add(version);
             version = new ComponentVersion();
-            version.version = APIv2_core_Module.version.ToString();
+            version.version = version.ToString();
             version.name = "apiv2";
             list.Add(version);
             return list;

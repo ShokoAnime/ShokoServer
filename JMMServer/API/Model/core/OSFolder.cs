@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace JMMServer.API.Model
+namespace JMMServer.API.Model.core
 {
     public class OSFolder
     {
