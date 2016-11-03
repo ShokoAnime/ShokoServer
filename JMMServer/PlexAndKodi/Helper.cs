@@ -450,12 +450,11 @@ namespace JMMServer.PlexAndKodi
 					}
 
 					#endregion
-
-					if (l.Thumb == null || l.Summary == null)
-			        {
-				        l.Thumb = ConstructSupportImageLink("plex_404.png");
-				        l.Summary = "Episode Overview not Available";
-			        }
+		        }
+		        if (l.Thumb == null || l.Summary == null)
+		        {
+			        l.Thumb = ConstructSupportImageLink("plex_404.png");
+			        l.Summary = "Episode Overview not Available";
 		        }
 	        }
 	        l.Id = ep.AnimeEpisodeID.ToString();
