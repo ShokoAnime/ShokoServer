@@ -539,8 +539,9 @@ namespace JMMServer.PlexAndKodi
 		            {
 			            if (filter.ApplyToSeries > 0)
 			            {
-				            seriesList =
-					            seriesList.Where(a => filter._seriesId[userid].Contains(a.AnimeSeriesID)).ToList();
+				            if(filter.SeriesIds.ContainsKey(userid))
+				            	seriesList =
+					            	seriesList.Where(a => filter.SeriesIds[userid].Contains(a.AnimeSeriesID)).ToList();
 			            }
 		            }
 	            }
