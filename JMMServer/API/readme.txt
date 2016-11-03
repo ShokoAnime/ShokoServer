@@ -24,10 +24,10 @@ Response: <- custom responde types
 
 Views: <- Views for Razor (or other ViewEngine for Nancy)
 
+APIHelper.cs <- Very similar URL Helper as the one for plex/kodi but is exclusive for APIv2
+
 Bootstrapper.cs <- Nancy configuration file
 
 NancyExtensions.cs <- Nancy Extension configuration file (to add more handlers)
 
 readme.txt <- this ReadMe
-
-URLHelper.cs <- Very similar URL Helper as the one for plex/kodi but is exclusive for APIv2

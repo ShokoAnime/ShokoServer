@@ -1402,14 +1402,14 @@ namespace JMMServer.API.Module.apiv2
             return null;
         }
 
-        private object GetUnsort()
+        private object GetUnsort(int uid)
         {
-            //List<Video> dirs = new List<Video>();
-            //List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-            //foreach (VideoLocal v in vids.OrderByDescending(a => a.DateTimeCreated))
-            //{
-            //    try
-            //    {
+            List<JMMContracts.PlexAndKodi.Video> dirs = new List<JMMContracts.PlexAndKodi.Video>();
+            List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode(uid);
+            foreach (VideoLocal v in vids)
+            {    
+                try
+                {
             //        Video m = Helper.VideoFromVideoLocal(prov, v, userid);
             //        dirs.Add(prov, m, info);
             //        m.Thumb = Helper.ConstructSupportImageLink("plex_404.png");
@@ -1419,12 +1419,12 @@ namespace JMMServer.API.Module.apiv2
             //            m.GrandparentKey =
             //                prov.Proxyfy(prov.ConstructFakeIosThumb(userid, m.ParentThumb,
             //                    m.Art ?? m.ParentArt ?? m.GrandparentArt));
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
-            //    }
-            //}
+                }
+                catch (Exception e)
+                {
+                    //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
+                }
+            }
             //ret.Childrens = dirs;
             //return ret.GetStream(prov);
 
