@@ -46,6 +46,12 @@ namespace JMMServer
             return list.Contains(item, StringComparer.InvariantCultureIgnoreCase);
         }
 
+	    public static int? ParseNullableInt(this string input)
+	    {
+		    int output;
+		    return int.TryParse(input, out output) ? output : (int?) null;
+	    }
+
         public static Contract_AnimeGroup DeepCopy(this Contract_AnimeGroup c)
         {
             Contract_AnimeGroup contract = new Contract_AnimeGroup();
