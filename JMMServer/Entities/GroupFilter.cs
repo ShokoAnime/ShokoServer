@@ -862,6 +862,10 @@ namespace JMMServer.Entities
                     case GroupFilterConditionType.AssignedTvDBInfo:
                         bool tvDBInfoMissing = contractSerie.CrossRefAniDBTvDBV2 == null ||
                                                contractSerie.CrossRefAniDBTvDBV2.Count == 0;
+		                bool supposedToHaveTvDBLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType != (int) enAnimeType.Movie &&
+		                                              !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
+		                tvDBInfoMissing &= supposedToHaveTvDBLink;
+
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && tvDBInfoMissing) return false;
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !tvDBInfoMissing) return false;
                         break;
@@ -875,15 +879,26 @@ namespace JMMServer.Entities
 
                     case GroupFilterConditionType.AssignedMovieDBInfo:
                         bool movieMissing = contractSerie.CrossRefAniDBMovieDB == null;
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && movieMissing) return false;
+		                bool supposedToHaveMovieLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType ==
+		                                               (int) enAnimeType.Movie &&
+		                                               !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
+		                movieMissing &= supposedToHaveMovieLink;
+
+		                if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && movieMissing) return false;
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !movieMissing) return false;
                         break;
 
                     case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
-                        bool bothMissing = (contractSerie.CrossRefAniDBMovieDB == null) &&
-                                           (contractSerie.CrossRefAniDBTvDBV2 == null ||
-                                            contractSerie.CrossRefAniDBTvDBV2.Count == 0);
-                        if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && bothMissing) return false;
+
+		                bool isMovie = contractSerie.AniDBAnime.AniDBAnime.AnimeType == (int) enAnimeType.Movie;
+		                bool restricted = (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
+
+		                bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null && isMovie && !restricted;
+		                bool tvlinkMissing = (contractSerie.CrossRefAniDBTvDBV2 == null ||
+		                                      contractSerie.CrossRefAniDBTvDBV2.Count == 0) && !isMovie && !restricted;
+		                bool bothMissing = movieLinkMissing && tvlinkMissing;
+
+		                if (gfc.ConditionOperatorEnum == GroupFilterOperator.Include && bothMissing) return false;
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.Exclude && !bothMissing) return false;
                         break;
 

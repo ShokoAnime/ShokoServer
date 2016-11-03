@@ -1023,8 +1023,8 @@ namespace JMMServer.Providers.TvDB
 
                 if (anime != null)
                 {
-                    logger.Trace("Found anime without tvDB association: " + anime.MainTitle);
-                    if (!anime.SearchOnTvDB) continue;
+	                if (!anime.SearchOnTvDB) continue; // Don't log if it isn't supposed to be there
+	                logger.Trace("Found anime without tvDB association: " + anime.MainTitle);
                     if (anime.IsTvDBLinkDisabled)
                     {
                         logger.Trace("Skipping scan tvDB link because it is disabled: " + anime.MainTitle);
