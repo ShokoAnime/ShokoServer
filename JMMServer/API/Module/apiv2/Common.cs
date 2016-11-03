@@ -146,7 +146,7 @@ namespace JMMServer.API.Module.apiv2
             Get["/metadata/{type}/{id}"] = x => { return GetMetadata(x.type, x.id); };
             Get["/metadata/{type}/{id}/nocast"] = x => { return GetMetadata(x.type, x.id, true); };
             Get["/metadata/{type}/{id}/{filter}"] = x => { return GetMetadata(x.type, x.id, false, x.filter); };
-            Get["/metadata/{type}/{id}/nocast/{filter}"] = x => { return GetMetadata(x.type, x.id, true, x.filter); };
+            Get["/metadata/{type}/{id}/{filter}/nocast"] = x => { return GetMetadata(x.type, x.id, true, x.filter); };
             #endregion
 
         }
