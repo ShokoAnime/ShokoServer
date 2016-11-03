@@ -408,22 +408,6 @@ namespace JMMServer.PlexAndKodi
 				        l.OriginallyAvailableAt = aep.AirDateAsDate.Value.ToPlexDate();
 			        }
 
-			        #region TvDB Overrides
-
-			        CrossRef_AniDB_TvDB_Episode xref_tvdb =
-				        RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aep.AniDB_EpisodeID);
-			        if (xref_tvdb != null)
-			        {
-				        TvDB_Episode tvdb_ep = RepoFactory.TvDB_Episode.GetByTvDBID(xref_tvdb.TvDBEpisodeID);
-				        if (tvdb_ep != null)
-				        {
-					        l.Thumb = tvdb_ep.GenPoster();
-					        l.Summary = tvdb_ep.Overview;
-				        }
-			        }
-
-			        #endregion
-
 			        #region TvDB
 
 			        using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -451,9 +435,25 @@ namespace JMMServer.PlexAndKodi
 				        }
 			        }
 
-			        #endregion
+					#endregion
 
-			        if (l.Thumb == null || l.Summary == null)
+					#region TvDB Overrides
+
+					CrossRef_AniDB_TvDB_Episode xref_tvdb =
+						RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aep.AniDB_EpisodeID);
+					if (xref_tvdb != null)
+					{
+						TvDB_Episode tvdb_ep = RepoFactory.TvDB_Episode.GetByTvDBID(xref_tvdb.TvDBEpisodeID);
+						if (tvdb_ep != null)
+						{
+							l.Thumb = tvdb_ep.GenPoster();
+							l.Summary = tvdb_ep.Overview;
+						}
+					}
+
+					#endregion
+
+					if (l.Thumb == null || l.Summary == null)
 			        {
 				        l.Thumb = ConstructSupportImageLink("plex_404.png");
 				        l.Summary = "Episode Overview not Available";

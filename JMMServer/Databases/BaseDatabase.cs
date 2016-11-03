@@ -285,7 +285,7 @@ namespace JMMServer.Databases
             // Votes Needed
             gf = new GroupFilter();
             gf.GroupFilterName = Properties.Resources.Filter_Votes;
-            gf.ApplyToSeries = 0;
+            gf.ApplyToSeries = 1;
             gf.BaseCondition = 1;
             gf.Locked = 0;
             gf.FilterType = (int)GroupFilterType.UserDefined;
@@ -327,7 +327,7 @@ namespace JMMServer.Databases
             // TvDB/MovieDB Link Missing
             gf = new GroupFilter();
             gf.GroupFilterName = Properties.Resources.Filter_LinkMissing;
-            gf.ApplyToSeries = 0;
+            gf.ApplyToSeries = 1; // This makes far more sense as applied to series
             gf.BaseCondition = 1;
             gf.Locked = 0;
             gf.FilterType = (int)GroupFilterType.UserDefined;

@@ -118,7 +118,7 @@ namespace JMMServer.PlexAndKodi
             }
         }
 
-        public MediaContainer GetMetadata(IProvider prov, string UserId, string TypeId, string Id, string historyinfo, bool nocast=false)
+        public MediaContainer GetMetadata(IProvider prov, string UserId, string TypeId, string Id, string historyinfo, bool nocast=false, int? filter=null)
         {
             try
             {
@@ -130,7 +130,7 @@ namespace JMMServer.PlexAndKodi
                 switch ((JMMType)type)
                 {
                     case JMMType.Group:
-                        return GetItemsFromGroup(prov, user.JMMUserID, Id, his, nocast);
+                        return GetItemsFromGroup(prov, user.JMMUserID, Id, his, nocast, filter);
                     case JMMType.GroupFilter:
                         return GetGroupsOrSubFiltersFromFilter(prov, user.JMMUserID, Id, his, nocast);
                     case JMMType.GroupUnsort:
@@ -510,7 +510,7 @@ namespace JMMServer.PlexAndKodi
             return ret.GetStream(prov);
         }
 
-        public MediaContainer GetItemsFromGroup(IProvider prov, int userid, string GroupId, BreadCrumbs info, bool nocast)
+        public MediaContainer GetItemsFromGroup(IProvider prov, int userid, string GroupId, BreadCrumbs info, bool nocast, int? filterID)
         {
             int groupID;
             int.TryParse(GroupId, out groupID);
@@ -519,16 +519,31 @@ namespace JMMServer.PlexAndKodi
 
             List<Video> retGroups = new List<Video>();
 			AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(groupID);
+
             if (grp == null)
                 return new MediaContainer { ErrorString = "Invalid Group" };
+
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.Show, grp.GroupName, false, true, info));
             if (!ret.Init())
                 return new MediaContainer();
+
             Contract_AnimeGroup basegrp = grp?.GetUserContract(userid);
             if (basegrp != null)
             {
 	            List<AnimeSeries> seriesList = grp.GetSeries();
+	            if (filterID.HasValue)
+	            {
+		            GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterID.Value);
+		            if (filter != null)
+		            {
+			            if (filter.ApplyToSeries > 0)
+			            {
+				            seriesList =
+					            seriesList.Where(a => filter._seriesId[userid].Contains(a.AnimeSeriesID)).ToList();
+			            }
+		            }
+	            }
 	            foreach (AnimeGroup grpChild in grp.GetChildGroups())
                 {
                     var v = grpChild.GetPlexContract(userid);
