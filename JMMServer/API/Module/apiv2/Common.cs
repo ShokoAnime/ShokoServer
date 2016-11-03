@@ -134,7 +134,9 @@ namespace JMMServer.API.Module.apiv2
 
             Get["/banner/{id}"] = x => { return GetImage((int)x.id, 4, false); };
             Get["/fanart/{id}"] = x => { return GetImage((int)x.id, 7, false); };
+
             Get["/image/{type}/{id}"] = x => { return GetImage((int)x.id, (int)x.type, false); };
+            Get["/image/support/{name}"] = x => { return GetSupportImage(x.name); };
             #endregion
 
             #region 11. Filters
@@ -1222,6 +1224,18 @@ namespace JMMServer.API.Module.apiv2
             return response;
         }
 
+        /// <summary>
+        /// Return SupportImage (build-in server)
+        /// </summary>
+        /// <param name="name">image file name</param>
+        /// <returns></returns>
+        private object GetSupportImage(string name)
+        {
+            System.IO.Stream image = _impl.GetSupportImage(name);
+            Nancy.Response response = new Nancy.Response();
+            response = Response.FromStream(image, "image/png");
+            return response;
+        }
 
         #endregion
 
@@ -1262,17 +1276,44 @@ namespace JMMServer.API.Module.apiv2
                 Filter filter = new Filter();
                 filter.name = gf.GroupFilterName;
                 filter.id = gf.GroupFilterID;
+                filter.size = 0;
 
-                AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(filter.id);
-                filter.art.banner.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Banner, index = 0 });
-                filter.art.fanart.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Art, index = 0 });
-                filter.art.thumb.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Thumb, index = 0 });
+                if (gf.GroupsIds.ContainsKey(user.JMMUserID))
+                {
+                    HashSet<int> groups = gf.GroupsIds[user.JMMUserID];
+                    if (groups.Count != 0)
+                    {
+                        filter.size = groups.Count;
 
-                filter.size = gf.GroupsIds[user.JMMUserID].Count;
+                        foreach (int gp in groups)
+                        {
+                            AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(groups.First<int>());
+                            if (ag != null)
+                            {
+                                if (ag.GetPlexContract(user.JMMUserID).Banner != null)
+                                {
+                                    filter.art.banner.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Banner, index = filter.art.banner.Count });
+                                }
+                                if (ag.GetPlexContract(user.JMMUserID).Art != null & ag.GetPlexContract(user.JMMUserID).Thumb != null)
+                                {
+                                    filter.art.fanart.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Art, index = filter.art.fanart.Count });
+                                }
+                                if (ag.GetPlexContract(user.JMMUserID).Thumb != null & ag.GetPlexContract(user.JMMUserID).Art != null)
+                                {
+                                    filter.art.thumb.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Thumb, index = filter.art.thumb.Count });
+                                }
+
+                                if (filter.art.fanart.Count > 0 && filter.art.thumb.Count > 0)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
 
                 filter.viewed = 0;
                 filter.url = URLHelper.ConstructFilterIdUrl(filter.id);
-                filter.type = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroupFilter.ToString();
 
                 filters.Add(filter);
             }
@@ -1284,9 +1325,8 @@ namespace JMMServer.API.Module.apiv2
 
                 filter.url = URLHelper.ConstructUnsortUrl();
                 filter.name = "Unsort";
-                filter.type = JMMContracts.PlexAndKodi.AnimeTypes.AnimeUnsort.ToString();
-                filter.art.fanart.Add(new Art() { url = Helper.ConstructSupportImageLink("plex_unsort.png"), index = 0 });
-                filter.art.thumb.Add(new Art() { url = Helper.ConstructSupportImageLink("plex_unsort.png"), index = 0 });
+                filter.art.fanart.Add(new Art() { url = URLHelper.ConstructSupportImageLink("plex_unsort.png"), index = 0 });
+                filter.art.thumb.Add(new Art() { url = URLHelper.ConstructSupportImageLink("plex_unsort.png"), index = 0 });
                 filter.size = vids.Count;
                 filter.viewed = 0;
 
