@@ -1432,24 +1432,20 @@ namespace JMMServer.API.Module.apiv2
         {
             try
             {
-                List<Video> retGroups = new List<Video>();
-            //    DateTime start = DateTime.Now;
+                ObjectList dir = new ObjectList();
 
                 GroupFilter gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
-                if (gf == null)
-                {
-                    return APIStatus.badRequest("bad groupfilterid");
-                }
+
+                if (gf == null) { return APIStatus.notFound404(); }
+
+                dir.name = gf.GroupFilterName;
+                dir.type = "show";
 
                 List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
                 (
                     (a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0)
                     || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
                 ).ToList();
-
-                ObjectList dir = new ObjectList();
-                dir.name = "GetGroupsOrSubFiltersFromFilter";
-                dir.type = "show";
 
                 List<Filter> dirs = new List<Filter>();
                 foreach (GroupFilter gg in allGfs)
@@ -1459,45 +1455,30 @@ namespace JMMServer.API.Module.apiv2
                 }
 
                 if (dirs.Count > 0)
-                {                     
+                {
+                    dir.size = dirs.Count;
                     dir.list = dirs.OrderBy(a => a.name).Cast<object>().ToList();
+
                     return dir;
                 }
 
-                //    Dictionary<Contract_AnimeGroup, Video> order = new Dictionary<Contract_AnimeGroup, Video>();
-                //    if (gf.GroupsIds.ContainsKey(userid))
-                //    {
-                //        // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
-                //        foreach (AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
-                //        {
-                //            Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
-                //            if (v != null)
-                //            {
-                //                if (v.Group == null)
-                //                    v.Group = grp.GetUserContract(userid);
-                //                v.GenerateKey(prov, userid);
-                //                v.Type = "show";
-                //                v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
-                //                v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
-                //                if (nocast) v.Roles = null;
-                //                order.Add(v.Group, v);
-                //                retGroups.Add(prov, v, info);
-                //                v.ParentThumb = v.GrandparentThumb = null;
-                //            }
-                //        }
-                //    }
-                //    ret.MediaContainer.RandomizeArt(retGroups);
-                //    IEnumerable<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group);
-                //    grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
-                //    ret.Childrens = grps.Select(a => order[a]).ToList();
-                //    return ret.GetStream(prov);
+                if (gf.GroupsIds.ContainsKey(uid))
+                {
+                    foreach (AnimeGroup grp in gf.GroupsIds[uid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
+                    {
+                        Filter pp = APIHelper.FilterFromAnimeGroup(grp, uid);
+                        dirs.Add(pp);
+                    }
+
+                    dir.list = dirs.Cast<object>().ToList();
+                }
+
+                return dir;
             }
             catch (Exception ex)
             {
                 return APIStatus.internalError(ex.Message.ToString());
             }
-
-            return null;
         }
 
         #endregion

@@ -1,6 +1,8 @@
 ﻿using JMMContracts.PlexAndKodi;
 using JMMServer.API.Model.common;
 using JMMServer.Entities;
+using JMMServer.ImageDownload;
+using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
 using System.Collections.Generic;
 
@@ -70,9 +72,15 @@ namespace JMMServer.API
 
         public static string ConstructImageLinkFromRest(string path, bool short_url = false)
         {
-            return ProperURL(ConvertRestImageToNonRestUrl(path),short_url);
+            return APIHelper.ProperURL(ConvertRestImageToNonRestUrl(path),short_url);
         }
 
+        public static string ConstructImageLinkFromTypeAndId(int type, int id, bool short_url = false)
+        {
+            return APIHelper.ProperURL("api/image/" + type.ToString() + "/" + id.ToString());
+        }
+
+       
         #endregion
 
         #region Converters
@@ -144,6 +152,7 @@ namespace JMMServer.API
             ob.type = "show";
             ob.name = gg.GroupFilterName;
             ob.id = gg.GroupFilterID;
+            ob.url = APIHelper.ConstructFilterIdUrl(gg.GroupFilterID);
 
             if (gg.GroupsIds.ContainsKey(uid))
             {
@@ -151,6 +160,55 @@ namespace JMMServer.API
                 if (groups.Count != 0)
                 {
                     ob.size = groups.Count;
+                    ob.viewed = 0;
+
+                    foreach (int grp in groups)
+                    {
+                        AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
+                        Video v = ag.GetPlexContract(uid);
+                        if (v?.Art != null && v.Thumb != null)
+                        {
+                            ob.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Art), index = 0 });
+                            ob.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(v.Thumb), index = 0 });
+                            break;
+                        }
+                    }
+                }
+            }
+            return ob;
+        }
+
+        public static Filter FilterFromAnimeGroup(AnimeGroup grp, int uid)
+        {
+            Filter ob = new Filter();
+            ob.type = "show";
+            ob.name = grp.GroupName;
+            ob.id = grp.AnimeGroupID;
+            ob.url = APIHelper.ConstructFilterIdUrl(grp.AnimeGroupID);
+
+            foreach (AnimeSeries ser in grp.GetSeries().Randomize())
+            {
+                AniDB_Anime anim = ser.GetAnime();
+                if (anim != null)
+                {
+                    ImageDetails fanart = anim.GetDefaultFanartDetailsNoBlanks();
+                    ImageDetails banner = anim.GetDefaultWideBannerDetailsNoBlanks();
+
+                    if (fanart != null)
+                    {
+                        ob.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromTypeAndId((int)fanart.ImageType, fanart.ImageID), index = ob.art.fanart.Count });
+                        ob.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromTypeAndId((int)fanart.ImageType, fanart.ImageID), index = ob.art.thumb.Count });
+                    }
+
+                    if (fanart != null)
+                    {
+                        ob.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromTypeAndId((int)banner.ImageType, banner.ImageID), index = ob.art.banner.Count });
+                    }
+
+                    if (ob.art.fanart.Count > 0)
+                    {
+                        break;
+                    }
                 }
             }
             return ob;

@@ -883,6 +883,14 @@ namespace JMMServer.Entities
             return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(session, this.AnimeID, (int) ImageSizeType.WideBanner);
         }
 
+        public ImageDetails GetDefaultWideBannerDetailsNoBlanks()
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                return GetDefaultWideBannerDetailsNoBlanks(session.Wrap());
+            }
+        }
+
         public ImageDetails GetDefaultWideBannerDetailsNoBlanks(ISessionWrapper session)
         {
             Random bannerRandom = new Random();
