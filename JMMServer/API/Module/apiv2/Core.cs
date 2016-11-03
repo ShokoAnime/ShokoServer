@@ -22,6 +22,7 @@ namespace JMMServer.API.Module.apiv2
     public class Core : Nancy.NancyModule
     {
         public static int version = 1;
+
         public Core() : base("/api")
         {
             // As this module requireAuthentication all request need to have apikey in header.
@@ -99,6 +100,7 @@ namespace JMMServer.API.Module.apiv2
 
         JMMServiceImplementationREST _rest = new JMMServiceImplementationREST();
         JMMServiceImplementation _binary = new JMMServiceImplementation();
+        internal static Nancy.Request request;
 
         #region 1.Settings
 

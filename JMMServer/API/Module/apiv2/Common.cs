@@ -16,6 +16,7 @@ using System.IO;
 using JMMServer.Utilities;
 using JMMServer.API.Model.core;
 using JMMServer.API.Module.apiv1;
+using JMMServer.API.Model.common;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -137,7 +138,8 @@ namespace JMMServer.API.Module.apiv2
             #endregion
 
             #region 11. Filters
-            Get["/filters/get"] = _ => { return GetFilters(); };
+            Get["/filters/get"] = _ => { return GetFilters_old(); };
+            Get["/filters/getnew"] = _ => { return GetFilters(); };
             #endregion
 
             #region 12. Metadata
@@ -1224,7 +1226,12 @@ namespace JMMServer.API.Module.apiv2
         #endregion
 
         #region 11. Filters
-        private object GetFilters()
+
+        /// <summary>
+        /// GetFilters as MediaContainer (Legacy)
+        /// </summary>
+        /// <returns></returns>
+        private object GetFilters_old()
         {
             Legacy.request = this.Request;
             Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
@@ -1238,9 +1245,69 @@ namespace JMMServer.API.Module.apiv2
             }
         }
 
+        /// <summary>
+        /// Return Filters as List
+        /// </summary>
+        /// <returns></returns>
+        private object GetFilters()
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+            List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel().Where(a => a.InvisibleInClients == 0 && ((a.GroupsIds.ContainsKey(user.JMMUserID) && a.GroupsIds[user.JMMUserID].Count > 0) || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)).ToList();
+            List<Filter> filters = new List<Filter>();
+
+            foreach (GroupFilter gf in allGfs)
+            {
+                Filter filter = new Filter();
+                filter.name = gf.GroupFilterName;
+                filter.id = gf.GroupFilterID;
+
+                AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(filter.id);
+                filter.art.banner.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Banner, index = 0 });
+                filter.art.fanart.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Art, index = 0 });
+                filter.art.thumb.Add(new Art() { url = ag.GetPlexContract(user.JMMUserID).Thumb, index = 0 });
+
+                filter.size = gf.GroupsIds[user.JMMUserID].Count;
+
+                filter.viewed = 0;
+                filter.url = URLHelper.ConstructFilterIdUrl(filter.id);
+                filter.type = JMMContracts.PlexAndKodi.AnimeTypes.AnimeGroupFilter.ToString();
+
+                filters.Add(filter);
+            }
+
+            List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            if (vids.Count > 0)
+            {
+                Filter filter = new Filter();
+
+                filter.url = URLHelper.ConstructUnsortUrl();
+                filter.name = "Unsort";
+                filter.type = JMMContracts.PlexAndKodi.AnimeTypes.AnimeUnsort.ToString();
+                filter.art.fanart.Add(new Art() { url = Helper.ConstructSupportImageLink("plex_unsort.png"), index = 0 });
+                filter.art.thumb.Add(new Art() { url = Helper.ConstructSupportImageLink("plex_unsort.png"), index = 0 });
+                filter.size = vids.Count;
+                filter.viewed = 0;
+
+                filters.Add(filter);
+            }
+
+            return filters;
+        }
+
         #endregion
 
         #region 12. Metadata
+
+        /// <summary>
+        /// Return Metadata about object you asked for via MediaContainer (Legacy)
+        /// </summary>
+        /// <param name="typeid">type id</param>
+        /// <param name="id">object id</param>
+        /// <param name="nocast">disable roles output</param>
+        /// <param name="filter"></param>
+        /// <returns></returns>
         private object GetMetadata(string typeid, string id, bool nocast = false, string filter = "")
         {
             Legacy.request = this.Request;

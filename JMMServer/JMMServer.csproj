@@ -294,6 +294,7 @@
     <Compile Include="AniDB_API\Utils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="API\Model\common\Art.cs" />
+    <Compile Include="API\Model\common\Filter.cs" />
     <Compile Include="API\Model\core\Logs.cs" />
     <Compile Include="API\Model\core\Rating.cs" />
     <Compile Include="API\Model\core\Search.cs" />
@@ -309,6 +310,7 @@
     <Compile Include="API\NancyExtensions.cs" />
     <Compile Include="API\Negotiation\BinaryProcessor.cs" />
     <Compile Include="API\Response\ByteArrayResponse.cs" />
+    <Compile Include="API\URLHelper.cs" />
     <Compile Include="Collections\EmptyLookup.cs" />
     <Compile Include="Collections\EnumerableExtensions.cs" />
     <Compile Include="Collections\LazyLookup.cs" />

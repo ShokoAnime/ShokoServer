@@ -65,8 +65,8 @@
 
 			pipelines.BeforeRequest += (NancyContext ctx) => BeforeProcessing(ctx);
 			pipelines.AfterRequest += (NancyContext ctx) => AfterProcessing(ctx);
-            
-            //CORS Enable
+
+            #region CORS Enable
             pipelines.AfterRequest.AddItemToEndOfPipeline((ctx) =>
             {
                 ctx.Response.WithHeader("Access-Control-Allow-Origin", "*")
@@ -74,14 +74,16 @@
                                 .WithHeader("Access-Control-Allow-Headers", "Accept, Origin, Content-type");
 
             });
+            #endregion
 
-
+            #region Gzip compression
             GzipCompressionSettings gzipsettings = new GzipCompressionSettings();
 			gzipsettings.MinimumBytes = 16384; //16k
 			gzipsettings.MimeTypes.Add("application/xml");
 			gzipsettings.MimeTypes.Add("application/json");
 			pipelines.EnableGzipCompression(gzipsettings);
-		}
+            #endregion
+        }
 
         /// <summary>
         /// overwrite the folder of static content
@@ -110,6 +112,7 @@
 		{
             // Request will always be populated!
             Module.apiv1.Legacy.request = ctx.Request;
+            Module.apiv2.Core.request = ctx.Request;
 			return null;
 		}
 
