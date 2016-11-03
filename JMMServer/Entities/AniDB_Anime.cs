@@ -1002,13 +1002,13 @@ namespace JMMServer.Entities
         [XmlIgnore]
         public bool SearchOnTvDB
         {
-            get { return AnimeType != (int) AnimeTypes.Movie; }
+            get { return AnimeType != (int) AnimeTypes.Movie && !AllTags.Contains("18 restricted", StringComparison.OrdinalIgnoreCase); }
         }
 
         [XmlIgnore]
         public bool SearchOnMovieDB
         {
-            get { return AnimeType == (int) AnimeTypes.Movie; }
+            get { return AnimeType == (int) AnimeTypes.Movie && !AllTags.Contains("18 restricted", StringComparison.OrdinalIgnoreCase); }
         }
 
 

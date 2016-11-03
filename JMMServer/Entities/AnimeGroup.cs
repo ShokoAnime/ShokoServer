@@ -1278,11 +1278,13 @@ namespace JMMServer.Entities
                         // we will consider the group as not having a tvdb link
                         if (!tvDbXrefByAnime.Value[anime.AnimeID].Any())
                         {
-                            hasTvDB = false;
+	                        if(anime.AnimeType != (int) enAnimeType.Movie && !(anime.Restricted > 0))
+	                        	hasTvDB = false;
                         }
                         if (!movieDbXRefByAnime.Value[anime.AnimeID].Any())
                         {
-                            hasMovieDB = false;
+	                        if(anime.AnimeType == (int) enAnimeType.Movie && !(anime.Restricted > 0))
+		                        hasMovieDB = false;
                         }
                         if (!malXRefByAnime.Value[anime.AnimeID].Any())
                         {
