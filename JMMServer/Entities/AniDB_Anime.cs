@@ -950,7 +950,7 @@ namespace JMMServer.Entities
 
         public static AnimeTypes RawToType(string raw)
         {
-            switch (raw.ToLower())
+            switch (raw.ToLowerInvariant().Trim())
             {
                 case "movie":
                     return AnimeTypes.Movie;

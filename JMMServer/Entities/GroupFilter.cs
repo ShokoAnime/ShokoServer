@@ -724,7 +724,7 @@ namespace JMMServer.Entities
                         List<string> ctags =
                             gfc.ConditionParameter.Trim()
                                 .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant())
+                                .Select(a => a.ToLowerInvariant().Trim())
                                 .ToList();
                         bool foundTag = ctags.FindInEnumerable(contractGroup.Stat_AllCustomTags);
                         if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundTag) return false;
@@ -734,9 +734,9 @@ namespace JMMServer.Entities
                     case GroupFilterConditionType.AnimeType:
 
                         List<string> ctypes =
-                            gfc.ConditionParameter.Trim()
+                            gfc.ConditionParameter
                                 .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => ((int)AniDB_Anime.RawToType(a.ToLowerInvariant())).ToString())
+                                .Select(a => ((int)AniDB_Anime.RawToType(a)).ToString())
                                 .ToList();
                         bool foundAnimeType = ctypes.FindInEnumerable(contractGroup.Stat_AnimeTypes);
                         if ((gfc.ConditionOperatorEnum == GroupFilterOperator.In) && !foundAnimeType) return false;
@@ -746,9 +746,9 @@ namespace JMMServer.Entities
                     case GroupFilterConditionType.VideoQuality:
 
                         List<string> vqs =
-                            gfc.ConditionParameter.Trim()
+                            gfc.ConditionParameter
                                 .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant())
+                                .Select(a => a.ToLowerInvariant().Trim())
                                 .ToList();
                         bool foundVid = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality);
                         bool foundVidAllEps = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality_Episodes);
@@ -765,7 +765,7 @@ namespace JMMServer.Entities
                         List<string> als =
                             gfc.ConditionParameter.Trim()
                                 .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant())
+                                .Select(a => a.ToLowerInvariant().Trim())
                                 .ToList();
                         bool foundLang = als.FindInEnumerable(contractGroup.Stat_AudioLanguages);
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundLang) return false;
@@ -774,9 +774,9 @@ namespace JMMServer.Entities
 
                     case GroupFilterConditionType.SubtitleLanguage:
                         List<string> ass =
-                            gfc.ConditionParameter.Trim()
+                            gfc.ConditionParameter
                                 .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant())
+                                .Select(a => a.ToLowerInvariant().Trim())
                                 .ToList();
                         bool foundSub = ass.FindInEnumerable(contractGroup.Stat_SubtitleLanguages);
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundSub) return false;
@@ -1097,7 +1097,7 @@ namespace JMMServer.Entities
                         List<string> ctags =
                             gfc.ConditionParameter.Trim()
                                 .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant())
+                                .Select(a => a.ToLowerInvariant().Trim())
                                 .ToList();
                         bool foundTag =
                             ctags.FindInEnumerable(contractSerie.AniDBAnime.CustomTags.Select(a => a.TagName));
@@ -1122,7 +1122,7 @@ namespace JMMServer.Entities
                         List<string> vqs =
                             gfc.ConditionParameter.Trim()
                                 .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant())
+                                .Select(a => a.ToLowerInvariant().Trim())
                                 .ToList();
                         bool foundVid = vqs.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllVideoQuality);
                         bool foundVidAllEps =
@@ -1140,7 +1140,7 @@ namespace JMMServer.Entities
                         List<string> als =
                             gfc.ConditionParameter.Trim()
                                 .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant())
+                                .Select(a => a.ToLowerInvariant().Trim())
                                 .ToList();
                         bool foundLang = als.FindInEnumerable(contractSerie.AniDBAnime.Stat_AudioLanguages);
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundLang) return false;
@@ -1151,7 +1151,7 @@ namespace JMMServer.Entities
                         List<string> ass =
                             gfc.ConditionParameter.Trim()
                                 .Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.ToLowerInvariant())
+                                .Select(a => a.ToLowerInvariant().Trim())
                                 .ToList();
                         bool foundSub = ass.FindInEnumerable(contractSerie.AniDBAnime.Stat_AudioLanguages);
                         if (gfc.ConditionOperatorEnum == GroupFilterOperator.In && !foundSub) return false;
