@@ -532,6 +532,7 @@ namespace JMMServer.PlexAndKodi
             if (basegrp != null)
             {
 	            List<AnimeSeries> seriesList = grp.GetSeries();
+	            List<AnimeGroup> grpList = grp.GetChildGroups();
 	            if (filterID.HasValue)
 	            {
 		            GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterID.Value);
@@ -543,9 +544,12 @@ namespace JMMServer.PlexAndKodi
 				            	seriesList =
 					            	seriesList.Where(a => filter.SeriesIds[userid].Contains(a.AnimeSeriesID)).ToList();
 			            }
+			            if(filter.GroupsIds.ContainsKey(userid))
+				            grpList =
+					            grpList.Where(a => filter.GroupsIds[userid].Contains(a.AnimeGroupID)).ToList();
 		            }
 	            }
-	            foreach (AnimeGroup grpChild in grp.GetChildGroups())
+	            foreach (AnimeGroup grpChild in grpList)
                 {
                     var v = grpChild.GetPlexContract(userid);
                     if (v != null)
@@ -1146,10 +1150,19 @@ namespace JMMServer.PlexAndKodi
                     Dictionary<Contract_AnimeGroup, Video> order = new Dictionary<Contract_AnimeGroup, Video>();
                     if (gf.GroupsIds.ContainsKey(userid))
                     {
-                        // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
+	                    List<AnimeGroup> topGroups = new List<AnimeGroup>();
+	                    foreach (List<AnimeGroup> animeGroups in gf.SeriesIds[userid].ToList().Select(a => RepoFactory.AnimeSeries.GetByID(a)).Select(a => a.AllGroupsAbove).Where(a => a != null))
+	                    {
+		                    foreach (AnimeGroup temp12 in animeGroups)
+		                    {
+			                    if (!topGroups.Contains(temp12)) topGroups.Add(temp12);
+		                    }
+	                    }
+	                    // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
                         foreach (AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
                         {
-                            Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
+	                        if (!topGroups.Contains(grp)) continue;
+	                        Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
                             if (v != null)
                             {
                                 if (v.Group == null)
