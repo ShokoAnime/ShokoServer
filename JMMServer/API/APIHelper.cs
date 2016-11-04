@@ -1,10 +1,13 @@
-﻿using JMMContracts.PlexAndKodi;
+﻿using AniDBAPI;
+using JMMContracts;
+using JMMContracts.PlexAndKodi;
 using JMMServer.API.Model.common;
 using JMMServer.Entities;
 using JMMServer.ImageDownload;
 using JMMServer.PlexAndKodi;
 using JMMServer.Repositories;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace JMMServer.API
 {
@@ -110,42 +113,6 @@ namespace JMMServer.API
             return link;
         }
 
-        public static RawFile RawFileFromVideoLocal(VideoLocal vl)
-        {
-            Model.common.RawFile file = new Model.common.RawFile();
-            file.audio.Add("bitrate", vl.AudioBitrate);
-            file.audio.Add("codec", vl.AudioCodec);
-
-            file.video.Add("bitrate", vl.VideoBitrate);
-            file.video.Add("bitdepth", vl.VideoBitDepth);
-            file.video.Add("codec", vl.VideoCodec);
-            file.video.Add("fps", vl.VideoFrameRate);
-            file.video.Add("resolution", vl.VideoResolution);
-
-            file.crc32 = vl.CRC32;
-            file.ed2khash = vl.ED2KHash;
-            file.md5 = vl.MD5;
-            file.sha1 = vl.SHA1;
-
-            file.created = vl.DateTimeCreated;
-            file.updated = vl.DateTimeUpdated;
-            file.duration = vl.Duration;
-
-            file.filename = vl.FileName;
-            file.size = vl.FileSize;
-            file.hash = vl.Hash;
-            file.hashsource = vl.HashSource;
-
-            file.info = vl.Info;
-            file.isignored = vl.IsIgnored;
-
-            file.mediasize = vl.MediaSize;
-
-            file.media = vl.Media;
-
-            return file;
-        }
-
         public static Filter FilterFromGroupFilter(GroupFilter gg, int uid)
         {
             Filter ob = new Filter();
@@ -185,6 +152,8 @@ namespace JMMServer.API
             ob.name = grp.GroupName;
             ob.id = grp.AnimeGroupID;
             ob.url = APIHelper.ConstructFilterIdUrl(grp.AnimeGroupID);
+            ob.size = -1;
+            ob.viewed = -1;
 
             foreach (AnimeSeries ser in grp.GetSeries().Randomize())
             {
@@ -200,7 +169,7 @@ namespace JMMServer.API
                         ob.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromTypeAndId((int)fanart.ImageType, fanart.ImageID), index = ob.art.thumb.Count });
                     }
 
-                    if (fanart != null)
+                    if (banner!= null)
                     {
                         ob.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromTypeAndId((int)banner.ImageType, banner.ImageID), index = ob.art.banner.Count });
                     }

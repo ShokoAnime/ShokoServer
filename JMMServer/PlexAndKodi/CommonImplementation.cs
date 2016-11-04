@@ -1069,6 +1069,7 @@ namespace JMMServer.PlexAndKodi
                     }
                 }
                 List<Video> vids = new List<Video>();
+
                 if ((eptype.HasValue) && (info!=null))
                     info.ParentKey = info.GrandParentKey;
 	            bool hasRoles = false;

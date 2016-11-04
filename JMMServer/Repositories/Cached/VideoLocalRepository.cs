@@ -339,17 +339,24 @@ namespace JMMServer.Repositories.Cached
             }*/
         }
 
-        public List<VideoLocal> GetVideosWithoutEpisode(int user_id)
-        {
-            // get all vl_id for user
-            HashSet<int> user_files = new HashSet<int>(RepoFactory.VideoLocalUser.GetAll().Where(a => a.JMMUserID == user_id).Select(a => a.VideoLocalID));
-            // get all hashes for user knowing its vl_id
-            HashSet<string> vlocals = new HashSet<string>(Cache.Values.Where(a => user_files.Contains(a.VideoLocalID)).Where(a => a.IsIgnored == 0).Select(a => a.Hash));
-            // get all recognized episode hashes
-            HashSet<string> hashes = new HashSet<string>(RepoFactory.CrossRef_File_Episode.GetAll().Select(a => a.Hash));
-            // substract all recognized episode hashes from all hashes for user
-            return vlocals.Except(hashes).SelectMany(a => Hashes.GetMultiple(a)).OrderBy(a => a.DateTimeCreated).ToList();
-        }
+        // This is impossible with current db, as there is no record of what used added file and VideoLocalUser store only usere related data about known eps
+        //public List<VideoLocal> GetVideosWithoutEpisode(int user_id)
+        //{
+        // get all vl_id for user
+        // HashSet<int> user_files = new HashSet<int>(RepoFactory.VideoLocalUser.GetAll().Where(a => a.JMMUserID == user_id).Select(a => a.VideoLocalID));
+        // get all hashes for user knowing its vl_id
+        // HashSet<string> vlocals = new HashSet<string>(Cache.Values.Where(a => user_files.Contains(a.VideoLocalID)).Where(a => a.IsIgnored == 0).Select(a => a.Hash));
+        // get all recognized episode hashes
+        // HashSet<string> hashes = new HashSet<string>(RepoFactory.CrossRef_File_Episode.GetAll().Select(a => a.Hash));
+        // substract all recognized episode hashes from all hashes for user
+        // return vlocals.Except(hashes).SelectMany(a => Hashes.GetMultiple(a)).OrderBy(a => a.DateTimeCreated).ToList();
+        // HashSet<string> ret = new HashSet<string>();
+        //foreach (string x in vlocals)
+        //{
+        //    if (!hashes.Contains(x)) { ret.Add(x); }
+        //}
+        //return ret.SelectMany(a => Hashes.GetMultiple(a)).OrderBy(a => a.DateTimeCreated).ToList();
+        //}
 
         public List<VideoLocal> GetManuallyLinkedVideos()
         {

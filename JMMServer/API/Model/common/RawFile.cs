@@ -29,10 +29,53 @@ namespace JMMServer.API.Model.common
         public JMMContracts.PlexAndKodi.Media media { get; set; }
         public int mediasize { get; set; }
 
+        public ArtCollection art { get; set; }
+
         public RawFile()
         {
             audio = new Dictionary<string, string>();
             video = new Dictionary<string, string>();
+            art = new ArtCollection();
+        }
+
+        public RawFile(Entities.VideoLocal vl)
+        {
+            if (vl != null)
+            {
+                audio = new Dictionary<string, string>();
+                video = new Dictionary<string, string>();
+                art = new ArtCollection();
+
+                audio.Add("bitrate", vl.AudioBitrate);
+                audio.Add("codec", vl.AudioCodec);
+
+                video.Add("bitrate", vl.VideoBitrate);
+                video.Add("bitdepth", vl.VideoBitDepth);
+                video.Add("codec", vl.VideoCodec);
+                video.Add("fps", vl.VideoFrameRate);
+                video.Add("resolution", vl.VideoResolution);
+
+                crc32 = vl.CRC32;
+                ed2khash = vl.ED2KHash;
+                md5 = vl.MD5;
+                sha1 = vl.SHA1;
+
+                created = vl.DateTimeCreated;
+                updated = vl.DateTimeUpdated;
+                duration = vl.Duration;
+
+                filename = vl.FileName;
+                size = vl.FileSize;
+                hash = vl.Hash;
+                hashsource = vl.HashSource;
+
+                info = vl.Info;
+                isignored = vl.IsIgnored;
+
+                mediasize = vl.MediaSize;
+
+                media = vl.Media;
+            }
         }
     }
 }

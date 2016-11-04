@@ -8,7 +8,7 @@ namespace JMMServer.API.Model.common
         public string name { get; set; }
         public int size { get; set; }
         public string type { get; set; }
-
+        public int viewed { get; set; }
         public int id { get; set; }
 
         public ObjectList()

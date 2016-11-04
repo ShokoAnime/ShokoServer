@@ -14,6 +14,7 @@ using JMMServer.API.Model.core;
 using JMMServer.API.Module.apiv1;
 using JMMServer.API.Model.common;
 using JMMContracts.PlexAndKodi;
+using AniDBAPI;
 
 namespace JMMServer.API.Module.apiv2
 {
@@ -143,12 +144,12 @@ namespace JMMServer.API.Module.apiv2
             #endregion
 
             #region 12. Metadata
-            Get["/metadata/{type}/{id}"] = x => { return GetMetadata_old((int)x.type, (int)x.id); };
-            Get["/metadata/{type}/{id}/nocast"] = x => { return GetMetadata_old((int)x.type, (int)x.id, true); };
-            Get["/metadata/{type}/{id}/{filter}"] = x => { return GetMetadata_old((int)x.type, (int)x.id, false, x.filter); };
-            Get["/metadata/{type}/{id}/{filter}/nocast"] = x => { return GetMetadata_old((int)x.type, (int)x.id, true, x.filter); };
+            Get["/metadata/{type}/{id}"] = x => { return GetMetadata_old((int)x.type, x.id); };
+            Get["/metadata/{type}/{id}/nocast"] = x => { return GetMetadata_old((int)x.type, x.id, true); };
+            Get["/metadata/{type}/{id}/{filter}"] = x => { return GetMetadata_old((int)x.type, x.id, false, x.filter); };
+            Get["/metadata/{type}/{id}/{filter}/nocast"] = x => { return GetMetadata_old((int)x.type, x.id, true, x.filter); };
 
-            Get["/metadata2/{type}/{id}"] = x => { return GetMetadata((int)x.type, (int)x.id); };
+            Get["/metadata2/{type}/{id}"] = x => { return GetMetadata((int)x.type, x.id); };
             #endregion
 
         }
@@ -1372,7 +1373,7 @@ namespace JMMServer.API.Module.apiv2
             }
         }
 
-        private object GetMetadata(int type_id, int id, bool nocast = false, string filter = "")
+        private object GetMetadata(int type_id, string id, bool nocast = false, string filter = "")
         {
             Core.request = this.Request;
             JMMUser user = (JMMUser)this.Context.CurrentUser;
@@ -1380,20 +1381,28 @@ namespace JMMServer.API.Module.apiv2
             {
                 switch ((JMMType)type_id)
                 {
-            //        case JMMType.Group:
-            //            return GetItemsFromGroup(prov, user.JMMUserID, Id, his, nocast, filter);
+                    //0
                     case JMMType.GroupFilter:
                         return GetGroupsOrSubFiltersFromFilter(id, user.JMMUserID);
+                    //1 
                     case JMMType.GroupUnsort:
-                        return GetUnsort(user.JMMUserID);
-            //        case JMMType.Serie:
-            //            return GetItemsFromSerie(prov, user.JMMUserID, Id, his, nocast);
-            //        case JMMType.Episode:
-            //            return GetFromEpisode(prov, user.JMMUserID, Id, his);
-            //        case JMMType.File:
-            //            return GetFromFile(prov, user.JMMUserID, Id, his);
+                        return GetUnsort();
+                    //2 
+                    case JMMType.Group:
+                        return GetItemsFromGroup(user.JMMUserID, id, nocast);
+                    //3
+                    case JMMType.Serie:
+                        return GetItemsFromSerie(user.JMMUserID, id, nocast);
+                    //5
+                    case JMMType.Episode:
+                        return GetFromEpisode(user.JMMUserID, id);
+                    //6
+                    case JMMType.File:
+                        return GetFromFile(user.JMMUserID, id);
+                    //7
             //        case JMMType.Playlist:
             //            return GetItemsFromPlaylist(prov, user.JMMUserID, Id, his);
+                    //8
             //        case JMMType.FakeIosThumb:
             //            return FakeParentForIOSThumbnail(prov, Id);
                     default:
@@ -1406,20 +1415,20 @@ namespace JMMServer.API.Module.apiv2
             }
         }
 
-        private object GetUnsort(int uid)
+        private object GetUnsort()
         {
             ObjectList dir = new ObjectList();
             dir.name = "Unsort";
             dir.type = "raw";
 
-            List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode(uid);
+            List<VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
             dir.size = vids.Count;
             
             foreach (VideoLocal vl in vids)
             {    
                 try
                 {
-                    RawFile v = APIHelper.RawFileFromVideoLocal(vl);
+                    RawFile v = new RawFile(vl);
                     dir.list.Add(v);
                 }
                 catch { }
@@ -1428,57 +1437,248 @@ namespace JMMServer.API.Module.apiv2
             return dir;
         }
 
-        private object GetGroupsOrSubFiltersFromFilter(int groupFilterID, int uid)
+        private object GetGroupsOrSubFiltersFromFilter(string GroupFilterID, int uid)
         {
             try
             {
+                int groupFilterID = -1;
+                int.TryParse(GroupFilterID, out groupFilterID);
                 ObjectList dir = new ObjectList();
-
-                GroupFilter gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
-
-                if (gf == null) { return APIStatus.notFound404(); }
-
-                dir.name = gf.GroupFilterName;
-                dir.type = "show";
-
-                List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
-                (
-                    (a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0)
-                    || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
-                ).ToList();
-
-                List<Filter> dirs = new List<Filter>();
-                foreach (GroupFilter gg in allGfs)
+                if (groupFilterID >= 0)
                 {
-                    Filter pp = APIHelper.FilterFromGroupFilter(gg, uid);
-                    dirs.Add(pp);
-                }
+                    GroupFilter gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
 
-                if (dirs.Count > 0)
-                {
-                    dir.size = dirs.Count;
-                    dir.list = dirs.OrderBy(a => a.name).Cast<object>().ToList();
+                    if (gf == null) { return APIStatus.notFound404(); }
 
-                    return dir;
-                }
+                    dir.id = groupFilterID;
+                    dir.name = gf.GroupFilterName;
+                    dir.type = "show";
 
-                if (gf.GroupsIds.ContainsKey(uid))
-                {
-                    foreach (AnimeGroup grp in gf.GroupsIds[uid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
+                    List<GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(groupFilterID).Where(a => a.InvisibleInClients == 0 &&
+                    (
+                        (a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0)
+                        || (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
+                    ).ToList();
+
+                    List<Filter> dirs = new List<Filter>();
+                    foreach (GroupFilter gg in allGfs)
                     {
-                        Filter pp = APIHelper.FilterFromAnimeGroup(grp, uid);
+                        Filter pp = APIHelper.FilterFromGroupFilter(gg, uid);
                         dirs.Add(pp);
                     }
 
-                    dir.list = dirs.Cast<object>().ToList();
-                }
+                    if (dirs.Count > 0)
+                    {
+                        dir.list = dirs.OrderBy(a => a.name).Cast<object>().ToList();
+                        dir.size = dirs.Count;
+                        return dir;
+                    }
 
+                    if (gf.GroupsIds.ContainsKey(uid))
+                    {
+                        foreach (AnimeGroup grp in gf.GroupsIds[uid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
+                        {
+                            Filter pp = APIHelper.FilterFromAnimeGroup(grp, uid);
+                            dirs.Add(pp);
+                        }
+
+                        dir.list = dirs.Cast<object>().ToList();
+                        dir.size = dir.list.Count;
+                    }
+                }
+                
                 return dir;
             }
             catch (Exception ex)
             {
                 return APIStatus.internalError(ex.Message.ToString());
             }
+        }
+
+        private object GetItemsFromSerie(int uid, string SerieId, bool nocast = false)
+        {
+            int serieID;
+            enEpisodeType? eptype = null;
+            if (SerieId.Contains("_"))
+            {
+                int ept;
+                string[] ndata = SerieId.Split('_');
+                if (!int.TryParse(ndata[0], out ept)) { return APIStatus.notFound404("Invalid Serie Id"); }
+                if (!int.TryParse(ndata[1], out serieID)) { return APIStatus.notFound404("Invalid Serie Id"); }
+                eptype = (enEpisodeType)ept;
+            }
+            else
+            {
+                if (!int.TryParse(SerieId, out serieID)) { return APIStatus.notFound404("Invalid Serie Id"); }
+            }
+
+            AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(serieID);
+            if (ser == null) { return APIStatus.notFound404("Series not found"); }
+            Contract_AnimeSeries cseries = ser.GetUserContract(uid);
+            if (cseries == null) { return APIStatus.notFound404("Invalid Series, Contract Not Found"); }
+
+            Serie sers = new Serie();
+
+            Video nv = ser.GetPlexContract(uid);
+
+
+            Dictionary<AnimeEpisode, Contract_AnimeEpisode> episodes = ser.GetAnimeEpisodes().ToDictionary(a => a, a => a.GetUserContract(uid));
+            episodes = episodes.Where(a => a.Value == null || a.Value.LocalFileCount > 0).ToDictionary(a => a.Key, a => a.Value);
+
+            sers.size = (cseries.WatchedEpisodeCount + cseries.UnwatchedEpisodeCount).ToString();
+            sers.art.fanart.Add(new Art() { url = cseries.AniDBAnime?.AniDBAnime?.DefaultImageFanart?.GenArt(), index = 0 });
+            sers.viewed = cseries.WatchedEpisodeCount.ToString();
+
+            if (eptype.HasValue)
+            {
+                episodes = episodes.Where(a => a.Key.EpisodeTypeEnum == eptype.Value).ToDictionary(a => a.Key, a => a.Value);
+            }
+            else
+            {
+                List<enEpisodeType> types = episodes.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
+                if (types.Count > 1)
+                {
+                    List<PlexEpisodeType> eps = new List<PlexEpisodeType>();
+                    foreach (enEpisodeType ee in types)
+                    {
+                        PlexEpisodeType k2 = new PlexEpisodeType();
+                        PlexEpisodeType.EpisodeTypeTranslated(k2, ee, (AnimeTypes)cseries.AniDBAnime.AniDBAnime.AnimeType, episodes.Count(a => a.Key.EpisodeTypeEnum == ee));
+                        eps.Add(k2);
+                    }
+
+                    List<Serie> dirs = new List<Serie>();
+
+                    foreach (PlexEpisodeType ee in eps.OrderBy(a => a.Name))
+                    {
+                        Serie ob = new Serie();
+                        ob.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Art), index = 0 });
+                        ob.art.thumb.Add(new Art() { url = APIHelper.ConstructSupportImageLink(ee.Image), index = 0 });
+                        ob.titles.Add(new AnimeTitle() { Title = ee.Name });
+                        ob.type = "AnimeType";
+                        ob.size = ee.Count.ToString();
+                        ob.viewed = "0";
+                        ob.url = APIHelper.ConstructSerieIdUrl(ee.Type + "_" + ser.AnimeSeriesID);
+                        dirs.Add(ob);
+                    }
+
+                    return dirs;
+                }
+            }
+
+            List<Episode> lep = new List<Episode>();
+
+            foreach (KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> epi in episodes)
+            {
+                try
+                {
+                    Episode ep = new Episode(epi.Key, uid);
+                    lep.Add(ep);
+                }
+                catch (Exception e)
+                {
+                    //Fast fix if file do not exist, and still is in db. (Xml Serialization of video info will fail on null)
+                }
+
+                
+                sers.eps = lep.OrderBy(a => a.epnumber).ToList();
+
+                return sers;
+            }
+
+            return sers;
+        }
+
+        private object GetFromEpisode(int uid, string aep_Id)
+        {
+            int aep_id = -1;
+            int.TryParse(aep_Id, out aep_id);
+
+            if (aep_id > 0)
+            {
+                List<Video> dirs = new List<Video>();
+
+                AnimeEpisode e = RepoFactory.AnimeEpisode.GetByID(aep_id);
+                if (e == null) { return APIStatus.notFound404("Episode not found"); }
+
+                //KeyValuePair<AnimeEpisode, Contract_AnimeEpisode> ep = new KeyValuePair<AnimeEpisode, Contract_AnimeEpisode>(e, e.GetUserContract(uid));
+                //if (ep.Value != null && ep.Value.LocalFileCount == 0) { return APIStatus.notFound404("Episode do not have videolocals"); }
+
+                //AniDB_Episode aep = ep.Key.AniDB_Episode;
+                //if (aep == null) { return APIStatus.notFound404("Invalid Episode AniDB link not found"); }
+
+                //AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
+                //if (ser == null) { return APIStatus.notFound404("Invalid Serie"); }
+                //AniDB_Anime anime = ser.GetAnime();
+
+                //Contract_AnimeSeries con = ser.GetUserContract(uid);
+                //if (con == null) { return APIStatus.notFound404("Invalid Serie, Contract not found"); }
+
+                try
+                {
+                    Episode epi = new Episode(e, uid);
+                    return epi;
+                }
+                catch (Exception ex)
+                {
+                    return APIStatus.internalError(ex.Message.ToString());
+                }
+            }
+            return APIStatus.notFound404("Ep id not found");
+        }
+
+        private object GetItemsFromGroup(int uid, string GroupId, bool nocast = false)
+        {
+            int gid;
+            int.TryParse(GroupId, out gid);
+            if (gid == -1) { return APIStatus.internalError("Invalid Group Id"); }
+
+            ObjectList obl = new ObjectList();
+
+            List<Video> retGroups = new List<Video>();
+            AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(gid);
+            if (grp == null) { return APIStatus.notFound404("Group not found"); }
+
+            Contract_AnimeGroup basegrp = grp?.GetUserContract(uid);
+            if (basegrp != null)
+            {
+                List<AnimeSeries> seriesList = grp.GetSeries();
+                
+                foreach (AnimeGroup grpChild in grp.GetChildGroups())
+                {
+                    Filter fr = new Filter();
+
+                    var v = grpChild.GetPlexContract(uid);
+                    if (v != null)
+                    {
+                        fr.type = "show";
+                        fr.url = APIHelper.ConstructGroupIdUrl(gid.ToString());
+
+                        fr.art.fanart.Add(new Art() { url = Helper.GetRandomFanartFromVideo(v) ?? v.Art, index = 0 });
+                        fr.art.banner.Add(new Art() { url = v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner, index = 0 });
+
+                        obl.list.Add(fr);                 
+                    }
+                }
+                foreach (AnimeSeries ser in seriesList)
+                {
+                    Serie seri = new Serie(ser, uid);
+                    obl.list.Add(seri);
+                }
+            }
+
+            return obl;
+        }
+
+        private object GetFromFile(int uid, string vl_Id)
+        {
+            int id;
+            if (!int.TryParse(vl_Id, out id)) { return APIStatus.badRequest("bad group id"); }
+
+            VideoLocal vi = RepoFactory.VideoLocal.GetByID(id);
+
+            RawFile rf = new RawFile(vi);
+
+            return rf;
         }
 
         #endregion

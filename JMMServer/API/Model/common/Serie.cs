@@ -11,11 +11,11 @@ namespace JMMServer.API.Model.common
         public ArtCollection art { get; set; }
         public string url { get; set; }
         public string type { get; set; }
+        public string title { get; set; }
         public List<AnimeTitle> titles { get; set; }
         public string summary { get; set; }
         public string year { get; set; }
         public string air { get; set; }
-        // why not int ?
         public string size { get; set; }
         public string viewed { get; set; }
         public string season { get; set; }
@@ -25,10 +25,13 @@ namespace JMMServer.API.Model.common
         public string rating { get; set; }
         public List<Role> roles { get; set; }
         public List<Tag> tags { get; set; }
+        public List<Episode> eps { get; set; }
 
         public Serie()
         {
-
+            art = new ArtCollection();
+            roles = new List<Role>();
+            tags = new List<Tag>();
         }
 
         public Serie(AnimeSeries ser, int uid)
