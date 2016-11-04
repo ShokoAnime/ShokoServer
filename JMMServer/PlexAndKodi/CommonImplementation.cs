@@ -1056,6 +1056,7 @@ namespace JMMServer.PlexAndKodi
                             Video v = new Directory();
                             v.Art = nv.Art;
                             v.Title = ee.Name;
+	                        v.AnimeType = "AnimeType";
                             v.LeafCount = ee.Count.ToString();
                             v.ChildCount = v.LeafCount;
                             v.ViewedLeafCount = "0";
