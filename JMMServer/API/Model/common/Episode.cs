@@ -17,8 +17,6 @@ namespace JMMServer.API.Model.common
         public int view { get; set; }
         public int eptype { get; set; }
         public int epnumber { get; set; }
-        public List<Role> roles { get; set; }
-        public List<Tag> tags { get; set; }
         public List<RawFile> files { get; set; }
 
         public Episode()
@@ -26,63 +24,61 @@ namespace JMMServer.API.Model.common
 
         }
 
-        public Episode(AnimeEpisode aep, int uid)
+        internal Episode GenerateFromAnimeEpisodeID(int anime_episode_id, int uid)
         {
-            art = new ArtCollection();
-            roles = new List<Role>();
-            tags = new List<Tag>();
+            Episode ep = new Episode();
 
-            id = aep.AnimeEpisodeID;
-            type = aep.EpisodeTypeEnum.ToString();
-            title = aep.PlexContract?.Title;
-            summary = aep.PlexContract?.Summary;
-            year = aep.PlexContract?.Year;
-            air = aep.PlexContract?.AirDate.ToString();
-            rating = aep.PlexContract?.Rating;
-
-            JMMContracts.Contract_AnimeEpisode cae = aep.GetUserContract(uid);
-
-            view = cae.IsWatched;
-            epnumber = cae.EpisodeNumber;
-            eptype = cae.EpisodeType;
-
-            if (aep.PlexContract?.Roles != null)
+            if (anime_episode_id > 0)
             {
-                foreach (RoleTag rl in aep.PlexContract?.Roles)
+                ep = GenerateFromAnimeEpisode(Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid);
+            }
+
+            return ep;
+        }
+
+        internal Episode GenerateFromAnimeEpisode(AnimeEpisode aep, int uid)
+        {
+            Episode ep = new Episode();
+            if (aep != null)
+            {
+                JMMContracts.Contract_AnimeEpisode cae = aep.GetUserContract(uid);
+                if (cae != null)
                 {
-                    Role n_rl = new Role();
-                    n_rl.name = rl.Value;
-                    n_rl.namepic = rl.TagPicture;
-                    n_rl.role = rl.Role;
-                    n_rl.roledesc = rl.RoleDescription;
-                    n_rl.rolepic = rl.RolePicture;
-                    roles.Add(n_rl);
+                    ep.art = new ArtCollection();
+                    ep.id = aep.AnimeEpisodeID;
+                    ep.type = aep.EpisodeTypeEnum.ToString();
+                    ep.title = aep.PlexContract?.Title;
+                    ep.summary = aep.PlexContract?.Summary;
+                    ep.year = aep.PlexContract?.Year;
+                    ep.air = aep.PlexContract?.AirDate.ToString();
+                    ep.rating = aep.PlexContract?.Rating;
+                    double rating;
+                    if (double.TryParse(ep.rating, out rating))
+                    {
+                        ep.rating = (rating / 100).ToString().Replace(',','.');
+                    }
+
+                    ep.view = cae.IsWatched;
+                    ep.epnumber = cae.EpisodeNumber;
+                    ep.eptype = cae.EpisodeType;
+
+                    // until fanart refactor this will be good for start
+                    if (aep.PlexContract?.Thumb != null) { ep.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(aep.PlexContract?.Thumb), index = 0 }); }
+                    if (aep.PlexContract?.Art != null) { ep.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(aep.PlexContract?.Art), index = 0 }); }
+
+                    List<VideoLocal> vls = aep.GetVideoLocals();
+                    if (vls.Count > 0)
+                    {
+                        ep.files = new List<RawFile>();
+                        foreach (VideoLocal vl in vls)
+                        {
+                            ep.files.Add(new RawFile(vl));
+                        }
+                    }
                 }
             }
 
-            if (aep.PlexContract?.Tags != null)
-            {
-                foreach (JMMContracts.PlexAndKodi.Tag tg in aep.PlexContract?.Tags)
-                {
-                    Tag n_tg = new Tag();
-                    n_tg.tag = tg.Value;
-                    tags.Add(n_tg);
-                }
-            }
-            
-            // until fanart refactor this will be good for start
-            art.thumb.Add(new Art() { url = aep.PlexContract?.Thumb, index = 0 });
-            art.fanart.Add(new Art() { url = aep.PlexContract?.Art, index = 0 });
-
-            List<VideoLocal> vls = aep.GetVideoLocals();
-            if (vls.Count > 0)
-            {
-                files = new List<RawFile>();
-                foreach (VideoLocal vl in vls)
-                {
-                    files.Add(new RawFile(vl));
-                }
-            }
+            return ep;
         }
     }
 }

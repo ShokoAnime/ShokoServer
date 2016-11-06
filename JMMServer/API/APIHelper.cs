@@ -83,34 +83,43 @@ namespace JMMServer.API
             return APIHelper.ProperURL("api/image/" + type.ToString() + "/" + id.ToString());
         }
 
-       
+        public static string ConstructVideoLocalStream(int userid, string vid, string name, bool autowatch)
+        {
+            return ProperURL(int.Parse(ServerSettings.JMMServerFilePort), "videolocal/" + userid + "/" + (autowatch ? "1" : "0") + "/" + vid + "/" + name, false);
+        }
+
         #endregion
 
         #region Converters
 
         private static string ConvertRestImageToNonRestUrl(string url)
         {
-            string link = url.ToLower();
-            if (link.Contains("{scheme}://{host}:"))
+            if (!string.IsNullOrEmpty(url))
             {
-                link = link.Replace("{scheme}://{host}:", "");
-                link = link.Substring(link.IndexOf("/") + 1);
-                link = link.Replace("jmmserverrest/", "");
+                string link = url.ToLower();
+                if (link.Contains("{scheme}://{host}:"))
+                {
+                    link = link.Replace("{scheme}://{host}:", "");
+                    link = link.Substring(link.IndexOf("/") + 1);
+                    link = link.Replace("jmmserverrest/", "");
 
-                if (link.Contains("getimage"))
-                {
-                    link = link.Replace("getimage", "api/image");
-                }
-                else if (link.Contains("getthumb"))
-                {
-                    link = link.Replace("getthumb", "api/thumb");
-                    if (link.Contains(","))
+                    if (link.Contains("getimage"))
                     {
-                        link = link.Replace(',', '.');
+                        link = link.Replace("getimage", "api/image");
+                    }
+                    else if (link.Contains("getthumb"))
+                    {
+                        link = link.Replace("getthumb", "api/thumb");
+                        if (link.Contains(","))
+                        {
+                            link = link.Replace(',', '.');
+                        }
                     }
                 }
+                return link;
             }
-            return link;
+            else
+            { return null; }
         }
 
         public static Filter FilterFromGroupFilter(GroupFilter gg, int uid)
@@ -186,10 +195,14 @@ namespace JMMServer.API
         #endregion
 
         private static string ProperURL(string path, bool short_url = false)
+        {
+            return ProperURL(Module.apiv2.Core.request.Url.Port, path, short_url);
+        }
+        private static string ProperURL(int? port, string path, bool short_url = false)
         {           
             if (!short_url)
             {
-                return Module.apiv2.Core.request.Url.Scheme + "://" + Module.apiv2.Core.request.Url.HostName + ":" + Module.apiv2.Core.request.Url.Port + "/" + path;
+                return Module.apiv2.Core.request.Url.Scheme + "://" + Module.apiv2.Core.request.Url.HostName + ":" + port + "/" + path;
             }
             else
             {

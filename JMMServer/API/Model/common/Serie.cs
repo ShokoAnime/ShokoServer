@@ -9,7 +9,6 @@ namespace JMMServer.API.Model.common
     {
         public int id { get; set; }
         public ArtCollection art { get; set; }
-        public string url { get; set; }
         public string type { get; set; }
         public string title { get; set; }
         public List<AnimeTitle> titles { get; set; }
@@ -18,10 +17,6 @@ namespace JMMServer.API.Model.common
         public string air { get; set; }
         public string size { get; set; }
         public string viewed { get; set; }
-        public string season { get; set; }
-        // rename later + why not int ?
-        public string childcount { get; set; }
-
         public string rating { get; set; }
         public List<Role> roles { get; set; }
         public List<Tag> tags { get; set; }
@@ -34,43 +29,56 @@ namespace JMMServer.API.Model.common
             tags = new List<Tag>();
         }
 
-        public Serie(AnimeSeries ser, int uid)
+        public Serie GenerateFromVideoLocal(VideoLocal vl, int uid)
         {
+            Serie sr = new Serie();
+
+            if (vl != null)
+            {
+                foreach (AnimeEpisode ep in vl.GetAnimeEpisodes())
+                {
+                    sr = GenerateFromAnimeSeries(ep.GetAnimeSeries(), uid);
+                }
+            }
+
+            return sr;
+        }
+
+        public Serie GenerateFromAnimeSeries(AnimeSeries ser, int uid)
+        {
+            Serie sr = new Serie();
+
             Video nv = ser.GetPlexContract(uid);
 
             int Id = 0;
             if (Int32.TryParse(nv.Id, out Id)) { id = Id; }
-            url = nv.Key;
-            type = nv.Type;
-            summary = nv.Summary;
-            year = nv.Year;
-            air = nv.AirDate.ToString();
-            size = nv.LeafCount;
-            viewed = nv.ViewedLeafCount;
-            rating = nv.Rating;
-            season = nv.Season;
-            childcount = nv.ChildCount;
-            titles = nv.Titles;
-            art = new ArtCollection();
-            roles = new List<Role>();
-            tags = new List<Tag>();
+            sr.type = nv.Type;
+            sr.summary = nv.Summary;
+            sr.year = nv.Year;
+            sr.air = nv.AirDate.ToString();
+            sr.size = nv.LeafCount;
+            sr.viewed = nv.ViewedLeafCount;
+            sr.rating = nv.Rating;
+            sr.titles = nv.Titles;
+            sr.title = nv.Title;
 
             // until fanart refactor this will be good for start
-            art.thumb.Add(new Art(){ url = nv.Thumb, index = 0});
-            art.banner.Add(new Art() { url = nv.Banner, index = 0 });
-            art.fanart.Add(new Art() { url = nv.Art, index = 0 });
+            if (String.IsNullOrEmpty(nv.Thumb)) { sr.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0 }); }
+            if (String.IsNullOrEmpty(nv.Banner)) { sr.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Banner), index = 0 }); }
+            if (String.IsNullOrEmpty(nv.Art)) { sr.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Art), index = 0 }); }
 
             if (nv.Roles != null)
             {
                 foreach (RoleTag rtg in nv.Roles)
                 {
                     Role new_role = new Role();
-                    new_role.name = rtg.Value;
-                    new_role.namepic = rtg.TagPicture;
-                    new_role.role = rtg.Role;
-                    new_role.roledesc = rtg.RoleDescription;
-                    new_role.rolepic = rtg.RolePicture;
-                    roles.Add(new_role);
+                    if (!String.IsNullOrEmpty(rtg.Value)) { new_role.name = rtg.Value; } else { new_role.name = ""; }
+                    if (!String.IsNullOrEmpty(rtg.TagPicture)) { new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture); }
+                    if (!String.IsNullOrEmpty(rtg.Role)) { new_role.role = rtg.Role; } else { rtg.Role = ""; }
+                    if (!String.IsNullOrEmpty(rtg.RoleDescription)) { new_role.roledesc = rtg.RoleDescription; } else { new_role.roledesc = ""; }
+                    if (!String.IsNullOrEmpty(rtg.RolePicture)) { new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture); }
+
+                    sr.roles.Add(new_role);
                 }
             }
 
@@ -80,9 +88,21 @@ namespace JMMServer.API.Model.common
                 {
                     Tag new_tag = new Tag();
                     new_tag.tag = otg.Value;
-                    tags.Add(new_tag);
+                    sr.tags.Add(new_tag);
                 }
             }
+
+            List<AnimeEpisode> ael = ser.GetAnimeEpisodes();
+            if (ael.Count > 0)
+            {
+                sr.eps = new List<Episode>();
+                foreach (AnimeEpisode ae in ael)
+                {
+                    sr.eps.Add(new Episode().GenerateFromAnimeEpisode(ae, uid));
+                }
+            }
+
+            return sr;
         }
     }
 }
