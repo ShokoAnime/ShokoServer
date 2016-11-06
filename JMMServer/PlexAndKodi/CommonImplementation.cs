@@ -531,51 +531,51 @@ namespace JMMServer.PlexAndKodi
             Contract_AnimeGroup basegrp = grp?.GetUserContract(userid);
             if (basegrp != null)
             {
-	            List<int> allowedChildGroups = null;
 	            List<AnimeSeries> seriesList = grp.GetSeries();
 	            if (filterID.HasValue)
 	            {
 		            GroupFilter filter = RepoFactory.GroupFilter.GetByID(filterID.Value);
-		            if (filter?.ApplyToSeries > 0)
+		            if (filter != null)
 		            {
-			            if(filter.SeriesIds.ContainsKey(userid))
-				            seriesList =
-					            seriesList.Where(a => filter.SeriesIds[userid].Contains(a.AnimeSeriesID)).ToList();
-			            allowedChildGroups =
-				            seriesList.ToList().SelectMany(a => a.AllGroupsAbove.Select(b => b.AnimeGroupID)).Where(a => a != null).Distinct().ToList();
+			            if (filter.ApplyToSeries > 0)
+			            {
+				            if(filter.SeriesIds.ContainsKey(userid))
+				            	seriesList =
+					            	seriesList.Where(a => filter.SeriesIds[userid].Contains(a.AnimeSeriesID)).ToList();
+			            }
 		            }
 	            }
 	            foreach (AnimeGroup grpChild in grp.GetChildGroups())
                 {
-	                if (allowedChildGroups != null && !allowedChildGroups.IsEmpty())
-	                {
-		                if (!allowedChildGroups.Contains(grpChild.AnimeGroupID)) continue;
-	                }
-                    Video v = grpChild.GetPlexContract(userid);
-	                if (v == null) continue;
-	                v.Type = "show";
-	                v.GenerateKey(prov, userid);
+                    var v = grpChild.GetPlexContract(userid);
+                    if (v != null)
+                    {
+                        v.Type = "show";
+                        v.GenerateKey(prov, userid);
 
-	                v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
-	                v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+                        v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
+                        v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
 
-	                if (nocast) v.Roles = null;
-	                retGroups.Add(prov, v, info);
-	                v.ParentThumb = v.GrandparentThumb = null;
+                        if (nocast) v.Roles = null;
+						retGroups.Add(prov, v, info);
+                        v.ParentThumb = v.GrandparentThumb = null;
+                    }
                 }
                 foreach (AnimeSeries ser in seriesList)
                 {
-                    Directory v = ser.GetPlexContract(userid)?.Clone<Directory>();
-	                if (v == null) continue;
-	                v.AirDate = ser.AirDate;
-	                v.Group = basegrp;
-	                v.Type = "show";
-	                v.GenerateKey(prov, userid);
-	                v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
-	                v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
-	                if (nocast) v.Roles = null;
-	                retGroups.Add(prov, v, info);
-	                v.ParentThumb = v.GrandparentThumb = null;
+                    var v = ser.GetPlexContract(userid)?.Clone<Directory>();
+                    if (v != null)
+                    {
+                        v.AirDate = ser.AirDate;
+                        v.Group = basegrp;
+                        v.Type = "show";
+                        v.GenerateKey(prov, userid);
+	                    v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
+	                    v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+	                    if (nocast) v.Roles = null;
+	                    retGroups.Add(prov, v, info);
+                        v.ParentThumb = v.GrandparentThumb = null;
+                    }
                 }
             }
             ret.MediaContainer.RandomizeArt(retGroups);
@@ -1146,40 +1146,27 @@ namespace JMMServer.PlexAndKodi
                         return ret.GetStream(prov);
                     }
                     Dictionary<Contract_AnimeGroup, Video> order = new Dictionary<Contract_AnimeGroup, Video>();
-
-	                IEnumerable<AnimeGroup> animeGroups = new List<AnimeGroup>();
-	                if (gf.GroupsIds.ContainsKey(userid))
-	                {
-		                // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
-		                animeGroups =
-			                gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null);
-	                }
-	                if (gf.ApplyToSeries > 1 && gf.SeriesIds.ContainsKey(userid))
-	                {
-		                animeGroups =
-			                gf.SeriesIds[userid].ToList()
-				                .Select(a => RepoFactory.AnimeSeries.GetByID(a).TopLevelAnimeGroup)
-				                .Where(a => a != null)
-				                .Distinct();
-	                }
-
-	                foreach (AnimeGroup grp in animeGroups)
-	                {
-		                Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
-		                if (v != null)
-		                {
-			                if (v.Group == null)
-				                v.Group = grp.GetUserContract(userid);
-			                v.GenerateKey(prov, userid);
-			                v.Type = "show";
-			                v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
-			                v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
-			                if (nocast) v.Roles = null;
-			                order.Add(v.Group, v);
-			                retGroups.Add(prov, v, info);
-			                v.ParentThumb = v.GrandparentThumb = null;
-		                }
-	                }
+                    if (gf.GroupsIds.ContainsKey(userid))
+                    {
+                        // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
+                        foreach (AnimeGroup grp in gf.GroupsIds[userid].ToList().Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null))
+                        {
+                            Video v = grp.GetPlexContract(userid)?.Clone<Directory>();
+                            if (v != null)
+                            {
+                                if (v.Group == null)
+                                    v.Group = grp.GetUserContract(userid);
+                                v.GenerateKey(prov, userid);
+                                v.Type = "show";
+	                            v.Art = Helper.GetRandomFanartFromVideo(v) ?? v.Art;
+	                            v.Banner = Helper.GetRandomBannerFromVideo(v) ?? v.Banner;
+	                            if (nocast) v.Roles = null;
+								order.Add(v.Group, v);
+                                retGroups.Add(prov, v, info);
+                                v.ParentThumb = v.GrandparentThumb = null;
+                            }
+                        }
+                    }
                     ret.MediaContainer.RandomizeArt(retGroups);
                     IEnumerable<Contract_AnimeGroup> grps = retGroups.Select(a => a.Group);
                     grps = gf.SortCriteriaList.Count != 0 ? GroupFilterHelper.Sort(grps, gf) : grps.OrderBy(a => a.GroupName);
