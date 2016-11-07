@@ -98,9 +98,9 @@ Source: "..\JMMServer\bin\Release\nl\*"; DestDir: "{app}\nl"; Flags: ignoreversi
 Source: "..\JMMServer\bin\Release\pl\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\JMMServer\bin\Release\pt\*"; DestDir: "{app}\pl"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\JMMServer\bin\Release\ru\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\webui\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\x86\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\JMMServer\bin\Release\x64\*"; DestDir: "{app}\ru"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\JMMServer\bin\Release\webui\*"; DestDir: "{app}\webui"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\JMMServer\bin\Release\x86\*"; DestDir: "{app}\x86"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\JMMServer\bin\Release\x64\*"; DestDir: "{app}\x64"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
