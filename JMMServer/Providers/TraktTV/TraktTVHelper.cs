@@ -9,10 +9,9 @@ using AniDBAPI;
 using JMMServer.Commands;
 using JMMServer.Databases;
 using JMMServer.Entities;
+using JMMServer.Providers.MovieDB;
 using JMMServer.Providers.TraktTV.Contracts;
 using JMMServer.Repositories;
-using JMMServer.Repositories.Cached;
-using JMMServer.Repositories.Direct;
 using JMMServer.Utilities;
 using NHibernate;
 using NLog;
@@ -22,7 +21,6 @@ namespace JMMServer.Providers.TraktTV
     public class TraktTVHelper
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-
         #region Helpers
 
         public static DateTime? GetDateFromUTCString(string sdate)
@@ -377,7 +375,7 @@ namespace JMMServer.Providers.TraktTV
             // download and update series info, episode info and episode images
             // will also download fanart, posters and wide banners
             // download fanart, posters
-            DownloadAllImages(traktID);
+            DownloadImagesFromTMDB(traktID);
 
             CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID, seasonNumber, traktEpNumber,
                 animeID,
@@ -685,21 +683,33 @@ namespace JMMServer.Providers.TraktTV
         /// <param name="forceRefresh"></param>
         public static void UpdateAllInfoAndImages(string traktID, bool forceRefresh)
         {
+            DownloadImagesFromTMDB(traktID);
+        }
+
+        private static void DownloadImagesFromTMDB(string traktID)
+        {
             // this will do the first 3 steps
             TraktV2ShowExtended tvShow = GetShowInfoV2(traktID);
             if (tvShow == null) return;
 
             try
             {
-                //now download the images
-                DownloadAllImages(traktID);
+                // Now download the images from TMDB
+                if (tvShow.ids.tmdb > 0)
+                {
+                    int TMDBid = (int)tvShow.ids.tmdb;
+                    MovieDBHelper.SearchWithTVShowID(TMDBid, true);
+                }
+
+                //DownloadAllImages(traktID);
             }
             catch (Exception ex)
             {
-                logger.Error( ex,"Error in TraktTVHelper.UpdateAllInfoAndImages: " + ex.ToString());
+                logger.Error(ex, "Error in TraktTVHelper.UpdateAllInfoAndImages: " + ex.ToString());
             }
         }
 
+        /*
         public static void DownloadAllImages(string traktID)
         {
             try
@@ -774,6 +784,7 @@ namespace JMMServer.Providers.TraktTV
                 logger.Error( ex,"Error in TraktTVHelper.UpdateAllInfoAndImages: " + ex.ToString());
             }
         }
+        */
 
         #endregion
 

@@ -6,8 +6,6 @@ using JMMServer.Commands;
 using JMMServer.Databases;
 using JMMServer.Entities;
 using JMMServer.Repositories;
-using JMMServer.Repositories.Cached;
-using JMMServer.Repositories.Direct;
 using JMMServer.Repositories.NHibernate;
 using NHibernate;
 using NLog;
@@ -15,6 +13,7 @@ using TMDbLib.Client;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
+using TMDbLib.Objects.TvShows;
 
 namespace JMMServer.Providers.MovieDB
 {
@@ -34,25 +33,31 @@ namespace JMMServer.Providers.MovieDB
             get { return @"http://api.themoviedb.org/2.1/Movie.getInfo/en/xml/{0}/{1}"; }
         }
 
-        public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages)
+        public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages, bool isTrakt)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                SaveMovieToDatabase(session, searchResult, saveImages);
+                SaveMovieToDatabase(session, searchResult, saveImages, isTrakt);
             }
         }
 
-        public static void SaveMovieToDatabase(ISession session, MovieDB_Movie_Result searchResult, bool saveImages)
+        public static void SaveMovieToDatabase(ISession session, MovieDB_Movie_Result searchResult, bool saveImages,
+            bool isTrakt)
         {
-
-           
             ISessionWrapper sessionWrapper = session.Wrap();
 
             // save to the DB
             MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(searchResult.MovieID);
             if (movie == null) movie = new MovieDB_Movie();
             movie.Populate(searchResult);
-            RepoFactory.MovieDb_Movie.Save(movie);
+
+            // Only save movie info if source is not trakt, this presents adding tv shows as movies
+            // Needs better fix later on
+
+            if (!isTrakt)
+            {
+                RepoFactory.MovieDb_Movie.Save(movie);
+            }
 
             if (!saveImages) return;
 
@@ -86,9 +91,10 @@ namespace JMMServer.Providers.MovieDB
             }
 
             // download the posters
-            if (ServerSettings.MovieDB_AutoPosters)
+            if (ServerSettings.MovieDB_AutoPosters || isTrakt)
             {
-                foreach (MovieDB_Poster poster in RepoFactory.MovieDB_Poster.GetByMovieID(sessionWrapper, movie.MovieId))
+                foreach (MovieDB_Poster poster in RepoFactory.MovieDB_Poster.GetByMovieID(sessionWrapper, movie.MovieId)
+                    )
                 {
                     if (numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
                     {
@@ -115,9 +121,10 @@ namespace JMMServer.Providers.MovieDB
             }
 
             // download the fanart
-            if (ServerSettings.MovieDB_AutoFanart)
+            if (ServerSettings.MovieDB_AutoFanart || isTrakt)
             {
-                foreach (MovieDB_Fanart fanart in RepoFactory.MovieDB_Fanart.GetByMovieID(sessionWrapper, movie.MovieId))
+                foreach (MovieDB_Fanart fanart in RepoFactory.MovieDB_Fanart.GetByMovieID(sessionWrapper, movie.MovieId)
+                    )
                 {
                     if (numFanartDownloaded < ServerSettings.MovieDB_AutoFanartAmount)
                     {
@@ -161,7 +168,34 @@ namespace JMMServer.Providers.MovieDB
                     ImagesWithId imgs = client.GetMovieImages(result.Id);
                     searchResult.Populate(movie, imgs);
                     results.Add(searchResult);
-                    SaveMovieToDatabase(searchResult, false);
+                    SaveMovieToDatabase(searchResult, false, false);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error in MovieDB Search: " + ex.Message);
+            }
+
+            return results;
+        }
+        public static List<MovieDB_Movie_Result> SearchWithTVShowID(int id, bool isTrakt)
+        {
+            List<MovieDB_Movie_Result> results = new List<MovieDB_Movie_Result>();
+
+            try
+            {
+                TMDbClient client = new TMDbClient(apiKey);
+                TvShow result = client.GetTvShow(id, TvShowMethods.Undefined, null);
+
+                if (result != null)
+                {
+                    Console.WriteLine("Got TMDB results for id: {0} | show name: {1}", id, result.Name);
+                    MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
+                    Movie movie = client.GetMovie(result.Id);
+                    ImagesWithId imgs = client.GetMovieImages(result.Id);
+                    searchResult.Populate(movie, imgs);
+                    results.Add(searchResult);
+                    SaveMovieToDatabase(searchResult, true, isTrakt);
                 }
             }
             catch (Exception ex)
@@ -192,7 +226,7 @@ namespace JMMServer.Providers.MovieDB
                 searchResult.Populate(movie, imgs);
 
                 // save to the DB
-                SaveMovieToDatabase(session, searchResult, saveImages);
+                SaveMovieToDatabase(session, searchResult, saveImages, false);
             }
             catch (Exception ex)
             {
