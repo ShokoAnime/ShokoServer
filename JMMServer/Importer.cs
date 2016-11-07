@@ -679,6 +679,7 @@ namespace JMMServer
                 }
             }
 
+            /*
             // Trakt Posters
             if (ServerSettings.Trakt_DownloadPosters)
             {
@@ -730,6 +731,7 @@ namespace JMMServer
                     }
                 }
             }
+            */
 
             // AniDB Characters
             if (ServerSettings.AniDB_DownloadCharacters)
