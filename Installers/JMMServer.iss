@@ -80,7 +80,6 @@ Source: "..\JMMServer\bin\Release\Nito.AsyncEx.Enlightenment.xml"; DestDir: "{ap
 Source: "..\JMMServer\bin\Release\Nito.AsyncEx.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\NLog.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\NLog.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\Pri.LongPath.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\protobuf-net.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\RestSharp.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\RestSharp.xml"; DestDir: "{app}"; Flags: ignoreversion
