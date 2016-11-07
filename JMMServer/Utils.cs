@@ -189,20 +189,33 @@ namespace JMMServer
                 StreamWriter BatchFileStream = new StreamWriter(BatchFile);
 
                 //Cleanup previous
-                BatchFileStream.CleanUpDefaultPortsInNetSh(new [] { int.Parse(OldPort), int.Parse(OldFilePort)});
-                BatchFileStream.WriteLine("netsh advfirewall firewall delete rule name=\"JMM Server - Client Port\"");
-                BatchFileStream.WriteLine("netsh advfirewall firewall delete rule name=\"JMM Server - File Port\"");
-                BatchFileStream.WriteLine($@"netsh advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport={Port}");
-                Paths.ForEach(a => BatchFileStream.NetSh(a, "add", Port));
-                BatchFileStream.WriteLine($@"netsh advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport={FilePort}");
-                BatchFileStream.NetSh("", "add", FilePort);
-                BatchFileStream.Close();
+	            try
+	            {
+		            BatchFileStream.CleanUpDefaultPortsInNetSh(new[] {int.Parse(OldPort), int.Parse(OldFilePort)});
+		            BatchFileStream.WriteLine("netsh advfirewall firewall delete rule name=\"JMM Server - Client Port\"");
+		            BatchFileStream.WriteLine("netsh advfirewall firewall delete rule name=\"JMM Server - File Port\"");
+		            BatchFileStream.WriteLine(
+			            $@"netsh advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport={Port}");
+		            Paths.ForEach(a => BatchFileStream.NetSh(a, "add", Port));
+		            BatchFileStream.WriteLine(
+			            $@"netsh advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport={FilePort}");
+		            BatchFileStream.NetSh("", "add", FilePort);
+	            }
+	            finally
+	            {
+		            BatchFileStream.Close();
+	            }
 
                 proc.Start();
                 proc.WaitForExit();
                 exitCode = proc.ExitCode;
                 proc.Close();
                 File.Delete(BatchFile);
+	            if (exitCode != 0)
+	            {
+		            logger.Error("Temporary batch process for netsh and firewall settings returned error code: " + exitCode);
+		            return false;
+	            }
             }
             catch (Exception ex)
             {

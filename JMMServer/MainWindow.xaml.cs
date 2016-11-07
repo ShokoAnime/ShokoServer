@@ -357,19 +357,22 @@ namespace JMMServer
                 {
                     MessageBox.Show("Settings the ports, after that JMMServer will quit, run again in normal mode");
                     Utils.SetNetworkRequirements(ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort, ServerSettings.JMMServerPort, ServerSettings.JMMServerFilePort);
-                    try
-                    {
-                        action();
-                        Application.Current.Shutdown();
-                        return false;
-                    }
-                    catch (Exception)
-                    {
-                        MessageBox.Show("Unable to set the ports");
-                        logger.Error(e);
-                        Application.Current.Shutdown();
-                        return false;
-                    }
+	                try
+	                {
+		                action();
+		                return false;
+	                }
+	                catch (Exception)
+	                {
+		                MessageBox.Show("Unable start hosting");
+		                logger.Error("Unable to run task: " + (action.Method?.Name ?? action.ToString()));
+		                logger.Error(e);
+		                return false;
+	                }
+	                finally
+	                {
+		                Application.Current.Shutdown();
+	                }
 
                 }
                 else
@@ -1118,10 +1121,7 @@ namespace JMMServer
 
 
                 //Moving FileHost up, Mediainfo fill could be trigged from Cache Init
-                NetPermissionWrapper(() =>
-                {
-                    StartFileHost();
-                });
+	            NetPermissionWrapper(StartFileHost);
 
                 logger.Info("Setting up database...");
                 if (!DatabaseFactory.InitDB())
@@ -1148,26 +1148,20 @@ namespace JMMServer
                 logger.Info("Initializing Hosts...");
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingHosts;
                 SetupAniDBProcessor();
-                NetPermissionWrapper(() =>
-                {
-                    try
-                    {
-                        // Start Nancy first so that ServiceHost doesn't get in its way
-                        StartNancyHost();
-                        StartImageHost();
-                        StartBinaryHost();
-                        StartMetroHost();
-                        StartImageHostMetro();
-                        StartStreamingHost();
-                    }
-                    catch (Exception)
-                    {
-                        StopHost();
-                        throw;
-                    }
-                });
+	            bool started = true;
+                started &= NetPermissionWrapper(StartNancyHost);
+	            started &= NetPermissionWrapper(StartImageHost);
+	            started &= NetPermissionWrapper(StartBinaryHost);
+	            started &= NetPermissionWrapper(StartMetroHost);
+	            started &= NetPermissionWrapper(StartImageHostMetro);
+	            started &= NetPermissionWrapper(StartStreamingHost);
+	            if (!started)
+	            {
+		            StopHost();
+		            throw new Exception("Failed to start all of the network hosts");
+	            }
 
-                ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
+	            ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingQueue;
                 JMMService.CmdProcessorGeneral.Init();
                 JMMService.CmdProcessorHasher.Init();
                 JMMService.CmdProcessorImages.Init();
@@ -1503,28 +1497,21 @@ namespace JMMServer
                 else
                     txtServerPort.Text = ServerSettings.JMMServerPort;
 
-                NetPermissionWrapper(() =>
-                {
-                    try
-                    {
-                        StartFileHost();
-                        StartImageHost();
-                        StartBinaryHost();
-                        StartMetroHost();
-                        StartImageHostMetro();
-                        StartStreamingHost();
+	            bool started = true;
+	            started &= NetPermissionWrapper(StartFileHost);
+	            started &= NetPermissionWrapper(StartNancyHost);
+	            started &= NetPermissionWrapper(StartImageHost);
+	            started &= NetPermissionWrapper(StartBinaryHost);
+	            started &= NetPermissionWrapper(StartMetroHost);
+	            started &= NetPermissionWrapper(StartImageHostMetro);
+	            started &= NetPermissionWrapper(StartStreamingHost);
+	            if (!started)
+	            {
+		            StopHost();
+		            throw new Exception("Failed to start all of the network hosts");
+	            }
 
-                        // Disabled nancy for now as it has startup failures
-                        //StartNancyHost();
-                    }
-                    catch (Exception)
-                    {
-                        StopHost();
-                        throw;
-                    }
-                });
-
-                JMMService.CmdProcessorGeneral.Paused = false;
+	            JMMService.CmdProcessorGeneral.Paused = false;
                 JMMService.CmdProcessorHasher.Paused = false;
                 JMMService.CmdProcessorImages.Paused = false;
 
