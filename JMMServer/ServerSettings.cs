@@ -104,21 +104,28 @@ namespace JMMServer
                 {
                     path = tmp_setting_file;
                 }
+	            bool settingsValid = false;
                 if (File.Exists(path))
                 {
-                    appSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
+                    Dictionary<string, string> previousSettings = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path));
                     if (delete_tmp_file)
                     {
                         File.Delete(tmp_setting_file);
                     }
+	                if (HasAllNecessaryFields(previousSettings))
+	                {
+		                appSettings = previousSettings;
+		                settingsValid = true;
+	                }
                 }
-                else
-                {
-                    NameValueCollection col = ConfigurationManager.AppSettings;
-                    appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
-                }
+	            if (!settingsValid)
+	            {
+		            NameValueCollection col = ConfigurationManager.AppSettings;
+		            appSettings = col.AllKeys.ToDictionary(a => a, a => col[a]);
+	            }
 
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+
+	            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
                 if (BaseImagesPathIsDefault || !Directory.Exists(BaseImagesPath))
                 {
                     migrationdirs.Add(new MigrationDirectory
@@ -226,6 +233,14 @@ namespace JMMServer
                 return;
             }           
         }
+
+	    public static bool HasAllNecessaryFields(Dictionary<string, string> settings)
+	    {
+		    // More could be added, but in every case I've seen of a wtf, these were missing
+		    if (Get("AniDB_Username") == null) return false;
+		    if (Get("AniDB_Password") == null) return false;
+		    return true;
+	    }
 
         public static void LoadSettingsFromFile(string setting_file)
         {
