@@ -29,6 +29,10 @@ namespace JMMServer.API.Model.common
         public JMMContracts.PlexAndKodi.Media media { get; set; }
         public int mediasize { get; set; }
 
+        public int id { get; set; }
+
+        public string url { get; set; }
+
         public ArtCollection art { get; set; }
 
         public RawFile()
@@ -42,6 +46,7 @@ namespace JMMServer.API.Model.common
         {
             if (vl != null)
             {
+                id = vl.VideoLocalID;
                 audio = new Dictionary<string, string>();
                 video = new Dictionary<string, string>();
                 art = new ArtCollection();
@@ -75,6 +80,16 @@ namespace JMMServer.API.Model.common
                 mediasize = vl.MediaSize;
 
                 media = vl.Media;
+
+                if (media?.Parts != null)
+                {
+                    foreach (JMMContracts.PlexAndKodi.Part p in media.Parts)
+                    {
+                        string ff = "file." + p.Container;
+                        // TODO APIV2: replace 1 with userid or rewrite file server
+                        url = APIHelper.ConstructVideoLocalStream(1, media.Id, ff, false);
+                    }
+                }
             }
         }
     }
