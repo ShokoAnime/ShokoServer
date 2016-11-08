@@ -11,17 +11,17 @@
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}
-AppName=JMM Server
+AppName=Shoko Server
 AppVersion=3.7.0.0
-;AppVerName=JMM Server 3.7.0.0
-AppPublisher=JMM
+;AppVerName=Shoko Server 3.7.0.0
+AppPublisher=Shoko Team
 AppPublisherURL=https://github.com/japanesemediamanager
 AppSupportURL=https://github.com/japanesemediamanager
 AppUpdatesURL=https://github.com/japanesemediamanager
-DefaultDirName={pf}\JMM\JMM Server
-DefaultGroupName=JMM Server
+DefaultDirName={pf}\Shoko\Shoko Server
+DefaultGroupName=Shoko Server
 AllowNoIcons=yes
-OutputBaseFilename=JMM_Server_Setup
+OutputBaseFilename=Shoko_Server_Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 
@@ -43,10 +43,9 @@ Source: "..\JMMServer\bin\Release\ICSharpCode.SharpZipLib.dll"; DestDir: "{app}"
 Source: "..\JMMServer\bin\Release\Iesi.Collections.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Iesi.Collections.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Infralution.Localization.Wpf.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\JMMServer.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\JMMServer.exe.config"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
-Source: "..\JMMServer\bin\Release\JMMServer.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\JMMServer\bin\Release\JMMServer.vshost.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\ShokoServer.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\JMMServer\bin\Release\ShokoServer.exe.config"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
+Source: "..\JMMServer\bin\Release\ShokoServer.pdb"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.ConnectionInfo.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.ConnectionInfoExtended.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\JMMServer\bin\Release\Microsoft.SqlServer.Management.Sdk.Sfc.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -104,14 +103,14 @@ Source: "..\JMMServer\bin\Release\x64\*"; DestDir: "{app}\x64"; Flags: ignorever
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{group}\JMM Server"; Filename: "{app}\JMMServer.exe"
-Name: "{group}\{cm:UninstallProgram,JMM Server}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\JMM Server"; Filename: "{app}\JMMServer.exe"; Tasks: desktopicon
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\JMM Server"; Filename: "{app}\JMMServer.exe"; Tasks: quicklaunchicon
+Name: "{group}\Shoko Server"; Filename: "{app}\ShokoServer.exe"
+Name: "{group}\{cm:UninstallProgram,Shoko Server}"; Filename: "{uninstallexe}"
+Name: "{commondesktop}\Shoko Server"; Filename: "{app}\ShokoServer.exe"; Tasks: desktopicon
+Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Shoko Server"; Filename: "{app}\ShokoServer.exe"; Tasks: quicklaunchicon
 
 [Run]
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""JMM Server - File Port"" dir=in action=allow protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Shoko Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Shoko Server - File Port"" dir=in action=allow protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerImage sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerBinary sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerMetro sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
@@ -121,11 +120,11 @@ Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMS
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerREST sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/JMMServerStreaming sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
 Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8112/JMMFilePort sddl=D:(A;;GX;;;S-1-1-0)"; Flags: runhidden; StatusMsg: "Registering WCF Service.."
-Filename: "{app}\JMMServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,JMM Server}"Filename: "http://jmediamanager.org/version-3-6-brings-speed-and-streaming/"; Flags: shellexec runasoriginaluser postinstall; Description: "View Release Notes"
+Filename: "{app}\ShokoServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,Shoko Server}"Filename: "http://jmediamanager.org/version-3-6-brings-speed-and-streaming/"; Flags: shellexec runasoriginaluser postinstall; Description: "View Release Notes"
 
 [UninstallRun]
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""JMM Server - File Port"" protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - File Port"" protocol=TCP localport=8112"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerImage"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerBinary"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
 Filename: "{sys}\netsh.exe"; Parameters: "http delete urlacl url=http://+:8111/JMMServerMetro"; Flags: runhidden; StatusMsg: "Unregistering WCF Service...";
