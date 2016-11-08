@@ -362,11 +362,11 @@ namespace JMMServer
 		                action();
 		                return false;
 	                }
-	                catch (Exception)
+	                catch (Exception exception)
 	                {
 		                MessageBox.Show("Unable start hosting");
 		                logger.Error("Unable to run task: " + (action.Method?.Name ?? action.ToString()));
-		                logger.Error(e);
+		                logger.Error(exception);
 		                return false;
 	                }
 	                finally
