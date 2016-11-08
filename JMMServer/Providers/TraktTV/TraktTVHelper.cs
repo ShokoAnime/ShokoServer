@@ -688,8 +688,9 @@ namespace JMMServer.Providers.TraktTV
 
         private static void DownloadImagesFromTMDB(string traktID)
         {
-            // this will do the first 3 steps
+            /*
             TraktV2ShowExtended tvShow = GetShowInfoV2(traktID);
+
             if (tvShow == null) return;
 
             try
@@ -706,7 +707,7 @@ namespace JMMServer.Providers.TraktTV
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in TraktTVHelper.UpdateAllInfoAndImages: " + ex.ToString());
-            }
+            }*/
         }
 
         /*

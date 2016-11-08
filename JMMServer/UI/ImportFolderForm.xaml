@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:JMMServer"
         Title="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_ImportFolder}" Height="Auto"
         Width="500" WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow"
-        SizeToContent="Height" Icon="/JMMServer;component/Images/24_folder.png">
+        SizeToContent="Height" Icon="/ShokoServer;component/Images/24_folder.png">
 
     <Window.Resources>
         <ResourceDictionary>

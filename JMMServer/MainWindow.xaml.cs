@@ -26,8 +26,6 @@ using JMMServer.ImageDownload;
 using JMMServer.MyAnime2Helper;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
-using JMMServer.Repositories.Cached;
-using JMMServer.Repositories.Direct;
 using JMMServer.UI;
 using JMMServer.WCFCompression;
 using Microsoft.SqlServer.Management.Smo;
@@ -152,6 +150,9 @@ namespace JMMServer
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
+            // Migrate programdata folder from JMMServer to ShokoServer
+            MigrateProgramDataLocation();
+
             //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
 
             try
@@ -196,7 +197,7 @@ namespace JMMServer
             // This icon file needs to be in the bin folder of the application
             TippuTrayNotify = new System.Windows.Forms.NotifyIcon();
             Stream iconStream =
-                Application.GetResourceStream(new Uri("pack://application:,,,/JMMServer;component/db.ico")).Stream;
+                Application.GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico")).Stream;
             TippuTrayNotify.Icon = new System.Drawing.Icon(iconStream);
             iconStream.Dispose();
 
@@ -345,6 +346,24 @@ namespace JMMServer
             ServerSettings.ImagesPath = imagePath;
         }
 
+        public void MigrateProgramDataLocation()
+        {
+            string oldApplicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "JMMServer");
+            string newApplicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name);
+            if (Directory.Exists(oldApplicationPath) && !Directory.Exists(newApplicationPath))
+            {
+                try
+                {
+                    Directory.Move(oldApplicationPath, newApplicationPath);
+                    logger.Log(LogLevel.Info, "Successfully migrated programdata folder.");
+                }
+                catch (Exception e)
+                {
+                    logger.Log(LogLevel.Error, "Error occured during MigrateProgramDataLocation()");
+                    logger.Error(e);
+                }
+            }
+        }
         public bool NetPermissionWrapper(Action action)
         {
             try
@@ -1147,7 +1166,7 @@ namespace JMMServer
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingHosts;
                 SetupAniDBProcessor();
 	            bool started = true;
-                started &= NetPermissionWrapper(StartNancyHost);
+                //started &= NetPermissionWrapper(StartNancyHost);
 	            started &= NetPermissionWrapper(StartImageHost);
 	            started &= NetPermissionWrapper(StartBinaryHost);
 	            started &= NetPermissionWrapper(StartMetroHost);
@@ -1252,7 +1271,7 @@ namespace JMMServer
                     ma2Progress.TotalFiles);
             else
                 txtMA2Progress.Text = string.Format("Processed all unlinked files ({0})", ma2Progress.TotalFiles);
-            txtMA2Success.Text = string.Format("{0} files sucessfully migrated", ma2Progress.MigratedFiles);
+            txtMA2Success.Text = string.Format("{0} files successfully migrated", ma2Progress.MigratedFiles);
         }
 
         void workerMyAnime2_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -1497,7 +1516,7 @@ namespace JMMServer
 
 	            bool started = true;
 	            started &= NetPermissionWrapper(StartFileHost);
-	            started &= NetPermissionWrapper(StartNancyHost);
+	            //started &= NetPermissionWrapper(StartNancyHost);
 	            started &= NetPermissionWrapper(StartImageHost);
 	            started &= NetPermissionWrapper(StartBinaryHost);
 	            started &= NetPermissionWrapper(StartMetroHost);
@@ -2690,6 +2709,7 @@ namespace JMMServer
             config.UrlReservations.CreateAutomatically = false;
             config.RewriteLocalhost = true;
             hostNancy = new Nancy.Hosting.Self.NancyHost(config, new Uri("http://localhost:" + ServerSettings.JMMServerPort));
+
             // Even with error callbacks, this may still throw an error in some parts, so log it!
             try
             {

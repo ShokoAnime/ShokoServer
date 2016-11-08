@@ -6,7 +6,7 @@
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
         Width="Auto" Height="Auto"
         Title="{Resx ResxName=JMMServer.Properties.Resources, Key=JMMServer}"
-        Name="aboutWindow" Icon="/JMMServer;component/db.ico">
+        Name="aboutWindow" Icon="/ShokoServer;component/db.ico">
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>

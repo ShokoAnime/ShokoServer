@@ -8,7 +8,7 @@
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight"
         Title="{Resx ResxName=JMMServer.Properties.Resources, Key=Update_UpdateAvailable}" Height="200" Width="600"
-        Icon="/JMMServer;component/db.ico">
+        Icon="/ShokoServer;component/db.ico">
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>

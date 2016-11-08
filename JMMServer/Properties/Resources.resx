@@ -720,7 +720,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>Getting episodes from The TvDB: {0}</value>
   </data>
   <data name="Toolbar_Contribute" xml:space="preserve">
-    <value>Help Make JMM Better!</value>
+    <value>Help Make Shoko Better!</value>
   </data>
   <data name="Link_Contribute" xml:space="preserve">
     <value>http://jmediamanager.org/contribute/</value>
@@ -1210,5 +1210,8 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Server_DatabaseTimeOut" xml:space="preserve">
     <value>Database timeout:</value>
+  </data>
+  <data name="ShokoServer" xml:space="preserve">
+    <value>Shoko Server</value>
   </data>
 </root>

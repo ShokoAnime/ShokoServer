@@ -282,7 +282,7 @@ namespace JMMServer
         }
         private static void WaitForMigrationThenRestart()
         {
-            string applicationPath = "JMMServer.exe";
+            string applicationPath = "ShokoServer.exe";
 
             if (File.Exists(applicationPath))
             {

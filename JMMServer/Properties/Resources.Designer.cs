@@ -3065,6 +3065,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Shoko Server.
+        /// </summary>
+        public static string ShokoServer {
+            get {
+                return ResourceManager.GetString("ShokoServer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to SQLite.
         /// </summary>
         public static string SQLite {
@@ -3182,7 +3191,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Help Make JMM Better!.
+        ///   Looks up a localized string similar to Help Make Shoko Better!.
         /// </summary>
         public static string Toolbar_Contribute {
             get {

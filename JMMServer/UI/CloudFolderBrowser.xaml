@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:JMMServer"
         Title="{Resx ResxName=JMMServer.Properties.Resources, Key=ImportFolders_SelectCloudFolder}" Height="Auto"
         MinWidth="400" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow"
-        SizeToContent="WidthAndHeight" Icon="/JMMServer;component/Images/24_cloud.png">
+        SizeToContent="WidthAndHeight" Icon="/ShokoServer;component/Images/24_cloud.png">
     <Window.Resources>
 
         <ResourceDictionary>

@@ -5,7 +5,7 @@
         ShowInTaskbar="False" WindowStyle="ToolWindow"
         WindowStartupLocation="CenterScreen" Topmost="False" SizeToContent="WidthAndHeight" ResizeMode="NoResize"
         Title="{Resx ResxName=JMMServer.Properties.Resources, Key=InitialSetup_InitialSetup}" Height="Auto"
-        Width="Auto" Name="aboutWindow" Icon="/JMMServer;component/db.ico">
+        Width="Auto" Name="aboutWindow" Icon="/ShokoServer;component/db.ico">
 
     <Window.Resources>
         <ResourceDictionary>

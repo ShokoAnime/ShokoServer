@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using System.IO;
 using System.Text;
 using JMMServer.Commands;
@@ -185,11 +186,12 @@ namespace JMMServer.Providers.MovieDB
             try
             {
                 TMDbClient client = new TMDbClient(apiKey);
-                TvShow result = client.GetTvShow(id, TvShowMethods.Undefined, null);
+                TvShow result = client.GetTvShow(id, TvShowMethods.Images, null);
 
                 if (result != null)
                 {
-                    Console.WriteLine("Got TMDB results for id: {0} | show name: {1}", id, result.Name);
+
+                    logger.Info("Got TMDB results for id: {0} | show name: {1}", id, result.Name);
                     MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
                     Movie movie = client.GetMovie(result.Id);
                     ImagesWithId imgs = client.GetMovieImages(result.Id);
