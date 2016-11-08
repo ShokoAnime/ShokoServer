@@ -2687,6 +2687,15 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Database timeout:.
+        /// </summary>
+        public static string Server_DatabaseTimeOut {
+            get {
+                return ResourceManager.GetString("Server_DatabaseTimeOut", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Please enter a value.
         /// </summary>
         public static string Server_EnterAnyValue {

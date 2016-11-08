@@ -109,6 +109,12 @@ namespace JMMServer.Databases
                     ServerState.Instance.CurrentSetupStatus = Properties.Resources.Server_DatabaseFail;
                     return false;
                 }
+                catch (MySql.Data.MySqlClient.MySqlException e)
+                {
+                    logger.Error(e, "MySQL Database TimeOut: " + e.ToString());
+                    ServerState.Instance.CurrentSetupStatus = Properties.Resources.Server_DatabaseTimeOut;
+                    return false;
+                }
                 return true;
             }
             catch (Exception ex)

@@ -1208,4 +1208,7 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Checking File for Hashes: {0}</value>
   </data>
+  <data name="Server_DatabaseTimeOut" xml:space="preserve">
+    <value>Database timeout:</value>
+  </data>
 </root>
