@@ -149,7 +149,8 @@ namespace JMMServer.API.Module.apiv2
 
             #region 11. Filters
             Get["/filters/get"] = _ => { return GetFilters_old(); };
-            Get["/filters/getnew"] = _ => { return GetFilters(); };
+            Get["/filter/list"] = _ => { return GetFilters(); };
+            Get["/filter/{id}"] = x => { return GetFilter((int)x.id); };
             #endregion
 
             #region 12. Metadata
@@ -1493,49 +1494,7 @@ namespace JMMServer.API.Module.apiv2
 
             foreach (GroupFilter gf in allGfs)
             {
-                Filter filter = new Filter();
-                filter.name = gf.GroupFilterName;
-                filter.id = gf.GroupFilterID;
-                filter.size = 0;
-                filter.type = gf.FilterType.ToString();
-
-                if (gf.GroupsIds.ContainsKey(user.JMMUserID))
-                {
-                    HashSet<int> groups = gf.GroupsIds[user.JMMUserID];
-                    if (groups.Count != 0)
-                    {
-                        filter.size = groups.Count;
-
-                        foreach (int gp in groups)
-                        {
-                            AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(groups.First<int>());
-                            if (ag != null)
-                            {
-                                if (ag.GetPlexContract(user.JMMUserID).Banner != null)
-                                {
-                                    filter.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Banner), index = filter.art.banner.Count });
-                                }
-                                if (ag.GetPlexContract(user.JMMUserID).Art != null & ag.GetPlexContract(user.JMMUserID).Thumb != null)
-                                {
-                                    filter.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Art), index = filter.art.fanart.Count });
-                                }
-                                if (ag.GetPlexContract(user.JMMUserID).Thumb != null & ag.GetPlexContract(user.JMMUserID).Art != null)
-                                {
-                                    filter.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(ag.GetPlexContract(user.JMMUserID).Thumb), index = filter.art.thumb.Count });
-                                }
-
-                                if (filter.art.fanart.Count > 0 && filter.art.thumb.Count > 0)
-                                {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                filter.viewed = 0;
-                filter.url = APIHelper.ConstructFilterIdUrl(filter.id);
-
+                Filter filter = new Filter().GenerateFromGroupFilter(gf, user.JMMUserID);
                 filters.Add(filter);
             }
 
@@ -1555,6 +1514,22 @@ namespace JMMServer.API.Module.apiv2
             }
 
             return filters;
+        }
+
+        /// <summary>
+        /// Return filter with given id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        private object GetFilter(int id)
+        {
+            Request request = this.Request;
+            Entities.JMMUser user = (Entities.JMMUser)this.Context.CurrentUser;
+
+            GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
+            Filter filter = new Filter().GenerateFromGroupFilter(gf, user.JMMUserID);
+
+            return filter;
         }
 
         #endregion

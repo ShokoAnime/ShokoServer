@@ -50,8 +50,7 @@ namespace JMMServer.API.Model.common
 
             Video nv = ser.GetPlexContract(uid);
 
-            int Id = 0;
-            if (Int32.TryParse(nv.Id, out Id)) { id = Id; }
+            sr.id = ser.AnimeSeriesID;
             sr.type = nv.Type;
             sr.summary = nv.Summary;
             sr.year = nv.Year;
@@ -63,9 +62,9 @@ namespace JMMServer.API.Model.common
             sr.title = nv.Title;
 
             // until fanart refactor this will be good for start
-            if (String.IsNullOrEmpty(nv.Thumb)) { sr.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0 }); }
-            if (String.IsNullOrEmpty(nv.Banner)) { sr.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Banner), index = 0 }); }
-            if (String.IsNullOrEmpty(nv.Art)) { sr.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Art), index = 0 }); }
+            if (!String.IsNullOrEmpty(nv.Thumb)) { sr.art.thumb.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Thumb), index = 0 }); }
+            if (!String.IsNullOrEmpty(nv.Banner)) { sr.art.banner.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Banner), index = 0 }); }
+            if (!String.IsNullOrEmpty(nv.Art)) { sr.art.fanart.Add(new Art() { url = APIHelper.ConstructImageLinkFromRest(nv.Art), index = 0 }); }
 
             if (nv.Roles != null)
             {
@@ -73,11 +72,10 @@ namespace JMMServer.API.Model.common
                 {
                     Role new_role = new Role();
                     if (!String.IsNullOrEmpty(rtg.Value)) { new_role.name = rtg.Value; } else { new_role.name = ""; }
-                    if (!String.IsNullOrEmpty(rtg.TagPicture)) { new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture); }
+                    if (!String.IsNullOrEmpty(rtg.TagPicture)) { new_role.namepic = APIHelper.ConstructImageLinkFromRest(rtg.TagPicture); } else { new_role.namepic = ""; }
                     if (!String.IsNullOrEmpty(rtg.Role)) { new_role.role = rtg.Role; } else { rtg.Role = ""; }
-                    if (!String.IsNullOrEmpty(rtg.RoleDescription)) { new_role.roledesc = rtg.RoleDescription; } else { new_role.roledesc = ""; }
-                    if (!String.IsNullOrEmpty(rtg.RolePicture)) { new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture); }
-
+                    if (!String.IsNullOrEmpty(rtg.RoleDescription)) { new_role.roledesc = rtg.RoleDescription; } else { new_role.roledesc = ""; } 
+                    if (!String.IsNullOrEmpty(rtg.RolePicture)) { new_role.rolepic = APIHelper.ConstructImageLinkFromRest(rtg.RolePicture); } else { new_role.rolepic = ""; }
                     sr.roles.Add(new_role);
                 }
             }

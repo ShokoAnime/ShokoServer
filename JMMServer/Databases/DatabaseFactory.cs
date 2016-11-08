@@ -99,22 +99,28 @@ namespace JMMServer.Databases
                     Instance.ExecuteDatabaseFixes();
                     Instance.PopulateInitialData();
                 }
-                catch (DatabaseCommandException e)
+                catch (Exception ex)
                 {
-                    logger.Error(e,e.ToString());
-                    MessageBox.Show(
-                        "Database Error :\n\r " + e.ToString() +
-                        "\n\rNotify developers about this error, it will be logged in your logs", "Database Error",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                    ServerState.Instance.CurrentSetupStatus = Properties.Resources.Server_DatabaseFail;
+                    if (ex is DatabaseCommandException)
+                    {
+                        logger.Error(ex, ex.ToString());
+                        MessageBox.Show(
+                            "Database Error :\n\r " + ex.ToString() +
+                            "\n\rNotify developers about this error, it will be logged in your logs", "Database Error",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                        ServerState.Instance.CurrentSetupStatus = Properties.Resources.Server_DatabaseFail;
+                    }
+                    else
+                    {
+                        if (ex is TimeoutException)
+                        {
+                            logger.Error(ex, "Database TimeOut: " + ex.ToString());
+                            ServerState.Instance.CurrentSetupStatus = Properties.Resources.Server_DatabaseTimeOut;
+                        }
+                    }
                     return false;
                 }
-                catch (MySql.Data.MySqlClient.MySqlException e)
-                {
-                    logger.Error(e, "MySQL Database TimeOut: " + e.ToString());
-                    ServerState.Instance.CurrentSetupStatus = Properties.Resources.Server_DatabaseTimeOut;
-                    return false;
-                }
+
                 return true;
             }
             catch (Exception ex)
