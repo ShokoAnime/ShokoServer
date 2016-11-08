@@ -526,7 +526,8 @@ namespace JMMServer.Providers.Azure
                     var response = webEx.Response as HttpWebResponse;
                     if (response != null)
                     {
-                        Console.WriteLine("HTTP Status Code: " + (int) response.StatusCode);
+						if (!uri.Contains("Admin") || (int)response.StatusCode != 400)
+							logger.Error("HTTP Status Code: " + (int) response.StatusCode);
                         ret = response.StatusCode.ToString();
                     }
                     else
@@ -534,8 +535,8 @@ namespace JMMServer.Providers.Azure
                         // no http status code available
                     }
                 }
-
-                logger.Error("Error(1) in XMLServiceQueue.SendData: {0}", webEx);
+				if(!uri.Contains("Admin"))
+					logger.Error("Error(1) in XMLServiceQueue.SendData: {0}", webEx);
             }
             catch (Exception ex)
             {
