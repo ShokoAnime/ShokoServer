@@ -360,20 +360,18 @@ namespace JMMServer
 	                try
 	                {
 		                action();
-		                return false;
 	                }
 	                catch (Exception exception)
 	                {
 		                MessageBox.Show("Unable start hosting");
 		                logger.Error("Unable to run task: " + (action.Method?.Name ?? action.ToString()));
 		                logger.Error(exception);
-		                return false;
 	                }
 	                finally
 	                {
 		                Application.Current.Shutdown();
 	                }
-
+	                return false;
                 }
                 else
                 {
