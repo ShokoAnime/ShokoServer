@@ -1149,7 +1149,7 @@ namespace JMMServer
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingHosts;
                 SetupAniDBProcessor();
 	            bool started = true;
-                started &= NetPermissionWrapper(StartNancyHost);
+                //started &= NetPermissionWrapper(StartNancyHost);
 	            started &= NetPermissionWrapper(StartImageHost);
 	            started &= NetPermissionWrapper(StartBinaryHost);
 	            started &= NetPermissionWrapper(StartMetroHost);
@@ -1499,7 +1499,7 @@ namespace JMMServer
 
 	            bool started = true;
 	            started &= NetPermissionWrapper(StartFileHost);
-	            started &= NetPermissionWrapper(StartNancyHost);
+	            //started &= NetPermissionWrapper(StartNancyHost);
 	            started &= NetPermissionWrapper(StartImageHost);
 	            started &= NetPermissionWrapper(StartBinaryHost);
 	            started &= NetPermissionWrapper(StartMetroHost);
@@ -2692,6 +2692,7 @@ namespace JMMServer
             config.UrlReservations.CreateAutomatically = false;
             config.RewriteLocalhost = true;
             hostNancy = new Nancy.Hosting.Self.NancyHost(config, new Uri("http://localhost:" + ServerSettings.JMMServerPort));
+
             // Even with error callbacks, this may still throw an error in some parts, so log it!
             try
             {
