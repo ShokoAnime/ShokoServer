@@ -236,10 +236,14 @@ namespace JMMServer
 
 	    public static bool HasAllNecessaryFields(Dictionary<string, string> settings)
 	    {
-		    // More could be added, but in every case I've seen of a wtf, these were missing
-		    if (Get("AniDB_Username") == null) return false;
-		    if (Get("AniDB_Password") == null) return false;
-		    return true;
+	        if (settings == null)
+	            return false;
+
+            // More could be added, but in every case I've seen of a wtf, these were missing
+            if (settings.ContainsKey("AniDB_Username") && settings.ContainsKey("AniDB_Password"))
+	            return true;
+
+            return false;
 	    }
 
         public static void LoadSettingsFromFile(string setting_file)

@@ -29,6 +29,7 @@ namespace JMMServer.UI
             workerTestLogin.ProgressChanged += new ProgressChangedEventHandler(workerTestLogin_ProgressChanged);
             workerTestLogin.RunWorkerCompleted += new RunWorkerCompletedEventHandler(workerTestLogin_RunWorkerCompleted);
             workerTestLogin.WorkerReportsProgress = true;
+            workerTestLogin.WorkerSupportsCancellation = true;
 
             this.Loaded += new RoutedEventHandler(InitialSetupForm_Loaded);
         }
@@ -84,6 +85,14 @@ namespace JMMServer.UI
 
         void btnTestConnection_Click(object sender, RoutedEventArgs e)
         {
+            // Check if already running and cancel if needed
+            if (workerTestLogin.IsBusy)
+                workerTestLogin.CancelAsync();
+
+            // If still running cancel action entirely
+            if (workerTestLogin.IsBusy)
+                return;
+
             if (txtUsername.Text.Trim().Length == 0)
             {
                 MessageBox.Show(Properties.Resources.InitialSetup_EnterUsername, Properties.Resources.Error,

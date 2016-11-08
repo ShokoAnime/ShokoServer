@@ -6,11 +6,11 @@ using System.Windows;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 
-[assembly: AssemblyTitle("JMMServer")]
+[assembly: AssemblyTitle("ShokoServer")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("JMMServer dewds")]
-[assembly: AssemblyProduct("JMMServer")]
+[assembly: AssemblyCompany("ShokoServer dewds")]
+[assembly: AssemblyProduct("ShokoServer")]
 [assembly: AssemblyCopyright("Copyright © Microsoft 2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

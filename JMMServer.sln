@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShokoServer", "JMMServer\ShokoServer.csproj", "{DA8F0783-0F82-4106-9860-6F09BA2EA522}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JMMServer", "JMMServer\JMMServer.csproj", "{DA8F0783-0F82-4106-9860-6F09BA2EA522}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Hasher", "hasher\Hasher.vcxproj", "{4AB1249D-D635-48A3-8F82-FAB34B69AE4C}"
 EndProject
