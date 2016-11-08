@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:JMMServer"
         xmlns:ui="clr-namespace:JMMServer.UI"
-        Title="{Resx ResxName=JMMServer.Properties.Resources, Key=JMMServer}" Height="570" Width="550"
-        Icon="/JMMServer;component/db.ico" WindowStartupLocation="CenterScreen">
+        Title="{Resx ResxName=JMMServer.Properties.Resources, Key=ShokoServer}" Height="570" Width="550"
+        Icon="/ShokoServer;component/db.ico" WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
         <ResourceDictionary>

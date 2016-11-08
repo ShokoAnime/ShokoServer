@@ -998,7 +998,7 @@ You can only have one folder listed as a Drop Destination.</value>
     <value>The Database Version is bigger than the supported version by JMM Server. You should upgrade JMMServer.</value>
   </data>
   <data name="Toolbar_Contribute" xml:space="preserve">
-    <value>Help Make JMM Better!</value>
+    <value>Help Make Shoko Better!</value>
   </data>
   <data name="CloudAccounts_Add" xml:space="preserve">
     <value>Add Account</value>
@@ -1158,5 +1158,8 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Checking File for Hashes: {0}!</value>
+  </data>
+  <data name="ShokoServer" xml:space="preserve">
+    <value>Shoko Server</value>
   </data>
 </root>

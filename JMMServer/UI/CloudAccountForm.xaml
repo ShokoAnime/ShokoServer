@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:JMMServer"
         Title="{Resx ResxName=JMMServer.Properties.Resources, Key=CloudAccounts_Title}" Height="Auto"
         Width="500" WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow"
-        SizeToContent="Height" Icon="/JMMServer;component/Images/24_cloud.png">
+        SizeToContent="Height" Icon="/ShokoServer;component/Images/24_cloud.png">
 
     <Window.Resources>
 

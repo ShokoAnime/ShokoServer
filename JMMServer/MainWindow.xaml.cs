@@ -26,8 +26,6 @@ using JMMServer.ImageDownload;
 using JMMServer.MyAnime2Helper;
 using JMMServer.Providers.TraktTV;
 using JMMServer.Repositories;
-using JMMServer.Repositories.Cached;
-using JMMServer.Repositories.Direct;
 using JMMServer.UI;
 using JMMServer.WCFCompression;
 using Microsoft.SqlServer.Management.Smo;
@@ -196,7 +194,7 @@ namespace JMMServer
             // This icon file needs to be in the bin folder of the application
             TippuTrayNotify = new System.Windows.Forms.NotifyIcon();
             Stream iconStream =
-                Application.GetResourceStream(new Uri("pack://application:,,,/JMMServer;component/db.ico")).Stream;
+                Application.GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico")).Stream;
             TippuTrayNotify.Icon = new System.Drawing.Icon(iconStream);
             iconStream.Dispose();
 
@@ -1252,7 +1250,7 @@ namespace JMMServer
                     ma2Progress.TotalFiles);
             else
                 txtMA2Progress.Text = string.Format("Processed all unlinked files ({0})", ma2Progress.TotalFiles);
-            txtMA2Success.Text = string.Format("{0} files sucessfully migrated", ma2Progress.MigratedFiles);
+            txtMA2Success.Text = string.Format("{0} files successfully migrated", ma2Progress.MigratedFiles);
         }
 
         void workerMyAnime2_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
