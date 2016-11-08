@@ -198,16 +198,24 @@ namespace JMMServer.API
         {
             return ProperURL(Module.apiv2.Core.request.Url.Port, path, short_url);
         }
+
         private static string ProperURL(int? port, string path, bool short_url = false)
-        {           
-            if (!short_url)
+        {
+            if (!string.IsNullOrEmpty(path))
             {
-                return Module.apiv2.Core.request.Url.Scheme + "://" + Module.apiv2.Core.request.Url.HostName + ":" + port + "/" + path;
+                if (!short_url)
+                {
+                    return Module.apiv2.Core.request.Url.Scheme + "://" + Module.apiv2.Core.request.Url.HostName + ":" + port + "/" + path;
+                }
+                else
+                {
+                    return "/" + path;
+                }
             }
             else
             {
-                return "/" + path;
-            }       
+                return "";
+            }      
         }
     }
 }

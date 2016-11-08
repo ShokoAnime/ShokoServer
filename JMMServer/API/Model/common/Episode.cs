@@ -44,6 +44,7 @@ namespace JMMServer.API.Model.common
                 JMMContracts.Contract_AnimeEpisode cae = aep.GetUserContract(uid);
                 if (cae != null)
                 {
+                    ep.id = aep.AniDB_EpisodeID;
                     ep.art = new ArtCollection();
                     ep.id = aep.AnimeEpisodeID;
                     ep.type = aep.EpisodeTypeEnum.ToString();
