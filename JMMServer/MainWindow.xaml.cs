@@ -1166,7 +1166,7 @@ namespace JMMServer
                 ServerState.Instance.CurrentSetupStatus = JMMServer.Properties.Resources.Server_InitializingHosts;
                 SetupAniDBProcessor();
 	            bool started = true;
-                //started &= NetPermissionWrapper(StartNancyHost);
+                started &= NetPermissionWrapper(StartNancyHost);
 	            started &= NetPermissionWrapper(StartImageHost);
 	            started &= NetPermissionWrapper(StartBinaryHost);
 	            started &= NetPermissionWrapper(StartMetroHost);
@@ -1516,7 +1516,7 @@ namespace JMMServer
 
 	            bool started = true;
 	            started &= NetPermissionWrapper(StartFileHost);
-	            //started &= NetPermissionWrapper(StartNancyHost);
+	            started &= NetPermissionWrapper(StartNancyHost);
 	            started &= NetPermissionWrapper(StartImageHost);
 	            started &= NetPermissionWrapper(StartBinaryHost);
 	            started &= NetPermissionWrapper(StartMetroHost);
