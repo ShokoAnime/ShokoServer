@@ -53,8 +53,8 @@ namespace JMMServer.API.Module.apiv2
             Get["/stats_update"] = _ => { return UpdateStats(); };
             Get["/mediainfo_update"] = _ => { return UpdateMediaInfo(); };
             Get["/hash/sync"] = _ => { return HashSync(); };
-            Get["/rescan/{vlid}"] = x => { return RescanVideoLocal(x.vlid); };
-            Get["/rehash/{vlid}"] = x => { return RehashVideoLocal(x.vlid); };
+            Get["/rescan"] = x => { return RescanVideoLocal(); };
+            Get["/rehash"] = x => { return RehashVideoLocal(); };
             #endregion
 
             #region 4. Misc
@@ -126,7 +126,6 @@ namespace JMMServer.API.Module.apiv2
             Get["/serie/watch"] = x => { return MarkSerieWatched(true); };
             Get["/serie/unwatch"] = x => { return MarkSerieWatched(true); };
             Get["/serie/vote"] = x => { return SerieVote(); };
-            Get["/serie/{id}/art"] = x => { return GetSerieArt((int)x.id); };
             #endregion
 
             #region 8. Series - [Obsolete]
@@ -400,14 +399,16 @@ namespace JMMServer.API.Module.apiv2
         /// </summary>
         /// <param name="Vlid"></param>
         /// <returns></returns>
-        private object RescanVideoLocal(string VLid)
+        private object RescanVideoLocal()
         {
-            int vlid = -1;
-            if (int.TryParse(VLid, out vlid))
+            Request request = this.Request;
+            API_Call_Parameters para = this.Bind();
+
+            if (para.id != 0)
             {
                 try
                 {
-                    VideoLocal vid = RepoFactory.VideoLocal.GetByID(vlid);
+                    VideoLocal vid = RepoFactory.VideoLocal.GetByID(para.id);
                     if (vid == null) { return APIStatus.notFound404(); }
                     if (string.IsNullOrEmpty(vid.Hash)) { return APIStatus.badRequest("Could not Update a cloud file without hash, hash it locally first"); }
                     Commands.CommandRequest_ProcessFile cmd = new Commands.CommandRequest_ProcessFile(vid.VideoLocalID, true);
@@ -431,13 +432,14 @@ namespace JMMServer.API.Module.apiv2
         /// </summary>
         /// <param name="VLid"></param>
         /// <returns></returns>
-        private object RehashVideoLocal(string VLid)
+        private object RehashVideoLocal()
         {
-            int vlid = -1;
-            if (int.TryParse(VLid, out vlid))
-            {
-                VideoLocal vl = RepoFactory.VideoLocal.GetByID(vlid);
+            Request request = this.Request;
+            API_Call_Parameters para = this.Bind();
 
+            if (para.id != 0)
+            {
+                VideoLocal vl = RepoFactory.VideoLocal.GetByID(para.id);
                 if (vl != null)
                 {
                     VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
