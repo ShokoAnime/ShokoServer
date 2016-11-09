@@ -150,8 +150,14 @@ namespace JMMServer
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            // Migrate programdata folder from JMMServer to ShokoServer
-            MigrateProgramDataLocation();
+			// Migrate programdata folder from JMMServer to ShokoServer
+			// this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
+			if(!MigrateProgramDataLocation())
+			{
+				MessageBox.Show(JMMServer.Properties.Resources.Migration_LoadError,
+					JMMServer.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
+				Environment.Exit(1);
+			}
 
             //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
 
@@ -346,7 +352,7 @@ namespace JMMServer
             ServerSettings.ImagesPath = imagePath;
         }
 
-        public void MigrateProgramDataLocation()
+        public bool MigrateProgramDataLocation()
         {
             string oldApplicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "JMMServer");
             string newApplicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), System.Reflection.Assembly.GetExecutingAssembly().GetName().Name);
@@ -361,8 +367,10 @@ namespace JMMServer
                 {
                     logger.Log(LogLevel.Error, "Error occured during MigrateProgramDataLocation()");
                     logger.Error(e);
+					return false;
                 }
             }
+			return true;
         }
         public bool NetPermissionWrapper(Action action)
         {

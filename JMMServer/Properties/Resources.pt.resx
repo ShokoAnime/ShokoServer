@@ -1120,11 +1120,8 @@
   <data name="Settings_ChangeServerPortFail" xml:space="preserve">
     <value>Privilégios administrativos são necessários para alterar a porta do servidor usado pelo servidor de Shoko. Por favor reinicie Shoko servidor como um administrador para continuar.</value>
   </data>
-  <data name="Migration_LoadError" xml:space="preserve">
-    <value>Configurações de carregamento de erro:</value>
-  </data>
   <data name="Migration_SettingsError" xml:space="preserve">
-    <value>Migrar configurações de erro:</value>
+    <value>Configurações de carregamento de erro:</value>
   </data>
   <data name="Integrity_DeleteTitle" xml:space="preserve">
     <value>Excluir a verificação de integridade</value>
@@ -1155,5 +1152,17 @@
   </data>
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Verificando o arquivo para Hashes: {0}!</value>
+  </data>
+  <data name="Update_Shoko Server" xml:space="preserve">
+    <value>Atualização Shoko Servidor!</value>
+  </data>
+  <data name="Server_DatabaseTimeOut" xml:space="preserve">
+    <value>tempo limite de banco de dados :!</value>
+  </data>
+  <data name="ShokoServer" xml:space="preserve">
+    <value>Shoko Servidor!</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Migração Falha :!</value>
   </data>
 </root>

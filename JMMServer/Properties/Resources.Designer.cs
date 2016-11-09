@@ -2312,7 +2312,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Error Loading Settings:.
+        ///   Looks up a localized string similar to Migration Failed:.
         /// </summary>
         public static string Migration_LoadError {
             get {
@@ -2321,7 +2321,7 @@ namespace JMMServer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Error Migrating Settings:.
+        ///   Looks up a localized string similar to Error Loading Settings:.
         /// </summary>
         public static string Migration_SettingsError {
             get {

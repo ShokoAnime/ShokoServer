@@ -1120,11 +1120,8 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   <data name="Settings_ChangeServerPortFail" xml:space="preserve">
     <value>Des privilèges d’administrateur sont requises pour modifier le Port du serveur utilisé par le serveur de Shoko. Redémarrez le serveur Shoko en tant qu’administrateur pour continuer.</value>
   </data>
-  <data name="Migration_LoadError" xml:space="preserve">
-    <value>Paramètres de chargement d’erreur :</value>
-  </data>
   <data name="Migration_SettingsError" xml:space="preserve">
-    <value>Migration des paramètres erreur :</value>
+    <value>Paramètres de chargement d’erreur :</value>
   </data>
   <data name="Integrity_DeleteTitle" xml:space="preserve">
     <value>Supprimer le contrôle d’intégrité</value>
@@ -1155,5 +1152,17 @@ Vous ne pouvez avoir qu'un seul dossier répertorié comme une Destination de Dr
   </data>
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Recherchant les hachages de fichier : {0} !</value>
+  </data>
+  <data name="Update_Shoko Server" xml:space="preserve">
+    <value>Mise à jour du serveur Shoko!</value>
+  </data>
+  <data name="Server_DatabaseTimeOut" xml:space="preserve">
+    <value>Base de données temporisation :!</value>
+  </data>
+  <data name="ShokoServer" xml:space="preserve">
+    <value>Shoko serveur!</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>La migration a échoué.</value>
   </data>
 </root>

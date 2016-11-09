@@ -1120,11 +1120,8 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   <data name="Settings_ChangeServerPortFail" xml:space="preserve">
     <value>Aby zmienić Port serwera używany przez serwer Shoko wymagane są uprawnienia administracyjne. Uruchom ponownie serwer Shoko jako Administrator, aby kontynuować.</value>
   </data>
-  <data name="Migration_LoadError" xml:space="preserve">
-    <value>Błąd ładowania ustawień:</value>
-  </data>
   <data name="Migration_SettingsError" xml:space="preserve">
-    <value>Błąd migracji ustawień:</value>
+    <value>Błąd ładowania ustawień:</value>
   </data>
   <data name="Integrity_DeleteTitle" xml:space="preserve">
     <value>Usunąć sprawdzanie integralności</value>
@@ -1155,5 +1152,17 @@ Możesz skonfigurować tylko jeden folder docelowym.</value>
   </data>
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Sprawdzanie pliku skrótów: {0}!</value>
+  </data>
+  <data name="Update_Shoko Server" xml:space="preserve">
+    <value>Aktualizacja Shoko Server!</value>
+  </data>
+  <data name="Server_DatabaseTimeOut" xml:space="preserve">
+    <value>Timeout Baza :!</value>
+  </data>
+  <data name="ShokoServer" xml:space="preserve">
+    <value>Shoko Server!</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Migracja Failed :!</value>
   </data>
 </root>

@@ -1120,11 +1120,8 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   <data name="Settings_ChangeServerPortFail" xml:space="preserve">
     <value>Beheerdersrechten zijn nodig om de poort van de Server die wordt gebruikt door Shoko Server. Start opnieuw Shoko Server als beheerder om te blijven.</value>
   </data>
-  <data name="Migration_LoadError" xml:space="preserve">
-    <value>Instellingen voor foutpagina laden:</value>
-  </data>
   <data name="Migration_SettingsError" xml:space="preserve">
-    <value>Instellingen voor het migreren van fout:</value>
+    <value>Instellingen voor foutpagina laden:</value>
   </data>
   <data name="Integrity_DeleteTitle" xml:space="preserve">
     <value>Verwijderen van Integrity-Check</value>
@@ -1155,5 +1152,17 @@ U kunt slechts één map vermeld als een Drop bestemming hebben.</value>
   </data>
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Controleren van bestand hashes: {0}!</value>
+  </data>
+  <data name="Update_Shoko Server" xml:space="preserve">
+    <value>Update Shoko Server!</value>
+  </data>
+  <data name="Server_DatabaseTimeOut" xml:space="preserve">
+    <value>Database timeout :!</value>
+  </data>
+  <data name="ShokoServer" xml:space="preserve">
+    <value>Shoko Server!</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Migratie is mislukt :!</value>
   </data>
 </root>

@@ -1120,11 +1120,8 @@ You can only have one folder listed as a Drop Destination.</value>
   <data name="Settings_ChangeServerPortFail" xml:space="preserve">
     <value>Administrative Privileges are required to change the Server Port used by Shoko Server. Please restart Shoko Server as an Administrator to continue.</value>
   </data>
-  <data name="Migration_LoadError" xml:space="preserve">
-    <value>Error Loading Settings:</value>
-  </data>
   <data name="Migration_SettingsError" xml:space="preserve">
-    <value>Error Migrating Settings:</value>
+    <value>Error Loading Settings:</value>
   </data>
   <data name="Integrity_DeleteTitle" xml:space="preserve">
     <value>Delete Integrity Check</value>
@@ -1158,5 +1155,14 @@ You can only have one folder listed as a Drop Destination.</value>
   </data>
   <data name="ShokoServer" xml:space="preserve">
     <value>Shoko Server</value>
+  </data>
+  <data name="Update_Shoko Server" xml:space="preserve">
+    <value>Update Shoko Server!</value>
+  </data>
+  <data name="Server_DatabaseTimeOut" xml:space="preserve">
+    <value>Database timeout:!</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Migration Failed:!</value>
   </data>
 </root>

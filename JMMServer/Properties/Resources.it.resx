@@ -1120,11 +1120,8 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   <data name="Settings_ChangeServerPortFail" xml:space="preserve">
     <value>Per cambiare la porta del Server utilizzato da Server di Shoko sono richiesti privilegi amministrativi. Si prega di riavviare Shoko Server come amministratore per continuare.</value>
   </data>
-  <data name="Migration_LoadError" xml:space="preserve">
-    <value>Errore caricamento impostazioni:</value>
-  </data>
   <data name="Migration_SettingsError" xml:space="preserve">
-    <value>La migrazione delle impostazioni di errore:</value>
+    <value>Errore caricamento impostazioni:</value>
   </data>
   <data name="Integrity_DeleteTitle" xml:space="preserve">
     <value>Eliminare il controllo di integrità</value>
@@ -1155,5 +1152,17 @@ Si può avere solo una cartella elencata come una destinazione di Drop.</value>
   </data>
   <data name="Command_CheckingFile" xml:space="preserve">
     <value>Controllo File per hash: {0}!</value>
+  </data>
+  <data name="Update_Shoko Server" xml:space="preserve">
+    <value>Aggiornamento Shoko Server!</value>
+  </data>
+  <data name="Server_DatabaseTimeOut" xml:space="preserve">
+    <value>Timeout Database :!</value>
+  </data>
+  <data name="ShokoServer" xml:space="preserve">
+    <value>Shoko Server!</value>
+  </data>
+  <data name="Migration_LoadError" xml:space="preserve">
+    <value>Migrazione non riuscita.</value>
   </data>
 </root>
